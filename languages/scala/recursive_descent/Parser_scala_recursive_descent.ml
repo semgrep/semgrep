@@ -2401,28 +2401,67 @@ let annotTypeRest t in_ : type_ =
 (* Parsing directives  *)
 (*****************************************************************************)
 
-let wildImportSelector in_ =
-  (* AST: val selector = ImportSelector.wildAt(in.offset) *)
-  nextToken in_
+(* For imports, we will parse a less restrictive version of the Scala grammar.
+   Essentially, we notice that some sequence of dot-separated elements
+   make up the primary path, namely "this", "super", and an identifier.
+   Once that primary path is done, we may see a `as` or `=>`, and then
+   another identifier.
+
+   Otherwise, the primary path may also be terminated with a `*`, `given`,
+   `_`, or brace-delimited list of import specifications.
+*)
 
 (** {{{
- *  ImportSelector ::= Id [`=>` Id | `=>` `_`]
+ *  NamedSelector     ::=  id [‘as’ (id | ‘_’)]
+ *  WildCardSelector  ::=  ‘*' | ‘given’ [InfixType]
+ *  }}}
+*)
+let wildCardSelector in_ =
+  match in_.token with
+  | USCORE ii ->
+      skipToken in_;
+      Left ("_", ii)
+  | STAR ii ->
+      skipToken in_;
+      Left ("*", ii)
+  | _ ->
+      let ii = TH.info_of_tok in_.token in
+      accept (ID_LOWER ("given", ab)) in_;
+      (* only a keyword in Scala 3*)
+      (* TODO: this type is only optional, is this too eager? *)
+      if TH.isTypeIntroToken in_.token then
+        let ty = startInfixType in_ in
+        Right (ii, Some ty)
+      else Right (ii, None)
+
+(** {{{
+ *  ImportSelector ::= Id [`=>` Id | `=>` `_`]  (scala 2)
+                     | NamedSelector            (scala 3)
+                     | WildCardSelector         (scala 3)
  *  }}}
 *)
 let importSelector in_ : import_selector =
-  let name = wildcardOrIdent in_ in
-  let rename =
-    match in_.token with
-    | ARROW ii ->
-        nextToken in_;
-        (* CHECK: "Wildcard import cannot be renamed" *)
-        let alias = wildcardOrIdent in_ in
-        Some (ii, alias)
-    (* AST: if name = nme.WILDCARD && !bbq => null *)
-    | _ -> None
-  in
-  (* ast: ImportSelector(name, start, rename, renameOffset) *)
-  (name, rename)
+  match in_.token with
+  | STAR _
+  | ID_LOWER ("given", _) ->
+      WildCardSelector (wildCardSelector in_)
+  | _ ->
+      (* namedSelector case:
+       *)
+      let name = wildcardOrIdent in_ in
+      let rename =
+        match in_.token with
+        | ARROW _
+        | ID_LOWER ("as", _) ->
+            nextToken in_;
+            (* CHECK: "Wildcard import cannot be renamed" *)
+            let alias = wildcardOrIdent in_ in
+            Some alias
+        (* AST: if name = nme.WILDCARD && !bbq => null *)
+        | _ -> None
+      in
+      (* ast: ImportSelector(name, start, rename, renameOffset) *)
+      NamedSelector (ImportId name, rename)
 
 (** {{{
  *  ImportSelectors ::= `{` {ImportSelector `,`} (ImportSelector | `_`) `}`
@@ -2433,82 +2472,104 @@ let importSelectors in_ : import_selector list bracket =
   inBracesOrNil (commaSeparated importSelector) in_
 
 (** {{{
- *  ImportExpr ::= StableId `.` (Id | `_` | ImportSelectors)
-                 | (* scala-ext: allow this for things like `import $X` *)
+ *  ImportExpr ::= StableId `.` (NamedSelector | WildCardSelector | `_` | ImportSelectors)
+                 | StableId `as` id  (scala 3)
+                 | (* semgrep-ext: allow this for things like `import $X` *)
                    metavariable
  *  }}}
 *)
-let importExpr in_ : import_expr =
+
+(* Since we just accumulate the entire list of the import path, we may have
+   to run it back one step if we reach the end. That's because parsing
+   a.b.c
+   means that our path will be [`a`, `b`, `c`], but we really want to
+   turn it into importing the name `c` from the path `a.b`.
+
+   So this function just splits the last element, taking the "tl".
+*)
+let tl_path path =
+  (* presumably this means the end of the stable id,
+      with nothing after it *)
+  match List.rev path with
+  | last :: rest -> (List.rev rest, last)
+  | [] -> failwith "shouldn't happen"
+
+(* A single "path element". In reality, `super` and `this` are more
+   restricted in where they can appear, but for our purposes we will
+   be lenient.
+*)
+let read_path_elem in_ : import_path_elem =
+  match in_.token with
+  | Ksuper ii ->
+      skipToken in_;
+      ImportSuper ii
+  | Kthis ii ->
+      skipToken in_;
+      ImportThis ii
+  | _ ->
+      let id = ident in_ in
+      ImportId id
+
+(* This walks the import path, reading things like a.b.c until it
+   finds something different.
+*)
+let rec collect_import_path (path : import_path) in_ =
+  match in_.token with
+  (* All the things that can terminate an imported StableId.
+  *)
+  | ARROW _
+  | ID_LOWER ("as", _) -> (
+      nextToken in_;
+      match in_.token with
+      | USCORE _ ->
+          (* This is something like `import a as _`
+             Kind of a weird thing to write. I assume it's just binding it to a weird name.
+          *)
+          let ii = TH.info_of_tok in_.token in
+          accept (USCORE ab) in_;
+          let path, id = tl_path path in
+          ImportExprSpec (path, ImportNamed (id, Some ("_", ii)))
+      | _ ->
+          let path, id = tl_path path in
+          (* either "as" or `=>` *)
+          let id' = ident in_ in
+          ImportExprSpec (path, ImportNamed (id, Some id')))
+  | DOT _ -> (
+      accept (DOT ab) in_;
+      match in_.token with
+      (* import foo.bar._; (scala 2) *)
+      | USCORE _
+      (* import foo.bar.*; (scala 3) *)
+      | STAR _
+      (* import foo.bar.given; (scala 3) *)
+      | ID_LOWER ("given", _) ->
+          ImportExprSpec (path, ImportWildcard (wildCardSelector in_))
+      (* import foo.bar.{ x, y, z } *)
+      | LBRACE _ ->
+          let internal = importSelectors in_ in
+          ImportExprSpec (path, ImportSelectors internal)
+      (* Otherwise, the import path just continues. *)
+      | _ ->
+          let new_path_elem = read_path_elem in_ in
+          collect_import_path (path @ [ new_path_elem ]) in_)
+  (* Here, we probably reached the end of the import expression.
+   *)
+  | _ ->
+      let stable_id, id = tl_path path in
+      ImportExprSpec (stable_id, ImportNamed (id, None))
+
+(* To parse an import expression, first we find a single "element".
+   Then, we collect a dot-separated list of them, until we have
+   reason to read something else.
+*)
+and importExpr in_ : import_expr =
   in_
   |> with_logging "importExpr" (fun () ->
-         let thisDotted nameopt in_ : stable_id =
-           let ii = TH.info_of_tok in_.token in
-           nextToken in_;
-           (* 'this' *)
-           (* AST: val t = This(name) *)
-           accept (DOT ab) in_;
-           let result = selector (*t*) in_ in
-           accept (DOT ab) in_;
-           (This (nameopt, ii), [ result ])
-         in
          (* Walks down import `foo.bar.baz.{ ... }` until it ends at
           * an underscore, a left brace, or an undotted identifier.
           *)
-         let rec loop (expr : stable_id) in_ =
-           (* ast: let selectors = *)
-           match in_.token with
-           (* import foo.bar._; *)
-           | USCORE ii ->
-               let _ = wildImportSelector in_ in
-               (expr, ImportWildcard ii)
-           (* import foo.bar.{ x, y, z } *)
-           | LBRACE _ ->
-               let xs = importSelectors in_ in
-               (expr, ImportSelectors xs)
-           | _ -> (
-               let name = ident in_ in
-               match in_.token with
-               | DOT _ ->
-                   (* import foo.bar.ident.<unknown> and so create a select node and recurse. *)
-                   (* AST: (Select(expr, name)) *)
-                   let sref, selectors = expr in
-                   let t = (sref, selectors @ [ name ]) in
-                   nextToken in_;
-                   loop t in_
-               | _ ->
-                   (* import foo.bar.Baz; *)
-                   (* AST: List(makeImportSelector(name, nameOffset)) *)
-                   (expr, ImportId name))
-           (* reaching here means we're done walking. *)
-           (* AST: Import(expr, selectors) *)
-         in
-         let handle_potential_this_with_id id in_ =
-           let start =
-             match in_.token with
-             | Kthis _ -> thisDotted (Some id) in_
-             | _ -> (Id id, [])
-           in
-           Right (loop start in_)
-         in
-         match in_.token with
-         | Kthis _ ->
-             let start = thisDotted None (*ast: empty*) in_ in
-             Right (loop start in_)
-         (* We should allow single metavariables to be imported. *)
-         | ID_LOWER ((s, _) as id) when AST_generic.is_metavar_name s -> (
-             nextToken in_;
-             match in_.token with
-             | DOT _ ->
-                 nextToken in_;
-                 handle_potential_this_with_id id in_
-             (* If there is no dot next, then it must be a lone metavariable. *)
-             | _ -> Left id)
-         | _ ->
-             (* AST: Ident() *)
-             let id = ident in_ in
-             (* A dot has to come after an ident. *)
-             accept (DOT ab) in_;
-             handle_potential_this_with_id id in_)
+         let new_path_elem = read_path_elem in_ in
+         collect_import_path [ new_path_elem ] in_)
 
 (** {{{
  *  Import  ::= import ImportExpr {`,` ImportExpr}
