@@ -232,7 +232,7 @@ let map f l = fast_map 1000 f l
 (*****************************************************************************)
 
 let rec slow_map2 acc f l1 l2 =
-  match l1, l2 with
+  match (l1, l2) with
   | [], [] -> rev5 acc
   | [ a1 ], [ a2 ] -> rev5 (Elt (f a1 a2, acc))
   | [ a1; b1 ], [ a2; b2 ] ->
@@ -269,7 +269,7 @@ let rec slow_map2 acc f l1 l2 =
 let rec fast_map2 rec_calls_remaining f l1 l2 =
   if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
   else
-    match l1, l2 with
+    match (l1, l2) with
     | [], [] -> []
     | [ a1 ], [ a2 ] -> [ f a1 a2 ]
     | [ a1; b1 ], [ a2; b2 ] ->
@@ -294,14 +294,14 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
         let d = f d1 d2 in
         let e = f e1 e2 in
         [ a; b; c; d; e ]
-  | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      let e = f e1 e2 in
-      a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
-  | _other -> raise (Failure "Common.map2: lists not equal length")
+    | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        let e = f e1 e2 in
+        a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
+    | _other -> raise (Failure "Common.map2: lists not equal length")
 
 (*
    This implementation of List.map makes at most 1000 non-tailrec calls
@@ -310,7 +310,6 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
    Additionally, this implementation guarantees left-to-right evaluation.
 *)
 let map2 f l1 l2 = fast_map2 1000 f l1 l2
-
 
 (*****************************************************************************)
 (* Other list functions *)
