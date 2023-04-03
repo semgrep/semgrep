@@ -167,9 +167,9 @@
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
           "start": {
-            "col": 14,
+            "col": 13,
             "line": 31,
-            "offset": 1142
+            "offset": 1141
           }
         },
         {
