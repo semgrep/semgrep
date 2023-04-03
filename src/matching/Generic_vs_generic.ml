@@ -941,7 +941,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
         when List.length vars =|= List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
-          let mult_assigns = List.map2 create_assigns vars vals in
+          let mult_assigns = Common.map2 create_assigns vars vals in
           let rec aux xs =
             match xs with
             | [] -> fail ()
