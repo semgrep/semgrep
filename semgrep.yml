@@ -87,6 +87,24 @@ rules:
       exclude:
         - SPcre.ml
 
+  - id: no-list-map2
+    pattern: List.map2
+    message: >-
+      `List.map2` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.map2` instead.
+    fix: Common.map2
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: no-list-map
     pattern: List.map
     message: >-
