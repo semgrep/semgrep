@@ -925,15 +925,14 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       let r = (* ")" *) token env v3 in
       Tuple (CompList (l, xs, r), no_ctx)
   | `Paren_exp (v1, v2, v3) ->
-      let _lp = (* "(" *) token env v1 in
+      let lp = (* "(" *) token env v1 in
       let e =
         match v2 with
         | `Exp x -> map_type_ env x
         | `Yield x -> map_yield env x
       in
-      let _rp = (* ")" *) token env v3 in
-      (* TODO? ParenExpr? *)
-      e
+      let rp = (* ")" *) token env v3 in
+      ParenExpr (lp, e, rp)
   | `Gene_exp x ->
       let x = map_generator_expression env x in
       x

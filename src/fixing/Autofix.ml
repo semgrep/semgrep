@@ -63,6 +63,12 @@ let transform_fix lang ast =
           mk_visitor
             {
               default_visitor with
+              (* The default visitor behavior is to create a new expr node every
+               * time, with a new e_id and e_range. Avoid this by overriding
+               * such that we take the new expr_kind and put it in the original
+               * expression. *)
+              kexpr =
+                (fun (k, _) expr -> AST_generic.{ expr with e = (k expr).e });
               kargs =
                 (fun (k, _) args ->
                   let args =
