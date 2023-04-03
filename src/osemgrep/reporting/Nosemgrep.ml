@@ -164,7 +164,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
 let process_ignores ~strict (out : Out.cli_output) : Out.cli_output =
   let results, errors =
     (* filters [rule_match]s by the [nosemgrep] tag. *)
-    List.filter_map
+    Common.map_filter
       (fun rule_match ->
         let to_ignore, errors = rule_match_nosem ~strict rule_match in
         if not to_ignore then Some (rule_match, errors) else None)
