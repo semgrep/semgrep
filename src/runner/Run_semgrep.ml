@@ -522,7 +522,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
   in
   let id_pairs =
     list_of_rule_ids
-    |> List.mapi (fun i x -> (i, x))
+    |> Common.mapi (fun i x -> (i, x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
@@ -595,7 +595,7 @@ let targets_of_config (config : Runner_config.t)
                {
                  In.path = Fpath.to_string file;
                  language = Xlang.to_string xlang;
-                 rule_nums = List.mapi (fun i _ -> i) rule_ids;
+                 rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
       ({ target_mappings; rule_ids }, skipped)
@@ -861,7 +861,7 @@ let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
         id)
       x.rules
   in
-  let rule_nums = List.mapi (fun i _ -> i) rule_ids in
+  let rule_nums = Common.mapi (fun i _ -> i) rule_ids in
   let target_mappings =
     Common.map
       (fun path : Input_to_core_t.target ->

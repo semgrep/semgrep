@@ -308,7 +308,7 @@ and pattern env pat =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List.mapi (fun i pat_i ->
+        |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
@@ -369,7 +369,7 @@ and assign env lhs tok rhs_exp e_gen =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List.mapi (fun i lhs_i ->
+        |> Common.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
                  {

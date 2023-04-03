@@ -141,6 +141,24 @@ rules:
         - graph_code/*
         - lib_parsing/*
 
+  - id: no-list-mapi
+    pattern: List.mapi
+    message: >-
+      `List.mapi` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.mapi` instead.
+    fix: Common.mapi
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: use-concat-map
     pattern-either:
       - pattern: List.map ... |> List.flatten

@@ -144,7 +144,7 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
     | None ->
         let rule_ids_for_lang =
           all_rules
-          |> List.mapi (fun i r -> (i, r))
+          |> Common.mapi (fun i r -> (i, r))
           |> List.filter (fun (_i, r) ->
                  let r_lang = r.Rule.languages in
                  match (xlang, r_lang) with
