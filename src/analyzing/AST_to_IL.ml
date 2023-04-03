@@ -1085,7 +1085,7 @@ and expr_with_pre_stmts_opt env eopt =
 
 and for_var_or_expr_list env xs =
   xs
-  |> Common.map (function
+  |> List.concat_map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -1098,7 +1098,6 @@ and for_var_or_expr_list env xs =
                ss
                @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
            | _ -> []))
-  |> List.flatten
 
 (*****************************************************************************)
 (* Parameters *)
@@ -1157,7 +1156,7 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> PI.unbracket |> Common.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> PI.unbracket |> List.concat_map (stmt env)
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in

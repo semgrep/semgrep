@@ -189,7 +189,7 @@ let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
-  |> Common.map (fun mr ->
+  |> List.concat_map (fun mr ->
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
@@ -210,7 +210,6 @@ let debug_semgrep config mini_rules file lang ast =
            *)
            res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
          res)
-  |> List.flatten
 
 (*****************************************************************************)
 (* Evaluating Semgrep patterns *)

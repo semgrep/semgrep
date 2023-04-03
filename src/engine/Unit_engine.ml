@@ -592,7 +592,7 @@ let tainting_test lang rules_file file =
 
   let matches =
     taint_rules
-    |> Common.map (fun rule ->
+    |> List.concat_map (fun rule ->
            let xtarget =
              {
                Xtarget.file = !!file;
@@ -616,7 +616,6 @@ let tainting_test lang rules_file file =
            | []
            | _ :: _ :: _ ->
                raise Impossible)
-    |> List.flatten
   in
   let actual =
     matches

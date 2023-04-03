@@ -70,7 +70,7 @@ and lvals_in_lval lval =
   in
   base_lvals @ offset_lvals
 
-and lvals_of_exps xs = xs |> Common.map lvals_of_exp |> List.flatten
+and lvals_of_exps xs = xs |> List.concat_map lvals_of_exp
 
 (** The lvals in the RHS of the instruction. *)
 let rlvals_of_instr x =
