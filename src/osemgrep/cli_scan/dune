@@ -7,7 +7,6 @@
     cmdliner
     logs
     commons
-    fmt
 
     semgrep_core_cli
     semgrep_reporting

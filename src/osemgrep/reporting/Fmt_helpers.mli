@@ -1,0 +1,20 @@
+(** Pretty-prints the heading in a box: [pp_heading ppf "Hello"] is layouted as:
+    {[
+      ---------
+      | Hello |
+      ---------
+    ]} *)
+val pp_heading : string Fmt.t
+
+(** Pretty-prints the table with the heading. The first row are strings,
+    the remaining are integers. The first row is left-aligned, all others
+    right-aligned.
+    [pp_table ("H1", [ "H2"; "H3"]) ppf [ ("A", [ 1; 2 ]); ("B", [ 100; 20 ]) ]]
+
+    {[
+      H1  H2 H3
+      ---------
+      A    1  2
+      B  100 20
+    ]} *)
+val pp_table : (string * string list) -> (string * int list) list Fmt.t
