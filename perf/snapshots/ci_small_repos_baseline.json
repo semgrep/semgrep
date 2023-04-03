@@ -6,7 +6,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 66, "line": 141, "offset": 4355 },
+          "end": {
+            "col": 66,
+            "line": 141,
+            "offset": 4355
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -18,11 +22,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/tools/setup/emoji/import_emoji_names_from_csv",
-          "start": { "col": 18, "line": 141, "offset": 4307 }
+          "start": {
+            "col": 18,
+            "line": 141,
+            "offset": 4307
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 59, "line": 134, "offset": 4130 },
+          "end": {
+            "col": 59,
+            "line": 134,
+            "offset": 4130
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -34,11 +46,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/tools/setup/emoji/import_emoji_names_from_csv",
-          "start": { "col": 27, "line": 134, "offset": 4098 }
+          "start": {
+            "col": 27,
+            "line": 134,
+            "offset": 4098
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 57, "line": 57, "offset": 2482 },
+          "end": {
+            "col": 57,
+            "line": 57,
+            "offset": 2482
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -50,11 +70,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/management/commands/sync_ldap_user_data.py",
-          "start": { "col": 33, "line": 57, "offset": 2458 }
+          "start": {
+            "col": 33,
+            "line": 57,
+            "offset": 2458
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 57, "line": 136, "offset": 4201 },
+          "end": {
+            "col": 57,
+            "line": 136,
+            "offset": 4201
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -66,11 +94,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/tools/setup/emoji/import_emoji_names_from_csv",
-          "start": { "col": 27, "line": 136, "offset": 4171 }
+          "start": {
+            "col": 27,
+            "line": 136,
+            "offset": 4171
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 55, "line": 63, "offset": 2404 },
+          "end": {
+            "col": 55,
+            "line": 63,
+            "offset": 2404
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -82,11 +118,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
-          "start": { "col": 31, "line": 63, "offset": 2380 }
+          "start": {
+            "col": 31,
+            "line": 63,
+            "offset": 2380
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 43, "line": 36, "offset": 1416 },
+          "end": {
+            "col": 43,
+            "line": 36,
+            "offset": 1416
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -98,11 +142,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
-          "start": { "col": 25, "line": 36, "offset": 1398 }
+          "start": {
+            "col": 25,
+            "line": 36,
+            "offset": 1398
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
-          "end": { "col": 14, "line": 39, "offset": 1545 },
+          "end": {
+            "col": 14,
+            "line": 39,
+            "offset": 1545
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -114,11 +166,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
-          "start": { "col": 14, "line": 31, "offset": 1142 }
+          "start": {
+            "col": 14,
+            "line": 31,
+            "offset": 1142
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 94, "line": 503, "offset": 20652 },
+          "end": {
+            "col": 94,
+            "line": 503,
+            "offset": 20652
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -130,11 +190,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/auth.py",
-          "start": { "col": 1, "line": 462, "offset": 19227 }
+          "start": {
+            "col": 1,
+            "line": 462,
+            "offset": 19227
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 61, "line": 322, "offset": 12196 },
+          "end": {
+            "col": 61,
+            "line": 322,
+            "offset": 12196
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -146,11 +214,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 317, "offset": 11878 }
+          "start": {
+            "col": 5,
+            "line": 317,
+            "offset": 11878
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 6, "line": 299, "offset": 10724 },
+          "end": {
+            "col": 6,
+            "line": 299,
+            "offset": 10724
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -162,11 +238,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
-          "start": { "col": 1, "line": 282, "offset": 10203 }
+          "start": {
+            "col": 1,
+            "line": 282,
+            "offset": 10203
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 58, "line": 329, "offset": 12514 },
+          "end": {
+            "col": 58,
+            "line": 329,
+            "offset": 12514
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -178,11 +262,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 324, "offset": 12202 }
+          "start": {
+            "col": 5,
+            "line": 324,
+            "offset": 12202
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 57, "line": 306, "offset": 11446 },
+          "end": {
+            "col": 57,
+            "line": 306,
+            "offset": 11446
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -194,11 +286,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 301, "offset": 11136 }
+          "start": {
+            "col": 5,
+            "line": 301,
+            "offset": 11136
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 41, "line": 219, "offset": 8373 },
+          "end": {
+            "col": 41,
+            "line": 219,
+            "offset": 8373
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -210,11 +310,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
-          "start": { "col": 1, "line": 192, "offset": 7470 }
+          "start": {
+            "col": 1,
+            "line": 192,
+            "offset": 7470
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 37, "line": 487, "offset": 18191 },
+          "end": {
+            "col": 37,
+            "line": 487,
+            "offset": 18191
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -226,11 +334,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/users.py",
-          "start": { "col": 1, "line": 359, "offset": 13123 }
+          "start": {
+            "col": 1,
+            "line": 359,
+            "offset": 13123
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 26, "line": 183, "offset": 7293 },
+          "end": {
+            "col": 26,
+            "line": 183,
+            "offset": 7293
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -242,11 +358,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/webhooks/librato/view.py",
-          "start": { "col": 1, "line": 159, "offset": 6516 }
+          "start": {
+            "col": 1,
+            "line": 159,
+            "offset": 6516
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 22, "line": 990, "offset": 37311 },
+          "end": {
+            "col": 22,
+            "line": 990,
+            "offset": 37311
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -258,11 +382,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 971, "offset": 36524 }
+          "start": {
+            "col": 5,
+            "line": 971,
+            "offset": 36524
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 22, "line": 370, "offset": 14146 },
+          "end": {
+            "col": 22,
+            "line": 370,
+            "offset": 14146
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -274,11 +406,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 361, "offset": 13617 }
+          "start": {
+            "col": 5,
+            "line": 361,
+            "offset": 13617
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 22, "line": 315, "offset": 11872 },
+          "end": {
+            "col": 22,
+            "line": 315,
+            "offset": 11872
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -290,11 +430,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 308, "offset": 11452 }
+          "start": {
+            "col": 5,
+            "line": 308,
+            "offset": 11452
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 22, "line": 299, "offset": 11130 },
+          "end": {
+            "col": 22,
+            "line": 299,
+            "offset": 11130
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -306,11 +454,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 282, "offset": 10272 }
+          "start": {
+            "col": 5,
+            "line": 282,
+            "offset": 10272
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 22, "line": 280, "offset": 10266 },
+          "end": {
+            "col": 22,
+            "line": 280,
+            "offset": 10266
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -322,11 +478,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
-          "start": { "col": 5, "line": 257, "offset": 9524 }
+          "start": {
+            "col": 5,
+            "line": 257,
+            "offset": 9524
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 16, "line": 279, "offset": 10200 },
+          "end": {
+            "col": 16,
+            "line": 279,
+            "offset": 10200
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -338,11 +502,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
-          "start": { "col": 1, "line": 226, "offset": 8478 }
+          "start": {
+            "col": 1,
+            "line": 226,
+            "offset": 8478
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.zulip.mutable-default-type",
-          "end": { "col": 15, "line": 1088, "offset": 48253 },
+          "end": {
+            "col": 15,
+            "line": 1088,
+            "offset": 48253
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -354,18 +526,28 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/events.py",
-          "start": { "col": 1, "line": 1000, "offset": 45064 }
+          "start": {
+            "col": 1,
+            "line": 1000,
+            "offset": 45064
+          }
         }
       ]
     }
   },
   {
     "name": "semgrep.bench.dropbox",
-    "findings": { "errors": [], "results": [] }
+    "findings": {
+      "errors": [],
+      "results": []
+    }
   },
   {
     "name": "semgrep.bench.coinbase",
-    "findings": { "errors": [], "results": [] }
+    "findings": {
+      "errors": [],
+      "results": []
+    }
   },
   {
     "name": "semgrep.bench.njs-django",
@@ -374,20 +556,26 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
-          "path": "/Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
           "spans": [
             {
-              "end": { "col": 88, "line": 2 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-              "start": { "col": 1, "line": 1 }
+              "end": {
+                "col": 88,
+                "line": 2
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+              "start": {
+                "col": 1,
+                "line": 1
+              }
             }
           ],
           "type": "Syntax error"
@@ -398,7 +586,10 @@
   },
   {
     "name": "semgrep.bench.apache",
-    "findings": { "errors": [], "results": [] }
+    "findings": {
+      "errors": [],
+      "results": []
+    }
   },
   {
     "name": "semgrep.bench.0c34",
@@ -407,7 +598,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
-          "end": { "col": 44, "line": 100, "offset": 2284 },
+          "end": {
+            "col": 44,
+            "line": 100,
+            "offset": 2284
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -423,11 +618,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
-          "start": { "col": 2, "line": 96, "offset": 2136 }
+          "start": {
+            "col": 2,
+            "line": 96,
+            "offset": 2136
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
-          "end": { "col": 4, "line": 65, "offset": 1465 },
+          "end": {
+            "col": 4,
+            "line": 65,
+            "offset": 1465
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -443,11 +646,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
-          "start": { "col": 3, "line": 53, "offset": 1095 }
+          "start": {
+            "col": 3,
+            "line": 53,
+            "offset": 1095
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
-          "end": { "col": 4, "line": 65, "offset": 1465 },
+          "end": {
+            "col": 4,
+            "line": 65,
+            "offset": 1465
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -463,11 +674,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
-          "start": { "col": 3, "line": 52, "offset": 1034 }
+          "start": {
+            "col": 3,
+            "line": 52,
+            "offset": 1034
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
-          "end": { "col": 38, "line": 63, "offset": 1428 },
+          "end": {
+            "col": 38,
+            "line": 63,
+            "offset": 1428
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -483,11 +702,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
-          "start": { "col": 4, "line": 61, "offset": 1313 }
+          "start": {
+            "col": 4,
+            "line": 61,
+            "offset": 1313
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.database.string-formatted-query.string-formatted-query",
-          "end": { "col": 68, "line": 24, "offset": 471 },
+          "end": {
+            "col": 68,
+            "line": 24,
+            "offset": 471
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -503,11 +730,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/util/database/database.go",
-          "start": { "col": 11, "line": 24, "offset": 414 }
+          "start": {
+            "col": 11,
+            "line": 24,
+            "offset": 414
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
-          "end": { "col": 21, "line": 62, "offset": 1271 },
+          "end": {
+            "col": 21,
+            "line": 62,
+            "offset": 1271
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -523,11 +758,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/csa/csa.go",
-          "start": { "col": 12, "line": 62, "offset": 1262 }
+          "start": {
+            "col": 12,
+            "line": 62,
+            "offset": 1262
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
-          "end": { "col": 21, "line": 164, "offset": 3919 },
+          "end": {
+            "col": 21,
+            "line": 164,
+            "offset": 3919
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -543,11 +786,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/idor/idor.go",
-          "start": { "col": 12, "line": 164, "offset": 3910 }
+          "start": {
+            "col": 12,
+            "line": 164,
+            "offset": 3910
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
-          "end": { "col": 21, "line": 160, "offset": 3760 },
+          "end": {
+            "col": 21,
+            "line": 160,
+            "offset": 3760
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -563,7 +814,11 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/user/user.go",
-          "start": { "col": 12, "line": 160, "offset": 3751 }
+          "start": {
+            "col": 12,
+            "line": 160,
+            "offset": 3751
+          }
         }
       ]
     }
@@ -575,7 +830,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.lodash.javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
-          "end": { "col": 43, "line": 26, "offset": 714 },
+          "end": {
+            "col": 43,
+            "line": 26,
+            "offset": 714
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -587,12 +846,22 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/lodash/input/lodash/endsWith.js",
-          "start": { "col": 23, "line": 26, "offset": 694 }
+          "start": {
+            "col": 23,
+            "line": 26,
+            "offset": 694
+          }
         }
       ]
     }
   },
-  { "name": "semgrep.bench.DVWA", "findings": { "errors": [], "results": [] } },
+  {
+    "name": "semgrep.bench.DVWA",
+    "findings": {
+      "errors": [],
+      "results": []
+    }
+  },
   {
     "name": "semgrep.bench.juice-shop",
     "findings": {
@@ -600,13 +869,19 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
-          "path": "/Users/brandonspark/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
           "spans": [
             {
-              "end": { "col": 8, "line": 14 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
-              "start": { "col": 3, "line": 14 }
+              "end": {
+                "col": 8,
+                "line": 14
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+              "start": {
+                "col": 3,
+                "line": 14
+              }
             }
           ],
           "type": "Syntax error"
@@ -615,7 +890,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.juice-shop.javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
-          "end": { "col": 112, "line": 34, "offset": 2044 },
+          "end": {
+            "col": 112,
+            "line": 34,
+            "offset": 2044
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -631,11 +910,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/juice-shop/input/juice-shop/lib/insecurity.js",
-          "start": { "col": 1, "line": 9, "offset": 184 }
+          "start": {
+            "col": 1,
+            "line": 9,
+            "offset": 184
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.juice-shop.contrib.nodejsscan.eval_yaml_deserialize.yaml_deserialize",
-          "end": { "col": 76, "line": 26, "offset": 977 },
+          "end": {
+            "col": 76,
+            "line": 26,
+            "offset": 977
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -650,7 +937,11 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/juice-shop/input/juice-shop/server.js",
-          "start": { "col": 25, "line": 26, "offset": 926 }
+          "start": {
+            "col": 25,
+            "line": 26,
+            "offset": 926
+          }
         }
       ]
     }
@@ -662,7 +953,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-md5",
-          "end": { "col": 46, "line": 141, "offset": 4329 },
+          "end": {
+            "col": 46,
+            "line": 141,
+            "offset": 4329
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -684,11 +979,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
-          "start": { "col": 25, "line": 141, "offset": 4308 }
+          "start": {
+            "col": 25,
+            "line": 141,
+            "offset": 4308
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.insecure-deserialization.insecure-deserialization",
-          "end": { "col": 29, "line": 329, "offset": 11793 },
+          "end": {
+            "col": 29,
+            "line": 329,
+            "offset": 11793
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -704,11 +1007,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
-          "start": { "col": 17, "line": 329, "offset": 11781 }
+          "start": {
+            "col": 17,
+            "line": 329,
+            "offset": 11781
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.dangerous-template-string.dangerous-template-string",
-          "end": { "col": 89, "line": 114, "offset": 3391 },
+          "end": {
+            "col": 89,
+            "line": 114,
+            "offset": 3391
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -727,11 +1038,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
-          "start": { "col": 5, "line": 103, "offset": 3116 }
+          "start": {
+            "col": 5,
+            "line": 103,
+            "offset": 3116
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.dangerous-template-string.dangerous-template-string",
-          "end": { "col": 100, "line": 281, "offset": 10412 },
+          "end": {
+            "col": 100,
+            "line": 281,
+            "offset": 10412
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -750,7 +1069,11 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
-          "start": { "col": 21, "line": 271, "offset": 9963 }
+          "start": {
+            "col": 21,
+            "line": 271,
+            "offset": 9963
+          }
         }
       ]
     }
@@ -762,7 +1085,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
-          "end": { "col": 59, "line": 28, "offset": 1032 },
+          "end": {
+            "col": 59,
+            "line": 28,
+            "offset": 1032
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -774,11 +1101,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/debughelpers.py",
-          "start": { "col": 13, "line": 23, "offset": 643 }
+          "start": {
+            "col": 13,
+            "line": 23,
+            "offset": 643
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
-          "end": { "col": 36, "line": 53, "offset": 1896 },
+          "end": {
+            "col": 36,
+            "line": 53,
+            "offset": 1896
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -790,11 +1125,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/debughelpers.py",
-          "start": { "col": 13, "line": 51, "offset": 1734 }
+          "start": {
+            "col": 13,
+            "line": 51,
+            "offset": 1734
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",
-          "end": { "col": 23, "line": 703, "offset": 22926 },
+          "end": {
+            "col": 23,
+            "line": 703,
+            "offset": 22926
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -806,11 +1149,19 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/cli.py",
-          "start": { "col": 12, "line": 703, "offset": 22915 }
+          "start": {
+            "col": 12,
+            "line": 703,
+            "offset": 22915
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",
-          "end": { "col": 22, "line": 627, "offset": 20760 },
+          "end": {
+            "col": 22,
+            "line": 627,
+            "offset": 20760
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -822,14 +1173,21 @@
             "severity": "ERROR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/cli.py",
-          "start": { "col": 8, "line": 627, "offset": 20746 }
+          "start": {
+            "col": 8,
+            "line": 627,
+            "offset": 20746
+          }
         }
       ]
     }
   },
   {
     "name": "semgrep.bench.coolMenu",
-    "findings": { "errors": [], "results": [] }
+    "findings": {
+      "errors": [],
+      "results": []
+    }
   },
   {
     "name": "semgrep.bench.t00sh",
@@ -838,18 +1196,30 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
           "spans": [
             {
-              "end": { "col": 20, "line": 62 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-              "start": { "col": 1, "line": 62 }
+              "end": {
+                "col": 20,
+                "line": 62
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "start": {
+                "col": 1,
+                "line": 62
+              }
             },
             {
-              "end": { "col": 7, "line": 64 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-              "start": { "col": 1, "line": 64 }
+              "end": {
+                "col": 7,
+                "line": 64
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "start": {
+                "col": 1,
+                "line": 64
+              }
             }
           ],
           "type": "Syntax error"
@@ -857,33 +1227,63 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
-          "path": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
+          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
           "spans": [
             {
-              "end": { "col": 30, "line": 49 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": { "col": 8, "line": 49 }
+              "end": {
+                "col": 30,
+                "line": 49
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 8,
+                "line": 49
+              }
             },
             {
-              "end": { "col": 63, "line": 102 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": { "col": 46, "line": 102 }
+              "end": {
+                "col": 63,
+                "line": 102
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 51,
+                "line": 102
+              }
             },
             {
-              "end": { "col": 56, "line": 108 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": { "col": 39, "line": 108 }
+              "end": {
+                "col": 56,
+                "line": 108
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 44,
+                "line": 108
+              }
             },
             {
-              "end": { "col": 43, "line": 219 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": { "col": 20, "line": 219 }
+              "end": {
+                "col": 43,
+                "line": 219
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 31,
+                "line": 219
+              }
             },
             {
-              "end": { "col": 44, "line": 238 },
-              "file": "/Users/brandonspark/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-              "start": { "col": 20, "line": 238 }
+              "end": {
+                "col": 44,
+                "line": 238
+              },
+              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "start": {
+                "col": 32,
+                "line": 238
+              }
             }
           ],
           "type": "Syntax error"
@@ -892,7 +1292,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
-          "end": { "col": 52, "line": 214, "offset": 6300 },
+          "end": {
+            "col": 52,
+            "line": 214,
+            "offset": 6300
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -909,11 +1313,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
-          "start": { "col": 5, "line": 214, "offset": 6253 }
+          "start": {
+            "col": 5,
+            "line": 214,
+            "offset": 6253
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
-          "end": { "col": 50, "line": 216, "offset": 6376 },
+          "end": {
+            "col": 50,
+            "line": 216,
+            "offset": 6376
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -930,11 +1342,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
-          "start": { "col": 5, "line": 216, "offset": 6331 }
+          "start": {
+            "col": 5,
+            "line": 216,
+            "offset": 6331
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
-          "end": { "col": 25, "line": 217, "offset": 6402 },
+          "end": {
+            "col": 25,
+            "line": 217,
+            "offset": 6402
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -951,11 +1371,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
-          "start": { "col": 5, "line": 217, "offset": 6382 }
+          "start": {
+            "col": 5,
+            "line": 217,
+            "offset": 6382
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
-          "end": { "col": 24, "line": 215, "offset": 6325 },
+          "end": {
+            "col": 24,
+            "line": 215,
+            "offset": 6325
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -972,7 +1400,11 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
-          "start": { "col": 5, "line": 215, "offset": 6306 }
+          "start": {
+            "col": 5,
+            "line": 215,
+            "offset": 6306
+          }
         }
       ]
     }
@@ -984,7 +1416,11 @@
       "results": [
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 59, "offset": 2594 },
+          "end": {
+            "col": 7,
+            "line": 59,
+            "offset": 2594
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1001,11 +1437,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
-          "start": { "col": 1, "line": 57, "offset": 2456 }
+          "start": {
+            "col": 1,
+            "line": 57,
+            "offset": 2456
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 59, "offset": 2179 },
+          "end": {
+            "col": 7,
+            "line": 59,
+            "offset": 2179
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1022,11 +1466,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 59, "offset": 2173 }
+          "start": {
+            "col": 1,
+            "line": 59,
+            "offset": 2173
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 59, "offset": 2179 },
+          "end": {
+            "col": 7,
+            "line": 59,
+            "offset": 2179
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1043,11 +1495,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 59, "offset": 2173 }
+          "start": {
+            "col": 1,
+            "line": 59,
+            "offset": 2173
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 54, "offset": 2016 },
+          "end": {
+            "col": 7,
+            "line": 54,
+            "offset": 2016
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1064,11 +1524,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 54, "offset": 2010 }
+          "start": {
+            "col": 1,
+            "line": 54,
+            "offset": 2010
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 54, "offset": 2016 },
+          "end": {
+            "col": 7,
+            "line": 54,
+            "offset": 2016
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1085,11 +1553,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 54, "offset": 2010 }
+          "start": {
+            "col": 1,
+            "line": 54,
+            "offset": 2010
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 53, "offset": 2862 },
+          "end": {
+            "col": 7,
+            "line": 53,
+            "offset": 2862
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1106,11 +1582,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 53, "offset": 2856 }
+          "start": {
+            "col": 1,
+            "line": 53,
+            "offset": 2856
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 51, "offset": 2264 },
+          "end": {
+            "col": 7,
+            "line": 51,
+            "offset": 2264
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1127,11 +1611,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
-          "start": { "col": 1, "line": 49, "offset": 2132 }
+          "start": {
+            "col": 1,
+            "line": 49,
+            "offset": 2132
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 50, "offset": 1896 },
+          "end": {
+            "col": 7,
+            "line": 50,
+            "offset": 1896
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1148,11 +1640,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 50, "offset": 1890 }
+          "start": {
+            "col": 1,
+            "line": 50,
+            "offset": 1890
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 50, "offset": 1896 },
+          "end": {
+            "col": 7,
+            "line": 50,
+            "offset": 1896
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1169,11 +1669,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 50, "offset": 1890 }
+          "start": {
+            "col": 1,
+            "line": 50,
+            "offset": 1890
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 49, "offset": 1940 },
+          "end": {
+            "col": 7,
+            "line": 49,
+            "offset": 1940
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1190,11 +1698,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 49, "offset": 1934 }
+          "start": {
+            "col": 1,
+            "line": 49,
+            "offset": 1934
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 43, "offset": 1809 },
+          "end": {
+            "col": 7,
+            "line": 43,
+            "offset": 1809
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1211,11 +1727,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 43, "offset": 1803 }
+          "start": {
+            "col": 1,
+            "line": 43,
+            "offset": 1803
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 42, "offset": 1991 },
+          "end": {
+            "col": 7,
+            "line": 42,
+            "offset": 1991
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1232,11 +1756,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
-          "start": { "col": 1, "line": 40, "offset": 1823 }
+          "start": {
+            "col": 1,
+            "line": 40,
+            "offset": 1823
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 40, "offset": 1870 },
+          "end": {
+            "col": 7,
+            "line": 40,
+            "offset": 1870
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1253,11 +1785,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
-          "start": { "col": 1, "line": 38, "offset": 1782 }
+          "start": {
+            "col": 1,
+            "line": 38,
+            "offset": 1782
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 37, "offset": 1756 },
+          "end": {
+            "col": 7,
+            "line": 37,
+            "offset": 1756
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1274,11 +1814,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/golang/Dockerfile",
-          "start": { "col": 1, "line": 36, "offset": 1692 }
+          "start": {
+            "col": 1,
+            "line": 36,
+            "offset": 1692
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 36, "offset": 1639 },
+          "end": {
+            "col": 7,
+            "line": 36,
+            "offset": 1639
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1295,11 +1843,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/csharp/Dockerfile",
-          "start": { "col": 1, "line": 36, "offset": 1633 }
+          "start": {
+            "col": 1,
+            "line": 36,
+            "offset": 1633
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 35, "offset": 1738 },
+          "end": {
+            "col": 7,
+            "line": 35,
+            "offset": 1738
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1316,11 +1872,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
-          "start": { "col": 1, "line": 35, "offset": 1732 }
+          "start": {
+            "col": 1,
+            "line": 35,
+            "offset": 1732
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 35, "offset": 1720 },
+          "end": {
+            "col": 7,
+            "line": 35,
+            "offset": 1720
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1337,11 +1901,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 35, "offset": 1714 }
+          "start": {
+            "col": 1,
+            "line": 35,
+            "offset": 1714
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 34, "offset": 1664 },
+          "end": {
+            "col": 7,
+            "line": 34,
+            "offset": 1664
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1358,11 +1930,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1658 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1658
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 34, "offset": 1646 },
+          "end": {
+            "col": 7,
+            "line": 34,
+            "offset": 1646
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1379,11 +1959,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1640 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1640
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 25, "offset": 925 },
+          "end": {
+            "col": 7,
+            "line": 25,
+            "offset": 925
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1400,11 +1988,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.21.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 24, "offset": 828 }
+          "start": {
+            "col": 1,
+            "line": 24,
+            "offset": 828
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 5, "line": 25, "offset": 920 },
+          "end": {
+            "col": 5,
+            "line": 25,
+            "offset": 920
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1421,11 +2017,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.12.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 24, "offset": 825 }
+          "start": {
+            "col": 1,
+            "line": 24,
+            "offset": 825
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 5, "line": 25, "offset": 907 },
+          "end": {
+            "col": 5,
+            "line": 25,
+            "offset": 907
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1442,11 +2046,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 24, "offset": 812 }
+          "start": {
+            "col": 1,
+            "line": 24,
+            "offset": 812
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 5, "line": 25, "offset": 906 },
+          "end": {
+            "col": 5,
+            "line": 25,
+            "offset": 906
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1463,11 +2075,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
-          "start": { "col": 1, "line": 24, "offset": 811 }
+          "start": {
+            "col": 1,
+            "line": 24,
+            "offset": 811
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 95, "line": 39, "offset": 2231 },
+          "end": {
+            "col": 95,
+            "line": 39,
+            "offset": 2231
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1484,11 +2104,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 39, "offset": 2137 }
+          "start": {
+            "col": 1,
+            "line": 39,
+            "offset": 2137
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 94, "line": 38, "offset": 2091 },
+          "end": {
+            "col": 94,
+            "line": 38,
+            "offset": 2091
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1505,11 +2133,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 38, "offset": 1998 }
+          "start": {
+            "col": 1,
+            "line": 38,
+            "offset": 1998
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 93, "line": 40, "offset": 2369 },
+          "end": {
+            "col": 93,
+            "line": 40,
+            "offset": 2369
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1526,11 +2162,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 40, "offset": 2277 }
+          "start": {
+            "col": 1,
+            "line": 40,
+            "offset": 2277
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 78, "line": 37, "offset": 1955 },
+          "end": {
+            "col": 78,
+            "line": 37,
+            "offset": 1955
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1547,11 +2191,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1878 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1878
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1623 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1623
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1568,11 +2220,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1549 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1549
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1623 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1623
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1589,11 +2249,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1549 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1549
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1623 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1623
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1610,11 +2278,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1549 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1549
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1621 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1621
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1631,11 +2307,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1547 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1547
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1621 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1621
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1652,11 +2336,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1547 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1547
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1618 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1618
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1673,11 +2365,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1544 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1544
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1618 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1618
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1694,11 +2394,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1544 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1544
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1617 },
+          "end": {
+            "col": 75,
+            "line": 32,
+            "offset": 1617
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1715,11 +2423,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1543 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1543
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 74, "line": 34, "offset": 1731 },
+          "end": {
+            "col": 74,
+            "line": 34,
+            "offset": 1731
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1736,11 +2452,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1658 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1658
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 74, "line": 34, "offset": 1713 },
+          "end": {
+            "col": 74,
+            "line": 34,
+            "offset": 1713
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1757,11 +2481,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1640 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1640
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 50, "offset": 2729 },
+          "end": {
+            "col": 19,
+            "line": 50,
+            "offset": 2729
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1778,11 +2510,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 50, "offset": 2711 }
+          "start": {
+            "col": 1,
+            "line": 50,
+            "offset": 2711
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 41, "offset": 2433 },
+          "end": {
+            "col": 19,
+            "line": 41,
+            "offset": 2433
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1799,11 +2539,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 41, "offset": 2415 }
+          "start": {
+            "col": 1,
+            "line": 41,
+            "offset": 2415
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 40, "offset": 1921 },
+          "end": {
+            "col": 19,
+            "line": 40,
+            "offset": 1921
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1820,11 +2568,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 40, "offset": 1903 }
+          "start": {
+            "col": 1,
+            "line": 40,
+            "offset": 1903
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 37, "offset": 1737 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1737
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1841,11 +2597,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1719 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1719
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 37, "offset": 1735 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1735
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1862,11 +2626,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1717 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1717
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 37, "offset": 1731 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1731
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1883,11 +2655,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1713 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1713
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 37, "offset": 1729 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1729
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1904,11 +2684,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1711 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1711
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 37, "offset": 1728 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1728
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1925,11 +2713,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1710 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1710
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 37, "offset": 1726 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1726
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1946,11 +2742,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1708 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1708
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 36, "offset": 1696 },
+          "end": {
+            "col": 19,
+            "line": 36,
+            "offset": 1696
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1967,11 +2771,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
-          "start": { "col": 1, "line": 36, "offset": 1678 }
+          "start": {
+            "col": 1,
+            "line": 36,
+            "offset": 1678
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 34, "offset": 1620 },
+          "end": {
+            "col": 19,
+            "line": 34,
+            "offset": 1620
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -1988,11 +2800,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/golang/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1602 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1602
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 33, "offset": 1590 },
+          "end": {
+            "col": 19,
+            "line": 33,
+            "offset": 1590
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2009,11 +2829,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
-          "start": { "col": 1, "line": 33, "offset": 1572 }
+          "start": {
+            "col": 1,
+            "line": 33,
+            "offset": 1572
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 32, "offset": 1575 },
+          "end": {
+            "col": 19,
+            "line": 32,
+            "offset": 1575
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2030,11 +2858,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1557 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1557
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 32, "offset": 1575 },
+          "end": {
+            "col": 19,
+            "line": 32,
+            "offset": 1575
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2051,11 +2887,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1557 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1557
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 32, "offset": 1567 },
+          "end": {
+            "col": 19,
+            "line": 32,
+            "offset": 1567
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2072,11 +2916,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1549 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1549
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 31, "offset": 1566 },
+          "end": {
+            "col": 19,
+            "line": 31,
+            "offset": 1566
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2093,11 +2945,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 31, "offset": 1548 }
+          "start": {
+            "col": 1,
+            "line": 31,
+            "offset": 1548
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 31, "offset": 1565 },
+          "end": {
+            "col": 19,
+            "line": 31,
+            "offset": 1565
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2114,11 +2974,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
-          "start": { "col": 1, "line": 31, "offset": 1547 }
+          "start": {
+            "col": 1,
+            "line": 31,
+            "offset": 1547
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 17, "offset": 620 },
+          "end": {
+            "col": 19,
+            "line": 17,
+            "offset": 620
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2135,11 +3003,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.21.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 602 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 602
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 17, "offset": 617 },
+          "end": {
+            "col": 19,
+            "line": 17,
+            "offset": 617
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2156,11 +3032,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 599 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 599
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 17, "offset": 617 },
+          "end": {
+            "col": 19,
+            "line": 17,
+            "offset": 617
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2177,11 +3061,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.12.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 599 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 599
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
-          "end": { "col": 19, "line": 17, "offset": 617 },
+          "end": {
+            "col": 19,
+            "line": 17,
+            "offset": 617
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2198,11 +3090,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 599 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 599
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 40, "offset": 1921 },
+          "end": {
+            "col": 19,
+            "line": 40,
+            "offset": 1921
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2219,11 +3119,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 40, "offset": 1903 }
+          "start": {
+            "col": 1,
+            "line": 40,
+            "offset": 1903
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 37, "offset": 1737 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1737
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2240,11 +3148,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1719 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1719
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 37, "offset": 1735 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1735
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2261,11 +3177,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1717 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1717
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 37, "offset": 1731 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1731
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2282,11 +3206,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1713 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1713
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 37, "offset": 1729 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1729
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2303,11 +3235,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1711 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1711
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 37, "offset": 1728 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1728
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2324,11 +3264,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1710 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1710
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 37, "offset": 1726 },
+          "end": {
+            "col": 19,
+            "line": 37,
+            "offset": 1726
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2345,11 +3293,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1708 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1708
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 36, "offset": 1696 },
+          "end": {
+            "col": 19,
+            "line": 36,
+            "offset": 1696
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2366,11 +3322,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
-          "start": { "col": 1, "line": 36, "offset": 1678 }
+          "start": {
+            "col": 1,
+            "line": 36,
+            "offset": 1678
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 34, "offset": 1620 },
+          "end": {
+            "col": 19,
+            "line": 34,
+            "offset": 1620
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2387,11 +3351,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/golang/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1602 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1602
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 32, "offset": 1575 },
+          "end": {
+            "col": 19,
+            "line": 32,
+            "offset": 1575
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2408,11 +3380,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1557 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1557
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 32, "offset": 1575 },
+          "end": {
+            "col": 19,
+            "line": 32,
+            "offset": 1575
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2429,11 +3409,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1557 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1557
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
-          "end": { "col": 19, "line": 31, "offset": 1566 },
+          "end": {
+            "col": 19,
+            "line": 31,
+            "offset": 1566
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2450,11 +3438,19 @@
             "severity": "WARNING"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 31, "offset": 1548 }
+          "start": {
+            "col": 1,
+            "line": 31,
+            "offset": 1548
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.prefer-apt-get.prefer-apt-get",
-          "end": { "col": 8, "line": 36, "offset": 1783 },
+          "end": {
+            "col": 8,
+            "line": 36,
+            "offset": 1783
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2471,11 +3467,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 36, "offset": 1776 }
+          "start": {
+            "col": 1,
+            "line": 36,
+            "offset": 1776
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 33, "offset": 1620 },
+          "end": {
+            "col": 36,
+            "line": 33,
+            "offset": 1620
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2492,11 +3496,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 33, "offset": 1585 }
+          "start": {
+            "col": 1,
+            "line": 33,
+            "offset": 1585
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 33, "offset": 1611 },
+          "end": {
+            "col": 36,
+            "line": 33,
+            "offset": 1611
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2513,11 +3525,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/Dockerfile",
-          "start": { "col": 1, "line": 33, "offset": 1576 }
+          "start": {
+            "col": 1,
+            "line": 33,
+            "offset": 1576
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 25, "offset": 814 },
+          "end": {
+            "col": 36,
+            "line": 25,
+            "offset": 814
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2534,11 +3554,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/alpine/Dockerfile",
-          "start": { "col": 1, "line": 25, "offset": 779 }
+          "start": {
+            "col": 1,
+            "line": 25,
+            "offset": 779
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 669 },
+          "end": {
+            "col": 36,
+            "line": 18,
+            "offset": 669
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2555,11 +3583,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 634 }
+          "start": {
+            "col": 1,
+            "line": 18,
+            "offset": 634
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 669 },
+          "end": {
+            "col": 36,
+            "line": 18,
+            "offset": 669
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2576,11 +3612,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 634 }
+          "start": {
+            "col": 1,
+            "line": 18,
+            "offset": 634
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 668 },
+          "end": {
+            "col": 36,
+            "line": 18,
+            "offset": 668
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2597,11 +3641,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 633 }
+          "start": {
+            "col": 1,
+            "line": 18,
+            "offset": 633
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 664 },
+          "end": {
+            "col": 36,
+            "line": 18,
+            "offset": 664
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2618,11 +3670,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 629 }
+          "start": {
+            "col": 1,
+            "line": 18,
+            "offset": 629
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 664 },
+          "end": {
+            "col": 36,
+            "line": 18,
+            "offset": 664
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2639,11 +3699,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 629 }
+          "start": {
+            "col": 1,
+            "line": 18,
+            "offset": 629
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 663 },
+          "end": {
+            "col": 36,
+            "line": 18,
+            "offset": 663
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2660,11 +3728,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 628 }
+          "start": {
+            "col": 1,
+            "line": 18,
+            "offset": 628
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 26, "line": 26, "offset": 844 },
+          "end": {
+            "col": 26,
+            "line": 26,
+            "offset": 844
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2681,11 +3757,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/alpine/Dockerfile",
-          "start": { "col": 1, "line": 26, "offset": 819 }
+          "start": {
+            "col": 1,
+            "line": 26,
+            "offset": 819
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 39, "offset": 1814 },
+          "end": {
+            "col": 23,
+            "line": 39,
+            "offset": 1814
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2702,11 +3786,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
-          "start": { "col": 1, "line": 39, "offset": 1792 }
+          "start": {
+            "col": 1,
+            "line": 39,
+            "offset": 1792
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 39, "offset": 1812 },
+          "end": {
+            "col": 23,
+            "line": 39,
+            "offset": 1812
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2723,11 +3815,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
-          "start": { "col": 1, "line": 39, "offset": 1790 }
+          "start": {
+            "col": 1,
+            "line": 39,
+            "offset": 1790
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 34, "offset": 1647 },
+          "end": {
+            "col": 23,
+            "line": 34,
+            "offset": 1647
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2744,11 +3844,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1625 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1625
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 34, "offset": 1638 },
+          "end": {
+            "col": 23,
+            "line": 34,
+            "offset": 1638
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2765,11 +3873,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/Dockerfile",
-          "start": { "col": 1, "line": 34, "offset": 1616 }
+          "start": {
+            "col": 1,
+            "line": 34,
+            "offset": 1616
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 696 },
+          "end": {
+            "col": 23,
+            "line": 19,
+            "offset": 696
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2786,11 +3902,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 674 }
+          "start": {
+            "col": 1,
+            "line": 19,
+            "offset": 674
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 696 },
+          "end": {
+            "col": 23,
+            "line": 19,
+            "offset": 696
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2807,11 +3931,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 674 }
+          "start": {
+            "col": 1,
+            "line": 19,
+            "offset": 674
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 695 },
+          "end": {
+            "col": 23,
+            "line": 19,
+            "offset": 695
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2828,11 +3960,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 673 }
+          "start": {
+            "col": 1,
+            "line": 19,
+            "offset": 673
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 691 },
+          "end": {
+            "col": 23,
+            "line": 19,
+            "offset": 691
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2849,11 +3989,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 669 }
+          "start": {
+            "col": 1,
+            "line": 19,
+            "offset": 669
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 691 },
+          "end": {
+            "col": 23,
+            "line": 19,
+            "offset": 691
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2870,11 +4018,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 669 }
+          "start": {
+            "col": 1,
+            "line": 19,
+            "offset": 669
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 690 },
+          "end": {
+            "col": 23,
+            "line": 19,
+            "offset": 690
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2891,11 +4047,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 668 }
+          "start": {
+            "col": 1,
+            "line": 19,
+            "offset": 668
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 50, "offset": 2751 },
+          "end": {
+            "col": 41,
+            "line": 50,
+            "offset": 2751
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2912,11 +4076,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 50, "offset": 2711 }
+          "start": {
+            "col": 1,
+            "line": 50,
+            "offset": 2711
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 41, "offset": 2455 },
+          "end": {
+            "col": 41,
+            "line": 41,
+            "offset": 2455
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2933,11 +4105,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
-          "start": { "col": 1, "line": 41, "offset": 2415 }
+          "start": {
+            "col": 1,
+            "line": 41,
+            "offset": 2415
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 40, "offset": 1943 },
+          "end": {
+            "col": 41,
+            "line": 40,
+            "offset": 1943
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2954,11 +4134,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 40, "offset": 1903 }
+          "start": {
+            "col": 1,
+            "line": 40,
+            "offset": 1903
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 37, "offset": 1759 },
+          "end": {
+            "col": 41,
+            "line": 37,
+            "offset": 1759
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2975,11 +4163,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1719 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1719
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 37, "offset": 1757 },
+          "end": {
+            "col": 41,
+            "line": 37,
+            "offset": 1757
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -2996,11 +4192,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1717 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1717
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 37, "offset": 1753 },
+          "end": {
+            "col": 41,
+            "line": 37,
+            "offset": 1753
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3017,11 +4221,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1713 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1713
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 37, "offset": 1751 },
+          "end": {
+            "col": 41,
+            "line": 37,
+            "offset": 1751
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3038,11 +4250,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1711 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1711
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 37, "offset": 1750 },
+          "end": {
+            "col": 41,
+            "line": 37,
+            "offset": 1750
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3059,11 +4279,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1710 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1710
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 37, "offset": 1748 },
+          "end": {
+            "col": 41,
+            "line": 37,
+            "offset": 1748
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3080,11 +4308,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
-          "start": { "col": 1, "line": 37, "offset": 1708 }
+          "start": {
+            "col": 1,
+            "line": 37,
+            "offset": 1708
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 36, "offset": 1718 },
+          "end": {
+            "col": 41,
+            "line": 36,
+            "offset": 1718
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3101,11 +4337,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
-          "start": { "col": 1, "line": 36, "offset": 1678 }
+          "start": {
+            "col": 1,
+            "line": 36,
+            "offset": 1678
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 32, "offset": 1597 },
+          "end": {
+            "col": 41,
+            "line": 32,
+            "offset": 1597
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3122,11 +4366,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1557 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1557
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 32, "offset": 1597 },
+          "end": {
+            "col": 41,
+            "line": 32,
+            "offset": 1597
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3143,11 +4395,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1557 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1557
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 32, "offset": 1589 },
+          "end": {
+            "col": 41,
+            "line": 32,
+            "offset": 1589
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3164,11 +4424,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1549 }
+          "start": {
+            "col": 1,
+            "line": 32,
+            "offset": 1549
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 31, "offset": 1588 },
+          "end": {
+            "col": 41,
+            "line": 31,
+            "offset": 1588
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3185,11 +4453,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
-          "start": { "col": 1, "line": 31, "offset": 1548 }
+          "start": {
+            "col": 1,
+            "line": 31,
+            "offset": 1548
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 31, "offset": 1587 },
+          "end": {
+            "col": 41,
+            "line": 31,
+            "offset": 1587
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3206,11 +4482,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
-          "start": { "col": 1, "line": 31, "offset": 1547 }
+          "start": {
+            "col": 1,
+            "line": 31,
+            "offset": 1547
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 17, "offset": 642 },
+          "end": {
+            "col": 41,
+            "line": 17,
+            "offset": 642
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3227,11 +4511,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.21.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 602 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 602
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 17, "offset": 639 },
+          "end": {
+            "col": 41,
+            "line": 17,
+            "offset": 639
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3248,11 +4540,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 599 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 599
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 17, "offset": 639 },
+          "end": {
+            "col": 41,
+            "line": 17,
+            "offset": 639
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3269,11 +4569,19 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.12.0/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 599 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 599
+          }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
-          "end": { "col": 41, "line": 17, "offset": 639 },
+          "end": {
+            "col": 41,
+            "line": 17,
+            "offset": 639
+          },
           "extra": {
             "engine_kind": "OSS",
             "fingerprint": "<masked in benchmarks>",
@@ -3290,7 +4598,11 @@
             "severity": "INFO"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
-          "start": { "col": 1, "line": 17, "offset": 599 }
+          "start": {
+            "col": 1,
+            "line": 17,
+            "offset": 599
+          }
         }
       ]
     }
