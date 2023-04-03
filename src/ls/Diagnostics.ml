@@ -2,11 +2,8 @@ open Lsp
 open Types
 open Lsp_util
 
-(*let logger = Logging.get_logger [ __MODULE__ ]*)
-
 let diagnostic_of location severity message code codeDescription =
   let code = `String code in
-  (* Provided Uri lib has no of_string so this is a little hack :) *)
   let diagnostic =
     Diagnostic.create
       ~range:(range_of_location location)
@@ -16,12 +13,13 @@ let diagnostic_of location severity message code codeDescription =
   | None -> diagnostic ()
   | Some codeDescription ->
       let codeDescription =
+        (* Provided Uri lib has no of_string so this is a little hack :) *)
         CodeDescription.create ~href:(Uri.t_of_yojson (`String codeDescription))
       in
 
       diagnostic ~codeDescription ()
 
-let diagnostic_of_match ((m, r) : Semgrep_output_v1_t.core_match * Rule.rule) =
+let diagnostic_of_match ((m, r) : Reporting.t) =
   let message =
     match m.extra.message with
     | Some message -> message
@@ -39,22 +37,20 @@ let diagnostic_of_match ((m, r) : Semgrep_output_v1_t.core_match * Rule.rule) =
   let source =
     match source with
     | `String s -> Some s
-    | _ -> None
+    | __else__ -> None
   in
   let shortlink = metadata |> Yojson.Safe.Util.member "shortlink" in
   let shortlink =
     match shortlink with
     | `String s -> Some s
-    | _ -> source
+    | __else__ -> source
   in
   diagnostic_of m.location severity message id shortlink
 
-let diagnostics_of_file
-    (matches : (Semgrep_output_v1_t.core_match * Rule.rule) list) file =
+let diagnostics_of_file (matches : Reporting.t list) file =
   let matches =
     Common2.filter
-      (fun ((m, _) : Semgrep_output_v1_t.core_match * Rule.rule) ->
-        m.location.path = file)
+      (fun ((m, _) : Reporting.t) -> m.location.path = file)
       matches
   in
   let diagnostics = Common.map diagnostic_of_match matches in

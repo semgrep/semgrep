@@ -3,10 +3,6 @@ open Types
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-module State = struct
-  type t = Uninitialized | Running | Stopped
-end
-
 module Io =
   Lsp.Io.Make
     (struct
@@ -38,116 +34,18 @@ module Io =
         read_exactly [] n
     end)
 
-module Session = struct
-  type t = {
-    capabilities : ServerCapabilities.t;
-    incoming : Lwt_io.input_channel;
-    outgoing : Lwt_io.output_channel;
-    config : Runner_config.t; (* ... *)
-    root : string;
-    cached_rules : Runner_config.rule_source option;
-    documents :
-      (Uri.t, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
-  }
-
-  (* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
-  let targets session =
-    let config = session.config in
-    match config.target_source with
-    | Some (Targets targets) -> targets
-    | Some (Target_file _) ->
-        let targets, _ = Run_semgrep.targets_of_config config [] in
-        targets
-    | None -> failwith "No targets provided"
-
-  let load_rules session =
-    let config = session.config in
-    let rules =
-      match config.rule_source with
-      | Some (Rule_file file) ->
-          let (rules, _), _ =
-            Common.with_time (fun () ->
-                Parse_rule.parse_and_filter_invalid_rules file)
-          in
-          rules
-      | Some (Rules rules) -> rules
-      | None -> failwith "No rules provided"
-    in
-    { session with cached_rules = Some (Rules rules) }
-
-  let hrules session =
-    let rules =
-      match session.cached_rules with
-      | Some (Rules rules) -> rules
-      | _ -> []
-    in
-    Rule.hrules_of_rules rules
+module State = struct
+  type t = Uninitialized | Running | Stopped
 end
 
-(* This probably should all go in a separate reporting file *)
-
-let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
-  Common2.fold
-    (fun text ((l, v) : string * Semgrep_output_v1_t.metavar_value) ->
-      let re = Str.regexp_string l in
-      Str.global_replace re v.abstract_content text)
-    text metavars
-
-let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
-  let rule_fix (r : Rule.t) =
-    match r.fix with
-    | Some fix -> Some (interpolate_metavars m.extra.metavars fix)
-    (*TODO: regex autofix*)
-    | None -> None
-  in
-  let fix =
-    match m.extra.rendered_fix with
-    | Some fix -> Some fix
-    | None -> rule_fix rule
-  in
-  fix
-
-let postprocess_results results hrules files =
-  let results =
-    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
-      (List.length files) results
-  in
-  let matches =
-    Common2.map
-      (fun (m : Semgrep_output_v1_t.core_match) ->
-        let rule = Hashtbl.find hrules m.rule_id in
-        let m =
-          {
-            m with
-            extra =
-              {
-                m.extra with
-                rendered_fix = convert_fix m rule;
-                message =
-                  Some (interpolate_metavars m.extra.metavars rule.Rule.message);
-              };
-          }
-        in
-        (m, rule))
-      results.matches
-  in
-  let matches =
-    Common2.filter
-      (fun ((_, r) : Semgrep_output_v1_t.core_match * Rule.rule) ->
-        r.severity != Rule.Experiment && r.severity != Rule.Inventory)
-      matches
-  in
-  (* Canonicalize paths so we can convert them to URIs LSP supports later *)
-  (matches, files)
-
 module Server = struct
-  type t = { session : Session.t; state : State.t (* ... *) }
+  type t = { session : Session.t; state : State.t }
 
   (* Why the atomic writes below? The LSP library we use does something weird, *)
   (* it writes the jsonrpc header then body with seperate calls to write, which *)
   (* means there's a race condition there. The below atomic calls ensures that *)
   (* the ENTIRE packet is written at the same time *)
-  let respond id json server =
+  let respond server id json =
     match json with
     | Some json ->
         logger#info "Server response: %s" (Yojson.Safe.to_string json);
@@ -165,7 +63,6 @@ module Server = struct
         Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
 
   let batch_notify server notifications =
-    logger#info "Batch notifications: %d" (List.length notifications);
     Lwt_io.atomic
       (fun channel ->
         Lwt_list.iter_s (notify server ~channel:(Some channel)) notifications)
@@ -195,9 +92,8 @@ module Server = struct
     in
     (* We get duplicate files listed because lang jobs I believe *)
     let files = Common2.uniq files in
-    logger#info "Server scanned %d files" (List.length files);
     let final_results, files =
-      postprocess_results res (Session.hrules server.session) files
+      Reporting.postprocess_results res (Session.hrules server.session) files
     in
     (final_results, files)
 
@@ -221,23 +117,23 @@ module Server = struct
           server
       | Client_notification.DidSaveTextDocument { textDocument = { uri }; _ }
       | Client_notification.TextDocumentDidOpen { textDocument = { uri; _ } } ->
+          logger#info "Scanning %s" (Uri.to_string uri);
           let results, _ = run_semgrep server ~files:[ uri ] in
           Hashtbl.add server.session.documents uri results;
-          logger#info "Added results for %s" (Uri.to_string uri);
           let _ =
             batch_notify server
               (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])
           in
           server
-      | Client_notification.UnknownNotification { method_ = "semgrep/loginFinish"; _ } ->
+      | Client_notification.UnknownNotification
+          { method_ = "semgrep/loginFinish"; _ } ->
           logger#info "Refreshing rules";
           let session = Session.load_rules server.session in
-
           let server = { server with session } in
           scan_workspace server;
           server
-
-      | Client_notification.UnknownNotification { method_ = "semgrep/scanWorkspace"; _ } ->
+      | Client_notification.UnknownNotification
+          { method_ = "semgrep/scanWorkspace"; _ } ->
           logger#info "Scanning workspace";
           server
       | _ ->
@@ -254,21 +150,24 @@ module Server = struct
       | Client_request.Initialize { rootUri; workspaceFolders; _ } ->
           (* There's rootPath, rootUri, and workspaceFolders. First two are
              deprecated, so let's split the diffrence and support last two *)
-          let rootUri =
-            match rootUri with
-            | Some uri -> uri
-            | None -> (
-                match workspaceFolders with
-                | Some (Some ({ uri; _ } :: _)) -> uri
-                | _ -> failwith "No rootUri or workspaceFolders provided")
+          let workspace_uri =
+            match workspaceFolders with
+            | Some (Some ({ uri; _ } :: _)) -> Uri.to_path uri
+            | _ ->
+                logger#warning "No rootUri or workspaceFolders provided";
+                ""
           in
-          let root = Uri.to_path rootUri in
+          let root =
+            match rootUri with
+            | Some uri -> Uri.to_path uri
+            | None -> workspace_uri
+          in
           let init =
             InitializeResult.
               {
                 capabilities = server.session.capabilities;
                 serverInfo =
-                  Some { name = "Semgrep LSP Server"; version = Some "0.0.1" };
+                  Some { name = "Semgrep Language Server"; version = None };
               }
           in
           let server = initialize_session server root in
@@ -306,7 +205,7 @@ module Server = struct
           match Client_request.of_jsonrpc req with
           | Ok (Client_request.E r) ->
               let response, server = on_request r server in
-              let _ = respond req.id response server in
+              let _ = respond server req.id response in
               server
           | Error e ->
               logger#warning "Invalid request: %s" e;
@@ -327,7 +226,7 @@ module Server = struct
         let%lwt server = handle_client_message msg server in
         rpc_loop server ()
 
-  let start server () = Lwt_main.run (rpc_loop server ())
+  let start server = Lwt_main.run (rpc_loop server ())
 
   let capabilities =
     ServerCapabilities.create
@@ -336,7 +235,7 @@ module Server = struct
           (TextDocumentSyncOptions.create ~openClose:true ~save:(`Bool true) ()))
       ~codeActionProvider:(`Bool true) ()
 
-  let create config () =
+  let create config =
     let config =
       {
         config with
@@ -360,7 +259,7 @@ module Server = struct
     }
 end
 
-let start config () =
+let start config =
   logger#info "Starting server";
-  let server = Server.create config () in
-  Server.start server ()
+  let server = Server.create config in
+  Server.start server

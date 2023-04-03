@@ -14,4 +14,5 @@ let string_of_severity (severity : Rule.severity) =
   | Warning -> DiagnosticSeverity.Warning
   | Inventory
   | Experiment
-  | Info -> DiagnosticSeverity.Information
+  | Info ->
+      DiagnosticSeverity.Information

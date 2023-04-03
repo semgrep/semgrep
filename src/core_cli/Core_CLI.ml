@@ -761,6 +761,7 @@ let main (sys_argv : string array) : unit =
   in
 
   if config.lsp then LSP_client.init ();
+  if config.ls then LS.start config;
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->
@@ -785,7 +786,6 @@ let main (sys_argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots } in
-          if config.ls then LS.start config ();
           Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)

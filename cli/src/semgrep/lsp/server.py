@@ -1,52 +1,55 @@
-from builtins import Exception
+import contextlib
+import json
+import logging
 import subprocess
+import sys
+import tempfile
 import threading
 import time
-import json
-import contextlib
+import urllib
+from builtins import Exception
 from tempfile import _TemporaryFileWrapper
-import tempfile
-import logging
+from typing import Any
+from typing import List
+from typing import Optional
 
-import sys
 from pylsp_jsonrpc.streams import JsonRpcStreamReader
 from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 
-import urllib
-from typing import Optional
-from typing import List
-from typing import Any
-
-from semgrep.state import get_state
 from semgrep.app import auth
+from semgrep.commands.login import make_login_url
 from semgrep.core_runner import CoreRunner
 from semgrep.lsp.config import LSPConfig
+from semgrep.state import get_state
 from semgrep.types import JsonObject
-from semgrep.commands.login import make_login_url
 
 log = logging.getLogger(__name__)
 
 # A lot of this could be put in core runner, but once ported that would be unnecessary
 # and putting it there would require a lot of changes (so stuff doesn't print out).
 #
-class SemgrepCoreLSPServer():
-    def __init__(self, rule_file:_TemporaryFileWrapper, target_file: _TemporaryFileWrapper) -> None:
+class SemgrepCoreLSPServer:
+    def __init__(
+        self, rule_file: _TemporaryFileWrapper, target_file: _TemporaryFileWrapper
+    ) -> None:
         self.std_reader = JsonRpcStreamReader(sys.stdin.buffer)
         self.std_writer = JsonRpcStreamWriter(sys.stdout.buffer)
-        self.config = LSPConfig({},[])
+        self.config = LSPConfig({}, [])
         self.rule_file = rule_file
         self.target_file = target_file
 
     def update_targets_file(self) -> None:
         self.config.update_target_manager()
-        self.plan = CoreRunner.plan_core_run(self.config.rules, self.config.target_manager, set())
+        self.plan = CoreRunner.plan_core_run(
+            self.config.rules, self.config.target_manager, set()
+        )
         target_file_contents = json.dumps(self.plan.to_json())
         # So semgrep-core could try to open the target file when it's empty if
         # we just truncated then wrote it (since the truncate may write without
         # a flush call). If we simply write then truncate, it'll be ok because
         # the core will only take the first occurence of the target json in the
         # file. Weird
-        self.target_file.seek(0,0)
+        self.target_file.seek(0, 0)
         self.target_file.write(target_file_contents)
         self.target_file.truncate(len(target_file_contents))
         self.target_file.flush()
@@ -57,7 +60,7 @@ class SemgrepCoreLSPServer():
             rule_file_contents = json.dumps(
                 {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
             )
-            self.rule_file.seek(0,0)
+            self.rule_file.seek(0, 0)
             self.rule_file.write(rule_file_contents)
             self.rule_file.truncate(len(rule_file_contents))
             self.rule_file.flush()
@@ -65,29 +68,39 @@ class SemgrepCoreLSPServer():
             self.notify_show_message(3, f"Error updating rules: {e}")
 
     def start_ls(self) -> None:
-        self.plan = CoreRunner.plan_core_run(self.config.rules, self.config.target_manager, set())
+        self.plan = CoreRunner.plan_core_run(
+            self.config.rules, self.config.target_manager, set()
+        )
 
         self.update_targets_file()
         self.update_rules_file()
 
-        cmd = ["semgrep-core",
-            "-j", str(self.config.jobs),
-            "-rules", self.rule_file.name,
-            "-targets", self.target_file.name,
-            "-max_memory",str(self.config.max_memory),
+        cmd = [
+            "semgrep-core",
+            "-j",
+            str(self.config.jobs),
+            "-rules",
+            self.rule_file.name,
+            "-targets",
+            self.target_file.name,
+            "-max_memory",
+            str(self.config.max_memory),
             "-fast",
             "-ls",
-            "-debug"]
+            "-debug",
+        ]
         self.core_process = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            )
+        )
 
         self.core_reader = JsonRpcStreamReader(self.core_process.stdout)
         self.core_writer = JsonRpcStreamWriter(self.core_process.stdin)
+
         def core_handler() -> None:
             self.core_reader.listen(self.on_core_message)
+
         self.thread = threading.Thread(target=core_handler)
         self.thread.daemon = True
         self.thread.start()
@@ -142,8 +155,6 @@ class SemgrepCoreLSPServer():
             },
         )
 
-
-
     def init_login(self) -> JsonObject:
         session_id, url = make_login_url()
         return {"url": url, "sessionId": str(session_id)}
@@ -176,7 +187,9 @@ class SemgrepCoreLSPServer():
                     auth.set_token(login_token)
                     state = get_state()
                     state.app_session.authenticate()
-                    self.notify_show_message(3, f"Successfully logged in to Semgrep Code")
+                    self.notify_show_message(
+                        3, f"Successfully logged in to Semgrep Code"
+                    )
                     self.update_rules_file()
                     self.update_targets_file()
                 else:
@@ -192,19 +205,20 @@ class SemgrepCoreLSPServer():
 
     def on_std_message(self, msg: JsonObject) -> None:
         # We love a middleware
-        log.info(f"token: {self.config.token}")
-        method = msg.get("method","")
+        method = msg.get("method", "")
         params = msg.get("params", {})
         if method == "initialize":
             self.m_initialize(**params)
 
         if method == "textDocument/didOpen":
             uri = urllib.parse.urlparse(params["textDocument"]["uri"])
-            if urllib.request.url2pathname(uri.path) not in self.config.target_manager.get_all_files():
+            if (
+                urllib.request.url2pathname(uri.path)
+                not in self.config.target_manager.get_all_files()
+            ):
                 self.update_targets_file()
 
         if method == "semgrep/login":
-            log.info(f"{self.config.configs}")
             body = self.m_semgrep__login()
             response = {"id": msg["id"], "result": body}
             self.on_core_message(response)
@@ -227,9 +241,7 @@ def run_server() -> None:
     rule_file = exit_stack.enter_context(
         tempfile.NamedTemporaryFile("w+", suffix=".json")
     )
-    target_file = exit_stack.enter_context(
-        tempfile.NamedTemporaryFile("w+")
-    )
+    target_file = exit_stack.enter_context(tempfile.NamedTemporaryFile("w+"))
     with exit_stack:
         server = SemgrepCoreLSPServer(rule_file, target_file)
         server.start()
