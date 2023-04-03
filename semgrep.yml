@@ -111,6 +111,10 @@ rules:
       - pattern: Common.map ... |> List.flatten
       - pattern: List.map ... |> List.concat
       - pattern: Common.map ... |> List.concat
+      - pattern: ... |> List.map ... |> List.flatten
+      - pattern: ... |> Common.map ... |> List.flatten
+      - pattern: ... |> List.map ... |> List.concat
+      - pattern: ... |> Common.map ... |> List.concat
       - pattern: List.flatten ( List.map ... )
       - pattern: List.flatten ( Common.map ... )
       - pattern: List.concat ( List.map ... )

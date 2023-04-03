@@ -72,7 +72,7 @@ let (matches_of_matcher :
         let res, match_time =
           Common.with_time (fun () ->
               xpatterns
-              |> Common.map (fun (xpat, id, pstr) ->
+              |> List.concat_map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
                      |> Common.map (fun ((loc1, loc2), env) ->
@@ -86,8 +86,7 @@ let (matches_of_matcher :
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
                               engine_kind = OSS;
-                            }))
-              |> List.flatten)
+                            })))
         in
         RP.make_match_result res Report.ErrorSet.empty
           { RP.parse_time; match_time }
