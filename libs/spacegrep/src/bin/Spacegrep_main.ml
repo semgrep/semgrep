@@ -134,7 +134,7 @@ let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
                        Match.timef (fun () -> parse_doc comment_style doc_src)
                      in
                      let matches_in_file =
-                       List.mapi
+                       Common.mapi
                          (fun pat_id (pat_src, pat) ->
                            if debug then
                              printf
