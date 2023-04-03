@@ -190,22 +190,19 @@ let pp_table (h1, heading) ppf entries =
     dec 1 i
   in
   let len1, lengths =
-    let acc = List.map String.length heading in
+    let acc = Common.map String.length heading in
     List.fold_left
       (fun (n1, needed) (c1, curr) ->
         ( max (String.length c1) n1,
-          List.map2 max needed (List.map int_size curr) ))
+          Common.map2 max needed (Common.map int_size curr) ))
       (String.length h1, acc)
       entries
   in
   let llen = List.fold_left (fun acc w -> acc + w + 1) len1 lengths in
   let line = String.make llen '-' in
-  let pad =
-    let max_len = List.fold_left max len1 lengths in
-    let spaces = String.make max_len ' ' in
-    fun str_size len ->
-      let to_pad = succ (len - str_size) in
-      String.sub spaces 0 to_pad
+  let pad str_size len =
+    let to_pad = succ (len - str_size) in
+    String.make to_pad ' '
   in
   Fmt.pf ppf "%s%s" h1 (pad (String.length h1) len1);
   List.iter2
@@ -252,11 +249,11 @@ let pp_status rules targets lang_jobs respect_git_ignore ppf () =
     ("Language", [ "Rules"; "Files" ])
     ppf
     (List.combine
-       (List.map
+       (Common.map
           (fun (job : Runner_config.lang_job) ->
             Xlang.to_string job.Runner_config.lang)
           lang_jobs)
-       (List.map
+       (Common.map
           (fun Runner_config.{ targets; rules; _ } ->
             [ List.length rules; List.length targets ])
           lang_jobs))
