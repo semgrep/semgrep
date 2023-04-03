@@ -191,9 +191,10 @@ let pp_table (h1, heading) ppf entries =
   in
   let len1, lengths =
     let acc = List.map String.length heading in
-    List.fold_left (fun (n1, needed) (c1, curr) ->
-        max (String.length c1) n1,
-        List.map2 max needed (List.map int_size curr))
+    List.fold_left
+      (fun (n1, needed) (c1, curr) ->
+        ( max (String.length c1) n1,
+          List.map2 max needed (List.map int_size curr) ))
       (String.length h1, acc)
       entries
   in
@@ -211,11 +212,13 @@ let pp_table (h1, heading) ppf entries =
     (fun h l -> Fmt.pf ppf "%s%s" h (pad (String.length h) l))
     heading lengths;
   Fmt.pf ppf "@.%s@." line;
-  List.iter (fun (e1, entries) ->
+  List.iter
+    (fun (e1, entries) ->
       Fmt.pf ppf "%s%s"
         (String.capitalize_ascii e1)
         (pad (String.length e1) len1);
-      List.iter2 (fun e l -> Fmt.pf ppf "%s%u" (pad (int_size e) l) e)
+      List.iter2
+        (fun e l -> Fmt.pf ppf "%s%u" (pad (int_size e) l) e)
         entries lengths;
       Fmt.pf ppf "@.")
     entries;
@@ -232,28 +235,31 @@ let pp_status rules targets lang_jobs respect_git_ignore ppf () =
   pp_heading ppf "Scan status";
   (* TODO indentation of the body *)
   let pp_s ppf x = if x = 1 then Fmt.string ppf "" else Fmt.string ppf "s" in
-  Fmt.pf ppf "Scanning %d files%s with %d Code rule%a"
-    (List.length targets)
+  let rule_count = List.length rules in
+  Fmt.pf ppf "Scanning %d files%s with %d Code rule%a" (List.length targets)
     (if respect_git_ignore then " tracked by git" else "")
-    (List.length rules)
-    pp_s (List.length rules);
+    rule_count pp_s rule_count;
   (* TODO if sca_rules ...
      Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
   (* TODO pro_rule
-        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
-        == "pro_rules"
-    if pro_rule_count:
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+         if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+         == "pro_rules"
+     if pro_rule_count:
+         summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
   *)
   Fmt.pf ppf ":@.@.";
-  pp_table ("Language", [ "Rules" ; "Files" ]) ppf
+  pp_table
+    ("Language", [ "Rules"; "Files" ])
+    ppf
     (List.combine
-       (List.map (fun (job : Runner_config.lang_job) ->
-            (Xlang.to_string job.Runner_config.lang))
+       (List.map
+          (fun (job : Runner_config.lang_job) ->
+            Xlang.to_string job.Runner_config.lang)
           lang_jobs)
-       (List.map (fun Runner_config.{ targets ; rules ; _ } ->
-            [ List.length rules ; List.length targets ])
-           lang_jobs))
+       (List.map
+          (fun Runner_config.{ targets; rules; _ } ->
+            [ List.length rules; List.length targets ])
+          lang_jobs))
 
 (*************************************************************************)
 (* Entry point *)
@@ -306,7 +312,8 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
        *)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
       Logs.app (fun m ->
-          m "%a" (pp_status all_rules all_targets lang_jobs respect_git_ignore)
+          m "%a"
+            (pp_status all_rules all_targets lang_jobs respect_git_ignore)
             ());
       let results_by_language =
         lang_jobs
