@@ -123,7 +123,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
           (Option.value ~default:[||] ids_line)
           (Option.value ~default:[||] ids_previous_line)
       in
-      let ids = List.filter_map Fun.id (Array.to_list ids) in
+      let ids = Common.map_filter Fun.id (Array.to_list ids) in
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       List.fold_left
         (fun (result, errors) id ->

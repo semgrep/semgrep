@@ -303,7 +303,7 @@ let extract_and_concat erule_table xtarget rule_ids matches =
   |> Common.map (fun matches -> nonempty_to_list matches)
   (* Convert matches to the extract metavariable / bound value *)
   |> Common.map
-       (List.filter_map (fun m ->
+       (Common.map_filter (fun m ->
             match extract_of_match erule_table m with
             | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
               ->
@@ -312,13 +312,13 @@ let extract_and_concat erule_table xtarget rule_ids matches =
             | Some (r, Some mval) -> Some (r, mval)
             | None -> None))
   (* Factor out rule *)
-  |> List.filter_map (function
+  |> Common.map_filter (function
        | [] -> None
        | (r, _) :: _ as xs -> Some (r, Common.map snd xs))
   (* Convert mval match to offset of location in file *)
   |> Common.map (fun (r, mvals) ->
          ( r,
-           List.filter_map
+           Common.map_filter
              (fun mval ->
                let offsets = offsets_of_mval mval in
                if Option.is_none offsets then report_no_source_range r;
@@ -435,7 +435,7 @@ let extract_and_concat erule_table xtarget rule_ids matches =
 
 let extract_as_separate erule_table xtarget rule_ids matches =
   matches
-  |> List.filter_map (fun m ->
+  |> Common.map_filter (fun m ->
          match extract_of_match erule_table m with
          | Some (erule, Some extract_mvalue) ->
              (* Note: char/line offset should be relative to the extracted

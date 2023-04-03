@@ -230,7 +230,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   in
   let offending_file_list =
     per_files
-    |> List.filter_map (fun (file, xs) ->
+    |> Common.map_filter (fun (file, xs) ->
            if List.length xs > max_match_per_file then Some file else None)
   in
   let offending_files = Common.hashset_of_list offending_file_list in
@@ -528,7 +528,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
      * rule pairs, because they won't be in the table we make for search
      * because we don't want to run them at this stage.
      *)
-    |> List.filter_map (fun (i, rule_id) ->
+    |> Common.map_filter (fun (i, rule_id) ->
            let* x = Hashtbl.find_opt rule_table rule_id in
            Some (i, x))
   in
@@ -634,7 +634,7 @@ let extracted_targets_of_config (config : Runner_config.t)
         Match_extract_mode.match_result_location_adjuster )
       Hashtbl.t =
   let extractors =
-    List.filter_map
+    Common.map_filter
       (fun r ->
         match r.Rule.mode with
         | `Extract _ as e -> Some { r with mode = e }
@@ -731,7 +731,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
              target.In.rule_nums
-             |> List.filter_map (fun r_num -> Hashtbl.find_opt rule_table r_num)
+             |> Common.map_filter (fun r_num -> Hashtbl.find_opt rule_table r_num)
              (* Don't run the extract rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->

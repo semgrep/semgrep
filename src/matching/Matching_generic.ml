@@ -628,7 +628,7 @@ let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
 let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
  fun tin ->
   bs |> all_elem_and_rest_of_list
-  |> List.filter_map (fun (b, other_bs) ->
+  |> Common.map_filter (fun (b, other_bs) ->
          match m a b tin with
          | [] -> None
          | tout -> Some (Lazy.force other_bs, tout))
@@ -636,7 +636,7 @@ let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
 let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->
   bs |> all_splits
-  |> List.filter_map (fun (l, r) ->
+  |> Common.map_filter (fun (l, r) ->
          match m_1toN a l tin with
          | [] -> None
          | tout -> Some (r, tout))
