@@ -731,7 +731,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
              target.In.rule_nums
-             |> Common.map_filter (fun r_num -> Hashtbl.find_opt rule_table r_num)
+             |> Common.map_filter (fun r_num ->
+                    Hashtbl.find_opt rule_table r_num)
              (* Don't run the extract rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
