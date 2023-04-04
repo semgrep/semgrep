@@ -8,7 +8,45 @@
              and stop using 'string' for file paths.
 *)
 
-(* Usage:
+(*
+   Extended version of Fpath.
+
+   Provides operations on file system paths only, without any access
+   to the file system.
+*)
+module Path : sig
+  include module type of Fpath
+
+  (*
+    Extra utilities to convert between lists of files between
+    string and Fpath.t without having to write
+    'Common.map Fpath.v ...' every time.
+
+    For converting a single path, use Fpath.v and Fpath.to_string directly.
+
+    of_strings, like Fpath.v which it uses, will raise an exception
+    in case of a malformed path such as "" or "foo\000bar".
+
+    Performance notes:
+    - these operations involve creating a new list.
+    - converting a path to a string is assumed to be cheap since Fpath.t
+      internally is a string.
+    - converting a string to a path involves validating the path syntax,
+      which is more expensive.
+   *)
+  val of_strings : string list -> Fpath.t list
+  val to_strings : Fpath.t list -> string list
+
+  (* Fpath.to_string. Like for the other operators, we recommend using it
+     with 'open File.Operators'. *)
+  val ( !! ) : Fpath.t -> string
+end
+
+(*
+   Operators on files or file paths or anything related to files.
+   This is module is meant to be opened:
+
+   Usage:
 
      open File.Operators
 *)
@@ -19,29 +57,9 @@ module Operators : sig
   (* Fpath.append = Fpath.(//) *)
   val ( // ) : Fpath.t -> Fpath.t -> Fpath.t
 
-  (* Fpath.to_string *)
+  (* File.Path.(!!) = Fpath.to_string *)
   val ( !! ) : Fpath.t -> string
 end
-
-(*
-   Extra utilities to convert between lists of files between
-   string and Fpath.t without having to write
-   'Common.map Fpath.v ...' every time.
-
-   For converting a single path, use Fpath.v and Fpath.to_string directly.
-
-   of_strings, like Fpath.v which it uses, will raise an exception
-   in case of a malformed path such as "" or "foo\000bar".
-
-   Performance notes:
-   - these operations involve creating a new list.
-   - converting a path to a string is assumed to be cheap since Fpath.t
-     internally is a string.
-   - converting a string to a path involves validating the path syntax,
-     which is more expensive.
-*)
-val of_strings : string list -> Fpath.t list
-val to_strings : Fpath.t list -> string list
 
 (* for realpath, use Unix.realpath in ocaml >= 4.13 *)
 (*
@@ -108,3 +126,12 @@ val erase_this_temp_file : Fpath.t -> unit
 (*****************************************************************************)
 val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> int
+
+(* [lines_of_file (start_line, end_line) file] returns
+ * the list of lines from start_line to end_line included.
+ *
+ * Note that the returned lines do not contain \n.
+ *
+ * This function is slow, you should not use it!
+ *)
+val lines_of_file : int * int -> Fpath.t -> string list

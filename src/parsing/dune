@@ -1,5 +1,5 @@
 ; This library should not depend on languages/ (parsing_languages/ can though).
-; This allows to generate a smaller JS file for the engine.
+; This allows to generate a smaller engine.js file.
 (library
  (public_name semgrep.parsing)
  (name semgrep_parsing)
@@ -9,14 +9,17 @@
 
    commons
    lib_parsing
-   pfff-lang_GENERIC-naming
-   ojsonnet
    process_limits
    spacegrep
 
+   pfff-lang_GENERIC-naming
+
+   ; remaining language dependencies (the main one are in ../parsing_languages/)
+   ojsonnet
    ;TODO: use lighter JSON parser at some point or move
    ; also out of Parse_rule.ml to reduce even more JS size
    parser_json.menhir parser_json.ast_generic
+   parser_typescript.tree_sitter
 
    semgrep_core
    semgrep_optimizing

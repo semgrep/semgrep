@@ -22,7 +22,7 @@ jobs:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-03-03
+    container: returntocorp/ocaml:alpine-2023-04-03
     env:
       HOME: /root
     steps:
@@ -223,7 +223,7 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install semgrep
+      - name: Install cli dependencies
         working-directory: cli
         run: pipenv install --dev
       - name: Test dummy benchmarks on latest
@@ -249,18 +249,6 @@ jobs:
           python-version: "3.7"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
-      - name: Run timing benchmark
-        run: |
-          pip3 install semgrep==1.14.0
-          semgrep --version
-          python3 -m semgrep --version
-          export PATH=/github/home/.local/bin:$PATH
-
-          python3 perf/run-benchmarks --small-only --std-only --save-to cli/baseline_timing1.json --no-time
-          jq . cli/baseline_timing1.json
-          python3 perf/run-benchmarks --small-only --std-only --save-to cli/baseline_timing2.json --no-time
-          jq . cli/baseline_timing2.json
-          pip3 uninstall -y semgrep
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -269,24 +257,11 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install semgrep
+      - name: Install cli dependencies
         working-directory: cli
         run: pipenv install --dev
-      - name: Get timing for latest semgrep
-        working-directory: cli
-        run: |
-          pipenv run semgrep --version
-          pipenv run python -m semgrep --version
-          pipenv run semgrep-core -version
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing1.json
-          jq . timing1.json
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json --save-findings-to findings.json
-          jq . timing2.json
-          jq . findings.json
-      - name: Compare timing infos
-        run: |
-          perf/compare-perf cli/baseline_timing1.json cli/baseline_timing2.json cli/timing1.json cli/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
-          perf/compare-bench-findings cli/findings.json
+      - name: Run perf benchmark
+        run: scripts/run-benchmarks.sh ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
       - name: Run python performance tests
         working-directory: cli
         run: pipenv run pytest tests/performance

@@ -15,6 +15,10 @@ module H = Cmdliner_helpers
    TOPORT? all those shell_complete() click functions?
 *)
 
+(* TODO: use parser/printer pair for file paths using Fpath.t so that
+   we don't have to convert manually from string to fpath for each
+   file option offered by the CLI. Add it to CLI_common. *)
+
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
@@ -47,7 +51,7 @@ type conf = {
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.config;
+  metrics : Metrics_.config;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -55,6 +59,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 
@@ -66,7 +71,13 @@ let default : conf =
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
       {
-        Find_target.exclude = [];
+        (* the project root is inferred from the presence of .git, otherwise
+           falls back to the current directory. Should it be offered as
+           a command-line option? In osemgrep, a .semgrepignore at the
+           git project root will be honored unlike in legacy semgrep
+           if we're in a subfolder. *)
+        Find_target.project_root = None;
+        exclude = [];
         include_ = None;
         baseline_commit = None;
         max_target_bytes = 1_000_000 (* 1 MB *);
@@ -95,7 +106,7 @@ let default : conf =
     profile = false;
     rewrite_rule_ids = true;
     time_flag = false;
-    metrics = Metrics.Auto;
+    metrics = Metrics_.Auto;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -103,6 +114,7 @@ let default : conf =
     dump = None;
     validate = None;
     test = None;
+    nosem = true;
   }
 
 (*************************************************************************)
@@ -120,7 +132,7 @@ let default : conf =
 (* TOPORT? there's also a --disable-metrics and --enable-metrics
  * but they are marked as legacy flags, so maybe not worth porting
  *)
-let o_metrics : Metrics.config Term.t =
+let o_metrics : Metrics_.config Term.t =
   let info =
     Arg.info [ "metrics" ]
       ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
@@ -133,7 +145,7 @@ SEMGREP_SEND_METRICS environment variable value will be used. If no
 environment variable, defaults to 'auto'.
 |}
   in
-  Arg.value (Arg.opt Metrics.converter default.metrics info)
+  Arg.value (Arg.opt Metrics_.converter default.metrics info)
 
 (* alt: was in "Performance and memory options" before *)
 let o_version_check : bool Term.t =
@@ -564,7 +576,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string (default.target_roots |> File.to_strings) info)
+    (Arg.pos_all Arg.string (default.target_roots |> File.Path.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -579,6 +591,27 @@ let o_dump_config : string option Term.t =
   let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_project_root : string option Term.t =
+  let info =
+    Arg.info [ "project-root" ]
+      ~doc:
+        {|The project root for gitignore and semgrepignore purposes is
+          detected automatically from the presence of a .git/ directory in
+          the current directory or one of its parents. If not found,
+          the current directory is used as the project root. This option
+          forces a specific directory to be the project root. This is useful
+          for testing or for restoring compatibility with older semgrep
+          implementations that only looked for a .semgrepignore file
+          in the current directory.|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_nosem : bool Term.t =
+  H.negatable_flag [ "enable-nosem" ] ~neg_options:[ "disable-nosem" ]
+    ~doc:
+      {|Enables 'nosem'. Findings will not be reported on lines containing
+          a 'nosem' comment at the end.|}
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -588,17 +621,17 @@ let cmdline_term : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine autofix baseline_commit config debug dryrun dump_ast dump_config
       emacs error exclude exclude_rule_ids force_color include_ json lang
-      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      profile quiet replacement respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate verbose version version_check vim =
+      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
+      pattern profile project_root quiet replacement respect_git_ignore
+      rewrite_rule_ids scan_unknown_extensions severity show_supported_languages
+      strict target_roots test test_ignore_todo time_flag timeout
+      timeout_threshold validate verbose version version_check vim =
     let include_ =
       match include_ with
       | [] -> None
       | nonempty -> Some nonempty
     in
-    let target_roots = target_roots |> File.of_strings in
+    let target_roots = target_roots |> File.Path.of_strings in
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -675,7 +708,8 @@ let cmdline_term : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_target.exclude;
+        Find_target.project_root = Option.map Fpath.v project_root;
+        exclude;
         include_;
         baseline_commit;
         max_target_bytes;
@@ -787,7 +821,7 @@ let cmdline_term : conf Term.t =
     in
 
     (* sanity checks *)
-    if List.mem "auto" config && metrics =*= Metrics.Off then
+    if List.mem "auto" config && metrics =*= Metrics_.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
@@ -823,6 +857,7 @@ let cmdline_term : conf Term.t =
       dump;
       validate;
       test;
+      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -832,12 +867,13 @@ let cmdline_term : conf Term.t =
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_optimizations $ o_pattern $ o_profile $ o_quiet $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
-    $ o_validate $ o_verbose $ o_version $ o_version_check $ o_vim)
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem
+    $ o_optimizations $ o_pattern $ o_profile $ o_project_root $ o_quiet
+    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_timeout $ o_timeout_threshold $ o_validate $ o_verbose $ o_version
+    $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

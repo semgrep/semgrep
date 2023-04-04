@@ -179,7 +179,7 @@ let parse_info_to_location pi =
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
 
-let tokens_to_locations toks = List.filter_map parse_info_to_location toks
+let tokens_to_locations toks = Common.map_filter parse_info_to_location toks
 
 let tokens_to_single_loc toks =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -199,7 +199,7 @@ let token_to_intermediate_var token =
   Some { Out.location }
 
 let tokens_to_intermediate_vars tokens =
-  List.filter_map token_to_intermediate_var tokens
+  Common.map_filter token_to_intermediate_var tokens
 
 let rec taint_call_trace = function
   | Toks toks ->
@@ -352,33 +352,26 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let skipped_targets, profiling =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
-        (Some skipped_targets, Some profiling)
-    | RP.Time { profiling } -> (None, Some profiling)
-    | RP.No_info -> (None, None)
+        (skipped_targets, Some profiling)
+    | RP.Time { profiling } -> ([], Some profiling)
+    | RP.No_info -> ([], None)
   in
   {
     Out.matches;
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
-      (match res.RP.skipped_rules with
-      | [] -> None
-      | xs ->
-          Some
-            (xs
-            |> Common.map (fun (kind, rule_id, tk) ->
-                   let loc = PI.unsafe_token_location_of_info tk in
-                   {
-                     Out.rule_id;
-                     details = Rule.string_of_invalid_rule_error_kind kind;
-                     position = OutH.position_of_token_location loc;
-                   })));
+      res.RP.skipped_rules
+      |> Common.map (fun (kind, rule_id, tk) ->
+             let loc = PI.unsafe_token_location_of_info tk in
+             {
+               Out.rule_id;
+               details = Rule.string_of_invalid_rule_error_kind kind;
+               position = OutH.position_of_token_location loc;
+             });
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
-    explanations =
-      (match res.RP.explanations with
-      | [] -> None
-      | xs -> Some (xs |> Common.map explanation_to_explanation));
+    explanations = res.RP.explanations |> Common.map explanation_to_explanation;
     rules_by_engine = Common.map convert_rule res.rules_by_engine;
     engine_requested = `OSS;
   }

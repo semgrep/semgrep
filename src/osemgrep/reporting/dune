@@ -4,7 +4,8 @@
  (wrapped false)
  (libraries
    commons
-
+   fmt
+   semgrep.reporting
  )
  (preprocess
    (pps

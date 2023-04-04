@@ -1,0 +1,4 @@
+taint-mode: Added option `taint_assume_safe_comparisons`, disabled by default, that
+prevents comparison operators to propagate taint, so e.g. `tainted != "something"`
+will not be considered tainted. Note that this a syntactic check, if the operator
+is overloaded to perform a different operation this will not be detected.

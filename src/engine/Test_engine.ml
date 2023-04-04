@@ -144,7 +144,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                lazy
                  (match xlang with
                  | L (lang, _) ->
-                     let { Parse_target.ast; skipped_tokens; _ } =
+                     let { Parsing_result2.ast; skipped_tokens; _ } =
                        Parse_target.parse_and_resolve_name lang !!target
                      in
                      (ast, skipped_tokens)
@@ -214,7 +214,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                           lazy
                             (match xlang with
                             | L (lang, _) ->
-                                let { Parse_target.ast; skipped_tokens; _ } =
+                                let { Parsing_result2.ast; skipped_tokens; _ } =
                                   Parse_target.parse_and_resolve_name lang file
                                 in
                                 (ast, skipped_tokens)
@@ -306,7 +306,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
   (tests, print_summary)
 
 let test_rules ?unit_testing xs =
-  let paths = File.of_strings xs in
+  let paths = File.Path.of_strings xs in
   let tests, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
   print_summary ()

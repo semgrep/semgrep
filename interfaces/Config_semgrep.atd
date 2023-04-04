@@ -26,6 +26,7 @@ type t = {
   ~taint_unify_mvars <ocaml default="false"> : bool;
   ~taint_assume_safe_functions <ocaml default="false"> : bool;
   ~taint_assume_safe_indexes <ocaml default="false"> : bool;
+  ~taint_assume_safe_comparisons <ocaml default="false"> : bool;
   (* when you are paranoid about minimizing FPs, and probably useful for
    * writing secret detection rules *)
   ~taint_only_propagate_through_assignments <ocaml default="false"> : bool;

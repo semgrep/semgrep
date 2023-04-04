@@ -1,3 +1,7 @@
+; The code in this library used to be merged with code in ../parsing/
+; but we now moved most of the language-dependent code here so that
+; we can generate a smaller engine.js file.
+
 (library
  (public_name semgrep.parsing_languages)
  (name semgrep_parsing_languages)

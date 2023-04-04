@@ -116,6 +116,19 @@ let pcre_error_to_string s exn =
   in
   spf "'%s': %s" s message
 
+let try_and_raise_invalid_pattern_if_error env (s, t) f =
+  try f () with
+  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
+  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
+  | exn ->
+      raise
+        (R.Err
+           (R.InvalidRule
+              ( R.InvalidPattern
+                  (s, env.languages, Common.exn_to_s exn, env.path),
+                env.id,
+                t )))
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -291,7 +304,7 @@ let parse_listi env (key : key) f x =
     f env x
   in
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.mapi get_component xs
+  | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
@@ -492,29 +505,33 @@ let parse_options env (key : key) value =
 
 (* less: could move in a separate Parse_xpattern.ml *)
 let parse_xpattern env (str, tok) =
-  try
-    match env.languages with
-    | Xlang.L (lang, _) ->
-        let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
-        XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
-    | Xlang.LRegex ->
-        XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
-    | Xlang.LGeneric -> (
-        let src = Spacegrep.Src_file.of_string str in
-        match Spacegrep.Parse_pattern.of_src src with
-        | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
-        | Error err -> failwith err.msg)
-  with
-  | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
-  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-  | exn ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidPattern
-                  (str, env.languages, Common.exn_to_s exn, env.path),
-                env.id,
-                tok )))
+  match env.languages with
+  | Xlang.L (lang, _) ->
+      (* opti: parsing Semgrep patterns lazily improves speed significantly.
+       * Parsing p/default goes from 13s to just 0.2s, mostly because
+       * p/default contains lots of ruby rules which are currently very
+       * slow to parse. Still, even if there was no Ruby rule, it's probably
+       * still worth the optimization.
+       * The disadvantage of parsing lazily is that
+       * parse errors in the pattern are detected only later, when
+       * the rule/pattern is actually needed. In practice we have pretty
+       * good error management and error recovery so the error should
+       * find its way to the JSON error field anyway.
+       *)
+      let lpat =
+        lazy
+          ((* we need to raise the right error *)
+           try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
+               Parse_pattern.parse_pattern lang ~print_errors:false str))
+      in
+      XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
+  | Xlang.LRegex ->
+      XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
+  | Xlang.LGeneric -> (
+      let src = Spacegrep.Src_file.of_string str in
+      match Spacegrep.Parse_pattern.of_src src with
+      | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+      | Error err -> failwith err.msg)
 
 (* TODO: note that the [pattern] string and token location [t] given to us
  * by the YAML parser do not correspond exactly to the content
@@ -553,7 +570,8 @@ let parse_xpattern_expr env e =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  parse_xpattern env (s, t)
+  try_and_raise_invalid_pattern_if_error env (s, t) (fun () ->
+      parse_xpattern env (s, t))
 
 (*****************************************************************************)
 (* Parser for old (but current) formula *)
@@ -613,23 +631,21 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
     ( find "pattern",
       find "pattern-either",
       find "patterns",
-      find "pattern-regex",
-      find "pattern-comby" )
+      find "pattern-regex" )
   with
-  | None, None, None, None, None ->
+  | None, None, None, None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
-  | Some (key, value), None, None, None, None
-  | None, Some (key, value), None, None, None
-  | None, None, Some (key, value), None, None
-  | None, None, None, Some (key, value), None
-  | None, None, None, None, Some (key, value) ->
+         `pattern-regex` to be present"
+  | Some (key, value), None, None, None
+  | None, Some (key, value), None, None
+  | None, None, Some (key, value), None
+  | None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
       error env rule_dict.first_tok
-        "Expected only one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, or `pattern-comby`"
+        "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
+         `pattern-regex`"
 
 let rec parse_formula_old_from_dict (env : env) (rule_dict : dict) : R.formula =
   let formula = parse_pair_old env (find_formula_old env rule_dict) in
@@ -641,7 +657,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
   let parse_listi env (key : key) f x =
     match x.G.e with
-    | G.Container (Array, (_, xs, _)) -> List.mapi f xs
+    | G.Container (Array, (_, xs, _)) -> Common.mapi f xs
     | _ -> error_at_key env key ("Expected a list for " ^ fst key)
   in
   let get_pattern str_e = parse_xpattern_expr env str_e in
@@ -743,10 +759,6 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
       R.Not (t, R.P xpat)
-  | "pattern-comby" ->
-      let x = parse_string_wrap env key value in
-      let xpat = XP.mk_xpat (Comby (fst x)) x in
-      R.P xpat
   | "focus-metavariable"
   | "metavariable-analysis"
   | "metavariable-regex"
@@ -852,7 +864,7 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   | None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex`, `pattern-comby` to be present"
+         `pattern-regex` to be present"
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
@@ -923,7 +935,7 @@ and parse_formula env (value : G.expr) : R.formula =
       | _ when Hashtbl.length dict.h <> 1 ->
           error env dict.first_tok
             "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, `pattern-regex`, or `pattern-comby`"
+             `patterns`, or `pattern-regex`"
       (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
       | None -> parse_pair env (find_formula env dict)
       | Some (((_, t) as key), value) ->
@@ -1284,9 +1296,13 @@ let parse_extract_transform ~id (s, t) =
 (*****************************************************************************)
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
-  match mode_opt with
-  | None
-  | Some ("search", _) -> (
+  (* We do this because we should only assume that we have a search mode rule
+     if there is not a `taint` key present in the rule dict.
+  *)
+  let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
+  match (mode_opt, has_taint_key) with
+  | None, false
+  | Some ("search", _), false -> (
       let formula =
         take_opt rule_dict env
           (fun env _ expr -> parse_formula env expr)
@@ -1295,7 +1311,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       match formula with
       | Some formula -> `Search formula
       | None -> `Search (parse_pair_old env (find_formula_old env rule_dict)))
-  | Some ("taint", _) -> (
+  | _, true
+  | Some ("taint", _), _ -> (
       let parse_specs parse_spec env key x =
         ( snd key,
           parse_listi env key
@@ -1333,7 +1350,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
                 | Some (_, xs) -> xs);
               sinks;
             })
-  | Some ("extract", _) ->
+  | Some ("extract", _), _ ->
       let formula = parse_pair_old env (find_formula_old env rule_dict) in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
@@ -1352,7 +1369,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         |> Option.value ~default:R.Separate
       in
       `Extract { formula; dst_lang; extract; reduce; transform }
-  | Some key ->
+  | Some key, _ ->
       error_at_key env key
         (spf
            "Unexpected value for mode, should be 'search', 'taint', or \
@@ -1467,7 +1484,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
   in
   let xs =
     rules
-    |> List.mapi (fun i rule ->
+    |> Common.mapi (fun i rule ->
            if error_recovery then (
              try Left (parse_one_rule t i rule) with
              | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
@@ -1550,12 +1567,8 @@ let parse_file ?error_recovery file =
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse file =
-  let xs, skipped = parse_file ~error_recovery:false file in
-  assert (skipped =*= []);
-  xs
-
 let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
+  [@@profiling]
 
 let parse_xpattern xlang (str, tok) =
   let env =
@@ -1567,6 +1580,15 @@ let parse_xpattern xlang (str, tok) =
     }
   in
   parse_xpattern env (str, tok)
+
+(*****************************************************************************)
+(* Useful for tests *)
+(*****************************************************************************)
+
+let parse file =
+  let xs, skipped = parse_file ~error_recovery:false file in
+  assert (skipped =*= []);
+  xs
 
 (*****************************************************************************)
 (* Valid rule filename checks *)

@@ -8,6 +8,8 @@
    from semgrep_main.py and core_runner.py.
 *)
 
+open File.Operators
+
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
@@ -100,7 +102,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
-  Metrics.configure conf.metrics;
+  Metrics_.configure conf.metrics;
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -144,16 +146,72 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let filtered_rules =
         Rule_filtering.filter_rules conf.rule_filtering_conf rules
       in
-
-      let targets, _skipped_targetsTODO =
+      let pp_rule_sources ppf = function
+        | Rule_fetching.Pattern _ -> Format.pp_print_string ppf "pattern"
+        | Configs [ x ] -> Format.fprintf ppf "1 config %s" x
+        | Configs xs -> Format.fprintf ppf "%d configs" (List.length xs)
+      in
+      Logs.info (fun m ->
+          m "running %d rules from %a"
+            (List.length filtered_rules)
+            pp_rule_sources conf.rules_source);
+      (* TODO should output whether .semgrepignore is found and used
+         (as done in semgrep_main.py get_file_ignore()) *)
+      Logs.info (fun m ->
+          m "Rules:%s" "";
+          let exp, normal =
+            List.partition
+              (fun rule -> rule.Rule.severity = Rule.Experiment)
+              filtered_rules
+          in
+          let rule_id r = fst r.Rule.id in
+          let sorted =
+            List.sort (fun r1 r2 -> String.compare (rule_id r1) (rule_id r2))
+          in
+          List.iter (fun rule -> m "- %s" (rule_id rule)) (sorted normal);
+          match exp with
+          | [] -> ()
+          | __non_empty__ ->
+              m "Experimental rules:%s" "";
+              List.iter (fun rule -> m "- %s" (rule_id rule)) (sorted exp));
+      let targets, semgrepignored_targets =
         Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
+          m "target roots: [%s" "";
+          conf.target_roots |> List.iter (fun root -> m "  %s" !!root);
+          m "]%s" "");
+      Logs.debug (fun m ->
+          m "skipped targets: [%s" "";
+          semgrepignored_targets
+          |> List.iter (fun x ->
+                 m "  %s" (Output_from_core_t.show_skipped_target x));
+          m "]%s" "");
+      Logs.info (fun m ->
+          semgrepignored_targets
+          |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
+                 m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
+                   (Output_from_core_t.show_skip_reason
+                      x.Output_from_core_t.reason)
+                   x.Output_from_core_t.details));
+      Logs.debug (fun m ->
+          m "selected targets: [%s" "";
           targets
-          |> List.iter (fun file -> m "target = %s" (Fpath.to_string file)));
+          |> List.iter (fun file -> m "target = %s" (Fpath.to_string file));
+          m "]%s" "");
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
           errors targets
+      in
+      (* Add the targets that were semgrepignored *)
+      let res =
+        let core =
+          {
+            res.core with
+            skipped_targets = semgrepignored_targets @ res.core.skipped_targets;
+          }
+        in
+        { res with core }
       in
       (* TOPORT? was in formater/base.py
          def keep_ignores(self) -> bool:

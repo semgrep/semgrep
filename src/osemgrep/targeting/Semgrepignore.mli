@@ -13,7 +13,7 @@ type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
 (*
    Initialize the data used to filter paths.
-   The project_root path must be absolute and must exist. It is used to
+   The project_root path must exist. It is used to
    locate .gitignore and .semgrepignore files.
 
    This is an instanciation of Gitignore_filter.t specific to Semgrep.

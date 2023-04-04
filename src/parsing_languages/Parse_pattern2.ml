@@ -12,89 +12,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
-
-let logger = Logging.get_logger [ __MODULE__ ]
+open Pfff_or_tree_sitter
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* Most of the code here used to be in Parse_pattern.ml, but was moved
- * to make the engine language independent so that we can generate
- * a smaller JS file for the engine
+ * here to make the engine/ language independent so that we can generate
+ * a smaller engine.js file.
  *)
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
-  (match res.program with
-  | Some cst -> dumper cst
-  | None -> failwith "unknown error from tree-sitter parser");
-  res.errors
-  |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
-
-let extract_pattern_from_tree_sitter_result
-    (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
-  match (res.Tree_sitter_run.Parsing_result.program, res.errors) with
-  | None, _ -> failwith "no pattern found"
-  | Some x, [] -> x
-  | Some _, _ :: _ ->
-      if print_errors then
-        res.errors
-        |> List.iter (fun err ->
-               pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
-      failwith "error parsing the pattern"
-
-type 'ast parser =
-  | Pfff of (string -> 'ast)
-  | TreeSitter of (string -> 'ast Tree_sitter_run.Parsing_result.t)
-
-let run_parser ~print_errors p str =
-  let parse () =
-    match p with
-    | Pfff f ->
-        logger#trace "trying to parse with Pfff parser the pattern";
-        f str
-    | TreeSitter f ->
-        logger#trace "trying to parse with Tree-sitter parser the pattern";
-        let res = f str in
-        extract_pattern_from_tree_sitter_result res print_errors
-  in
-  try Ok (parse ()) with
-  | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
-  | exn -> Error (Exception.catch exn)
-
-(* This is a simplified version of run_either in Parse_target.ml. We don't need
- * most of the logic there when we're parsing patterns, so it doesn't make sense
- * to reuse it. *)
-let run_either ~print_errors parsers program =
-  let rec f parsers =
-    match parsers with
-    | [] ->
-        Error
-          (Exception.trace
-             (Failure "internal error: No pattern parser available"))
-    | p :: xs -> (
-        match run_parser ~print_errors p program with
-        | Ok res -> Ok res
-        | Error e -> (
-            match f xs with
-            | Ok res -> Ok res
-            | Error _ ->
-                (* Return the error from the first parser. *)
-                Error e))
-  in
-  match f parsers with
-  | Ok res -> res
-  | Error e -> Exception.reraise e
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse_pattern lang print_errors str =
+let parse_pattern print_errors lang str =
   match lang with
   (* directly to generic AST any using tree-sitter only *)
   | Lang.Apex ->
@@ -152,10 +83,10 @@ let parse_pattern lang print_errors str =
   | Lang.Vue ->
       let js_ast =
         str
-        |> run_either ~print_errors
+        |> run_pattern ~print_errors
              [
-               Pfff Parse_js.any_of_string;
-               TreeSitter Parse_typescript_tree_sitter.parse_pattern;
+               PfffPat Parse_js.any_of_string;
+               TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;
              ]
       in
       Js_to_generic.any js_ast
@@ -177,21 +108,21 @@ let parse_pattern lang print_errors str =
   | Lang.Cpp ->
       let any =
         str
-        |> run_either ~print_errors
+        |> run_pattern ~print_errors
              [
-               Pfff
+               PfffPat
                  (fun x -> Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus x);
-               TreeSitter Parse_cpp_tree_sitter.parse_pattern;
+               TreeSitterPat Parse_cpp_tree_sitter.parse_pattern;
              ]
       in
       Cpp_to_generic.any any
   | Lang.Java ->
       let any =
         str
-        |> run_either ~print_errors
+        |> run_pattern ~print_errors
              [
-               Pfff Parse_java.any_of_string;
-               TreeSitter Parse_java_tree_sitter.parse_pattern;
+               PfffPat Parse_java.any_of_string;
+               TreeSitterPat Parse_java_tree_sitter.parse_pattern;
              ]
       in
       Java_to_generic.any any
@@ -238,5 +169,5 @@ let dump_tree_sitter_pattern_cst lang file =
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
-      |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
   | __else__ -> ()

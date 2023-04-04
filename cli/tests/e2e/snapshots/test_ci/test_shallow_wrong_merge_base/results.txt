@@ -33,19 +33,19 @@ Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
+                               
+                               
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
            
-           
-┌─────────┐
-│ Results │
-└─────────┘
-Non-Blocking Findings:
+    bar.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (bar == 2)
+            1┆ bar == 5
 
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
                 
                 
 ┌──────────────┐

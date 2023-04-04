@@ -143,7 +143,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_ruby.Boilerplate.dump_tree
   | Lang.Java ->
       Tree_sitter_java.Parse.file file
-      |> dump_and_print_errors Tree_sitter_java.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_java.Boilerplate.dump_tree
   | Lang.Go ->
       Tree_sitter_go.Parse.file file
       |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
@@ -152,7 +152,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
-      |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
   | Lang.Jsonnet ->
       Tree_sitter_jsonnet.Parse.file file
       |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
@@ -214,12 +214,12 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths |> File.of_strings in
+  let paths = Common.map Common.fullpath root_paths |> File.Path.of_strings in
   let paths, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
-  paths |> File.to_strings
+  paths |> File.Path.to_strings
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -331,11 +331,11 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs |> File.of_strings
+    Common.map Common.fullpath files_or_dirs |> File.Path.of_strings
   in
   let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
-    paths |> File.to_strings
+    paths |> File.Path.to_strings
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
@@ -351,7 +351,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                with
                | Some res ->
                    let ast_stat = AST_stat.stat res.ast in
-                   { res.Parse_target.stat with ast_stat = Some ast_stat }
+                   { res.Parsing_result2.stat with ast_stat = Some ast_stat }
                | None ->
                    { (Parsing_stat.bad_stat file) with have_timeout = true }
              with
@@ -542,7 +542,7 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
-  let roots = File.of_strings roots in
+  let roots = File.Path.of_strings roots in
   let targets, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
   in

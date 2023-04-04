@@ -4,6 +4,7 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
+from semgrep.console import console
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -21,13 +22,14 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.gem import parse_gemfile
-from semdep.parsers.go_sum import parse_go_sum
+from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.package_lock import parse_package_lock
+from semdep.parsers.pnpm import parse_pnpm
 
 
 def parse_cargo(
@@ -60,6 +62,7 @@ OLD_LOCKFILE_PARSERS = {
 
 NEW_LOCKFILE_PARSERS = {
     "requirements.txt": parse_requirements,  # Python
+    "requirements3.txt": parse_requirements,  # Python
     "maven_dep_tree.txt": parse_pom_tree,  # Java
     "yarn.lock": parse_yarn,  # JavaScript
     "gradle.lockfile": parse_gradle,  # Java
@@ -67,20 +70,23 @@ NEW_LOCKFILE_PARSERS = {
     "package-lock.json": parse_package_lock,  # JavaScript
     "gemfile.lock": parse_gemfile,  # Ruby
     "poetry.lock": parse_poetry,  # Python
-    "go.sum": parse_go_sum,  # Go
+    "go.mod": parse_go_mod,  # Go
+    "pnpm-lock.yaml": parse_pnpm,  # JavaScript
 }
 
 LOCKFILE_TO_MANIFEST = {
     "Pipfile.lock": "Pipfile",
     "poetry.lock": "pyproject.toml",
     "requirements.txt": "requirements.in",
+    "requirements3.txt": "requirements.in",
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
     "Gemfile.lock": None,
-    "go.sum": None,
+    "go.mod": None,
     "Cargo.lock": None,
     "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
+    "pnpm-lock.yaml": None,
 }
 
 
@@ -130,7 +136,7 @@ def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
-            logger.error(f"Failed to parse {lockfile_path} with exception {e}")
+            console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return []
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")

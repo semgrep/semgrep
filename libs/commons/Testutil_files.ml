@@ -30,6 +30,8 @@ and sort_one x =
   | Symlink _ ->
       x
 
+(* List the paths of regular files.
+   Sorry, the implementation below with fold_left is a little tricky. *)
 let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   let rec flatten acc files = List.fold_left flatten_one acc files
   and flatten_one (acc, dir) file =
@@ -37,7 +39,8 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
     | Dir (name, entries) ->
         let path = dir / name in
         let acc = if include_dirs then path :: acc else acc in
-        flatten (acc, path) entries
+        let acc, _last_dir = flatten (acc, path) entries in
+        (acc, dir)
     | File (name, _contents) ->
         let file = dir / name in
         (file :: acc, dir)
@@ -209,6 +212,6 @@ let () =
           let tree2 = read root in
           assert (sort tree2 = sort tree);
 
-          let paths = flatten tree |> File.to_strings in
+          let paths = flatten tree |> File.Path.to_strings in
           List.iter print_endline paths;
           assert (paths = [ "a"; "b"; "c"; "d/e" ])))

@@ -31,7 +31,7 @@ type conf = {
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.config;
+  metrics : Metrics_.config;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -39,6 +39,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 

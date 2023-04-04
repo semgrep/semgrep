@@ -213,8 +213,8 @@ let convertToParam tk e =
 
 let convertToParams tk e =
   match e with
-  | Tuple (lb, xs, rb) -> (lb, xs |> List.map (convertToParam tk), rb)
-  | _ -> fb tk [ convertToParam tk e ]
+  | Tuple (lb, xs, rb) -> (lb, (xs |> List.map (convertToParam tk), None), rb)
+  | _ -> fb tk ([ convertToParam tk e ], None)
 
 let makeMatchFromExpr e =
   match e with
@@ -236,7 +236,9 @@ let rec in_next_token xs =
   | x :: xs -> (
       match x with
       | Space _
-      | Comment _ ->
+      | Comment _
+      | INDENT
+      | DEDENT ->
           in_next_token xs
       | _ -> Some x)
 
@@ -326,7 +328,9 @@ let afterLineEnd in_ =
         | NEWLINES _ ->
             true
         | Space _
-        | Comment _ ->
+        | Comment _
+        | INDENT
+        | DEDENT ->
             loop xs
         | _ ->
             if !debug_newline then
@@ -360,7 +364,9 @@ let fetchToken in_ =
 
         match x with
         | Space _
-        | Comment _ ->
+        | Comment _
+        | INDENT
+        | DEDENT ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
@@ -838,6 +844,7 @@ let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
 let topLevelTmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
+let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
 let paramType_ =
   ref (fun ?repeatedParameterOK _ ->
@@ -924,6 +931,7 @@ let pushOpInfo _topTODO in_ : ident * type_ list bracket option =
  *  Type ::= InfixType `=>` Type
  *         | `(` [`=>` Type] `)` `=>` Type
  *         | InfixType [ExistentialClause]
+ *         | InfixType `match` <<< TypeCaseClauses >>>
  *  ExistentialClause ::= forSome `{` ExistentialDcl {semi ExistentialDcl} `}`
  *  ExistentialDcl    ::= type TypeDcl | val ValDcl
  *  }}}
@@ -946,6 +954,10 @@ let rec typ in_ : type_ =
          | KforSome ii ->
              skipToken in_;
              makeExistentialTypeTree t ii in_
+         | Kmatch ii ->
+             skipToken in_;
+             let _, type_case_clauses, _ = inBraces !typeCaseClauses_ in_ in
+             TyMatch (t, ii, type_case_clauses)
          | _ -> t)
 
 (** {{{
@@ -1442,6 +1454,7 @@ and patterns in_ = commaSeparated pattern in_
  *                    |  StableId  [`(` [Patterns] `)`]
  *                    |  StableId  [`(` [Patterns] `,` [varid `@`] `_` `*` `)`]
  *                    |  `(` [Patterns] `)`
+ *                    |  Quoted
  *  }}}
  *
  * XXX: Hook for IDE
@@ -1502,6 +1515,9 @@ and simplePattern in_ : pattern =
          | x when TH.isLiteral x ->
              let x = literal ~inPattern:true in_ in
              PatLiteral x
+         | QUOTE quote ->
+             let x = quoted quote in_ in
+             PatQuoted x
          | Ellipsis t ->
              nextToken in_;
              PatEllipsis t
@@ -1514,6 +1530,24 @@ and argumentPatterns in_ : pattern list bracket =
          inParens
            (fun in_ -> if in_.token =~= RPAREN ab then [] else seqPatterns in_)
            in_)
+
+(** {{{
+ *  Quoted     ::=  ‘'’ ‘{’ Block ‘}’
+ *               |  ‘'’ ‘[’ Type ‘]’
+ *  }}}
+*)
+and quoted quote_tok in_ =
+  in_
+  |> with_logging (spf "quoted") (fun () ->
+         nextToken in_;
+         match in_.token with
+         | LBRACE _ ->
+             let x = inBraces !blockStatSeq_ in_ in
+             QuotedBlock (quote_tok, x)
+         | LBRACKET _ ->
+             let x = inBrackets typ in_ in
+             QuotedType (quote_tok, x)
+         | _ -> error "error in quoted expr: brace or bracket expected" in_)
 
 (* ------------------------------------------------------------------------- *)
 (* Context sensitive choices *)
@@ -1718,6 +1752,7 @@ and prefixExpr in_ : expr =
  *  SimpleExpr1   ::= literal
  *                  |  xLiteral
  *                  |  Path
+ *                  |  Quoted
  *                  |  `(` [Exprs] `)`
  *                  |  SimpleExpr `.` Id
  *                  |  SimpleExpr TypeArgs
@@ -1773,6 +1808,9 @@ and simpleExpr in_ : expr =
                canApply := false;
                let x = blockExpr in_ in
                BlockExpr x
+           | QUOTE quote ->
+               let x = quoted quote in_ in
+               Quoted x
            | Knew ii ->
                canApply := false;
                skipToken in_;
@@ -1965,13 +2003,18 @@ and caseBlock in_ : tok * block =
   let x = block in_ in
   (ii, x)
 
-and caseClause icase in_ : case_clause =
+and caseClause icase in_ : (pattern, block) case_clause =
   let p = pattern in_ in
   let g = guard in_ in
   let iarrow, block = caseBlock in_ in
   (* ast: makeCaseDef *)
   CC
-    { casetoks = (icase, iarrow); casepat = p; caseguard = g; casebody = block }
+    {
+      casetoks = (icase, iarrow);
+      case_left = p;
+      caseguard = g;
+      case_right = block;
+    }
 
 (** {{{
  *  CaseClauses ::= CaseClause {CaseClause}
@@ -1994,6 +2037,56 @@ and caseClauses in_ : case_clauses =
     | Kcase ii ->
         nextToken in_;
         let x = caseClause ii in_ in
+        ts += x
+    | Ellipsis ii ->
+        nextToken in_;
+        ts += CaseEllipsis ii
+    | _ -> raise Impossible
+  done;
+  List.rev !ts
+
+(** {{{
+ *  TypeCaseClauses ::= TypeCaseClause {TypeCaseClause}
+ *  TypeCaseClause  ::= `case` (InfixType | `_`) `=>` Type [semi]
+ *  }}}
+*)
+and typeCaseClause icase in_ : ((tok, type_) either, type_) case_clause =
+  let l_ty =
+    match in_.token with
+    | USCORE ii ->
+        skipToken in_;
+        Left ii
+    | _ -> Right (startInfixType in_)
+  in
+  let iarrow = TH.info_of_tok in_.token in
+  accept (ARROW ab) in_;
+  let r_ty = typ in_ in
+  if TH.isStatSep in_.token then nextToken in_;
+  (* ast: makeCaseDef *)
+  CC
+    {
+      casetoks = (icase, iarrow);
+      case_left = l_ty;
+      caseguard = None;
+      case_right = r_ty;
+    }
+
+and typeCaseClauses in_ : type_case_clauses =
+  (* CHECK: empty cases *)
+  (* old: was
+   *   caseSeparated caseClause in_s
+   * with
+   *   let caseSeparated part in_ =
+   *     separatedToken (Kcase ab) part in_
+   * but for semgrep we also need to handle ellipsis
+   *)
+  (* similar to separatedToken body *)
+  let ts = ref [] in
+  while in_.token =~= Kcase ab || in_.token =~= Ellipsis ab do
+    match in_.token with
+    | Kcase ii ->
+        nextToken in_;
+        let x = typeCaseClause ii in_ in
         ts += x
     | Ellipsis ii ->
         nextToken in_;
@@ -2043,7 +2136,7 @@ and implicitClosure implicitmod location in_ =
   let def =
     {
       fkind = (LambdaArrow, iarrow);
-      fparams = [ fb iarrow [ param ] ];
+      fparams = [ fb iarrow ([ param ], None) ];
       frettype = None;
       fbody = Some body;
     }
@@ -2308,28 +2401,67 @@ let annotTypeRest t in_ : type_ =
 (* Parsing directives  *)
 (*****************************************************************************)
 
-let wildImportSelector in_ =
-  (* AST: val selector = ImportSelector.wildAt(in.offset) *)
-  nextToken in_
+(* For imports, we will parse a less restrictive version of the Scala grammar.
+   Essentially, we notice that some sequence of dot-separated elements
+   make up the primary path, namely "this", "super", and an identifier.
+   Once that primary path is done, we may see a `as` or `=>`, and then
+   another identifier.
+
+   Otherwise, the primary path may also be terminated with a `*`, `given`,
+   `_`, or brace-delimited list of import specifications.
+*)
 
 (** {{{
- *  ImportSelector ::= Id [`=>` Id | `=>` `_`]
+ *  NamedSelector     ::=  id [‘as’ (id | ‘_’)]
+ *  WildCardSelector  ::=  ‘*' | ‘given’ [InfixType]
+ *  }}}
+*)
+let wildCardSelector in_ =
+  match in_.token with
+  | USCORE ii ->
+      skipToken in_;
+      Left ("_", ii)
+  | STAR ii ->
+      skipToken in_;
+      Left ("*", ii)
+  | _ ->
+      let ii = TH.info_of_tok in_.token in
+      accept (ID_LOWER ("given", ab)) in_;
+      (* only a keyword in Scala 3*)
+      (* TODO: this type is only optional, is this too eager? *)
+      if TH.isTypeIntroToken in_.token then
+        let ty = startInfixType in_ in
+        Right (ii, Some ty)
+      else Right (ii, None)
+
+(** {{{
+ *  ImportSelector ::= Id [`=>` Id | `=>` `_`]  (scala 2)
+                     | NamedSelector            (scala 3)
+                     | WildCardSelector         (scala 3)
  *  }}}
 *)
 let importSelector in_ : import_selector =
-  let name = wildcardOrIdent in_ in
-  let rename =
-    match in_.token with
-    | ARROW ii ->
-        nextToken in_;
-        (* CHECK: "Wildcard import cannot be renamed" *)
-        let alias = wildcardOrIdent in_ in
-        Some (ii, alias)
-    (* AST: if name = nme.WILDCARD && !bbq => null *)
-    | _ -> None
-  in
-  (* ast: ImportSelector(name, start, rename, renameOffset) *)
-  (name, rename)
+  match in_.token with
+  | STAR _
+  | ID_LOWER ("given", _) ->
+      WildCardSelector (wildCardSelector in_)
+  | _ ->
+      (* namedSelector case:
+       *)
+      let name = wildcardOrIdent in_ in
+      let rename =
+        match in_.token with
+        | ARROW _
+        | ID_LOWER ("as", _) ->
+            nextToken in_;
+            (* CHECK: "Wildcard import cannot be renamed" *)
+            let alias = wildcardOrIdent in_ in
+            Some alias
+        (* AST: if name = nme.WILDCARD && !bbq => null *)
+        | _ -> None
+      in
+      (* ast: ImportSelector(name, start, rename, renameOffset) *)
+      NamedSelector (ImportId name, rename)
 
 (** {{{
  *  ImportSelectors ::= `{` {ImportSelector `,`} (ImportSelector | `_`) `}`
@@ -2340,82 +2472,104 @@ let importSelectors in_ : import_selector list bracket =
   inBracesOrNil (commaSeparated importSelector) in_
 
 (** {{{
- *  ImportExpr ::= StableId `.` (Id | `_` | ImportSelectors)
-                 | (* scala-ext: allow this for things like `import $X` *)
+ *  ImportExpr ::= StableId `.` (NamedSelector | WildCardSelector | `_` | ImportSelectors)
+                 | StableId `as` id  (scala 3)
+                 | (* semgrep-ext: allow this for things like `import $X` *)
                    metavariable
  *  }}}
 *)
-let importExpr in_ : import_expr =
+
+(* Since we just accumulate the entire list of the import path, we may have
+   to run it back one step if we reach the end. That's because parsing
+   a.b.c
+   means that our path will be [`a`, `b`, `c`], but we really want to
+   turn it into importing the name `c` from the path `a.b`.
+
+   So this function just splits the last element, taking the "tl".
+*)
+let tl_path path =
+  (* presumably this means the end of the stable id,
+      with nothing after it *)
+  match List.rev path with
+  | last :: rest -> (List.rev rest, last)
+  | [] -> failwith "shouldn't happen"
+
+(* A single "path element". In reality, `super` and `this` are more
+   restricted in where they can appear, but for our purposes we will
+   be lenient.
+*)
+let read_path_elem in_ : import_path_elem =
+  match in_.token with
+  | Ksuper ii ->
+      skipToken in_;
+      ImportSuper ii
+  | Kthis ii ->
+      skipToken in_;
+      ImportThis ii
+  | _ ->
+      let id = ident in_ in
+      ImportId id
+
+(* This walks the import path, reading things like a.b.c until it
+   finds something different.
+*)
+let rec collect_import_path (path : import_path) in_ =
+  match in_.token with
+  (* All the things that can terminate an imported StableId.
+  *)
+  | ARROW _
+  | ID_LOWER ("as", _) -> (
+      nextToken in_;
+      match in_.token with
+      | USCORE _ ->
+          (* This is something like `import a as _`
+             Kind of a weird thing to write. I assume it's just binding it to a weird name.
+          *)
+          let ii = TH.info_of_tok in_.token in
+          accept (USCORE ab) in_;
+          let path, id = tl_path path in
+          ImportExprSpec (path, ImportNamed (id, Some ("_", ii)))
+      | _ ->
+          let path, id = tl_path path in
+          (* either "as" or `=>` *)
+          let id' = ident in_ in
+          ImportExprSpec (path, ImportNamed (id, Some id')))
+  | DOT _ -> (
+      accept (DOT ab) in_;
+      match in_.token with
+      (* import foo.bar._; (scala 2) *)
+      | USCORE _
+      (* import foo.bar.*; (scala 3) *)
+      | STAR _
+      (* import foo.bar.given; (scala 3) *)
+      | ID_LOWER ("given", _) ->
+          ImportExprSpec (path, ImportWildcard (wildCardSelector in_))
+      (* import foo.bar.{ x, y, z } *)
+      | LBRACE _ ->
+          let internal = importSelectors in_ in
+          ImportExprSpec (path, ImportSelectors internal)
+      (* Otherwise, the import path just continues. *)
+      | _ ->
+          let new_path_elem = read_path_elem in_ in
+          collect_import_path (path @ [ new_path_elem ]) in_)
+  (* Here, we probably reached the end of the import expression.
+   *)
+  | _ ->
+      let stable_id, id = tl_path path in
+      ImportExprSpec (stable_id, ImportNamed (id, None))
+
+(* To parse an import expression, first we find a single "element".
+   Then, we collect a dot-separated list of them, until we have
+   reason to read something else.
+*)
+and importExpr in_ : import_expr =
   in_
   |> with_logging "importExpr" (fun () ->
-         let thisDotted nameopt in_ : stable_id =
-           let ii = TH.info_of_tok in_.token in
-           nextToken in_;
-           (* 'this' *)
-           (* AST: val t = This(name) *)
-           accept (DOT ab) in_;
-           let result = selector (*t*) in_ in
-           accept (DOT ab) in_;
-           (This (nameopt, ii), [ result ])
-         in
          (* Walks down import `foo.bar.baz.{ ... }` until it ends at
           * an underscore, a left brace, or an undotted identifier.
           *)
-         let rec loop (expr : stable_id) in_ =
-           (* ast: let selectors = *)
-           match in_.token with
-           (* import foo.bar._; *)
-           | USCORE ii ->
-               let _ = wildImportSelector in_ in
-               (expr, ImportWildcard ii)
-           (* import foo.bar.{ x, y, z } *)
-           | LBRACE _ ->
-               let xs = importSelectors in_ in
-               (expr, ImportSelectors xs)
-           | _ -> (
-               let name = ident in_ in
-               match in_.token with
-               | DOT _ ->
-                   (* import foo.bar.ident.<unknown> and so create a select node and recurse. *)
-                   (* AST: (Select(expr, name)) *)
-                   let sref, selectors = expr in
-                   let t = (sref, selectors @ [ name ]) in
-                   nextToken in_;
-                   loop t in_
-               | _ ->
-                   (* import foo.bar.Baz; *)
-                   (* AST: List(makeImportSelector(name, nameOffset)) *)
-                   (expr, ImportId name))
-           (* reaching here means we're done walking. *)
-           (* AST: Import(expr, selectors) *)
-         in
-         let handle_potential_this_with_id id in_ =
-           let start =
-             match in_.token with
-             | Kthis _ -> thisDotted (Some id) in_
-             | _ -> (Id id, [])
-           in
-           Right (loop start in_)
-         in
-         match in_.token with
-         | Kthis _ ->
-             let start = thisDotted None (*ast: empty*) in_ in
-             Right (loop start in_)
-         (* We should allow single metavariables to be imported. *)
-         | ID_LOWER ((s, _) as id) when AST_generic.is_metavar_name s -> (
-             nextToken in_;
-             match in_.token with
-             | DOT _ ->
-                 nextToken in_;
-                 handle_potential_this_with_id id in_
-             (* If there is no dot next, then it must be a lone metavariable. *)
-             | _ -> Left id)
-         | _ ->
-             (* AST: Ident() *)
-             let id = ident in_ in
-             (* A dot has to come after an ident. *)
-             accept (DOT ab) in_;
-             handle_potential_this_with_id id in_)
+         let new_path_elem = read_path_elem in_ in
+         collect_import_path [ new_path_elem ] in_)
 
 (** {{{
  *  Import  ::= import ImportExpr {`,` ImportExpr}
@@ -2431,13 +2585,35 @@ let importClause in_ : import =
 (* Parsing modifiers  *)
 (*****************************************************************************)
 
+(* NOTE: soft modifiers
+   This is necessary because of the existence of "soft keywords".
+   These are modifiers like "inline" or "open", which can sometimes behave like
+   modifiers, but only if certain conditions are met, and otherwise behave like
+   identifiers.
+   So in order to identify if it is a modifier, we need an extra lookahead.
+*)
+let is_modifier in_ =
+  let next_is_soft_modifier_follower =
+    lookingAhead (fun in_ -> TH.isSoftModifierFollower in_.token) in_
+  in
+  TH.isModifier in_.token
+  ||
+  match in_.token with
+  | ID_LOWER ("inline", _)
+  | ID_LOWER ("open", _) ->
+      next_is_soft_modifier_follower
+  | __else__ -> false
+
 (* coupling: TH.isLocalModifier *)
-let modifier_of_isLocalModifier_opt = function
+let modifier_of_isLocalModifier_opt in_ =
+  match in_.token with
   | Kabstract ii -> Some (Abstract, ii)
   | Kfinal ii -> Some (Final, ii)
   | Ksealed ii -> Some (Sealed, ii)
   | Kimplicit ii -> Some (Implicit, ii)
   | Klazy ii -> Some (Lazy, ii)
+  | ID_LOWER ("inline", ii) when is_modifier in_ -> Some (Inline, ii)
+  | ID_LOWER ("open", ii) when is_modifier in_ -> Some (Open, ii)
   | _ -> None
 
 (** {{{
@@ -2495,7 +2671,7 @@ let localModifiers in_ : modifier list =
      * then let mods = addMod mods in_.token in_ in loop mods in_
      * else mods
      *)
-    match modifier_of_isLocalModifier_opt in_.token with
+    match modifier_of_isLocalModifier_opt in_ with
     | Some x ->
         nextToken in_;
         loop (x :: mods) in_
@@ -2535,6 +2711,10 @@ let modifiers in_ =
     | Kimplicit _
     | Klazy _ ->
         (* old: let mods = addMod mods in_.token in_ in loop mods *)
+        loop (List.rev (localModifiers in_) @ mods)
+    (* see NOTE: soft modifiers
+     *)
+    | ID_LOWER _ when is_modifier in_ ->
         loop (List.rev (localModifiers in_) @ mods)
     | NEWLINE _ ->
         nextToken in_;
@@ -2579,10 +2759,12 @@ let paramType ?(repeatedParameterOK = true) in_ : param_type =
 (** {{{
  *  ParamClauses      ::= {ParamClause} [[nl] `(` implicit Params `)`]
  *  ParamClause       ::= [nl] `(` [Params] `)`
+                        | [nl] ‘(’ ‘using’ (DefParams | FunArgTypes) ‘)’
  *  Params            ::= Param {`,` Param}
- *  Param             ::= {Annotation} Id [`:` ParamType] [`=` Expr]
+ *  Param             ::= {Annotation} [`inline`] Id [`:` ParamType] [`=` Expr]
  *  ClassParamClauses ::= {ClassParamClause} [[nl] `(` implicit ClassParams `)`]
  *  ClassParamClause  ::= [nl] `(` [ClassParams] `)`
+                        | [nl] ‘(’ ‘using’ (ClsParams | FunArgTypes) ‘)’
  *  ClassParams       ::= ClassParam {`,` ClassParam}
  *  ClassParam        ::= {Annotation}  [{Modifier} (`val` | `var`)] Id [`:` ParamType] [`=` Expr]
  *  }}}
@@ -2594,9 +2776,16 @@ let param _owner implicitmod _caseParam in_ : binding =
          let mods =
            (* crazy?: if owner.isTypeName *)
            let xs = modifiers in_ in
+           let inline =
+             match in_.token with
+             | ID_LOWER ("inline", ii) ->
+                 nextToken in_;
+                 [ (Inline, ii) ]
+             | _ -> []
+           in
            (* ast: mods = xs |= Flags.PARAMACCESSOR *)
            (* CHECK: "lazy modifier not allowed here. " *)
-           implicitmod @ xs
+           implicitmod @ inline @ xs
            @
            match in_.token with
            | Kval ii ->
@@ -2656,8 +2845,8 @@ let param _owner implicitmod _caseParam in_ : binding =
 let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
   let vds = ref [] in
   let caseParam = ref ofCaseClass in
-  let paramClause in_ : binding list =
-    if in_.token =~= RPAREN ab then []
+  let paramClause in_ : binding list * tok option =
+    if in_.token =~= RPAREN ab then ([], None)
     else
       let implicitmod =
         match in_.token with
@@ -2667,7 +2856,25 @@ let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
             [ (Implicit, ii) ]
         | _ -> []
       in
-      commaSeparated (param owner implicitmod !caseParam) in_
+      match in_.token with
+      | ID_LOWER ("using", ii) ->
+          (* here you might have more params, or a type
+             but these are not easy to distinguish from each other :(
+          *)
+          nextToken in_;
+          let is_type =
+            TH.isTypeIntroToken in_.token
+            && lookingAhead (fun in_ -> not (in_.token =~= COLON ab)) in_
+          in
+          if is_type then
+            let tys = types in_ in
+            (Common.map (fun ty -> ParamType ty) tys, Some ii)
+          else
+            (* TODO: not right to reuse? *)
+            (* no implciitmod?*)
+            (commaSeparated (param owner implicitmod !caseParam) in_, Some ii)
+      | __else__ ->
+          (commaSeparated (param owner implicitmod !caseParam) in_, None)
   in
   newLineOptWhenFollowedBy (LPAREN ab) in_;
   while in_.token =~= LPAREN ab do
@@ -3020,7 +3227,7 @@ let patDefOrDcl vkind attrs in_ : variable_definitions =
 (** {{{
  *  Def    ::= val PatDef
  *           | var PatDef
- *           | def FunDef
+ *           | def DefDef
  *           | type [nl] TypeDef
  *           | TmplDef
  *  Dcl    ::= val PatDcl
@@ -3137,7 +3344,7 @@ let blockStatSeq in_ : block_stat list =
         stats += E x;
         acceptStatSepOptOrEndCase in_
     | t when TH.isStatSep t -> nextToken in_
-    | t when TH.isModifier t -> error "no modifiers allowed here" in_
+    | _ when is_modifier in_ -> error "no modifiers allowed here" in_
     | _ -> error "illegal start of statement" in_
   done;
   List.rev !stats
@@ -3161,7 +3368,7 @@ let templateStat in_ : template_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | t when TH.isDefIntro t || TH.isModifier t || TH.isAnnotation t ->
+  | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
   | t when TH.isExprIntro t ->
@@ -3193,7 +3400,7 @@ let topStat in_ : top_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | t when TH.isAnnotation t || TH.isTemplateIntro t || TH.isModifier t ->
+  | t when TH.isAnnotation t || TH.isTemplateIntro t || is_modifier in_ ->
       let x = !topLevelTmplDef_ in_ in
       Some (D x)
   | _ -> None
@@ -3218,7 +3425,12 @@ let topStatSeq ?rev in_ : top_stat list =
 let templateStatSeq ~isPre in_ : self_type option * block =
   ignore isPre;
   let self, firstOpt =
-    if TH.isExprIntro in_.token then (
+    (* a soft modifier like "inline" or "open" might be an expr intro, but
+       also actually be a modifier.
+       so let's check whether it's explicitly a modifier as well.
+       see NOTE: soft modifiers
+    *)
+    if TH.isExprIntro in_.token && not (is_modifier in_) then (
       let first = expr ~location:InTemplate in_ in
       match in_.token with
       | ARROW ii ->
@@ -3551,6 +3763,8 @@ let _ =
   annotTypeRest_ := annotTypeRest;
 
   paramType_ := paramType;
+
+  typeCaseClauses_ := typeCaseClauses;
   ()
 
 (** {{{

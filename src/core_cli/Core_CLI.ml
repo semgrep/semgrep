@@ -206,7 +206,7 @@ let dump_pattern (file : Fpath.t) =
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
-      let { Parse_target.ast; skipped_tokens; _ } =
+      let { Parsing_result2.ast; skipped_tokens; _ } =
         if naming then Parse_target.parse_and_resolve_name lang !!file
         else Parse_target.just_parse_with_lang lang !!file
       in
@@ -263,7 +263,7 @@ let dump_v1_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise !!file (fun () ->
-          let { Parse_target.ast; skipped_tokens; _ } =
+          let { Parsing_result2.ast; skipped_tokens; _ } =
             Parse_target.parse_and_resolve_name lang !!file
           in
           let v1 = AST_generic_to_v1.program ast in
@@ -521,9 +521,6 @@ let all_actions () =
     ( "-postmortem",
       " <log file",
       Arg_helpers.mk_action_1_arg Statistics_report.stat );
-    ( "-test_comby",
-      " <pattern> <file>",
-      Arg_helpers.mk_action_2_arg Test_comby.test_comby );
     ( "-test_eval",
       " <JSON file>",
       Arg_helpers.mk_action_1_arg Eval_generic.test_eval );
@@ -768,7 +765,12 @@ let main (sys_argv : string array) : unit =
   in
 
   if config.lsp then LSP_client.init ();
+  (* hacks to reduce the size of engine.js
+   * coupling: if you add an init() call here, you probably need to modify
+   * also tests/Test.ml and osemgrep/cli/CLI.ml
+   *)
   Parsing_init.init ();
+  Data_init.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->
@@ -792,7 +794,7 @@ let main (sys_argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let config = { config with roots = File.of_strings roots } in
+          let config = { config with roots = File.Path.of_strings roots } in
           Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)

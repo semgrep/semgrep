@@ -233,7 +233,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   in
   let offending_file_list =
     per_files
-    |> List.filter_map (fun (file, xs) ->
+    |> Common.map_filter (fun (file, xs) ->
            if List.length xs > max_match_per_file then Some file else None)
   in
   let offending_files = Common.hashset_of_list offending_file_list in
@@ -325,9 +325,18 @@ let exn_to_error file (e : Exception.t) =
 
 (* Return an exception
  * - always, if there are no rules but just invalid rules
- * - when users want to fail fast, if there are valid and invalid rules
- * TODO: right now we always fail when there is one invalid rule, because
- * we don't have a fail_fast flag (we could use the flag for -strict)
+ * - TODO when users want to fail fast, if there are valid and invalid rules.
+ *   (right now we always fail when there is one invalid rule, because
+ *   we don't have a fail_fast flag (we could use the flag for -strict))
+ *
+ * update: we now parse patterns lazily in Parse_rule.ml, which means
+ * we will not get anymore an invalid_rule below for a rule containing
+ * a parse error in a pattern (we still get an invalid_rule for
+ * other kinds of errors such as the use of an invalid language).
+ * Instead, parse error exns in patterns are raised later (as we run the engine).
+ * Fortunately, now those exns are converted in errors which are detected in
+ * sanity_check_invalid_patterns() below, and then we return the same kind of error
+ * we used to before the lazy pattern optimisation.
  *)
 let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
@@ -336,6 +345,19 @@ let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   | _, err :: _ (* TODO fail fast only when in strict mode? *) ->
       raise (R.Err (R.InvalidRule err))
   | _, [] -> ()
+
+let sanity_check_invalid_patterns (res : RP.final_result) files =
+  match
+    res.RP.errors
+    |> List.find_opt (fun (err : E.error) ->
+           match err.typ with
+           | Out.PatternParseError _ -> true
+           | _else_ -> false)
+  with
+  | None -> (None, res, files)
+  | Some err ->
+      let e = Exception.catch (Failure "Pattern parse error") in
+      (Some e, { RP.empty_final_result with errors = [ err ] }, [])
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -450,6 +472,25 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                      (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
+               (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
+                * for errors while parsing patterns. This exn used to be raised earlier
+                * in sanity_check_rules_and_invalid_rules(), but after
+                * the lazy parsing of patterns, those errors are raised
+                * later. Unfortunately, we can't catch and reraise here, because
+                * with -j 2, Parmap will just abort the whole thing and return
+                * a different kind of exception to the caller. Instead, we
+                * we need to convert all exns in errors (see the code further below),
+                * and only in sanity_check_invalid_patterns() we can detect if one
+                * of those errors was a PatternParseError.
+                * does-not-work:
+                * | R.Err (R.InvalidRule _) as exn when false ->
+                *   Exception.catch_and_reraise exn
+                *)
+               (* convert all other exns (e.g., a parse error in a target file,
+                * a parse error in a pattern), in an empty match result with errors,
+                * so that one error in one target file or rule does not abort the whole
+                * semgrep-core process.
+                *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
                    let errors = RP.ErrorSet.singleton (exn_to_error file e) in
@@ -484,13 +525,13 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
   in
   let id_pairs =
     list_of_rule_ids
-    |> List.mapi (fun i x -> (i, x))
+    |> Common.mapi (fun i x -> (i, x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
      * because we don't want to run them at this stage.
      *)
-    |> List.filter_map (fun (i, rule_id) ->
+    |> Common.map_filter (fun (i, rule_id) ->
            let* x = Hashtbl.find_opt rule_table rule_id in
            Some (i, x))
   in
@@ -557,7 +598,7 @@ let targets_of_config (config : Runner_config.t)
                {
                  In.path = Fpath.to_string file;
                  language = Xlang.to_string xlang;
-                 rule_nums = List.mapi (fun i _ -> i) rule_ids;
+                 rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
       ({ target_mappings; rule_ids }, skipped)
@@ -596,7 +637,7 @@ let extracted_targets_of_config (config : Runner_config.t)
         Match_extract_mode.match_result_location_adjuster )
       Hashtbl.t =
   let extractors =
-    List.filter_map
+    Common.map_filter
       (fun r ->
         match r.Rule.mode with
         | `Extract _ as e -> Some { r with mode = e }
@@ -693,7 +734,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
              target.In.rule_nums
-             |> List.filter_map (fun r_num -> Hashtbl.find_opt rule_table r_num)
+             |> Common.map_filter (fun r_num ->
+                    Hashtbl.find_opt rule_table r_num)
              (* Don't run the extract rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
@@ -800,7 +842,7 @@ let semgrep_with_raw_results_and_exn_handler config =
       Common.with_time (fun () -> rules_from_rule_source config)
     in
     let res, files = semgrep_with_rules config timed_rules in
-    (None, res, files)
+    sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
@@ -823,7 +865,7 @@ let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
         id)
       x.rules
   in
-  let rule_nums = List.mapi (fun i _ -> i) rule_ids in
+  let rule_nums = Common.mapi (fun i _ -> i) rule_ids in
   let target_mappings =
     Common.map
       (fun path : Input_to_core_t.target ->
@@ -938,7 +980,7 @@ let semgrep_with_one_pattern config =
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat
-                (Xpattern.Sem (pattern, lang))
+                (Xpattern.Sem (lazy pattern, lang))
                 (pattern_string, fk)
             in
             Rule.rule_of_xpattern xlang xpat)

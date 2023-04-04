@@ -78,6 +78,7 @@ type token =
   | EQUALS of Parse_info.t
   | EOF of Parse_info.t
   | DOT of Parse_info.t
+  | QUOTE of Parse_info.t
   | Comment of Parse_info.t
   | CharacterLiteral of (string * Parse_info.t)
   | COMMA of Parse_info.t
@@ -86,6 +87,8 @@ type token =
   | BANG of Parse_info.t
   | AT of Parse_info.t
   | ARROW of Parse_info.t
+  | INDENT
+  | DEDENT
 [@@deriving show { with_path = false }]
 
 type t = token [@@deriving show]
