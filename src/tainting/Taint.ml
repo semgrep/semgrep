@@ -100,6 +100,7 @@ type finding =
   | SrcToReturn of source * tainted_tokens * G.tok
   | ArgToSink of arg * tainted_tokens * sink
   | ArgToReturn of arg * tainted_tokens * G.tok
+  | ArgToArg of arg * tainted_tokens * arg (* TODO: CleanArg ? *)
 [@@deriving show]
 
 type signature = finding list
@@ -121,6 +122,8 @@ let _show_finding = function
   | SrcToReturn (src, _, _) -> Printf.sprintf "return (%s)" (_show_source src)
   | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (_show_arg a)
   | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (_show_arg a)
+  | ArgToArg (a1, _, a2) ->
+      Printf.sprintf "%s ----> %s" (_show_arg a1) (_show_arg a2)
 
 (*****************************************************************************)
 (* Taint *)

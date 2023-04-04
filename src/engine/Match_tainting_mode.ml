@@ -571,6 +571,7 @@ let pm_of_finding finding =
       let sink_pm, _ = T.pm_of_trace sink in
       Some { sink_pm with env = merged_env; taint_trace }
   | T.SrcToReturn _
+  | T.ArgToArg _
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
   | T.ArgToSink _
