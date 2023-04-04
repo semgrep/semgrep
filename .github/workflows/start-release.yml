@@ -430,6 +430,10 @@ jobs:
       - run: echo "${{needs.get-version.outputs.version}}"
       - name: Notify Success
         run: |
+          # POST a webhook to Zapier to allow for public notifications to our users via Twitter
+          curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
+            -d '{"version":"${{needs.get-version.outputs.version}}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${{needs.get-version.outputs.version}}"}'
+
           curl --request POST \
           --url  ${{ secrets.NOTIFICATIONS_URL }} \
           --header 'content-type: application/json' \

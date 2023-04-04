@@ -4,8 +4,8 @@
   (wrapped false)
   (libraries
     lwt
-    ; !!osemgrep_networking should be the only lib in semgrep using cohttp!!
-    cohttp cohttp-lwt-unix
+    ; !!osemgrep_networking should be the only lib in semgrep using http-lwt-client!!
+    uri http-lwt-client
 
     profiling
   )

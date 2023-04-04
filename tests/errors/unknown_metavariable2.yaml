@@ -1,0 +1,10 @@
+rules:
+- id: rule-with-error-in-formula
+  patterns:
+    - pattern: Common.do_option
+    #ERROR:
+    - metavariable-unknown: bar
+  fix: Option.iter
+  languages: [ ocaml ]
+  message: found one
+  severity: ERROR

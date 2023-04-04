@@ -1,10 +1,8 @@
-open Printf
-module In = Input_to_core_t
-module Out = Output_from_core_t
 open Osemgrep_targeting
 open File.Operators
-
-let logger = Logging.get_logger [ __MODULE__ ]
+module In = Input_to_core_t
+module Out = Output_from_core_t
+module Resp = Output_from_core_t
 
 (*************************************************************************)
 (* Prelude *)
@@ -48,6 +46,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*************************************************************************)
 
 type conf = {
+  project_root : Fpath.t option;
   exclude : string list;
   include_ : string list option;
   max_target_bytes : int;
@@ -232,7 +231,7 @@ let group_by_project_root func paths =
 
 (*
    Identify the project root for each scanning root and group them
-   by project root.
+   by project root. If the project_root is specified, then we use that.
 
    This is important to avoid reading the gitignore and semgrepignore files
    twice when multiple scanning roots that belong to the same project.
@@ -240,11 +239,16 @@ let group_by_project_root func paths =
    LATER: use git_paths rather than full paths as scanning roots
    when we switch to Semgrepignore.list to list project files.
 *)
-let group_roots_by_project ?fallback_root conf paths =
+let group_roots_by_project conf paths =
+  let force_root =
+    match conf.project_root with
+    | None -> None
+    | Some proj_root -> Some (Git_project.Git_project, proj_root)
+  in
   if conf.respect_git_ignore then
     paths
     |> group_by_project_root (fun path ->
-           match Git_project.find_any_project_root ?fallback_root path with
+           match Git_project.find_any_project_root ?force_root path with
            | (Other_project as kind), root, git_path ->
                ((kind, root), Git_path.to_fpath root git_path)
            | (Git_project as kind), root, git_path ->
@@ -259,6 +263,24 @@ let group_roots_by_project ?fallback_root conf paths =
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
+
+let get_reason_for_exclusion sel_events =
+  let fallback : Resp.skip_reason = Semgrepignore_patterns_match in
+  match (sel_events : Gitignore_syntax.selection_event list) with
+  | Selected loc :: _ -> (
+      match loc.source_kind with
+      | Some str -> (
+          match str with
+          | "include" -> Resp.Cli_include_flags_do_not_match
+          | "exclude" -> Resp.Cli_exclude_flags_match
+          | "gitignore"
+          | "semgrepignore" ->
+              Resp.Semgrepignore_patterns_match
+          | __ -> (* shouldn't happen *) fallback)
+      | None -> (* shouldn't happen *) fallback)
+  | Deselected _ :: _
+  | [] ->
+      (* shouldn't happen *) fallback
 
 (* python: mix of Target_manager(), target_manager.get_files_for_rule(),
    target_manager.get_all_files(), Target(), and Target.files()
@@ -283,12 +305,13 @@ let get_targets conf scanning_roots =
            Semgrepignore.create ?include_patterns:conf.include_
              ~cli_patterns:conf.exclude ~exclusion_mechanism ~project_root ()
          in
-         let paths =
+         let paths, skipped_paths1 =
            scanning_roots
            |> List.concat_map (fun scan_root ->
                   list_regular_files conf scan_root)
            |> deduplicate_list
-           |> List.filter_map (fun path ->
+           |> Common.partition_either (fun path ->
+                  Logs.debug (fun m -> m "filtering path %s" !!path);
                   let rel_path =
                     match Fpath.relativize ~root:project_root path with
                     | Some x -> x
@@ -302,26 +325,34 @@ let get_targets conf scanning_roots =
                   let status, selection_events =
                     Semgrepignore.select ign git_path
                   in
-                  logger#ldebug
-                    (lazy
-                      (sprintf "Ignoring path %s:\n%s" !!path
-                         (Gitignore_syntax.show_selection_events
-                            selection_events)));
-                  (* TODO: log selection_events in debug mode *)
-                  (* TODO: should we return all the gitignored files as part of
-                     the skipped_paths (see the filter below)? *)
+                  Logs.debug (fun m ->
+                      m "Ignoring path %s:\n%s" !!path
+                        (Gitignore_syntax.show_selection_events selection_events));
                   match status with
-                  | Not_ignored -> Some path
-                  | Ignored -> None)
+                  | Not_ignored -> Left path
+                  | Ignored ->
+                      let reason = get_reason_for_exclusion selection_events in
+                      let skipped =
+                        {
+                          Resp.path = !!path;
+                          reason;
+                          details =
+                            "excluded by --include/--exclude, gitignore, or \
+                             semgrepignore";
+                          rule_id = None;
+                        }
+                      in
+                      Right skipped)
          in
-         let paths, skipped_paths =
+         let paths, skipped_paths2 =
            global_filter ~opt_lang:None ~sort_by_decr_size:true paths
          in
+         (* TODO: update the comment below *)
          (* !!!TODO!!! use conf.include_, conf.exclude_,
           * max_target_bytes (* from the semgrep CLI, not semgrep-core *)
           * respect_git_ignore, baseline_handler, file_ignore?, etc.
           *)
-         (paths, skipped_paths))
+         (paths, skipped_paths1 @ skipped_paths2))
   |> (* flatten results that were grouped by project *)
   List.split
   |> fun (paths_list, skipped_paths_list) ->
@@ -402,8 +433,8 @@ let files_of_dirs_or_files ?(keep_root_files = true)
     else (roots, [])
   in
   let paths =
-    paths |> File.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
-    |> File.of_strings
+    paths |> File.Path.to_strings
+    |> Common.files_of_dir_or_files_no_vcs_nofilter |> File.Path.of_strings
   in
   let paths, skipped = global_filter ~opt_lang ~sort_by_decr_size paths in
   let paths = explicit_targets @ paths in

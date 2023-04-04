@@ -370,7 +370,9 @@ let pack_regression_tests_for_lang ~test_pattern_path ~polyglot_pattern_path
   pack_tests
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files = Common2.glob (spf "%s/*%s" !!dir ext) |> File.of_strings in
+     let files =
+       Common2.glob (spf "%s/*%s" !!dir ext) |> File.Path.of_strings
+     in
      regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang)
 
 let pack_regression_tests ~with_caching lang_tests =
@@ -438,14 +440,16 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
            let files = Common2.glob (spf "%s/*.js" !!dir) in
            let files =
              Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
-             |> File.of_strings
+             |> File.Path.of_strings
            in
            let lang = Lang.Ts in
            regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
              lang);
         pack_tests "semgrep C++ on C tests"
           (let dir = test_pattern_path / "c" in
-           let files = Common2.glob (spf "%s/*.c" !!dir) |> File.of_strings in
+           let files =
+             Common2.glob (spf "%s/*.c" !!dir) |> File.Path.of_strings
+           in
            let lang = Lang.Cpp in
            regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
              lang);
@@ -519,7 +523,7 @@ let filter_irrelevant_rules_tests () =
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" !!dir)
-       |> File.of_strings
+       |> File.Path.of_strings
        |> File_type.files_of_dirs_or_files (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
@@ -588,7 +592,7 @@ let tainting_test lang rules_file file =
 
   let matches =
     taint_rules
-    |> Common.map (fun rule ->
+    |> List.concat_map (fun rule ->
            let xtarget =
              {
                Xtarget.file = !!file;
@@ -612,7 +616,6 @@ let tainting_test lang rules_file file =
            | []
            | _ :: _ :: _ ->
                raise Impossible)
-    |> List.flatten
   in
   let actual =
     matches
@@ -649,37 +652,51 @@ let lang_tainting_tests () =
     [
       pack_tests "tainting Go"
         (let dir = taint_tests_path / "go" in
-         let files = Common2.glob (spf "%s/*.go" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.go" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
       pack_tests "tainting PHP"
         (let dir = taint_tests_path / "php" in
-         let files = Common2.glob (spf "%s/*.php" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.php" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Python"
         (let dir = taint_tests_path / "python" in
-         let files = Common2.glob (spf "%s/*.py" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.py" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Java"
         (let dir = taint_tests_path / "java" in
-         let files = Common2.glob (spf "%s/*.java" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.java" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Javascript"
         (let dir = taint_tests_path / "js" in
-         let files = Common2.glob (spf "%s/*.js" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.js" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
-         let files = Common2.glob (spf "%s/*.ts" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.ts" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Scala"
         (let dir = taint_tests_path / "scala" in
-         let files = Common2.glob (spf "%s/*.scala" !!dir) |> File.of_strings in
+         let files =
+           Common2.glob (spf "%s/*.scala" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
     ]
@@ -687,6 +704,21 @@ let lang_tainting_tests () =
 (*****************************************************************************)
 (* Full rule tests *)
 (*****************************************************************************)
+
+(* TODO: For now we only have taint maturity tests for Beta, there are no specific
+ * tests for GA. *)
+(* TODO: We should also have here an explicit list of test filenames, like "taint_if",
+ * that is then checked for every language, like we do for the search mode maturity
+ * tests. *)
+(* TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable rules
+ * that can work for multiple languages (like we have for tests/patterns/POLYGLOT/ *)
+let full_rule_taint_maturity_tests () =
+  let path = tests_path / "taint_maturity" in
+  pack_tests "taint maturity"
+    (let tests, _print_summary =
+       Test_engine.make_tests ~unit_testing:true [ path ]
+     in
+     tests)
 
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
@@ -825,6 +857,7 @@ let tests () =
       extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
+      full_rule_taint_maturity_tests ();
       full_rule_regression_tests ();
       full_rule_semgrep_rules_regression_tests ();
     ]

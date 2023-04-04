@@ -80,7 +80,7 @@ let run (conf : conf) : Exit_code.t =
       Exit_code.ok
   | File (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
-      let { Parse_target.ast; skipped_tokens = _; _ } =
+      let { Parsing_result2.ast; skipped_tokens = _; _ } =
         Parse_target.just_parse_with_lang lang (Fpath.to_string file)
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in

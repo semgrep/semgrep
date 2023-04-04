@@ -431,7 +431,7 @@ let js_get_angular_constructor_args env attrs defs =
       attrs
   in
   defs
-  |> List.filter_map (function
+  |> Common.map_filter (function
        | {
            s =
              DefStmt

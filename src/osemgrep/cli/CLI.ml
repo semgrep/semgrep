@@ -245,6 +245,10 @@ let main argv : Exit_code.t =
      profile_start := Unix.gettimeofday ();
      if config.lsp then LSP_client.init ();
   *)
+  (* hacks for having a smaller engine.js file *)
+  Parsing_init.init ();
+  Data_init.init ();
+
   (* TOPORT:
       state.terminal.init_for_cli()
       abort_if_linux_arm64()

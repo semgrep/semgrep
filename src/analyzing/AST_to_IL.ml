@@ -308,7 +308,7 @@ and pattern env pat =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List.mapi (fun i pat_i ->
+        |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
@@ -369,7 +369,7 @@ and assign env lhs tok rhs_exp e_gen =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List.mapi (fun i lhs_i ->
+        |> Common.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
                  {
@@ -611,9 +611,10 @@ and expr_aux env ?(void = false) e_gen =
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
-  | G.AssignOp (e1, (G.Eq, tok), e2) when Parse_info.str_of_info tok = ":=" ->
-      (* We encode Go's `:=` as `AssignOp(Eq)`,
-       * see "go_to_generic.ml" in Pfff. *)
+  | G.AssignOp (e1, (G.Eq, tok), e2) ->
+      (* AsssignOp(Eq) is used to represent plain assignment in some languages,
+       * e.g. Go's `:=` is represented as `AssignOp(Eq)`, and C#'s assignments
+       * are all represented this way too. *)
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
   | G.AssignOp (e1, op, e2) ->
@@ -945,7 +946,7 @@ and record env ((_tok, origfields, _) as record_def) =
 and xml_expr env xml =
   let attrs =
     xml.G.xml_attrs
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlAttr (_, tok, eorig)
          | G.XmlAttrExpr (tok, eorig, _) ->
              let exp = expr env eorig in
@@ -955,7 +956,7 @@ and xml_expr env xml =
   in
   let body =
     xml.G.xml_body
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -1084,7 +1085,7 @@ and expr_with_pre_stmts_opt env eopt =
 
 and for_var_or_expr_list env xs =
   xs
-  |> Common.map (function
+  |> List.concat_map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -1097,14 +1098,13 @@ and for_var_or_expr_list env xs =
                ss
                @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
            | _ -> []))
-  |> List.flatten
 
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
 and parameters _env params : name list =
   params |> Parse_info.unbracket
-  |> List.filter_map (function
+  |> Common.map_filter (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 
@@ -1156,7 +1156,7 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> PI.unbracket |> Common.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> PI.unbracket |> List.concat_map (stmt env)
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in

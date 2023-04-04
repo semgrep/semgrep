@@ -11,16 +11,18 @@ val is_git_root : Fpath.t -> bool
 (*
    Locate the root folder of the git project starting from
    the given path. The result is the pair
-   (physical path from OS root to git root, path from git root).
-
-   Symlinks are dereferenced.
+   (path from OS root to git root, path from git root).
 
    This function is meant to turn a user-specified path into
    paths that are usable with the Semgrepignore module.
+
+   Don't dereference symlinks: the project root of /a/b/c is searched in
+   /a/b/ then /a/ then /, regardless of whether they're symlinks or regular
+   folders.
 *)
 val find_git_project_root : Fpath.t -> (Fpath.t * Git_path.t) option
 
-type kind = Git_project | Other_project
+type kind = Git_project | Other_project [@@deriving show]
 
 (* The default value of '?fallback_project_root' *)
 val default_project_root : Fpath.t
@@ -36,6 +38,10 @@ val force_project_root :
 (*
    Find a project root even if the given path is not within a git project.
 
+   'force_root' can be used to impose the project root rather than guessing
+   it. It's useful for testing the gitignore mechanism and stay within
+   the confines of the test folder.
+
    This returns the project root and the path relative to that root just like
    'find_git_project_root'.
 
@@ -46,4 +52,7 @@ val force_project_root :
    set to the current folder '.', resolved to a physical path.
 *)
 val find_any_project_root :
-  ?fallback_root:Fpath.t -> Fpath.t -> kind * Fpath.t * Git_path.t
+  ?fallback_root:Fpath.t ->
+  ?force_root:kind * Fpath.t ->
+  Fpath.t ->
+  kind * Fpath.t * Git_path.t

@@ -245,7 +245,7 @@ let (expected_error_lines_of_files :
       (Common.filename * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) test_files ->
   test_files
-  |> Common.map (fun file ->
+  |> List.concat_map (fun file ->
          Common.cat file |> Common.index_list_1
          |> Common.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
@@ -255,7 +255,6 @@ let (expected_error_lines_of_files :
                 if s =~ regexp (* + 1 because the comment is one line before *)
                 then Some (file, idx + 1)
                 else None))
-  |> List.flatten
 
 (* A copy-paste of Error_code.compare_actual_to_expected but
  * with Semgrep_error_code.error instead of Error_code.t for the error type.

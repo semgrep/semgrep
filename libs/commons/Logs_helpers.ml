@@ -3,7 +3,7 @@
  *)
 let enable_logging () =
   Logs.set_level ~all:true (Some Logs.Warning);
-  Logs.set_reporter (Logs_fmt.reporter ());
+  Logs.set_reporter (Logs_fmt.reporter ~app:Format.err_formatter ());
   ()
 
 (* TOPORT: with Logs a warning is displayed as:
@@ -16,19 +16,22 @@ let setup_logging ~force_color ~level =
   let style_renderer = if force_color then Some `Ansi_tty else None in
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
-  Logs.set_reporter (Logs_fmt.reporter ());
+  Logs.set_reporter (Logs_fmt.reporter ~app:Format.err_formatter ());
   (* from https://github.com/mirage/ocaml-cohttp#debugging *)
   (* Disable all third-party libs logs *)
   Logs.Src.list ()
   |> List.iter (fun src ->
          match Logs.Src.name src with
-         | "cohttp.lwt.io"
-         | "cohttp.lwt.server"
-         | "cohttp.lwt.client"
-         | "conduit_lwt_server"
+         | "dns"
+         | "dns_cache"
+         | "dns_client"
+         | "dns_client_lwt"
          | "ca-certs"
          | "bos"
+         | "happy-eyeballs"
+         | "happy-eyeballs.lwt"
          | "mirage-crypto-rng.lwt"
+         | "mirage-crypto-rng-lwt"
          | "mirage-crypto-rng.unix"
          | "handshake"
          | "tls.config"

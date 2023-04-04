@@ -161,7 +161,7 @@ let check_pattern (lang : Xlang.t) f =
   visit_new_formula
     (fun { pat; pstr = _pat_str; pid = _ } _ ->
       match (pat, lang) with
-      | Sem (semgrep_pat, _lang), L (lang, _rest) ->
+      | Sem ((lazy semgrep_pat), _lang), L (lang, _rest) ->
           Check_pattern.check lang semgrep_pat
       | Spacegrep _spacegrep_pat, LGeneric -> ()
       | Regexp _, _ -> ()
@@ -240,11 +240,11 @@ let run_checks config fparser metachecks xs =
       let semgrep_found_errs = semgrep_check config metachecks rules in
       let ocaml_found_errs =
         rules
-        |> Common.map (fun file ->
+        |> List.concat_map (fun file ->
                logger#info "processing %s" !!file;
                try
                  let rs = fparser file in
-                 rs |> Common.map (fun file -> check file) |> List.flatten
+                 rs |> List.concat_map (fun file -> check file)
                with
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)
@@ -252,7 +252,6 @@ let run_checks config fparser metachecks xs =
                | exn ->
                    let e = Exception.catch exn in
                    [ E.exn_to_error !!file e ])
-        |> List.flatten
       in
       semgrep_found_errs @ ocaml_found_errs
 

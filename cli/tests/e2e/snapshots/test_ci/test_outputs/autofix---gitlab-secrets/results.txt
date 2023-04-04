@@ -358,11 +358,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

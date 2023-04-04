@@ -33,7 +33,7 @@ let partial_parsing_tests_for_lang files lang =
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
-             let { Parse_target.skipped_tokens = errs; _ } =
+             let { Parsing_result2.skipped_tokens = errs; _ } =
                Parse_target.parse_and_resolve_name lang file
              in
              if errs =*= [] then
@@ -104,14 +104,14 @@ let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" !!dir) in
-     tests |> File.of_strings
+     tests |> File.Path.of_strings
      |> Common.map (fun file ->
             ( Fpath.basename file,
               fun () ->
                 try
                   let lang = List.hd (Lang.langs_of_filename file) in
                   let res = Parse_target.just_parse_with_lang lang !!file in
-                  if res.Parse_target.skipped_tokens =*= [] then
+                  if res.skipped_tokens =*= [] then
                     Alcotest.fail
                       "it should raise a standard parsing error exn or return \
                        partial errors "
@@ -130,7 +130,7 @@ let parsing_rules_tests () =
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
      in
-     tests |> File.of_strings
+     tests |> File.Path.of_strings
      |> Common.map (fun file ->
             (Fpath.basename file, fun () -> Parse_rule.parse file |> ignore)))
 

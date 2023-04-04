@@ -124,15 +124,14 @@ let stat file =
   (* reporting *)
   pr2 (spf "TIMEOUT FILES (timeout = %.1f" !timeout);
   let timeout_files =
-    runs |> Common.map (fun x -> x.timeout) |> List.flatten |> Common2.uniq
+    runs |> List.concat_map (fun x -> x.timeout) |> Common2.uniq
   in
   timeout_files |> List.iter pr2_gen;
 
   pr2 "SLOW FILES";
   let problematic_files =
     runs
-    |> Common.map (fun x -> x.files)
-    |> List.flatten
+    |> List.concat_map (fun x -> x.files)
     |> Common.exclude (fun (file, _) -> List.mem file timeout_files)
     |> Common.sort_by_val_highfirst |> Common.take_safe 30
   in
@@ -156,8 +155,8 @@ let stat file =
            let total_rules = List.length xs in
            let total_time =
              xs
-             |> Common.map (fun x -> x.files)
-             |> List.flatten |> Common.map snd |> Common2.sum_float
+             |> List.concat_map (fun x -> x.files)
+             |> Common.map snd |> Common2.sum_float
            in
            let total_files =
              xs |> Common.map (fun x -> List.length x.files) |> Common2.sum

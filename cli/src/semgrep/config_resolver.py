@@ -18,10 +18,12 @@ from urllib.parse import urlparse
 
 import requests
 import ruamel.yaml
+from rich import progress
 from ruamel.yaml import YAMLError
 
 from semgrep import __VERSION__
 from semgrep.app import auth
+from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
@@ -88,7 +90,12 @@ class ConfigLoader:
     _project_url = None
     _extra_headers: Dict[str, str] = {}
 
-    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        config_str: str,
+        project_url: Optional[str] = None,
+        config_str_for_jsonnet: Optional[str] = None,
+    ) -> None:
         """
         Mutates Metrics state!
         Takes a user's inputted config_str and transforms it into the appropriate
@@ -106,7 +113,7 @@ class ConfigLoader:
             self._config_path = config_str
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
-            self._config_path = url_for_policy(config_str)
+            self._config_path = url_for_policy()
         elif is_supply_chain(config_str):
             state.metrics.add_feature("config", "sca")
             self._config_path = url_for_supply_chain()
@@ -122,6 +129,11 @@ class ConfigLoader:
         else:
             state.metrics.add_feature("config", "local")
             self._origin = ConfigType.LOCAL
+            # For local imports, use the jsonnet config str
+            # if it exists
+            config_str = (
+                config_str_for_jsonnet if config_str_for_jsonnet else config_str
+            )
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
@@ -249,7 +261,14 @@ def parse_config_files(
     but is None for registry rules
     """
     config = {}
-    for (config_id, contents, config_path) in loaded_config_infos:
+    for config_id, contents, config_path in progress.track(
+        loaded_config_infos,
+        description=f"  parsing {len(loaded_config_infos)} rules",
+        transient=True,
+        # expected to take just 2-3 seconds with less than 500
+        disable=len(loaded_config_infos) < 500,
+        console=console,
+    ):
         try:
             if not config_id:  # registry rules don't have config ids
                 config_id = "remote-url"
@@ -445,7 +464,6 @@ class Config:
                 continue
             valid_rules = []
             for rule_dict in rules.value:
-
                 try:
                     rule = validate_single_rule(config_id, rule_dict)
                 except InvalidRuleSchemaError as ex:
@@ -531,9 +549,28 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
     use it when resolving imports. By implementing
     this callback, we support yaml files (jsonnet
     can otherwise only build against json files)
-    and config specifiers like `p/python`.
+    and config specifiers like `p/python`. We also
+    support a library path
     """
-    final_path = os.path.join(base, path)
+
+    # If the library path is absolute, assume that's
+    # the intended path. But if it's relative, assume
+    # it's relative to the path semgrep was called from.
+    # This follows the semantics of `jsonnet -J`
+    library_path = os.environ.get("R2C_INTERNAL_JSONNET_LIB")
+
+    if library_path and not os.path.isabs(library_path):
+        library_path = os.path.join(os.curdir, library_path)
+
+    # Assume the path is the library path if it exists,
+    # otherwise try it without the library. This way,
+    # jsonnet will give an error for the path the user
+    # likely expects
+    # TODO throw an error if neither exists?
+    if library_path and os.path.exists(os.path.join(library_path, path)):
+        final_path = os.path.join(library_path, path)
+    else:
+        final_path = os.path.join(base, path)
     logger.debug(f"import_callback for {path}, base = {base}, final = {final_path}")
 
     # On the fly conversion from yaml to json.
@@ -550,22 +587,12 @@ def import_callback(base: str, path: str) -> Tuple[str, bytes]:
         filename = final_path
         return filename, contents.encode()
 
-    # This could be handled by ConfigLoader below (and its _load_config_from_local_path() helper)
-    # but this would not handle the 'base' argument yet, so better to be explicit about
-    # jsonnet handling here.
-    if final_path and (
-        final_path.split(".")[-1] == "jsonnet"
-        or final_path.split(".")[-1] == "libsonnet"
-    ):
-        logger.debug(f"loading jsonnet file {final_path}")
-        contents = Path(final_path).read_text()
-        return final_path, contents.encode()
-
     logger.debug(f"defaulting to the config resolver for {path}")
     # Registry-aware import!
     # Can now do 'local x = import "p/python";'!!
-    # TODO? should we pass also base?
-    config_infos = ConfigLoader(path, None).load_config()
+    # Will also handle `.jsonnet` and `.libsonnet` files
+    # implicitly, since they will be resolved as local files
+    config_infos = ConfigLoader(path, None, final_path).load_config()
     if len(config_infos) == 0:
         raise SemgrepError(f"No valid configs imported")
     elif len(config_infos) > 1:
@@ -675,7 +702,7 @@ def registry_id_to_url(registry_id: str) -> str:
     return f"{env.semgrep_url}/{registry_id}"
 
 
-def url_for_policy(config_str: str) -> str:
+def url_for_policy() -> str:
     """
     Return url to download a policy for a given repo_name
 

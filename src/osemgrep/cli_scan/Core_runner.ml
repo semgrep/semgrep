@@ -181,6 +181,34 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         version = Version.version;
       }
 
+let pp_status rules targets lang_jobs respect_git_ignore ppf () =
+  Fmt_helpers.pp_heading ppf "Scan status";
+  (* TODO indentation of the body *)
+  let pp_s ppf x = if x = 1 then Fmt.string ppf "" else Fmt.string ppf "s" in
+  let rule_count = List.length rules in
+  Fmt.pf ppf "Scanning %d files%s with %d Code rule%a" (List.length targets)
+    (if respect_git_ignore then " tracked by git" else "")
+    rule_count pp_s rule_count;
+  (* TODO if sca_rules ...
+     Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
+  (* TODO pro_rule
+         if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+         == "pro_rules"
+     if pro_rule_count:
+         summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+  *)
+  Fmt.pf ppf ":@.@.";
+  Fmt_helpers.pp_table
+    ("Language", [ "Rules"; "Files" ])
+    ppf
+    (lang_jobs
+    |> List.fold_left
+         (fun acc Runner_config.{ lang; targets; rules } ->
+           (Xlang.to_string lang, [ List.length rules; List.length targets ])
+           :: acc)
+         []
+    |> List.rev)
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
@@ -188,9 +216,9 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
-    result =
+let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
+    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
+    (all_targets : Fpath.t list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
 
   match rule_errors with
@@ -212,9 +240,9 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
         {
           Out.matches = [];
           errors = [ error ];
-          skipped_targets = None;
-          skipped_rules = None;
-          explanations = None;
+          skipped_targets = [];
+          skipped_rules = [];
+          explanations = [];
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
           rules_by_engine = [];
@@ -231,6 +259,10 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
        * requires the xlang object to contain a single language.
        *)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
+      Logs.app (fun m ->
+          m "%a"
+            (pp_status all_rules all_targets lang_jobs respect_git_ignore)
+            ());
       let results_by_language =
         lang_jobs
         |> Common.map (fun lang_job ->

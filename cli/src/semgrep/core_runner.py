@@ -37,6 +37,7 @@ from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TaskProgressColumn
+from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
@@ -242,7 +243,6 @@ class StreamingSemgrepCore:
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
-
         has_started = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
@@ -257,14 +257,31 @@ class StreamingSemgrepCore:
                 # that are looking for it. Make sure `semgrep-core exited with unexpected output`
                 # and `interfile analysis` are both in the message, or talk to Emma.
                 raise SemgrepError(
-                    "semgrep-core exited with unexpected output.\n\n"
-                    "\tThis can happen because it overflowed the stack or used too much memory.\n"
-                    "\tTry changing the stack limit with `ulimit -s <limit>` or adding\n"
-                    "\t`--max-memory <memory>` to the semgrep command. For CI runs with interfile\n"
-                    "\tanalysis, the default max-memory is 5000MB. Depending on the memory\n"
-                    "\tavailable in your runner, you may need to lower it. We recommend choosing\n"
-                    "\ta limit 70% of the available memory to allow for some overhead. If you have\n"
-                    "\ttried these steps and still are seeing this error, please contact us."
+                    f"""
+                    You are seeing this because the engine was killed.
+
+                    The most common reason this happens is because it used too much memory.
+                    If your repo is large (~10k files or more), you have three options:
+                    1. Increase the amount of memory available to semgrep
+                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
+                        recommend using 1 job if you are running out of memory.
+                    3. Scan the repo in parts (contact us for help)
+
+                    Otherwise, it is likely that semgrep is hitting the limit on only some
+                    files. In this case, you can try to set the limit on the amount of memory
+                    semgrep can use on each file with `--max-memory <memory>`. We recommend
+                    lowering this to a limit 70% of the available memory. For CI runs with
+                    interfile analysis, the default max-memory is 5000MB. Without, the default
+                    is unlimited.
+
+                    The last thing you can try if none of these work is to raise the stack
+                    limit with `ulimit -s <limit>`.
+
+                    If you have tried all these steps and still are seeing this error, please
+                    contact us.
+
+                       Error: semgrep-core exited with unexpected output
+                    """
                 )
 
             if (
@@ -456,6 +473,9 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            # align progress bar to output by indenting 2 spaces
+            # (the +1 space comes from column gap)
+            TextColumn(" "),
             BarColumn(),
             TaskProgressColumn(),
             TimeElapsedColumn(),
