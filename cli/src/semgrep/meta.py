@@ -226,17 +226,15 @@ class GithubMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        repo_name = os.getenv("GITHUB_REPOSITORY")
+        repo_name = os.getenv("SEMGREP_REPO_NAME", os.getenv("GITHUB_REPOSITORY"))
 
         # NOTE: no-super-first
         # we don't call super().repo_url _first_ because that makes a call to the git remote
         # if the env var is not set
         # we want to prioritize the explicit env var, but the case where it isn't set,
         # we should just do what we'd normally do
-        semgrep_repo_name = os.getenv("SEMGREP_REPO_NAME")
-        if semgrep_repo_name:
-            return semgrep_repo_name
-        elif repo_name:
+        # in this particular case, we actually just don't call it at all
+        if repo_name:
             return repo_name
         else:
             raise Exception("Could not get repo_name when running in GithubAction")
@@ -523,7 +521,7 @@ class GithubMeta(GitMeta):
         value = os.getenv("GITHUB_RUN_ID")
         if self.repo_url and value:
             return f"{self.repo_url}/actions/runs/{value}"
-        return super().ci_job_url
+        return None
 
     @property
     def event_name(self) -> str:
@@ -665,6 +663,7 @@ class GitlabMeta(GitMeta):
     def ci_job_url(self) -> Optional[str]:
         job_url = os.getenv("SEMGREP_JOB_URL", os.getenv("CI_JOB_URL"))
 
+        # see NOTE: no-super-first
         if job_url:
             return job_url
         return super().ci_job_url
@@ -685,7 +684,7 @@ class GitlabMeta(GitMeta):
             return semgrep_pr_id
         if pr_id:
             return pr_id
-        return super().pr_id
+        return None
 
     @property
     def start_sha(self) -> Optional[str]:
@@ -700,7 +699,7 @@ class GitlabMeta(GitMeta):
             return semgrep_pr_title
         if pr_title:
             return pr_title
-        return super().pr_title
+        return None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
