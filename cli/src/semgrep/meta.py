@@ -226,7 +226,14 @@ class GithubMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        repo_name = os.getenv("GITHUB_REPOSITORY")
+        repo_name = os.getenv("SEMGREP_REPO_NAME", os.getenv("GITHUB_REPOSITORY"))
+
+        # NOTE: no-super-first
+        # we don't call super().repo_url _first_ because that makes a call to the git remote
+        # if the env var is not set
+        # we want to prioritize the explicit env var, but the case where it isn't set,
+        # we should just do what we'd normally do
+        # in this particular case, we actually just don't call it at all
         if repo_name:
             return repo_name
         else:
@@ -235,8 +242,12 @@ class GithubMeta(GitMeta):
     @property
     def repo_url(self) -> Optional[str]:
         server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
+        semgrep_repo_url = os.getenv("SEMGREP_REPO_URL")
 
-        if self.repo_name:
+        # see NOTE: no-super-first
+        if semgrep_repo_url:
+            return semgrep_repo_url
+        elif self.repo_name:
             return f"{server_url}/{self.repo_name}"
         return None
 
@@ -503,6 +514,10 @@ class GithubMeta(GitMeta):
 
     @property
     def ci_job_url(self) -> Optional[str]:
+        semgrep_job_url = super().ci_job_url
+        if semgrep_job_url:
+            return semgrep_job_url
+
         value = os.getenv("GITHUB_RUN_ID")
         if self.repo_url and value:
             return f"{self.repo_url}/actions/runs/{value}"
@@ -514,11 +529,19 @@ class GithubMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
+        semgrep_pr_id = super().pr_id
+        if semgrep_pr_id:
+            return semgrep_pr_id
+
         pr_id = self.glom_event(T["pull_request"]["number"])
         return str(pr_id) if pr_id else None
 
     @property
     def pr_title(self) -> Optional[str]:
+        semgrep_pr_title = super().pr_title
+        if semgrep_pr_title:
+            return semgrep_pr_title
+
         pr_title = self.glom_event(T["pull_request"]["title"])
         return str(pr_title) if pr_title else None
 
@@ -545,7 +568,10 @@ class GithubMeta(GitMeta):
         """
         if self.event_name == "pull_request_target":
             return os.getenv("GITHUB_HEAD_REF")
-        return os.getenv("GITHUB_REF")
+        github_ref = os.getenv("SEMGREP_BRANCH", os.getenv("GITHUB_REF"))
+        if github_ref:
+            return github_ref
+        return super().branch
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -593,15 +619,30 @@ class GitlabMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return os.getenv("CI_PROJECT_PATH", "[unknown]")
+        project_path = os.getenv("SEMGREP_REPO_NAME", os.getenv("CI_PROJECT_PATH"))
+
+        # see NOTE: no-super-first
+        if project_path:
+            return project_path
+        return super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("CI_PROJECT_URL")
+        project_url = os.getenv("SEMGREP_REPO_URL", os.getenv("CI_PROJECT_URL"))
+
+        # see NOTE: no-super-first
+        if project_url:
+            return project_url
+        return super().repo_url
 
     @property
     def commit_sha(self) -> Optional[str]:
-        return os.getenv("CI_COMMIT_SHA")
+        commit_sha = os.getenv("SEMGREP_COMMIT", os.getenv("CI_COMMIT_SHA"))
+
+        # see NOTE: no-super-first
+        if commit_sha:
+            return commit_sha
+        return super().commit_sha
 
     @property
     def commit_ref(self) -> Optional[str]:
@@ -620,7 +661,12 @@ class GitlabMeta(GitMeta):
 
     @property
     def ci_job_url(self) -> Optional[str]:
-        return os.getenv("CI_JOB_URL")
+        job_url = os.getenv("SEMGREP_JOB_URL", os.getenv("CI_JOB_URL"))
+
+        # see NOTE: no-super-first
+        if job_url:
+            return job_url
+        return super().ci_job_url
 
     @property
     def event_name(self) -> str:
@@ -631,7 +677,14 @@ class GitlabMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        return os.getenv("CI_MERGE_REQUEST_IID")
+        pr_id = os.getenv("CI_MERGE_REQUEST_IID")
+        semgrep_pr_id = super().pr_id
+
+        if semgrep_pr_id:
+            return semgrep_pr_id
+        if pr_id:
+            return pr_id
+        return None
 
     @property
     def start_sha(self) -> Optional[str]:
@@ -639,7 +692,14 @@ class GitlabMeta(GitMeta):
 
     @property
     def pr_title(self) -> Optional[str]:
-        return os.getenv("CI_MERGE_REQUEST_TITLE")
+        pr_title = os.getenv("CI_MERGE_REQUEST_TITLE")
+        semgrep_pr_title = super().pr_title
+
+        if semgrep_pr_title:
+            return semgrep_pr_title
+        if pr_title:
+            return pr_title
+        return None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
