@@ -113,12 +113,12 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
 
 let from_string ~anchor ~name ~kind str =
   let lines = read_lines_from_string str in
-  List.mapi
+  Common.mapi
     (fun i contents ->
       let linenum = i + 1 in
       parse_line ~anchor name kind linenum contents)
     lines
-  |> List.filter_map (fun x -> x)
+  |> Common.map_filter (fun x -> x)
 
 let from_file ~anchor ~kind path =
   Fpath.to_string path |> Common.read_file

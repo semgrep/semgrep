@@ -435,7 +435,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
      * And `ArgtoSink` needs to carry the other taint that reaches the
      * sink besides the argument. *)
   taints |> Taints.elements
-  |> List.filter_map (fun (taint : T.taint) ->
+  |> Common.map_filter (fun (taint : T.taint) ->
          let tokens = List.rev taint.tokens in
          match taint.orig with
          | Arg i ->
@@ -908,10 +908,64 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
     | FixmeExp (_, _, None) ->
         (Taints.empty, env.lval_env)
     | Composite (_, (_, es, _)) -> union_map_taints_and_vars env check es
-    | Operator (_, es) ->
-        es
-        |> Common.map IL_helpers.exp_of_arg
-        |> union_map_taints_and_vars env check
+    | Operator ((op, _), es) ->
+        let args_taints, lval_env =
+          es
+          |> Common.map IL_helpers.exp_of_arg
+          |> union_map_taints_and_vars env check
+        in
+        let op_taints =
+          match op with
+          | G.Eq
+          | G.NotEq
+          | G.PhysEq
+          | G.NotPhysEq
+          | G.Lt
+          | G.LtE
+          | G.Gt
+          | G.GtE
+          | G.Cmp
+          | G.RegexpMatch
+          | G.NotMatch
+          | G.In
+          | G.NotIn
+          | G.Is
+          | G.NotIs ->
+              if env.options.taint_assume_safe_comparisons then Taints.empty
+              else args_taints
+          | G.And
+          | G.Or
+          | G.Xor
+          | G.Not
+          | G.LSL
+          | G.LSR
+          | G.ASR
+          | G.BitOr
+          | G.BitXor
+          | G.BitAnd
+          | G.BitNot
+          | G.BitClear
+          | G.Plus
+          | G.Minus
+          | G.Mult
+          | G.Div
+          | G.Mod
+          | G.Pow
+          | G.FloorDiv
+          | G.MatMult
+          | G.Concat
+          | G.Append
+          | G.Range
+          | G.RangeInclusive
+          | G.NotNullPostfix
+          | G.Length
+          | G.Elvis
+          | G.Nullish
+          | G.Background
+          | G.Pipe ->
+              args_taints
+        in
+        (op_taints, lval_env)
     | Record fields ->
         union_map_taints_and_vars env
           (fun env -> function
@@ -970,7 +1024,7 @@ let check_function_signature env fun_exp args args_taints =
       let* fparams, fun_sig = hook env.config eorig in
       Some
         (fun_sig
-        |> List.filter_map (function
+        |> Common.map_filter (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
                  let call_trace = T.Call (eorig, tokens, src.call_trace) in
                  Some

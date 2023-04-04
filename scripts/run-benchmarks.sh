@@ -3,7 +3,7 @@
 # Coupling: If you update this script, you likely also want
 # to update run-pro-benchmarks.sh
 
-set e
+set -e
 
 cd cli || return
 
@@ -34,5 +34,5 @@ jq . timing2.json
 jq . ci_small_repos_findings.json
 
 # Compare timing infos
-../perf/compare-perf baseline_timing1.json baseline_timing2.json timing1.json timing2.json "$1" "$2"
-../perf/compare-bench-findings ci_small_repos_findings.json
+pipenv run ../perf/compare-perf baseline_timing1.json baseline_timing2.json timing1.json timing2.json "$1" "$2"
+pipenv run ../perf/compare-bench-findings ci_small_repos_findings.json

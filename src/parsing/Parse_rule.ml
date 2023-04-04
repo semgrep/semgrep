@@ -304,7 +304,7 @@ let parse_listi env (key : key) f x =
     f env x
   in
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.mapi get_component xs
+  | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
@@ -657,7 +657,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
   let parse_listi env (key : key) f x =
     match x.G.e with
-    | G.Container (Array, (_, xs, _)) -> List.mapi f xs
+    | G.Container (Array, (_, xs, _)) -> Common.mapi f xs
     | _ -> error_at_key env key ("Expected a list for " ^ fst key)
   in
   let get_pattern str_e = parse_xpattern_expr env str_e in
@@ -1486,7 +1486,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
   in
   let xs =
     rules
-    |> List.mapi (fun i rule ->
+    |> Common.mapi (fun i rule ->
            if error_recovery then (
              try Left (parse_one_rule t i rule) with
              | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
