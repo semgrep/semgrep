@@ -228,8 +228,8 @@ class GithubMeta(GitMeta):
     def repo_name(self) -> str:
         repo_name = os.getenv("GITHUB_REPOSITORY")
 
-        # NOTE: no-super
-        # we don't call super().repo_url because that makes a call to the git remote
+        # NOTE: no-super-first
+        # we don't call super().repo_url _first_ because that makes a call to the git remote
         # if the env var is not set
         # we want to prioritize the explicit env var, but the case where it isn't set,
         # we should just do what we'd normally do
@@ -246,7 +246,7 @@ class GithubMeta(GitMeta):
         server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
         semgrep_repo_url = os.getenv("SEMGREP_REPO_URL")
 
-        # see NOTE: no-super
+        # see NOTE: no-super-first
         if semgrep_repo_url:
             return semgrep_repo_url
         elif self.repo_name:
@@ -570,7 +570,7 @@ class GithubMeta(GitMeta):
         """
         if self.event_name == "pull_request_target":
             return os.getenv("GITHUB_HEAD_REF")
-        github_ref = os.getenv("GITHUB_REF")
+        github_ref = os.getenv("SEMGREP_BRANCH", os.getenv("GITHUB_REF"))
         if github_ref:
             return github_ref
         return super().branch
@@ -621,36 +621,27 @@ class GitlabMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        project_path = os.getenv("CI_PROJECT_PATH")
-        semgrep_repo_name = os.getenv("SEMGREP_REPO_NAME")
+        project_path = os.getenv("SEMGREP_REPO_NAME", os.getenv("CI_PROJECT_PATH"))
 
-        # see NOTE: no-super
-        if semgrep_repo_name:
-            return semgrep_repo_name
+        # see NOTE: no-super-first
         if project_path:
             return project_path
         return super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        project_url = os.getenv("CI_PROJECT_URL")
-        semgrep_repo_url = os.getenv("SEMGREP_REPO_URL")
+        project_url = os.getenv("SEMGREP_REPO_URL", os.getenv("CI_PROJECT_URL"))
 
-        # see NOTE: no-super
-        if semgrep_repo_url:
-            return semgrep_repo_url
+        # see NOTE: no-super-first
         if project_url:
             return project_url
         return super().repo_url
 
     @property
     def commit_sha(self) -> Optional[str]:
-        commit_sha = os.getenv("CI_COMMIT_SHA")
-        semgrep_commit = os.getenv("SEMGREP_COMMIT")
+        commit_sha = os.getenv("SEMGREP_COMMIT", os.getenv("CI_COMMIT_SHA"))
 
-        # see NOTE: no-super
-        if semgrep_commit:
-            return semgrep_commit
+        # see NOTE: no-super-first
         if commit_sha:
             return commit_sha
         return super().commit_sha
@@ -672,11 +663,8 @@ class GitlabMeta(GitMeta):
 
     @property
     def ci_job_url(self) -> Optional[str]:
-        job_url = os.getenv("CI_JOB_URL")
-        semgrep_job_url = super().ci_job_url
+        job_url = os.getenv("SEMGREP_JOB_URL", os.getenv("CI_JOB_URL"))
 
-        if semgrep_job_url:
-            return semgrep_job_url
         if job_url:
             return job_url
         return super().ci_job_url
