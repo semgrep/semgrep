@@ -59,6 +59,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 
@@ -113,6 +114,7 @@ let default : conf =
     dump = None;
     validate = None;
     test = None;
+    nosem = true;
   }
 
 (*************************************************************************)
@@ -604,6 +606,12 @@ let o_project_root : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_nosem : bool Term.t =
+  H.negatable_flag [ "enable-nosem" ] ~neg_options:[ "disable-nosem" ]
+    ~doc:
+      {|Enables 'nosem'. Findings will not be reported on lines containing
+          a 'nosem' comment at the end.|}
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -613,11 +621,11 @@ let cmdline_term : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine autofix baseline_commit config debug dryrun dump_ast dump_config
       emacs error exclude exclude_rule_ids force_color include_ json lang
-      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      profile project_root quiet replacement respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate verbose version version_check vim =
+      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
+      pattern profile project_root quiet replacement respect_git_ignore
+      rewrite_rule_ids scan_unknown_extensions severity show_supported_languages
+      strict target_roots test test_ignore_todo time_flag timeout
+      timeout_threshold validate verbose version version_check vim =
     let include_ =
       match include_ with
       | [] -> None
@@ -849,6 +857,7 @@ let cmdline_term : conf Term.t =
       dump;
       validate;
       test;
+      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -858,7 +867,7 @@ let cmdline_term : conf Term.t =
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem
     $ o_optimizations $ o_pattern $ o_profile $ o_project_root $ o_quiet
     $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages

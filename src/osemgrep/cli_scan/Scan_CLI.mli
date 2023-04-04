@@ -39,6 +39,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 

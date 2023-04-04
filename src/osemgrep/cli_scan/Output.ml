@@ -161,7 +161,9 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
       ~rules_source:conf.rules_source res
   in
   let cli_output =
-    Nosemgrep.process_ignores ~strict:conf.Scan_CLI.strict cli_output
+    if conf.nosem then
+      Nosemgrep.process_ignores ~strict:conf.Scan_CLI.strict cli_output
+    else cli_output
   in
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
