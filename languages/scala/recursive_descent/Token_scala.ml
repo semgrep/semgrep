@@ -87,8 +87,8 @@ type token =
   | BANG of Parse_info.t
   | AT of Parse_info.t
   | ARROW of Parse_info.t
-  | INDENT
-  | DEDENT
+  | INDENT of int
+  | DEDENT of int
 [@@deriving show { with_path = false }]
 
 type t = token [@@deriving show]

@@ -122,7 +122,10 @@ let mk_env toks =
         passed = [];
         last_nl = None;
         depth = 0;
-        sepRegions = [];
+        (* We are implicitly in an indentation zone, as with the official Scala parser:
+           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L274
+        *)
+        sepRegions = [ T.DEDENT (-1) ];
       }
 
 (* We sometimes need to lookahead tokens, and call fetchToken and revert;
@@ -237,10 +240,41 @@ let rec in_next_token xs =
       match x with
       | Space _
       | Comment _
-      | INDENT
-      | DEDENT ->
+      | INDENT _
+      | DEDENT _ ->
           in_next_token xs
       | _ -> Some x)
+
+(* Have we passed an indent?
+   Because our nextToken skips over INDENT, in places where an
+   INDENT might be syntactically significant, we might need to
+   look through the tokens we have passed to tell if we have entered
+   an indentation region.
+*)
+let passedIndent in_ =
+  let rec loop acc =
+    match acc with
+    | [] -> None
+    | INDENT i :: _ -> Some i
+    | Space _ :: rest
+    | Nl _ :: rest
+    | NEWLINE _ :: rest ->
+        loop rest
+    | _ -> None
+  in
+  loop in_.passed
+
+(* For a particular index of a DEDENT token we have seen,
+   we should check our sepRegions to see if it corresponds
+   to the indentation region that we are currently in.
+
+   If so, then we know that our current dedent region is
+   ended.
+*)
+let significantDedent dedent_idx in_ =
+  match in_.sepRegions with
+  | T.DEDENT idx' :: _ when dedent_idx =*= idx' -> true
+  | _ -> false
 
 (* ------------------------------------------------------------------------- *)
 (* newline: Newline management part1  *)
@@ -329,8 +363,8 @@ let afterLineEnd in_ =
             true
         | Space _
         | Comment _
-        | INDENT
-        | DEDENT ->
+        | INDENT _
+        | DEDENT _ ->
             loop xs
         | _ ->
             if !debug_newline then
@@ -363,10 +397,21 @@ let fetchToken in_ =
         in_.rest <- xs;
 
         match x with
+        (* If we pass a DEDENT that ends our current region,
+           we should stop and allow ourselves to look at it.
+           This is so we can consume it in statSeq.
+
+           This results in significantly simpler code, because ending
+           a statSeq will pop off DEDENTs from the token stream
+           in a disciplined way, utilizing the call stack.
+        *)
+        | DEDENT idx when significantDedent idx in_ ->
+            in_.passed <- aux @ in_.passed;
+            in_.token <- DEDENT idx
         | Space _
         | Comment _
-        | INDENT
-        | DEDENT ->
+        | INDENT _
+        | DEDENT _ ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
@@ -404,7 +449,8 @@ let nextToken in_ =
    afterLineEnd in_ && TH.inLastOfStat lastToken && TH.inFirstOfStat in_.token
    && (match in_.sepRegions with
       | []
-      | RBRACE _ :: _ ->
+      | RBRACE _ :: _
+      | DEDENT _ :: _ ->
           true
       | _ -> false)
    && (* STILL?: not applyBracePatch *)
@@ -433,6 +479,20 @@ let accept t in_ =
   | EOF _ -> ()
   | _ -> nextToken in_
 
+let closeIndentRegion in_ =
+  match (in_.token, in_.sepRegions) with
+  | EOF _, _ -> ()
+  (* This check that the DEDENT idxs match up was already
+     done, or we wouldn't have stopped on this token in the
+     first place.
+
+     Regardless, let's keep it here, because why not.
+  *)
+  | DEDENT idx, DEDENT idx' :: rest when idx =*= idx' ->
+      in_.sepRegions <- rest;
+      skipToken in_
+  | _ -> failwith "precondition failure"
+
 (* ------------------------------------------------------------------------- *)
 (* looking ahead part 2 *)
 (* ------------------------------------------------------------------------- *)
@@ -456,9 +516,32 @@ let lookingAhead2 body1 body2 in_ =
       let res2 = body2 in_' in
       res1 && res2
 
+let foundIndent in_original =
+  (* We are at a comma right now. We should look ahead past it, and then
+     see if there is an indent afterwards.
+  *)
+  match in_original.token with
+  | COLON _ ->
+      lookingAhead
+        (fun in_ ->
+          (* Check if we have passed an indent *)
+          let indent_opt = passedIndent in_ in
+          (* If so, we enter a new separation region*)
+          match indent_opt with
+          | None -> false
+          | Some idx ->
+              (* TODO: this is wrong *)
+              in_original.sepRegions <- DEDENT idx :: in_.sepRegions;
+              true)
+        in_original
+  | _ -> false
+
 (* ------------------------------------------------------------------------- *)
 (* indentation *)
 (* ------------------------------------------------------------------------- *)
+(* We are at a comma right now. We should look ahead past it, and then
+     see if there is an indent afterwards.
+*)
 
 (* We used to just check the INDENT and DEDENT tokens, but this causes issues in
    cases like this:
@@ -480,13 +563,6 @@ let lookingAhead2 body1 body2 in_ =
    until we find a token that is farther left than this frame (thus ending the
    indentation block).
 *)
-let passedDedent startTok in_ =
-  match startTok with
-  | None -> false
-  | Some startTok ->
-      let start_info = TH.info_of_tok startTok in
-      let now_info = TH.info_of_tok in_.token in
-      PI.col_of_info now_info < PI.col_of_info start_info
 
 (*****************************************************************************)
 (* Special parsing  *)
@@ -521,7 +597,8 @@ let acceptStatSep in_ =
              nextToken in_
          | _ -> accept (SEMI ab) in_)
 
-let acceptStatSepOpt in_ = if TH.isStatSep in_.token then acceptStatSep in_
+let acceptStatSepOpt in_ =
+  if not (TH.isStatSeqEnd in_.token) then acceptStatSep in_
 
 let newLineOpt in_ =
   match in_.token with
@@ -3251,10 +3328,10 @@ let localDef implicitMod in_ : definition =
 (* Helpers *)
 (* ------------------------------------------------------------------------- *)
 
-let statSeq ?(startTok = None) ?(errorMsg = "illegal start of definition")
-    ?(rev = false) stat in_ =
+let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
+    =
   let stats = ref [] in
-  while (not (passedDedent startTok in_)) && not (TH.isStatSeqEnd in_.token) do
+  while not (TH.isStatSeqEnd in_.token) do
     (match stat in_ with
     | Some x -> stats += x
     | None -> if TH.isStatSep in_.token then () else error errorMsg in_);
@@ -3346,8 +3423,7 @@ let templateStat in_ : template_stat option =
       Some (E x)
   | _ -> None
 
-let templateStats startTok in_ : template_stat list =
-  statSeq ~startTok templateStat in_
+let templateStats in_ : template_stat list = statSeq templateStat in_
 
 (* ------------------------------------------------------------------------- *)
 (* TopStat *)
@@ -3387,13 +3463,19 @@ let topStatSeq ?rev in_ : top_stat list =
 (* "Template" *)
 (* ------------------------------------------------------------------------- *)
 
+let isTemplateBody in_ =
+  match in_.token with
+  | _ when foundIndent in_ -> true
+  | LBRACE _ -> true
+  | _ -> false
+
 (** {{{
  *  TemplateStatSeq  ::= [id [`:` Type] `=>`] TemplateStats
  *  }}}
  * @param isPre specifies whether in early initializer (true) or not (false)
 *)
 
-let templateStatSeq ?(startTok = None) ~isPre in_ : self_type option * block =
+let templateStatSeq ~isPre in_ : self_type option * block =
   ignore isPre;
   let self, firstOpt =
     (* a soft modifier like "inline" or "open" might be an expr intro, but
@@ -3419,7 +3501,7 @@ let templateStatSeq ?(startTok = None) ~isPre in_ : self_type option * block =
           (noSelfType, Some (E first)))
     else (noSelfType, None)
   in
-  let xs = templateStats startTok in_ in
+  let xs = templateStats in_ in
   (self, Option.to_list firstOpt @ xs)
 
 (** {{{
@@ -3434,19 +3516,18 @@ let templateBody ~isPre in_ : template_body =
       (* ast: self, EmptyTree.asList *)
       inBraces (templateStatSeq ~isPre) in_
   | _ ->
-      skipToken in_;
-      let res =
-        fb (PI.unsafe_fake_info "")
-          (templateStatSeq ~startTok:(Some in_.token) ~isPre in_)
-      in
+      (* must be a colon *)
+      accept (COLON ab) in_;
+      let res = fb (PI.unsafe_fake_info "") (templateStatSeq ~isPre in_) in
+      (* ostensibly a DEDENT *)
+      closeIndentRegion in_;
       res
 
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
   newLineOptWhenFollowedBy (LBRACE ab) in_;
   match in_.token with
-  | COLON _
-  | LBRACE _ ->
-      Some (templateBody ~isPre:false in_)
+  (* this is not opt-ing correctly rn *)
+  | _ when isTemplateBody in_ -> Some (templateBody ~isPre:false in_)
   | LPAREN _ ->
       if parenMeansSyntaxError then
         error "traits or objects may not have parameters" in_
@@ -3496,28 +3577,26 @@ let template in_ : template_parents * template_body option =
   in_
   |> with_logging "template" (fun () ->
          newLineOptWhenFollowedBy (LBRACE ab) in_;
-         match in_.token with
-         | COLON _
-         | LBRACE _ -> (
-             let body = templateBody ~isPre:true in_ in
-             match in_.token with
-             | Kwith _ (* crazy? && self eq noSelfType *) ->
-                 (* CHECK: "use traint parameters instead" when scala3 *)
-                 let _earlyDefs =
-                   body (* CHECK: map ensureEarlyDef AST: filter *)
-                 in
-                 nextToken in_;
-                 let parents = templateParents in_ in
-                 let body1opt =
-                   templateBodyOpt ~parenMeansSyntaxError:false in_
-                 in
-                 (* AST: earlyDefs @ *)
-                 (parents, body1opt)
-             | _ -> (AST.empty_cparents, Some body))
-         | _ ->
-             let parents = templateParents in_ in
-             let bodyopt = templateBodyOpt ~parenMeansSyntaxError:false in_ in
-             (parents, bodyopt))
+         if isTemplateBody in_ then
+           let body = templateBody ~isPre:true in_ in
+           match in_.token with
+           | Kwith _ (* crazy? && self eq noSelfType *) ->
+               (* CHECK: "use traint parameters instead" when scala3 *)
+               let _earlyDefs =
+                 body (* CHECK: map ensureEarlyDef AST: filter *)
+               in
+               nextToken in_;
+               let parents = templateParents in_ in
+               let body1opt =
+                 templateBodyOpt ~parenMeansSyntaxError:false in_
+               in
+               (* AST: earlyDefs @ *)
+               (parents, body1opt)
+           | _ -> (AST.empty_cparents, Some body)
+         else
+           let parents = templateParents in_ in
+           let bodyopt = templateBodyOpt ~parenMeansSyntaxError:false in_ in
+           (parents, bodyopt))
 
 (* AST: name, mods, constrMods, vparams *)
 
