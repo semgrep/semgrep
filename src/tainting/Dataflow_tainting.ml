@@ -465,7 +465,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
   *)
   if env.config.unify_mvars then
     taints_and_bindings
-    |> List.filter_map (fun (t, bindings) ->
+    |> Common.map_filter (fun (t, bindings) ->
            let* merged_env =
              merge_source_sink_mvars env sink_pm.PM.env bindings
            in
@@ -1067,7 +1067,7 @@ let check_function_signature env fun_exp args args_taints =
         |> List.concat_map (function
              | T.ToReturn (taints, _return_tok) ->
                  taints
-                 |> List.filter_map (fun t ->
+                 |> Common.map_filter (fun t ->
                         match t.T.orig with
                         | Src src ->
                             let call_trace =
@@ -1110,7 +1110,7 @@ let check_function_signature env fun_exp args args_taints =
                  (* TODO(brandon): use arg taints once interproc taint labels are a thing
                  *)
                  taints
-                 |> List.filter_map (fun t ->
+                 |> Common.map_filter (fun t ->
                         match t.T.orig with
                         | Src _ ->
                             (* THINK: Should we report something here? *)
