@@ -257,10 +257,14 @@ let analyze_skipped (skipped : Out.skipped_target list) =
     Hashtbl.replace reason_ht reason v
   in
   List.iter skipped_by_reason skipped;
-  ( Hashtbl.find reason_ht Out.Semgrepignore_patterns_match,
-    Hashtbl.find reason_ht Out.Cli_include_flags_do_not_match,
-    Hashtbl.find reason_ht Out.Cli_exclude_flags_match,
-    Hashtbl.find reason_ht Out.Exceeded_size_limit )
+  ( (try Hashtbl.find reason_ht Out.Semgrepignore_patterns_match with
+    | Not_found -> []),
+    (try Hashtbl.find reason_ht Out.Cli_include_flags_do_not_match with
+    | Not_found -> []),
+    (try Hashtbl.find reason_ht Out.Cli_exclude_flags_match with
+    | Not_found -> []),
+    try Hashtbl.find reason_ht Out.Exceeded_size_limit with
+    | Not_found -> [] )
 
 let pp_summary ppf
     (( _respect_git_ignore,
