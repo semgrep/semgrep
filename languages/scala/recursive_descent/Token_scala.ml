@@ -87,6 +87,10 @@ type token =
   | BANG of Parse_info.t
   | AT of Parse_info.t
   | ARROW of Parse_info.t
+  (* Indices that "link" INDENT and DEDENT tokens to
+     each other.
+     These are generated fresh for each INDENT/DEDENT pair.
+  *)
   | INDENT of int
   | DEDENT of int
 [@@deriving show { with_path = false }]
