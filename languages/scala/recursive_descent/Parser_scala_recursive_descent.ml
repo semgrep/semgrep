@@ -357,15 +357,14 @@ let postProcessToken _in_ =
 (* fetchToken *)
 (* ------------------------------------------------------------------------- *)
 
-(* For a particular index of a DEDENT token we have seen,
-   we should check our sepRegions to see if it corresponds
-   to the indentation region that we are currently in.
-
-   If so, then we know that our current dedent region is
-   ended.
+(* If this DEDENT matches our sepRegion index, then we know that our
+   current dedent region is ended.
 
    This effectively makes it so [fetchToken] only stops
    on DEDENTs when they are known to end the current sepRegion.
+
+   See the corresponding code in the Scala compiler:
+   https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L298
 *)
 let significantDedent dedent_idx in_ =
   match in_.sepRegions with
@@ -386,9 +385,8 @@ let fetchToken in_ =
            we should stop and allow ourselves to look at it.
            This is so we can consume it in statSeq.
 
-           This results in significantly simpler code, because ending
-           a statSeq will pop off DEDENTs from the token stream
-           in a disciplined way, utilizing the call stack.
+           This results in significantly simpler code, in the case
+           of nested DEDENTs (due to the ending of multiple indent regions)
         *)
         | DEDENT idx when significantDedent idx in_ ->
             in_.passed <- aux @ in_.passed;
@@ -510,18 +508,29 @@ let passedIndent in_ =
   in
   loop in_.passed
 
+(* It's not always the case that a colon means we must start a
+   colon and then indented block.
+
+   This function just helps us discern if we're really going to be
+   starting an indented block.
+*)
 let isIndentAfterColon in_ =
   match in_.token with
   | COLON _ -> lookingAhead (fun in_ -> Option.is_some (passedIndent in_)) in_
   | _ -> false
 
+(* Adjust sepRegions to enter a new indent region, if we've
+   passed by one.
+*)
 let enterIndentRegion in_ =
   let indent_opt = passedIndent in_ in
-  (* If so, we enter a new separation region*)
   match indent_opt with
   | None -> ()
   | Some idx -> in_.sepRegions <- DEDENT idx :: in_.sepRegions
 
+(* Adjust sepREgions to end the current indent region, if we're
+   at the end.
+*)
 let closeIndentRegion in_ =
   match (in_.token, in_.sepRegions) with
   | EOF _, _ -> ()
@@ -3492,7 +3501,6 @@ let templateBody ~isPre in_ : template_body =
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
   newLineOptWhenFollowedBy (LBRACE ab) in_;
   match in_.token with
-  (* this is not opt-ing correctly rn *)
   | COLON _ when isIndentAfterColon in_ -> Some (templateBody ~isPre:false in_)
   | LBRACE _ -> Some (templateBody ~isPre:false in_)
   | LPAREN _ ->

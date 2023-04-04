@@ -44,7 +44,6 @@ module PS = Parsing_stat
 
 type env = {
   line : int;
-  col : int;
   indent_info : (int * int) list; (* (col, idx) *)
   acc : T.t list;
 }
@@ -151,12 +150,12 @@ let produce_dedents env cur_col =
       This is because when we put them into the accumulator, we want to have
       them be in that same order, because `class` is the outermost dedent
 
-      We want VAL, INDENT<def>, INDENT<class> for the accumulator, because
+      We want VAL, INDENT<def>, INDENT<class> for the accumulator.
   *)
   let* reversed_indents, rest = loop env.indent_info in
   Some (List.rev reversed_indents, rest)
 
-let empty_env = { line = 0; col = 0; indent_info = []; acc = [] }
+let empty_env = { line = 0; indent_info = []; acc = [] }
 
 (*****************************************************************************)
 (* Parsing hacks *)
@@ -196,7 +195,7 @@ let insert_indentation_tokens toks =
               | None ->
                   (* If the last token we saw was something that could start an
                      indentation region, and the next token is indented w.r.t. the
-                     previous line, then we insert an INDENT.
+                     previous indentation region, then we insert an INDENT.
                      This covers things like:
 
                      if
@@ -208,9 +207,9 @@ let insert_indentation_tokens toks =
                      true
 
                      This indent has a unique ID associated with it, which we will use to
-                     pair it with its corresponding DEDENt. We also save the current column,
-                     because we will need to wait until we go to the left of it, to trigger
-                     the DEDENT.
+                     pair it with its corresponding DEDENT. We also save the current column,
+                     which is the width of the indentation region, because we will need to
+                     wait until we go to the left of it, to trigger the DEDENT.
                   *)
                   if can_start_indentation col2 env then (
                     let new_idx = !count in
@@ -219,6 +218,6 @@ let insert_indentation_tokens toks =
                       tok :: INDENT new_idx :: env.acc ))
                   else (env.indent_info, tok :: env.acc)
             in
-            { line = line2; col = col2; indent_info; acc })
+            { line = line2; indent_info; acc })
     empty_env toks
   |> fun env -> List.rev env.acc
