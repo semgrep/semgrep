@@ -1,9 +1,6 @@
 (*
    Produce a stream of tokens for a pattern.
 
-   This doesn't use ocamllex because we need to support character sets
-   defined dynamically (e.g. from a config file).
-
    TODO: UTF-8 support.
    See https://erratique.ch/software/uucp/doc/unicode.html for a refresher
    on Unicode and UTF-8.
@@ -22,14 +19,14 @@ type compiled_conf
 type token =
   | ELLIPSIS (* "..." *)
   | LONG_ELLIPSIS (* "...." *)
-  | METAVAR of string * string (* "$FOO", "FOO" *)
-  | METAVAR_ELLIPSIS of string * string (* "$...FOO", "FOO" *)
-  | LONG_METAVAR_ELLIPSIS of string * string (* "$....FOO", "FOO" *)
+  | METAVAR of string (* "FOO" extracted from "$FOO" *)
+  | METAVAR_ELLIPSIS of string (* "FOO" extracted from "$...FOO" *)
+  | LONG_METAVAR_ELLIPSIS of string (* "FOO" extracted from "$....FOO" *)
   | WORD of string
-  | OPEN of char
-  | CLOSE of char
-  (* TODO: support UTF8-encoded characters *)
-  | CHAR of char
+  | OPEN of string
+  | CLOSE of string
+  (* a single character according to PCRE (UTF-8-encoded code point) *)
+  | OTHER of string
 
 (*
    Validate and compile the configuration. This configuration can be
