@@ -59,6 +59,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 
@@ -113,6 +114,7 @@ let default : conf =
     dump = None;
     validate = None;
     test = None;
+    nosem = true;
   }
 
 (*************************************************************************)
@@ -604,6 +606,16 @@ let o_project_root : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_nosem : bool Term.t =
+  let enable =
+    Arg.info [ "enable-nosem" ]
+      ~doc:
+        {|Enables 'nosem'. Findings will not be reported on lines containing
+          a 'nosem' comment at the end.|}
+  in
+  let disable = Arg.info [ "disable-nosem" ] in
+  Arg.value (Arg.vflag true [ (true, enable); (false, disable) ])
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -617,7 +629,7 @@ let cmdline_term : conf Term.t =
       profile project_root quiet replacement respect_git_ignore rewrite_rule_ids
       scan_unknown_extensions severity show_supported_languages strict
       target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate verbose version version_check vim =
+      validate verbose version version_check vim nosem =
     let include_ =
       match include_ with
       | [] -> None
@@ -849,6 +861,7 @@ let cmdline_term : conf Term.t =
       dump;
       validate;
       test;
+      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -864,7 +877,7 @@ let cmdline_term : conf Term.t =
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
     $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
     $ o_timeout $ o_timeout_threshold $ o_validate $ o_verbose $ o_version
-    $ o_version_check $ o_vim)
+    $ o_version_check $ o_vim $ o_nosem)
 
 let doc = "run semgrep rules on files"
 
