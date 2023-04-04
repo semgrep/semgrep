@@ -273,6 +273,12 @@ val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
     left to right like for [List.iter].
 *)
 
+val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
+(** Same as [List.mapi] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
 val flatten : 'a list list -> 'a list
 (** Same as [List.flatten] but tail recursive. *)
 

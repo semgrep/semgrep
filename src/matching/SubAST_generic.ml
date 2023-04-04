@@ -63,7 +63,7 @@ let subexprs_of_stmt_kind = function
   (* n *)
   | For (_, MultiForEach es, _) ->
       es
-      |> List.filter_map (function
+      |> Common.map_filter (function
            | FE (_, _, e) -> Some [ e ]
            | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
            | FEllipsis _ -> None)
@@ -165,14 +165,14 @@ let subexprs_of_expr with_symbolic_propagation e =
   (* TODO? or call recursively on e? *)
   | ParenExpr (_, e, _) -> [ e ]
   | Xml { xml_attrs; xml_body; _ } ->
-      List.filter_map
+      Common.map_filter
         (function
           | XmlAttr (_, _, e)
           | XmlAttrExpr (_, e, _) ->
               Some e
           | _ -> None)
         xml_attrs
-      @ List.filter_map
+      @ Common.map_filter
           (function
             | XmlExpr (_, Some e, _) -> Some e
             | XmlXml xml -> Some (Xml xml |> AST_generic.e)

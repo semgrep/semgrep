@@ -308,7 +308,7 @@ and pattern env pat =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List.mapi (fun i pat_i ->
+        |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
@@ -369,7 +369,7 @@ and assign env lhs tok rhs_exp e_gen =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List.mapi (fun i lhs_i ->
+        |> Common.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
                  {
@@ -946,7 +946,7 @@ and record env ((_tok, origfields, _) as record_def) =
 and xml_expr env xml =
   let attrs =
     xml.G.xml_attrs
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlAttr (_, tok, eorig)
          | G.XmlAttrExpr (tok, eorig, _) ->
              let exp = expr env eorig in
@@ -956,7 +956,7 @@ and xml_expr env xml =
   in
   let body =
     xml.G.xml_body
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -1104,7 +1104,7 @@ and for_var_or_expr_list env xs =
 (*****************************************************************************)
 and parameters _env params : name list =
   params |> Parse_info.unbracket
-  |> List.filter_map (function
+  |> Common.map_filter (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 

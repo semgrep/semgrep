@@ -393,7 +393,7 @@ let or_step2 (Or xs) =
   | GeneralPattern -> None
 
 let and_step2 (And xs) =
-  let ys = xs |> List.filter_map or_step2 in
+  let ys = xs |> Common.map_filter or_step2 in
   if null ys then raise GeneralPattern;
   And ys
 

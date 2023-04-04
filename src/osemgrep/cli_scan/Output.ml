@@ -28,7 +28,7 @@ module Out = Semgrep_output_v1_j
 let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TODO fix_regex *)
   let edits : Textedit.t list =
-    List.filter_map
+    Common.map_filter
       (fun (result : Out.cli_match) ->
         let path = result.Out.path in
         let* fix = result.Out.extra.fix in

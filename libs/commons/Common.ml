@@ -315,6 +315,8 @@ let map2 f l1 l2 = fast_map2 1000 f l1 l2
 (* Other list functions *)
 (*****************************************************************************)
 
+let mapi f l = map2 f (List.init (List.length l) Fun.id) l
+
 (* Tail-recursive to prevent stack overflows. *)
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev

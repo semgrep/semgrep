@@ -435,7 +435,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
      * And `ArgtoSink` needs to carry the other taint that reaches the
      * sink besides the argument. *)
   taints |> Taints.elements
-  |> List.filter_map (fun (taint : T.taint) ->
+  |> Common.map_filter (fun (taint : T.taint) ->
          let tokens = List.rev taint.tokens in
          match taint.orig with
          | Arg i ->
@@ -970,7 +970,7 @@ let check_function_signature env fun_exp args args_taints =
       let* fparams, fun_sig = hook env.config eorig in
       Some
         (fun_sig
-        |> List.filter_map (function
+        |> Common.map_filter (function
              | T.SrcToReturn (src, tokens, _return_tok) ->
                  let call_trace = T.Call (eorig, tokens, src.call_trace) in
                  Some

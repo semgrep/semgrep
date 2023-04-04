@@ -123,7 +123,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
           (Option.value ~default:[||] ids_line)
           (Option.value ~default:[||] ids_previous_line)
       in
-      let ids = List.filter_map Fun.id (Array.to_list ids) in
+      let ids = Common.map_filter Fun.id (Array.to_list ids) in
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       List.fold_left
         (fun (result, errors) id ->
@@ -164,7 +164,7 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
 let process_ignores ~strict (out : Out.cli_output) : Out.cli_output =
   let results, errors =
     (* filters [rule_match]s by the [nosemgrep] tag. *)
-    List.filter_map
+    Common.map_filter
       (fun rule_match ->
         let to_ignore, errors = rule_match_nosem ~strict rule_match in
         if not to_ignore then Some (rule_match, errors) else None)

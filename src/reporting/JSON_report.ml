@@ -179,7 +179,7 @@ let parse_info_to_location pi =
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
 
-let tokens_to_locations toks = List.filter_map parse_info_to_location toks
+let tokens_to_locations toks = Common.map_filter parse_info_to_location toks
 
 let tokens_to_single_loc toks =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -199,7 +199,7 @@ let token_to_intermediate_var token =
   Some { Out.location }
 
 let tokens_to_intermediate_vars tokens =
-  List.filter_map token_to_intermediate_var tokens
+  Common.map_filter token_to_intermediate_var tokens
 
 let rec taint_call_trace = function
   | Toks toks ->

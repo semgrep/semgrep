@@ -510,7 +510,7 @@ let rec generate_with_env (target_patterns : pattern_instrs list list) :
   | [ cur ] -> [ List.hd (generate_patterns_help cur) ]
   | cur :: next :: rest ->
       let curpats = generate_patterns_help cur in
-      let next' = List.map2 cp_meta_env curpats next in
+      let next' = Common.map2 cp_meta_env curpats next in
       List.hd curpats :: generate_with_env (next' :: rest)
 
 (*****************************************************************************)

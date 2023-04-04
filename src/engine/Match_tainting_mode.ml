@@ -280,7 +280,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
           * location info for that code (i.e., we have real tokens rather than
           * fake ones). *)
          ranges_w_metavars
-         |> List.filter_map (fun rwm ->
+         |> Common.map_filter (fun rwm ->
                 (* The piece of code captured by the `from` metavariable.  *)
                 let* _mvar_from, mval_from =
                   List.find_opt
@@ -373,7 +373,7 @@ let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List.filter_map (fun (rwm, ts) ->
+  |> Common.map_filter (fun (rwm, ts) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -407,7 +407,7 @@ let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List.filter_map (fun (rwm, spec) ->
+  |> Common.map_filter (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -419,7 +419,7 @@ let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List.filter_map (fun (rwm, spec) ->
+  |> Common.map_filter (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -469,7 +469,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
     sanitizers_ranges
-    |> List.filter_map (fun (not_conflicting, range, spec) ->
+    |> Common.map_filter (fun (not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if
