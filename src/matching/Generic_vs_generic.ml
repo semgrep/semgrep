@@ -725,7 +725,12 @@ and m_expr_root a b = m_expr ~is_root:true a b
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
  *)
-and m_expr ?(is_root = false) a b =
+(* `arguments_have_changed` should be false if this is not the first time
+   `m_expr` has recursively tried to match the SAME `a` and `b`.
+   This allows some cases to be "try-once", and fall-through to the others in
+   all the other cases.
+*)
+and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
@@ -734,13 +739,18 @@ and m_expr ?(is_root = false) a b =
   | _, G.Alias (_alias, b1) -> m_expr a b1
   (* equivalence: user-defined equivalence! *)
   | G.DisjExpr (a1, a2), _b -> m_expr a1 b >||> m_expr a2 b
-  | _, B.Cast (b1, bt, b2) ->
-      (match a.G.e with
-      | G.Cast (a1, at, a2) ->
-          m_type_ a1 b1 >>= fun () ->
-          m_tok at bt >>= fun () -> m_expr a2 b2
-      | _ -> fail ())
-      >||> if not is_root then m_expr a b2 else fail ()
+  (* This case should only run exactly once.
+     This is so we do not endlessly loop trying to match to the same two things.
+     By setting `arguments_have_changed` to false, we ensure that we fall-through to
+     the cases that do decompose on `a` or `b`.
+  *)
+  | _, G.Cast (_, _, b1) when arguments_have_changed ->
+      (* We apply this equivalence only if not at the root, meaning we've done work
+         to get here, and should consider all possibilities.
+         This is similar to symbolic propagation.
+      *)
+      (if not is_root then m_expr a b1 else fail ())
+      >||> m_expr ~arguments_have_changed:false a b
   (* equivalence: name resolving! *)
   (* todo: it would be nice to factorize the aliasing code by just calling
    * m_name, but below we use make_dotted, which is different from what
@@ -1019,6 +1029,9 @@ and m_expr ?(is_root = false) a b =
       m_tok a0 b0 >>= fun () ->
       m_option m_expr a1 b1 >>= fun () -> m_bool a2 b2
   | G.Await (a0, a1), B.Await (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
+  | G.Cast (a1, at, a2), B.Cast (b1, bt, b2) ->
+      m_type_ a1 b1 >>= fun () ->
+      m_tok at bt >>= fun () -> m_expr a2 b2
   | G.Seq a1, B.Seq b1 -> (m_list m_expr) a1 b1
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
