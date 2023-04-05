@@ -8,6 +8,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.17.0](https://github.com/returntocorp/semgrep/releases/tag/v1.17.0) - 2023-04-04
+
+### Added
+
+- Scala: Added proper parsing for Scala 3 style imports (pa-2678)
+
+### Changed
+
+- taint-mode: Added option `taint_assume_safe_comparisons`, disabled by default, that
+  prevents comparison operators to propagate taint, so e.g. `tainted != "something"`
+  will not be considered tainted. Note that this a syntactic check, if the operator
+  is overloaded to perform a different operation this will not be detected. (pa-2645)
+
+### Fixed
+
+- Fixed an issue where incorrect ranges for expressions containing parentheses could lead Semgrep to generate invalid autofixes in Python. (gh-2902)
+- In rare cases, Semgrep could generate invalid autofixes where Python keyword arguments were placed before positional arguments. When using AST-based autofix, it no longer makes that error. (keywordarg-autofix)
+
 ## [1.16.0](https://github.com/returntocorp/semgrep/releases/tag/v1.16.0) - 2023-03-30
 
 ### Added
