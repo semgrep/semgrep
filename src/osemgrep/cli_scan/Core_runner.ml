@@ -410,9 +410,10 @@ let pp_skipped ppf
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
-    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
-    ?(ignored_targets = []) (all_targets : Fpath.t list) : result =
+let invoke_semgrep_core ?(respect_git_ignore = true) ?(ignored_targets = [])
+    (conf : conf) (all_rules : Rule.t list)
+    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
+    result =
   let config : Runner_config.t = runner_config_of_conf conf in
 
   match rule_errors with
