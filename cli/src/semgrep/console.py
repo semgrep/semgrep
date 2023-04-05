@@ -45,7 +45,7 @@ class AutoIndentingConsole(Console):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.active_title: Optional[Title] = None
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, markup=False, **kwargs)
 
     @property
     def auto_indent_size(self) -> int:
@@ -112,3 +112,4 @@ if __name__ == "__main__":
     console.print("auto-indented text")
     console.reset_title()
     console.print("auto-indented text after title reset")
+    console.print("bit of markup: [/#]")
