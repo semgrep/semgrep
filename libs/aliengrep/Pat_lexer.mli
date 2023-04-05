@@ -7,12 +7,15 @@
 *)
 
 type conf = {
+  (* multiline = newlines are treated as ordinary whitespace *)
+  multiline : bool;
   (* TODO: support UTF-8 word characters *)
   word_chars : char list;
   braces : (char * char) list;
 }
 
-val default_conf : conf
+val default_multiline_conf : conf
+val default_uniline_conf : conf
 
 type compiled_conf
 
@@ -23,8 +26,10 @@ type token =
   | METAVAR_ELLIPSIS of string (* "FOO" extracted from "$...FOO" *)
   | LONG_METAVAR_ELLIPSIS of string (* "FOO" extracted from "$....FOO" *)
   | WORD of string
-  | OPEN of string
-  | CLOSE of string
+  | OPEN of char * char
+    (* any of the opening-brace characters
+       and the expected closing brace *)
+  | CLOSE of char (* any of the closing-brace characters *)
   (* a single character according to PCRE (UTF-8-encoded code point) *)
   | OTHER of string
 

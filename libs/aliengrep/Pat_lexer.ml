@@ -8,6 +8,7 @@
 open Printf
 
 type conf = {
+  multiline : bool;
   (* TODO: support Unicode? *)
   (* TODO: support ranges?
      or maybe: specify characters to add or remove from the default set *)
@@ -20,6 +21,17 @@ type compiled_conf = {
   pcre_pattern : string;
   pcre_regexp : Pcre.regexp;
 }
+
+type token =
+  | ELLIPSIS (* "..." *)
+  | LONG_ELLIPSIS (* "...." *)
+  | METAVAR of string (* "FOO" extracted from "$FOO" *)
+  | METAVAR_ELLIPSIS of string (* "FOO" extracted from "$...FOO" *)
+  | LONG_METAVAR_ELLIPSIS of string (* "FOO" extracted from "$....FOO" *)
+  | WORD of string
+  | OPEN of char * char
+  | CLOSE of char
+  | OTHER of string
 
 let config_error msg =
   failwith (sprintf "Error in aliengrep configuration: %s" msg)
@@ -90,28 +102,26 @@ let lower =
 
 let digit = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9' ]
 
-let default_conf =
+let default_multiline_conf =
   {
+    multiline = true;
     word_chars = ('_' :: upper) @ lower @ digit;
     braces = [ ('(', ')'); ('[', ']'); ('{', '}') ];
   }
 
-type token =
-  | ELLIPSIS (* "..." *)
-  | LONG_ELLIPSIS (* "...." *)
-  | METAVAR of string (* "FOO" extracted from "$FOO" *)
-  | METAVAR_ELLIPSIS of string (* "FOO" extracted from "$...FOO" *)
-  | LONG_METAVAR_ELLIPSIS of string (* "FOO" extracted from "$....FOO" *)
-  | WORD of string
-  | OPEN of string
-  | CLOSE of string
-  | OTHER of string
+let default_uniline_conf =
+  {
+    multiline = false;
+    word_chars = default_multiline_conf.word_chars;
+    braces = [ ('"', '"'); ('\'', '\'') ] @ default_multiline_conf.braces;
+  }
 
 let check_conf conf =
   let word_chars = Set_.of_list conf.word_chars in
-  let brace_chars =
-    conf.braces |> List.concat_map (fun (a, b) -> [ a; b ]) |> Set_.of_list
-  in
+  let open_chars_list, close_chars_list = List.split conf.braces in
+  let open_chars = Set_.of_list open_chars_list in
+  let close_chars = Set_.of_list close_chars_list in
+  let brace_chars = Set_.union open_chars close_chars in
   if Set_.is_empty word_chars then config_error "empty set of word characters";
   let conflicts = Set_.inter word_chars brace_chars |> Set_.elements in
   (match conflicts with
@@ -122,8 +132,10 @@ let check_conf conf =
       in
       config_error
         ("some word characters are also defined as brace characters: " ^ chars));
-  if Set_.cardinal brace_chars < 2 * List.length conf.braces then
-    config_error "some opening or closing braces are repeated"
+  if Set_.cardinal open_chars <> List.length open_chars_list then
+    config_error "some opening braces are repeated";
+  if Set_.cardinal close_chars <> List.length close_chars_list then
+    config_error "some closing braces are repeated"
 
 let char_class_of_set chars =
   let buf = Buffer.create 100 in
@@ -156,8 +168,10 @@ let compile conf =
   let metavar_ellipsis_4 = {|\$\.\.\.([A-Z][A-Z0-9_]*)|} in
   let long_metavar_ellipsis_5 = {|\$\.\.\.\.([A-Z][A-Z0-9_]*)|} in
   let whitespace =
-    (* HT (9), LF (10), VT (11), FF (12), CR (13), and space (32) *)
-    {|[\t\n\x0B\x0C\x0D ]|}
+    (* HT (9), optional LF (10), VT (11), FF (12), CR (13), and space (32) *)
+    if conf.multiline then {|[\t\n\x0B\x0C\x0D ]|}
+    else (* same without \n *)
+      {|[\t\n\x0B\x0C\x0D ]|}
   in
   let word_6 = sprintf {|(%s+)|} (char_class_of_set conf.word_chars) in
   let open_7 = sprintf {|(%s+)|} (char_class_of_set open_chars) in
@@ -179,6 +193,9 @@ let compile conf =
       ]
   in
   { conf; pcre_pattern = pat; pcre_regexp = SPcre.regexp pat }
+
+let char_of_string str =
+  if String.length str <> 1 then assert false else str.[0]
 
 let read_string ?(source_name = "<pattern>") conf str =
   match SPcre.full_split ~rex:conf.pcre_regexp str with
@@ -208,7 +225,13 @@ let read_string ?(source_name = "<pattern>") conf str =
                  | 4 -> METAVAR_ELLIPSIS capture
                  | 5 -> LONG_METAVAR_ELLIPSIS capture
                  | 6 -> WORD capture
-                 | 7 -> OPEN capture
-                 | 8 -> CLOSE capture
+                 | 7 ->
+                     let opening_brace = char_of_string capture in
+                     let expected_closing_brace =
+                       try List.assoc opening_brace conf.conf.braces with
+                       | Not_found -> assert false
+                     in
+                     OPEN (opening_brace, expected_closing_brace)
+                 | 8 -> CLOSE (char_of_string capture)
                  | 9 -> OTHER capture
                  | _ -> assert false))

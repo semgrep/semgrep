@@ -14,4 +14,4 @@ and node =
   | Long_metavar_ellipsis of string (* same *)
   | Seq of t
   | Bracket of char * t * char
-  | Char of char
+  | Other of string
