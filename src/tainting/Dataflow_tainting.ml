@@ -231,7 +231,8 @@ let propagate_through_indexes env =
 
 let status_to_taints = function
   | `None
-  | `Clean ->
+  | `Clean
+  | `Sanitized ->
       Taints.empty
   | `Tainted taints -> taints
 
@@ -607,8 +608,10 @@ let resolve_poly_taint_for_java_getters env lval st =
     | { o = Dot n; _ } :: _
       when Stdcompat.String.starts_with ~prefix:"get" (fst n.ident) -> (
         match st with
-        | `Clean -> `Clean
-        | `None -> `None
+        | `Sanitized
+        | `Clean
+        | `None ->
+            st
         | `Tainted taints ->
             let taints' =
               taints
@@ -768,7 +771,12 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   (taints, lval_env)
 
 and check_tainted_lval_aux env (lval : IL.lval) :
-    Taints.t * [ `Clean | `None | `Tainted of Taints.t ] * Lval_env.t =
+    Taints.t
+    (* `Sanitized means that the lval matched a sanitizer "right now", whereas
+     * `Clean means that the lval has been _previously_ sanitized. They are
+     * handled differently, see NOTE [lval/sanitized]. *)
+    * [ `Sanitized | `Clean | `None | `Tainted of Taints.t ]
+    * Lval_env.t =
   (* Recursively checks an l-value bottom-up.
    *
    *  This check needs to combine matches from pattern-{sources,sanitizers,sinks}
@@ -779,9 +787,9 @@ and check_tainted_lval_aux env (lval : IL.lval) :
   (* See NOTE [is_sanitizer] *)
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
   | _ :: _ as sanitizer_pms ->
-      (* NOTE [lval/clean]:
-       *  If lval is sanitized, then we will "bubble up" the `Clean status, so any
-       *  taint recorded in lval_env for any extension of lval will be discarded.
+      (* NOTE [lval/sanitized]:
+       *  If lval is sanitized, then we will "bubble up" the `Sanitized status, so
+       *  any taint recorded in lval_env for any extension of lval will be discarded.
        *
        *  So, if we are checking `x.a.b.c` and `x.a` is clean (could be due to
        *  sanitization) then any extension of `x.a` is considered clean as well,
@@ -793,7 +801,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       let lval_env =
         sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval
       in
-      (Taints.empty, `Clean, lval_env)
+      (Taints.empty, `Sanitized, lval_env)
   | [] ->
       (* Recursive call, check sub-lvalues first.
        *
@@ -816,10 +824,10 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       (* Check the status of lval in the environemnt. *)
       let lval_in_env =
         match sub_in_env with
-        | `Clean ->
-            (* See NOTE [lval/clean] *)
-            `Clean
-        | (`None | `Tainted _) as st -> (
+        | `Sanitized ->
+            (* See NOTE [lval/sanitized] *)
+            `Sanitized
+        | (`Clean | `None | `Tainted _) as st -> (
             match Lval_env.dumb_find lval_env lval with
             | (`Clean | `Tainted _) as st' -> st'
             | `None ->
