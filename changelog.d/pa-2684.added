@@ -1,0 +1,8 @@
+Kotlin: Class fields will now receive the correct types, and be
+found by typed metavariables correctly
+
+This applies to examples such as:
+class Foo {
+  var x : int
+}
+for the variable `x`
