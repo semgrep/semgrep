@@ -10,17 +10,36 @@ type t = {
   cached_rules : Runner_config.rule_source option;
   documents :
     (Uri.t, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
+  mutable next_id : int;
 }
 
 (* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
 let targets session =
   let config = session.config in
-  match config.target_source with
-  | Some (Targets targets) -> targets
-  | Some (Target_file _) ->
-      let targets, _ = Run_semgrep.targets_of_config config [] in
-      targets
-  | None -> failwith "No targets provided"
+  let%lwt git_repo = Git_helper.is_git_repo () in
+  let%lwt dirty_files =
+    if git_repo then
+      let%lwt dirty_files = Git_helper.dirty_files () in
+      Lwt_list.map_p
+        (fun file -> Lwt.return (Filename.concat (Sys.getcwd ()) file))
+        dirty_files
+    else Lwt.return []
+  in
+  let targets =
+    match config.target_source with
+    | Some (Targets targets) -> targets
+    | Some (Target_file _) ->
+        let targets, _ = Run_semgrep.targets_of_config config [] in
+        targets
+    | None -> failwith "No targets provided"
+  in
+  let%lwt target_mappings =
+    Lwt_list.filter_p
+      (fun (t : Input_to_core_t.target) ->
+        (git_repo && List.mem t.path dirty_files) |> Lwt.return)
+      targets.target_mappings
+  in
+  Lwt.return { targets with target_mappings }
 
 let load_rules session =
   let config = session.config in

@@ -8,6 +8,7 @@ import threading
 import time
 import urllib
 from builtins import Exception
+from pathlib import PosixPath
 from tempfile import _TemporaryFileWrapper
 from typing import Any
 from typing import List
@@ -72,6 +73,7 @@ class SemgrepCoreLSPServer:
             self.config.rules, self.config.target_manager, set()
         )
 
+        # Only get dirty files for the first scan
         self.update_targets_file()
         self.update_rules_file()
 
@@ -91,6 +93,7 @@ class SemgrepCoreLSPServer:
         ]
         self.core_process = subprocess.Popen(
             cmd,
+            cwd=self.config.folder_paths[0],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
         )
@@ -212,10 +215,12 @@ class SemgrepCoreLSPServer:
 
         if method == "textDocument/didOpen":
             uri = urllib.parse.urlparse(params["textDocument"]["uri"])
-            if (
-                urllib.request.url2pathname(uri.path)
+            found = (
+                PosixPath(urllib.request.url2pathname(uri.path))
                 not in self.config.target_manager.get_all_files()
-            ):
+            )
+            log.info(f"Opened {uri.path}, {found}")
+            if found:
                 self.update_targets_file()
 
         if method == "semgrep/login":

@@ -1,4 +1,3 @@
-import glob
 import urllib
 from typing import Any
 from typing import List
@@ -6,17 +5,18 @@ from typing import Mapping
 from typing import Optional
 from typing import Union
 
-from semgrep.app.scans import ScanHandler
 from semgrep.app import auth
+from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
 from semgrep.meta import generate_meta_from_environment
+from semgrep.meta import GitMeta
 from semgrep.metrics import MetricsState
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
+from semgrep.semgrep_main import get_file_ignore
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
-from semgrep.semgrep_main import get_file_ignore
 
 
 class LSPConfig:
@@ -46,13 +46,15 @@ class LSPConfig:
         if settings_configs is not None:
             configs.extend(settings_configs)
         if self.ci_enabled and self.logged_in:
-            configs.append(self.scan_url)
-
+            # this can fail if something isn't a git repo
+            try:
+                configs.append(self.scan_url)
+            except Exception:
+                pass
         if len(configs) > 0:
             return configs
         else:
             return ["auto"]
-
 
     @property
     def jobs(self) -> int:
@@ -80,7 +82,7 @@ class LSPConfig:
 
     @property
     def scan_url(self) -> str:
-        state = get_state()
+        get_state()
         scan_handler = ScanHandler(True)
         metadata = generate_meta_from_environment(None)
         metadata_dict = metadata.to_dict()
@@ -114,9 +116,15 @@ class LSPConfig:
 
     @property
     def rules(self) -> List[Rule]:
-        configs_obj, _ = get_config(None, None, self.configs, project_url=self.project_url)
+        configs_obj, _ = get_config(
+            None, None, self.configs, project_url=self.project_url
+        )
         all_rules = configs_obj.get_rules(True)
         return all_rules
+
+    @property
+    def head_commit(self) -> Optional[str]:
+        return GitMeta().commit_sha
 
     @property
     def folders(self) -> List[str]:
@@ -152,5 +160,5 @@ class LSPConfig:
             max_target_bytes=self.max_target_bytes,
             respect_git_ignore=True,
             file_ignore=get_file_ignore(),
-            target_strings=self.folder_paths
+            target_strings=self.folder_paths,
         )

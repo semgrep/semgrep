@@ -1,7 +1,9 @@
-(* This is copied from osemgrep/Nosem.ml, when porting is done we should use
-   stuff from there *)
+open Git_helper
 
 type t = Semgrep_output_v1_t.core_match * Rule.rule
+
+(* This is copied from osemgrep/Nosem.ml, when porting is done we should use
+   stuff from there *)
 
 let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
@@ -11,6 +13,32 @@ let _nosem_previous_line_re =
   SPcre.regexp
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
+
+let filter_dirty_lines files matches =
+  let dirty_files = Hashtbl.create 10 in
+  let%lwt () =
+    Lwt_list.iter_s
+      (fun f ->
+        let%lwt dirty_lines = dirty_lines_of_file f in
+        Hashtbl.add dirty_files f dirty_lines;
+        Lwt.return ())
+      files
+  in
+  Lwt_list.filter_p
+    (fun ((m, _) : t) ->
+      let dirty_lines = Hashtbl.find_opt dirty_files m.location.path in
+      let line = m.location.start.line in
+      let res =
+        match dirty_lines with
+        | None -> false (* Untracked files *)
+        | Some [||] -> true
+        | Some dirty_lines ->
+            Array.exists
+              (fun (start, end_) -> start <= line && line <= end_)
+              dirty_lines
+      in
+      Lwt.return res)
+    matches
 
 let get_match_lines (loc : Semgrep_output_v1_t.location) =
   let file_buffer = Common.read_file loc.path in
@@ -66,8 +94,8 @@ let postprocess_results results hrules files =
     JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
       (List.length files) results
   in
-  let matches =
-    Common2.map
+  let%lwt matches =
+    Lwt_list.map_p
       (fun (m : Semgrep_output_v1_t.core_match) ->
         let rule = Hashtbl.find_opt hrules m.rule_id in
         let rule =
@@ -87,19 +115,24 @@ let postprocess_results results hrules files =
               };
           }
         in
-        (m, rule))
+        Lwt.return (m, rule))
       results.matches
   in
-  let matches =
-    Common2.filter
+  let%lwt git_repo = is_git_repo () in
+  let%lwt matches =
+    if git_repo then filter_dirty_lines files matches else Lwt.return matches
+  in
+  let%lwt matches =
+    Lwt_list.filter_p
       (fun ((_, r) : t) ->
-        r.severity <> Rule.Experiment && r.severity <> Rule.Inventory)
+        Lwt.return
+          (r.severity <> Rule.Experiment && r.severity <> Rule.Inventory))
       matches
   in
-  let matches =
-    Common2.filter
-      (fun ((m, _) : t) -> not (nosem_ignored m.location m.rule_id))
+  let%lwt matches =
+    Lwt_list.filter_p
+      (fun ((m, _) : t) ->
+        Lwt.return (not (nosem_ignored m.location m.rule_id)))
       matches
   in
-  (* Canonicalize paths so we can convert them to URIs LSP supports later *)
-  (matches, files)
+  Lwt.return (matches, files)

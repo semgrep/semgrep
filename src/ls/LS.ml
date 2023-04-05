@@ -54,87 +54,136 @@ module Server = struct
         Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
     | None -> Lwt.return ()
 
-  let notify ?(channel = None) server notification =
+  let request server request =
+    let id = server.session.next_id in
+    server.session.next_id <- id + 1;
+    let request = Server_request.to_jsonrpc_request request (`Int id) in
+    let packet = Jsonrpc.Packet.Request request in
+    let _ =
+      Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
+    in
+    id
+
+  let notify server notification =
     let notification = Server_notification.to_jsonrpc notification in
     let packet = Jsonrpc.Packet.Notification notification in
-    match channel with
-    | Some channel -> Io.write channel packet
-    | None ->
-        Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
+    Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
 
   let batch_notify server notifications =
-    Lwt_io.atomic
-      (fun channel ->
-        Lwt_list.iter_s (notify server ~channel:(Some channel)) notifications)
-      Lwt_io.stdout
+    Lwt_list.iter_s (notify server) notifications
 
-  let run_semgrep ?(files = []) server =
+  let create_progresss server title message =
+    let token = ProgressToken.t_of_yojson (`Int server.session.next_id) in
+    let progress =
+      Server_request.WorkDoneProgressCreate
+        (WorkDoneProgressCreateParams.create token)
+    in
+    let _ = request server progress in
+    let start =
+      Server_notification.Progress.Begin
+        (WorkDoneProgressBegin.create ~message ~title ())
+    in
+    let progress =
+      Server_notification.WorkDoneProgress (ProgressParams.create token start)
+    in
+    let _ = notify server progress in
+    let _ = Lwt_io.flush server.session.outgoing in
+    token
+
+  let end_progress server token =
+    let end_ =
+      Server_notification.Progress.End (WorkDoneProgressEnd.create ())
+    in
+    let progress =
+      Server_notification.WorkDoneProgress (ProgressParams.create token end_)
+    in
+    notify server progress
+
+  let run_semgrep ?(single_file = None) server =
     let config = server.session.config in
-    let targets = Session.targets server.session in
-    let files = Common.map Uri.to_path files in
-    let target_source =
-      match files with
-      | [] -> config.target_source
-      | files ->
-          let filtered_targets =
+    let single_file =
+      match single_file with
+      | Some file -> Some (Uri.to_path file)
+      | None -> None
+    in
+    let%lwt targets = Session.targets server.session in
+    let targets =
+      match single_file with
+      | Some file ->
+          let new_targets =
             Common2.filter
-              (fun (target : Input_to_core_t.target) ->
-                List.mem target.path files)
+              (fun (t : Input_to_core_t.target) -> t.path = file)
               targets.target_mappings
           in
-          Some (Targets { targets with target_mappings = filtered_targets })
+          { targets with target_mappings = new_targets }
+      | None -> targets
     in
+    let target_source = Some (Runner_config.Targets targets) in
     let config =
       { config with target_source; rule_source = server.session.cached_rules }
     in
     let _, res, files =
       Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
-    (* We get duplicate files listed because lang jobs I believe *)
-    let files = Common2.uniq files in
-    let final_results, files =
+    let%lwt final_results, files =
       Reporting.postprocess_results res (Session.hrules server.session) files
     in
-    (final_results, files)
+    let files = Common2.uniq files in
+    Lwt.return (final_results, files)
 
   let initialize_session server root =
-    let session = Session.load_rules server.session in
-    { session = { session with root }; state = State.Running }
+    { session = { server.session with root }; state = State.Running }
 
   let on_notification notification server =
     let scan_workspace server =
-      let results, files = run_semgrep server in
-      (* Let's scan the whole workspace to get a nice overview and so users know the extension is running *)
+      let token =
+        create_progresss server "Semgrep Scan in Progress" "Scanning Workspace"
+      in
+      let%lwt results, files = run_semgrep server in
       let diagnostics = Diagnostics.diagnostics_of_results results files in
-      let _ = batch_notify server diagnostics in
-      ()
+      let _ = end_progress server token in
+      batch_notify server diagnostics
+    in
+    let scan_file server uri =
+      let%lwt results, _ = run_semgrep server ~single_file:(Some uri) in
+      Hashtbl.add server.session.documents uri results;
+      batch_notify server
+        (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])
     in
     let server =
       match notification with
       | Client_notification.Initialized ->
+          let token =
+            create_progresss server "Semgrep Initializing" "Loading Rules"
+          in
           logger#info "Client initialized";
-          scan_workspace server;
+
+          let session = Session.load_rules server.session in
+          let _ = end_progress server token in
+          let server = { server with session } in
+          let _ = scan_workspace server in
           server
       | Client_notification.DidSaveTextDocument { textDocument = { uri }; _ }
       | Client_notification.TextDocumentDidOpen { textDocument = { uri; _ } } ->
           logger#info "Scanning %s" (Uri.to_string uri);
-          let results, _ = run_semgrep server ~files:[ uri ] in
-          Hashtbl.add server.session.documents uri results;
-          let _ =
-            batch_notify server
-              (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])
-          in
+          let _ = scan_file server uri in
           server
       | Client_notification.UnknownNotification
           { method_ = "semgrep/loginFinish"; _ } ->
           logger#info "Refreshing rules";
+          let token =
+            create_progresss server "Semgrep Rules Refresh" "Loading Rules"
+          in
           let session = Session.load_rules server.session in
+          let _ = end_progress server token in
           let server = { server with session } in
-          scan_workspace server;
+          (* Let's scan the whole workspace to get a nice overview and so users know the extension is running *)
+          let _ = scan_workspace server in
           server
       | Client_notification.UnknownNotification
           { method_ = "semgrep/scanWorkspace"; _ } ->
           logger#info "Scanning workspace";
+          let _ = scan_workspace server in
           server
       | _ ->
           logger#warning "Unhandled notification";
@@ -173,9 +222,19 @@ module Server = struct
           let server = initialize_session server root in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
-      | Client_request.CodeAction { textDocument = { uri }; _ } ->
-          let results = Hashtbl.find server.session.documents uri in
-          let matches = Common.map fst results in
+      | Client_request.CodeAction { textDocument = { uri }; context; _ } ->
+          let results = Hashtbl.find_opt server.session.documents uri in
+          let matches = Common.map fst (Option.value results ~default:[]) in
+          let diagnostics = context.diagnostics in
+          let ranges =
+            Common.map (fun (d : Diagnostic.t) -> d.range) diagnostics
+          in
+          let matches =
+            Common2.filter
+              (fun (m : Semgrep_output_v1_t.core_match) ->
+                List.mem (Lsp_util.range_of_location m.location) ranges)
+              matches
+          in
           let actions =
             CodeActions.code_actions_of_results matches [ Uri.to_path uri ]
           in
@@ -254,6 +313,7 @@ module Server = struct
             root = "";
             cached_rules = None;
             documents = Hashtbl.create 10;
+            next_id = 0;
           };
       state = State.Uninitialized;
     }
