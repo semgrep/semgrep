@@ -1,1 +1,0 @@
-Fix an issue that could lead to a crash when printing findings that contain snippets that look like markup to the Rich Python library
