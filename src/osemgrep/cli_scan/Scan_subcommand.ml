@@ -200,8 +200,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           |> List.iter (fun file -> m "target = %s" (Fpath.to_string file));
           m "]%s" "");
       let (res : Core_runner.result) =
-        Core_runner.invoke_semgrep_core conf.core_runner_conf filtered_rules
-          errors ~ignored_targets:semgrepignored_targets targets
+        Core_runner.invoke_semgrep_core
+          ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+          ~ignored_targets:semgrepignored_targets conf.core_runner_conf
+          filtered_rules errors targets
       in
       (* TOPORT? was in formater/base.py
          def keep_ignores(self) -> bool:
