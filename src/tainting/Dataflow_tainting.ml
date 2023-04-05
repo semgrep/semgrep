@@ -283,6 +283,13 @@ let report_findings env findings =
     env.config.handle_findings env.fun_name findings env.lval_env
 
 let top_level_sinks_in_nodes config flow =
+  (* We traverse the CFG and we check whether the top-level expressions match
+   * any sink specification. Those that do match a sink are potential
+   * "top-level sinks". See NOTE "Top sinks". *)
+  (* TODO: This handles the common cases that people have more often complained
+   * about, it doesn't yet handle e.g. a sink specification like `sink([$SINK, ...])`
+   * (with `focus-metavariable: $SINK`), and code like `sink([ok1 if tainted else ok2])`.
+   * For that, we would need to visit subexpressions. *)
   flow.CFG.reachable |> CFG.NodeiSet.to_seq
   |> Stdcompat.Seq.concat_map (fun ni ->
          let origs_of_args args =
@@ -291,7 +298,7 @@ let top_level_sinks_in_nodes config flow =
          let node = flow.CFG.graph#nodes#assoc ni in
          match node.n with
          | NInstr instr ->
-             let origs : orig Seq.t =
+             let top_expr_origs : orig Seq.t =
                Seq.cons instr.iorig
                  (match instr.i with
                  | Call (_, c, args) -> Seq.cons c.eorig (origs_of_args args)
@@ -301,7 +308,7 @@ let top_level_sinks_in_nodes config flow =
                  | FixmeInstr _ ->
                      Seq.empty)
              in
-             origs
+             top_expr_origs
              |> Stdcompat.Seq.concat_map (fun o ->
                     orig_is_sink config o |> List.to_seq)
          | NCond (_, exp)
