@@ -222,48 +222,39 @@ let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
            })
 
 let analyze_skipped (skipped : Out.skipped_target list) =
-  let reason_ht = Hashtbl.create 13 in
-  List.iter
-    (fun r -> Hashtbl.add reason_ht r [])
-    Out.
-      [
-        Semgrepignore_patterns_match;
-        Cli_include_flags_do_not_match;
-        Cli_exclude_flags_match;
-        Exceeded_size_limit;
-      ];
-  let skipped_by_reason (Out.{ reason; _ } as e : Out.skipped_target) =
-    let reason =
-      match reason with
-      | Out.Gitignore_patterns_match
-      | Semgrepignore_patterns_match ->
-          Out.Semgrepignore_patterns_match
-      | Too_big
-      | Exceeded_size_limit ->
-          Out.Exceeded_size_limit
-      | Cli_include_flags_do_not_match -> Out.Cli_include_flags_do_not_match
-      | Cli_exclude_flags_match -> Out.Cli_exclude_flags_match
-      | Always_skipped
-      | Analysis_failed_parser_or_internal_error
-      | Excluded_by_config
-      | Wrong_language
-      | Minified
-      | Binary
-      | Irrelevant_rule
-      | Too_many_matches ->
-          assert false
-    in
-    let v = e :: Option.value ~default:[] (Hashtbl.find_opt reason_ht reason) in
-    Hashtbl.replace reason_ht reason v
+  let groups =
+    Common.group_by
+      (fun (Out.{ reason; path; _ } : Out.skipped_target) ->
+        match reason with
+        | Out.Gitignore_patterns_match
+        | Semgrepignore_patterns_match ->
+            `Semgrepignore
+        | Too_big
+        | Exceeded_size_limit ->
+            `Size
+        | Cli_include_flags_do_not_match -> `Include
+        | Cli_exclude_flags_match -> `Exclude
+        | Always_skipped
+        | Analysis_failed_parser_or_internal_error
+        | Excluded_by_config
+        | Wrong_language
+        | Minified
+        | Binary
+        | Irrelevant_rule
+        | Too_many_matches ->
+            Logs.debug (fun m ->
+                m "unexpected skip reason for %s: %s" path
+                  (Out.show_skip_reason reason));
+            assert false)
+      skipped
   in
-  List.iter skipped_by_reason skipped;
-  ( (try Hashtbl.find reason_ht Out.Semgrepignore_patterns_match with
+  ( (try List.assoc `Semgrepignore groups with
     | Not_found -> []),
-    (try Hashtbl.find reason_ht Out.Cli_include_flags_do_not_match with
+    (try List.assoc `Size groups with
     | Not_found -> []),
-    (try Hashtbl.find reason_ht Out.Cli_exclude_flags_match with
+    (try List.assoc `Include groups with
     | Not_found -> []),
-    try Hashtbl.find reason_ht Out.Exceeded_size_limit with
+    try List.assoc `Exclude groups with
     | Not_found -> [] )
 
 let pp_summary ppf
