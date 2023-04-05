@@ -367,6 +367,31 @@ let sink_biased_union_mvars source_mvars sink_mvars =
   in
   Some (source_mvars' @ sink_mvars)
 
+let merge_source_mvars taints_and_bindings =
+  let merge xs ys =
+    (* Here, we get all the mvars that are compatible between the
+       left and right bindings, as well as all the mvars that are
+       not in `ys`, but are in `xs`.
+    *)
+    let compatible_mvars_or_not_in_ys =
+      Common.map_filter
+        (fun (mvar, mval) ->
+          match List.assoc_opt mvar ys with
+          | Some mval' ->
+              if Metavariable.equal_mvalue mval mval' then Some (mvar, mval)
+              else None
+          | None -> Some (mvar, mval))
+        xs
+    in
+    (* Here, we get all the mvars that are not in `xs`, but are in `ys`.
+     *)
+    let not_in_xs =
+      List.filter (fun (mvar, _) -> Option.is_none (List.assoc_opt mvar xs)) ys
+    in
+    compatible_mvars_or_not_in_ys @ not_in_xs
+  in
+  List.fold_left merge [] taints_and_bindings
+
 (* Merge source's and sink's bound metavariables. *)
 let merge_source_sink_mvars env source_mvars sink_mvars =
   if env.config.unify_mvars then
@@ -463,7 +488,22 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
      If we did as below and unified them all with each other, we would sometimes
      produce no findings when we should.
   *)
-  if env.config.unify_mvars then
+  (* The same will happen if our sink does not have an explicit `requires`.
+
+     This is because our behavior in the second case will remove metavariables
+     from the finding, if they conflict in the sources.
+
+     This can lead to a loss of metavariable interpolation in the finding message,
+     even for "vanilla" taint mode rules that don't use labels, for instance if
+     we had two instances of the source
+
+     foo($X)
+
+     reaching a sink, where in both instances, `$X` is not the same. The current
+     behavior is that one of the `$X` bindings is chosen arbitrarily. We will
+     try to keep this behavior here.
+  *)
+  if env.config.unify_mvars || Option.is_none (snd ts.sink_requires) then
     taints_and_bindings
     |> Common.map_filter (fun (t, bindings) ->
            let* merged_env =
@@ -478,7 +518,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
                 }))
   else
     match
-      taints_and_bindings |> List.concat_map snd
+      taints_and_bindings |> Common.map snd |> merge_source_mvars
       |> merge_source_sink_mvars env sink_pm.PM.env
     with
     | None -> []
