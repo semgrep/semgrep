@@ -230,9 +230,9 @@ let propagate_through_indexes env =
 (*****************************************************************************)
 
 let status_to_taints = function
-  | `None
-  | `Clean
-  | `Sanitized ->
+  | `None (* no info *)
+  | `Clean (* clean, from previous sanitization *)
+  | `Sanitized (* clean, because a sanitizer matched "right now" *) ->
       Taints.empty
   | `Tainted taints -> taints
 
@@ -791,9 +791,9 @@ and check_tainted_lval_aux env (lval : IL.lval) :
        *  If lval is sanitized, then we will "bubble up" the `Sanitized status, so
        *  any taint recorded in lval_env for any extension of lval will be discarded.
        *
-       *  So, if we are checking `x.a.b.c` and `x.a` is clean (could be due to
-       *  sanitization) then any extension of `x.a` is considered clean as well,
-       *  and we do look for taint info in the environment.
+       *  So, if we are checking `x.a.b.c` and `x.a` is sanitized then any extension
+       *  of `x.a` is considered sanitized as well, and we do look for taint info in
+       *  the environment.
        *
        *  *IF* sanitization is side-effectful then any taint info will be removed
        *  from lval_env by sanitize_lval, but that is not guaranteed.
