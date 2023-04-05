@@ -73,8 +73,9 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
 └────────────────┘
                   
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment gitlab-ci, triggering event is push
+  versions    - semgrep [bold]<MASKED>[/bold] on python [bold]3.10.6[/bold]       
+  environment - running in environment [bold]gitlab-ci[/bold], triggering event 
+                is [bold]push[/bold]                                            
             
   CONNECTION
   Reporting start of scan for deployment_name         

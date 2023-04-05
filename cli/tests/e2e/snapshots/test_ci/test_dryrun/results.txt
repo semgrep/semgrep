@@ -73,8 +73,9 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 └────────────────┘
                   
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown
+  versions    - semgrep [bold]<MASKED>[/bold] on python [bold]3.10.6[/bold]       
+  environment - running in environment [bold]git[/bold], triggering event is    
+                [bold]unknown[/bold]                                            
             
   CONNECTION
 Would have sent POST request to create scan

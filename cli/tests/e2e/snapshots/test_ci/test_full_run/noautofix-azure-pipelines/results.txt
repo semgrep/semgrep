@@ -73,9 +73,9 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
 └────────────────┘
                   
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment azure-pipelines, triggering event is     
-                pull_request                                                    
+  versions    - semgrep [bold]<MASKED>[/bold] on python [bold]3.10.6[/bold]       
+  environment - running in environment [bold]azure-pipelines[/bold], triggering 
+                event is [bold]pull_request[/bold]                              
             
   CONNECTION
   Reporting start of scan for deployment_name         

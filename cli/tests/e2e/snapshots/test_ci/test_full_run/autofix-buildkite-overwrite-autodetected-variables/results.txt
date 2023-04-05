@@ -73,9 +73,9 @@ BUILDKITE="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https://rando
 └────────────────┘
                   
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment buildkite, triggering event is           
-                pull_request                                                    
+  versions    - semgrep [bold]<MASKED>[/bold] on python [bold]3.10.6[/bold]       
+  environment - running in environment [bold]buildkite[/bold], triggering event 
+                is [bold]pull_request[/bold]                                    
             
   CONNECTION
   Reporting start of scan for deployment_name         

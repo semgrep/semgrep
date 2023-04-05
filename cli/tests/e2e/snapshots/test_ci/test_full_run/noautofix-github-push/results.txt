@@ -14,8 +14,9 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
 └────────────────┘
                   
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is push
+  versions    - semgrep [bold]<MASKED>[/bold] on python [bold]3.10.6[/bold]       
+  environment - running in environment [bold]github-actions[/bold], triggering  
+                event is [bold]push[/bold]                                      
             
   CONNECTION
   Reporting start of scan for deployment_name         

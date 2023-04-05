@@ -73,9 +73,9 @@ CI="true" SEMGREP_REPO_NAME="a/repo/name" SEMGREP_REPO_URL="https://random.url.o
 └────────────────┘
                   
   SCAN ENVIRONMENT
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment circleci, triggering event is            
-                pull_request                                                    
+  versions    - semgrep [bold]<MASKED>[/bold] on python [bold]3.10.6[/bold]       
+  environment - running in environment [bold]circleci[/bold], triggering event  
+                is [bold]pull_request[/bold]                                    
             
   CONNECTION
   Reporting start of scan for deployment_name         
