@@ -89,7 +89,7 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   in
   fix
 
-let postprocess_results results hrules files =
+let postprocess_results ?(only_git_dirty = true) results hrules files =
   let results =
     JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
       (List.length files) results
@@ -120,7 +120,8 @@ let postprocess_results results hrules files =
   in
   let%lwt git_repo = is_git_repo () in
   let%lwt matches =
-    if git_repo then filter_dirty_lines files matches else Lwt.return matches
+    if only_git_dirty && git_repo then filter_dirty_lines files matches
+    else Lwt.return matches
   in
   let%lwt matches =
     Lwt_list.filter_p

@@ -43,10 +43,10 @@
       "default": 0,
       "description": "Maximum size of target in bytes to scan."
     },
-    "semgrep.lsp.ciEnabled": {
+    "semgrep.lsp.onlyGitDirty": {
       "type": "boolean",
       "default": true,
-      "description": "When logged in, the LSP will runs rules configured on Semgrep App"
+      "description": "Only scan lines changed since the last commit"
     },
     "semgrep.metrics": {
       "type": "string",

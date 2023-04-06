@@ -1,6 +1,7 @@
 type t = Semgrep_output_v1_t.core_match * Rule.rule
 
 val postprocess_results :
+  ?only_git_dirty:bool ->
   Report.final_result ->
   Rule.hrules ->
   string list ->

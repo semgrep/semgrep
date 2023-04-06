@@ -45,7 +45,7 @@ class LSPConfig:
         settings_configs = self._settings["scan"].get("configuration")
         if settings_configs is not None:
             configs.extend(settings_configs)
-        if self.ci_enabled and self.logged_in:
+        if self.logged_in:
             # this can fail if something isn't a git repo
             try:
                 configs.append(self.scan_url)
@@ -92,10 +92,6 @@ class LSPConfig:
     # =====================
     # Semgrep LSP settings
     # =====================
-    @property
-    def ci_enabled(self) -> bool:
-        return self._settings["lsp"].get("ciEnabled", True)
-
     @property
     def metrics(self) -> MetricsState:
         choice = self._settings.get("metrics", "on")

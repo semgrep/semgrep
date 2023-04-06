@@ -228,8 +228,18 @@ class SemgrepCoreLSPServer:
             response = {"id": msg["id"], "result": body}
             self.on_core_message(response)
             return
+
         if method == "semgrep/loginFinish":
             self.m_semgrep__login_finish(**params)
+
+        if method == "semgrep/logout":
+            auth.delete_token()
+            self.notify_show_message(3, "Logged out of Semgrep Code")
+            self.update_rules_file()
+            self.update_targets_file()
+
+        if method == "semgrep/refreshRules":
+            self.update_rules_file()
         self.core_writer.write(msg)
 
     def on_core_message(self, msg: JsonObject) -> None:

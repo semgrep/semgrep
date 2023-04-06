@@ -9,9 +9,23 @@ type t = {
   root : string;
   cached_rules : Runner_config.rule_source option;
   documents :
-    (Uri.t, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
+    (string, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
   mutable next_id : int;
+  only_git_dirty : bool;
 }
+
+let create capabilities config =
+  {
+    capabilities;
+    config;
+    incoming = Lwt_io.stdin;
+    outgoing = Lwt_io.stdout;
+    root = "";
+    cached_rules = None;
+    documents = Hashtbl.create 10;
+    next_id = 0;
+    only_git_dirty = true;
+  }
 
 (* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
 let targets session =
@@ -36,7 +50,9 @@ let targets session =
   let%lwt target_mappings =
     Lwt_list.filter_p
       (fun (t : Input_to_core_t.target) ->
-        (git_repo && List.mem t.path dirty_files) |> Lwt.return)
+        ((not (session.only_git_dirty && git_repo))
+        || List.mem t.path dirty_files)
+        |> Lwt.return)
       targets.target_mappings
   in
   Lwt.return { targets with target_mappings }
@@ -64,3 +80,17 @@ let hrules session =
     | None -> failwith "No rules provided"
   in
   Rule.hrules_of_rules rules
+
+let record_results session results files =
+  let results_by_file =
+    Common2.group_by_mapped_key
+      (fun ((m, _) : Reporting.t) -> m.location.path)
+      results
+  in
+  Common2.iter
+    (fun (file, results) -> Hashtbl.add session.documents file results)
+    results_by_file;
+  Common2.iter (fun file -> Hashtbl.add session.documents file []) files
+
+let scanned_files session =
+  Hashtbl.fold (fun file _ acc -> file :: acc) session.documents []

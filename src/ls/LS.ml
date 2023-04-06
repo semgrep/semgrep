@@ -125,14 +125,21 @@ module Server = struct
     let _, res, files =
       Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
+    let only_git_dirty = server.session.only_git_dirty in
+
     let%lwt final_results, files =
-      Reporting.postprocess_results res (Session.hrules server.session) files
+      Reporting.postprocess_results ~only_git_dirty res
+        (Session.hrules server.session)
+        files
     in
     let files = Common2.uniq files in
     Lwt.return (final_results, files)
 
-  let initialize_session server root =
-    { session = { server.session with root }; state = State.Running }
+  let initialize_session server root only_git_dirty =
+    {
+      session = { server.session with root; only_git_dirty };
+      state = State.Running;
+    }
 
   let on_notification notification server =
     let scan_workspace server =
@@ -140,15 +147,28 @@ module Server = struct
         create_progresss server "Semgrep Scan in Progress" "Scanning Workspace"
       in
       let%lwt results, files = run_semgrep server in
+      Session.record_results server.session results files;
+      (* LSP expects empty diagnostics to clear problems *)
+      let files = Session.scanned_files server.session in
       let diagnostics = Diagnostics.diagnostics_of_results results files in
       let _ = end_progress server token in
       batch_notify server diagnostics
     in
     let scan_file server uri =
-      let%lwt results, _ = run_semgrep server ~single_file:(Some uri) in
-      Hashtbl.add server.session.documents uri results;
+      let%lwt results, files = run_semgrep server ~single_file:(Some uri) in
+      Session.record_results server.session results files;
       batch_notify server
         (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])
+    in
+    let refresh_rules server =
+      let token =
+        create_progresss server "Semgrep Rules Refresh" "Loading Rules"
+      in
+      let session = Session.load_rules server.session in
+      let _ = end_progress server token in
+      let server = { server with session } in
+      let _ = scan_workspace server in
+      server
     in
     let server =
       match notification with
@@ -170,15 +190,42 @@ module Server = struct
           server
       | Client_notification.UnknownNotification
           { method_ = "semgrep/loginFinish"; _ } ->
+          logger#info "Login finished";
+          refresh_rules server
+      | Client_notification.UnknownNotification
+          { method_ = "semgrep/logout"; _ } ->
+          logger#info "Logging out";
+          refresh_rules server
+      | Client_notification.UnknownNotification
+          { method_ = "semgrep/refreshRules"; _ } ->
           logger#info "Refreshing rules";
-          let token =
-            create_progresss server "Semgrep Rules Refresh" "Loading Rules"
+          refresh_rules server
+      | Client_notification.UnknownNotification
+          {
+            method_ = "semgrep/scanWorkspace";
+            params = Some (`Assoc _ as json);
+          } ->
+          let json = Jsonrpc.Structured.yojson_of_t json in
+          let full =
+            match Yojson.Safe.Util.member "full" json with
+            | `Bool b -> b
+            | _ -> false
           in
-          let session = Session.load_rules server.session in
-          let _ = end_progress server token in
-          let server = { server with session } in
-          (* Let's scan the whole workspace to get a nice overview and so users know the extension is running *)
+          let git_dirty = server.session.only_git_dirty in
+          let server =
+            {
+              server with
+              session = { server.session with only_git_dirty = not full };
+            }
+          in
+          logger#info "Scanning workspace (full)";
           let _ = scan_workspace server in
+          let server =
+            {
+              server with
+              session = { server.session with only_git_dirty = git_dirty };
+            }
+          in
           server
       | Client_notification.UnknownNotification
           { method_ = "semgrep/scanWorkspace"; _ } ->
@@ -196,9 +243,21 @@ module Server = struct
     let resp, server =
       match request with
       | Client_request.Shutdown -> (None, { server with state = State.Stopped })
-      | Client_request.Initialize { rootUri; workspaceFolders; _ } ->
+      | Client_request.Initialize
+          { rootUri; workspaceFolders; initializationOptions; _ } ->
           (* There's rootPath, rootUri, and workspaceFolders. First two are
              deprecated, so let's split the diffrence and support last two *)
+          let lsp_options =
+            match initializationOptions with
+            | Some (`Assoc _ as i) -> Yojson.Safe.Util.member "lsp" i
+            | _ -> `Assoc []
+          in
+          let only_git_dirty =
+            Yojson.Safe.Util.member "onlyGitDirty" lsp_options
+            |> Yojson.Safe.Util.to_bool_option
+            |> Option.value ~default:false
+          in
+          logger#info "only_git_dirty %b" only_git_dirty;
           let workspace_uri =
             match workspaceFolders with
             | Some (Some ({ uri; _ } :: _)) -> Uri.to_path uri
@@ -219,11 +278,12 @@ module Server = struct
                   Some { name = "Semgrep Language Server"; version = None };
               }
           in
-          let server = initialize_session server root in
+          let server = initialize_session server root only_git_dirty in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
       | Client_request.CodeAction { textDocument = { uri }; context; _ } ->
-          let results = Hashtbl.find_opt server.session.documents uri in
+          let file = Uri.to_path uri in
+          let results = Hashtbl.find_opt server.session.documents file in
           let matches = Common.map fst (Option.value results ~default:[]) in
           let diagnostics = context.diagnostics in
           let ranges =
@@ -235,9 +295,7 @@ module Server = struct
                 List.mem (Lsp_util.range_of_location m.location) ranges)
               matches
           in
-          let actions =
-            CodeActions.code_actions_of_results matches [ Uri.to_path uri ]
-          in
+          let actions = CodeActions.code_actions_of_results matches [ file ] in
           let actions =
             match actions with
             | [] -> None
@@ -303,18 +361,7 @@ module Server = struct
       }
     in
     {
-      session =
-        Session.
-          {
-            capabilities;
-            incoming = Lwt_io.stdin;
-            outgoing = Lwt_io.stdout;
-            config;
-            root = "";
-            cached_rules = None;
-            documents = Hashtbl.create 10;
-            next_id = 0;
-          };
+      session = Session.create capabilities config;
       state = State.Uninitialized;
     }
 end
