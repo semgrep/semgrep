@@ -74,6 +74,8 @@ class SemgrepResult:
                 dict2["extra"]["metavars"] = "<masked in benchmarks>"
                 # the paths being different will change the fingerprint
                 dict2["extra"]["fingerprint"] = "<masked in benchmarks>"
+            if "dataflow_traces" in dict2["extra"]:
+                dict2["extra"]["dataflow_traces"] = "<masked in benchmarks>"
 
         if "check_id" in dict2:
             relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
@@ -483,7 +485,11 @@ def run_benchmarks(
             for variant in variants:
 
                 # Run variant
-                name = ".".join(["semgrep", "bench", corpus.name, variant.name])
+                name = ".".join(
+                    ["semgrep"]
+                    + corpus.semgrep_options
+                    + ["bench", corpus.name, variant.name]
+                )
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 try:
