@@ -19,4 +19,4 @@ type t = private {
    Convert a pattern AST into a PCRE pattern and the array of metavariables
    corresponding to the PCRE matching groups.
 *)
-val compile : Pat_AST.t -> t
+val compile : Conf.t -> Pat_AST.t -> t

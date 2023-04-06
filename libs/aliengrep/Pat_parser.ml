@@ -56,7 +56,11 @@ let parse (tokens : Pat_lexer.token list) : Pat_AST.node list =
             parse_seq_until acc expected_close xs)
     | OTHER str :: xs -> parse_seq_until (Other str :: acc) expected_close xs
   in
-  match parse_seq_until [] None tokens with
-  | Ok (seq, []) -> seq
-  | Ok _ -> assert false
-  | Error _ -> assert false
+  let ast =
+    match parse_seq_until [] None tokens with
+    | Ok (seq, []) -> seq
+    | Ok _ -> assert false
+    | Error _ -> assert false
+  in
+  Pat_AST.check ast;
+  ast

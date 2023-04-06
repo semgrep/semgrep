@@ -7,17 +7,8 @@
 
 open Printf
 
-type conf = {
-  multiline : bool;
-  (* TODO: support Unicode? *)
-  (* TODO: support ranges?
-     or maybe: specify characters to add or remove from the default set *)
-  word_chars : char list;
-  braces : (char * char) list;
-}
-
 type compiled_conf = {
-  conf : conf;
+  conf : Conf.t;
   pcre_pattern : string;
   pcre_regexp : Pcre.regexp;
 }
@@ -33,126 +24,9 @@ type token =
   | CLOSE of char
   | OTHER of string
 
-let config_error msg =
-  failwith (sprintf "Error in aliengrep configuration: %s" msg)
-
 let pattern_error source_name msg =
   failwith
     (sprintf "%s: Error: failed to parse aliengrep pattern: %s" source_name msg)
-
-let upper =
-  [
-    'A';
-    'B';
-    'C';
-    'D';
-    'E';
-    'F';
-    'G';
-    'H';
-    'I';
-    'J';
-    'K';
-    'L';
-    'M';
-    'N';
-    'O';
-    'P';
-    'Q';
-    'R';
-    'S';
-    'T';
-    'U';
-    'V';
-    'W';
-    'X';
-    'Y';
-    'Z';
-  ]
-
-let lower =
-  [
-    'a';
-    'b';
-    'c';
-    'd';
-    'e';
-    'f';
-    'g';
-    'h';
-    'i';
-    'j';
-    'k';
-    'l';
-    'm';
-    'n';
-    'o';
-    'p';
-    'q';
-    'r';
-    's';
-    't';
-    'u';
-    'v';
-    'w';
-    'x';
-    'y';
-    'z';
-  ]
-
-let digit = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9' ]
-
-let default_multiline_conf =
-  {
-    multiline = true;
-    word_chars = ('_' :: upper) @ lower @ digit;
-    braces = [ ('(', ')'); ('[', ']'); ('{', '}') ];
-  }
-
-let default_uniline_conf =
-  {
-    multiline = false;
-    word_chars = default_multiline_conf.word_chars;
-    braces = [ ('"', '"'); ('\'', '\'') ] @ default_multiline_conf.braces;
-  }
-
-let check_conf conf =
-  let word_chars = Set_.of_list conf.word_chars in
-  let open_chars_list, close_chars_list = List.split conf.braces in
-  let open_chars = Set_.of_list open_chars_list in
-  let close_chars = Set_.of_list close_chars_list in
-  let brace_chars = Set_.union open_chars close_chars in
-  if Set_.is_empty word_chars then config_error "empty set of word characters";
-  let conflicts = Set_.inter word_chars brace_chars |> Set_.elements in
-  (match conflicts with
-  | [] -> ()
-  | chars ->
-      let chars =
-        chars |> Common.map (fun c -> sprintf "%C" c) |> String.concat " "
-      in
-      config_error
-        ("some word characters are also defined as brace characters: " ^ chars));
-  if Set_.cardinal open_chars <> List.length open_chars_list then
-    config_error "some opening braces are repeated";
-  if Set_.cardinal close_chars <> List.length close_chars_list then
-    config_error "some closing braces are repeated"
-
-let char_class_of_set chars =
-  let buf = Buffer.create 100 in
-  Buffer.add_char buf '[';
-  List.iter
-    (fun c ->
-      match c with
-      | '-'
-      | '^'
-      | '['
-      | ']' ->
-          bprintf buf {|\x%02X|} (Char.code c)
-      | ' ' .. '~' -> Buffer.add_char buf c
-      | _ -> bprintf buf {|\x%02X|} (Char.code c))
-    chars;
-  Buffer.add_char buf ']';
-  Buffer.contents buf
 
 (*
    Compile into a regexp that will be used to split the string.
@@ -160,22 +34,19 @@ let char_class_of_set chars =
    Each capturing group is numbered and indicates the type of the token.
 *)
 let compile conf =
-  check_conf conf;
+  Conf.check conf;
   let open_chars, close_chars = List.split conf.braces in
   let ellipsis_1 = {|\.\.\.|} in
   let long_ellipsis_2 = {|\.\.\.\.|} in
   let metavar_3 = {|\$([A-Z][A-Z0-9_]*)|} in
   let metavar_ellipsis_4 = {|\$\.\.\.([A-Z][A-Z0-9_]*)|} in
   let long_metavar_ellipsis_5 = {|\$\.\.\.\.([A-Z][A-Z0-9_]*)|} in
-  let whitespace =
-    (* HT (9), optional LF (10), VT (11), FF (12), CR (13), and space (32) *)
-    if conf.multiline then {|[\t\n\x0B\x0C\x0D ]|}
-    else (* same without \n *)
-      {|[\t\n\x0B\x0C\x0D ]|}
+  let whitespace = if conf.multiline then {|[:space:]|} else {|[:blank:]|} in
+  let word_6 =
+    sprintf {|(%s+)|} (Pcre_util.char_class_of_list conf.word_chars)
   in
-  let word_6 = sprintf {|(%s+)|} (char_class_of_set conf.word_chars) in
-  let open_7 = sprintf {|(%s+)|} (char_class_of_set open_chars) in
-  let close_8 = sprintf {|(%s+)|} (char_class_of_set close_chars) in
+  let open_7 = sprintf {|(%s+)|} (Pcre_util.char_class_of_list open_chars) in
+  let close_8 = sprintf {|(%s+)|} (Pcre_util.char_class_of_list close_chars) in
   let other_9 = sprintf {|(.)|} in
   let pat =
     String.concat "|"

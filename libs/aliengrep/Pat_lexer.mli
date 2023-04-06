@@ -6,17 +6,6 @@
    on Unicode and UTF-8.
 *)
 
-type conf = {
-  (* multiline = newlines are treated as ordinary whitespace *)
-  multiline : bool;
-  (* TODO: support UTF-8 word characters *)
-  word_chars : char list;
-  braces : (char * char) list;
-}
-
-val default_multiline_conf : conf
-val default_uniline_conf : conf
-
 type compiled_conf
 
 type token =
@@ -39,7 +28,7 @@ type token =
 
    Raise a 'Failure' exception in case of an invalid configuration.
 *)
-val compile : conf -> compiled_conf
+val compile : Conf.t -> compiled_conf
 
 (*
    Read a pattern into a list of lexical elements as configured.

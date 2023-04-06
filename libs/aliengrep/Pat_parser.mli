@@ -6,5 +6,4 @@
    The implementation isn't very hard since all we do is match braces.
 *)
 
-val parse :
-  ?source_name:string -> Pat_lexer.conf -> Pat_lexer.token list -> Pat_AST.t
+val parse : Pat_lexer.token list -> Pat_AST.t
