@@ -545,6 +545,26 @@ let closeIndentRegion in_ =
       skipToken in_
   | _ -> failwith "precondition failure"
 
+(* If this next token is indented, it's quite likely we're inside of an implicit
+   indented blockExpr, which can start off an `expr`.
+
+   For instance, something like
+   def foo() =
+     val x = 3
+
+   It's not guaranteed, however, such as if we saw something like
+
+   def foo() =
+     3
+
+   where `{ 3 }` is not a valid BlockExpr.
+
+   So we will only assume it's an implicit blockExpr if it's both indented,
+   and not the start to an expression.
+*)
+let isIndentedBlockExprStart in_ =
+  Option.is_some (passedIndent in_) && not (TH.isExprIntro in_.token)
+
 (*****************************************************************************)
 (* Special parsing  *)
 (*****************************************************************************)
@@ -1682,14 +1702,18 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | `:` `_` `*`
  *  }}}
 *)
-let rec expr ?(location = Local) (in_ : env) : expr = expr0 location in_
+let rec expr ?(is_block_expr = false) ?(location = Local) (in_ : env) : expr =
+  expr0 ~is_block_expr location in_
 
-and expr0 (location : location) (in_ : env) : expr =
+and expr0 ?(is_block_expr = false) (location : location) (in_ : env) : expr =
   in_
   |> with_logging
        (spf "expr0(location = %s)" (show_location location))
        (fun () ->
          match in_.token with
+         | _ when is_block_expr ->
+             (* see NOTE: indented-block-expr *)
+             parseOther ~is_block_expr location in_
          | Kif _ -> S (parseIf in_)
          | Ktry _ -> S (parseTry in_)
          | Kwhile _ -> S (parseWhile in_)
@@ -1702,12 +1726,12 @@ and expr0 (location : location) (in_ : env) : expr =
              implicitClosure (Implicit, ii) location in_
          | _ -> parseOther location in_)
 
-and parseOther location (in_ : env) : expr =
+and parseOther ?(is_block_expr = false) location (in_ : env) : expr =
   in_
   |> with_logging
        (spf "parseOther(location = %s)" (show_location location))
        (fun () ->
-         let t = ref (postfixExpr in_) in
+         let t = ref (postfixExpr ~is_block_expr in_) in
          (match in_.token with
          | EQUALS ii ->
              skipToken in_;
@@ -1783,7 +1807,7 @@ and parseOther location (in_ : env) : expr =
  *                  | InfixExpr Id [nl] InfixExpr
  *  }}}
 *)
-and postfixExpr in_ : expr =
+and postfixExpr ?(is_block_expr = false) in_ : expr =
   in_
   |> with_logging "postfixExpr" (fun () ->
          (* TODO: AST: opstack, reduce *)
@@ -1816,7 +1840,7 @@ and postfixExpr in_ : expr =
                              (* AST: finishPostfixOp(base, popOpInfo()) *)
                              Postfix (top, id)))
          in
-         let res = prefixExpr in_ in
+         let res = prefixExpr ~is_block_expr in_ in
          (* AST: reduceExprStack (res) *)
          loop res in_)
 
@@ -1824,8 +1848,11 @@ and postfixExpr in_ : expr =
  *  PrefixExpr   ::= [`-` | `+` | `~` | `!`] SimpleExpr
  *  }}}
 *)
-and prefixExpr in_ : expr =
+and prefixExpr ?(is_block_expr = false) in_ : expr =
   match in_.token with
+  | _ when is_block_expr ->
+      (* see NOTE: indented-block-expr *)
+      simpleExpr ~is_block_expr in_
   | t when TH.isUnaryOp t ->
       if lookingAhead (fun in_ -> TH.isExprIntro in_.token) in_ then
         let uname = rawIdent in_ in
@@ -1857,12 +1884,15 @@ and prefixExpr in_ : expr =
  *                  |  SimpleExpr1 ArgumentExprs
  *  }}}
 *)
-and simpleExpr in_ : expr =
+and simpleExpr ?(is_block_expr = false) in_ : expr =
   in_
   |> with_logging "simpleExpr" (fun () ->
          let canApply = ref true in
          let t =
            match in_.token with
+           | _ when is_block_expr ->
+               canApply := false;
+               BlockExpr (blockExpr in_)
            | x when TH.isLiteral x ->
                let x = literal in_ in
                L x
@@ -2369,11 +2399,11 @@ and block in_ : block =
                                      !blockStatSeq_ in_)
 
 (** {{{
-  *  BlockExpr ::= `{` (CaseClauses | Block) `}`
+  *  BlockExpr ::= <<< (CaseClauses | Block) >>>
   *  }}}
 *)
 and blockExpr in_ : block_expr =
-  inBraces
+  inBracesOrIndented
     (fun in_ ->
       match in_.token with
       | Kcase _ when nextTokNotClassOrObject in_ ->
@@ -3183,7 +3213,16 @@ let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
                nextTokenAllow TH.nme_MACROkw in_;
                if TH.isMacro in_.token then
                  nextToken in_ (* AST: newmmods |= MACRO *);
-               let x = expr in_ in
+               (* NOTE: indented-block-expr
+                  Moreover, if this is the start to a block, then every case in the `expr`
+                  recursive descent must fall through to the simpleExpr blockExpr case,
+                  otherwise we will end up assuming we're in a different case when we
+                  already determined we're not.
+
+                  We'll be safe and restrict the indented blockExprs to only RHS of
+                  a `def`, because otherwise this could mess quite a few parse trees up.
+               *)
+               let x = expr ~is_block_expr:(isIndentedBlockExprStart in_) in_ in
                Some (FExpr (ii, x))
            | _ ->
                accept (EQUALS ab) in_ (* generate error message *);
