@@ -692,6 +692,15 @@ let inBrackets f in_ =
 (* less: do actual error recovery? *)
 let inBracesOrNil = inBraces
 
+let inBracesOrIndented f in_ =
+  match in_.token with
+  | LBRACE _ -> inBraces f in_
+  | _ ->
+      enterIndentRegion in_;
+      let res = fb (PI.unsafe_fake_info "") (f in_) in
+      closeIndentRegion in_;
+      res
+
 (** {{{ { `sep` part } }}}. *)
 let separatedToken sep part in_ =
   (* CHECK: "separator cannot be a comma" *)
@@ -1665,7 +1674,7 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | [SimpleExpr `.`] Id `=` Expr
  *               | SimpleExpr1 ArgumentExprs `=` Expr
  *               | PostfixExpr Ascription
- *               | PostfixExpr match `{` CaseClauses `}`
+ *               | PostfixExpr match <<< CaseClauses >>>
  *  Bindings   ::= `(` [Binding {`,` Binding}] `)`
  *  Binding    ::= (Id | `_`) [`:` Type]
  *  Ascription ::= `:` CompoundType
@@ -1733,7 +1742,7 @@ and parseOther location (in_ : env) : expr =
                  t := TypedExpr (!t, icolon, tpt))
          | Kmatch ii ->
              skipToken in_;
-             let xs = inBracesOrNil caseClauses in_ in
+             let xs = inBracesOrIndented caseClauses in_ in
              (* ast: t:= Match(stripParens(t)) *)
              t := Match (stripParens !t, ii, xs)
          | _ -> ());

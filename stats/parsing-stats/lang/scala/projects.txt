@@ -8,7 +8,7 @@ https://github.com/akka/akka
 https://github.com/yahoo/CMAK
 https://github.com/ornicar/lila
 https://github.com/gitbucket/gitbucket
-https://github.com/twitter/finagle
+# https://github.com/twitter/finagle
 https://github.com/rtyley/bfg-repo-cleaner
 https://github.com/twitter-archive/snowflake
 https://github.com/lhartikk/ArnoldC
