@@ -9,6 +9,7 @@
    pfff-lang_GENERIC-analyze
 
    semgrep_core
+   js_of_ocaml
 
 )
  (preprocess (pps ppx_deriving.show ppx_profiling))

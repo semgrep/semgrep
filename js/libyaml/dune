@@ -1,0 +1,35 @@
+(alias
+ (name default)
+ (deps yaml.js))
+
+(alias
+  (name javascript)
+  (deps yaml.js libyaml.js libyaml.wasm)
+)
+
+(library
+ (name libyaml_stubs_js)
+ (wrapped false)
+ (libraries js_of_ocaml)
+ (js_of_ocaml
+  (javascript_files yaml.js))
+ (preprocess
+  (pps js_of_ocaml-ppx)))
+
+(rule
+ (targets libyaml.js libyaml.wasm)
+ (deps (:c_files (glob_files *.c)) (glob_files *.h))
+ (action
+  (run
+   emcc
+   -O3
+   -I.
+   -DHAVE_CONFIG_H
+   -o libyaml.js
+   %{c_files}
+   -sALLOW_MEMORY_GROWTH=1
+   -sEXPORTED_RUNTIME_METHODS=%{read:../shared/exported-runtime-methods.txt}
+   -sEXPORTED_FUNCTIONS=_malloc,_free,_yaml_parser_initialize,_yaml_parser_set_input_string,_yaml_parser_parse
+   -sMODULARIZE
+   ))
+   )

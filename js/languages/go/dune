@@ -2,21 +2,26 @@
 
 (executables
  (names Parser)
- (libraries parser_lua.ast_generic semgrep_js_shared)
+ (libraries
+    semgrep_js_shared
+    parser_go.menhir
+    parser_go.tree_sitter
+    parser_go.ast_generic
+ )
  (modes js)
- (js_of_ocaml
+  (js_of_ocaml
   (javascript_files semgrep.js)
+  (flags --pretty --no-inline)
   )
  (preprocess
-  (pps js_of_ocaml-ppx)))
+  (pps js_of_ocaml-ppx))
+)
 
 (rule
- (targets semgrep-lua-parser.js semgrep-lua-parser.wasm)
+ (targets semgrep-go-parser.js semgrep-go-parser.wasm)
  (deps
   ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter-0.20.6/lib/src/lib.c
-  ../../../languages/lua/tree-sitter/semgrep-lua/lib/parser.c
-  ../../../languages/lua/tree-sitter/semgrep-lua/lib/scanner.cc
-  )
+  ../../../languages/go/tree-sitter/semgrep-go/lib/parser.c)
  (action
   (run
    emcc
@@ -25,10 +30,10 @@
    -I%{env:TREESITTER_INCDIR=/usr/local/include}
    %{deps}
    -o
-   semgrep-lua-parser.js
+   semgrep-go-parser.js
    -sALLOW_MEMORY_GROWTH=1
    -sEXPORTED_RUNTIME_METHODS=%{read:../../shared/exported-runtime-methods.txt}
-   -sEXPORTED_FUNCTIONS=_tree_sitter_lua,%{read:../../shared/exported-functions.txt}
+   -sEXPORTED_FUNCTIONS=_tree_sitter_go,%{read:../../shared/exported-functions.txt}
    -sMODULARIZE
    )))
 
@@ -46,20 +51,20 @@
 
 (rule
   (target semgrep-parser.js)
-  (deps semgrep-lua-parser.js)
+  (deps semgrep-go-parser.js)
   (action (copy %{deps} %{target}))
 )
 
 (rule
  (alias javascript)
- (target semgrep-lua.js)
+ (target semgrep-go.js)
  (deps entrypoint.js semgrep-parser.js Parser.bc.js)
  (action
   (run esbuild entrypoint.js --bundle --minify --platform=neutral --log-override:duplicate-case=silent --external:path --external:fs --external:constants --external:tty --external:child_process --outfile=%{target})))
 
 (rule
  (alias javascript)
- (target semgrep-lua-webworker.js)
+ (target semgrep-go-webworker.js)
  (deps webworker.js semgrep-parser.js Parser.bc.js)
  (action
   (run esbuild webworker.js --bundle --minify --log-override:duplicate-case=silent --external:path --external:fs --external:constants --external:tty --external:child_process --outfile=%{target})))
