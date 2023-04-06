@@ -389,8 +389,8 @@ let merge_source_mvars bindings =
              *)
              Hashtbl.replace bindings_tbl mvar (Some mval)
          | Some (Some mval') ->
-             if Metavariable.equal_mvalue mval mval' then ()
-             else Hashtbl.remove bindings_tbl mvar);
+             if not (Metavariable.equal_mvalue mval mval') then
+               Hashtbl.remove bindings_tbl mvar);
   (* After this, the only surviving bindings should be those where
      there was no conflict between bindings in different sources.
   *)
