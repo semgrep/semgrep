@@ -367,30 +367,42 @@ let sink_biased_union_mvars source_mvars sink_mvars =
   in
   Some (source_mvars' @ sink_mvars)
 
-let merge_source_mvars taints_and_bindings =
-  let merge xs ys =
-    (* Here, we get all the mvars that are compatible between the
-       left and right bindings, as well as all the mvars that are
-       not in `ys`, but are in `xs`.
-    *)
-    let compatible_mvars_or_not_in_ys =
-      Common.map_filter
-        (fun (mvar, mval) ->
-          match List.assoc_opt mvar ys with
-          | Some mval' ->
-              if Metavariable.equal_mvalue mval mval' then Some (mvar, mval)
-              else None
-          | None -> Some (mvar, mval))
-        xs
-    in
-    (* Here, we get all the mvars that are not in `xs`, but are in `ys`.
-     *)
-    let not_in_xs =
-      List.filter (fun (mvar, _) -> Option.is_none (List.assoc_opt mvar xs)) ys
-    in
-    compatible_mvars_or_not_in_ys @ not_in_xs
+let merge_source_mvars bindings =
+  let flat_bindings = List.concat bindings in
+  let bindings_tbl =
+    flat_bindings
+    |> Common.map (fun (mvar, _) -> (mvar, None))
+    |> List.to_seq |> Hashtbl.of_seq
   in
-  List.fold_left merge [] taints_and_bindings
+  flat_bindings
+  |> List.iter (fun (mvar, mval) ->
+         match Hashtbl.find_opt bindings_tbl mvar with
+         | None ->
+             (* This should only happen if we've previously found that
+                there is a conflict between bound values at `mvar` in
+                the sources.
+             *)
+             ()
+         | Some None ->
+             (* This is our first time seeing this value, let's just
+                add it in.
+             *)
+             Hashtbl.replace bindings_tbl mvar (Some mval)
+         | Some (Some mval') ->
+             if Metavariable.equal_mvalue mval mval' then ()
+             else Hashtbl.remove bindings_tbl mvar);
+  (* After this, the only surviving bindings should be those where
+     there was no conflict between bindings in different sources.
+  *)
+  bindings_tbl |> Hashtbl.to_seq |> List.of_seq
+  |> Common.map_filter (fun (mvar, mval_opt) ->
+         match mval_opt with
+         | None ->
+             (* This actually shouldn't really be possible, every
+                binding should either not exist, or contain a value
+                if there's no conflict. But whatever. *)
+             None
+         | Some mval -> Some (mvar, mval))
 
 (* Merge source's and sink's bound metavariables. *)
 let merge_source_sink_mvars env source_mvars sink_mvars =
