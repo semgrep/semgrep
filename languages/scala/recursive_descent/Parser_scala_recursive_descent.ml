@@ -2311,6 +2311,7 @@ and parseIf in_ : stmt =
     | _ ->
         let e = expr in_ in
         accept (ID_LOWER ("then", ab)) in_;
+        newLinesOpt in_;
         fb (PI.unsafe_fake_info "") e
   in
   let thenp = expr in_ in
@@ -2347,6 +2348,7 @@ and parseWhile in_ : stmt =
         cond
     | _ ->
         let e = expr in_ in
+        newLinesOpt in_;
         accept (Kdo ab) in_;
         fb (PI.unsafe_fake_info "") e
   in
