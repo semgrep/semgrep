@@ -55,8 +55,8 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
       (conf.braces
       |> Common.map (fun (open_, close) ->
              sprintf {|%s\k<seq>%s|}
-               (String.make 1 open_ |> Pcre.quote)
-               (String.make 1 close |> Pcre.quote))
+               (String.make 1 open_ |> Pcre_util.quote)
+               (String.make 1 close |> Pcre_util.quote))
       |> String.concat "|")
   in
   let def_node =
@@ -108,7 +108,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   in
   let entrypoint =
     let buf = Buffer.create 200 in
-    let add str = Buffer.add_string buf str in
+    let add str = bprintf buf "%s\n" str in
     let rec of_node (node : Pat_AST.node) =
       match node with
       | Ellipsis -> add {|\k<useq>|}
@@ -119,17 +119,19 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
       | Long_metavar_ellipsis name ->
           add (capture (Metavariable_ellipsis, name) {|\k<mseq>|})
       | Bracket (open_, seq, close) ->
-          add (Pcre.quote (String.make 1 open_));
+          add (Pcre_util.quote (String.make 1 open_));
           of_seq seq;
-          add (Pcre.quote (String.make 1 close))
-      | Other str -> add (Pcre.quote str)
+          add (Pcre_util.quote (String.make 1 close))
+      | Other str -> add (Pcre_util.quote str)
     and of_seq xs = List.iter of_node xs in
     of_seq ast;
     Buffer.contents buf
   in
-  let root = sprintf {|%s%s"|} (String.concat "" definitions) entrypoint in
+  let root = sprintf "%s\n%s" (String.concat "\n" definitions) entrypoint in
   (root, get_capturing_group_array ())
 
 let compile conf pattern_ast =
   let pcre_pattern, metavariable_groups = to_regexp conf pattern_ast in
-  { pcre_pattern; pcre = SPcre.regexp pcre_pattern; metavariable_groups }
+  (* `EXTENDED = literal whitespace and comments are ignored *)
+  let pcre = SPcre.regexp ~flags:[ `EXTENDED ] pcre_pattern in
+  { pcre_pattern; pcre; metavariable_groups }
