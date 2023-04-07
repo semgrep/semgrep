@@ -1685,8 +1685,10 @@ let pattern in_ : pattern = noSeq pattern in_
  *  ResultExpr ::= (Bindings | Id `:` CompoundType) `=>` Block
  *               | Expr1
  *  Expr1      ::= if `(` Expr `)` {nl} Expr [[semi] else Expr]
+ *               | ‘if’  Expr ‘then’ Expr [[semi] ‘else’ Expr]
  *               | try (`{` Block `}` | Expr) [catch `{` CaseClauses `}`] [finally Expr]
  *               | while `(` Expr `)` {nl} Expr
+ *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
  *               | for (`(` Enumerators `)` | `{` Enumerators `}`) {nl} [yield] Expr
  *               | throw Expr
@@ -1814,7 +1816,19 @@ and postfixExpr ?(is_block_expr = false) in_ : expr =
          let rec loop top in_ =
            in_
            |> with_logging "postfixExpr:loop" (fun () ->
-                  if not (TH.isIdentBool in_.token) then
+                  (* In Scala 3, we can have if statements that look like
+                     if <expr> then <expr> else <expr>
+
+                     Except, in Scala 3, `then` is also a soft keyword.
+
+                     This means that without this check, we would parse
+                       <expr> then
+                     as a postfix application of `then` to <expr>.
+                  *)
+                  if
+                    (not (TH.isIdentBool in_.token))
+                    || in_.token =~= ID_LOWER ("then", ab)
+                  then
                     in_
                     |> with_logging "postfixExpr:loop: noIdentBool, stop"
                          (fun () -> top)
@@ -2288,8 +2302,17 @@ and implicitClosure implicitmod location in_ =
 and parseIf in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
-  let cond = condExpr in_ in
-  newLinesOpt in_;
+  let cond =
+    match in_.token with
+    | LPAREN _ ->
+        let cond = parensCondExpr in_ in
+        newLinesOpt in_;
+        cond
+    | _ ->
+        let e = expr in_ in
+        accept (ID_LOWER ("then", ab)) in_;
+        fb (PI.unsafe_fake_info "") e
+  in
   let thenp = expr in_ in
   let elsep =
     match in_.token with
@@ -2304,7 +2327,7 @@ and parseIf in_ : stmt =
   (* ast: If(cond, thenp, elsep) *)
   If (ii, cond, thenp, elsep)
 
-and condExpr in_ : expr bracket =
+and parensCondExpr in_ : expr bracket =
   let lp = TH.info_of_tok in_.token in
   accept (LPAREN ab) in_;
   let r = expr in_ in
@@ -2316,8 +2339,17 @@ and condExpr in_ : expr bracket =
 and parseWhile in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
-  let cond = condExpr in_ in
-  newLinesOpt in_;
+  let cond =
+    match in_.token with
+    | LPAREN _ ->
+        let cond = parensCondExpr in_ in
+        newLinesOpt in_;
+        cond
+    | _ ->
+        let e = expr in_ in
+        accept (Kdo ab) in_;
+        fb (PI.unsafe_fake_info "") e
+  in
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
   While (ii, cond, body)
@@ -2330,7 +2362,7 @@ and parseDo in_ : stmt =
   if TH.isStatSep in_.token then nextToken in_;
   let iwhile = TH.info_of_tok in_.token in
   accept (Kwhile ab) in_;
-  let cond = condExpr in_ in
+  let cond = parensCondExpr in_ in
   (* ast: makeDoWhile(lname.toTermName, body, cond) *)
   DoWhile (ido, body, iwhile, cond)
 
