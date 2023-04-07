@@ -482,7 +482,9 @@ def run_benchmarks(
                 continue
 
             std_findings = {}
-            options = [re.sub(r"\W+", "", option) for option in corpus.semgrep_options]
+            options = sorted(
+                re.sub(r"\W+", "", option) for option in corpus.semgrep_options
+            )
             for variant in variants:
 
                 # Run variant
