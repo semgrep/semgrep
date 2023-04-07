@@ -1,0 +1,1 @@
+Fixed the range reported by findings for YAML files that include an anchor, so that the match does not include the original location of the snippet bound to the anchor.
