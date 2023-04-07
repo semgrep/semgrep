@@ -271,6 +271,7 @@ and lhs = expr
 
 and arguments =
   | Args of argument list bracket
+  | ArgUsing of argument list bracket
   (* Ruby-style last argument used as a block (nice when defining your
    * own control structure) *)
   | ArgBlock of block_expr

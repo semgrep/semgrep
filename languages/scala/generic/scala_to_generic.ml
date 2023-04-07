@@ -501,8 +501,19 @@ and expr_of_block xs : G.expr =
 and v_lhs v = v_expr v
 
 and v_arguments = function
-  | Args v1 ->
-      let v1 = v_bracket (v_list v_argument) v1 in
+  | Args v1 -> (
+      let lb, v1, rb = v_bracket (v_list (v_argument ~is_using:false)) v1 in
+      match List.rev v1 with
+      | G.Arg
+          { e = Call ({ e = N (Id (("*", tok), _)); _ }, (lb', [ e ], rb')); _ }
+        :: rest ->
+          let splatted_last_arg =
+            Call (G.IdSpecial (G.Spread, tok) |> G.e, (lb', [ e ], rb')) |> G.e
+          in
+          (lb, List.rev rest @ [ G.Arg splatted_last_arg ], rb)
+      | _ -> (lb, v1, rb))
+  | ArgUsing v1 ->
+      let v1 = v_bracket (v_list (v_argument ~is_using:true)) v1 in
       v1
   | ArgBlock v1 -> (
       let lb, kind, rb = v_block_expr v1 in
@@ -511,9 +522,11 @@ and v_arguments = function
       | Right cases ->
           (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases) |> G.e) ], rb))
 
-and v_argument v =
+and v_argument ?(is_using = false) v =
   let v = v_expr v in
-  G.Arg v
+  if is_using then (* TODO: For now, just pass as a regular argument. *)
+    G.Arg v
+  else G.Arg v
 
 and v_case_clauses v : G.case_and_body list = v_list v_case_clause v
 and v_type_case_clauses v : G.case_and_body list = v_list v_type_case_clause v

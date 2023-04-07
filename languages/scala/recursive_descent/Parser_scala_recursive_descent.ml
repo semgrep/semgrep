@@ -2082,28 +2082,39 @@ and multipleArgumentExprs in_ : arguments list =
          | _ -> [])
 
 (** {{{
- *  ArgumentExprs ::= `(` [Exprs] `)`
- *                  | [nl] BlockExpr
+ *  ArgumentExprs     ::= ParArgumentExprs
+ *                      | [nl] BlockExpr
+ *  ParArgumentExprs  ::=  ‘(’ [Exprs] ‘)’
+ *                      |  ‘(’ ‘using’ Exprs ‘)’
+ *                      |  ‘(’ [Exprs ‘,’] PostfixExpr ‘*’ ‘)’ (* TODO *)
  *  }}}
 *)
+
+(* We will solve the splatted last argument case in scala_to_generic.
+ *)
+and parArgumentExprs in_ : arguments =
+  (* less: could use makeParens *)
+  let lb, (exprs, is_using), rb =
+    inParens
+      (fun in_ ->
+        match in_.token with
+        | RPAREN _ -> ([], false)
+        | ID_LOWER ("using", _) ->
+            accept (ID_LOWER ("using", ab)) in_;
+            (commaSeparated expr in_, true)
+        | _ ->
+            (* AST: if isIdent then assignmentToMaybeNamedArg *)
+            (commaSeparated expr in_, false))
+      in_
+  in
+  if is_using then ArgUsing (lb, exprs, rb) else Args (lb, exprs, rb)
+
 and argumentExprs in_ : arguments =
   in_
   |> with_logging "argumentExprs" (fun () ->
-         let args in_ =
-           (* AST: if isIdent then assignmentToMaybeNamedArg *)
-           commaSeparated expr in_
-         in
          match in_.token with
          | LBRACE _ -> ArgBlock (blockExpr in_)
-         | LPAREN _ ->
-             (* less: could use makeParens *)
-             inParens
-               (fun in_ ->
-                 match in_.token with
-                 | RPAREN _ -> []
-                 | _ -> args in_)
-               in_
-             |> fun x -> Args x
+         | LPAREN _ -> parArgumentExprs in_
          (* TODO: is using this token a good idea? Would unsafe_fake_bracket be better or worse? *)
          | _ -> Args (fb (TH.info_of_tok in_.token) []))
 
