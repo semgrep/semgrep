@@ -20,3 +20,6 @@ type t = private {
    corresponding to the PCRE matching groups.
 *)
 val compile : Conf.t -> Pat_AST.t -> t
+
+(* Shortcut for all parsing + compilation *)
+val from_string : Conf.t -> string -> t

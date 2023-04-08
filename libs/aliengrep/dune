@@ -3,6 +3,14 @@
  (public_name aliengrep)
  (libraries
    commons
+
+   alcotest
+   logs
    pcre
+ )
+ (preprocess
+   (pps
+     ppx_deriving.show
+   )
  )
 )

@@ -14,6 +14,7 @@ and node =
   | Long_metavar_ellipsis of string (* same *)
   | Bracket of char * t * char
   | Other of string
+[@@deriving show]
 
 (*
    Check the validity of an AST, raising an exception in case of an error.

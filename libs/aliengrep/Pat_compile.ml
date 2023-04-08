@@ -135,3 +135,6 @@ let compile conf pattern_ast =
   (* `EXTENDED = literal whitespace and comments are ignored *)
   let pcre = SPcre.regexp ~flags:[ `EXTENDED ] pcre_pattern in
   { pcre_pattern; pcre; metavariable_groups }
+
+let from_string conf pat_str =
+  Pat_parser.from_string conf pat_str |> compile conf

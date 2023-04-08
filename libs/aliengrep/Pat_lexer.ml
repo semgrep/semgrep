@@ -36,23 +36,25 @@ let pattern_error source_name msg =
 let compile conf =
   Conf.check conf;
   let open_chars, close_chars = List.split conf.braces in
-  let ellipsis_1 = {|\.\.\.|} in
-  let long_ellipsis_2 = {|\.\.\.\.|} in
+  let long_ellipsis_1 = {|(\.\.\.\.)|} in
+  let ellipsis_2 = {|(\.\.\.)|} in
   let metavar_3 = {|\$([A-Z][A-Z0-9_]*)|} in
   let metavar_ellipsis_4 = {|\$\.\.\.([A-Z][A-Z0-9_]*)|} in
   let long_metavar_ellipsis_5 = {|\$\.\.\.\.([A-Z][A-Z0-9_]*)|} in
-  let whitespace = if conf.multiline then {|[:space:]|} else {|[:blank:]|} in
+  let whitespace =
+    if conf.multiline then {|[[:space:]]+|} else {|[[:blank:]]+|}
+  in
   let word_6 =
     sprintf {|(%s+)|} (Pcre_util.char_class_of_list conf.word_chars)
   in
-  let open_7 = sprintf {|(%s+)|} (Pcre_util.char_class_of_list open_chars) in
-  let close_8 = sprintf {|(%s+)|} (Pcre_util.char_class_of_list close_chars) in
+  let open_7 = sprintf {|(%s)|} (Pcre_util.char_class_of_list open_chars) in
+  let close_8 = sprintf {|(%s)|} (Pcre_util.char_class_of_list close_chars) in
   let other_9 = sprintf {|(.)|} in
   let pat =
     String.concat "|"
       [
-        ellipsis_1;
-        long_ellipsis_2;
+        long_ellipsis_1;
+        ellipsis_2;
         metavar_3;
         metavar_ellipsis_4;
         long_metavar_ellipsis_5;
@@ -63,10 +65,21 @@ let compile conf =
         other_9;
       ]
   in
-  { conf; pcre_pattern = pat; pcre_regexp = SPcre.regexp pat }
+  let pcre_regexp =
+    try SPcre.regexp pat with
+    | exn ->
+        let e = Exception.catch exn in
+        Logs.err (fun m ->
+            m "cannot compile PCRE pattern used to parse aliengrep patterns: %s"
+              pat);
+        Exception.reraise e
+  in
+  { conf; pcre_pattern = pat; pcre_regexp }
 
 let char_of_string str =
-  if String.length str <> 1 then assert false else str.[0]
+  if String.length str <> 1 then
+    invalid_arg (sprintf "Pat_lexer.char_of_string: %S" str)
+  else str.[0]
 
 let read_string ?(source_name = "<pattern>") conf str =
   match SPcre.full_split ~rex:conf.pcre_regexp str with
@@ -87,11 +100,14 @@ let read_string ?(source_name = "<pattern>") conf str =
                     "Internal error while parsing aliengrep pattern: Text node \
                      %S; pattern: %s"
                     txt conf.pcre_pattern)
+           | Pcre.Group (_, "") ->
+               (* no capture *)
+               None
            | Pcre.Group (num, capture) ->
                Some
                  (match num with
-                 | 1 -> ELLIPSIS
-                 | 2 -> LONG_ELLIPSIS
+                 | 1 -> LONG_ELLIPSIS
+                 | 2 -> ELLIPSIS
                  | 3 -> METAVAR capture
                  | 4 -> METAVAR_ELLIPSIS capture
                  | 5 -> LONG_METAVAR_ELLIPSIS capture

@@ -16,6 +16,7 @@ and node =
   | Long_metavar_ellipsis of string (* same *)
   | Bracket of char * t * char
   | Other of string
+[@@deriving show]
 
 let check ast =
   let metavariables = ref [] in
@@ -26,9 +27,9 @@ let check ast =
         if mv2 <> mv then
           failwith
             (sprintf
-               "error in aliengrep pattern: inconsistent use of the \
-                metavariable %s"
-               name)
+               "error in aliengrep pattern. Inconsistent use of the \
+                metavariable %S in %s"
+               name (show ast))
   in
   let rec check_node = function
     | Ellipsis
