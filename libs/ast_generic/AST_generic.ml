@@ -2009,7 +2009,13 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      * http://gallium.inria.fr/~fpottier/visitors/manual.pdf
      *
      * The @name annotations on types above are to disambiguate types that would
-     * otherwise be assigned a visitor method named `visit_t`. *)
+     * otherwise be assigned a visitor method named `visit_t`.
+     *
+     * To view the generated source, build, navigate to
+     * `_build/default/libs/ast_generic/`, and then run the following command:
+     *
+     * ocamlc -stop-after parsing -dsource AST_generic.pp.ml
+     * *)
     visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* Most clients should use this instead of the default `iter`. In many cases,
