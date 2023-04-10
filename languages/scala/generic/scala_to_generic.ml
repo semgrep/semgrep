@@ -852,15 +852,16 @@ and v_enum_case_definition attrs v1 =
   | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
       let id = v_ident eid in
       let tparams = v_type_parameters etyparams in
-      (* TODO: This is something which looks like
-         case Foo(x : int, y : string)
-         essentially an algebraic datatype
-      *)
       let params = v_list v_bindings eparams |> List.concat in
       let attrs = v_list v_attribute eattrs @ attrs in
       (* TODO *)
       let _extends = v_list v_constr_app eextends in
       let fake = PI.unsafe_fake_info "Param" in
+      (* Here, we turn the params into arguments.
+         They are represented syntactically as parameters, but they'll fit
+         fine here too. This is with the understanding that this probably
+         won't matter semantically.
+      *)
       let args =
         match
           Common.map

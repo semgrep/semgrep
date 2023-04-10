@@ -553,7 +553,13 @@ and template_body = (self_type option * block) bracket
 and self_type = ident_or_this * type_ option * tok (* '=>' *)
 
 (* Case classes/objects are handled via attributes in the entity *)
-and template_kind = Class | Trait | Object | Singleton | Enum (* via new *)
+and template_kind =
+  | Class
+  | Trait
+  | Object
+  | Singleton
+  (* via new *)
+  | Enum
 
 (* ------------------------------------------------------------------------- *)
 (* Typedef *)
