@@ -856,13 +856,23 @@ and v_enum_case_definition attrs v1 =
          case Foo(x : int, y : string)
          essentially an algebraic datatype
       *)
-      let _params = eparams in
+      let params = v_list v_bindings eparams |> List.concat in
       let attrs = v_list v_attribute eattrs @ attrs in
       (* TODO *)
       let _extends = v_list v_constr_app eextends in
+      let fake = PI.unsafe_fake_info "Param" in
+      let args =
+        match
+          Common.map
+            (fun param -> G.OtherArg (("Param", fake), [ G.Pa param ]))
+            params
+        with
+        | [] -> None
+        | args -> Some (fb args)
+      in
       [
         ( G.basic_entity ~attrs ~tparams id,
-          G.EnumEntryDef { ee_args = None; ee_body = None } );
+          G.EnumEntryDef { ee_args = args; ee_body = None } );
       ]
 
 and v_constr_app _v1 = ()
