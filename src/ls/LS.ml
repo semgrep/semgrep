@@ -1,5 +1,11 @@
 open Lsp
 open Types
+module In = Input_to_core_t
+module J = Jsonrpc
+module SR = Server_request
+module SN = Server_notification
+module CR = Client_request
+module CN = Client_notification
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -49,24 +55,24 @@ module Server = struct
     match json with
     | Some json ->
         logger#info "Server response: %s" (Yojson.Safe.to_string json);
-        let response = Jsonrpc.Response.ok id json in
-        let packet = Jsonrpc.Packet.Response response in
+        let response = J.Response.ok id json in
+        let packet = J.Packet.Response response in
         Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
     | None -> Lwt.return ()
 
   let request server request =
     let id = server.session.next_id in
     server.session.next_id <- id + 1;
-    let request = Server_request.to_jsonrpc_request request (`Int id) in
-    let packet = Jsonrpc.Packet.Request request in
+    let request = SR.to_jsonrpc_request request (`Int id) in
+    let packet = J.Packet.Request request in
     let _ =
       Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
     in
     id
 
   let notify server notification =
-    let notification = Server_notification.to_jsonrpc notification in
-    let packet = Jsonrpc.Packet.Notification notification in
+    let notification = SN.to_jsonrpc notification in
+    let packet = J.Packet.Notification notification in
     Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
 
   let batch_notify server notifications =
@@ -75,28 +81,20 @@ module Server = struct
   let create_progresss server title message =
     let token = ProgressToken.t_of_yojson (`Int server.session.next_id) in
     let progress =
-      Server_request.WorkDoneProgressCreate
-        (WorkDoneProgressCreateParams.create token)
+      SR.WorkDoneProgressCreate (WorkDoneProgressCreateParams.create token)
     in
     let _ = request server progress in
     let start =
-      Server_notification.Progress.Begin
-        (WorkDoneProgressBegin.create ~message ~title ())
+      SN.Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
     in
-    let progress =
-      Server_notification.WorkDoneProgress (ProgressParams.create token start)
-    in
+    let progress = SN.WorkDoneProgress (ProgressParams.create token start) in
     let _ = notify server progress in
     let _ = Lwt_io.flush server.session.outgoing in
     token
 
   let end_progress server token =
-    let end_ =
-      Server_notification.Progress.End (WorkDoneProgressEnd.create ())
-    in
-    let progress =
-      Server_notification.WorkDoneProgress (ProgressParams.create token end_)
-    in
+    let end_ = SN.Progress.End (WorkDoneProgressEnd.create ()) in
+    let progress = SN.WorkDoneProgress (ProgressParams.create token end_) in
     notify server progress
 
   let run_semgrep ?(single_file = None) server =
@@ -112,7 +110,7 @@ module Server = struct
       | Some file ->
           let new_targets =
             Common2.filter
-              (fun (t : Input_to_core_t.target) -> t.path = file)
+              (fun (t : In.target) -> t.path = file)
               targets.target_mappings
           in
           { targets with target_mappings = new_targets }
@@ -126,9 +124,8 @@ module Server = struct
       Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
     let only_git_dirty = server.session.only_git_dirty in
-
     let%lwt final_results, files =
-      Reporting.postprocess_results ~only_git_dirty res
+      Processed_run.of_matches ~only_git_dirty res.matches
         (Session.hrules server.session)
         files
     in
@@ -172,7 +169,7 @@ module Server = struct
     in
     let server =
       match notification with
-      | Client_notification.Initialized ->
+      | CN.Initialized ->
           let token =
             create_progresss server "Semgrep Initializing" "Loading Rules"
           in
@@ -183,29 +180,26 @@ module Server = struct
           let server = { server with session } in
           let _ = scan_workspace server in
           server
-      | Client_notification.DidSaveTextDocument { textDocument = { uri }; _ }
-      | Client_notification.TextDocumentDidOpen { textDocument = { uri; _ } } ->
+      | CN.DidSaveTextDocument { textDocument = { uri }; _ }
+      | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
           logger#info "Scanning %s" (Uri.to_string uri);
           let _ = scan_file server uri in
           server
-      | Client_notification.UnknownNotification
-          { method_ = "semgrep/loginFinish"; _ } ->
+      | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ } ->
           logger#info "Login finished";
           refresh_rules server
-      | Client_notification.UnknownNotification
-          { method_ = "semgrep/logout"; _ } ->
+      | CN.UnknownNotification { method_ = "semgrep/logout"; _ } ->
           logger#info "Logging out";
           refresh_rules server
-      | Client_notification.UnknownNotification
-          { method_ = "semgrep/refreshRules"; _ } ->
+      | CN.UnknownNotification { method_ = "semgrep/refreshRules"; _ } ->
           logger#info "Refreshing rules";
           refresh_rules server
-      | Client_notification.UnknownNotification
+      | CN.UnknownNotification
           {
             method_ = "semgrep/scanWorkspace";
             params = Some (`Assoc _ as json);
           } ->
-          let json = Jsonrpc.Structured.yojson_of_t json in
+          let json = J.Structured.yojson_of_t json in
           let full =
             match Yojson.Safe.Util.member "full" json with
             | `Bool b -> b
@@ -227,8 +221,7 @@ module Server = struct
             }
           in
           server
-      | Client_notification.UnknownNotification
-          { method_ = "semgrep/scanWorkspace"; _ } ->
+      | CN.UnknownNotification { method_ = "semgrep/scanWorkspace"; _ } ->
           logger#info "Scanning workspace";
           let _ = scan_workspace server in
           server
@@ -238,13 +231,12 @@ module Server = struct
     in
     server
 
-  let on_request (type r) (request : r Client_request.t) server =
-    let to_yojson r = Some (Client_request.yojson_of_result request r) in
+  let on_request (type r) (request : r CR.t) server =
+    let to_yojson r = Some (CR.yojson_of_result request r) in
     let resp, server =
       match request with
-      | Client_request.Shutdown -> (None, { server with state = State.Stopped })
-      | Client_request.Initialize
-          { rootUri; workspaceFolders; initializationOptions; _ } ->
+      | CR.Shutdown -> (None, { server with state = State.Stopped })
+      | CR.Initialize { rootUri; workspaceFolders; initializationOptions; _ } ->
           (* There's rootPath, rootUri, and workspaceFolders. First two are
              deprecated, so let's split the diffrence and support last two *)
           let lsp_options =
@@ -281,7 +273,7 @@ module Server = struct
           let server = initialize_session server root only_git_dirty in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
-      | Client_request.CodeAction { textDocument = { uri }; context; _ } ->
+      | CR.CodeAction { textDocument = { uri }; context; _ } ->
           let file = Uri.to_path uri in
           let results = Hashtbl.find_opt server.session.documents file in
           let matches = Common.map fst (Option.value results ~default:[]) in
@@ -302,25 +294,25 @@ module Server = struct
             | actions -> Some actions
           in
           (to_yojson actions, server)
-      | Client_request.DebugEcho params -> (to_yojson params, server)
+      | CR.DebugEcho params -> (to_yojson params, server)
       | _ ->
           logger#warning "Unhandled request";
           (None, server)
     in
     (resp, server)
 
-  let handle_client_message (msg : Jsonrpc.Packet.t) server =
+  let handle_client_message (msg : J.Packet.t) server =
     logger#info "Server received: %s"
-      (Jsonrpc.Packet.yojson_of_t msg |> Yojson.Safe.to_string);
+      (J.Packet.yojson_of_t msg |> Yojson.Safe.to_string);
     let server =
       match msg with
       | Notification n -> (
-          match Client_notification.of_jsonrpc n with
+          match CN.of_jsonrpc n with
           | Ok n -> on_notification n server
           | Error _ -> server)
       | Request req -> (
-          match Client_request.of_jsonrpc req with
-          | Ok (Client_request.E r) ->
+          match CR.of_jsonrpc req with
+          | Ok (CR.E r) ->
               let response, server = on_request r server in
               let _ = respond server req.id response in
               server

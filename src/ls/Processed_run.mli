@@ -1,8 +1,8 @@
 type t = Semgrep_output_v1_t.core_match * Rule.rule
 
-val postprocess_results :
+val of_matches :
   ?only_git_dirty:bool ->
-  Report.final_result ->
+  Pattern_match.t list ->
   Rule.hrules ->
   string list ->
   (t list * string list) Lwt.t

@@ -18,5 +18,5 @@ val create : ServerCapabilities.t -> Runner_config.t -> t
 val targets : t -> Input_to_core_t.targets Lwt.t
 val load_rules : t -> t
 val hrules : t -> Rule.hrules
-val record_results : t -> Reporting.t list -> string list -> unit
+val record_results : t -> Processed_run.t list -> string list -> unit
 val scanned_files : t -> string list

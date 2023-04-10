@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 # A lot of this could be put in core runner, but once ported that would be unnecessary
 # and putting it there would require a lot of changes (so stuff doesn't print out).
 #
-class SemgrepCoreLSPServer:
+class SemgrepCoreLSServer:
     def __init__(
         self, rule_file: _TemporaryFileWrapper, target_file: _TemporaryFileWrapper
     ) -> None:
@@ -258,6 +258,6 @@ def run_server() -> None:
     )
     target_file = exit_stack.enter_context(tempfile.NamedTemporaryFile("w+"))
     with exit_stack:
-        server = SemgrepCoreLSPServer(rule_file, target_file)
+        server = SemgrepCoreLSServer(rule_file, target_file)
         server.start()
     log.info("Server stopped!")

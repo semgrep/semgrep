@@ -27,11 +27,11 @@ let filter_dirty_lines files matches =
   Lwt_list.filter_p
     (fun ((m, _) : t) ->
       let dirty_lines = Hashtbl.find_opt dirty_files m.location.path in
-      let line = m.location.start.line in
+      let line = m.location.start.line + 1 in
       let res =
         match dirty_lines with
-        | None -> false (* Untracked files *)
-        | Some [||] -> true
+        | None -> false
+        | Some [||] -> true (* Untracked files *)
         | Some dirty_lines ->
             Array.exists
               (fun (start, end_) -> start <= line && line <= end_)
@@ -43,7 +43,7 @@ let filter_dirty_lines files matches =
 let get_match_lines (loc : Semgrep_output_v1_t.location) =
   let file_buffer = Common.read_file loc.path in
   let file_lines = Str.split (Str.regexp "\n") file_buffer in
-  let line = List.nth file_lines (loc.start.line - 1) in
+  let line = List.nth file_lines loc.start.line in
   let prev_line =
     if loc.start.line > 1 then List.nth file_lines (loc.start.line - 2) else ""
   in
@@ -89,10 +89,11 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   in
   fix
 
-let postprocess_results ?(only_git_dirty = true) results hrules files =
-  let results =
-    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
-      (List.length files) results
+let of_matches ?(only_git_dirty = true) matches hrules files =
+  let matches, _ =
+    Common.partition_either
+      (JSON_report.match_to_match (Some Autofix.render_fix))
+      matches
   in
   let%lwt matches =
     Lwt_list.map_p
@@ -116,7 +117,7 @@ let postprocess_results ?(only_git_dirty = true) results hrules files =
           }
         in
         Lwt.return (m, rule))
-      results.matches
+      matches
   in
   let%lwt git_repo = is_git_repo () in
   let%lwt matches =

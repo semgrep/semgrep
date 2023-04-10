@@ -76,6 +76,7 @@ let tests () = List.flatten [
   Unit_engine.tests ();
   Unit_metachecking.tests ();
 
+  Unit_LS.tests;
   (* Inline tests *)
   Testutil.get_registered_tests ();
 ]

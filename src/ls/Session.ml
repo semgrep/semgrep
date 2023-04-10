@@ -35,7 +35,7 @@ let targets session =
     if git_repo then
       let%lwt dirty_files = Git_helper.dirty_files () in
       Lwt_list.map_p
-        (fun file -> Lwt.return (Filename.concat (Sys.getcwd ()) file))
+        (fun file -> Lwt.return (Filename.concat session.root file))
         dirty_files
     else Lwt.return []
   in
@@ -84,7 +84,7 @@ let hrules session =
 let record_results session results files =
   let results_by_file =
     Common2.group_by_mapped_key
-      (fun ((m, _) : Reporting.t) -> m.location.path)
+      (fun ((m, _) : Processed_run.t) -> m.location.path)
       results
   in
   Common2.iter

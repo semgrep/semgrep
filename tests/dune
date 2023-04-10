@@ -16,6 +16,7 @@
     semgrep.synthesizing
     semgrep.reporting
     semgrep.engine
+    semgrep.ls
 
     osemgrep_targeting
   )

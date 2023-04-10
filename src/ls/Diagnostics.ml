@@ -1,6 +1,7 @@
 open Lsp
 open Types
 open Lsp_util
+module In = Input_to_core_t
 
 let diagnostic_of location severity message code codeDescription =
   let code = `String code in
@@ -19,7 +20,7 @@ let diagnostic_of location severity message code codeDescription =
 
       diagnostic ~codeDescription ()
 
-let diagnostic_of_match ((m, r) : Reporting.t) =
+let diagnostic_of_match ((m, r) : Processed_run.t) =
   let message =
     match m.extra.message with
     | Some message -> message
@@ -47,10 +48,10 @@ let diagnostic_of_match ((m, r) : Reporting.t) =
   in
   diagnostic_of m.location severity message id shortlink
 
-let diagnostics_of_file (matches : Reporting.t list) file =
+let diagnostics_of_file (matches : Processed_run.t list) file =
   let matches =
     Common2.filter
-      (fun ((m, _) : Reporting.t) -> m.location.path = file)
+      (fun ((m, _) : Processed_run.t) -> m.location.path = file)
       matches
   in
   let diagnostics = Common.map diagnostic_of_match matches in
