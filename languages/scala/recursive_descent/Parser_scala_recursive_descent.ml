@@ -262,30 +262,6 @@ let adjustSepRegions lastToken in_ =
     | LPAREN info, xs -> RPAREN info :: xs
     | LBRACKET info, xs -> RBRACKET info :: xs
     | LBRACE info, xs -> RBRACE info :: xs
-    | Kcase info, xs -> (
-        (* pad: the original code generate different tokens for
-         * 'case object' and 'case class' in postProcessToken, I guess
-         * to simplify code here. Instead I lookahead here and have
-         * a simpler postProcessToken.
-         *)
-
-        (* ugly: if 'case' is the first token of the file, it will actually
-         * still be in in_.rest because of the way mk_env currently works.
-         * so we double check this initial condition here with =*=
-         * (on purpose not =~=)
-         *)
-        let rest =
-          match in_.rest with
-          | x :: xs when x =*= lastToken -> xs
-          | xs -> xs
-        in
-        match in_next_token rest with
-        | Some (Kobject _ | Kclass _) -> xs
-        | Some x ->
-            if !debug_newline then
-              logger#info "found case for arrow, next = %s" (T.show x);
-            ARROW info :: xs
-        | None -> xs)
     (* pad: the original code does something different for RBRACE,
      * I think for error recovery, and it does not raise an
      * error for mismatch.
@@ -298,14 +274,17 @@ let adjustSepRegions lastToken in_ =
         else
           (* stricter: original code just does nothing *)
           error "unmatched closing token" in_
-    (* pad: not that an arrow can also be used outside of a case, so
-     * here we dont raise an error if we don't find a match.
-     *)
-    | (ARROW _ as x), y :: ys when x =~= y -> ys
     | _, xs -> xs
   in
   in_.sepRegions <- newRegions;
   ()
+
+let inSepRegion tok f in_ =
+  let cur = in_.sepRegions in
+  in_.sepRegions <- tok :: cur;
+  let res = f () in
+  in_.sepRegions <- cur;
+  res
 
 (* newline: pad: I've added the ~newlines param to differentiante adding
  * a NEWLINE or NEWLINES *)
@@ -2157,8 +2136,14 @@ and caseBlock in_ : tok * block =
   (ii, x)
 
 and caseClause icase in_ : (pattern, block) case_clause =
-  let p = pattern in_ in
-  let g = guard in_ in
+  let p, g =
+    inSepRegion (ARROW icase)
+      (fun () ->
+        let p = pattern in_ in
+        let g = guard in_ in
+        (p, g))
+      in_
+  in
   let iarrow, block = caseBlock in_ in
   (* ast: makeCaseDef *)
   CC
@@ -2205,11 +2190,14 @@ and caseClauses in_ : case_clauses =
 *)
 and typeCaseClause icase in_ : ((tok, type_) either, type_) case_clause =
   let l_ty =
-    match in_.token with
-    | USCORE ii ->
-        skipToken in_;
-        Left ii
-    | _ -> Right (startInfixType in_)
+    inSepRegion (ARROW icase)
+      (fun () ->
+        match in_.token with
+        | USCORE ii ->
+            skipToken in_;
+            Left ii
+        | _ -> Right (startInfixType in_))
+      in_
   in
   let iarrow = TH.info_of_tok in_.token in
   accept (ARROW ab) in_;
