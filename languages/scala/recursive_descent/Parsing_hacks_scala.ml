@@ -66,6 +66,7 @@ let can_start_indentation_tok tok =
   | ARROW _
   | LARROW _
   | Kif _
+  | ID_LOWER ("then", _)
   (* there is no "then" keyword, because it's only a keyword in Scala 3 *)
   (* for now, let's just say "then" doesn't trigger an indentation region *)
   | Kelse _
