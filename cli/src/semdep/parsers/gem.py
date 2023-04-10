@@ -39,13 +39,19 @@ manifest_package = string("  ") >> upto(" ", "!").bind(
     )
 )
 
+# Gemfiles may have 1 or more remotes, so the following are both valid:
+#   remote: https://rubygems.org/
+# and
+#   remote: https://rubygems.org/
+#   remote: https://foo.bar.org/foobar/
+remotes = (string("  remote: ") >> any_char.until(string("\n"), consume_other=True)).at_least(1)
+
 # Gemfile.lock contains both locked depedencies and manifest dependencies
 # Ignore everything until GEM, indicating locked dependencies
 # Then ignore everything until DEPENDENCIES, indicating manifest dependencies
 gemfile = (
     any_char.until(string("GEM\n"), consume_other=True)
-    >> string("  remote: ")
-    >> any_char.until(string("\n"), consume_other=True)
+    >> remotes
     >> string("  specs:\n")
     >> mark_line(package | consume_line)
     .sep_by(string("\n"))
