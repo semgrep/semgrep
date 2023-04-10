@@ -476,7 +476,8 @@ and enum_constr = {
   eextends : constr_app list;
 }
 
-and constr_app = type_ * annotation list * arguments
+(* annotations built into type *)
+and constr_app = type_ * arguments
 
 (* ------------------------------------------------------------------------- *)
 (* Functions/Methods *)

@@ -3928,10 +3928,10 @@ let classDef ?(isTrait = false) ?(isCase = None) attrs in_ : definition =
 
 let constrApp in_ =
   (* TODO: simpleType1? *)
-  let ty = simpleType in_ in
-  let annots = annotations ~skipNewLines:true in_ in
+  (* annotations are built into type *)
+  let ty = annotType in_ in
   let args = parArgumentExprs in_ in
-  (ty, annots, args)
+  (ty, args)
 
 let constrApps in_ =
   report in_ "constr app";
