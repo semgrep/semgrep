@@ -44,7 +44,9 @@ manifest_package = string("  ") >> upto(" ", "!").bind(
 # and
 #   remote: https://rubygems.org/
 #   remote: https://foo.bar.org/foobar/
-remotes = (string("  remote: ") >> any_char.until(string("\n"), consume_other=True)).at_least(1)
+remotes = (
+    string("  remote: ") >> any_char.until(string("\n"), consume_other=True)
+).at_least(1)
 
 # Gemfile.lock contains both locked depedencies and manifest dependencies
 # Ignore everything until GEM, indicating locked dependencies
