@@ -37,7 +37,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
-        ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby-with-multiple-remotes"),
+        (
+            "rules/dependency_aware/ruby-sca.yaml",
+            "dependency_aware/ruby-with-multiple-remotes",
+        ),
         ("rules/dependency_aware/log4shell.yaml", "dependency_aware/log4j"),
         ("rules/dependency_aware/rust-sca.yaml", "dependency_aware/rust"),
         ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi"),
