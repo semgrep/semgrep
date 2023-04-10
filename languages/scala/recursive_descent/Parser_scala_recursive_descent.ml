@@ -147,8 +147,6 @@ type location = Local | InBlock | InTemplate
 (* to correctly handle infix operators (in expressions, patterns, and types)*)
 type mode = FirstOp | LeftOp | RightOp [@@deriving show { with_path = false }]
 
-let report _in_ _s = ()
-
 (*****************************************************************************)
 (* Logging/Dumpers  *)
 (*****************************************************************************)
@@ -424,9 +422,7 @@ let nextToken in_ =
    (* STILL?: | _ when pastBlankLine in_ -> insertNL ~newlines:true in_ *)
    (* STILL?: | _ when TH.isLeadingInfixOperator *)
    (* CHECK: scala3: "Line starts with an operator that in future" *)
-   | _ ->
-       report in_ "inserting nl";
-       insertNL in_);
+   | _ -> insertNL in_);
   postProcessToken in_;
   ()
 
@@ -3411,7 +3407,6 @@ let patDefOrDcl vkind attrs in_ : variable_definitions =
  *  }}}
 *)
 let defOrDcl attrs in_ : definition =
-  report in_ "defordcl";
   in_
   |> with_logging "defOrDcl" (fun () ->
          (* CHECK: "lazy not allowed here. Only vals can be lazy" *)
@@ -3463,7 +3458,6 @@ let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
     (match stat in_ with
     | Some x -> stats += x
     | None -> if TH.isStatSep in_.token then () else error errorMsg in_);
-    report in_ "before accepting stat sep opt";
     acceptStatSepOpt in_
   done;
   if rev then !stats else List.rev !stats
@@ -3542,7 +3536,6 @@ let blockStatSeq in_ : block_stat list =
  *  }}}
 *)
 let templateStat in_ : template_stat option =
-  report in_ "tenokate stat";
   match in_.token with
   | Kimport _ ->
       let x = importClause in_ in
@@ -3926,18 +3919,20 @@ let classDef ?(isTrait = false) ?(isCase = None) attrs in_ : definition =
  *  }}}
 *)
 
-let constrApp in_ =
-  (* TODO: simpleType1? *)
-  (* annotations are built into type *)
-  let ty = annotType in_ in
-  let args = parArgumentExprs in_ in
-  (ty, args)
+let constrApp in_ : constr_app =
+  let annotated_ty = annotType in_ in
+  let vds = ref [] in
+  while in_.token =~= LPAREN ab do
+    let x = parArgumentExprs in_ in
+    vds += x;
+    newLineOptWhenFollowedBy (LPAREN ab) in_
+  done;
+  let arguments = List.rev !vds in
+  (annotated_ty, arguments)
 
-let constrApps in_ =
-  report in_ "constr app";
+let constrApps in_ : constr_app list =
   let first = constrApp in_ in
   let constrs = ref [ first ] in
-  report in_ "constr app while";
   while in_.token =~= COMMA ab || in_.token =~= Kwith ab do
     skipToken in_;
     constrs += constrApp in_
@@ -3945,12 +3940,10 @@ let constrApps in_ =
   List.rev !constrs
 
 let classConstr name in_ =
-  report in_ "class constrs";
   (* AST: savingClassContextBounds *)
   let contextBoundBuf = ref [] in
   let tparams = typeParamClauseOpt name (Some contextBoundBuf) in_ in
   let classContextBounds = !contextBoundBuf in
-  report in_ "classConstr before annots";
 
   (* CHECK: "traits cannot have type parameters with context bounds" *)
   let constrAnnots =
@@ -3958,10 +3951,8 @@ let classConstr name in_ =
     annotations ~skipNewLines:true in_
   in
 
-  report in_ "classConstr before acess mods";
   let access_mods, vparamss =
     let access_mods = accessModifierOpt in_ in
-    report in_ "classConstr before params";
     let vparamss =
       (* ofCaseClass ??? *)
       paramClauses ~ofCaseClass:false name classContextBounds in_
@@ -3982,10 +3973,8 @@ let enumCaseRest in_ : enum_case_definition =
       done;
       EnumIds (List.rev !ids)
   | _ ->
-      report in_ "enumCaseRest";
       let etyparams, constrAnnots, access_mods, vparamss = classConstr id in_ in
       let eattrs = mods_with_annots access_mods constrAnnots in
-      report in_ "constr apps";
       let constr_apps =
         match in_.token with
         | Kextends _ ->
@@ -3993,7 +3982,6 @@ let enumCaseRest in_ : enum_case_definition =
             constrApps in_
         | _ -> []
       in
-      report in_ "enum constr found";
       EnumConstr
         {
           eid = id;
@@ -4022,7 +4010,6 @@ let enumDef attrs in_ =
          let ent = { name; attrs; tparams } in
 
          (* TODO: InheritClauses *)
-         report in_ "enumDef before template opt";
          let tmpl = templateOpt kind vparamss in_ in
          (* AST: gen.mkClassDef(mods, name, tparams, template) *)
          (* CHECK: Context bounds generate implicit parameters (part of the template)
@@ -4057,7 +4044,6 @@ let tmplDef attrs in_ : definition =
    *)
   | Kcase ii -> (
       nextToken in_;
-      report in_ "after case";
       match in_.token with
       | Kclass _ -> classDef ~isCase:(Some ii) attrs in_
       | Kobject _ -> objectDef ~isCase:(Some ii) attrs in_

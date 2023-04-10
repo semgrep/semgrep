@@ -477,7 +477,7 @@ and enum_constr = {
 }
 
 (* annotations built into type *)
-and constr_app = type_ * arguments
+and constr_app = type_ * arguments list
 
 (* ------------------------------------------------------------------------- *)
 (* Functions/Methods *)
