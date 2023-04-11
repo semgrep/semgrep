@@ -256,25 +256,50 @@ let rec in_next_token xs =
 (* indentation helpers *)
 (* ------------------------------------------------------------------------- *)
 
+(* If we do not do this, it's possible that we will be unable to start an
+   indentation region within LBRACES, because we will look back and see no
+   indentation region.
+
+   For instance:
+
+   { 5 match
+       case _ => 2
+   }
+
+   ^ needs to start an indentation region before the `case`!
+*)
 let rec getLastIndentationRegion sepRegions =
   match sepRegions with
   | DEDENT (prev_line, width) :: _ -> (prev_line, width)
   | _ :: rest -> getLastIndentationRegion rest
   | [] -> raise Common.Impossible
 
+(* Should this token start/end an indentation region? *)
 let getIndentStatus canEmitIndent sepRegions lastToken tok =
   let info = TH.info_of_tok tok in
   let line = PI.line_of_info info in
   let col = PI.col_of_info info in
-  let prev_line, prev_width = getLastIndentationRegion sepRegions in
+
   let is_indented =
-    line > prev_line
-    && (* we are on a new line*)
-    col > prev_width (* and we are indented w.r.t. the old indentation region *)
+    (* Here, we need to look at the last indentation region that ever existed,
+       because we want to still be able to start indentation regions inside of
+       other ones.
+    *)
+    let prev_line, prev_width = getLastIndentationRegion sepRegions in
+    line > prev_line (* we are on a new line*)
+    && col
+       > prev_width (* and we are indented w.r.t. the old indentation region *)
   in
   let is_dedented =
-    col < prev_width (* we are left w.r.t. the old indentation region *)
+    (* Here, we look only at the current region, because we shouldn't be emitting
+       dedents for a region if it's been interrupted by braces or parens.
+    *)
+    match sepRegions with
+    | DEDENT (_, prev_width) :: _ ->
+        col < prev_width (* we are left w.r.t. the current indentation region *)
+    | _ -> false
   in
+
   if (canEmitIndent || TH.isIndentationToken lastToken) && is_indented then
     Some (Indent (line, col))
   else if is_dedented then Some (Dedent (line, col))
