@@ -2378,8 +2378,10 @@ and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
-    if in_.token =~= LBRACE ab then inBraces enumerators in_
-    else inParens enumerators in_
+    match in_.token with
+    | LPAREN _ -> inParens enumerators in_
+    | LBRACE _ -> inBraces enumerators in_
+    | _ -> fb (PI.unsafe_fake_info "") (enumerators in_)
   in
   newLinesOpt in_;
   let body =
@@ -2477,13 +2479,24 @@ and blockExpr in_ : block_expr =
  *                |  Pattern1 `=` Expr
  *  }}}
 *)
+
+and isEnumeratorsEnd in_ =
+  match in_.token with
+  | Kdo _
+  | Kyield _
+  | RBRACE _ ->
+      true
+  | _ -> false
+
 and enumerators in_ : enumerators =
   in_
   |> with_logging "enumerators" (fun () ->
          let enums = ref [] in
          let x = enumerator ~isFirst:true in_ in
          enums += x;
-         while TH.isStatSep in_.token do
+         while
+           TH.isStatSep in_.token && not (lookingAhead isEnumeratorsEnd in_)
+         do
            nextToken in_;
            let x = enumerator ~isFirst:false in_ in
            enums += x
