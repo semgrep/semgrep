@@ -642,6 +642,7 @@ let check_fundef lang options taint_config opt_ent fdef =
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _
+        | G.ParamReceiver _
         | G.OtherParam (_, _) ->
             env)
       Lval_env.empty

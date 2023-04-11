@@ -1672,7 +1672,9 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
-  (* e.g., ParamTodo in OCaml, Reciever param in Go, SingleStar and Slash
+  (* Receiver param in Go *)
+  | ParamReceiver of parameter_classic
+  (* e.g., ParamTodo in OCaml, SingleStar and Slash
    * in Python to delimit regular parameters from special one.
    * TODO ParamRef of tok * parameter_classic in PHP/Ruby *)
   | OtherParam of todo_kind * any list

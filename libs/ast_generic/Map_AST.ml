@@ -996,6 +996,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | ParamEllipsis v1 ->
         let v1 = map_tok v1 in
         ParamEllipsis v1
+    | ParamReceiver v1 ->
+        let v1 = map_parameter_classic v1 in
+        ParamReceiver v1
     | OtherParam (v1, v2) ->
         let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
         OtherParam (v1, v2)

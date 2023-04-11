@@ -1172,6 +1172,9 @@ and vof_parameter = function
   | ParamEllipsis v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("ParamEllipsis", [ v1 ])
+  | ParamReceiver v1 ->
+      let v1 = vof_parameter_classic v1 in
+      OCaml.VSum ("ParamReceiver", [ v1 ])
   | OtherParam (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherParam", [ v1; v2 ])

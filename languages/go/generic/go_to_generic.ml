@@ -623,7 +623,12 @@ let top_func () =
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, ftok) params ret (G.FBStmt v4) in
-        let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
+        let receiver =
+          match v2 with
+          | G.Param x -> G.ParamReceiver x
+          (* Can this happen? Probably not, but the Go AST allows it *)
+          | _ -> G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ])
+        in
         let l, params, r = def.G.fparams in
         let fparams = (l, receiver :: params, r) in
         G.DefStmt (ent, G.FuncDef { def with G.fparams }) |> G.s
