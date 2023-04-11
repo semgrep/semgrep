@@ -354,6 +354,7 @@ and block = block_stat list
 and block_stat =
   | D of definition
   | I of import
+  | Ex of import
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package

@@ -165,6 +165,14 @@ and v_import (v1, v2) : G.directive list =
   let v2 = v_list (v_import_expr v1) v2 in
   List.flatten v2
 
+and v_export (v1, v2) : G.directive list =
+  let v1 = v_tok v1 in
+  let v2 = v_list (v_import_expr v1) v2 in
+  List.flatten v2
+  |> Common.map (fun x ->
+         OtherDirective (("export", PI.unsafe_fake_info "export"), [ G.Dir x ])
+         |> G.d)
+
 and v_package (v1, v2) =
   let v1 = v_tok v1 and v2 = v_qualified_ident v2 in
   (v1, v2)
@@ -741,6 +749,9 @@ and v_block_stat x : G.item list =
       v1 |> Common.map (fun def -> G.DefStmt def |> G.s)
   | I v1 ->
       let v1 = v_import v1 in
+      v1 |> Common.map (fun dir -> G.DirectiveStmt dir |> G.s)
+  | Ex v1 ->
+      let v1 = v_export v1 in
       v1 |> Common.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in

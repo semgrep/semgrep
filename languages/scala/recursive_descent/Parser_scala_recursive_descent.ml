@@ -2761,6 +2761,16 @@ let importClause in_ : import =
   let xs = commaSeparated importExpr in_ in
   (ii, xs)
 
+(** {{{
+ *  Export  ::= export ImportExpr {`,` ImportExpr}
+ *  }}}
+*)
+let exportClause in_ : import =
+  let ii = TH.info_of_tok in_.token in
+  accept (Kexport ab) in_;
+  let xs = commaSeparated importExpr in_ in
+  (ii, xs)
+
 (*****************************************************************************)
 (* Parsing modifiers  *)
 (*****************************************************************************)
@@ -3554,6 +3564,7 @@ let blockStatSeq in_ : block_stat list =
 (** {{{
  *  TemplateStats    ::= TemplateStat {semi TemplateStat}
  *  TemplateStat     ::= Import
+ *                     | Export
  *                     | Annotations Modifiers Def
  *                     | Annotations Modifiers Dcl
  *                     | Expr1
@@ -3568,6 +3579,9 @@ let templateStat in_ : template_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
+  | Kexport _ ->
+      let x = exportClause in_ in
+      Some (Ex x)
   | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
@@ -3588,6 +3602,7 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
  *            | Packaging
  *            | package object ObjectDef
  *            | Import
+ *            | Export
  *            |
  *  }}}
 *)
@@ -3600,6 +3615,9 @@ let topStat in_ : top_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
+  | Kexport _ ->
+      let x = exportClause in_ in
+      Some (Ex x)
   | t when TH.isAnnotation t || TH.isTemplateIntro t || is_modifier in_ ->
       let x = !topLevelTmplDef_ in_ in
       Some (D x)
