@@ -3095,8 +3095,8 @@ let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
  *  VariantTypeParam      ::= {Annotation} [`+` | `-`] TypeParam
  *  FunTypeParamClauseOpt ::= [FunTypeParamClause]
  *  FunTypeParamClause    ::= `[` TypeParam {`,` TypeParam} `]`]
- *  TypeParam             ::= Id TypeParamClauseOpt TypeBounds {`<%` Type} {`:` Type}
  *  ^ also known as "DefTypeParamClause" in Scala 3
+ *  TypeParam             ::= Id TypeParamClauseOpt TypeBounds {`<%` Type} {`:` Type}
  *  }}}
 *)
 let rec typeParamClauseOpt _owner _contextBoundBuf in_ : type_parameters =
