@@ -3599,7 +3599,7 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
 
 (** {{{
  *  TopStatSeq ::= TopStat {semi TopStat}
- *  TopStat ::= Annotations Modifiers Def
+ *  TopStat ::= Annotations Modifiers Def  (see below for discrepancy with Scala 2)
  *            | Packaging
  *            | package object ObjectDef
  *            | Import
@@ -3619,6 +3619,9 @@ let topStat in_ : top_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  (* This used to be a TmplDef, but in Scala 3, this can actually be any Def.
+     Def is a superset of TmplDef anyways, so we lose nothing here.
+  *)
   | t when TH.isAnnotation t || TH.isDefIntro t || is_modifier in_ ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
