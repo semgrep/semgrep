@@ -269,6 +269,7 @@ and expr =
 (* only Name, or DotAccess, or Apply! (e.g., for ArrAccess) *)
 and lhs = expr
 
+(* represents: ParArgumentExprs, ArgumentExprs *)
 and arguments =
   | Args of argument list bracket
   | ArgUsing of argument list bracket
@@ -428,6 +429,7 @@ and type_parameters = type_parameter list bracket option
 and definition =
   | DefEnt of entity * definition_kind
   | EnumCaseDef of attribute list * enum_case_definition
+  | GivenDef of given_definition
   (* note that some VarDefs are really disgused FuncDef when
    * the vbody is a BECases
    *)
@@ -560,6 +562,23 @@ and template_kind =
   | Singleton
   (* via new *)
   | Enum
+
+(* ------------------------------------------------------------------------- *)
+(* Given definitions *)
+(* ------------------------------------------------------------------------- *)
+and given_sig = {
+  g_id : ident option;
+  g_tparams : type_parameters;
+  g_using : bindings list;
+  g_colon : tok;
+}
+
+and given_kind =
+  | GivenStructural of constr_app list * template_body option
+  (* combination of both alias instance and abstract instance *)
+  | GivenType of type_ * expr option
+
+and given_definition = { gsig : given_sig option; gkind : given_kind }
 
 (* ------------------------------------------------------------------------- *)
 (* Typedef *)

@@ -253,6 +253,7 @@ let inLastOfStat x =
 (* ------------------------------------------------------------------------- *)
 
 let isIdent = function
+  | ID_LOWER ("given", _) -> None
   | ID_LOWER (s, info)
   | ID_UPPER (s, info)
   | ID_BACKQUOTED (s, info)
@@ -382,7 +383,8 @@ let isTemplateIntro = function
   | Kobject _
   | Kclass _
   | Kenum _
-  | Ktrait _ ->
+  | Ktrait _
+  | ID_LOWER ("given", _) ->
       true
   (*TODO | Kcaseobject | | Kcaseclass *)
   | Kcase _ -> true
