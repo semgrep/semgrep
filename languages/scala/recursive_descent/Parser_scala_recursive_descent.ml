@@ -107,7 +107,7 @@ type env = {
   mutable last_nl : Parse_info.t option;
   (* for logging *)
   mutable depth : int;
-  (* is the current token indented?
+  (* is the current token indented? if so, at what line and width?
      this should be used in conjunction with nextToken/fetchToken
   *)
   mutable is_indented : (int * int) option;
@@ -155,13 +155,6 @@ type mode = FirstOp | LeftOp | RightOp [@@deriving show { with_path = false }]
 type indent_status =
   | Dedent of (* line *) int * (* width *) int
   | Indent of (* same *) int * int
-
-let report in_ s =
-  Common.(
-    pr2
-      (spf "%s: %s [%s]" s
-         ([%show: token] in_.token)
-         ([%show: token list] in_.sepRegions)))
 
 (*****************************************************************************)
 (* Logging/Dumpers  *)
@@ -337,7 +330,6 @@ let insertNL ?(newlines = false) in_ =
   match in_.last_nl with
   | None -> error "IMPOSSIBLE? no last newline to insert back" in_
   | Some x ->
-      report in_ "inserting nl";
       in_.rest <- in_.token :: in_.rest;
       in_.token <- (if newlines then NEWLINES x else NEWLINE x);
       ()
@@ -421,7 +413,6 @@ let fetchToken ~canEmitIndent in_ =
                    This bool will give us the option to enter an indentation
                    region, we might not necessarily have to.
                 *)
-                report in_ "indent here";
                 in_.is_indented <- Some (line, width);
                 in_.token <- x
             | Some (Dedent (line, width)) ->
@@ -431,7 +422,6 @@ let fetchToken ~canEmitIndent in_ =
                    This results in significantly simpler code, in the case
                    of nested DEDENTs (due to the ending of multiple indent regions)
                 *)
-                report in_ "dedent here";
                 in_.rest <- x :: xs;
                 in_.token <- DEDENT (line, width)
             | None -> in_.token <- x))
@@ -573,9 +563,7 @@ let closeIndentRegion in_ =
   | DEDENT _, DEDENT _ :: rest ->
       in_.sepRegions <- rest;
       skipToken in_
-  | _ ->
-      report in_ "closeindent";
-      failwith "expected closing dedent (probably not emitted correctly)"
+  | _ -> failwith "expected closing dedent (probably not emitted correctly)"
 
 (* If this next token is indented, it's quite likely we're inside of an implicit
    indented blockExpr, which can start off an `expr`.
@@ -748,7 +736,6 @@ let inBracesOrIndented f in_ =
   match in_.token with
   | LBRACE _ -> inBraces f in_
   | _ ->
-      report in_ "inbracesorindented";
       enterIndentRegion in_;
       let res = fb (PI.unsafe_fake_info "") (f in_) in
       closeIndentRegion in_;
@@ -3564,16 +3551,12 @@ let localDef implicitMod in_ : definition =
 let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
     =
   let stats = ref [] in
-  report in_ "before statseq";
   while not (TH.isStatSeqEnd in_.token) do
-    report in_ "while statseq";
     (match stat in_ with
     | Some x -> stats += x
     | None -> if TH.isStatSep in_.token then () else error errorMsg in_);
-    report in_ "while statseq before accept";
     acceptStatSepOpt in_
   done;
-  report in_ "after statseq";
   if rev then !stats else List.rev !stats
 
 (* ------------------------------------------------------------------------- *)
@@ -3660,7 +3643,6 @@ let templateStat in_ : template_stat option =
       Some (Ex x)
   | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
-      report in_ "got def";
       Some (D x)
   | t when TH.isExprIntro t ->
       let x = statement InTemplate in_ in
@@ -3772,19 +3754,14 @@ let templateBody ~isPre in_ : template_body =
       (* must be a colon *)
       accept (COLON ab) in_;
       enterIndentRegion in_;
-      report in_ "before tss";
       let res = fb (PI.unsafe_fake_info "") (templateStatSeq ~isPre in_) in
-      report in_ "after tss";
       closeIndentRegion in_;
       res
 
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
   newLineOptWhenFollowedBy (LBRACE ab) in_;
-  report in_ "tbo";
   match in_.token with
-  | COLON _ when isIndentAfterColon in_ ->
-      report in_ "isindentaftercolon tbo";
-      Some (templateBody ~isPre:false in_)
+  | COLON _ when isIndentAfterColon in_ -> Some (templateBody ~isPre:false in_)
   | LBRACE _ -> Some (templateBody ~isPre:false in_)
   | LPAREN _ ->
       if parenMeansSyntaxError then
