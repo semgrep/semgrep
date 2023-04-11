@@ -85,7 +85,7 @@ let mock_workspace ?(git = false) () =
 let add_file ?(git = false) ?(dirty = false)
     ?(content = "print(\"hello world\")\n") workspace () =
   let file = Filename.temp_file ~temp_dir:workspace "test" ".py" in
-  let oc = open_out_binfile in
+  let oc = open_out_bin file in
   output_string oc content;
   close_out oc;
   let add_file file = Sys.command ("git add " ^ file) |> ignore in
@@ -201,7 +201,7 @@ let processed_run () =
     let oc = open_out_gen [ Open_wronly; Open_append ] 0o666 file1 in
     output_string oc "string =\"different line changed\"\n";
     close_out oc;
-    let oc = open_out_binfile2 in
+    let oc = open_out_bin file2 in
     output_string oc "print(\"hello world\") # changed line\n";
     close_out oc;
     let files = [ file1; file2; file3 ] in

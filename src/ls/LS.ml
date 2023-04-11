@@ -241,7 +241,7 @@ module Server = struct
              deprecated, so let's split the diffrence and support last two *)
           let lsp_options =
             match initializationOptions with
-            | Some (`Assoc _ as i) -> Yojson.Safe.Util.member "lsp" i
+            | Some (`Assoc _ as i) -> Yojson.Safe.Util.member "scan" i
             | _ -> `Assoc []
           in
           let only_git_dirty =
