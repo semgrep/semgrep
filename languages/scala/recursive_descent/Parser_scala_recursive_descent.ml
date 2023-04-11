@@ -1687,7 +1687,7 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | while `(` Expr `)` {nl} Expr
  *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
- *               | for (`(` Enumerators `)` | `{` Enumerators `}`) {nl} [yield] Expr
+ *               | for (`(` Enumerators `)` | `{` Enumerators `}` | Enumerators) {nl} [yield] Expr
  *               | throw Expr
  *               | return [Expr]
  *               | [SimpleExpr `.`] Id `=` Expr
@@ -2381,7 +2381,25 @@ and parseFor in_ : stmt =
     match in_.token with
     | LPAREN _ -> inParens enumerators in_
     | LBRACE _ -> inBraces enumerators in_
-    | _ -> fb (PI.unsafe_fake_info "") (enumerators in_)
+    | _ ->
+        (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
+           If we enter the indentation region, the end of a for expression like:
+
+           for
+             _ <- 5
+           yield
+
+           will cause a DEDENT to be emitted before the `yield`. This messes us
+           up when determining when to end, because if we see the future DEDENT and break,
+           then we will still be on the NEWLINE.
+
+           It's easiest to just not emit the DEDENT tokens at all, which is what happens
+           if we do not enter the indentation region.
+
+           See
+           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
+        *)
+        fb (PI.unsafe_fake_info "") (enumerators in_)
   in
   newLinesOpt in_;
   let body =
