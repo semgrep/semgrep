@@ -387,6 +387,7 @@ and modifier_kind =
   | Override
   | Inline
   | Open
+  | Opaque
   (* pad: not in original spec *)
   | CaseClassOrObject
   (* less: rewrite as Packaging and object def like in original code? *)
