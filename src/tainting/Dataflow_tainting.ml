@@ -998,6 +998,15 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
 
+(* Given a function/method call 'fun_exp'('args_exps'), and an argument
+ * spec 'sig_arg' from the taint signature of the called function/method,
+ * determine what lvalue corresponds to 'sig_arg'.
+ *
+ * In the simplest case this just obtains the actual argument:
+ * E.g. `lval_of_sig_arg f [x;y;z] [a;b;c] (x,0) = a`
+ *
+ * But 'sig_arg' may also specify an offset.
+ *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
   let* base_lval, obj =
     match sig_arg.pos with
