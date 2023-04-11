@@ -25,6 +25,7 @@ type result = {
 val invoke_semgrep_core :
   ?respect_git_ignore:bool ->
   ?ignored_targets:Semgrep_output_v1_t.skipped_target list ->
+  (result -> unit) ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->

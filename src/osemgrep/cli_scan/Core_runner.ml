@@ -402,7 +402,7 @@ let pp_skipped ppf
    Take in rules and targets and return object with findings.
 *)
 let invoke_semgrep_core ?(respect_git_ignore = true) ?(ignored_targets = [])
-    (conf : conf) (all_rules : Rule.t list)
+    (output : result -> unit) (conf : conf) (all_rules : Rule.t list)
     (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
     result =
   let config : Runner_config.t = runner_config_of_conf conf in
@@ -484,6 +484,16 @@ let invoke_semgrep_core ?(respect_git_ignore = true) ?(ignored_targets = [])
         { match_results with skipped_targets }
       in
 
+      let res =
+        {
+          core = match_results;
+          hrules = Rule.hrules_of_rules all_rules;
+          scanned;
+        }
+      in
+
+      output res;
+
       Logs.info (fun m ->
           m "%a" pp_skipped
             ( respect_git_ignore,
@@ -522,4 +532,4 @@ let invoke_semgrep_core ?(respect_git_ignore = true) ?(ignored_targets = [])
           | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
           | None -> ())
       *)
-      { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+      res

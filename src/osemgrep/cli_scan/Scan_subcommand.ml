@@ -199,10 +199,14 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           targets
           |> List.iter (fun file -> m "target = %s" (Fpath.to_string file));
           m "]%s" "");
+      let output res =
+        (* outputting the result! in JSON/Text/... depending on conf *)
+        Output.output_result conf res
+      in
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core
           ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
-          ~ignored_targets:semgrepignored_targets conf.core_runner_conf
+          ~ignored_targets:semgrepignored_targets output conf.core_runner_conf
           filtered_rules errors targets
       in
       (* TOPORT? was in formater/base.py
@@ -214,8 +218,6 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
            """
            return False
       *)
-      (* outputting the result! in JSON/Text/... depending on conf *)
-      Output.output_result conf res;
       (* final result for the shell *)
       exit_code_of_errors ~strict:conf.strict res.core.errors
 
