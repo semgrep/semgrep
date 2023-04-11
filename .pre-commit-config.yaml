@@ -189,6 +189,10 @@ repos:
         #
         #      docker pull returntocorp/semgrep:develop
         #
+        # 3. Re-run job with
+        #
+        #      pre-commit run --all --verbose semgrep-jsonnet
+        #
         # Only run this job in CI since it is slow
         language: docker_image
         # See .pre-commit-hooks.yaml for why we need to set those
