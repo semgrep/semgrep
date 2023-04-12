@@ -448,3 +448,16 @@ def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
         results,
         "results.txt",
     )
+
+
+@pytest.mark.kinda_slow
+def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
+    results, _errors = run_semgrep_on_copied_files(
+        "rules/dependency_aware/lodash-4.17.19.yaml",
+        target_name="dependency_aware/unreachable_multiple_copies",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
