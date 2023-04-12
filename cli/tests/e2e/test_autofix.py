@@ -10,6 +10,7 @@ from tests.fixtures import RunSemgrep
         ("rules/autofix/autofix.yaml", "autofix/autofix.py"),
         ("rules/autofix/csv-writer.yaml", "autofix/csv-writer.py"),
         ("rules/autofix/defaulthttpclient.yaml", "autofix/defaulthttpclient.java"),
+        ("rules/autofix/imported-entity.yaml", "autofix/imported-entity.py"),
         ("rules/autofix/flask-use-jsonify.yaml", "autofix/flask-use-jsonify.py"),
         ("rules/autofix/requests-use-timeout.yaml", "autofix/requests-use-timeout.py"),
         (
