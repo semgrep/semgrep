@@ -1,0 +1,1 @@
+Lockfile-only supply chain findings correctly include line numbers in their match data, improving the appearence of CLI output.
