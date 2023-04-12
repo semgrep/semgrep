@@ -745,7 +745,12 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
      the cases that do decompose on `a` or `b`.
   *)
   | _, G.Cast (_, _, b1) when arguments_have_changed ->
-      m_expr a b1 >||> m_expr ~arguments_have_changed:false a b
+      (* We apply this equivalence only if not at the root, meaning we've done work
+         to get here, and should consider all possibilities.
+         This is similar to symbolic propagation.
+      *)
+      (if not is_root then m_expr a b1 else fail ())
+      >||> m_expr ~arguments_have_changed:false a b
   (* equivalence: name resolving! *)
   (* todo: it would be nice to factorize the aliasing code by just calling
    * m_name, but below we use make_dotted, which is different from what
