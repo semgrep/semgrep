@@ -34,9 +34,10 @@ qa:
 	$(PYTEST) -n auto -v tests/qa
 
 # Run the end-to-end tests using osemgrep instead of the Python CLI.
+# See tests/semgrep_runner.py for the use of the environment variables below
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
-	PYTEST_USE_OSEMGREP=true $(MAKE) e2e
+	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true $(MAKE) e2e
 
 # Run the quality assurance tests using osemgrep instead of the Python CLI.
 .PHONY: osemgrep-qa
