@@ -34,7 +34,9 @@ qa:
 	$(PYTEST) -n auto -v tests/qa
 
 # Run the end-to-end tests using osemgrep instead of the Python CLI.
-# See tests/semgrep_runner.py for the use of the environment variables below
+# See tests/semgrep_runner.py for the use of the environment variables below.
+# To run individual tests, export PYTEST_OSEMGREP=... export PYTEST_USE_OSEMGREP=true
+# and run 'pytest tests/e2e/test_output.py' in a shell for example.
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
 	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true $(MAKE) e2e
