@@ -392,6 +392,7 @@ and modifier_kind =
   (* just for variables/fields/class params *)
   | Val (* immutable *)
   | Var (* mutable *)
+  | EnumClass (* for enum classes *)
 
 and annotation = tok (* @ *) * type_ (* usually just a TyName*) * arguments list
 and attribute = A of annotation | M of modifier
@@ -426,6 +427,7 @@ and type_parameters = type_parameter list bracket option
 (* definition or declaration (def or dcl) *)
 and definition =
   | DefEnt of entity * definition_kind
+  | EnumCaseDef of attribute list * enum_case_definition
   (* note that some VarDefs are really disgused FuncDef when
    * the vbody is a BECases
    *)
@@ -460,6 +462,22 @@ and definition_kind =
   | TypeDef of type_definition
   (* class/traits/objects *)
   | Template of template_definition
+
+(* ------------------------------------------------------------------------- *)
+(* Enums *)
+(* ------------------------------------------------------------------------- *)
+and enum_case_definition = EnumConstr of enum_constr | EnumIds of ident list
+
+and enum_constr = {
+  eid : ident;
+  etyparams : type_parameters;
+  eparams : bindings list;
+  eattrs : attribute list;
+  eextends : constr_app list;
+}
+
+(* annotations built into type *)
+and constr_app = type_ * arguments list
 
 (* ------------------------------------------------------------------------- *)
 (* Functions/Methods *)
@@ -535,7 +553,13 @@ and template_body = (self_type option * block) bracket
 and self_type = ident_or_this * type_ option * tok (* '=>' *)
 
 (* Case classes/objects are handled via attributes in the entity *)
-and template_kind = Class | Trait | Object | Singleton (* via new *)
+and template_kind =
+  | Class
+  | Trait
+  | Object
+  | Singleton
+  (* via new *)
+  | Enum
 
 (* ------------------------------------------------------------------------- *)
 (* Typedef *)
