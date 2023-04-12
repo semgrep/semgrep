@@ -74,7 +74,7 @@ class ['self] range_visitor =
       let tok_loc = PI.unsafe_token_location_of_info tok in
       incorporate_tokens ranges (tok_loc, tok_loc)
   in
-  object (_self : 'self)
+  object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
     method! visit_tok ranges tok = incorporate_token ranges tok
 
@@ -101,6 +101,9 @@ class ['self] range_visitor =
           | None -> ()
           | Some r -> incorporate_tokens ranges r)
       | Some range -> incorporate_tokens ranges range
+
+    (* Ignore the tokens from the aliased expression *)
+    method! visit_Alias ranges id _e = self#visit_ident ranges id
   end
 
 let extract_ranges :

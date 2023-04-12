@@ -181,6 +181,219 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         version = Version.version;
       }
 
+let pp_status rules targets lang_jobs respect_git_ignore ppf () =
+  Fmt_helpers.pp_heading ppf "Scan status";
+  (* TODO indentation of the body *)
+  let pp_s ppf x = if x = 1 then Fmt.string ppf "" else Fmt.string ppf "s" in
+  let rule_count = List.length rules in
+  Fmt.pf ppf "Scanning %d files%s with %d Code rule%a" (List.length targets)
+    (if respect_git_ignore then " tracked by git" else "")
+    rule_count pp_s rule_count;
+  (* TODO if sca_rules ...
+     Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
+  (* TODO pro_rule
+         if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+         == "pro_rules"
+     if pro_rule_count:
+         summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+  *)
+  Fmt.pf ppf ":@.@.";
+  (* TODO origin table [Origin Rules] [Community N] *)
+  Fmt_helpers.pp_table
+    ("Language", [ "Rules"; "Files" ])
+    ppf
+    (lang_jobs
+    |> List.fold_left
+         (fun acc Runner_config.{ lang; targets; rules } ->
+           (Xlang.to_string lang, [ List.length rules; List.length targets ])
+           :: acc)
+         []
+    |> List.rev)
+
+let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
+  errors
+  |> Common.map (fun Out.{ location; message; rule_id; _ } ->
+         Out.
+           {
+             path = location.path;
+             reason = Analysis_failed_parser_or_internal_error;
+             details = message;
+             rule_id;
+           })
+
+let analyze_skipped (skipped : Out.skipped_target list) =
+  let groups =
+    Common.group_by
+      (fun (Out.{ reason; path; _ } : Out.skipped_target) ->
+        match reason with
+        | Out.Gitignore_patterns_match
+        | Semgrepignore_patterns_match ->
+            `Semgrepignore
+        | Too_big
+        | Exceeded_size_limit ->
+            `Size
+        | Cli_include_flags_do_not_match -> `Include
+        | Cli_exclude_flags_match -> `Exclude
+        | Always_skipped
+        | Analysis_failed_parser_or_internal_error
+        | Excluded_by_config
+        | Wrong_language
+        | Minified
+        | Binary
+        | Irrelevant_rule
+        | Too_many_matches ->
+            Logs.debug (fun m ->
+                m "unexpected skip reason for %s: %s" path
+                  (Out.show_skip_reason reason));
+            assert false)
+      skipped
+  in
+  ( (try List.assoc `Semgrepignore groups with
+    | Not_found -> []),
+    (try List.assoc `Size groups with
+    | Not_found -> []),
+    (try List.assoc `Include groups with
+    | Not_found -> []),
+    try List.assoc `Exclude groups with
+    | Not_found -> [] )
+
+let pp_summary ppf
+    (( _respect_git_ignore,
+       semgrep_ignored,
+       include_ignored,
+       exclude_ignored,
+       file_size_ignored,
+       errors ) :
+      bool
+      * Out.skipped_target list
+      * Out.skipped_target list
+      * Out.skipped_target list
+      * Out.skipped_target list
+      * Out.skipped_target list) =
+  Fmt_helpers.pp_heading ppf "Scan summary";
+  (* TODO
+        if self.target_manager.baseline_handler:
+            limited_fragments.append(
+                "Scan was limited to files changed since baseline commit."
+            )
+  *)
+  (* TODO
+        elif self.target_manager.respect_git_ignore:
+            # Each target could be a git repo, and we respect the git ignore
+            # of each target, so to be accurate with this print statement we
+            # need to check if any target is a git repo and not just the cwd
+            targets_not_in_git = 0
+            dir_targets = 0
+            for t in self.target_manager.targets:
+                if t.path.is_dir():
+                    dir_targets += 1
+                    try:
+                        t.files_from_git_ls()
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        targets_not_in_git += 1
+                        continue
+            if targets_not_in_git != dir_targets:
+                limited_fragments.append(f"Scan was limited to files tracked by git.")
+  *)
+  let opt_msg msg = function
+    | [] -> None
+    | xs -> Some (string_of_int (List.length xs) ^ " " ^ msg)
+  in
+  let out_skipped =
+    Common.map_filter Fun.id
+      [
+        opt_msg "files not matching --include patterns" include_ignored;
+        opt_msg "files matching --exclude patterns" exclude_ignored;
+        opt_msg
+          "files larger than {self.target_manager.max_target_bytes / 1000 / \
+           1000} MB"
+          file_size_ignored;
+        opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
+      ]
+  in
+  let out_partial =
+    opt_msg
+      "files only partially analyzed due to a parsing or internal Semgrep error"
+      errors
+  in
+  match (out_skipped, out_partial) with
+  | [], None -> ()
+  | xs, parts ->
+      (* TODO if limited_fragments:
+              for fragment in limited_fragments:
+                  message += f"\n  {fragment}" *)
+      Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
+      Option.iter (fun txt -> Fmt.pf ppf "  Partially scanned: %s@." txt) parts;
+      (match xs with
+      | [] -> ()
+      | xs ->
+          Fmt.pf ppf "  Scan skipped: %s@." (String.concat ", " xs);
+          Fmt.pf ppf
+            "  For a full list of skipped files, run semgrep with the \
+             --verbose flag.@.");
+      Fmt.pf ppf "@."
+
+let pp_skipped ppf
+    (( respect_git_ignore,
+       semgrep_ignored,
+       include_ignored,
+       exclude_ignored,
+       file_size_ignored,
+       errors ) :
+      bool
+      * Out.skipped_target list
+      * Out.skipped_target list
+      * Out.skipped_target list
+      * Out.skipped_target list
+      * Out.skipped_target list) =
+  Fmt_helpers.pp_heading ppf "Files skipped";
+  (* TODO: always skipped *)
+  Fmt.pf ppf " Skipped by .gitignore:@.";
+  if respect_git_ignore then (
+    Fmt.pf ppf " (Disable by passing --no-git-ignore)@.@.";
+    Fmt.pf ppf "  o <all files not listed by `git ls-files` were skipped>@.")
+  else (
+    Fmt.pf ppf " (Disabled with --no-git-ignore)@.@.";
+    Fmt.pf ppf "  o <none>@.");
+  Fmt.pf ppf "@.";
+
+  let pp_list (xs : Out.skipped_target list) =
+    match xs with
+    | [] -> Fmt.pf ppf "  o <none>@."
+    | xs ->
+        List.iter
+          (fun (Out.{ path; _ } : Out.skipped_target) ->
+            Fmt.pf ppf "  o %s@." path)
+          xs
+  in
+
+  Fmt.pf ppf " Skipped by .semgrepignore:@.";
+  Fmt.pf ppf
+    " See: \
+     https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)@.@.";
+  pp_list semgrep_ignored;
+  Fmt.pf ppf "@.";
+
+  Fmt.pf ppf " Skipped by --include patterns:@.@.";
+  pp_list include_ignored;
+  Fmt.pf ppf "@.";
+
+  Fmt.pf ppf " Skipped by --exclude patterns:@.@.";
+  pp_list exclude_ignored;
+  Fmt.pf ppf "@.";
+
+  Fmt.pf ppf
+    " Skipped by limiting to files smaller than \
+     {self.target_manager.max_target_bytes} bytes:@.";
+  Fmt.pf ppf " (Adjust with the --max-target-bytes flag)@.@.";
+  pp_list file_size_ignored;
+  Fmt.pf ppf "@.";
+
+  Fmt.pf ppf
+    " Skipped by analysis failure due to parsing or internal Semgrep error@.@.";
+  pp_list errors;
+  Fmt.pf ppf "@."
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
@@ -188,7 +401,8 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
+let invoke_semgrep_core ?(respect_git_ignore = true) ?(ignored_targets = [])
+    (conf : conf) (all_rules : Rule.t list)
     (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
     result =
   let config : Runner_config.t = runner_config_of_conf conf in
@@ -231,6 +445,11 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
        * requires the xlang object to contain a single language.
        *)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
+      Logs.app (fun m ->
+          m "%a"
+            (pp_status all_rules all_targets lang_jobs respect_git_ignore)
+            ());
+      (* TODO progress bar *)
       let results_by_language =
         lang_jobs
         |> Common.map (fun lang_job ->
@@ -253,6 +472,38 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
         JSON_report.match_results_of_matches_and_errors
           (Some Autofix.render_fix) (Set_.cardinal scanned) res
       in
+      let errors_skipped = errors_to_skipped match_results.errors in
+      let semgrepignored, included, excluded, size =
+        analyze_skipped ignored_targets
+      in
+      let match_results =
+        let skipped_targets =
+          ignored_targets @ errors_skipped @ match_results.skipped_targets
+        in
+        (* Add the targets that were semgrepignored or errorneous *)
+        { match_results with skipped_targets }
+      in
+
+      Logs.info (fun m ->
+          m "%a" pp_skipped
+            ( respect_git_ignore,
+              semgrepignored,
+              included,
+              excluded,
+              size,
+              errors_skipped ));
+      Logs.app (fun m ->
+          m "%a" pp_summary
+            ( respect_git_ignore,
+              semgrepignored,
+              included,
+              excluded,
+              size,
+              errors_skipped ));
+      Logs.app (fun m ->
+          m "Ran %d rules on %d files: %d findings@." (List.length all_rules)
+            (List.length all_targets)
+            (List.length match_results.matches));
 
       (* TOPORT? or move in semgrep-core so get info ASAP
          if match_results.skipped_targets:

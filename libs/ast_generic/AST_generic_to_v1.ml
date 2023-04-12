@@ -1136,6 +1136,10 @@ and map_parameter = function
       let v1 = map_pattern v1 in
       `ParamPattern v1
   | ParamEllipsis v1 -> raise (SemgrepConstruct v1)
+  | ParamReceiver v1 ->
+      let v1 = map_parameter_classic v1 in
+      (* TODO Make a ParamReceiver node *)
+      `ParamClassic v1
   | OtherParam (v1, v2) ->
       let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
       `OtherParam (v1, v2)

@@ -1,0 +1,3 @@
+taint-mode: Given `x = tainted`, then `x.a = safe`, then `x.a.b = tainted`, Semgrep
+did not report `sink(x.a.b)`. Because `x.a` was clean, that made Semgrep disregard
+the tainting of any field of `x.a` such as `x.a.b`. This now works as expected.

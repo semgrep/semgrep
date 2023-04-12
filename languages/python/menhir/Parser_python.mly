@@ -42,7 +42,7 @@ let cons e = function
 
 let tuple_expr = function
   | Single e -> e
-  (* the fake could be set later in rewrap_paren_if_tuple below *)
+  (* the fake could be set later in rewrap_paren below *)
   | Tup l -> Tuple (CompList (PI.unsafe_fake_bracket l), Load)
 
 let to_list = function
@@ -50,13 +50,13 @@ let to_list = function
   | Tup l -> l
 
 (* this is important for semgrep, to get the right range (and for autofix) *)
-let rewrap_paren_if_tuple l e r =
+let rewrap_paren l e r =
   match e with
   | Tuple (CompList (_, xs, _), Load) ->
       Tuple (CompList (l, xs, r), Load)
   | Tuple (CompForIf (_, x, _), Load) ->
       Tuple (CompForIf (l, x, r), Load)
-  | _ -> e
+  | _ -> ParenExpr (l, e, r)
 
 (* TODO: TypedExpr? ExprStar? then can appear as lvalue
  * CompForIf though is not an lvalue.
@@ -882,7 +882,7 @@ format_token:
 
 atom_tuple:
   | "("               ")"         { Tuple (CompList ($1, [], $2), Load) }
-  | "(" testlist_comp_or_expr ")" { rewrap_paren_if_tuple $1 $2 $3 }
+  | "(" testlist_comp_or_expr ")" { rewrap_paren $1 $2 $3 }
   | "(" yield_expr    ")"         { $2 }
 
 atom_list:

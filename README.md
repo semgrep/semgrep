@@ -1,6 +1,12 @@
-</br>
+<br />
 <p align="center">
-    <a href="https://semgrep.dev"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="100" alt="Semgrep logo"/></a>
+  <a href="https://semgrep.dev">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="images/semgrep-logo-light.svg">
+      <source media="(prefers-color-scheme: dark)" srcset="images/semgrep-logo-dark.svg">
+      <img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/>
+    </picture>
+  </a>
 </p>
 <h2 align="center">
   Code scanning at ludicrous speed.
@@ -122,7 +128,7 @@ Semgrep rules look like the code you already write; no abstract syntax trees, re
 Run it online in Semgrep’s Playground by [clicking here](https://semgrep.dev/s/ievans:print-to-logger).
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
 </p>
 
 #### Examples

@@ -26,12 +26,13 @@ module NodeiSet = Set.Make (Int)
 type ('node, 'edge) t = {
   graph : ('node, 'edge) Ograph_extended.ograph_mutable;
   entry : nodei;
+  exit : nodei;
   reachable : NodeiSet.t;
 }
 
 type ('node, 'edge) cfg = ('node, 'edge) t
 
-let make (graph : _ Ograph_extended.ograph_mutable) entry : _ t =
+let make (graph : _ Ograph_extended.ograph_mutable) entry exit : _ t =
   let rec aux nodei seen =
     if NodeiSet.mem nodei seen then seen
     else
@@ -43,7 +44,7 @@ let make (graph : _ Ograph_extended.ograph_mutable) entry : _ t =
       in
       NodeiSet.fold aux succs seen
   in
-  { graph; entry; reachable = aux entry NodeiSet.empty }
+  { graph; entry; exit; reachable = aux entry NodeiSet.empty }
 
 (* Predecessors of a node (that can be reached from the entry node). *)
 let predecessors cfg nodei : (nodei * 'node) list =

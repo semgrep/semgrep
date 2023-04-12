@@ -66,7 +66,9 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     in
     let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
     let prefix = spf "%s:%d" file line in
-    let lines_str = File.lines_of_file (PI.line_of_info mini, end_line) file in
+    let lines_str =
+      File.lines_of_file (PI.line_of_info mini, end_line) (Fpath.v file)
+    in
     match format with
     | Normal ->
         let prefix = if str = "" then prefix else prefix ^ " " ^ str in

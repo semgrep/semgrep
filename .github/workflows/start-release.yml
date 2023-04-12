@@ -17,7 +17,8 @@ on:
         type: "choice"
         # These options are passed directly into christian-draeger/increment-semantic-version in the `next-vesion` step to decide which of X.Y.Z to increment
         options:
-          - "major"
+          # Many folks are concerned about a mis-click and releasing 2.0 - remove the option.
+          # - "major"
           - "feature"
           - "bug"
       dry-run:

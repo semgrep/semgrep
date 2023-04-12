@@ -62,6 +62,7 @@ OLD_LOCKFILE_PARSERS = {
 
 NEW_LOCKFILE_PARSERS = {
     "requirements.txt": parse_requirements,  # Python
+    "requirements3.txt": parse_requirements,  # Python
     "maven_dep_tree.txt": parse_pom_tree,  # Java
     "yarn.lock": parse_yarn,  # JavaScript
     "gradle.lockfile": parse_gradle,  # Java
@@ -77,6 +78,7 @@ LOCKFILE_TO_MANIFEST = {
     "Pipfile.lock": "Pipfile",
     "poetry.lock": "pyproject.toml",
     "requirements.txt": "requirements.in",
+    "requirements3.txt": "requirements.in",
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
     "Gemfile.lock": None,

@@ -502,7 +502,7 @@ let terraform_sid = SId.unsafe_default
 
 let add_special_constants env lang prog =
   if lang = Lang.Terraform then
-    let vars = prog |> Common.map terraform_stmt_to_vardefs |> List.flatten in
+    let vars = prog |> List.concat_map terraform_stmt_to_vardefs in
     vars
     |> List.iter (fun (id, v) ->
            match v.e with
