@@ -39,6 +39,11 @@ let ii_of_any any =
   List.rev !globals
   [@@profiling]
 
+let info_of_any any =
+  match ii_of_any any with
+  | x :: _ -> x
+  | [] -> assert false
+
 (*e: function [[Lib_AST.ii_of_any]] *)
 
 let first_info_of_any any =

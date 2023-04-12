@@ -18,7 +18,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "VarDef.java" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -46,7 +49,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "EqVarCmp.java" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -95,7 +101,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "BasicParam.java" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -136,7 +145,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "ClassFields.java" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -196,7 +208,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "StaticVarDef.go" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -224,7 +239,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "FuncParam.go" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -272,7 +290,10 @@ let tests parse_program parse_pattern =
           let file = tests_path_typing / "PropVarDef.go" in
           try
             let ast = parse_program !!file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let lang =
+              Common.hd_exn "unexpected empty list"
+                (Lang.langs_of_filename file)
+            in
             Naming_AST.resolve lang ast;
 
             let v =

@@ -170,7 +170,11 @@ let rec find_ifdef_mid xs =
                  let counts =
                    xxs |> List.map count_open_close_stuff_ifdef_clause
                  in
-                 let cnt1, cnt2 = List.hd counts in
+                 let cnt1, cnt2 =
+                   match counts with
+                   | x :: _ -> x
+                   | [] -> assert false
+                 in
                  if
                    cnt1 <> 0 || cnt2 <> 0
                    (*???? && counts +> List.for_all (fun x -> x = (cnt1, cnt2)) *)
@@ -518,7 +522,9 @@ let rec find_macro_lineparen xs =
                &&
                match other.t with
                | TOBrace _ -> false (* otherwise would match funcdecl *)
-               | TCBrace _ when List.hd ctx <> InFunction -> false
+               | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction
+                 ->
+                   false
                | TPtVirg _
                | TCol _ ->
                    false
@@ -549,7 +555,8 @@ let rec find_macro_lineparen xs =
         &&
         match other.t with
         | TOBrace _ -> false (* otherwise would match funcdecl *)
-        | TCBrace _ when List.hd ctx <> InFunction -> false
+        | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction ->
+            false
         | TPtVirg _
         | TCol _ ->
             false
@@ -558,7 +565,8 @@ let rec find_macro_lineparen xs =
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when List.hd ctx =*= InFunction -> true
+           | TCBrace _ when Common.hd_exn "empty context" ctx =*= InFunction ->
+               true
            | Treturn _ -> true
            | Tif _ -> true
            | Telse _ -> true
@@ -591,13 +599,15 @@ let rec find_macro_lineparen xs =
         match other.t with
         | TPtVirg _ -> false
         | TOr _ -> false
-        | TCBrace _ when List.hd ctx <> InFunction -> false
+        | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction ->
+            false
         | tok when TH.is_binary_operator tok -> false
         | _ -> true)
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when List.hd ctx =*= InFunction -> true
+           | TCBrace _ when Common.hd_exn "empty context" ctx =*= InFunction ->
+               true
            | Treturn _ -> true
            | Tif _ -> true
            | Telse _ -> true

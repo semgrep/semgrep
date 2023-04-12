@@ -1,3 +1,4 @@
+open File.Operators
 module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -43,7 +44,9 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
          * the rule_id of the match. That would require to pass
          * more info to ranges_of_path() though.
          *)
-        try Parse_target.parse_program (Fpath.to_string path) with
+        try Parse_target.parse_program !!path with
+        (* TODO: does this still catch what it's supposed to catch
+           since we no longer use List.hd? *)
         | Failure "hd" -> []
       in
       let ranges = Function_range.ranges ast in

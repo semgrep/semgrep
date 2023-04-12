@@ -224,7 +224,9 @@ let dump_ast ?(naming = false) lang file =
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let lang =
+    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
+  in
   let ast = Parse_target.parse_program !!file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
@@ -234,7 +236,9 @@ let dump_il_all file =
 let dump_il file =
   let module G = AST_generic in
   let module V = Visitor_AST in
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let lang =
+    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
+  in
   let ast = Parse_target.parse_program !!file in
   Naming_AST.resolve lang ast;
   let report_func_def_with_name ent_opt fdef =
