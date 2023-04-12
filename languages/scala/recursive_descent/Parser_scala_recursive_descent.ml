@@ -262,30 +262,6 @@ let adjustSepRegions lastToken in_ =
     | LPAREN info, xs -> RPAREN info :: xs
     | LBRACKET info, xs -> RBRACKET info :: xs
     | LBRACE info, xs -> RBRACE info :: xs
-    | Kcase info, xs -> (
-        (* pad: the original code generate different tokens for
-         * 'case object' and 'case class' in postProcessToken, I guess
-         * to simplify code here. Instead I lookahead here and have
-         * a simpler postProcessToken.
-         *)
-
-        (* ugly: if 'case' is the first token of the file, it will actually
-         * still be in in_.rest because of the way mk_env currently works.
-         * so we double check this initial condition here with =*=
-         * (on purpose not =~=)
-         *)
-        let rest =
-          match in_.rest with
-          | x :: xs when x =*= lastToken -> xs
-          | xs -> xs
-        in
-        match in_next_token rest with
-        | Some (Kobject _ | Kclass _) -> xs
-        | Some x ->
-            if !debug_newline then
-              logger#info "found case for arrow, next = %s" (T.show x);
-            ARROW info :: xs
-        | None -> xs)
     (* pad: the original code does something different for RBRACE,
      * I think for error recovery, and it does not raise an
      * error for mismatch.
@@ -298,14 +274,17 @@ let adjustSepRegions lastToken in_ =
         else
           (* stricter: original code just does nothing *)
           error "unmatched closing token" in_
-    (* pad: not that an arrow can also be used outside of a case, so
-     * here we dont raise an error if we don't find a match.
-     *)
-    | (ARROW _ as x), y :: ys when x =~= y -> ys
     | _, xs -> xs
   in
   in_.sepRegions <- newRegions;
   ()
+
+let inSepRegion tok f in_ =
+  let cur = in_.sepRegions in
+  in_.sepRegions <- tok :: cur;
+  let res = f () in
+  in_.sepRegions <- cur;
+  res
 
 (* newline: pad: I've added the ~newlines param to differentiante adding
  * a NEWLINE or NEWLINES *)
@@ -1685,8 +1664,10 @@ let pattern in_ : pattern = noSeq pattern in_
  *  ResultExpr ::= (Bindings | Id `:` CompoundType) `=>` Block
  *               | Expr1
  *  Expr1      ::= if `(` Expr `)` {nl} Expr [[semi] else Expr]
+ *               | ‘if’  Expr ‘then’ Expr [[semi] ‘else’ Expr]
  *               | try (`{` Block `}` | Expr) [catch `{` CaseClauses `}`] [finally Expr]
  *               | while `(` Expr `)` {nl} Expr
+ *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
  *               | for (`(` Enumerators `)` | `{` Enumerators `}`) {nl} [yield] Expr
  *               | throw Expr
@@ -1814,7 +1795,19 @@ and postfixExpr ?(is_block_expr = false) in_ : expr =
          let rec loop top in_ =
            in_
            |> with_logging "postfixExpr:loop" (fun () ->
-                  if not (TH.isIdentBool in_.token) then
+                  (* In Scala 3, we can have if statements that look like
+                     if <expr> then <expr> else <expr>
+
+                     Except, in Scala 3, `then` is also a soft keyword.
+
+                     This means that without this check, we would parse
+                       <expr> then
+                     as a postfix application of `then` to <expr>.
+                  *)
+                  if
+                    (not (TH.isIdentBool in_.token))
+                    || in_.token =~= ID_LOWER ("then", ab)
+                  then
                     in_
                     |> with_logging "postfixExpr:loop: noIdentBool, stop"
                          (fun () -> top)
@@ -2082,28 +2075,39 @@ and multipleArgumentExprs in_ : arguments list =
          | _ -> [])
 
 (** {{{
- *  ArgumentExprs ::= `(` [Exprs] `)`
- *                  | [nl] BlockExpr
+ *  ArgumentExprs     ::= ParArgumentExprs
+ *                      | [nl] BlockExpr
+ *  ParArgumentExprs  ::=  ‘(’ [Exprs] ‘)’
+ *                      |  ‘(’ ‘using’ Exprs ‘)’
+ *                      |  ‘(’ [Exprs ‘,’] PostfixExpr ‘*’ ‘)’ (* TODO *)
  *  }}}
 *)
+
+(* We will solve the splatted last argument case in scala_to_generic.
+ *)
+and parArgumentExprs in_ : arguments =
+  (* less: could use makeParens *)
+  let lb, (exprs, is_using), rb =
+    inParens
+      (fun in_ ->
+        match in_.token with
+        | RPAREN _ -> ([], false)
+        | ID_LOWER ("using", _) ->
+            accept (ID_LOWER ("using", ab)) in_;
+            (commaSeparated expr in_, true)
+        | _ ->
+            (* AST: if isIdent then assignmentToMaybeNamedArg *)
+            (commaSeparated expr in_, false))
+      in_
+  in
+  if is_using then ArgUsing (lb, exprs, rb) else Args (lb, exprs, rb)
+
 and argumentExprs in_ : arguments =
   in_
   |> with_logging "argumentExprs" (fun () ->
-         let args in_ =
-           (* AST: if isIdent then assignmentToMaybeNamedArg *)
-           commaSeparated expr in_
-         in
          match in_.token with
          | LBRACE _ -> ArgBlock (blockExpr in_)
-         | LPAREN _ ->
-             (* less: could use makeParens *)
-             inParens
-               (fun in_ ->
-                 match in_.token with
-                 | RPAREN _ -> []
-                 | _ -> args in_)
-               in_
-             |> fun x -> Args x
+         | LPAREN _ -> parArgumentExprs in_
          (* TODO: is using this token a good idea? Would unsafe_fake_bracket be better or worse? *)
          | _ -> Args (fb (TH.info_of_tok in_.token) []))
 
@@ -2132,8 +2136,14 @@ and caseBlock in_ : tok * block =
   (ii, x)
 
 and caseClause icase in_ : (pattern, block) case_clause =
-  let p = pattern in_ in
-  let g = guard in_ in
+  let p, g =
+    inSepRegion (ARROW icase)
+      (fun () ->
+        let p = pattern in_ in
+        let g = guard in_ in
+        (p, g))
+      in_
+  in
   let iarrow, block = caseBlock in_ in
   (* ast: makeCaseDef *)
   CC
@@ -2180,11 +2190,14 @@ and caseClauses in_ : case_clauses =
 *)
 and typeCaseClause icase in_ : ((tok, type_) either, type_) case_clause =
   let l_ty =
-    match in_.token with
-    | USCORE ii ->
-        skipToken in_;
-        Left ii
-    | _ -> Right (startInfixType in_)
+    inSepRegion (ARROW icase)
+      (fun () ->
+        match in_.token with
+        | USCORE ii ->
+            skipToken in_;
+            Left ii
+        | _ -> Right (startInfixType in_))
+      in_
   in
   let iarrow = TH.info_of_tok in_.token in
   accept (ARROW ab) in_;
@@ -2277,8 +2290,18 @@ and implicitClosure implicitmod location in_ =
 and parseIf in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
-  let cond = condExpr in_ in
-  newLinesOpt in_;
+  let cond =
+    match in_.token with
+    | LPAREN _ ->
+        let cond = parensCondExpr in_ in
+        newLinesOpt in_;
+        cond
+    | _ ->
+        let e = expr in_ in
+        accept (ID_LOWER ("then", ab)) in_;
+        newLinesOpt in_;
+        fb (PI.unsafe_fake_info "") e
+  in
   let thenp = expr in_ in
   let elsep =
     match in_.token with
@@ -2293,7 +2316,7 @@ and parseIf in_ : stmt =
   (* ast: If(cond, thenp, elsep) *)
   If (ii, cond, thenp, elsep)
 
-and condExpr in_ : expr bracket =
+and parensCondExpr in_ : expr bracket =
   let lp = TH.info_of_tok in_.token in
   accept (LPAREN ab) in_;
   let r = expr in_ in
@@ -2305,8 +2328,18 @@ and condExpr in_ : expr bracket =
 and parseWhile in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
-  let cond = condExpr in_ in
-  newLinesOpt in_;
+  let cond =
+    match in_.token with
+    | LPAREN _ ->
+        let cond = parensCondExpr in_ in
+        newLinesOpt in_;
+        cond
+    | _ ->
+        let e = expr in_ in
+        newLinesOpt in_;
+        accept (Kdo ab) in_;
+        fb (PI.unsafe_fake_info "") e
+  in
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
   While (ii, cond, body)
@@ -2319,7 +2352,7 @@ and parseDo in_ : stmt =
   if TH.isStatSep in_.token then nextToken in_;
   let iwhile = TH.info_of_tok in_.token in
   accept (Kwhile ab) in_;
-  let cond = condExpr in_ in
+  let cond = parensCondExpr in_ in
   (* ast: makeDoWhile(lname.toTermName, body, cond) *)
   DoWhile (ido, body, iwhile, cond)
 
@@ -3498,6 +3531,8 @@ let blockStatSeq in_ : block_stat list =
  *                     | Expr1
  *                     | super ArgumentExprs {ArgumentExprs}
  *                     |
+ *                     | Annotations Modifiers EnumCase
+ *                       ^ see "note: enum-body" and defOrDcl
  *  }}}
 *)
 let templateStat in_ : template_stat option =
@@ -3855,6 +3890,137 @@ let classDef ?(isTrait = false) ?(isCase = None) attrs in_ : definition =
          DefEnt (ent, Template tmpl))
 
 (* ------------------------------------------------------------------------- *)
+(* Enums *)
+(* ------------------------------------------------------------------------- *)
+
+(** {{{
+ *  NB: This here is technically a "ClsTypeParamClause" from the Scala 3 grammar.
+ *  From what I (Brandon) have observed, this seems to closely resemble the ordinary
+ *  TypeParamClause from the Scala 2 grammar, so here I will assume it is sufficient
+ *  to approximate it.
+ *
+ *  ConstrApps  ::=  ConstrApp ({‘,’ ConstrApp} | {‘with’ ConstrApp})
+ *  ConstrApp   ::=  SimpleType1 {Annotation} {ParArgumentExprs}
+ *
+ *  EnumCase    ::=  ‘case’ (id ClassConstr [‘extends’ ConstrApps]] | ids)
+ *  ClassConstr ::= [TypeParamClause] {Annotation} [AccessModifier] ClsParamClauses
+ *
+ *  EnumDef     ::= id ClassConstr InheritClauses EnumBody
+ *  EnumBody    ::=  :<<< [SelfType] EnumStat {semi EnumStat} >>>
+ *  EnumStat    ::=  TemplateStat
+ *                |  {Annotation [nl]} {Modifier} EnumCase
+ *
+ *  note: enum-body
+ *  `EnumBody` is essentially a superset of `TmplBody`, because `EnumStat` is
+ *  a superset of `TemplateStat`.
+ *  To make implementation easier, we will choose to simply extend `templateStat` to
+ *  also handle the `EnumCase` case, since this will only permit more programs to be
+ *  parsed.
+ *  }}}
+*)
+
+let constrApp in_ : constr_app =
+  let annotated_ty = annotType in_ in
+  let vds = ref [] in
+  while in_.token =~= LPAREN ab do
+    let x = parArgumentExprs in_ in
+    vds += x;
+    newLineOptWhenFollowedBy (LPAREN ab) in_
+  done;
+  let arguments = List.rev !vds in
+  (annotated_ty, arguments)
+
+let constrApps in_ : constr_app list =
+  let first = constrApp in_ in
+  let constrs = ref [ first ] in
+  while in_.token =~= COMMA ab || in_.token =~= Kwith ab do
+    skipToken in_;
+    constrs += constrApp in_
+  done;
+  List.rev !constrs
+
+let classConstr name in_ =
+  (* AST: savingClassContextBounds *)
+  let contextBoundBuf = ref [] in
+  let tparams = typeParamClauseOpt name (Some contextBoundBuf) in_ in
+  let classContextBounds = !contextBoundBuf in
+
+  (* CHECK: "traits cannot have type parameters with context bounds" *)
+  let constrAnnots =
+    (* TODO: These are actually optional. *)
+    annotations ~skipNewLines:true in_
+  in
+
+  let access_mods, vparamss =
+    let access_mods = accessModifierOpt in_ in
+    let vparamss =
+      (* ofCaseClass ??? *)
+      paramClauses ~ofCaseClass:false name classContextBounds in_
+    in
+    (Option.to_list access_mods, vparamss)
+  in
+  (tparams, constrAnnots, access_mods, vparamss)
+
+let enumCaseRest in_ : enum_case_definition =
+  let id = ident in_ in
+
+  match in_.token with
+  | COMMA _ ->
+      let ids = ref [ id ] in
+      while in_.token =~= COMMA ab do
+        accept (COMMA ab) in_;
+        ids += ident in_
+      done;
+      EnumIds (List.rev !ids)
+  | _ ->
+      let etyparams, constrAnnots, access_mods, vparamss = classConstr id in_ in
+      let eattrs = mods_with_annots access_mods constrAnnots in
+      let constr_apps =
+        match in_.token with
+        | Kextends _ ->
+            skipToken in_;
+            constrApps in_
+        | _ -> []
+      in
+      EnumConstr
+        {
+          eid = id;
+          etyparams;
+          eparams = vparamss;
+          eattrs;
+          eextends = constr_apps;
+        }
+
+let enumDef attrs in_ =
+  in_
+  |> with_logging "enumDef" (fun () ->
+         (* 'enum' *)
+         let ikind = TH.info_of_tok in_.token in
+         accept (Kenum ab) in_;
+
+         let name = ident in_ in
+
+         let tparams, constrAnnots, access_mods, vparamss =
+           classConstr name in_
+         in
+
+         let kind = (Enum, ikind) in
+
+         let attrs = mods_with_annots access_mods constrAnnots @ attrs in
+         let ent = { name; attrs; tparams } in
+
+         (* TODO: InheritClauses *)
+         let tmpl = templateOpt kind vparamss in_ in
+         (* AST: gen.mkClassDef(mods, name, tparams, template) *)
+         (* CHECK: Context bounds generate implicit parameters (part of the template)
+          *  with types from tparams: we need to ensure these don't overlap
+          * ensureNonOverlapping(template, tparams)
+          *)
+         DefEnt
+           ( { ent with attrs = M (EnumClass, ikind) :: ent.attrs },
+             Template tmpl ))
+
+(* ------------------------------------------------------------------------- *)
 (* TmplDef *)
 (* ------------------------------------------------------------------------- *)
 
@@ -3862,6 +4028,9 @@ let classDef ?(isTrait = false) ?(isCase = None) attrs in_ : definition =
  *  TmplDef ::= [case] class ClassDef
  *            |  [case] object ObjectDef
  *            |  [override] trait TraitDef
+ *            | `enum` EnumDef
+ *            | `case` (id ClassConstr [`extends` ConstrApps] | ids)
+ *              ^ see "note: enum-body"
  *  }}}
 *)
 let tmplDef attrs in_ : definition =
@@ -3878,8 +4047,10 @@ let tmplDef attrs in_ : definition =
       match in_.token with
       | Kclass _ -> classDef ~isCase:(Some ii) attrs in_
       | Kobject _ -> objectDef ~isCase:(Some ii) attrs in_
+      | _ when TH.isIdentBool in_.token -> EnumCaseDef (attrs, enumCaseRest in_)
       (* pad: my error message *)
       | _ -> error "expecting class or object after a case" in_)
+  | Kenum _ -> enumDef attrs in_
   | _ -> error "expected start of definition" in_
 
 (*****************************************************************************)

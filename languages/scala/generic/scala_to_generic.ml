@@ -501,8 +501,19 @@ and expr_of_block xs : G.expr =
 and v_lhs v = v_expr v
 
 and v_arguments = function
-  | Args v1 ->
-      let v1 = v_bracket (v_list v_argument) v1 in
+  | Args v1 -> (
+      let lb, v1, rb = v_bracket (v_list (v_argument ~is_using:false)) v1 in
+      match List.rev v1 with
+      | G.Arg
+          { e = Call ({ e = N (Id (("*", tok), _)); _ }, (lb', [ e ], rb')); _ }
+        :: rest ->
+          let splatted_last_arg =
+            Call (G.IdSpecial (G.Spread, tok) |> G.e, (lb', [ e ], rb')) |> G.e
+          in
+          (lb, List.rev rest @ [ G.Arg splatted_last_arg ], rb)
+      | _ -> (lb, v1, rb))
+  | ArgUsing v1 ->
+      let v1 = v_bracket (v_list (v_argument ~is_using:true)) v1 in
       v1
   | ArgBlock v1 -> (
       let lb, kind, rb = v_block_expr v1 in
@@ -511,9 +522,11 @@ and v_arguments = function
       | Right cases ->
           (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases) |> G.e) ], rb))
 
-and v_argument v =
+and v_argument ?(is_using = false) v =
   let v = v_expr v in
-  G.Arg v
+  if is_using then (* TODO: For now, just pass as a regular argument. *)
+    G.Arg v
+  else G.Arg v
 
 and v_case_clauses v : G.case_and_body list = v_list v_case_clause v
 and v_type_case_clauses v : G.case_and_body list = v_list v_type_case_clause v
@@ -769,6 +782,7 @@ and v_modifier_kind = function
   | PackageObject -> Right "PackageObject"
   | Val -> Left G.Const
   | Var -> Left G.Mutable
+  | EnumClass -> Left G.EnumClass
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
@@ -822,7 +836,47 @@ and v_definition x : G.definition list =
   | DefEnt (v1, v2) ->
       let v1 = v_entity v1 and v2 = v_definition_kind v2 in
       [ (v1, v2) ]
+  | EnumCaseDef (attrs, v1) ->
+      let attrs = v_list v_attribute attrs in
+      v_enum_case_definition attrs v1
   | VarDefs v1 -> v_variable_definitions v1
+
+and v_enum_case_definition attrs v1 =
+  match v1 with
+  | EnumIds ids ->
+      let ids = v_list v_ident ids in
+      ids
+      |> Common.map (fun id ->
+             ( G.basic_entity id,
+               G.EnumEntryDef { ee_args = None; ee_body = None } ))
+  | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
+      let id = v_ident eid in
+      let tparams = v_type_parameters etyparams in
+      let params = v_list v_bindings eparams |> List.concat in
+      let attrs = v_list v_attribute eattrs @ attrs in
+      (* TODO *)
+      let _extends = v_list v_constr_app eextends in
+      let fake = PI.unsafe_fake_info "Param" in
+      (* Here, we turn the params into arguments.
+         They are represented syntactically as parameters, but they'll fit
+         fine here too. This is with the understanding that this probably
+         won't matter semantically.
+      *)
+      let args =
+        match
+          Common.map
+            (fun param -> G.OtherArg (("Param", fake), [ G.Pa param ]))
+            params
+        with
+        | [] -> None
+        | args -> Some (fb args)
+      in
+      [
+        ( G.basic_entity ~attrs ~tparams id,
+          G.EnumEntryDef { ee_args = args; ee_body = None } );
+      ]
+
+and v_constr_app _v1 = ()
 
 and v_variable_definitions
     {
@@ -1001,6 +1055,7 @@ and v_self_type (v1, v2, v3) =
   ()
 
 and v_template_kind = function
+  | Enum -> G.Class
   | Class -> G.Class
   | Trait -> G.Trait
   | Object -> G.Object
