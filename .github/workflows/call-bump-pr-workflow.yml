@@ -44,7 +44,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Invoke workflow
         env:
           GITHUB_TOKEN: "${{ steps.token.outputs.token }}"

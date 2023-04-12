@@ -41,10 +41,10 @@ jobs:
         id: dry-run
         run: |
           if [ "${{ inputs.dry-run }}" = "true" ]; then
-            echo ::set-output name=dry-run::true
+            echo "dry-run=true" >> $GITHUB_OUTPUT
             echo "Setting dry-run to TRUE"
           else
-            echo ::set-output name=dry-run::false
+            echo "dry-run=false" >> $GITHUB_OUTPUT
             echo "Setting dry-run to FALSE"
           fi
 
@@ -189,7 +189,7 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       # wait for the draft release since these may not be ready after the refactor of the start-release.
       - name: Wait for Draft Release if not Ready
         id: wait-draft-release
@@ -215,7 +215,7 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
@@ -232,7 +232,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -268,7 +268,7 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - uses: actions/setup-python@v4
         id: python-setup
         with:
