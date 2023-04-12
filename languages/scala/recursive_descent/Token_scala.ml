@@ -66,6 +66,7 @@ type token =
   | Kclass of Parse_info.t
   | Kcatch of Parse_info.t
   | Kcase of Parse_info.t
+  | Kenum of Parse_info.t
   | Kabstract of Parse_info.t
   | IntegerLiteral of (int option * Parse_info.t)
   | ID_UPPER of (string * Parse_info.t)

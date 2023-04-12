@@ -782,6 +782,7 @@ and v_modifier_kind = function
   | PackageObject -> Right "PackageObject"
   | Val -> Left G.Const
   | Var -> Left G.Mutable
+  | EnumClass -> Left G.EnumClass
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
@@ -835,7 +836,47 @@ and v_definition x : G.definition list =
   | DefEnt (v1, v2) ->
       let v1 = v_entity v1 and v2 = v_definition_kind v2 in
       [ (v1, v2) ]
+  | EnumCaseDef (attrs, v1) ->
+      let attrs = v_list v_attribute attrs in
+      v_enum_case_definition attrs v1
   | VarDefs v1 -> v_variable_definitions v1
+
+and v_enum_case_definition attrs v1 =
+  match v1 with
+  | EnumIds ids ->
+      let ids = v_list v_ident ids in
+      ids
+      |> Common.map (fun id ->
+             ( G.basic_entity id,
+               G.EnumEntryDef { ee_args = None; ee_body = None } ))
+  | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
+      let id = v_ident eid in
+      let tparams = v_type_parameters etyparams in
+      let params = v_list v_bindings eparams |> List.concat in
+      let attrs = v_list v_attribute eattrs @ attrs in
+      (* TODO *)
+      let _extends = v_list v_constr_app eextends in
+      let fake = PI.unsafe_fake_info "Param" in
+      (* Here, we turn the params into arguments.
+         They are represented syntactically as parameters, but they'll fit
+         fine here too. This is with the understanding that this probably
+         won't matter semantically.
+      *)
+      let args =
+        match
+          Common.map
+            (fun param -> G.OtherArg (("Param", fake), [ G.Pa param ]))
+            params
+        with
+        | [] -> None
+        | args -> Some (fb args)
+      in
+      [
+        ( G.basic_entity ~attrs ~tparams id,
+          G.EnumEntryDef { ee_args = args; ee_body = None } );
+      ]
+
+and v_constr_app _v1 = ()
 
 and v_variable_definitions
     {
@@ -1014,6 +1055,7 @@ and v_self_type (v1, v2, v3) =
   ()
 
 and v_template_kind = function
+  | Enum -> G.Class
   | Class -> G.Class
   | Trait -> G.Trait
   | Object -> G.Object

@@ -132,6 +132,7 @@ let visitor_info_of_tok f = function
   | Kpackage ii -> Kpackage (f ii)
   | Koverride ii -> Koverride (f ii)
   | Kobject ii -> Kobject (f ii)
+  | Kenum ii -> Kenum (f ii)
   | Knull ii -> Knull (f ii)
   | Knew ii -> Knew (f ii)
   | Kmatch ii -> Kmatch (f ii)
@@ -380,6 +381,7 @@ let isLocalModifier = function
 let isTemplateIntro = function
   | Kobject _
   | Kclass _
+  | Kenum _
   | Ktrait _ ->
       true
   (*TODO | Kcaseobject | | Kcaseclass *)
@@ -390,6 +392,7 @@ let isDclIntro = function
   | Kval _
   | Kvar _
   | Kdef _
+  | Kcase _
   | Ktype _ ->
       true
   | _ -> false
