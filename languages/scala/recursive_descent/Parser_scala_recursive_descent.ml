@@ -1687,7 +1687,7 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | while `(` Expr `)` {nl} Expr
  *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
- *               | for (`(` Enumerators `)` | `{` Enumerators `}`) {nl} [yield] Expr
+ *               | for (`(` Enumerators `)` | `{` Enumerators `}` | Enumerators) {nl} [yield] Expr
  *               | throw Expr
  *               | return [Expr]
  *               | [SimpleExpr `.`] Id `=` Expr
@@ -2378,8 +2378,28 @@ and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
-    if in_.token =~= LBRACE ab then inBraces enumerators in_
-    else inParens enumerators in_
+    match in_.token with
+    | LPAREN _ -> inParens enumerators in_
+    | LBRACE _ -> inBraces enumerators in_
+    | _ ->
+        (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
+           If we enter the indentation region, the end of a for expression like:
+
+           for
+             _ <- 5
+           yield
+
+           will cause a DEDENT to be emitted before the `yield`. This messes us
+           up when determining when to end, because if we see the future DEDENT and break,
+           then we will still be on the NEWLINE.
+
+           It's easiest to just not emit the DEDENT tokens at all, which is what happens
+           if we do not enter the indentation region.
+
+           See
+           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
+        *)
+        fb (PI.unsafe_fake_info "") (enumerators in_)
   in
   newLinesOpt in_;
   let body =
@@ -2477,13 +2497,24 @@ and blockExpr in_ : block_expr =
  *                |  Pattern1 `=` Expr
  *  }}}
 *)
+
+and isEnumeratorsEnd in_ =
+  match in_.token with
+  | Kdo _
+  | Kyield _
+  | RBRACE _ ->
+      true
+  | _ -> false
+
 and enumerators in_ : enumerators =
   in_
   |> with_logging "enumerators" (fun () ->
          let enums = ref [] in
          let x = enumerator ~isFirst:true in_ in
          enums += x;
-         while TH.isStatSep in_.token do
+         while
+           TH.isStatSep in_.token && not (lookingAhead isEnumeratorsEnd in_)
+         do
            nextToken in_;
            let x = enumerator ~isFirst:false in_ in
            enums += x
