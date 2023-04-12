@@ -40,7 +40,7 @@ let pp_text_outputs ppf (matches : Out.cli_match list) =
       let shortlink =
         match Yojson.Basic.Util.member "shortlink" m.extra.metadata with
         | `String s -> "      Details: " ^ s
-        | _ -> ""
+        | _else -> ""
       in
       Fmt.pf ppf "  %s@." m.path;
       Fmt.pf ppf "    %s@." m.check_id;
