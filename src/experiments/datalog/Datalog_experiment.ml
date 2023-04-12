@@ -106,11 +106,8 @@ let facts_of_function lang def =
 (* Entry point *)
 (*****************************************************************************)
 let gen_facts file outdir =
-  let lang =
-    Common.hd_exn "unexpected empty list"
-      (Lang.langs_of_filename (Fpath.v file))
-  in
   let ast = Parse_target.parse_program file in
+  let lang = Lang.lang_of_filename_exn (Fpath.v file) in
   Naming_AST.resolve lang ast;
 
   (* less: use treesitter also later
