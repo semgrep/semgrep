@@ -109,7 +109,7 @@ let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
 let analyze_skipped (skipped : Out.skipped_target list) =
   let groups =
     Common.group_by
-      (fun (Out.{ reason; path; _ } : Out.skipped_target) ->
+      (fun (Out.{ reason; _ } : Out.skipped_target) ->
         match reason with
         | Out.Gitignore_patterns_match
         | Semgrepignore_patterns_match ->
@@ -127,19 +127,18 @@ let analyze_skipped (skipped : Out.skipped_target list) =
         | Binary
         | Irrelevant_rule
         | Too_many_matches ->
-            Logs.debug (fun m ->
-                m "unexpected skip reason for %s: %s" path
-                  (Out.show_skip_reason reason));
-            assert false)
+            `Other)
       skipped
   in
   ( (try List.assoc `Semgrepignore groups with
     | Not_found -> []),
-    (try List.assoc `Size groups with
-    | Not_found -> []),
     (try List.assoc `Include groups with
     | Not_found -> []),
-    try List.assoc `Exclude groups with
+    (try List.assoc `Exclude groups with
+    | Not_found -> []),
+    (try List.assoc `Size groups with
+    | Not_found -> []),
+    try List.assoc `Other groups with
     | Not_found -> [] )
 
 let pp_summary ppf
@@ -148,8 +147,10 @@ let pp_summary ppf
        include_ignored,
        exclude_ignored,
        file_size_ignored,
+       other_ignored,
        errors ) :
       bool
+      * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list
@@ -194,6 +195,7 @@ let pp_summary ppf
            1000} MB"
           file_size_ignored;
         opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
+        opt_msg "other files ignored" other_ignored;
       ]
   in
   let out_partial =
@@ -224,8 +226,10 @@ let pp_skipped ppf
        include_ignored,
        exclude_ignored,
        file_size_ignored,
+       other_ignored,
        errors ) :
       bool
+      * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list
@@ -272,6 +276,10 @@ let pp_skipped ppf
      {self.target_manager.max_target_bytes} bytes:@.";
   Fmt.pf ppf " (Adjust with the --max-target-bytes flag)@.@.";
   pp_list file_size_ignored;
+  Fmt.pf ppf "@.";
+
+  Fmt.pf ppf " Skipped for other reasons:@.@.";
+  pp_list other_ignored;
   Fmt.pf ppf "@.";
 
   Fmt.pf ppf
@@ -394,7 +402,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       in
 
       let errors_skipped = errors_to_skipped res.core.errors in
-      let semgrepignored, included, excluded, size =
+      let semgrepignored, included, excluded, size, other_ignored =
         analyze_skipped semgrepignored_targets
       in
       let res =
@@ -413,6 +421,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
               included,
               excluded,
               size,
+              other_ignored,
               errors_skipped ));
       Logs.app (fun m ->
           m "%a" pp_summary
@@ -421,6 +430,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
               included,
               excluded,
               size,
+              other_ignored,
               errors_skipped ));
       Logs.app (fun m ->
           m "Ran %d rules on %d files: %d findings@."
