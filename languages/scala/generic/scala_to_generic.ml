@@ -789,6 +789,7 @@ and v_modifier_kind = function
   | Override -> Left G.Override
   | Inline -> Right "inline"
   | Open -> Right "open"
+  | Opaque -> Right "opaque"
   | CaseClassOrObject -> Left G.RecordClass
   | PackageObject -> Right "PackageObject"
   | Val -> Left G.Const

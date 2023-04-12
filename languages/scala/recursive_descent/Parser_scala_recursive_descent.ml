@@ -958,7 +958,6 @@ let template_ = ref (fun _ -> failwith "forward ref not set")
 let defOrDcl_ = ref (fun _ _ -> failwith "forward ref not set")
 let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
-let topLevelTmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
 let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
@@ -2790,6 +2789,7 @@ let is_modifier in_ =
   ||
   match in_.token with
   | ID_LOWER ("inline", _)
+  | ID_LOWER ("opaque", _)
   | ID_LOWER ("open", _) ->
       next_is_soft_modifier_follower
   | __else__ -> false
@@ -2804,6 +2804,7 @@ let modifier_of_isLocalModifier_opt in_ =
   | Klazy ii -> Some (Lazy, ii)
   | ID_LOWER ("inline", ii) when is_modifier in_ -> Some (Inline, ii)
   | ID_LOWER ("open", ii) when is_modifier in_ -> Some (Open, ii)
+  | ID_LOWER ("opaque", ii) when is_modifier in_ -> Some (Opaque, ii)
   | _ -> None
 
 (** {{{
@@ -3598,7 +3599,7 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
 
 (** {{{
  *  TopStatSeq ::= TopStat {semi TopStat}
- *  TopStat ::= Annotations Modifiers TmplDef
+ *  TopStat ::= Annotations Modifiers Def  (see below for discrepancy with Scala 2)
  *            | Packaging
  *            | package object ObjectDef
  *            | Import
@@ -3618,8 +3619,11 @@ let topStat in_ : top_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
-  | t when TH.isAnnotation t || TH.isTemplateIntro t || is_modifier in_ ->
-      let x = !topLevelTmplDef_ in_ in
+  (* This used to be a TmplDef, but in Scala 3, this can actually be any Def.
+     Def is a superset of TmplDef anyways, so we lose nothing here.
+  *)
+  | t when TH.isAnnotation t || TH.isDefIntro t || is_modifier in_ ->
+      let x = nonLocalDefOrDcl in_ in
       Some (D x)
   | _ -> None
 
@@ -4240,18 +4244,6 @@ let tmplDef attrs in_ : definition =
   | _ -> error "expected start of definition" in_
 
 (*****************************************************************************)
-(* Toplevel  *)
-(*****************************************************************************)
-
-(** Hook for IDE, for top-level classes/objects. *)
-let topLevelTmplDef in_ : definition =
-  let annots = annotations ~skipNewLines:true in_ in
-  let mods = modifiers in_ in
-  (* ast: mods withAnnotations annots *)
-  let x = tmplDef (mods_with_annots mods annots) in_ in
-  x
-
-(*****************************************************************************)
 (* Entry points  *)
 (*****************************************************************************)
 
@@ -4261,7 +4253,6 @@ let _ =
   defOrDcl_ := defOrDcl;
   tmplDef_ := tmplDef;
   blockStatSeq_ := blockStatSeq;
-  topLevelTmplDef_ := topLevelTmplDef;
   packageOrPackageObject_ := packageOrPackageObject;
 
   exprTypeArgs_ := exprTypeArgs;
