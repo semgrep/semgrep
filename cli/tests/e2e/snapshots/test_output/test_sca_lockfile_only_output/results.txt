@@ -20,4 +20,9 @@
   Execution under specific                                                      
           circumstances.                                                        
                                                                                 
+            5┆ lodash@^1.0.0:
+            6┆   version "1.0.0"
+            ⋮┆----------------------------------------
+           10┆ lodash@^1.0.1:
+           11┆   version "1.0.1"
 
