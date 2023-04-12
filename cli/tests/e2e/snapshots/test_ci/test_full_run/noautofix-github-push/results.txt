@@ -69,6 +69,8 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
        supply-chain1        
           found a dependency
                             
+            1┆ [[package]]
+            2┆ name = "badlib"
                                
                                
 ┌─────────────────────────────┐
