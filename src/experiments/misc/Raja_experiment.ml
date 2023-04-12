@@ -37,7 +37,7 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
   | Some x -> x
   | None ->
       let ast =
-        (* ugly: parse_program may raise the "hd" exn when we can't infer
+        (* ugly: parse_program may raise an exn when we can't infer
          * the language from the filename.
          * TODO: we should use just_parse_with_lang and get the language
          * from the languages: field in the rule corresponding to
@@ -45,9 +45,7 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
          * more info to ranges_of_path() though.
          *)
         try Parse_target.parse_program !!path with
-        (* TODO: does this still catch what it's supposed to catch
-           since we no longer use List.hd? *)
-        | Failure "hd" -> []
+        | Failure _ -> []
       in
       let ranges = Function_range.ranges ast in
       Hashtbl.add cache path ranges;

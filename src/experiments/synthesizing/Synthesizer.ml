@@ -16,9 +16,7 @@ let range_to_ast file lang s =
   | Some a -> a
 
 let synthesize_patterns config s file =
-  let lang =
-    Lang.langs_of_filename file |> Common.hd_exn "unexpected empty list"
-  in
+  let lang = Lang.lang_of_filename_exn file in
   let a = range_to_ast file lang s in
   let patterns = Pattern_from_Code.from_any config a in
   Common.map
@@ -49,9 +47,7 @@ let parse_range_args xs =
 
 let parse_targets (args : string list) : Pattern.t list * Lang.t =
   let ranges, file = parse_range_args args in
-  let lang =
-    Lang.langs_of_filename file |> Common.hd_exn "unexpected empty list"
-  in
+  let lang = Lang.lang_of_filename_exn file in
   let targets = Common.map (range_to_ast file lang) ranges in
   (targets, lang)
 

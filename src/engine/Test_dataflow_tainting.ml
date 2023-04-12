@@ -46,9 +46,7 @@ let test_tainting lang file options config def =
 let test_dfg_tainting rules_file file =
   let rules_file = Fpath.v rules_file in
   let file = Fpath.v file in
-  let lang =
-    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
-  in
+  let lang = Lang.lang_of_filename_exn file in
   let rules =
     try Parse_rule.parse rules_file with
     | exn ->

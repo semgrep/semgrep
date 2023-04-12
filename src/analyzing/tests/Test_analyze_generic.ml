@@ -6,9 +6,7 @@ module H = AST_generic_helpers
 let test_typing_generic ~parse_program file =
   let file = Fpath.v file in
   let ast = parse_program !!file in
-  let lang =
-    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
-  in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
 
   let v =
@@ -30,9 +28,7 @@ let test_typing_generic ~parse_program file =
 let test_constant_propagation ~parse_program file =
   let file = Fpath.v file in
   let ast = parse_program !!file in
-  let lang =
-    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
-  in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
   let s = AST_generic.show_any (AST_generic.Pr ast) in
@@ -41,9 +37,7 @@ let test_constant_propagation ~parse_program file =
 let test_il_generic ~parse_program file =
   let file = Fpath.v file in
   let ast = parse_program !!file in
-  let lang =
-    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
-  in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
 
   let v =
@@ -66,9 +60,7 @@ let test_il_generic ~parse_program file =
 let test_cfg_il ~parse_program file =
   let file = Fpath.v file in
   let ast = parse_program !!file in
-  let lang =
-    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
-  in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   Visit_function_defs.visit
     (fun _ fdef ->
@@ -90,9 +82,7 @@ end)
 let test_dfg_svalue ~parse_program file =
   let file = Fpath.v file in
   let ast = parse_program !!file in
-  let lang =
-    Common.hd_exn "unexpected empty list" (Lang.langs_of_filename file)
-  in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let v =
     object
