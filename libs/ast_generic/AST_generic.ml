@@ -1672,7 +1672,9 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
-  (* Receiver param in Go *)
+  (* Receiver param in Go, e.g. `func (x Foo) f() { ... }`. This is important
+   * for name resolution because Go resolves methods based on the receiver type.
+   * *)
   | ParamReceiver of parameter_classic
   (* e.g., ParamTodo in OCaml, SingleStar and Slash
    * in Python to delimit regular parameters from special one.
