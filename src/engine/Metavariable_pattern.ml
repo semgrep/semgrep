@@ -30,7 +30,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
   match xlang with
-  | Xlang.L (Lang.Php, _) -> "<?php " ^ content
+  | Xlang.L (Lang.Php, _)
+    when not (content =~ {|[ \t\n]*<\?\(php\|=\)?[ \t\n]+|}) ->
+      "<?php " ^ content
   | __else__ -> content
 
 (* This function adds mvars to a range, but only the mvars which are not already
