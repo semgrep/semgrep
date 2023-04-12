@@ -181,6 +181,18 @@ repos:
     hooks:
       - id: semgrep-jsonnet
         name: semgrep jsonnet
+        #
+        # Troubleshooting:
+        # 1. Make sure '--quiet' option is not passed to semgrep so
+        #    that we can see error messages.
+        # 2. Obtain the latest version of semgrep with:
+        #
+        #      docker pull returntocorp/semgrep:develop
+        #
+        # 3. Re-run job with
+        #
+        #      pre-commit run --all --verbose semgrep-jsonnet
+        #
         # Only run this job in CI since it is slow
         language: docker_image
         # See .pre-commit-hooks.yaml for why we need to set those
@@ -205,6 +217,7 @@ repos:
             "--config",
             "semgrep.jsonnet",
             "--error",
+            #
             # note that pre-commit can call multiple times semgrep in
             # one run if there are many files in a PR (or in CI where
             # it runs on all the files in a repo).  In that case I
@@ -213,7 +226,11 @@ repos:
             # important to use --quiet otherwise you can have the same
             # banner repeated many times in the output in case of
             # errors.
-            "--quiet",
+            #
+            # It's a much bigger problem to not see the error
+            # messages, so let's try without --quiet:
+            # "--quiet",
+            #
             # this is useful in a pre-commit context because
             # pre-commit calls the hooks with all the files in the PR
             # (or in CI with all the files in the repo) but we don't
