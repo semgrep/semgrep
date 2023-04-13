@@ -12,6 +12,7 @@ module MkId () : sig
      `unsafe_default`s.
   *)
   val unsafe_default : t
+  val is_unsafe_default : t -> bool
 
   (* This will reset the internal counter used by the identifiers, making `mk`
      generate already-generated identifiers.
