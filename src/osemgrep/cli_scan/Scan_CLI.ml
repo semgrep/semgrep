@@ -341,8 +341,7 @@ a TTY; defaults to using the TTY status
 
 let o_max_chars_per_line : int Term.t =
   let info =
-    Arg.info
-      [ Constants.max_chars_flag_name ]
+    Arg.info [ "max-chars-per-line" ]
       ~doc:"Maximum number of characters to show per line."
   in
   Arg.value (Arg.opt Arg.int default.max_chars_per_line info)
@@ -350,7 +349,7 @@ let o_max_chars_per_line : int Term.t =
 let o_max_lines_per_finding : int Term.t =
   let info =
     Arg.info
-      [ Constants.max_lines_flag_name ]
+      [ "max-lines-per-finding" ]
       ~doc:
         {|Maximum number of lines of code that will be shown for each match before
 trimming (set to 0 for unlimited).|}

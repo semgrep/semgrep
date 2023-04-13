@@ -21,9 +21,6 @@ let _returntocorp_lever_url =
 
 let _unsupported_ext_ignore_langs = [ ("generic", "regex") ]
 let _comma_separated_list_re = SPcre.regexp {|[,\s]|}
-let max_lines_flag_name = "max-lines-per-finding"
 let break_line_width = 80
 let break_line_char = '-'
 let _break_line = String.make break_line_width break_line_char
-let max_chars_flag_name = "max-chars-per-line"
-let ellipsis_string = " ... "
