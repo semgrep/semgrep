@@ -12,6 +12,10 @@
 
 open Printf
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type loc = {
   source_name : string;
   source_kind : string option;
@@ -43,6 +47,10 @@ type t = { source : loc; re : Re.re }
 
 let string_loc ?(source_name = "<pattern>") ~source_kind pat =
   { source_name; source_kind; line_number = 1; line_contents = pat }
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 (* / *)
 let root_pattern = [ Segment []; Segment [] ]
@@ -83,39 +91,38 @@ let slash = Re.char '/'
 let not_slash = Re.compl [ slash ]
 
 let map_frag (frag : segment_fragment) : Re.t =
-  let open Re in
   match frag with
-  | Char c -> char c
+  | Char c -> Re.char c
   | Char_class { complement; ranges } ->
       let cset =
         Common.map
           (fun range ->
             match range with
-            | Class_char c -> char c
-            | Range (a, b) -> rg a b)
+            | Class_char c -> Re.char c
+            | Range (a, b) -> Re.rg a b)
           ranges
       in
-      if complement then compl cset else alt cset
+      if complement then Re.compl cset else Re.alt cset
   | Question -> not_slash
-  | Star -> rep not_slash
+  | Star -> Re.rep not_slash
 
 let map_seg (seg : segment_fragment list) : Re.t =
-  let open Re in
-  seq (Common.map map_frag seg)
+  Re.seq (Common.map map_frag seg)
 
 let rec map pat =
-  let open Re in
   match pat with
-  | [ Segment seg ] -> [ map_seg seg; eos ]
+  | [ Segment seg ] -> [ map_seg seg; Re.eos ]
   | [ Any_subpath ] -> []
   | Segment seg :: pat -> map_seg seg :: slash :: map pat
-  | Any_subpath :: pat -> rep (seq [ rep not_slash; slash ]) :: map pat
-  | [] -> [ eos ]
+  | Any_subpath :: pat -> Re.rep (Re.seq [ Re.rep not_slash; slash ]) :: map pat
+  | [] -> [ Re.eos ]
 
 (* Create a pattern that's left-anchored and right-anchored *)
-let map_root pat =
-  let open Re in
-  seq (bos :: map pat)
+let map_root pat = Re.seq (Re.bos :: map pat)
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 (* Compile a pattern into an ocaml-re regexp for fast matching *)
 let compile ~source pat =
