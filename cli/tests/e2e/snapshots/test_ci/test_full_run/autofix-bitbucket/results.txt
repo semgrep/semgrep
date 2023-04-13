@@ -44,6 +44,8 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
        supply-chain1        
           found a dependency
                             
+            1┆ [[package]]
+            2┆ name = "badlib"
                                
                                
 ┌─────────────────────────────┐

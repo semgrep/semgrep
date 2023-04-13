@@ -458,12 +458,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 },
                 "region": {
                   "endColumn": 0,
-                  "endLine": 0,
+                  "endLine": 2,
                   "snippet": {
-                    "text": ""
+                    "text": "[[package]]\nname = \"badlib\""
                   },
                   "startColumn": 0,
-                  "startLine": 0
+                  "startLine": 1
                 }
               }
             }
