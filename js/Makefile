@@ -3,6 +3,7 @@ default: libyaml engine languages
 
 .PHONY: test
 test:
+	make -C libyaml test
 	make -C engine test
 	make -C languages test
 

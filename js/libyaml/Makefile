@@ -12,7 +12,7 @@ clean:
 	rm -rf dist
 
 .PHONY: test
-test:
+test: default
 	npm run test
 
 dist/libyaml.js: *.c
