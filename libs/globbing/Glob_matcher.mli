@@ -7,11 +7,6 @@
    https://man7.org/linux/man-pages/man7/glob.7.html (man 7 glob)
 *)
 
-(* This is used by the unit tests and prints the activity of the
-   'run' function. I'm worried that logger#debug would be too expensive
-   when not debugging. *)
-val debug : bool ref
-
 (* The location of a pattern, for logging and troubleshooting. *)
 type loc = {
   (* File name or other source location name useful to a human reader
@@ -52,8 +47,13 @@ type segment = Segment of segment_fragment list | Any_subpath
 *)
 type pattern = segment list [@@deriving show]
 
+val of_path_segments : string list -> pattern
+
 (* A compiled pattern matcher. *)
 type t
+
+val show : t -> string
+val source : t -> loc
 
 (* The pattern that matches '/' *)
 val root_pattern : pattern
@@ -99,6 +99,8 @@ val compile : source:loc -> pattern -> t
    non-matching paths: foo bar/foo/ /foo/ /foo
 *)
 val run : t -> string -> bool
-val source : t -> loc
-val of_path_segments : string list -> pattern
-val show : t -> string
+
+(* This is used by the unit tests and prints the activity of the
+   'run' function. I'm worried that logger#debug would be too expensive
+   when not debugging. *)
+val debug : bool ref
