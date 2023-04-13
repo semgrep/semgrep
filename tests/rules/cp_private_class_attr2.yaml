@@ -1,0 +1,7 @@
+rules:
+  - id: test
+    severity: ERROR
+    message: Test
+    languages:
+      - java
+    pattern: foo(42)
