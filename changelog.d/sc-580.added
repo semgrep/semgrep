@@ -1,0 +1,2 @@
+The title of Supply Chain findings will now consist of the package name and CVE,
+instead of just the rule's UUID.
