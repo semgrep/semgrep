@@ -6,7 +6,7 @@
 
 open File.Operators
 
-let is_git_root path =
+let is_git_root (path : Fpath.t) : bool =
   match (Unix.stat !!(path / ".git")).st_kind with
   | S_DIR -> true
   | _ -> false

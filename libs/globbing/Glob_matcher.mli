@@ -7,6 +7,30 @@
    https://man7.org/linux/man-pages/man7/glob.7.html (man 7 glob)
 *)
 
+(*
+   A pattern which matches paths.
+*)
+type pattern = segment list
+
+(* A path segment is what represents a simple file name in a directory *)
+and segment = Segment of segment_fragment list | Any_subpath
+
+and segment_fragment =
+  | Char of char
+  | Char_class of char_class
+  | Question
+  | Star
+
+and char_class = { complement : bool; ranges : char_class_range list }
+
+and char_class_range = Class_char of char | Range of char * char
+[@@deriving show]
+
+(* A compiled pattern matcher. *)
+type t
+
+val show : t -> string
+
 (* The location of a pattern, for logging and troubleshooting. *)
 type loc = {
   (* File name or other source location name useful to a human reader
@@ -19,48 +43,7 @@ type loc = {
   line_contents : string;
 }
 
-(* Create a location from a pattern string rather than a location in a file. *)
-val string_loc :
-  ?source_name:string -> source_kind:string option -> string -> loc
-
 val show_loc : loc -> string
-
-type char_class_range = Class_char of char | Range of char * char
-[@@deriving show]
-
-type char_class = { complement : bool; ranges : char_class_range list }
-[@@deriving show]
-
-type segment_fragment =
-  | Char of char
-  | Char_class of char_class
-  | Question
-  | Star
-[@@deriving show]
-
-(* A path segment is what represents a simple file name in a directory *)
-type segment = Segment of segment_fragment list | Any_subpath
-[@@deriving show]
-
-(*
-   A pattern which matches paths.
-*)
-type pattern = segment list [@@deriving show]
-
-val of_path_segments : string list -> pattern
-
-(* A compiled pattern matcher. *)
-type t
-
-val show : t -> string
-val source : t -> loc
-
-(* The pattern that matches '/' *)
-val root_pattern : pattern
-
-(* Append the segments, taking care of trailing slashes that prevent
-   us from using a plain list append (@). *)
-val append : pattern -> pattern -> pattern
 
 (*
    Compile the pattern into something efficient (currently uses the
@@ -104,3 +87,17 @@ val run : t -> string -> bool
    'run' function. I'm worried that logger#debug would be too expensive
    when not debugging. *)
 val debug : bool ref
+
+(* Create a location from a pattern string rather than a location in a file. *)
+val string_loc :
+  ?source_name:string -> source_kind:string option -> string -> loc
+
+val source : t -> loc
+val of_path_segments : string list -> pattern
+
+(* The pattern that matches '/' *)
+val root_pattern : pattern
+
+(* Append the segments, taking care of trailing slashes that prevent
+   us from using a plain list append (@). *)
+val append : pattern -> pattern -> pattern
