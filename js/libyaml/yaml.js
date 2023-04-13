@@ -1,15 +1,10 @@
 //Provides: ctypes_allocate
 function ctypes_allocate(count, size) {
-  const wasm = globalThis.LibYamlModule;
-  console.log(`ctypes_allocate(${count}, ${size})`);
-  const ptr = wasm._malloc(count * size);
-  console.log(` -> return: ${ptr}`);
-  return ptr;
+  return globalThis.LibYamlModule._malloc(count * size);
 }
 
 //Provides: ctypes_block_address
 function ctypes_block_address(a) {
-  console.log(`ctypes_block_address(${a})`);
   return a;
 }
 
@@ -38,7 +33,7 @@ function ctypes_read(primType, buffer) {
     case 13: // Ctypes_Size_t
       return globalThis.LibYamlModule.getValue(buffer[2], "i32");
     case 20: // Ctypes_Uint32_t
-      return new UInt32(globalThis.LibYamlModule.getValue(buffer[2], "i32"));
+      return globalThis.LibYamlModule.getValue(buffer[2], "i32") >>> 0;
     default:
       throw new Error(`how to read prim ${primType}`);
   }
@@ -50,15 +45,16 @@ function ctypes_read_pointer(ptr) {
   return ptr[2];
 }
 
-//Provides: yaml_stub_1_yaml_get_version_string
+//Provides: yaml_stub_1_yaml_get_version_string const
 function yaml_stub_1_yaml_get_version_string() {
-  console.log(`yaml_stub_1_yaml_get_version_string()`);
+  return globalThis.LibYamlModule.UTF8ToString(
+    globalThis.LibYamlModule._yaml_get_version_string()
+  );
 }
 
 //Provides: yaml_stub_2_yaml_get_version
-function yaml_stub_2_yaml_get_version(major_ptr, minor_ptr, patch_ptr) {
-  console.log(`yaml_stub_2_yaml_get_version()`);
-  globalThis.LibYamlModule._get_version(major_ptr, minor_ptr, patch_ptr);
+function yaml_stub_2_yaml_get_version(majorPtr, minorPtr, patchPtr) {
+  globalThis.LibYamlModule._yaml_get_version(majorPtr, minorPtr, patchPtr);
 }
 
 //Provides: yaml_stub_3_yaml_token_delete
@@ -69,25 +65,16 @@ function yaml_stub_3_yaml_token_delete(yaml_token) {
 
 //Provides: yaml_stub_4_yaml_parser_initialize
 function yaml_stub_4_yaml_parser_initialize(parser_ptr) {
-  console.log(`yaml_parser_initialize(${JSON.stringify(parser_ptr[2])})`);
   return globalThis.LibYamlModule._yaml_parser_initialize(parser_ptr[2]);
 }
 
 //Provides: yaml_stub_5_yaml_parser_delete
-function yaml_stub_5_yaml_parser_delete(yaml_parser) {
-  const { wasm, ptr } = yaml_parser;
-  wasm._yaml_parser_delete(ptr);
+function yaml_stub_5_yaml_parser_delete(parser_ptr) {
+  return globalThis.LibYamlModule._yaml_parser_delete(parser_ptr[2]);
 }
 
 //Provides: yaml_stub_6_yaml_parser_set_input_string
 function yaml_stub_6_yaml_parser_set_input_string(parser_ptr, input_ptr, size) {
-  console.log(
-    `yaml_stub_6_yaml_parser_set_input_string(parser_ptr=${
-      parser_ptr[parser_ptr.length - 1][1]
-    }, input_ptr=${input_ptr[3][1]} (${globalThis.LibYamlModule.AsciiToString(
-      input_ptr[3][1]
-    )}), size=${size.value})`
-  );
   globalThis.LibYamlModule._yaml_parser_set_input_string(
     parser_ptr[parser_ptr.length - 1][1],
     input_ptr[3][1],
@@ -97,9 +84,6 @@ function yaml_stub_6_yaml_parser_set_input_string(parser_ptr, input_ptr, size) {
 
 //Provides: yaml_stub_7_yaml_parser_parse
 function yaml_stub_7_yaml_parser_parse(parser_ptr, event_ptr) {
-  console.log(
-    `yaml_stub_7_yaml_parser_parse(parser_ptr=${parser_ptr[2]}, event_ptr=${event_ptr[2]})`
-  );
   return globalThis.LibYamlModule._yaml_parser_parse(
     parser_ptr[2],
     event_ptr[2]
@@ -191,3 +175,17 @@ function yaml_stub_19_yaml_stream_end_event_initialize(event) {
 // yaml_stub_25_yaml_sequence_end_event_initialize
 // yaml_stub_26_yaml_mapping_start_event_initialize
 // yaml_stub_27_yaml_mapping_end_event_initialize
+
+//Always
+//Requires: ctypes_allocate,yaml_stub_1_yaml_get_version_string,yaml_stub_2_yaml_get_version,yaml_stub_4_yaml_parser_initialize,yaml_stub_5_yaml_parser_delete
+(() => {
+  if (globalThis.exposeYamlStubsForTesting) {
+    module.exports = {
+      ctypes_allocate,
+      yaml_stub_1_yaml_get_version_string,
+      yaml_stub_2_yaml_get_version,
+      yaml_stub_4_yaml_parser_initialize,
+      yaml_stub_5_yaml_parser_delete,
+    };
+  }
+})();

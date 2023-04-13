@@ -1,0 +1,12 @@
+{
+  "name": "libyaml-js",
+  "version": "1.0.0",
+  "description": "Javascript bindings for libyaml and ocaml-yaml",
+  "main": "libyaml.test.js",
+  "scripts": {
+    "build": "make",
+    "test": "jest"
+  },
+  "author": "Tom Petr <tom@r2c.dev>",
+  "license": "LGPL-2.1"
+}
