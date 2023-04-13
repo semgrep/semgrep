@@ -351,6 +351,12 @@ let o_time : bool Term.t =
  provides times for each pair (rule, target).
 |}
 
+let o_nosem : bool Term.t =
+  H.negatable_flag [ "enable-nosem" ] ~neg_options:[ "disable-nosem" ]
+    ~doc:
+      {|Enables 'nosem'. Findings will not be reported on lines containing
+          a 'nosem' comment at the end. Enabled by default.|}
+
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Verbosity options" (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
@@ -605,12 +611,6 @@ let o_project_root : string option Term.t =
           in the current directory.|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
-
-let o_nosem : bool Term.t =
-  H.negatable_flag [ "enable-nosem" ] ~neg_options:[ "disable-nosem" ]
-    ~doc:
-      {|Enables 'nosem'. Findings will not be reported on lines containing
-          a 'nosem' comment at the end.|}
 
 (*****************************************************************************)
 (* Turn argv into a conf *)

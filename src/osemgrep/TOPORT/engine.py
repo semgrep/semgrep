@@ -1,9 +1,4 @@
-import multiprocessing
-import subprocess
 from enum import auto
-from enum import Enum
-from pathlib import Path
-from typing import Optional
 
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
