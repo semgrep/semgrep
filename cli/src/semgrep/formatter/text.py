@@ -725,8 +725,8 @@ class TextFormatter(BaseFormatter):
 
             if (extra["engine_requested"].is_interfile) and rules_ran_within_a_file:
                 console.print(
-                    f"{unit_str(len(rules_ran_within_a_file), 'rule')} ran in a within-a-file fashion."
-                    + " because `interfile: true` was not specified"
+                    f"{unit_str(len(rules_ran_within_a_file), 'rule')} ran in a within-a-file fashion"
+                    + " because `interfile: true` was not specified."
                 )
                 if extra.get("verbose_errors"):
                     console.print(
