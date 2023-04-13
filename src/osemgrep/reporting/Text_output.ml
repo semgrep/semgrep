@@ -1,6 +1,8 @@
 module Out = Semgrep_output_v1_t
 
 let ellipsis_string = " ... "
+let base_indent = String.make 8 ' '
+let findings_indent_depth = String.make 10 ' '
 
 let group_titles = function
   | `Unreachable -> "Unreachable Supply Chain Finding"
@@ -20,8 +22,8 @@ let is_blocking (json : Yojson.Basic.t) =
         stuff
   | _else -> false
 
-let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
-    (m : Out.cli_match) =
+let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
+    ~show_separator ppf (m : Out.cli_match) =
   (* TODO dedent lines *)
   (* TODO coloring, bold *)
   ignore color_output;
@@ -48,9 +50,10 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
           if max_chars_per_line > 0 && ll > max_chars_per_line then
             if start_line = line_number && m.start.col > 1 then
               let start, ell_at_end =
-                if m.start.col >= ll - max_chars_per_line then
+                let start_col = m.start.col - 1 in
+                if start_col >= ll - max_chars_per_line then
                   (ll - max_chars_per_line, "")
-                else (m.start.col, ellipsis_string)
+                else (start_col, ellipsis_string)
               in
               ( ellipsis_string
                 ^ String.sub line start max_chars_per_line
@@ -60,39 +63,80 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
               (Str.first_chars line max_chars_per_line ^ ellipsis_string, true)
           else (line, stripped)
         in
-        Fmt.pf ppf "      %u| %s@." line_number line;
+        let line_number_str = string_of_int line_number in
+        let pad = String.make (11 - String.length line_number_str) ' ' in
+        Fmt.pf ppf "%s%s┆ %s@." pad line_number_str line;
         (stripped, succ line_number))
       (false, start_line) lines
   in
   if stripped then
     Fmt.pf ppf
-      "      [shortened a long line from output, adjust with \
-       --max-chars-per-line]@.";
-  Option.iter
-    (fun num ->
+      "%s[shortened a long line from output, adjust with \
+       --max-chars-per-line]@."
+      findings_indent_depth;
+  match trimmed with
+  | Some num ->
       Fmt.pf ppf
-        "       [hid %d additional lines, adjust with \
-         --max-lines-per-finding]@."
-        num)
-    trimmed
+        "%s [hid %d additional lines, adjust with --max-lines-per-finding]@."
+        findings_indent_depth num
+  | None ->
+      if show_separator then
+        Fmt.pf ppf "%s⋮┆%s" findings_indent_depth (String.make 40 '-')
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : Out.cli_match list) =
   (* TODO sorting, skipping path if same as previous *)
-  List.iter
-    (fun (m : Out.cli_match) ->
+  let print_one (last : Out.cli_match option) (cur : Out.cli_match)
+      (next : Out.cli_match option) =
+    let last_message =
+      let print, msg =
+        match last with
+        | None ->
+            Fmt.pf ppf "@.";
+            (true, None)
+        | Some m ->
+            if m.path = cur.path then (false, Some m.extra.message)
+            else (true, None)
+      in
+      if print then Fmt.pf ppf "  %s@." cur.path;
+      msg
+    in
+    let print =
+      match last_message with
+      | None -> true
+      | Some m -> m <> cur.extra.message
+    in
+    if print then (
       let shortlink =
-        match Yojson.Basic.Util.member "shortlink" m.extra.metadata with
-        | `String s -> "      Details: " ^ s
+        match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
+        | `String s -> base_indent ^ "Details: " ^ s
         | _else -> ""
       in
-      Fmt.pf ppf "  %s@." m.path;
-      Fmt.pf ppf "    %s@." m.check_id;
+      Fmt.pf ppf "    %s@." cur.check_id;
       (* TODO message wrapping *)
-      Fmt.pf ppf "      %s@.%s@.@." m.extra.message shortlink;
-      pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf m;
-      Fmt.pf ppf "@.")
-    matches
+      Fmt.pf ppf "      %s@.%s@.@." cur.extra.message shortlink);
+    (* TODO autofix *)
+    let same_file =
+      match next with
+      | None -> false
+      | Some m -> m.path = cur.path
+    in
+    pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
+      ~show_separator:same_file ppf cur;
+    Fmt.pf ppf "@."
+  in
+  let last, cur =
+    List.fold_left
+      (fun (last, cur) (next : Out.cli_match) ->
+        (match cur with
+        | None -> ()
+        | Some m -> print_one last m (Some next));
+        (cur, Some next))
+      (None, None) matches
+  in
+  match cur with
+  | Some m -> print_one last m None
+  | None -> ()
 
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (cli_output : Out.cli_output) =
@@ -122,7 +166,18 @@ let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
                return "reachable" if self.extra["sca_info"].reachable else "unreachable"
         *)
         if is_blocking m.Out.extra.Out.metadata then `Blocking else `Nonblocking)
-      cli_output.results
+      (List.sort
+         (fun (m1 : Out.cli_match) (m2 : Out.cli_match) ->
+           match String.compare m2.path m1.path with
+           | 0 -> (
+               match String.compare m2.check_id m1.check_id with
+               | 0 -> (
+                   match Int.compare m2.start.line m1.start.line with
+                   | 0 -> Int.compare m2.start.col m1.start.col
+                   | x -> x)
+               | x -> x)
+           | x -> x)
+         cli_output.results)
   in
   (* if not is_ci_invocation *)
   let groups =
