@@ -209,8 +209,9 @@ let o_max_target_bytes : int Term.t =
 negative value disables this filter. Defaults to 1000000 bytes.
 |}
   in
-  (* TOPORT: support '1.5MB' and such, see bytesize.py *)
-  Arg.value (Arg.opt Arg.int default.targeting_conf.max_target_bytes info)
+  Arg.value
+    (Arg.opt Cmdliner_helpers.number_of_bytes_converter
+       default.targeting_conf.max_target_bytes info)
 
 let o_respect_git_ignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
