@@ -43,7 +43,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       (fun (stripped, line_number) line ->
         let line, stripped =
           if max_chars_per_line > 0 && String.length line > max_chars_per_line
-          then (String.sub line 0 max_chars_per_line, true)
+          then (Str.first_chars line max_chars_per_line, true)
           else (line, stripped)
         in
         Fmt.pf ppf "      %u| %s@." line_number line;
