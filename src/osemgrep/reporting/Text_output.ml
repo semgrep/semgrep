@@ -1,5 +1,7 @@
 module Out = Semgrep_output_v1_t
 
+let ellipsis_string = " ... "
+
 let group_titles = function
   | `Unreachable -> "Unreachable Supply Chain Finding"
   | `Undetermined -> "Undetermined Supply Chain Finding"
@@ -48,16 +50,14 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
               let start, ell_at_end =
                 if m.start.col >= ll - max_chars_per_line then
                   (ll - max_chars_per_line, "")
-                else (m.start.col, Constants.ellipsis_string)
+                else (m.start.col, ellipsis_string)
               in
-              ( Constants.ellipsis_string
+              ( ellipsis_string
                 ^ String.sub line start max_chars_per_line
                 ^ ell_at_end,
                 true )
             else
-              ( Str.first_chars line max_chars_per_line
-                ^ Constants.ellipsis_string,
-                true )
+              (Str.first_chars line max_chars_per_line ^ ellipsis_string, true)
           else (line, stripped)
         in
         Fmt.pf ppf "      %u| %s@." line_number line;
@@ -65,12 +65,15 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       (false, start_line) lines
   in
   if stripped then
-    Fmt.pf ppf "      [shortened a long line from output, adjust with --%s]@."
-      Constants.max_chars_flag_name;
+    Fmt.pf ppf
+      "      [shortened a long line from output, adjust with \
+       --max-chars-per-line]@.";
   Option.iter
     (fun num ->
-      Fmt.pf ppf "       [hid %d additional lines, adjust with --%s]@." num
-        Constants.max_lines_flag_name)
+      Fmt.pf ppf
+        "       [hid %d additional lines, adjust with \
+         --max-lines-per-finding]@."
+        num)
     trimmed
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf

@@ -6,7 +6,6 @@
    commons
    fmt
    semgrep.reporting
-   osemgrep_core
  )
  (preprocess
    (pps
