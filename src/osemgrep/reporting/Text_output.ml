@@ -42,8 +42,22 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     List.fold_left
       (fun (stripped, line_number) line ->
         let line, stripped =
-          if max_chars_per_line > 0 && String.length line > max_chars_per_line
-          then (Str.first_chars line max_chars_per_line, true)
+          let ll = String.length line in
+          if max_chars_per_line > 0 && ll > max_chars_per_line then
+            if start_line = line_number && m.start.col > 1 then
+              let start, ell_at_end =
+                if m.start.col >= ll - max_chars_per_line then
+                  (ll - max_chars_per_line, "")
+                else (m.start.col, Constants.ellipsis_string)
+              in
+              ( Constants.ellipsis_string
+                ^ String.sub line start max_chars_per_line
+                ^ ell_at_end,
+                true )
+            else
+              ( Str.first_chars line max_chars_per_line
+                ^ Constants.ellipsis_string,
+                true )
           else (line, stripped)
         in
         Fmt.pf ppf "      %u| %s@." line_number line;

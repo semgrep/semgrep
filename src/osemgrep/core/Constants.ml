@@ -28,4 +28,4 @@ let break_line_char = '-'
 let _break_line = String.make break_line_width break_line_char
 let max_chars_flag_name = "max-chars-per-line"
 let default_max_chars_per_line = 160
-let _ellipsis_string = " ... "
+let ellipsis_string = " ... "
