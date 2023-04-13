@@ -128,3 +128,69 @@ class Colors(Enum):
     # these colors ignore user's terminal theme
     forced_black = 16  # #000
     forced_white = 231  # #FFF
+
+
+"""
+ChatGPT prompt to generate:
+
+--
+Please give me the top 20 package managers and their lockfiles' names in a JSON array format with the following keys: "language", "package_manager", "lockfile_path".
+
+Example entry:
+
+{"language": "python", "package_manager": "Poetry", "lockfile_path": "poetry.lock"}
+
+Add a field for "manifest_path". This points to the file where you specify dependencies without locking to a specific version. "manifest_path" can be null. "lockfile_path" can also be null.
+--
+
+Manually converted to Python format and removed supported or weird entries
+"""
+# fmt: off
+UNSUPPORTED_PACKAGE_MANAGERS = [
+    {"language": "c", "package_manager": "Conan", "manifest_path": "conanfile.txt", "lockfile_path": "conan.lock"},
+    {"language": "c", "package_manager": "pkg-config", "manifest_path": ".pc", "lockfile_path": None},
+    {"language": "c", "package_manager": "Vcpkg", "manifest_path": "vcpkg.json", "lockfile_path": None},
+    {"language": "clojure", "package_manager": "Boot", "manifest_path": "build.boot", "lockfile_path": None},
+    {"language": "clojure", "package_manager": "deps.edn", "manifest_path": "deps.edn", "lockfile_path": None},
+    {"language": "clojure", "package_manager": "Leiningen", "manifest_path": "project.clj", "lockfile_path": None},
+    {"language": "cplusplus", "package_manager": "Conan", "manifest_path": "conanfile.txt", "lockfile_path": "conan.lock"},
+    {"language": "cplusplus", "package_manager": "pkg-config", "manifest_path": ".pc", "lockfile_path": None},
+    {"language": "cplusplus", "package_manager": "Vcpkg", "manifest_path": "vcpkg.json", "lockfile_path": None},
+    {"language": "crystal", "package_manager": "Shards", "manifest_path": "shard.yml", "lockfile_path": "shard.lock"},
+    {"language": "dart", "package_manager": "Flutter", "manifest_path": "pubspec.yaml", "lockfile_path": "pubspec.lock"},
+    {"language": "dart", "package_manager": "Pub", "manifest_path": "pubspec.yaml", "lockfile_path": "pubspec.lock"},
+    {"language": "dotnet", "package_manager": "NuGet", "manifest_path": ".csproj", "lockfile_path": "packages.lock.json"},
+    {"language": "elixir", "package_manager": "Mix", "manifest_path": "mix.exs", "lockfile_path": "mix.lock"},
+    {"language": "elm", "package_manager": "Elm", "manifest_path": "elm.json", "lockfile_path": None},
+    {"language": "erlang", "package_manager": "Rebar3", "manifest_path": "rebar.config", "lockfile_path": "rebar.lock"},
+    {"language": "fortran", "package_manager": "fpm", "manifest_path": "fpm.toml", "lockfile_path": None},
+    {"language": "fsharp", "package_manager": "Paket", "manifest_path": "paket.dependencies", "lockfile_path": "paket.lock"},
+    {"language": "groovy", "package_manager": "Apache Ivy", "manifest_path": "ivy.xml", "lockfile_path": None},
+    {"language": "groovy", "package_manager": "Grape", "manifest_path": "grapeConfig.xml", "lockfile_path": None},
+    {"language": "haskell", "package_manager": "Cabal", "manifest_path": "cabal.project", "lockfile_path": "cabal.project.freeze"},
+    {"language": "haskell", "package_manager": "Stack", "manifest_path": "stack.yaml", "lockfile_path": "stack.yaml.lock"},
+    {"language": "idris", "package_manager": "Elba", "manifest_path": "elba.toml", "lockfile_path": None},
+    {"language": "julia", "package_manager": "Pkg", "manifest_path": "Project.toml", "lockfile_path": "Manifest.toml"},
+    {"language": "kotlin", "package_manager": "Kobalt", "manifest_path": "Build.kt", "lockfile_path": None},
+    {"language": "kotlin", "package_manager": "Kotlin/JS", "manifest_path": "build.gradle.kts", "lockfile_path": None},
+    {"language": "kotlin", "package_manager": "Kotlin/Native", "manifest_path": "build.gradle.kts", "lockfile_path": None},
+    {"language": "lua", "package_manager": "LuaRocks", "manifest_path": "rockspec", "lockfile_path": None},
+    {"language": "nim", "package_manager": "Nimble", "manifest_path": ".nimble", "lockfile_path": None},
+    {"language": "nim", "package_manager": "NimScript", "manifest_path": "config.nims", "lockfile_path": None},
+    {"language": "ocaml", "package_manager": "OPAM", "manifest_path": "opam", "lockfile_path": None},
+    {"language": "perl", "package_manager": "Carton", "manifest_path": "cpanfile", "lockfile_path": "cpanfile.snapshot"},
+    {"language": "perl", "package_manager": "CPANfile", "manifest_path": "cpanfile", "lockfile_path": None},
+    {"language": "php", "package_manager": "Composer", "manifest_path": "composer.json", "lockfile_path": "composer.lock"},
+    {"language": "php", "package_manager": "PEAR", "manifest_path": "package.xml", "lockfile_path": None},
+    {"language": "r", "package_manager": "Packrat", "manifest_path": "packrat.lock", "lockfile_path": None},
+    {"language": "r", "package_manager": "renv", "manifest_path": "renv.lock", "lockfile_path": None},
+    {"language": "reason", "package_manager": "Esy", "manifest_path": "esy.json", "lockfile_path": "esy.lock"},
+    {"language": "scala", "package_manager": "Bazel", "manifest_path": "WORKSPACE", "lockfile_path": None},
+    {"language": "scala", "package_manager": "Bloop", "manifest_path": "bloop.settings.json", "lockfile_path": None},
+    {"language": "scala", "package_manager": "Coursier", "manifest_path": "build.sbt", "lockfile_path": None},
+    {"language": "scala", "package_manager": "Mill", "manifest_path": "build.sc", "lockfile_path": None},
+    {"language": "scala", "package_manager": "Pants", "manifest_path": "pants.toml", "lockfile_path": None},
+    {"language": "scala", "package_manager": "sbt", "manifest_path": "build.sbt", "lockfile_path": None},
+    {"language": "swift", "package_manager": "Swift Package Manager", "manifest_path": "Package.swift", "lockfile_path": "Package.resolved"},
+]
+# fmt: on

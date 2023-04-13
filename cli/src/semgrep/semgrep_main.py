@@ -195,6 +195,9 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
 
+    console.print(Title("Ignored files configuration", order=2))
+    target_manager.ignore_log.print()
+
 
 def run_rules(
     filtered_rules: List[Rule],

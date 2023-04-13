@@ -19,6 +19,10 @@ from typing import Type
 
 import requests
 from boltons.iterutils import partition
+from rich.columns import Columns
+from rich.padding import Padding
+from rich.table import Table
+from rich.text import Text
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
@@ -387,7 +391,7 @@ class OutputHandler:
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
 
-            ignores_line = str(ignore_log or "No ignore information available")
+            str(ignore_log or "No ignore information available")
             suggestion_line = ""
             if (
                 num_findings == 0
@@ -403,9 +407,34 @@ class OutputHandler:
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
 
-            output_text = ignores_line + suggestion_line + stats_line
-            console.print(Title("Scan Summary"))
-            logger.info(output_text)
+        console.print(Title("Scan Summary"))
+        sast_skips_table = Table.grid()
+        if self.semgrep_structured_errors:
+            for error in semgrep_core_errors:
+                for span in error.spans:
+                    sast_skips_table.add_row(
+                        "- ",
+                        f"{span.file}:{span.start.line}:{span.start.col}",
+                        "  ",
+                        error.core.message,
+                    )
+
+        if sast_skips_table.rows:
+            console.print(
+                Padding(
+                    Columns(
+                        [
+                            Text()
+                            .append("Incomplete analysis".upper(), style="underline")
+                            .append(":"),
+                            f"{unit_str(len(sast_skips_table.rows), 'file')} with incomplete analysis due to parsing or internal Semgrep errors",
+                        ]
+                    ),
+                    (1, 0),
+                )
+            )
+
+            console.print(Padding(sast_skips_table, (1, 0)))
 
         self._final_raise(final_error)
 

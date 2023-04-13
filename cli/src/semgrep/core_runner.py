@@ -932,7 +932,7 @@ class CoreRunner:
             list
         )
 
-        lockfiles = target_manager.get_all_lockfiles()
+        lockfiles = target_manager.get_supported_lockfiles()
 
         rules = [
             rule

@@ -22,6 +22,7 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from semgrep.console import console
 from semgrep.git import BaselineHandler
 
 # usually this would be a try...except ImportError
@@ -40,7 +41,11 @@ from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 from boltons.iterutils import partition
 
-from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
+from semgrep.constants import (
+    UNSUPPORTED_PACKAGE_MANAGERS,
+    Colors,
+    UNSUPPORTED_EXT_IGNORE_LANGS,
+)
 from semgrep.error import FilesNotFoundError
 from semgrep.formatter.text import width
 from semgrep.ignores import FileIgnore
@@ -136,6 +141,8 @@ class FileTargetingLog:
     )
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
+
+    unsupported_lockfiles: Dict[Path, Dict] = Factory(dict)
 
     @property
     def unsupported_lang_paths(self) -> FrozenSet[Path]:
@@ -286,6 +293,14 @@ class FileTargetingLog:
                 yield 2, with_color(Colors.cyan, f"{path} ({skipped} lines skipped)")
         else:
             yield 2, "<none>"
+
+    def print(self) -> None:
+        if self.target_manager.respect_git_ignore:
+            console.print(
+                "Skipping all files ignored by git. For a full list of skipped files, run semgrep with the --verbose flag."
+            )
+
+        if
 
     def verbose_output(self) -> str:
         formatters_by_level: Mapping[int, Callable[[str], str]] = {
@@ -569,33 +584,43 @@ class TargetManager:
         )
         return cast(List[Path], result)
 
-    def filter_by_language(
-        self, language: Union[Language, Ecosystem], *, candidates: FrozenSet[Path]
+    def filter_by_kind(
+        self, kind: Union[Language, Ecosystem, Path], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
-        Returns only paths that have the correct extension or shebang, or are the correct lockfile format
+        Returns only paths of a kind, e.g. 'python files' or 'yarn files.
 
-        Finds all files in a collection of paths that either:
-        - end with one of a set of extension
-        - is a script that executes with one of a set of programs
-        - are lockfiles associated with a given ecosystem
+        Looks for the correct extension, shebang, or filename.
+
+        Finds all files in a collection of paths that...
+        ...for a Language:
+          - end with one of a set of extension
+          - or is a script that executes with one of a set of programs
+        ...for an Ecosystem:
+          - are lockfiles associated with a given ecosystem
+        ...for a Path:
+          - match the provided path
         """
-        if isinstance(language, Language):
+        if isinstance(kind, Language):
             kept = frozenset(
                 path
                 for path in candidates
-                if any(str(path).endswith(ext) for ext in language.definition.exts)
-                or self.executes_with_shebang(path, language.definition.shebangs)
+                if any(str(path).endswith(ext) for ext in kind.definition.exts)
+                or self.executes_with_shebang(path, kind.definition.shebangs)
             )
-        else:
+        elif isinstance(kind, Ecosystem):
             kept = frozenset(
                 path
                 for path in candidates
                 if any(
                     str(path.parts[-1]) == lockfile_name
-                    for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
+                    for lockfile_name in ECOSYSTEM_TO_LOCKFILES[kind]
                 )
             )
+        elif isinstance(kind, Path):
+            kept = frozenset(path for path in candidates if path.parts[-1] == str(kind))
+        else:
+            raise ValueError(f"Unknown kind: {kind}")
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
@@ -667,10 +692,17 @@ class TargetManager:
         return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
+    def get_files_for_kind(
+        self, kind: Union[Language, Ecosystem, Path]
+    ) -> FilteredFiles:
         """
-        Return all files that are decendants of any directory in TARGET that have
-        an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
+        Return all files that are decendants of any directory in TARGET that
+
+        - have an extension matching KIND
+        - or are a lockfile for KIND ecosystem
+        - or match the KIND path
+
+        that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
@@ -679,8 +711,9 @@ class TargetManager:
         """
         all_files = self.get_all_files()
 
-        files = self.filter_by_language(lang, candidates=all_files)
-        self.ignore_log.by_language[lang].update(files.removed)
+        files = self.filter_by_kind(kind, candidates=all_files)
+        if isinstance(kind, Language):
+            self.ignore_log.by_language[kind].update(files.removed)
 
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)
@@ -692,7 +725,7 @@ class TargetManager:
         self.ignore_log.always_skipped.update(files.removed)
 
         # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
-        if not isinstance(lang, Ecosystem):
+        if not isinstance(kind, Ecosystem):
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
@@ -705,9 +738,7 @@ class TargetManager:
         explicit_files = frozenset(
             t.path for t in self.targets if not t.path.is_dir() and t.path.is_file()
         )
-        explicit_files_for_lang = self.filter_by_language(
-            lang, candidates=explicit_files
-        )
+        explicit_files_for_lang = self.filter_by_kind(kind, candidates=explicit_files)
         kept_files |= explicit_files_for_lang.kept
         if self.allow_unknown_extensions:
             explicit_files_of_unknown_lang = self.filter_known_extensions(
@@ -735,7 +766,7 @@ class TargetManager:
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        paths = self.get_files_for_language(lang)
+        paths = self.get_files_for_kind(lang)
 
         paths = self.filter_includes(rule_includes, candidates=paths.kept)
         self.ignore_log.rule_includes[rule_id].update(paths.removed)
@@ -745,7 +776,7 @@ class TargetManager:
 
         return paths.kept
 
-    def get_all_lockfiles(self) -> Dict[Ecosystem, FrozenSet[Path]]:
+    def get_supported_lockfiles(self) -> Dict[Ecosystem, FrozenSet[Path]]:
         """
         Return a dict mapping each ecosystem to the set of lockfiles for that ecosystem
         """
@@ -762,6 +793,17 @@ class TargetManager:
             ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
         }
 
+    def get_unsupported_lockfiles(self) -> Dict[Path, Dict]:
+        results = {}
+        for package_manager in UNSUPPORTED_PACKAGE_MANAGERS:
+            if not package_manager["lockfile_path"]:
+                continue
+            for lockfile in self.get_files_for_kind(
+                Path(package_manager["lockfile_path"])
+            ).kept:
+                results[lockfile] = package_manager
+        return results
+
     @lru_cache(maxsize=None)
     def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:
         """
@@ -769,7 +811,8 @@ class TargetManager:
 
         Respects semgrepignore/exclude flag
         """
-        return self.get_files_for_language(ecosystem).kept
+        self.ignore_log.unsupported_lockfiles = self.get_unsupported_lockfiles()
+        return self.get_files_for_kind(ecosystem).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """

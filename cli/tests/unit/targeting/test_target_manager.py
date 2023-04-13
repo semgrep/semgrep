@@ -196,12 +196,12 @@ def test_skip_symlink(tmp_path, monkeypatch):
     PY = Language("python")
 
     assert_path_sets_equal(
-        TargetManager([str(foo)]).get_files_for_language(PY).kept,
+        TargetManager([str(foo)]).get_files_for_kind(PY).kept,
         {foo / "a.py"},
     )
 
     with pytest.raises(FilesNotFoundError):
-        TargetManager([str(foo / "link.py")]).get_files_for_language(PY)
+        TargetManager([str(foo / "link.py")]).get_files_for_kind(PY)
 
 
 @pytest.mark.quick
@@ -392,9 +392,9 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
 
     target_manager = TargetManager(targets)
 
-    target_manager.get_files_for_language(LANG_PY)
-    target_manager.get_files_for_language(LANG_GENERIC)
-    target_manager.get_files_for_language(LANG_REGEX)
+    target_manager.get_files_for_kind(LANG_PY)
+    target_manager.get_files_for_kind(LANG_GENERIC)
+    target_manager.get_files_for_kind(LANG_REGEX)
 
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
@@ -428,8 +428,8 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
 
     target_manager = TargetManager(targets)
 
-    target_manager.get_files_for_language(LANG_GENERIC)
-    target_manager.get_files_for_language(LANG_REGEX)
+    target_manager.get_files_for_kind(LANG_GENERIC)
+    target_manager.get_files_for_kind(LANG_REGEX)
 
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
