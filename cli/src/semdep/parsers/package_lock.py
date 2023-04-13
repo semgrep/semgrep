@@ -24,12 +24,6 @@ logger = getLogger(__name__)
 
 
 def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
-    deps_json = deps.get("packages")
-    if deps_json is None:
-        logger.debug("Found package-lock with no 'packages'")
-        return []
-
-    deps = deps_json.as_dict()
     try:
         manifest_deps = set(deps[""].as_dict()["dependencies"].as_dict().keys())
     except KeyError:
@@ -39,7 +33,7 @@ def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
         fields = dep_json.as_dict()
         version = fields.get("version")
         package_name = package[
-            package.rfind("node_modules") + 12 :
+            package.rfind("node_modules") + 13 :
         ]  # we only want the stuff after the final 'node_modules'
         if not version:
             logger.info(f"no version for dependency: {package}")
