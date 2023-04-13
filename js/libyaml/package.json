@@ -8,5 +8,8 @@
     "test": "jest"
   },
   "author": "Tom Petr <tom@r2c.dev>",
-  "license": "LGPL-2.1"
+  "license": "LGPL-2.1",
+  "devDependencies": {
+    "jest": "^29.5.0"
+  }
 }
