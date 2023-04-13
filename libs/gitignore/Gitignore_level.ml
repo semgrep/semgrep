@@ -13,5 +13,5 @@ type t = {
   (* Informational text indicating where the gitignore patterns came from *)
   source_name : string;
   (* Sequence of path selectors derived from gitignore patterns *)
-  patterns : Gitignore_syntax.path_selector list;
+  patterns : Gitignore_syntax.t;
 }

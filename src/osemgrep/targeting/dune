@@ -11,6 +11,7 @@
     commons
     fpath
     globbing
+    gitignore
   )
   (preprocess (pps ppx_deriving.show))
 )

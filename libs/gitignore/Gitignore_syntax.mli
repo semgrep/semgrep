@@ -2,7 +2,22 @@
    Implement the full gitignore syntax
 
    https://git-scm.com/docs/gitignore
+
+   This is mostly the syntax supported by ../globbing/ with the addition
+   of negator (!) at the beginning of a line to "deselect" a file.
 *)
+
+(* content of a .gitignore *)
+type t = path_selector list
+
+and path_selector = {
+  loc : Glob_matcher.loc;
+  (* The matcher tells whether a given path matches the pattern.
+     For example, the pattern '/f*' matches the path '/foo'.
+
+     The result comes with a selection event in case of a match. *)
+  matcher : Git_path.t -> selection_event option;
+}
 
 (*
    An event representing where a pattern matched a path. The sequence
@@ -14,7 +29,7 @@
    - Deselected: deselect the file (= don't ignore it for git purposes)
      e.g. a file deselected via '!generated/main.c'
 *)
-type selection_event =
+and selection_event =
   | Selected of Glob_matcher.loc
   | Deselected of Glob_matcher.loc
 
@@ -25,18 +40,6 @@ val show_selection_event : selection_event -> string
    (unlike the list which has the most recent first).
 *)
 val show_selection_events : selection_event list -> string
-
-(* Path selector. *)
-type path_selector = {
-  loc : Glob_matcher.loc;
-  (* The matcher tells whether a given path matches the pattern.
-     For example, the pattern '/f*' matches the path '/foo'.
-
-     The result comes with a selection event in case of a match. *)
-  matcher : Git_path.t -> selection_event option;
-}
-
-type t = path_selector list
 
 (* Parsing functions. They will raise exceptions if the input is malformed.
 
@@ -50,7 +53,7 @@ val from_string :
 
 val from_file : anchor:Glob_matcher.pattern -> kind:string -> Fpath.t -> t
 
-(*
+(* Internals.
    Remove the leading exclamation mark from the string, returning
    'Some new_string' if successful, 'None' otherwise.
 *)

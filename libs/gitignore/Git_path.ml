@@ -5,7 +5,15 @@
 open Printf
 open File.Operators
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type t = { string : string; segments : string list }
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let of_string string =
   let segments =
@@ -151,12 +159,20 @@ let remove_prefix root path =
       in
       Some rel_path
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
 let in_project ~root path =
   match remove_prefix root path with
   | None ->
       Error
         (sprintf "cannot make path %S relative to project root %S" !!path !!root)
   | Some path -> path |> of_fpath |> make_absolute |> normalize
+
+(*****************************************************************************)
+(* Inline tests *)
+(*****************************************************************************)
 
 let () =
   Testutil.test "Git_path" (fun () ->

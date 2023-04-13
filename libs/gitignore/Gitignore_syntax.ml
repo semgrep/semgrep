@@ -6,6 +6,10 @@
 
 module M = Glob_matcher
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type selection_event = Selected of M.loc | Deselected of M.loc
 
 type path_selector = {
@@ -14,6 +18,10 @@ type path_selector = {
 }
 
 type t = path_selector list
+
+(*****************************************************************************)
+(* Dumpers *)
+(*****************************************************************************)
 
 let show_selection_event x =
   match x with
@@ -25,6 +33,10 @@ let show_selection_events xs =
   List.rev xs
   |> Common.map (fun x -> show_selection_event x ^ "\n")
   |> String.concat ""
+
+(*****************************************************************************)
+(* Parser *)
+(*****************************************************************************)
 
 let read_lines_from_string =
   (*
@@ -110,6 +122,10 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
       | false -> None
     in
     Some { loc; matcher }
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let from_string ~anchor ~name ~kind str =
   let lines = read_lines_from_string str in

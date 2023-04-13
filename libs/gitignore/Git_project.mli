@@ -24,17 +24,6 @@ val find_git_project_root : Fpath.t -> (Fpath.t * Git_path.t) option
 
 type kind = Git_project | Other_project [@@deriving show]
 
-(* The default value of '?fallback_project_root' *)
-val default_project_root : Fpath.t
-
-(*
-   Provide a similar result as 'find_git_project_root' but don't look
-   for a git project root. Instead, use the project root provided
-   by 'project_root' which defaults to the current directory.
-*)
-val force_project_root :
-  ?project_root:Fpath.t -> Fpath.t -> Fpath.t * Git_path.t
-
 (*
    Find a project root even if the given path is not within a git project.
 
@@ -56,3 +45,14 @@ val find_any_project_root :
   ?force_root:kind * Fpath.t ->
   Fpath.t ->
   kind * Fpath.t * Git_path.t
+
+(* The default value of '?fallback_project_root' *)
+val default_project_root : Fpath.t
+
+(*
+   Provide a similar result as 'find_git_project_root' but don't look
+   for a git project root. Instead, use the project root provided
+   by 'project_root' which defaults to the current directory.
+*)
+val force_project_root :
+  ?project_root:Fpath.t -> Fpath.t -> Fpath.t * Git_path.t

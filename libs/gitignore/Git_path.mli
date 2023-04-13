@@ -9,6 +9,20 @@
 
 type t = private { string : string; segments : string list }
 
+(*
+   Return an absolute, normalized git path relative to the project root.
+   This is purely syntactic. It is recommended to work on physical paths
+   as returned by 'realpath' to ensure that both paths share the longest
+   common prefix.
+
+     in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
+
+   equals
+
+     Ok (Git_path.of_string "/b/c")
+*)
+val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
+
 (* A slash-separated path. *)
 val of_string : string -> t
 val to_string : t -> string
@@ -50,17 +64,3 @@ val to_fpath : root:Fpath.t -> t -> Fpath.t
 
 (* / *)
 val root : t
-
-(*
-   Return an absolute, normalized git path relative to the project root.
-   This is purely syntactic. It is recommended to work on physical paths
-   as returned by 'realpath' to ensure that both paths share the longest
-   common prefix.
-
-     in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
-
-   equals
-
-     Ok (Git_path.of_string "/b/c")
-*)
-val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
