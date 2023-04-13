@@ -13,6 +13,7 @@ clean:
 
 .PHONY: test
 test: default
+	npm ci
 	npm run test
 
 dist/libyaml.js: *.c
