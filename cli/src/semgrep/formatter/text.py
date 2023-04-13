@@ -717,21 +717,23 @@ class TextFormatter(BaseFormatter):
                 else []
             )
 
-            oss_rules = [
+            rules_ran_within_a_file = [
                 with_color(Colors.foreground, rule.value[0].value, bold=True)
                 for rule in rules_by_engine
                 if isinstance(rule.value[1].value, out.OSS)
             ]
 
-            if (extra["engine_requested"].is_interfile) and oss_rules:
+            if (extra["engine_requested"].is_interfile) and rules_ran_within_a_file:
                 console.print(
-                    "Some rules were run as OSS rules because `interfile: true` was not specified."
+                    f"{unit_str(len(rules_ran_within_a_file), 'rule')} ran in a within-a-file fashion"
+                    + " because `interfile: true` was not specified."
                 )
                 if extra.get("verbose_errors"):
-                    console.print("These rules were:\n   " + "   \n   ".join(oss_rules))
-                else:
                     console.print(
-                        f"{unit_str(len(oss_rules), 'rule')} ran with OSS engine (--verbose to see which)"
+                        "These rules were:\n   "
+                        + "   \n   ".join(rules_ran_within_a_file)
                     )
+                else:
+                    console.print("(Use --verbose to see which ones.)")
 
         return captured_output.get()
