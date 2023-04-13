@@ -14,7 +14,6 @@ jobs:
     env:
       HOME: /root
     steps:
-      - uses: actions/setup-node@v3
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
@@ -38,6 +37,11 @@ jobs:
           /emsdk/emsdk install 3.1.35
           /emsdk/emsdk activate 3.1.35
           export PATH=/emsdk:/emsdk/upstream/emscripten:$PATH
+
+          echo "Installing a modern version of node..."
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+          . ~/.nvm/nvm.sh
+          nvm install --lts
 
           echo "Building JS + WASM..."
           make -C js
