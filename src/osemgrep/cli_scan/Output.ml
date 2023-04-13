@@ -63,7 +63,7 @@ let apply_fixes_and_warn (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t)
-    (cli_output : Out.cli_output) =
+    (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -133,7 +133,10 @@ let dispatch_output_format (output_format : Output_format.t)
                    ]
                  in
                  pr (String.concat ":" parts))
-  | Text -> Text_output.pp_cli_output Format.std_formatter cli_output
+  | Text ->
+      Text_output.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
+        ~max_lines_per_finding:conf.max_lines_per_finding
+        ~color_output:conf.force_color Format.std_formatter cli_output
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
@@ -167,5 +170,5 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
   in
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
-  dispatch_output_format conf.output_format cli_output;
+  dispatch_output_format conf.output_format conf cli_output;
   ()
