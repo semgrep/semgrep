@@ -7,10 +7,6 @@ https://rich.readthedocs.io/en/stable/console.html#console-api
 See also the semgrep.terminal module which is an earlier attempt to standardize some output configuration,
 but is more low level and doesn't really offload logic to other libraries.
 """
-from typing import Any
-from typing import Optional
-
-from attrs import frozen
 from rich import box
 from rich.console import Console
 from rich.console import Group
@@ -18,7 +14,6 @@ from rich.console import RenderableType
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
-
 
 @frozen
 class Title:
@@ -99,17 +94,3 @@ MAX_WIDTH = 160
 
 console = AutoIndentingConsole(highlighter=None)
 console.width = min(console.width, MAX_WIDTH)
-
-
-if __name__ == "__main__":
-    """Print samples of the above components."""
-    console.print("[bold]Semgrep output formatting samples:[/bold]", markup=True)
-    console.print(Title("Level 1"))
-    console.print("auto-indented text")
-    console.print(Title("Level 2", order=2))
-    console.print("auto-indented text")
-    console.print(Title("Level 3", order=3))
-    console.print("auto-indented text")
-    console.reset_title()
-    console.print("auto-indented text after title reset")
-    console.print("bit of markup: [/#]")

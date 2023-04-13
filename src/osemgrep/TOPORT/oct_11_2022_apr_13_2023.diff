@@ -612,52 +612,7 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/cli.py /home/pad/yy/cli/src/semgrep/cli.py
 --- /tmp/semgrep/cli/src/semgrep/cli.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/cli.py	2023-03-17 09:21:14.519881198 +0100
-@@ -1,10 +1,12 @@
- #!/usr/bin/env python3
-+import platform
-+import sys
- from typing import Dict
- 
- import click
- 
- from semgrep.commands.ci import ci
--from semgrep.commands.install import install_deep_semgrep
-+from semgrep.commands.install import install_semgrep_pro
- from semgrep.commands.login import login
- from semgrep.commands.login import logout
- from semgrep.commands.lsp import lsp
-@@ -12,6 +14,7 @@ from semgrep.commands.publish import pub
- from semgrep.commands.scan import scan
- from semgrep.commands.shouldafound import shouldafound
- from semgrep.default_group import DefaultGroup
-+from semgrep.error import FATAL_EXIT_CODE
- from semgrep.state import get_state
- from semgrep.util import git_check_output
- from semgrep.verbose_logging import getLogger
-@@ -44,6 +47,16 @@ def maybe_set_git_safe_directories() ->
-         )
- 
- 
-+def abort_if_linux_arm64() -> None:
-+    """
-+    Exit with FATAL_EXIT_CODE if the user is running on Linux ARM64.
-+    Print helpful error message.
-+    """
-+    if platform.machine() in {"arm64", "aarch64"} and platform.system() == "Linux":
-+        logger.error("Semgrep does not support Linux ARM64")
-+        sys.exit(FATAL_EXIT_CODE)
-+
-+
- @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
- @click.help_option("--help", "-h")
- @click.pass_context
-@@ -58,6 +71,8 @@ def cli(ctx: click.Context) -> None:
-     state = get_state()
-     state.terminal.init_for_cli()
- 
-+    abort_if_linux_arm64()
-+
-     commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
+@@ -1,2 +1,2 @@
  
      subcommand: str = (
 @@ -67,6 +82,7 @@ def cli(ctx: click.Context) -> None:

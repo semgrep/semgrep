@@ -6,10 +6,6 @@
 # https://pypi.org/project/datasize/ (documentation?)
 # or https://github.com/xolox/python-humanfriendly
 #
-from typing import Optional
-from typing import Union
-
-import click
 
 UNITS = {
     "": 1,
@@ -26,8 +22,6 @@ UNITS = {
 
 
 def parse_size(input: str) -> int:
-    import re
-
     s = input.upper()
     # note that '1e6' is a valid float and should not become '1 e6'.
     s = re.sub(r"([BKMGT][A-Z]*)", r" \1", s)

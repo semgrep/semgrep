@@ -1,10 +1,6 @@
 """
 Save information about the command
 """
-from attr import define
-from typing_extensions import Literal
-from typing_extensions import TypedDict
-
 
 class CommandSchema(TypedDict, total=False):
     subcommand: str

@@ -10,15 +10,6 @@ _scan_options: List[Callable] = [
  optgroup.group("Display options"),
 
     optgroup.option(
-        "--enable-nosem/--disable-nosem",
-        is_flag=True,
-        default=True,
-        help="""
-            --enable-nosem enables 'nosem'. Findings will not be reported on lines
-            containing a 'nosem' comment at the end. Enabled by default.
-        """,
-    ),
-    optgroup.option(
         MAX_CHARS_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_CHARS_PER_LINE,
@@ -79,7 +70,6 @@ _scan_options: List[Callable] = [
 def scan(
     *,
     deep: bool,
-    enable_nosem: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,
