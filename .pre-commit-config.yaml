@@ -210,7 +210,7 @@ repos:
         # explicitly on the command line by pre-commit!
         # TODO: remove once file targeting is revamped and supports
         # filtering for explicit targets (a command-line flag should do)
-        exclude: "Realpath.ml"
+        # exclude: "xxx.ml"
 
         #coupling: 'make check' and the SEMGREP_ARGS variable
         args: [

@@ -32,6 +32,3 @@
 # rules being tested for performance
 /perf/rules/
 /perf/r2c-rules/
-
-# Various counterproductive semgrep findings for OCaml in here:
-Realpath.ml
