@@ -18,22 +18,49 @@ let is_blocking (json : Yojson.Basic.t) =
         stuff
   | _else -> false
 
-let pp_finding ppf (m : Out.cli_match) =
-  (* TODO trim lines *)
+let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
+    (m : Out.cli_match) =
   (* TODO dedent lines *)
-  (* TODO strip lines *)
   (* TODO coloring, bold *)
+  ignore color_output;
   let lines =
     Option.value
       ~default:(String.split_on_char '\n' m.extra.lines)
       m.extra.fixed_lines
   in
+  let lines, trimmed =
+    let ll = List.length lines in
+    let max_lines =
+      if max_lines_per_finding = 0 then ll else max_lines_per_finding
+    in
+    let keep = min ll max_lines in
+    if keep = ll then (lines, None)
+    else (Common.take keep lines, Some (ll - keep))
+  in
   let start_line = m.start.line in
-  List.iteri
-    (fun i line -> Fmt.pf ppf "      %u| %s@." (start_line + i) line)
-    lines
+  let stripped, _ =
+    List.fold_left
+      (fun (stripped, line_number) line ->
+        let line, stripped =
+          if max_chars_per_line > 0 && String.length line > max_chars_per_line
+          then (String.sub line 0 max_chars_per_line, true)
+          else (line, stripped)
+        in
+        Fmt.pf ppf "      %u| %s@." line_number line;
+        (stripped, succ line_number))
+      (false, start_line) lines
+  in
+  if stripped then
+    Fmt.pf ppf "      [shortened a long line from output, adjust with --%s]@."
+      Constants.max_chars_flag_name;
+  Option.iter
+    (fun num ->
+      Fmt.pf ppf "       [hid %d additional lines, adjust with --%s]@." num
+        Constants.max_lines_flag_name)
+    trimmed
 
-let pp_text_outputs ppf (matches : Out.cli_match list) =
+let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
+    (matches : Out.cli_match list) =
   (* TODO sorting, skipping path if same as previous *)
   List.iter
     (fun (m : Out.cli_match) ->
@@ -46,11 +73,12 @@ let pp_text_outputs ppf (matches : Out.cli_match list) =
       Fmt.pf ppf "    %s@." m.check_id;
       (* TODO message wrapping *)
       Fmt.pf ppf "      %s@.%s@.@." m.extra.message shortlink;
-      pp_finding ppf m;
+      pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output ppf m;
       Fmt.pf ppf "@.")
     matches
 
-let pp_cli_output ppf (cli_output : Out.cli_output) =
+let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
+    (cli_output : Out.cli_output) =
   let groups =
     Common.group_by
       (fun (m : Out.cli_match) ->
@@ -100,5 +128,6 @@ let pp_cli_output ppf (cli_output : Out.cli_output) =
       | _non_empty ->
           Fmt_helpers.pp_heading ppf
             (string_of_int (List.length matches) ^ " " ^ group_titles group));
-      pp_text_outputs ppf matches)
+      pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output
+        ppf matches)
     groups
