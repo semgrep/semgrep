@@ -10,21 +10,6 @@ _scan_options: List[Callable] = [
  optgroup.group("Display options"),
 
     optgroup.option(
-        MAX_CHARS_FLAG_NAME,
-        type=int,
-        default=DEFAULT_MAX_CHARS_PER_LINE,
-        help="Maximum number of characters to show per line.",
-    ),
-    optgroup.option(
-        MAX_LINES_FLAG_NAME,
-        type=int,
-        default=DEFAULT_MAX_LINES_PER_FINDING,
-        help="""
-            Maximum number of lines of code that will be shown for each match before
-            trimming (set to 0 for unlimited).
-        """,
-    ),
-    optgroup.option(
         "--dataflow-traces",
         is_flag=True,
         help="Explain how non-local values reach the location of a finding (only affects text output).",
