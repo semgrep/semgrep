@@ -414,6 +414,9 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         { res with core }
       in
 
+      (* outputting the result! in JSON/Text/... depending on conf *)
+      Output.output_result conf res;
+
       Logs.info (fun m ->
           m "%a" pp_skipped
             ( conf.targeting_conf.respect_git_ignore,
@@ -447,8 +450,6 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
            """
            return False
       *)
-      (* outputting the result! in JSON/Text/... depending on conf *)
-      Output.output_result conf res;
       (* final result for the shell *)
       exit_code_of_errors ~strict:conf.strict res.core.errors
 

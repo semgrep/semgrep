@@ -133,7 +133,7 @@ let dispatch_output_format (output_format : Output_format.t)
                    ]
                  in
                  pr (String.concat ":" parts))
-  | Text
+  | Text -> Text_output.pp_cli_output Format.std_formatter cli_output
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
