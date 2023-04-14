@@ -1,4 +1,0 @@
-metavariable-pattern: When used with the nested `language` key, if there was an
-error parsing the `metavariable`'s content, that error could abort the analysis
-of the current file. If there were other rules that were going to produce findings
-on that file, those findings were not being reported.

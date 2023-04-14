@@ -1,4 +1,0 @@
-Matching: Fixed a bug where explicit casts of expressions would produce two matches to
-other explicit casts.
-
-So for instance, a pattern `(int $X)` in Java would match twice to `(int) 5`.

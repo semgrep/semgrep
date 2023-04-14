@@ -1,3 +1,0 @@
-When using `metavariable-pattern` to match embedded PHP code, Semgrep was
-unconditionally adding the `<?php` opening to the embedded code. When
-`<?php` was already present, this caused parsing errors.

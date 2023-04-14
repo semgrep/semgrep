@@ -1,9 +1,0 @@
-Pro: Java: Semgrep is now able to track the propagation of taint from the
-arguments of a method, to the object being called. So e.g. given a method
-
-    public void foo(int x) {
-        this.x = x;
-    }
-
-and a call `o.foo(tainted)`, Semgrep will be able to track that the field
-`x` of `o` has been tainted.
