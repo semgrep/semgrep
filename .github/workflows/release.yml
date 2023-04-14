@@ -325,7 +325,7 @@ jobs:
       - name: Push to Fork
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-          R2C_HOMEBREW_CORE_OWNER: returntocorp
+          R2C_HOMEBREW_CORE_OWNER: semgrep-release
         if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         run: |
           gh pr create --repo homebrew/homebrew-core \
