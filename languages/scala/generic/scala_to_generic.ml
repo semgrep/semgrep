@@ -153,7 +153,7 @@ and v_wildcard_selector tk path (x : wildcard_selector) =
         | None -> []
         | Some ty -> [ G.T (v_type_ ty) ]
       in
-      OtherDirective (("ImportGiven", tok), anys) |> G.d
+      G.OtherDirective (("ImportGiven", tok), anys) |> G.d
 
 and v_import_spec tk path = function
   | ImportNamed v1 -> [ v_named_selector tk path v1 ]
@@ -528,7 +528,7 @@ and v_type_case_clause v : G.case_and_body =
         | Right ty -> PatType ty
       in
       G.CasesAndBody
-        ([ Case (icase, pat) ], OtherStmt (OS_Todo, [ G.T r_ty ]) |> G.s)
+        ([ Case (icase, pat) ], G.OtherStmt (OS_Todo, [ G.T r_ty ]) |> G.s)
   | CaseEllipsis ii -> G.CaseEllipsis ii
 
 and v_case_clause v : G.case_and_body =
