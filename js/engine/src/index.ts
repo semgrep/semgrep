@@ -71,9 +71,7 @@ export const EngineFactory: (
       parser.setMountPoints(getMountPoints()); // inherit engine's mount points
       languages.set(parser.getLang(), parser);
     },
-    hasParser: (lang: Lang) => {
-      return languages.has(lang);
-    },
+    hasParser: (lang: Lang) => languages.has(lang),
     execute,
     writeFile,
     deleteFile,
