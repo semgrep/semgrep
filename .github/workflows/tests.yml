@@ -196,7 +196,7 @@ jobs:
         working-directory: cli
         run: |
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
+          pipenv run pytest -n auto -vv --tb=short --splits 6 --group ${{ matrix.split }} tests/qa
         env:
           QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
 
