@@ -5,7 +5,7 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations|^cli/scripts|TOPORT|^cli/src/semdep/external"
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/scripts|TOPORT|^cli/src/semdep/external"
 default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
