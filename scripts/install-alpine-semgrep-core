@@ -52,6 +52,4 @@ rm -rf ocaml-build-artifacts
 bin=ocaml-build-artifacts/bin
 mkdir -p "$bin"
 cp ./_build/install/default/bin/semgrep-core "$bin"
-cp ./_build/install/default/bin/semgrep_bridge_core.so "$bin"
-cp ./_build/install/default/bin/semgrep_bridge_python.so "$bin"
 tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
