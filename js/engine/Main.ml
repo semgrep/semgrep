@@ -4,6 +4,7 @@ open Js_of_ocaml
    expose the engine's mount points in order for reads to work properly in browser environments
    (see companion setter in Semgrep_js_shared.ml) *)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
+external jsoo_create_file : string -> string -> unit = "jsoo_create_file"
 
 let _ =
   Common.jsoo := true;
@@ -18,6 +19,7 @@ let _ =
     (object%js
        method getMountPoints = get_jsoo_mount_point ()
        method setLibYamlWasmModule = Libyaml_stubs_js.set_libyaml_wasm_module
+       method writeFile = jsoo_create_file
 
        method setParsePattern (func : bool -> Lang.t -> string -> 'a) =
          Parse_pattern.parse_pattern_ref := func

@@ -19,6 +19,7 @@ export interface Engine {
     rulesFilename: string,
     targetFilename: string
   ) => string;
+  writeFile: (filename: string, content: string) => void;
 }
 
 export const EngineFactory: (
@@ -36,6 +37,7 @@ export const EngineFactory: (
     setJustParseWithLang,
     execute,
     lookupLang,
+    writeFile,
   } = require("../../../_build/default/js/engine/Main.bc");
 
   setLibYamlWasmModule(libyaml);
@@ -71,5 +73,6 @@ export const EngineFactory: (
       return languages.has(lang);
     },
     execute,
+    writeFile,
   };
 };
