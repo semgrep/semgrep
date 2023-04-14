@@ -13,3 +13,15 @@ def test1(run_semgrep_in_tmp: RunSemgrep, snapshot):
         ).stdout,
         "results.json",
     )
+
+
+@pytest.mark.kinda_slow
+def test2(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    # https://linear.app/r2c/issue/PA-2696
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/metavariable-pattern/test2.yaml",
+            target_name="metavariable-pattern/test2.php",
+        ).stdout,
+        "results.json",
+    )
