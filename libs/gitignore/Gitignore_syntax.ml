@@ -59,7 +59,7 @@ let remove_negator str =
   if String.length str >= 1 && str.[0] = '!' then Some (Str.string_after str 1)
   else None
 
-let rec contains_nontrailing_slash (pat : M.pattern) =
+let rec contains_nontrailing_slash (pat : Glob_pattern.t) =
   match pat with
   | Segment [] :: pat -> contains_nontrailing_slash pat
   | [] -> false
@@ -70,7 +70,7 @@ let rec contains_nontrailing_slash (pat : M.pattern) =
 
 (* anchored pattern = relative to the work directory only, as opposed to
    being relative to any folder in the subtree. *)
-let is_anchored_pattern (pat : M.pattern) =
+let is_anchored_pattern (pat : Glob_pattern.t) =
   match pat with
   (* /... *)
   | Segment [] :: _ -> true
@@ -93,8 +93,8 @@ let is_anchored_pattern (pat : M.pattern) =
 let parse_pattern ~source ~anchor str : M.t =
   let pat = Glob_lexer.parse_string str in
   let absolute_pattern =
-    if is_anchored_pattern pat then M.append anchor pat
-    else M.append anchor (Any_subpath :: pat)
+    if is_anchored_pattern pat then Glob_pattern.append anchor pat
+    else Glob_pattern.append anchor (Any_subpath :: pat)
   in
   M.compile ~source absolute_pattern
 

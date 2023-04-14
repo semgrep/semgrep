@@ -49,9 +49,9 @@ val show_selection_events : selection_event list -> string
    The default selection mode is Ignore.
 *)
 val from_string :
-  anchor:Glob_matcher.pattern -> name:string -> kind:string -> string -> t
+  anchor:Glob_pattern.t -> name:string -> kind:string -> string -> t
 
-val from_file : anchor:Glob_matcher.pattern -> kind:string -> Fpath.t -> t
+val from_file : anchor:Glob_pattern.t -> kind:string -> Fpath.t -> t
 
 (* Internals.
    Remove the leading exclamation mark from the string, returning
@@ -62,7 +62,4 @@ val remove_negator : string -> string option
 (* Lower-level function that can be used to create custom matchers that
    combine multiple patterns. *)
 val parse_pattern :
-  source:Glob_matcher.loc ->
-  anchor:Glob_matcher.pattern ->
-  string ->
-  Glob_matcher.t
+  source:Glob_matcher.loc -> anchor:Glob_pattern.t -> string -> Glob_matcher.t
