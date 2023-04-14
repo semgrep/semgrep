@@ -1,2 +1,0 @@
-Supply Chain scans will now understand `maven_dep_tree.txt` files
-that are made of multiple smaller `maven_dep_tree.txt` files concatenated with `cat`.

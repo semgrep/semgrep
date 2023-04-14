@@ -1672,7 +1672,11 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
-  (* e.g., ParamTodo in OCaml, Reciever param in Go, SingleStar and Slash
+  (* Receiver param in Go, e.g. `func (x Foo) f() { ... }`. This is important
+   * for name resolution because Go resolves methods based on the receiver type.
+   * *)
+  | ParamReceiver of parameter_classic
+  (* e.g., ParamTodo in OCaml, SingleStar and Slash
    * in Python to delimit regular parameters from special one.
    * TODO ParamRef of tok * parameter_classic in PHP/Ruby *)
   | OtherParam of todo_kind * any list
@@ -2009,7 +2013,13 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      * http://gallium.inria.fr/~fpottier/visitors/manual.pdf
      *
      * The @name annotations on types above are to disambiguate types that would
-     * otherwise be assigned a visitor method named `visit_t`. *)
+     * otherwise be assigned a visitor method named `visit_t`.
+     *
+     * To view the generated source, build, navigate to
+     * `_build/default/libs/ast_generic/`, and then run the following command:
+     *
+     * ocamlc -stop-after parsing -dsource AST_generic.pp.ml
+     * *)
     visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* Most clients should use this instead of the default `iter`. In many cases,

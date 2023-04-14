@@ -47,6 +47,7 @@ type finding =
       (** If this argument was tainted, the taint would reach a sink. *)
   | ArgToReturn of arg * tainted_tokens * AST_generic.tok
       (** If this argument was tainted, the taint would reach a `return` statement. *)
+  | ArgToArg of arg * tainted_tokens * arg
 [@@deriving show]
 
 type signature = finding list

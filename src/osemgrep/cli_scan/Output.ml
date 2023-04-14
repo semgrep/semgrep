@@ -28,7 +28,7 @@ module Out = Semgrep_output_v1_j
 let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TODO fix_regex *)
   let edits : Textedit.t list =
-    List.filter_map
+    Common.map_filter
       (fun (result : Out.cli_match) ->
         let path = result.Out.path in
         let* fix = result.Out.extra.fix in
@@ -63,7 +63,7 @@ let apply_fixes_and_warn (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t)
-    (cli_output : Out.cli_output) =
+    (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -133,7 +133,10 @@ let dispatch_output_format (output_format : Output_format.t)
                    ]
                  in
                  pr (String.concat ":" parts))
-  | Text
+  | Text ->
+      Text_output.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
+        ~max_lines_per_finding:conf.max_lines_per_finding
+        ~color_output:conf.force_color Format.std_formatter cli_output
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
@@ -160,11 +163,12 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
       ~rules_source:conf.rules_source res
   in
-  (* TODO: pass the -strict? other flags? *)
   let cli_output =
-    Nosem.process_ignores ~strict:conf.Scan_CLI.strict cli_output
+    if conf.nosem then
+      Nosemgrep.process_ignores ~strict:conf.Scan_CLI.strict cli_output
+    else cli_output
   in
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
-  dispatch_output_format conf.output_format cli_output;
+  dispatch_output_format conf.output_format conf cli_output;
   ()

@@ -8,6 +8,65 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 <!-- insertion point -->
 
+## [1.17.1](https://github.com/returntocorp/semgrep/releases/tag/v1.17.1) - 2023-04-05
+
+### Fixed
+
+- Fix an issue that could lead to a crash when printing findings that contain snippets that look like markup to the Rich Python library (rich-markup-crash)
+
+## [1.17.0](https://github.com/returntocorp/semgrep/releases/tag/v1.17.0) - 2023-04-04
+
+### Added
+
+- Scala: Added proper parsing for Scala 3 style imports (pa-2678)
+
+### Changed
+
+- taint-mode: Added option `taint_assume_safe_comparisons`, disabled by default, that
+  prevents comparison operators to propagate taint, so e.g. `tainted != "something"`
+  will not be considered tainted. Note that this a syntactic check, if the operator
+  is overloaded to perform a different operation this will not be detected. (pa-2645)
+
+### Fixed
+
+- Fixed an issue where incorrect ranges for expressions containing parentheses could lead Semgrep to generate invalid autofixes in Python. (gh-2902)
+- In rare cases, Semgrep could generate invalid autofixes where Python keyword arguments were placed before positional arguments. When using AST-based autofix, it no longer makes that error. (keywordarg-autofix)
+
+## [1.16.0](https://github.com/returntocorp/semgrep/releases/tag/v1.16.0) - 2023-03-30
+
+### Added
+
+- Kotlin: Added support for typed metavariables. You can write a pattern like:
+  ($X : String)
+  to find all instances of expressions with type String. (pa-2648)
+- Scala: Semgrep can now parse programs that contain quoted expressions, context
+  parameter clauses using `using`, and soft modifiers like `inline` and `open`. (pa-2672)
+- Scala: Can now parse programs containing matches on types, such as:
+  type t = K match {
+  case Int => String
+  } (pa-2673)
+- Parsing rules can take multiple seconds at the start of a scan.
+  When running in an interactive terminal with more than 500 rules,
+  Semgrep will show a progress bar for this step. (rule-progress)
+
+### Changed
+
+- Supply Chain scans will now understand `maven_dep_tree.txt` files
+  that are made of multiple smaller `maven_dep_tree.txt` files concatenated with `cat`. (maven-dep-forest)
+- Findings of a scan are now printed with section headers per group for the following categories:
+  Code Blocking, Code Non-blocking, Supply Chain Reachable, Supply Chain Unreachable findings. (results-headings)
+- Switched to using go.mod files to read go dependencies for Semgrep Supply Chain, instead of go.sum files (sc-gomod)
+
+### Fixed
+
+- Clojure: parse 'foo/bar' as two separate tokens, so one can use
+  metavariable in it and get '$X/bar' to match 'foo/bar' (gh-7311)
+- HTML/XML: support attribute as pattern (e.g., `foo="true"`) (gh-7344)
+- Improved significantly the time to parse big rulesets such as p/default
+  from 20s to a few seconds by parsing patterns lazily and by
+  not using /tmp to parse those patterns. (pa-2597)
+- Pipfiles with a line comment or inline comment will now parse correctly. (sc-664)
+
 ## [1.15.0](https://github.com/returntocorp/semgrep/releases/tag/v1.15.0) - 2023-03-15
 
 ### Added

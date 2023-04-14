@@ -108,7 +108,7 @@ let intersect_ranges config debug_matches xs ys =
     us
     |> Common2.map_flatten (fun u ->
            vs
-           |> List.filter_map (fun v ->
+           |> Common.map_filter (fun v ->
                   if included_in config u v && inside_compatible u v then
                     Some (left_merge u v)
                   else None))

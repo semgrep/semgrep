@@ -1,0 +1,8 @@
+(library
+ (name semgrep_js_shared)
+ (wrapped false)
+ (libraries js_of_ocaml semgrep.parsing)
+ (js_of_ocaml
+  (javascript_files ocaml-tree-sitter.js))
+ (preprocess
+  (pps js_of_ocaml-ppx)))

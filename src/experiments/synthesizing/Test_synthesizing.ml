@@ -22,7 +22,7 @@ let expr_at_range s file =
   pr2_gen r;
   let ast = Parse_target.parse_program !!file in
   (* just to see if it works with Naming on *)
-  let lang = Lang.langs_of_filename file |> List.hd in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let e_opt = Range_to_AST.expr_at_range r ast in
   match e_opt with

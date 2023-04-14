@@ -22,7 +22,7 @@ jobs:
     # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-03-28
+    container: returntocorp/ocaml:alpine-2023-04-03
     env:
       HOME: /root
     steps:
@@ -346,4 +346,8 @@ jobs:
   build-test-ubuntu-16-04:
     needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+    secrets: inherit
+
+  build-test-javascript:
+    uses: ./.github/workflows/build-test-javascript.yaml
     secrets: inherit

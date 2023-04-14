@@ -1,0 +1,49 @@
+name: build-test-javascript
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-test-javascript:
+    name: Build Test Semgrep Javascript
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:ubuntu-2023-04-03
+    # We need this hack because GHA tampers with the HOME in container
+    # and this does not play well with 'opam' installed in /root
+    env:
+      HOME: /root
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Build semgrep
+        run: |
+          eval $(opam env)
+
+          # TODO: figure out why the opam install eats shit on ubuntu
+          #make install-deps-for-semgrep-core
+
+          (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
+          dune build js --profile=release
+
+          echo "Setting up emscripten..."
+          git clone https://github.com/emscripten-core/emsdk.git /emsdk
+          /emsdk/emsdk install 3.1.35
+          /emsdk/emsdk activate 3.1.35
+          export PATH=/emsdk:/emsdk/upstream/emscripten:$PATH
+
+          echo "Bundling..."
+          make -C js
+          (cd js/engine && npm pack)
+          (cd js/languages && npm pack)
+      - uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-js-artifacts
+          path: |
+            js/engine/*.tgz
+            js/languages/*.tgz

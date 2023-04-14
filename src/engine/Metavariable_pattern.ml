@@ -81,7 +81,7 @@ let get_persistent_bindings revert_loc r nested_matches =
          *)
          let readjusted_mvars =
            nested_match.RM.mvars
-           |> List.filter_map (fun (mvar, mval) ->
+           |> Common.map_filter (fun (mvar, mval) ->
                   match
                     mval |> MV.mvalue_to_any |> reverting_visitor.Map_AST.vany
                     |> MV.mvalue_of_any
@@ -254,10 +254,10 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* We re-parse the matched text as `xlang`. *)
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
-                      let lazy_ast_and_errors =
-                        lazy
-                          (match xlang with
-                          | L (lang, _) ->
+                      let ast_and_errors_res =
+                        match xlang with
+                        | L (lang, _) -> (
+                            try
                               let { Parsing_result2.ast; skipped_tokens; _ } =
                                 Parse_target.parse_and_resolve_name lang file
                               in
@@ -275,22 +275,39 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                      "rule %s: metavariable-pattern: failed to \
                                       fully parse the content of %s"
                                      (fst env.rule.Rule.id) mvar);
-                              (ast, skipped_tokens)
-                          | LRegex
-                          | LGeneric ->
-                              failwith
-                                "requesting generic AST for LRegex|LGeneric")
+                              Ok (lazy (ast, skipped_tokens))
+                            with
+                            | PI.Parsing_error msg ->
+                                logger#flash "OK";
+                                Error (PI.str_of_info msg))
+                        | LRegex
+                        | LGeneric ->
+                            Ok
+                              (lazy
+                                (failwith
+                                   "requesting generic AST for LRegex|LGeneric"))
                       in
-                      let xtarget =
-                        {
-                          Xtarget.file;
-                          xlang;
-                          lazy_ast_and_errors;
-                          lazy_content = lazy content;
-                        }
-                      in
-                      (* Persist the bindings from inside the `metavariable-pattern`
-                         matches
-                      *)
-                      get_nested_formula_matches { env with xtarget } formula r'
-                      |> get_persistent_bindings revert_loc r))))
+                      match ast_and_errors_res with
+                      | Error msg ->
+                          error env
+                            (Common.spf
+                               "rule %s: metavariable-pattern failed when \
+                                parsing %s's content as %s: %s"
+                               (fst env.rule.Rule.id) mvar
+                               (Xlang.to_string xlang) msg);
+                          []
+                      | Ok lazy_ast_and_errors ->
+                          let xtarget =
+                            {
+                              Xtarget.file;
+                              xlang;
+                              lazy_ast_and_errors;
+                              lazy_content = lazy content;
+                            }
+                          in
+                          (* Persist the bindings from inside the `metavariable-pattern`
+                             matches
+                          *)
+                          get_nested_formula_matches { env with xtarget }
+                            formula r'
+                          |> get_persistent_bindings revert_loc r))))

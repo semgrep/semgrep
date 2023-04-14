@@ -29,8 +29,8 @@ let is_eof = function
 let is_comment = function
   | Comment _
   | Space _
-  | INDENT
-  | DEDENT ->
+  | INDENT _
+  | DEDENT _ ->
       true
   (* newline has a meaning in the parser, so should not skip *)
   (* old: | Nl _ -> true *)
@@ -151,8 +151,8 @@ let visitor_info_of_tok f = function
   | Kcatch ii -> Kcatch (f ii)
   | Kcase ii -> Kcase (f ii)
   | Kabstract ii -> Kabstract (f ii)
-  | INDENT -> INDENT
-  | DEDENT -> DEDENT
+  | INDENT i -> INDENT i
+  | DEDENT i -> DEDENT i
   | Ellipsis ii -> Ellipsis (f ii)
 
 let info_of_tok tok =
@@ -239,6 +239,7 @@ let inLastOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
+  | DEDENT _
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
@@ -337,6 +338,7 @@ let isStatSep = function
 
 let isStatSeqEnd = function
   | RBRACE _
+  | DEDENT _
   | EOF _ ->
       true
   | _ -> false

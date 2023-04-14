@@ -498,7 +498,7 @@ let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
     (* (
         match namespace_ident with
         | Some x ->
-            Some (List.hd (unwrap_qualified_identifier x), G.empty_id_info ())
+            Some (Common.hd_exn "unexpected empty list" (unwrap_qualified_identifier x), G.empty_id_info ())
         | None -> None) *)
   in
   match namespace_ident with

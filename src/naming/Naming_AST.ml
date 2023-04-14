@@ -366,6 +366,7 @@ let is_resolvable_name_ctx env lang =
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java
+      | Lang.Kotlin
       | Lang.Apex
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
@@ -385,6 +386,7 @@ let resolved_name_kind env lang =
        * alt: use a different scope.class?
        *)
       | Lang.Java
+      | Lang.Kotlin
       | Lang.Apex
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
@@ -431,7 +433,7 @@ let js_get_angular_constructor_args env attrs defs =
       attrs
   in
   defs
-  |> List.filter_map (function
+  |> Common.map_filter (function
        | {
            s =
              DefStmt

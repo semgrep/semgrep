@@ -419,8 +419,7 @@ let rec all_splits = function
   | [] -> [ ([], []) ]
   | x :: xs ->
       all_splits xs
-      |> Common.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
-      |> List.flatten
+      |> List.concat_map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
 
 (* let _ = Common2.example
     (all_elem_and_rest_of_list ['a';'b';'c'] =
@@ -609,15 +608,13 @@ let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
   let rec loop = function
     | [] -> []
     | (bs, tout) :: comb_matches' ->
-        let bs_matches =
-          tout |> Common.map (fun tin -> f bs tin) |> List.flatten
-        in
+        let bs_matches = tout |> List.concat_map (fun tin -> f bs tin) in
         bs_matches @ loop comb_matches'
   in
   loop (comb_result tin)
 
 let m_comb_flatten (comb_result : _ comb_result) (tin : tin) : tout =
-  comb_result tin |> Common.map snd |> List.flatten
+  comb_result tin |> List.concat_map snd
 
 let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
     (comb_result : _ comb_result) : _ comb_result =
@@ -628,7 +625,7 @@ let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
 let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
  fun tin ->
   bs |> all_elem_and_rest_of_list
-  |> List.filter_map (fun (b, other_bs) ->
+  |> Common.map_filter (fun (b, other_bs) ->
          match m a b tin with
          | [] -> None
          | tout -> Some (Lazy.force other_bs, tout))
@@ -636,7 +633,7 @@ let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
 let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->
   bs |> all_splits
-  |> List.filter_map (fun (l, r) ->
+  |> Common.map_filter (fun (l, r) ->
          match m_1toN a l tin with
          | [] -> None
          | tout -> Some (r, tout))

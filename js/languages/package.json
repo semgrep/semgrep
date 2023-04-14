@@ -1,0 +1,45 @@
+{
+  "name": "@semgrep/languages",
+  "version": "1.17.1-alpha.2",
+  "description": "Languages for the semgrep javascript engine",
+  "main": "index.js",
+  "scripts": {
+    "build": "make build",
+    "test": "echo \"no tests yet\"",
+    "prepublish": "make build"
+  },
+  "files": [
+    "dist/**/index.mjs",
+    "dist/**/index.cjs"
+  ],
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    },
+    "./go": {
+      "require": "./dist/go/index.cjs",
+      "import": "./dist/go/index.mjs"
+    },
+    "./lua": {
+      "require": "./dist/lua/index.cjs",
+      "import": "./dist/lua/index.mjs"
+    },
+    "./csharp": {
+      "require": "./dist/csharp/index.cjs",
+      "import": "./dist/csharp/index.mjs"
+    },
+    "./typescript": {
+      "require": "./dist/typescript/index.cjs",
+      "import": "./dist/typescript/index.mjs"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/returntocorp/semgrep"
+  },
+  "author": "Semgrep, Inc.",
+  "license": "LGPL-2.1",
+  "devDependencies": {
+    "esbuild": "^0.17.16"
+  }
+}

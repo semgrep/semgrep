@@ -1,2 +1,0 @@
-Scala: Semgrep can now parse programs that contain quoted expressions, context
-parameter clauses using `using`, and soft modifiers like `inline` and `open`.

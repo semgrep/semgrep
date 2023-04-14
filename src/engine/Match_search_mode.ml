@@ -189,7 +189,7 @@ let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
-  |> Common.map (fun mr ->
+  |> List.concat_map (fun mr ->
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
@@ -210,7 +210,6 @@ let debug_semgrep config mini_rules file lang ast =
            *)
            res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
          res)
-  |> List.flatten
 
 (*****************************************************************************)
 (* Evaluating Semgrep patterns *)
@@ -361,7 +360,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let fm_mval_range_locs =
       fm_mvals
-      |> List.filter_map (fun (focus_mvar, mval) ->
+      |> Common.map_filter (fun (focus_mvar, mval) ->
              let* range_loc =
                Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval)
              in
@@ -382,7 +381,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
-      List.filter_map
+      Common.map_filter
         (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
@@ -526,7 +525,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   xs
-  |> List.filter_map (fun (r, new_bindings) ->
+  |> Common.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with

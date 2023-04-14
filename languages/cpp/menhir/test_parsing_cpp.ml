@@ -44,7 +44,7 @@ let test_parse_cpp ?lang xs =
                          res.Parsing_result.stat))
                with
                | exn ->
-                   (* TODO: be more strict, List.hd failure, Stack overflow *)
+                   (* TODO: be more strict, Common.hd_exn "unexpected empty list" failure, Stack overflow *)
                    pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
                    Parsing_stat.bad_stat !!file
              in

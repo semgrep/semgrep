@@ -186,6 +186,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | NamedExpr (v, t, e) ->
           let v = v_expr v and t = v_tok t and e = v_expr e in
           ()
+      | ParenExpr v1 ->
+          let v1 = v_bracket v_expr v1 in
+          ()
     in
     vin.kexpr (k, all_functions) x
   and v_argument = function

@@ -121,20 +121,23 @@ let find_vcs_root_from_absolute_path file =
          else None)
 
 let find_skip_file_from_root root =
-  let candidates =
-    [
-      "skip_list.txt";
-      (* fbobjc specific *)
-      "Configurations/Sgrep/skip_list.txt";
-      (* www specific *)
-      "conf/codegraph/skip_list.txt";
-    ]
-    |> File.Path.of_strings
-  in
-  candidates
-  |> Common.find_some_opt (fun f ->
-         let full = Fpath.append root f in
-         if Sys.file_exists !!full then Some full else None)
+  (* TODO: figure out why this doesnt work in windows *)
+  if !Common.jsoo then None
+  else
+    let candidates =
+      [
+        "skip_list.txt";
+        (* fbobjc specific *)
+        "Configurations/Sgrep/skip_list.txt";
+        (* www specific *)
+        "conf/codegraph/skip_list.txt";
+      ]
+      |> File.Path.of_strings
+    in
+    candidates
+    |> Common.find_some_opt (fun f ->
+           let full = Fpath.append root f in
+           if Sys.file_exists !!full then Some full else None)
 
 let filter_files_if_skip_list ~root xs =
   let root =

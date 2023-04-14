@@ -122,7 +122,10 @@ let mk_env toks =
         passed = [];
         last_nl = None;
         depth = 0;
-        sepRegions = [];
+        (* We are implicitly in an indentation zone, as with the official Scala parser:
+           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L274
+        *)
+        sepRegions = [ T.DEDENT (-1) ];
       }
 
 (* We sometimes need to lookahead tokens, and call fetchToken and revert;
@@ -237,8 +240,8 @@ let rec in_next_token xs =
       match x with
       | Space _
       | Comment _
-      | INDENT
-      | DEDENT ->
+      | INDENT _
+      | DEDENT _ ->
           in_next_token xs
       | _ -> Some x)
 
@@ -329,8 +332,8 @@ let afterLineEnd in_ =
             true
         | Space _
         | Comment _
-        | INDENT
-        | DEDENT ->
+        | INDENT _
+        | DEDENT _ ->
             loop xs
         | _ ->
             if !debug_newline then
@@ -353,6 +356,21 @@ let postProcessToken _in_ =
 (* ------------------------------------------------------------------------- *)
 (* fetchToken *)
 (* ------------------------------------------------------------------------- *)
+
+(* If this DEDENT matches our sepRegion index, then we know that our
+   current dedent region is ended.
+
+   This effectively makes it so [fetchToken] only stops
+   on DEDENTs when they are known to end the current sepRegion.
+
+   See the corresponding code in the Scala compiler:
+   https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L298
+*)
+let significantDedent dedent_idx in_ =
+  match in_.sepRegions with
+  | T.DEDENT idx' :: _ when dedent_idx =*= idx' -> true
+  | _ -> false
+
 let fetchToken in_ =
   let rec loop aux =
     match in_.rest with
@@ -363,10 +381,20 @@ let fetchToken in_ =
         in_.rest <- xs;
 
         match x with
+        (* If we pass a DEDENT that ends our current region,
+           we should stop and allow ourselves to look at it.
+           This is so we can consume it in statSeq.
+
+           This results in significantly simpler code, in the case
+           of nested DEDENTs (due to the ending of multiple indent regions)
+        *)
+        | DEDENT idx when significantDedent idx in_ ->
+            in_.passed <- aux @ in_.passed;
+            in_.token <- DEDENT idx
         | Space _
         | Comment _
-        | INDENT
-        | DEDENT ->
+        | INDENT _
+        | DEDENT _ ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
@@ -404,7 +432,8 @@ let nextToken in_ =
    afterLineEnd in_ && TH.inLastOfStat lastToken && TH.inFirstOfStat in_.token
    && (match in_.sepRegions with
       | []
-      | RBRACE _ :: _ ->
+      | RBRACE _ :: _
+      | DEDENT _ :: _ ->
           true
       | _ -> false)
    && (* STILL?: not applyBracePatch *)
@@ -455,6 +484,66 @@ let lookingAhead2 body1 body2 in_ =
       nextToken in_';
       let res2 = body2 in_' in
       res1 && res2
+
+(* ------------------------------------------------------------------------- *)
+(* indentation *)
+(* ------------------------------------------------------------------------- *)
+
+(* Have we passed an indent?
+   Because our nextToken skips over INDENT, in places where an
+   INDENT might be syntactically significant, we might need to
+   look through the tokens we have passed to tell if we have entered
+   an indentation region.
+*)
+let passedIndent in_ =
+  let rec loop acc =
+    match acc with
+    | [] -> None
+    | INDENT i :: _ -> Some i
+    | Space _ :: rest
+    | Nl _ :: rest
+    | NEWLINE _ :: rest ->
+        loop rest
+    | _ -> None
+  in
+  loop in_.passed
+
+(* It's not always the case that a colon means we must start a
+   colon and then indented block.
+
+   This function just helps us discern if we're really going to be
+   starting an indented block.
+*)
+let isIndentAfterColon in_ =
+  match in_.token with
+  | COLON _ -> lookingAhead (fun in_ -> Option.is_some (passedIndent in_)) in_
+  | _ -> false
+
+(* Adjust sepRegions to enter a new indent region, if we've
+   passed by one.
+*)
+let enterIndentRegion in_ =
+  let indent_opt = passedIndent in_ in
+  match indent_opt with
+  | None -> ()
+  | Some idx -> in_.sepRegions <- DEDENT idx :: in_.sepRegions
+
+(* Adjust sepREgions to end the current indent region, if we're
+   at the end.
+*)
+let closeIndentRegion in_ =
+  match (in_.token, in_.sepRegions) with
+  | EOF _, _ -> ()
+  (* This check that the DEDENT idxs match up was already
+     done, or we wouldn't have stopped on this token in the
+     first place.
+
+     Regardless, let's keep it here, because why not.
+  *)
+  | DEDENT idx, DEDENT idx' :: rest when idx =*= idx' ->
+      in_.sepRegions <- rest;
+      skipToken in_
+  | _ -> failwith "precondition failure"
 
 (*****************************************************************************)
 (* Special parsing  *)
@@ -2401,28 +2490,67 @@ let annotTypeRest t in_ : type_ =
 (* Parsing directives  *)
 (*****************************************************************************)
 
-let wildImportSelector in_ =
-  (* AST: val selector = ImportSelector.wildAt(in.offset) *)
-  nextToken in_
+(* For imports, we will parse a less restrictive version of the Scala grammar.
+   Essentially, we notice that some sequence of dot-separated elements
+   make up the primary path, namely "this", "super", and an identifier.
+   Once that primary path is done, we may see a `as` or `=>`, and then
+   another identifier.
+
+   Otherwise, the primary path may also be terminated with a `*`, `given`,
+   `_`, or brace-delimited list of import specifications.
+*)
 
 (** {{{
- *  ImportSelector ::= Id [`=>` Id | `=>` `_`]
+ *  NamedSelector     ::=  id [‘as’ (id | ‘_’)]
+ *  WildCardSelector  ::=  ‘*' | ‘given’ [InfixType]
+ *  }}}
+*)
+let wildCardSelector in_ =
+  match in_.token with
+  | USCORE ii ->
+      skipToken in_;
+      Left ("_", ii)
+  | STAR ii ->
+      skipToken in_;
+      Left ("*", ii)
+  | _ ->
+      let ii = TH.info_of_tok in_.token in
+      accept (ID_LOWER ("given", ab)) in_;
+      (* only a keyword in Scala 3*)
+      (* TODO: this type is only optional, is this too eager? *)
+      if TH.isTypeIntroToken in_.token then
+        let ty = startInfixType in_ in
+        Right (ii, Some ty)
+      else Right (ii, None)
+
+(** {{{
+ *  ImportSelector ::= Id [`=>` Id | `=>` `_`]  (scala 2)
+                     | NamedSelector            (scala 3)
+                     | WildCardSelector         (scala 3)
  *  }}}
 *)
 let importSelector in_ : import_selector =
-  let name = wildcardOrIdent in_ in
-  let rename =
-    match in_.token with
-    | ARROW ii ->
-        nextToken in_;
-        (* CHECK: "Wildcard import cannot be renamed" *)
-        let alias = wildcardOrIdent in_ in
-        Some (ii, alias)
-    (* AST: if name = nme.WILDCARD && !bbq => null *)
-    | _ -> None
-  in
-  (* ast: ImportSelector(name, start, rename, renameOffset) *)
-  (name, rename)
+  match in_.token with
+  | STAR _
+  | ID_LOWER ("given", _) ->
+      WildCardSelector (wildCardSelector in_)
+  | _ ->
+      (* namedSelector case:
+       *)
+      let name = wildcardOrIdent in_ in
+      let rename =
+        match in_.token with
+        | ARROW _
+        | ID_LOWER ("as", _) ->
+            nextToken in_;
+            (* CHECK: "Wildcard import cannot be renamed" *)
+            let alias = wildcardOrIdent in_ in
+            Some alias
+        (* AST: if name = nme.WILDCARD && !bbq => null *)
+        | _ -> None
+      in
+      (* ast: ImportSelector(name, start, rename, renameOffset) *)
+      NamedSelector (ImportId name, rename)
 
 (** {{{
  *  ImportSelectors ::= `{` {ImportSelector `,`} (ImportSelector | `_`) `}`
@@ -2433,82 +2561,104 @@ let importSelectors in_ : import_selector list bracket =
   inBracesOrNil (commaSeparated importSelector) in_
 
 (** {{{
- *  ImportExpr ::= StableId `.` (Id | `_` | ImportSelectors)
-                 | (* scala-ext: allow this for things like `import $X` *)
+ *  ImportExpr ::= StableId `.` (NamedSelector | WildCardSelector | `_` | ImportSelectors)
+                 | StableId `as` id  (scala 3)
+                 | (* semgrep-ext: allow this for things like `import $X` *)
                    metavariable
  *  }}}
 *)
-let importExpr in_ : import_expr =
+
+(* Since we just accumulate the entire list of the import path, we may have
+   to run it back one step if we reach the end. That's because parsing
+   a.b.c
+   means that our path will be [`a`, `b`, `c`], but we really want to
+   turn it into importing the name `c` from the path `a.b`.
+
+   So this function just splits the last element, taking the "tl".
+*)
+let tl_path path =
+  (* presumably this means the end of the stable id,
+      with nothing after it *)
+  match List.rev path with
+  | last :: rest -> (List.rev rest, last)
+  | [] -> failwith "shouldn't happen"
+
+(* A single "path element". In reality, `super` and `this` are more
+   restricted in where they can appear, but for our purposes we will
+   be lenient.
+*)
+let read_path_elem in_ : import_path_elem =
+  match in_.token with
+  | Ksuper ii ->
+      skipToken in_;
+      ImportSuper ii
+  | Kthis ii ->
+      skipToken in_;
+      ImportThis ii
+  | _ ->
+      let id = ident in_ in
+      ImportId id
+
+(* This walks the import path, reading things like a.b.c until it
+   finds something different.
+*)
+let rec collect_import_path (path : import_path) in_ =
+  match in_.token with
+  (* All the things that can terminate an imported StableId.
+  *)
+  | ARROW _
+  | ID_LOWER ("as", _) -> (
+      nextToken in_;
+      match in_.token with
+      | USCORE _ ->
+          (* This is something like `import a as _`
+             Kind of a weird thing to write. I assume it's just binding it to a weird name.
+          *)
+          let ii = TH.info_of_tok in_.token in
+          accept (USCORE ab) in_;
+          let path, id = tl_path path in
+          ImportExprSpec (path, ImportNamed (id, Some ("_", ii)))
+      | _ ->
+          let path, id = tl_path path in
+          (* either "as" or `=>` *)
+          let id' = ident in_ in
+          ImportExprSpec (path, ImportNamed (id, Some id')))
+  | DOT _ -> (
+      accept (DOT ab) in_;
+      match in_.token with
+      (* import foo.bar._; (scala 2) *)
+      | USCORE _
+      (* import foo.bar.*; (scala 3) *)
+      | STAR _
+      (* import foo.bar.given; (scala 3) *)
+      | ID_LOWER ("given", _) ->
+          ImportExprSpec (path, ImportWildcard (wildCardSelector in_))
+      (* import foo.bar.{ x, y, z } *)
+      | LBRACE _ ->
+          let internal = importSelectors in_ in
+          ImportExprSpec (path, ImportSelectors internal)
+      (* Otherwise, the import path just continues. *)
+      | _ ->
+          let new_path_elem = read_path_elem in_ in
+          collect_import_path (path @ [ new_path_elem ]) in_)
+  (* Here, we probably reached the end of the import expression.
+   *)
+  | _ ->
+      let stable_id, id = tl_path path in
+      ImportExprSpec (stable_id, ImportNamed (id, None))
+
+(* To parse an import expression, first we find a single "element".
+   Then, we collect a dot-separated list of them, until we have
+   reason to read something else.
+*)
+and importExpr in_ : import_expr =
   in_
   |> with_logging "importExpr" (fun () ->
-         let thisDotted nameopt in_ : stable_id =
-           let ii = TH.info_of_tok in_.token in
-           nextToken in_;
-           (* 'this' *)
-           (* AST: val t = This(name) *)
-           accept (DOT ab) in_;
-           let result = selector (*t*) in_ in
-           accept (DOT ab) in_;
-           (This (nameopt, ii), [ result ])
-         in
          (* Walks down import `foo.bar.baz.{ ... }` until it ends at
           * an underscore, a left brace, or an undotted identifier.
           *)
-         let rec loop (expr : stable_id) in_ =
-           (* ast: let selectors = *)
-           match in_.token with
-           (* import foo.bar._; *)
-           | USCORE ii ->
-               let _ = wildImportSelector in_ in
-               (expr, ImportWildcard ii)
-           (* import foo.bar.{ x, y, z } *)
-           | LBRACE _ ->
-               let xs = importSelectors in_ in
-               (expr, ImportSelectors xs)
-           | _ -> (
-               let name = ident in_ in
-               match in_.token with
-               | DOT _ ->
-                   (* import foo.bar.ident.<unknown> and so create a select node and recurse. *)
-                   (* AST: (Select(expr, name)) *)
-                   let sref, selectors = expr in
-                   let t = (sref, selectors @ [ name ]) in
-                   nextToken in_;
-                   loop t in_
-               | _ ->
-                   (* import foo.bar.Baz; *)
-                   (* AST: List(makeImportSelector(name, nameOffset)) *)
-                   (expr, ImportId name))
-           (* reaching here means we're done walking. *)
-           (* AST: Import(expr, selectors) *)
-         in
-         let handle_potential_this_with_id id in_ =
-           let start =
-             match in_.token with
-             | Kthis _ -> thisDotted (Some id) in_
-             | _ -> (Id id, [])
-           in
-           Right (loop start in_)
-         in
-         match in_.token with
-         | Kthis _ ->
-             let start = thisDotted None (*ast: empty*) in_ in
-             Right (loop start in_)
-         (* We should allow single metavariables to be imported. *)
-         | ID_LOWER ((s, _) as id) when AST_generic.is_metavar_name s -> (
-             nextToken in_;
-             match in_.token with
-             | DOT _ ->
-                 nextToken in_;
-                 handle_potential_this_with_id id in_
-             (* If there is no dot next, then it must be a lone metavariable. *)
-             | _ -> Left id)
-         | _ ->
-             (* AST: Ident() *)
-             let id = ident in_ in
-             (* A dot has to come after an ident. *)
-             accept (DOT ab) in_;
-             handle_potential_this_with_id id in_)
+         let new_path_elem = read_path_elem in_ in
+         collect_import_path [ new_path_elem ] in_)
 
 (** {{{
  *  Import  ::= import ImportExpr {`,` ImportExpr}
@@ -3391,18 +3541,28 @@ let templateStatSeq ~isPre in_ : self_type option * block =
   (self, Option.to_list firstOpt @ xs)
 
 (** {{{
- *  TemplateBody ::= [nl] `{` TemplateStatSeq `}`
+ *  TemplateBody ::= [nl] :<<< `{` TemplateStatSeq `}` >>>
  *  }}}
  * @param isPre specifies whether in early initializer (true) or not (false)
 *)
 
 let templateBody ~isPre in_ : template_body =
-  (* ast: self, EmptyTree.asList *)
-  inBraces (templateStatSeq ~isPre) in_
+  match in_.token with
+  | LBRACE _ ->
+      (* ast: self, EmptyTree.asList *)
+      inBraces (templateStatSeq ~isPre) in_
+  | _ ->
+      (* must be a colon *)
+      accept (COLON ab) in_;
+      enterIndentRegion in_;
+      let res = fb (PI.unsafe_fake_info "") (templateStatSeq ~isPre in_) in
+      closeIndentRegion in_;
+      res
 
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
   newLineOptWhenFollowedBy (LBRACE ab) in_;
   match in_.token with
+  | COLON _ when isIndentAfterColon in_ -> Some (templateBody ~isPre:false in_)
   | LBRACE _ -> Some (templateBody ~isPre:false in_)
   | LPAREN _ ->
       if parenMeansSyntaxError then
@@ -3449,27 +3609,30 @@ let templateParents in_ : template_parents =
  *  EarlyDef      ::= Annotations Modifiers PatDef
  *  }}}
 *)
+
+let afterTemplate in_ body =
+  match in_.token with
+  | Kwith _ (* crazy? && self eq noSelfType *) ->
+      (* CHECK: "use traint parameters instead" when scala3 *)
+      let _earlyDefs = body (* CHECK: map ensureEarlyDef AST: filter *) in
+      nextToken in_;
+      let parents = templateParents in_ in
+      let body1opt = templateBodyOpt ~parenMeansSyntaxError:false in_ in
+      (* AST: earlyDefs @ *)
+      (parents, body1opt)
+  | _ -> (AST.empty_cparents, Some body)
+
 let template in_ : template_parents * template_body option =
   in_
   |> with_logging "template" (fun () ->
          newLineOptWhenFollowedBy (LBRACE ab) in_;
          match in_.token with
-         | LBRACE _ -> (
+         | COLON _ when isIndentAfterColon in_ ->
              let body = templateBody ~isPre:true in_ in
-             match in_.token with
-             | Kwith _ (* crazy? && self eq noSelfType *) ->
-                 (* CHECK: "use traint parameters instead" when scala3 *)
-                 let _earlyDefs =
-                   body (* CHECK: map ensureEarlyDef AST: filter *)
-                 in
-                 nextToken in_;
-                 let parents = templateParents in_ in
-                 let body1opt =
-                   templateBodyOpt ~parenMeansSyntaxError:false in_
-                 in
-                 (* AST: earlyDefs @ *)
-                 (parents, body1opt)
-             | _ -> (AST.empty_cparents, Some body))
+             afterTemplate in_ body
+         | LBRACE _ ->
+             let body = templateBody ~isPre:true in_ in
+             afterTemplate in_ body
          | _ ->
              let parents = templateParents in_ in
              let bodyopt = templateBodyOpt ~parenMeansSyntaxError:false in_ in

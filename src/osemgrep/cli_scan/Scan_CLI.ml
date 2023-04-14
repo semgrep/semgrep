@@ -47,6 +47,8 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;
+  max_chars_per_line : int;
+  max_lines_per_finding : int;
   time_flag : bool;
   profile : bool;
   rewrite_rule_ids : bool;
@@ -59,6 +61,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 
@@ -102,6 +105,8 @@ let default : conf =
     output_format = Output_format.Text;
     logging_level = Some Logs.Warning;
     force_color = false;
+    max_chars_per_line = 160;
+    max_lines_per_finding = 10;
     profile = false;
     rewrite_rule_ids = true;
     time_flag = false;
@@ -113,6 +118,7 @@ let default : conf =
     dump = None;
     validate = None;
     test = None;
+    nosem = true;
   }
 
 (*************************************************************************)
@@ -207,8 +213,9 @@ let o_max_target_bytes : int Term.t =
 negative value disables this filter. Defaults to 1000000 bytes.
 |}
   in
-  (* TOPORT: support '1.5MB' and such, see bytesize.py *)
-  Arg.value (Arg.opt Arg.int default.targeting_conf.max_target_bytes info)
+  Arg.value
+    (Arg.opt Cmdliner_helpers.number_of_bytes_converter
+       default.targeting_conf.max_target_bytes info)
 
 let o_respect_git_ignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
@@ -333,6 +340,23 @@ let o_force_color : bool Term.t =
 a TTY; defaults to using the TTY status
 |}
 
+let o_max_chars_per_line : int Term.t =
+  let info =
+    Arg.info [ "max-chars-per-line" ]
+      ~doc:"Maximum number of characters to show per line."
+  in
+  Arg.value (Arg.opt Arg.int default.max_chars_per_line info)
+
+let o_max_lines_per_finding : int Term.t =
+  let info =
+    Arg.info
+      [ "max-lines-per-finding" ]
+      ~doc:
+        {|Maximum number of lines of code that will be shown for each match before
+trimming (set to 0 for unlimited).|}
+  in
+  Arg.value (Arg.opt Arg.int default.max_lines_per_finding info)
+
 let o_rewrite_rule_ids : bool Term.t =
   H.negatable_flag [ "rewrite-rule-ids" ] ~neg_options:[ "no-rewrite-rule-ids" ]
     ~default:default.rewrite_rule_ids
@@ -348,6 +372,12 @@ let o_time : bool Term.t =
       {|Include a timing summary with the results. If output format is json,
  provides times for each pair (rule, target).
 |}
+
+let o_nosem : bool Term.t =
+  H.negatable_flag [ "enable-nosem" ] ~neg_options:[ "disable-nosem" ]
+    ~doc:
+      {|Enables 'nosem'. Findings will not be reported on lines containing
+          a 'nosem' comment at the end. Enabled by default.|}
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Verbosity options" (mutually exclusive) *)
@@ -613,11 +643,12 @@ let cmdline_term : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine autofix baseline_commit config debug dryrun dump_ast dump_config
       emacs error exclude exclude_rule_ids force_color include_ json lang
-      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      profile project_root quiet replacement respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate verbose version version_check vim =
+      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
+      metrics num_jobs nosem optimizations pattern profile project_root quiet
+      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo time_flag timeout timeout_threshold validate verbose
+      version version_check vim =
     let include_ =
       match include_ with
       | [] -> None
@@ -835,6 +866,8 @@ let cmdline_term : conf Term.t =
       dryrun;
       error_on_findings = error;
       force_color;
+      max_chars_per_line;
+      max_lines_per_finding;
       logging_level;
       metrics;
       version_check;
@@ -849,6 +882,7 @@ let cmdline_term : conf Term.t =
       dump;
       validate;
       test;
+      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -858,13 +892,13 @@ let cmdline_term : conf Term.t =
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_optimizations $ o_pattern $ o_profile $ o_project_root $ o_quiet
-    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
-    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
-    $ o_timeout $ o_timeout_threshold $ o_validate $ o_verbose $ o_version
-    $ o_version_check $ o_vim)
+    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
+    $ o_pattern $ o_profile $ o_project_root $ o_quiet $ o_replacement
+    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
+    $ o_validate $ o_verbose $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

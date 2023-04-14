@@ -190,12 +190,12 @@ let reset () =
   ()
 
 let rec current_mode () =
-  try
-    Common2.top !_mode_stack
-  with Failure("hd") ->
-    pr2("mode_stack is empty, defaulting to INITIAL");
-    reset();
-    current_mode ()
+  match !_mode_stack with
+  | top :: _ -> top
+  | [] ->
+      pr2("mode_stack is empty, defaulting to INITIAL");
+      reset();
+      current_mode ()
 
 let push_mode mode = Common.push mode _mode_stack
 let pop_mode () = ignore(Common2.pop2 _mode_stack)

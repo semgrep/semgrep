@@ -267,6 +267,40 @@ val map : ('a -> 'b) -> 'a list -> 'b list
     left to right like for [List.iter].
 *)
 
+(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the first element of a list or
+   fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
+   the exception 'Failure msg' which is only a slight improvement over
+   'Common.hd_exn "unexpected empty list"'.
+
+   In general, you should prefer a match-with and not have to call a
+   function to extract the first element of a list.
+
+   Usage: Common.hd_exn "found an empty list of things" xs
+
+   If receiving an empty list is a bug, prefer the following:
+
+     match xs with
+     | [] -> assert false
+     | xs -> ...
+*)
+val hd_exn : string -> 'a list -> 'a
+
+(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great improvement.
+   The same recommendations as for 'Common.hd_exn "unexpected empty list"' apply. *)
+val tl_exn : string -> 'a list -> 'a list
+
+val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
+(** Same as [List.map2] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
+val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
+(** Same as [List.mapi] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
 val flatten : 'a list list -> 'a list
 (** Same as [List.flatten] but tail recursive. *)
 
