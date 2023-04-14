@@ -190,7 +190,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
                 # Mask variable debug output
-                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
+                re.compile(r"/(.*)/semgrep-core"),
                 re.compile(r"loaded 1 configs in(.*)"),
                 re.compile(r".*https://semgrep.dev(.*).*"),
                 re.compile(r"(.*Main\.Dune__exe__Main.*)"),

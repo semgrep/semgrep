@@ -679,20 +679,6 @@ def test_full_run(
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
-bridge_module_import_line_re = re.compile(
-    r"^Bridge module imported: .*\n", re.MULTILINE
-)
-
-
-def drop_bridge_module_import_line(text: str) -> str:
-    """
-    Remove from 'text' any line that is indicating that the bridge
-    module was loaded.  The test should work either with the bridge or
-    the executable, but the line is present only in the former case.
-    """
-    return bridge_module_import_line_re.sub("", text)
-
-
 # TODO: flaky test on Linux
 # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
 # def test_github_ci_bad_base_sha(
@@ -813,8 +799,7 @@ def drop_bridge_module_import_line(text: str) -> str:
 #            mask=[
 #                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
 #                # Mask variable debug output
-#                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
-#                drop_bridge_module_import_line,
+#                re.compile(r"/(.*)/semgrep-core"),
 #                re.compile(r"loaded 1 configs in(.*)"),
 #                re.compile(r".*https://semgrep.dev(.*).*"),
 #                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
