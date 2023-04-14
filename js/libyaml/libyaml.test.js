@@ -76,28 +76,28 @@ describe("ocaml-yaml stubs", () => {
   globalThis.exposeYamlStubsForTesting = true;
   const stubs = require("./yaml");
   test("yaml_stub_1_yaml_get_version_string", async () => {
-    globalThis.LibYamlModule = await libyamlPromise;
+    stubs.set_libyaml_wasm_module(await libyamlPromise);
     const version = stubs.yaml_stub_1_yaml_get_version_string();
     expect(version).toBe(EXPECTED_LIBYAML_VERSION_STRING);
   });
   test("yaml_stub_2_yaml_get_version", async () => {
-    globalThis.LibYamlModule = await libyamlPromise;
+    stubs.set_libyaml_wasm_module(await libyamlPromise);
     const majorPtr = stubs.ctypes_allocate(1, 4);
     const minorPtr = stubs.ctypes_allocate(1, 4);
     const patchPtr = stubs.ctypes_allocate(1, 4);
     stubs.yaml_stub_2_yaml_get_version(majorPtr, minorPtr, patchPtr);
-    const major = globalThis.LibYamlModule.getValue(majorPtr, "i32");
-    const minor = globalThis.LibYamlModule.getValue(minorPtr, "i32");
-    const patch = globalThis.LibYamlModule.getValue(patchPtr, "i32");
+    const major = stubs.ctypes_read(5, [0, 0, majorPtr]);
+    const minor = stubs.ctypes_read(5, [0, 0, minorPtr]);
+    const patch = stubs.ctypes_read(5, [0, 0, patchPtr]);
     expect([major, minor, patch]).toEqual(EXPECTED_LIBYAML_VERSION);
   });
   test("yaml_stub_4_yaml_parser_initialize", async () => {
-    globalThis.LibYamlModule = await libyamlPromise;
+    stubs.set_libyaml_wasm_module(await libyamlPromise);
     const parserPtr = [0, 0, stubs.ctypes_allocate(1, SIZEOF_YAML_PARSER_T)];
     expect(stubs.yaml_stub_4_yaml_parser_initialize(parserPtr)).toBe(1);
   });
   test("yaml_stub_5_yaml_parser_delete", async () => {
-    globalThis.LibYamlModule = await libyamlPromise;
+    stubs.set_libyaml_wasm_module(await libyamlPromise);
     const parserPtrValue = [
       0,
       0,

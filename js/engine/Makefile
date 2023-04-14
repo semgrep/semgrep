@@ -28,10 +28,10 @@ clean:
 ../libyaml/dist/libyaml.js:
 	make -C ../libyaml dist/libyaml.js
 
-dist/index.cjs: entrypoint.js ../libyaml/dist/libyaml.js
+dist/index.cjs: src/index.ts ../libyaml/dist/libyaml.js
 	mkdir -p dist
 	esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/index.mjs: entrypoint.js ../libyaml/dist/libyaml.js
+dist/index.mjs: src/index.ts ../libyaml/dist/libyaml.js
 	mkdir -p dist
 	esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@

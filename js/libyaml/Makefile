@@ -5,7 +5,9 @@ EMCC_DEFAULTS = \
    -sMODULARIZE
 
 .PHONY: default
-default: dist/libyaml.js
+default:
+	npm ci
+	npm run build
 
 .PHONY: clean
 clean:
@@ -13,7 +15,6 @@ clean:
 
 .PHONY: test
 test: default
-	npm ci
 	npm run test
 
 dist/libyaml.js: *.c
