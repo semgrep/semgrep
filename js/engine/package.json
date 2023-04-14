@@ -4,7 +4,6 @@
   "description": "Javascript bindings for the semgrep engine",
   "main": "dist/index.cjs",
   "scripts": {
-    "tsc": "tsc",
     "build": "tsc && make build",
     "test": "jest",
     "prepublish": "make build"
