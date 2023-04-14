@@ -4,8 +4,6 @@
 
 # Changelog
 
-This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
-
 <!-- insertion point -->
 
 ## [1.17.1](https://github.com/returntocorp/semgrep/releases/tag/v1.17.1) - 2023-04-05
