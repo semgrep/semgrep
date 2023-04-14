@@ -265,6 +265,9 @@ jobs:
     name: Update on Homebrew-Core
     needs: [dry-run, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-12
+    env:
+      R2C_HOMEBREW_CORE_OWNER: semgrep-release
+      R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/semgrep-release/homebrew-core.git
     steps:
       - name: Get the version
         id: get-version
@@ -303,7 +306,6 @@ jobs:
       - name: Prepare Branch
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-          R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/semgrep-release/homebrew-core.git
         run: |
           cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
           git status
@@ -325,7 +327,6 @@ jobs:
       - name: Push to Fork
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-          R2C_HOMEBREW_CORE_OWNER: returntocorp
         if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         run: |
           gh pr create --repo homebrew/homebrew-core \
