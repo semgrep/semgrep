@@ -374,7 +374,8 @@ let o_time : bool Term.t =
 |}
 
 let o_nosem : bool Term.t =
-  H.negatable_flag [ "enable-nosem" ] ~neg_options:[ "disable-nosem" ]
+  H.negatable_flag ~default:true [ "enable-nosem" ]
+    ~neg_options:[ "disable-nosem" ]
     ~doc:
       {|Enables 'nosem'. Findings will not be reported on lines containing
           a 'nosem' comment at the end. Enabled by default.|}
