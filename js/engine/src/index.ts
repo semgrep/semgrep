@@ -20,6 +20,7 @@ export interface Engine {
     targetFilename: string
   ) => string;
   writeFile: (filename: string, content: string) => void;
+  deleteFile: (filename: string) => void;
 }
 
 export const EngineFactory: (
@@ -38,6 +39,7 @@ export const EngineFactory: (
     execute,
     lookupLang,
     writeFile,
+    deleteFile,
   } = require("../../../_build/default/js/engine/Main.bc");
 
   setLibYamlWasmModule(libyaml);
@@ -74,5 +76,6 @@ export const EngineFactory: (
     },
     execute,
     writeFile,
+    deleteFile,
   };
 };
