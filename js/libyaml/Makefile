@@ -5,7 +5,8 @@ EMCC_DEFAULTS = \
    -sMODULARIZE
 
 .PHONY: default
-default: dist/libyaml.js
+default:
+	npm run build
 
 .PHONY: clean
 clean:

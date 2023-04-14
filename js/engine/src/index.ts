@@ -1,16 +1,16 @@
 import LibYamlFactory from "../../libyaml/dist/libyaml";
 
-type Lang = number;
-type Mountpoint = object;
+export type Lang = number;
+export type Mountpoint = object;
 
-interface Parser {
+export interface Parser {
   getLang: () => Lang;
   parsePattern: (printErrors: boolean, pattern: string) => any;
   parseTarget: (str: string) => any;
   setMountPoints: (mountpoints: Mountpoint[]) => void;
 }
 
-interface Engine {
+export interface Engine {
   lookupLang: (name: string) => Lang;
   addParser: (parser: Parser) => void;
   hasParser: (lang: Lang) => boolean;

@@ -1,12 +1,12 @@
 {
   "name": "@semgrep/engine",
-  "version": "1.17.1-alpha.2",
+  "version": "1.17.1-alpha.3",
   "description": "Javascript bindings for the semgrep engine",
   "main": "dist/index.cjs",
   "scripts": {
     "build": "tsc && make build",
     "test": "jest",
-    "prepublish": "make build"
+    "prepublish": "tsc && make build"
   },
   "repository": {
     "type": "git",

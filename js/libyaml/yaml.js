@@ -60,9 +60,7 @@ function ctypes_read_pointer(ptr) {
 //Provides: yaml_stub_1_yaml_get_version_string const
 //Requires: libyaml
 function yaml_stub_1_yaml_get_version_string() {
-  return globalThis.LibYamlModule.UTF8ToString(
-    libyaml._yaml_get_version_string()
-  );
+  return libyaml.UTF8ToString(libyaml._yaml_get_version_string());
 }
 
 //Provides: yaml_stub_2_yaml_get_version
@@ -214,7 +212,9 @@ function yaml_stub_19_yaml_stream_end_event_initialize(event) {
 (() => {
   if (globalThis.exposeYamlStubsForTesting) {
     module.exports = {
+      set_libyaml_wasm_module,
       ctypes_allocate,
+      ctypes_read,
       yaml_stub_1_yaml_get_version_string,
       yaml_stub_2_yaml_get_version,
       yaml_stub_4_yaml_parser_initialize,
