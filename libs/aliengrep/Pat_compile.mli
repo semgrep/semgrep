@@ -5,9 +5,10 @@
 type metavariable_kind =
   | Metavariable
   | Metavariable_ellipsis (* regular or long *)
+[@@deriving show]
 
 (* metavariable kind, bare name *)
-type metavariable = metavariable_kind * string
+type metavariable = metavariable_kind * string [@@deriving show]
 
 type t = private {
   pcre_pattern : string;

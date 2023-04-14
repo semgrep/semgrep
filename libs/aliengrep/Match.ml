@@ -2,12 +2,15 @@
    Match a compiled pattern against a target string.
 *)
 
-type loc = { start : int; length : int; substring : string }
+type loc = { start : int; length : int; substring : string } [@@deriving show]
 
 type match_ = {
   match_loc : loc;
   captures : (Pat_compile.metavariable * loc) list;
 }
+[@@deriving show]
+
+type matches = match_ list [@@deriving show]
 
 (* 0: whole match, i >= 1: captures *)
 let loc_of_substring target_str substrings i =
