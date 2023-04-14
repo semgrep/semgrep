@@ -1,0 +1,1 @@
+Increase timeout for `semgrep install-semgrep-pro` to avoid failures when the download is slow.
