@@ -31,6 +31,10 @@
 ; Don't build executables for the submodules that we only use as libraries.
 ; - Saves a tiny bit of build time (about 3-4%).
 ; - Keeps the bin/ folder clean.
+;
+; To update the list of directories below, just look at the current content
+; of bin/ and spot the parse-xxx binaries and add a subdir entry for it
+; to not build it.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (subdir
@@ -40,7 +44,7 @@
 
 ; Unfortunately, 'subdir' doesn't expand wildcards.
 ;(subdir
-;   src/parser_*/tree-sitter/semgrep-*
+;   languages/*/tree-sitter/semgrep-*
 ;   (data_only_dirs bin)
 ;)
 
@@ -90,12 +94,12 @@
 )
 
 (subdir
-   languages/hcl/tree-sitter/semgrep-hcl
+   languages/terraform/tree-sitter/semgrep-hcl
    (data_only_dirs bin)
 )
 
 (subdir
-   languages/tree-sitter-lang/semgrep-html
+   languages/html/tree-sitter/semgrep-html
    (data_only_dirs bin)
 )
 
@@ -111,6 +115,16 @@
 ; no json, reusing javascript
 
 (subdir
+   languages/julia/tree-sitter/semgrep-julia
+   (data_only_dirs bin)
+)
+
+(subdir
+   languages/jsonnet/tree-sitter/semgrep-jsonnet
+   (data_only_dirs bin)
+)
+
+(subdir
    languages/kotlin/tree-sitter/semgrep-kotlin
    (data_only_dirs bin)
 )
@@ -121,7 +135,7 @@
 )
 
 (subdir
-   languages/tree-sitter/semgrep-lua
+   languages/lua/tree-sitter/semgrep-lua
    (data_only_dirs bin)
 )
 
