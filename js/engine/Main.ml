@@ -17,6 +17,7 @@ let _ =
   Js.export_all
     (object%js
        method getMountPoints = get_jsoo_mount_point ()
+       method setLibYamlWasmModule = Libyaml_stubs_js.set_libyaml_wasm_module
 
        method setParsePattern (func : bool -> Lang.t -> string -> 'a) =
          Parse_pattern.parse_pattern_ref := func
