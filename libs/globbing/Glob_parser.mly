@@ -1,5 +1,5 @@
 %{
-open Glob_matcher
+open Glob_pattern
 
 type tmp =
 | Fragment of segment_fragment
@@ -13,9 +13,9 @@ let convert_ellipses (fragments : tmp list) =
 %}
 %token SLASH QUESTION STAR STARSTAR EOF
 %token <char> CHAR
-%token <Glob_matcher.char_class> CHAR_CLASS
+%token <Glob_pattern.char_class> CHAR_CLASS
 
-%start <Glob_matcher.segment list> segments
+%start <Glob_pattern.segment list> segments
 %%
 
 segments:

@@ -1,5 +1,5 @@
 {
-module M = Glob_matcher
+module M = Glob_pattern
 open Glob_parser
 
 exception Syntax_error of string

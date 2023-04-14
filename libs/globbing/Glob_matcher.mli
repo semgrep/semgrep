@@ -1,30 +1,7 @@
 (*
-   AST and matching of a glob pattern against a path.
+   Matching of a glob pattern against a path.
    This is purely syntaxic: the file system is not accessed.
-
-   The main reference for this is https://git-scm.com/docs/gitignore
-   which itself relies partially on POSIX glob
-   https://man7.org/linux/man-pages/man7/glob.7.html (man 7 glob)
 *)
-
-(*
-   A pattern which matches paths.
-*)
-type pattern = segment list
-
-(* A path segment is what represents a simple file name in a directory *)
-and segment = Segment of segment_fragment list | Any_subpath
-
-and segment_fragment =
-  | Char of char
-  | Char_class of char_class
-  | Question
-  | Star
-
-and char_class = { complement : bool; ranges : char_class_range list }
-
-and char_class_range = Class_char of char | Range of char * char
-[@@deriving show]
 
 (* A compiled pattern matcher. *)
 type t
@@ -50,7 +27,7 @@ val show_loc : loc -> string
    ocaml-re library). The source should be the original glob pattern
    before parsing. It's used only for debugging purposes.
 *)
-val compile : source:loc -> pattern -> t
+val compile : source:loc -> Glob_pattern.t -> t
 
 (*
    Match a path against a pattern:
@@ -93,11 +70,3 @@ val string_loc :
   ?source_name:string -> source_kind:string option -> string -> loc
 
 val source : t -> loc
-val of_path_segments : string list -> pattern
-
-(* The pattern that matches '/' *)
-val root_pattern : pattern
-
-(* Append the segments, taking care of trailing slashes that prevent
-   us from using a plain list append (@). *)
-val append : pattern -> pattern -> pattern

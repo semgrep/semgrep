@@ -5,7 +5,7 @@
 open Printf
 
 (*****************************************************************************)
-(* Helper *)
+(* Helpers *)
 (*****************************************************************************)
 
 let test pattern path matches () =
@@ -24,8 +24,7 @@ let test pattern path matches () =
      pattern info:\n\
      %s\n\
      %s\n"
-    pattern path matches res
-    (Glob_matcher.show_pattern pat)
+    pattern path matches res (Glob_pattern.show pat)
     (Glob_matcher.show compiled_pat);
   Alcotest.(check bool) "equal" matches res
 
@@ -70,8 +69,8 @@ let tests =
       ("trailing slash 1", test "a/" "a/" true);
       ("trailing slash 2", test "a/" "a" false);
       ("trailing slash 3", test "a" "a/" false);
-      (* gitignore extensions not found in glob(3). As opposed to '*',
-       * '**' can match the '/' character.
+      (* gitignore extensions not found in glob(3).
+       * As opposed to '*', '**' can match the '/' character.
        *)
       ("ellipsis 1", test "**" "a" true);
       ("ellipsis 2", test "**" "a/b/c" true);
@@ -83,10 +82,13 @@ let tests =
       ("ellipsis 7", test "a/**/z" "a/b/c/d/z" true);
       ("ellipsis 8", test "a**" "a" true);
       ("ellipsis 9", test "a**" "abc" true);
-      (* not matching! *)
+      (* Not matching because '**' is special only if it's alone
+       * as a path segment (see the gitignore spec). a** is
+       * equivalent to just a*.
+       *)
       ("ellipsis 10", test "a**" "a/b" false);
       ("ellipsis 11", test "****" "a" true);
-      (* not matching! *)
+      (* not matching either *)
       ("ellipsis 12", test "****" "a/b" false);
       ("double slash", test "//a//b//" "//a//b//" true);
     ]
