@@ -4,6 +4,11 @@ let ellipsis_string = " ... "
 let base_indent = String.make 8 ' '
 let findings_indent_depth = String.make 10 ' '
 
+let text_width =
+  let max_text_width = 120 in
+  let w = Option.value ~default:max_text_width (Terminal_size.get_columns ()) in
+  if w <= 110 then w - 5 else w - (w - 100)
+
 let group_titles = function
   | `Unreachable -> "Unreachable Supply Chain Finding"
   | `Undetermined -> "Undetermined Supply Chain Finding"
@@ -22,16 +27,92 @@ let is_blocking (json : Yojson.Basic.t) =
         stuff
   | _else -> false
 
+let ws_prefix s =
+  let rec index_rec s lim i acc =
+    if i >= lim then List.rev acc
+    else
+      let c = String.unsafe_get s i in
+      if c = ' ' then index_rec s lim (i + 1) (' ' :: acc)
+      else if c = '\t' then index_rec s lim (i + 1) ('\t' :: acc)
+      else List.rev acc
+  in
+  index_rec s (String.length s) 0 []
+
+let dedent_lines (lines : string list) =
+  let ws_prefixes =
+    List.sort compare
+      (Common.map_filter
+         (fun line ->
+           if String.(length (trim line)) = 0 then None
+           else Some (ws_prefix line))
+         lines)
+  in
+  let longest_prefix =
+    let hd, tl =
+      match (ws_prefixes, List.rev ws_prefixes) with
+      | hd :: _, tl :: _ -> (hd, tl)
+      | [], _whatever
+      | _whatever, [] ->
+          ([], [])
+    in
+    let rec eq a b togo acc =
+      if togo = 0 then acc
+      else
+        match (a, b) with
+        | hda :: tla, hdb :: tlb ->
+            if hda = hdb then eq tla tlb (togo - 1) (acc + 1) else acc
+        | [], _whatever
+        | _whatever, [] ->
+            acc
+    in
+    eq hd tl (min (List.length hd) (List.length tl)) 0
+  in
+  ( Common.map
+      (fun line ->
+        if String.(length (trim line)) = 0 then line
+        else Str.string_after line longest_prefix)
+      lines,
+    longest_prefix )
+
+let wrap ~indent ~width s =
+  let pre = String.make indent ' ' in
+  let rec go indent width pre s acc =
+    let real_width = width - indent in
+    if String.length s <= real_width then List.rev ((pre ^ s) :: acc)
+    else
+      let cut =
+        let prev_ws =
+          try String.rindex_from s real_width ' ' with
+          | Not_found -> 0
+        and prev_dash =
+          try 1 + String.rindex_from s real_width '-' with
+          | Not_found -> 0
+        in
+        let m = max prev_ws prev_dash in
+        if m = 0 then real_width else m
+      in
+      let e, s =
+        (Str.first_chars s cut, String.(trim (sub s cut (length s - cut))))
+      in
+      go indent width pre s ((pre ^ e) :: acc)
+  in
+  go indent width pre s []
+
+let cut s idx1 idx2 =
+  Logs.info (fun m -> m "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
+  ( Str.first_chars s idx1,
+    String.sub s idx1 (idx2 - idx1),
+    Str.string_after s idx2 )
+
 let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
     ~show_separator ppf (m : Out.cli_match) =
-  (* TODO dedent lines *)
-  (* TODO coloring, bold *)
   ignore color_output;
   let lines =
     Option.value
       ~default:(String.split_on_char '\n' m.extra.lines)
       m.extra.fixed_lines
   in
+  let lines, dedented = dedent_lines lines in
   let lines, trimmed =
     let ll = List.length lines in
     let max_lines =
@@ -45,7 +126,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
   let stripped, _ =
     List.fold_left
       (fun (stripped, line_number) line ->
-        let line, stripped =
+        let line, line_off, stripped =
           let ll = String.length line in
           if max_chars_per_line > 0 && ll > max_chars_per_line then
             if start_line = line_number && m.start.col > 1 then
@@ -58,14 +139,30 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
               ( ellipsis_string
                 ^ String.sub line start max_chars_per_line
                 ^ ell_at_end,
+                start,
                 true )
             else
-              (Str.first_chars line max_chars_per_line ^ ellipsis_string, true)
-          else (line, stripped)
+              ( Str.first_chars line max_chars_per_line ^ ellipsis_string,
+                0,
+                true )
+          else (line, 0, stripped)
         in
         let line_number_str = string_of_int line_number in
         let pad = String.make (11 - String.length line_number_str) ' ' in
-        Fmt.pf ppf "%s%s┆ %s@." pad line_number_str line;
+        let col c = max 0 (c - 1 - dedented - line_off) in
+        let start_color =
+          if line_number > start_line then 0 else col m.start.col
+        in
+        let end_color =
+          min
+            (String.length line - 1)
+            (if line_number >= m.end_.line then col m.end_.col
+            else String.length line - 1)
+        in
+        let a, b, c = cut line start_color end_color in
+        Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
+          Fmt.(styled `Bold string)
+          b c;
         (stripped, succ line_number))
       (false, start_line) lines
   in
@@ -85,7 +182,6 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : Out.cli_match list) =
-  (* TODO sorting, skipping path if same as previous *)
   let print_one (last : Out.cli_match option) (cur : Out.cli_match)
       (next : Out.cli_match option) =
     let last_message =
@@ -98,7 +194,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             if m.path = cur.path then (false, Some m.extra.message)
             else (true, None)
       in
-      if print then Fmt.pf ppf "  %s@." cur.path;
+      if print then Fmt.pf ppf "  %a@." Fmt.(styled (`Fg `Cyan) string) cur.path;
       msg
     in
     let print =
@@ -112,9 +208,13 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
         | `String s -> base_indent ^ "Details: " ^ s
         | _else -> ""
       in
-      Fmt.pf ppf "    %s@." cur.check_id;
-      (* TODO message wrapping *)
-      Fmt.pf ppf "      %s@.%s@.@." cur.extra.message shortlink);
+      List.iter
+        (fun l -> Fmt.pf ppf "%a@." Fmt.(styled `Bold string) l)
+        (wrap ~indent:5 ~width:text_width cur.check_id);
+      List.iter
+        (fun l -> Fmt.pf ppf "%s@." l)
+        (wrap ~indent:8 ~width:text_width cur.extra.message);
+      Fmt.pf ppf "%s@.@." shortlink);
     (* TODO autofix *)
     let same_file =
       match next with
