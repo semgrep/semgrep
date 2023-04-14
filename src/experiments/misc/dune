@@ -3,6 +3,7 @@
  (name semgrep_experiments_misc)
  (wrapped false)
  (libraries
+   camlp-streams ; this is needed after OCaml 4.12.0
    commons
    lib_parsing
    pfff-lang_GENERIC-analyze
