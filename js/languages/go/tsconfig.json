@@ -1,0 +1,16 @@
+{
+  "include": ["src/*"],
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "rootDir": ".",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outFile": "./dist/index.d.ts",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "allowJs": true
+  }
+}

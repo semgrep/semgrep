@@ -6,11 +6,13 @@ open Js_of_ocaml
    inherit their engine's mount points. This is effectively a no-op in node.
    (see companion setter in ../engine/Main.ml) *)
 external set_jsoo_mount_point : 'any list -> unit = "set_jsoo_mount_point"
+external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 
 let make_js_module (lang : Lang.t) parse_target parse_pattern =
   Js.export_all
     (object%js
        method setMountPoints = set_jsoo_mount_point
+       method setParserWasmModule = set_parser_wasm_module
        method getLang = lang
        method parseTarget file = parse_target (Js.to_string file)
 

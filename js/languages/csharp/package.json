@@ -1,0 +1,23 @@
+{
+  "name": "@semgrep/lang-csharp",
+  "version": "1.7.1",
+  "description": "Semgrep csharp parser",
+  "main": "dist/index.js",
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts"
+  ],
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "make dist/index.js && tsc",
+    "test": "jest"
+  },
+  "author": "Semgrep, Inc.",
+  "license": "LGPL-2.1",
+  "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.21.2",
+    "@babel/preset-typescript": "^7.21.4",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.4"
+  }
+}
