@@ -12,9 +12,10 @@ type metavariable = metavariable_kind * string [@@deriving show]
 
 type t = private {
   pcre_pattern : string;
-  pcre : Pcre.regexp;
+  pcre : Pcre.regexp; [@opaque]
   metavariable_groups : metavariable array;
 }
+[@@deriving show]
 
 (*
    Convert a pattern AST into a PCRE pattern and the array of metavariables

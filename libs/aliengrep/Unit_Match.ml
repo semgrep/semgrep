@@ -56,22 +56,33 @@ let rec check_expectation expectation matches =
    our expectations.
 *)
 let check conf pat_string target_string expectations =
+  printf "--- pattern ---\n%s\n------\n%!" pat_string;
   let pat = Pat_compile.from_string conf pat_string in
+  printf "--- compiled pattern ---\n%s\n------\n" (Pat_compile.show pat);
+  printf "--- target ---\n%s\n------\n%!" target_string;
   let matches = Match.search pat target_string in
-  printf "--- pattern ---\n%s\n------\n" pat_string;
-  printf "--- target ---\n%s\n------\n" target_string;
-  printf "--- expected matches ---\n%s\n" (Match.show_matches matches);
-  flush stdout;
+  printf "--- matches ---\n%s\n%!" (Match.show_matches matches);
   List.iter
     (fun expectation ->
       if not (check_expectation expectation matches) then
-        failwith "unexpected result")
+        failwith "unexpected test result")
     expectations
 
 let uconf = Conf.default_uniline_conf
-let _mconf = Conf.default_multiline_conf
+let mconf = Conf.default_multiline_conf
 
 let test_word () =
-  check uconf {|a|} {|a b c|} [ Num_matches 1; Match_value "a" ]
+  check uconf {|a|} {|a b c|} [ Num_matches 1; Match_value "a" ];
+  check uconf {|ab|} {|ab abc|} [ Num_matches 1; Match_value "ab" ];
+  check uconf {|ab|} {|ab c ab|} [ Num_matches 2; Match_value "ab" ];
+  check uconf {|ab|} {|xabx|} [ Num_matches 0 ]
 
-let tests = [ ("word", test_word) ]
+let test_whitespace () =
+  check uconf {|a b|} {|a  b|} [ Num_matches 1; Match_value "a  b" ];
+  check uconf {|a  b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
+  check uconf "a\nb" "a b" [ Num_matches 0 ];
+  check uconf "a b" "a\nb" [ Num_matches 0 ];
+  check mconf "a\nb" "a b" [ Num_matches 1; Match_value "a b" ];
+  check mconf "a b" "a\nb" [ Num_matches 1; Match_value "a\nb" ]
+
+let tests = [ ("word", test_word); ("whitespace", test_whitespace) ]

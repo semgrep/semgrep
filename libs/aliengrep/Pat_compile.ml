@@ -13,12 +13,13 @@ type metavariable_kind =
 type metavariable = metavariable_kind * string [@@deriving show]
 
 type t = {
-  pcre_pattern : string;
-  pcre : Pcre.regexp;
+  pcre_pattern : string; [@printer fun fmt -> Format.fprintf fmt "{|%s|}"]
+  pcre : Pcre.regexp; [@opaque]
   (* Array of PCRE capturing groups. Each capturing group has a metavariable
      name. *)
   metavariable_groups : metavariable array;
 }
+[@@deriving show]
 
 (*
    to do:
@@ -38,24 +39,28 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
      (?(DEFINE)(?<foo> xxx)) gives the name 'foo' to the pattern xxx without
      using it.
 
-     \<foo> is a reference to the pattern named foo.
+     (?&foo) is a reference to the pattern named foo.
   *)
-  let blank = {|[:blank:]*+|} in
-  let space = {|[:space:]*+|} in
+  let blank = {|[[:blank:]]*+|} in
+  let space = {|[[:space:]]*+|} in
   (* whitespace *)
   let def_ws =
-    sprintf {|(?(DEFINE)(?<ws>\k<%s>))|}
-      (if conf.multiline then space else blank)
+    sprintf {|(?(DEFINE)(?<ws>%s))|} (if conf.multiline then space else blank)
   in
+  let word_char = Pcre_util.char_class_of_list conf.word_chars in
   let def_word =
-    sprintf {|(?(DEFINE)(?<word>%s++))|}
-      (Pcre_util.char_class_of_list conf.word_chars)
+    (* match any word *)
+    sprintf {|(?(DEFINE)(?<word>%s++))|} word_char
   in
+  (* left word boundary *)
+  let def_lwb = sprintf {|(?(DEFINE)(?<lwb>(?<!%s)))|} word_char in
+  (* right word boundary *)
+  let def_rwb = sprintf {|(?(DEFINE)(?<rwb>(?!%s)))|} word_char in
   let def_bracket =
     sprintf {|(?(DEFINE)(?<bracket>%s))|}
       (conf.braces
       |> Common.map (fun (open_, close) ->
-             sprintf {|%s\k<seq>%s|}
+             sprintf {|%s(?&seq)%s|}
                (String.make 1 open_ |> Pcre_util.quote)
                (String.make 1 close |> Pcre_util.quote))
       |> String.concat "|")
@@ -63,25 +68,39 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   let def_node =
     (* Note that '.' may not match newlines. This is incompatible with
        the `DOTALL option of Pcre. *)
-    sprintf {|(?(DEFINE)(?<node>\k<word>|\k<bracket>|\k<ws>|.))|}
+    sprintf {|(?(DEFINE)(?<node>(?&word)|(?&bracket)|(?&ws)|.))|}
   in
   (* multiline sequence of any nodes *)
   let def_mseq =
     (* lazy repeat *)
-    sprintf {|(?(DEFINE)(?<mseq>%s(?:\k<node>%s)*?))|} space space
+    sprintf {|(?(DEFINE)(?<mseq>%s(?:(?&node)%s)*?))|} space space
   in
   (* uniline sequence of any nodes *)
   let def_useq =
     (* lazy repeat *)
-    sprintf {|(?(DEFINE)(?<useq>%s(?:\k<node>%s)*?))|} blank blank
+    sprintf {|(?(DEFINE)(?<useq>%s(?:(?&node)%s)*?))|} blank blank
   in
   (* sequence of nodes *)
   let def_seq =
-    sprintf {|(?(DEFINE)(?<seq>\k<%s>))|}
+    sprintf {|(?(DEFINE)(?<seq>(?&%s)))|}
       (if conf.multiline then "mseq" else "useq")
   in
   let definitions =
-    [ def_ws; def_word; def_bracket; def_node; def_mseq; def_useq; def_seq ]
+    [
+      def_lwb;
+      def_rwb;
+      def_ws;
+      def_word;
+      def_bracket;
+      def_node;
+      def_mseq;
+      def_useq;
+      def_seq;
+    ]
+  in
+  let word str =
+    (* match a specific word *)
+    sprintf {|(?&lwb)%s(?&rwb)|} (Pcre_util.quote str)
   in
   let new_capturing_group =
     let n = ref 0 in
@@ -108,25 +127,27 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
         sprintf {|\g{%d}|} backref_num
   in
   let entrypoint =
-    let buf = Buffer.create 200 in
-    let add str = bprintf buf "%s\n" str in
+    let acc = ref [] in
+    let add str = acc := str :: !acc in
     let rec of_node (node : Pat_AST.node) =
       match node with
-      | Ellipsis -> add {|\k<useq>|}
-      | Long_ellipsis -> add {|\k<mseq>|}
-      | Metavar name -> add (capture (Metavariable, name) {|\k<word>|})
+      | Ellipsis -> add {|(?&useq)|}
+      | Long_ellipsis -> add {|(?&mseq)|}
+      | Metavar name -> add (capture (Metavariable, name) {|(?&word)|})
       | Metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) {|\k<useq>|})
+          add (capture (Metavariable_ellipsis, name) {|(?&useq)|})
       | Long_metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) {|\k<mseq>|})
+          add (capture (Metavariable_ellipsis, name) {|(?&mseq)|})
       | Bracket (open_, seq, close) ->
           add (Pcre_util.quote (String.make 1 open_));
           of_seq seq;
           add (Pcre_util.quote (String.make 1 close))
+      | Word str -> add (word str)
       | Other str -> add (Pcre_util.quote str)
     and of_seq xs = List.iter of_node xs in
     of_seq ast;
-    Buffer.contents buf
+    let elements = List.rev !acc in
+    String.concat ("\n" ^ {|(?&ws)|} ^ "\n") elements
   in
   let root = sprintf "%s\n%s" (String.concat "\n" definitions) entrypoint in
   (root, get_capturing_group_array ())

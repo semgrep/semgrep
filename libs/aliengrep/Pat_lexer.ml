@@ -49,7 +49,7 @@ let compile conf =
   in
   let open_7 = sprintf {|(%s)|} (Pcre_util.char_class_of_list open_chars) in
   let close_8 = sprintf {|(%s)|} (Pcre_util.char_class_of_list close_chars) in
-  let other_9 = sprintf {|(.)|} in
+  let other_9 = sprintf {|(.|\n)|} in
   let pat =
     String.concat "|"
       [
