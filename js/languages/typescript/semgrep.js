@@ -1,15 +1,15 @@
 //Provides: octs_create_parser_tsx
+//Requires: octs_create_parser_typescript
 function octs_create_parser_tsx() {
-  const wasm = globalThis.ParserModule;
-  const parser_ptr = wasm._ts_parser_new();
-  wasm._ts_parser_set_language(parser_ptr, wasm._tree_sitter_typescript()); // TODO: does tsx have its own parser?
-  return { wasm, parser_ptr };
+  return octs_create_parser_typescript();
 }
 
 //Provides: octs_create_parser_typescript
+//Requires: wasm,lazy_instantiate_parser
 function octs_create_parser_typescript() {
-  const wasm = globalThis.ParserModule;
-  const parser_ptr = wasm._ts_parser_new();
-  wasm._ts_parser_set_language(parser_ptr, wasm._tree_sitter_typescript());
-  return { wasm, parser_ptr };
+  return lazy_instantiate_parser(() => {
+    const ptr = wasm._ts_parser_new();
+    wasm._ts_parser_set_language(ptr, wasm._tree_sitter_typescript());
+    return ptr;
+  });
 }

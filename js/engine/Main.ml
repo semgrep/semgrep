@@ -17,7 +17,7 @@ let _ =
   *)
   Js.export_all
     (object%js
-       method getMountPoints = get_jsoo_mount_point ()
+       method getMountpoints = get_jsoo_mount_point ()
        method setLibYamlWasmModule = Libyaml_stubs_js.set_libyaml_wasm_module
 
        method writeFile filename content =

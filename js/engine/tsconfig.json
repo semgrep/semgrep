@@ -1,4 +1,5 @@
 {
+  "exclude": ["./dist", "**/*.test.ts"],
   "compilerOptions": {
     "target": "es2016",
     "module": "commonjs",

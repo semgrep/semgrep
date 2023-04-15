@@ -2,29 +2,21 @@
   "name": "@semgrep/engine",
   "version": "1.17.1-alpha.4",
   "description": "Javascript bindings for the semgrep engine",
-  "main": "dist/index.cjs",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && make build",
+    "build": "make dist/index.js dist/index.d.ts",
     "test": "jest",
-    "prepublish": "tsc && make build"
+    "prepublish": "make dist/index.js dist/index.d.ts"
   },
   "repository": {
     "type": "git",
     "url": "github.com/returntocorp/semgrep"
   },
   "files": [
-    "dist/index.cjs",
-    "dist/index.mjs",
+    "dist/index.js",
     "dist/index.d.ts"
   ],
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",
   "devDependencies": {

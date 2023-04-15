@@ -1,25 +1,20 @@
 ESBUILD_DEFAULTS = \
 	--bundle \
 	--minify \
-	--platform=neutral \
-	--log-override:duplicate-case=silent \
-	--external:path \
-	--external:fs \
-	--external:constants \
-	--external:tty \
-	--external:child_process
+	--platform=node \
+	--log-override:duplicate-case=silent
 
 .PHONY: default
-default:
-	npm ci
-	npm run build
+default: build
 
 .PHONY: test
 test:
 	npm run test
 
 .PHONY: build
-build: dist/index.cjs dist/index.mjs
+build:
+	npm ci
+	npm run build
 
 .PHONY: clean
 clean:
@@ -28,10 +23,10 @@ clean:
 ../libyaml/dist/libyaml.js:
 	make -C ../libyaml dist/libyaml.js
 
-dist/index.cjs: src/index.ts ../libyaml/dist/libyaml.js
+dist/index.js: src/index.ts ../libyaml/dist/libyaml.js
 	mkdir -p dist
-	esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+	esbuild $< $(ESBUILD_DEFAULTS) --outfile=$@
 
-dist/index.mjs: src/index.ts ../libyaml/dist/libyaml.js
+dist/index.d.ts: src/index.ts
 	mkdir -p dist
-	esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
+	tsc

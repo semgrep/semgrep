@@ -12,6 +12,7 @@
   (javascript_files
    pcre.js ; libpcre bindings
    core.js ; misc libraries
+   octs.js ; ocaml-tree-sitter plumbing
    )
   ; --no-inline was suggested here:
   ; https://discuss.ocaml.org/t/js-of-ocaml-output-performs-considerably-worse-when-built-with-profile-release-flag/8862/14
