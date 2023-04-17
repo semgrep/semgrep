@@ -6,6 +6,53 @@
 
 <!-- insertion point -->
 
+## [1.18.0](https://github.com/returntocorp/semgrep/releases/tag/v1.18.0) - 2023-04-14
+
+### Added
+
+- Metavariable comparison: Added support for \*\*, the exponentiation operator. (gh-7474)
+- Pro: Java: Semgrep is now able to track the propagation of taint from the
+  arguments of a method, to the object being called. So e.g. given a method
+
+      public void foo(int x) {
+          this.x = x;
+      }
+
+  and a call `o.foo(tainted)`, Semgrep will be able to track that the field
+  `x` of `o` has been tainted. (pa-2570)
+
+- Kotlin: Class fields will now receive the correct types, and be
+  found by typed metavariables correctly
+
+  This applies to examples such as:
+  class Foo {
+  var x : int
+  }
+  for the variable `x` (pa-2684)
+
+- Supply Chain support for package-lock.json version 3 (sc-586)
+
+### Fixed
+
+- metavariable-pattern: When used with the nested `language` key, if there was an
+  error parsing the `metavariable`'s content, that error could abort the analysis
+  of the current file. If there were other rules that were going to produce findings
+  on that file, those findings were not being reported. (gh-7271)
+- Matching: Fixed a bug where explicit casts of expressions would produce two matches to
+  other explicit casts.
+
+  So for instance, a pattern `(int $X)` in Java would match twice to `(int) 5`. (gh-7403)
+
+- taint-mode: Given `x = tainted`, then `x.a = safe`, then `x.a.b = tainted`, Semgrep
+  did not report `sink(x.a.b)`. Because `x.a` was clean, that made Semgrep disregard
+  the tainting of any field of `x.a` such as `x.a.b`. This now works as expected. (pa-2486)
+- When using `metavariable-pattern` to match embedded PHP code, Semgrep was
+  unconditionally adding the `<?php` opening to the embedded code. When
+  `<?php` was already present, this caused parsing errors. (pa-2696)
+- Lockfile-only supply chain findings correctly include line numbers in their match data, improving the appearence of CLI output (sc-658)
+- Increase timeout for `semgrep install-semgrep-pro` to avoid failures when the download is slow. (timeout)
+- Fixed the range reported by findings for YAML files that include an anchor, so that the match does not include the original location of the snippet bound to the anchor. (yaml-alias)
+
 ## [1.17.1](https://github.com/returntocorp/semgrep/releases/tag/v1.17.1) - 2023-04-05
 
 ### Fixed
