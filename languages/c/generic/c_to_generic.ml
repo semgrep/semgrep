@@ -274,7 +274,12 @@ and expr e =
       G.Record v1 |> G.e
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.New (unsafe_fake "new", v1, fb ([ v2 ] |> Common.map G.arg)) |> G.e
+      G.New
+        ( unsafe_fake "new",
+          v1,
+          G.empty_id_info (),
+          fb ([ v2 ] |> Common.map G.arg) )
+      |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in

@@ -278,11 +278,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | Call (v1, v2) ->
             let v1 = map_expr v1 and v2 = map_arguments v2 in
             Call (v1, v2)
-        | New (v1, v2, v3) ->
+        | New (v1, v2, v3, v4) ->
             let v1 = map_tok v1
             and v2 = map_type_ v2
-            and v3 = map_arguments v3 in
-            New (v1, v2, v3)
+            and v3 = map_id_info v3
+            and v4 = map_arguments v4 in
+            New (v1, v2, v3, v4)
         | Assign (v1, v2, v3) ->
             let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
             Assign (v1, v2, v3)

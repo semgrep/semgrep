@@ -169,7 +169,7 @@
  * to correspond mostly to Semgrep versions. So version below can jump from
  * "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.12.1"
+let version = "1.19.0"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -587,6 +587,7 @@ and expr_kind =
   (* operators and function application *)
   | Call of expr * arguments
   (* 'type_' below is usually a TyN or TyArray (or TyExpr).
+   * 'id_info' refers to the constructor.
    * Note that certain languages do not have a 'new' keyword
    * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
    * old: this is used to be an IdSpecial used in conjunction with
@@ -594,7 +595,7 @@ and expr_kind =
    * New is really important for typing (and other program analysis).
    * note: see also AnonClass which is also a New.
    *)
-  | New of tok (* 'new' (can be fake) *) * type_ * arguments
+  | New of tok (* 'new' (can be fake) *) * type_ * id_info * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml

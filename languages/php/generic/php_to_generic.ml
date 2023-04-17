@@ -292,7 +292,7 @@ and expr e : G.expr =
   | New (v0, v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
       let t = H.expr_to_type v1 in
-      G.New (v0, t, fb v2) |> G.e
+      G.New (v0, t, G.empty_id_info (), fb v2) |> G.e
   | NewAnonClass (_tTODO, args, cdef) ->
       let _ent, cdef = class_def cdef in
       let args = list argument args in
