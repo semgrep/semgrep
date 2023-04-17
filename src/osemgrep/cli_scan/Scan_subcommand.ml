@@ -240,55 +240,70 @@ let pp_skipped ppf
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list) =
+  Fmt.pf ppf "%s@.Files skipped:@.%s@." (String.make 40 '=')
+    (String.make 40 '=');
   Fmt_helpers.pp_heading ppf "Files skipped";
   (* TODO: always skipped *)
-  Fmt.pf ppf " Skipped by .gitignore:@.";
+  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
   if respect_git_ignore then (
-    Fmt.pf ppf " (Disable by passing --no-git-ignore)@.@.";
-    Fmt.pf ppf "  o <all files not listed by `git ls-files` were skipped>@.")
+    Fmt.pf ppf " %a@.@."
+      Fmt.(styled `Bold string)
+      "(Disable by passing --no-git-ignore)";
+    Fmt.pf ppf "  • <all files not listed by `git ls-files` were skipped>@.")
   else (
-    Fmt.pf ppf " (Disabled with --no-git-ignore)@.@.";
-    Fmt.pf ppf "  o <none>@.");
+    Fmt.pf ppf " %a@.@."
+      Fmt.(styled `Bold string)
+      "(Disabled with --no-git-ignore)";
+    Fmt.pf ppf "  • <none>@.");
   Fmt.pf ppf "@.";
 
   let pp_list (xs : Out.skipped_target list) =
     match xs with
-    | [] -> Fmt.pf ppf "  o <none>@."
+    | [] -> Fmt.pf ppf "  • <none>@."
     | xs ->
         List.iter
           (fun (Out.{ path; _ } : Out.skipped_target) ->
-            Fmt.pf ppf "  o %s@." path)
+            Fmt.pf ppf "  • %s@." path)
           xs
   in
 
-  Fmt.pf ppf " Skipped by .semgrepignore:@.";
-  Fmt.pf ppf
-    " See: \
-     https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)@.@.";
+  Fmt.pf ppf " %a@. %a@.@."
+    Fmt.(styled `Bold string)
+    "Skipped by .semgrepignore:"
+    Fmt.(styled `Bold string)
+    "(See: \
+     https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)";
   pp_list semgrep_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " Skipped by --include patterns:@.@.";
+  Fmt.pf ppf " %a@.@."
+    Fmt.(styled `Bold string)
+    "Skipped by --include patterns:";
   pp_list include_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " Skipped by --exclude patterns:@.@.";
+  Fmt.pf ppf " %a@.@."
+    Fmt.(styled `Bold string)
+    "Skipped by --exclude patterns:";
   pp_list exclude_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf
-    " Skipped by limiting to files smaller than \
-     {self.target_manager.max_target_bytes} bytes:@.";
-  Fmt.pf ppf " (Adjust with the --max-target-bytes flag)@.@.";
+  Fmt.pf ppf " %a@. %a@.@."
+    Fmt.(styled `Bold string)
+    "Skipped by limiting to files smaller than \
+     {self.target_manager.max_target_bytes} bytes:"
+    Fmt.(styled `Bold string)
+    "(Adjust with the --max-target-bytes flag)";
   pp_list file_size_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " Skipped for other reasons:@.@.";
+  Fmt.pf ppf " %a@.@." Fmt.(styled `Bold string) "Skipped for other reasons:";
   pp_list other_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf
-    " Skipped by analysis failure due to parsing or internal Semgrep error@.@.";
+  Fmt.pf ppf " %a@.@."
+    Fmt.(styled `Bold string)
+    "Skipped by analysis failure due to parsing or internal Semgrep error";
   pp_list errors;
   Fmt.pf ppf "@."
 
