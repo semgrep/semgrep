@@ -91,6 +91,11 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
 
+let exit_code_of_cli_errors (errors : Out.cli_error list) : Exit_code.t =
+  match List.rev errors with
+  | [] -> Exit_code.ok
+  | x :: _ -> Exit_code.of_int x.Out.code
+
 (*****************************************************************************)
 (* Scan Summary and Skipped output *)
 (*****************************************************************************)
@@ -325,7 +330,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.dump <> None -> Dump_subcommand.run (Common2.some conf.dump)
-  | _else_ ->
+  | _else_ -> (
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
@@ -415,7 +420,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       in
 
       (* outputting the result! in JSON/Text/... depending on conf *)
-      Output.output_result conf res;
+      let cli_errors = Output.output_result conf res in
 
       Logs.info (fun m ->
           m "%a" pp_skipped
@@ -450,8 +455,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
            """
            return False
       *)
-      (* final result for the shell *)
-      exit_code_of_errors ~strict:conf.strict res.core.errors
+      match cli_errors with
+      | [] ->
+          (* final result for the shell *)
+          exit_code_of_errors ~strict:conf.strict res.core.errors
+      | errors -> exit_code_of_cli_errors errors)
 
 (*****************************************************************************)
 (* Entry point *)
