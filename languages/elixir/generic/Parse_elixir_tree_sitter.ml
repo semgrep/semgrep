@@ -1060,7 +1060,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
       | Some (Left id) ->
           let n = H2.name_of_id id in
           let ty = TyN n |> G.t in
-          New (tpercent, ty, (l, Common.map G.arg xs, r)) |> G.e
+          New (tpercent, ty, empty_id_info (), (l, Common.map G.arg xs, r))
+          |> G.e
       | Some (Right e) -> Call (e, (l, Common.map G.arg xs, r)) |> G.e)
   | `Un_op x -> map_unary_operator env x
   | `Bin_op x -> map_binary_operator env x

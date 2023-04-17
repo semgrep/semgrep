@@ -335,7 +335,7 @@ and expr e =
       )
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
-      G.New (v1, G.TyN v2 |> G.t, fb [])
+      G.New (v1, G.TyN v2 |> G.t, G.empty_id_info (), fb [])
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in

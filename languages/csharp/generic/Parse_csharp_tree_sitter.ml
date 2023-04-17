@@ -263,7 +263,11 @@ let new_index_from_end tok expr =
     H2.name_of_ids [ ("System", fake "System"); ("Index", fake "Index") ]
   in
   let index = TyN name |> G.t in
-  New (tok, index, fb [ Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ])
+  New
+    ( tok,
+      index,
+      empty_id_info (),
+      fb [ Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ] )
   |> G.e
 
 module List = struct
@@ -1246,7 +1250,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let lb, _, rb = v3 in
       let args = (lb, [ Arg (G.Container (G.Tuple, v3) |> G.e) ], rb) in
-      New (v1, v2, args) |> G.e
+      New (v1, v2, empty_id_info (), args) |> G.e
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "as" *) in
@@ -1387,7 +1391,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let lp, v3', rp = v3 in
       let args = (lp, v3' @ [ Arg (Container (Tuple, v4) |> G.e) ], rp) in
-      New (v1, v2, args) |> G.e
+      New (v1, v2, empty_id_info (), args) |> G.e
   | `Paren_exp x -> parenthesized_expression env x
   | `Post_un_exp x -> postfix_unary_expression env x
   | `Prefix_un_exp x -> prefix_unary_expression env x

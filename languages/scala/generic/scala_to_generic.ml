@@ -465,7 +465,7 @@ and v_expr e : G.expr =
             | None -> PI.unsafe_fake_bracket []
             | Some args -> args
           in
-          G.New (v1, tp, args) |> G.e
+          G.New (v1, tp, G.empty_id_info (), args) |> G.e
       | _ ->
           let cl = G.AnonClass v2 |> G.e in
           G.Call (cl, fb []) |> G.e)

@@ -378,7 +378,7 @@ let rec is_symbolic_expr expr =
   | G.ArrayAccess (e1, (_, e2, _)) -> is_symbolic_expr e1 && is_symbolic_expr e2
   | G.Call (e, (_, args, _)) ->
       is_symbolic_expr e && List.for_all is_symbolic_arg args
-  | G.New (_, _, args) ->
+  | G.New (_, _, _, args) ->
       let args = PI.unbracket args in
       List.for_all is_symbolic_arg args
   | _else -> false
