@@ -13,7 +13,6 @@ open Match
 
 type expectation =
   | Num_matches of int
-  | Match
   | Match_value of string
   | Capture of Pat_compile.metavariable
   | Capture_value of Pat_compile.metavariable * string
@@ -23,7 +22,6 @@ type expectation =
 let match_subs (x : Match.match_) = x.match_loc.substring
 let _subs (loc : Match.loc) = loc.substring
 let check_num_matches n matches = List.length matches = n
-let check_match matches = matches <> []
 
 let check_match_value str matches =
   List.exists (fun x -> match_subs x = str) matches
@@ -46,7 +44,6 @@ let check_capture_value metavariable_name metavariable_value matches =
 let rec check_expectation expectation matches =
   match expectation with
   | Num_matches n -> check_num_matches n matches
-  | Match -> check_match matches
   | Match_value str -> check_match_value str matches
   | Capture name -> check_capture name matches
   | Capture_value (name, value) -> check_capture_value name value matches
@@ -148,6 +145,21 @@ let test_metavariables () =
       Capture_value ((Metavariable, "B"), "4");
     ]
 
+let test_brackets () =
+  check uconf {|x...x|} {|x [x] x|} [ Num_matches 1; Match_value {|x [x] x|} ];
+  (* nested parentheses *)
+  check uconf {|f(...)|} {|f(((x)))|}
+    [ Num_matches 1; Match_value {|f(((x)))|} ];
+  (* closing on the next line shouldn't work in uniline mode *)
+  check uconf {|(...)|} "(\n)" [ Num_matches 0 ];
+  (* quotes *)
+  check uconf {|"..."|} {|"("")"|} [ Num_matches 1; Match_value {|"("")"|} ];
+  check uconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")")|} ];
+  check uconf {|x...x|} {|x "'x' x" x x|}
+    [ Num_matches 1; Match_value {|x "'x' x" x|} ];
+  (* default multiline config doesn't treat quotes as brackets *)
+  check mconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
+
 let tests =
   [
     ("word", test_word);
@@ -155,4 +167,5 @@ let tests =
     ("ellipsis", test_ellipsis);
     ("long ellipsis", test_long_ellipsis);
     ("metavariables", test_metavariables);
+    ("brackets", test_brackets);
   ]

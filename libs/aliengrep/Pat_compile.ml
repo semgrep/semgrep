@@ -98,12 +98,12 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   let capturing_groups = ref [] in
   let get_capturing_group_array () = List.rev !capturing_groups in
   (*
-     Create a named PCRE pattern. The name must be a valid identifier
-     PCRE (alphanumeric or something).
+     Create a subroutine i.e. a named PCRE pattern. The name must be a
+     valid identifier for PCRE (alphanumeric or something).
 
-     (DEFINE) introduces a capturing group that never matches anything
-     but we have to take it into account in the numbering of capturing groups
-     when extracting metavariable captures.
+     Warning: (DEFINE) introduces a capturing group that never matches
+     anything but we have to take it into account in the numbering of
+     capturing groups when extracting metavariable captures.
   *)
   let define name pat =
     new_capturing_group () |> ignore;
