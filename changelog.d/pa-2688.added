@@ -1,0 +1,3 @@
+Scala: Can now parse arguments with `using`, as well as splatted arguments.
+
+E.g. foo(using bar) and foo(1, 2, bar*)
