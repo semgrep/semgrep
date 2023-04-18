@@ -234,7 +234,6 @@ class SemgrepCoreLSServer:
             self.notify_show_message(3, "Logged out of Semgrep Code")
             self.update_rules_file()
             self.update_targets_file()
-            print(self.config.rules)
 
         if method == "semgrep/refreshRules":
             self.update_rules_file()
