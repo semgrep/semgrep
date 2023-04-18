@@ -13,7 +13,7 @@ type metavariable = metavariable_kind * string [@@deriving show]
 type t = private {
   pcre_pattern : string;
   pcre : Pcre.regexp; [@opaque]
-  metavariable_groups : metavariable array;
+  metavariable_groups : (int * metavariable) list;
 }
 [@@deriving show]
 

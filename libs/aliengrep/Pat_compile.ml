@@ -17,7 +17,7 @@ type t = {
   pcre : Pcre.regexp; [@opaque]
   (* Array of PCRE capturing groups. Each capturing group has a metavariable
      name. *)
-  metavariable_groups : metavariable array;
+  metavariable_groups : (int * metavariable) list;
 }
 [@@deriving show]
 
@@ -67,14 +67,8 @@ let multiline_param =
    an ellipsis followed by a specific node, this pattern must remain inline.
 *)
 let ellipsis_pat param =
-  sprintf {|(?: (?&%s)(%s(?&%s))*? )??|} param.node_name param.whitespace_pat
+  sprintf {|(?: (?&%s)(?:%s(?&%s))*? )??|} param.node_name param.whitespace_pat
     param.node_name
-
-(*
-   Create a named PCRE pattern. The name must be a valid identifier
-   PCRE (alphanumeric or something).
-*)
-let define name pat = sprintf {|(?(DEFINE)(?<%s> %s))|} name pat
 
 (*
    to do:
@@ -94,6 +88,27 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
 
      (?&foo) is a reference to the pattern named foo.
   *)
+  let new_capturing_group =
+    let n = ref 0 in
+    (* start numbering groups from 1 *)
+    fun () ->
+      incr n;
+      !n
+  in
+  let capturing_groups = ref [] in
+  let get_capturing_group_array () = List.rev !capturing_groups in
+  (*
+     Create a named PCRE pattern. The name must be a valid identifier
+     PCRE (alphanumeric or something).
+
+     (DEFINE) introduces a capturing group that never matches anything
+     but we have to take it into account in the numbering of capturing groups
+     when extracting metavariable captures.
+  *)
+  let define name pat =
+    new_capturing_group () |> ignore;
+    sprintf {|(?(DEFINE)(?<%s> %s))|} name pat
+  in
   let default_param =
     if conf.multiline then multiline_param else uniline_param
   in
@@ -129,17 +144,6 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   let word str =
     (* match a specific word *)
     sprintf {|(?&lwb)%s(?&rwb)|} (Pcre_util.quote str)
-  in
-  let new_capturing_group =
-    let n = ref 0 in
-    (* start numbering groups from 1 *)
-    fun () ->
-      incr n;
-      !n
-  in
-  let capturing_groups = ref [] in
-  let get_capturing_group_array () =
-    List.rev !capturing_groups |> Common.map snd |> Array.of_list
   in
   let capture metavariable pat =
     match

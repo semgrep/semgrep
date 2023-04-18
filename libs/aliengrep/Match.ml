@@ -12,9 +12,21 @@ type match_ = {
 
 type matches = match_ list [@@deriving show]
 
-(* 0: whole match, i >= 1: captures *)
-let loc_of_substring target_str substrings i =
-  let start, end_ = Pcre.get_substring_ofs substrings i in
+let loc_of_substring target_str substrings capture_id =
+  let start, end_ =
+    try Pcre.get_substring_ofs substrings capture_id with
+    | Not_found ->
+        (* bug! Did you introduce capturing groups by accident by inserting
+           plain parentheses (XX) instead of (?:XX) ? *)
+        (* "corresponding subpattern did not capture a substring" *)
+        Logs.err (fun m ->
+            m "failed to extract capture %i. Captures are [%s]" capture_id
+              (Pcre.get_substrings substrings
+              |> Array.to_list
+              |> List.map (Printf.sprintf "%S")
+              |> String.concat ";"));
+        assert false
+  in
   let length = end_ - start in
   assert (start >= 0);
   assert (length >= 0);
@@ -25,12 +37,11 @@ let convert_match (pat : Pat_compile.t) target_str
     (substrings : Pcre.substrings) =
   let match_loc = loc_of_substring target_str substrings 0 in
   let captures =
-    Array.mapi
-      (fun i mv ->
-        let loc = loc_of_substring target_str substrings (i + 1) in
+    Common.map
+      (fun (capture_id, mv) ->
+        let loc = loc_of_substring target_str substrings capture_id in
         (mv, loc))
       pat.metavariable_groups
-    |> Array.to_list
   in
   { match_loc; captures }
 

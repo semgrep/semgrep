@@ -112,10 +112,47 @@ let test_long_ellipsis () =
   check mconf {|a....b|} "a\nx\nx\nb"
     [ Num_matches 1; Match_value "a\nx\nx\nb" ]
 
+let test_metavariables () =
+  check uconf {|a $X b|} {|a xy b|}
+    [
+      Num_matches 1;
+      Match_value "a xy b";
+      Capture (Metavariable, "X");
+      Capture_value ((Metavariable, "X"), "xy");
+    ];
+  check uconf {|a $AB_4! b|} {|a xy! b|}
+    [
+      Num_matches 1;
+      Match_value "a xy! b";
+      Capture_value ((Metavariable, "AB_4"), "xy");
+    ];
+  check uconf {|$ X|} {|$ X|}
+    [
+      Num_matches 1;
+      Match_value "$ X";
+      Not (Capture (Metavariable, "X"));
+      Not (Capture (Metavariable, ""));
+      Not (Capture (Metavariable, "$"));
+    ];
+  check uconf {|$A $B|} {|1 2 3 4|}
+    [
+      (* at the moment, matches don't overlap -> no match on "2 3" *)
+      Num_matches 2;
+      (* first match *)
+      Match_value "1 2";
+      Capture_value ((Metavariable, "A"), "1");
+      Capture_value ((Metavariable, "B"), "2");
+      (* other match *)
+      Match_value "3 4";
+      Capture_value ((Metavariable, "A"), "3");
+      Capture_value ((Metavariable, "B"), "4");
+    ]
+
 let tests =
   [
     ("word", test_word);
     ("whitespace", test_whitespace);
     ("ellipsis", test_ellipsis);
     ("long ellipsis", test_long_ellipsis);
+    ("metavariables", test_metavariables);
   ]
