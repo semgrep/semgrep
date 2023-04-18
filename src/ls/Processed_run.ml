@@ -27,7 +27,7 @@ let filter_dirty_lines files matches =
   Lwt_list.filter_p
     (fun ((m, _) : t) ->
       let dirty_lines = Hashtbl.find_opt dirty_files m.location.path in
-      let line = m.location.start.line + 1 in
+      let line = m.location.start.line in
       let res =
         match dirty_lines with
         | None -> false
@@ -43,7 +43,7 @@ let filter_dirty_lines files matches =
 let get_match_lines (loc : Semgrep_output_v1_t.location) =
   let file_buffer = Common.read_file loc.path in
   let file_lines = Str.split (Str.regexp "\n") file_buffer in
-  let line = List.nth file_lines loc.start.line in
+  let line = List.nth file_lines (loc.start.line - 1) in
   let prev_line =
     if loc.start.line > 1 then List.nth file_lines (loc.start.line - 2) else ""
   in
@@ -95,8 +95,8 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
       (JSON_report.match_to_match (Some Autofix.render_fix))
       matches
   in
-  let%lwt matches =
-    Lwt_list.map_p
+  let matches =
+    Common.map
       (fun (m : Semgrep_output_v1_t.core_match) ->
         let rule = Hashtbl.find_opt hrules m.rule_id in
         let rule =
@@ -104,19 +104,12 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
           | Some rule -> rule
           | None -> failwith ("Rule " ^ m.rule_id ^ " not found")
         in
-        let m =
-          {
-            m with
-            extra =
-              {
-                m.extra with
-                rendered_fix = convert_fix m rule;
-                message =
-                  Some (interpolate_metavars m.extra.metavars rule.Rule.message);
-              };
-          }
+        let message =
+          Some (interpolate_metavars m.extra.metavars rule.Rule.message)
         in
-        Lwt.return (m, rule))
+        let rendered_fix = convert_fix m rule in
+        let m = { m with extra = { m.extra with rendered_fix; message } } in
+        (m, rule))
       matches
   in
   let%lwt git_repo = is_git_repo () in
@@ -124,17 +117,15 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
     if only_git_dirty && git_repo then filter_dirty_lines files matches
     else Lwt.return matches
   in
-  let%lwt matches =
-    Lwt_list.filter_p
+  let matches =
+    Common2.filter
       (fun ((_, r) : t) ->
-        Lwt.return
-          (r.severity <> Rule.Experiment && r.severity <> Rule.Inventory))
+        r.severity <> Rule.Experiment && r.severity <> Rule.Inventory)
       matches
   in
-  let%lwt matches =
-    Lwt_list.filter_p
-      (fun ((m, _) : t) ->
-        Lwt.return (not (nosem_ignored m.location m.rule_id)))
+  let matches =
+    Common2.filter
+      (fun ((m, _) : t) -> not (nosem_ignored m.location m.rule_id))
       matches
   in
   Lwt.return (matches, files)

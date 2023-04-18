@@ -143,7 +143,7 @@ class LSPConfig:
 
     @property
     def logged_in(self) -> bool:
-        return self.token is not None
+        return self.token is not None and auth.is_valid_token(self.token)
 
     # =====================
     # Config management

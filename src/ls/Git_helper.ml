@@ -26,10 +26,10 @@ let dirty_lines_of_file file =
     let line = Pcre.get_substring substrings 1 in
     let lines = Str.split (Str.regexp ",") line in
     let start = int_of_string (List.hd lines) in
-    let end_ =
+    let change_count =
       if List.length lines > 1 then int_of_string (List.nth lines 1) else 1
     in
-    let end_ = end_ - 1 + start in
+    let end_ = change_count + start in
     (start, end_)
   in
   let matches =

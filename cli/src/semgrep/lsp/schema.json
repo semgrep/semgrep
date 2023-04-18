@@ -43,7 +43,7 @@
       "default": 0,
       "description": "Maximum size of target in bytes to scan."
     },
-    "semgrep.lsp.onlyGitDirty": {
+    "semgrep.scan.onlyGitDirty": {
       "type": "boolean",
       "default": true,
       "description": "Only scan lines changed since the last commit"

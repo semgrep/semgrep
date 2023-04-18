@@ -73,9 +73,11 @@ class SemgrepCoreLSServer:
             self.config.rules, self.config.target_manager, set()
         )
 
+        start = time.time()
         # Only get dirty files for the first scan
         self.update_targets_file()
         self.update_rules_file()
+        log.info(f"Semgrep LSP initialized in {time.time() - start} seconds")
 
         cmd = [
             "semgrep-core",
@@ -135,8 +137,7 @@ class SemgrepCoreLSServer:
             self.config = LSPConfig(config, [])
 
         get_state()
-        saved_login_token = auth.get_token()
-        if not saved_login_token:
+        if not self.config.logged_in:
             self.notify_show_message(
                 3,
                 "Login to enable additional proprietary Semgrep Registry rules and running custom policies from Semgrep App",
@@ -158,17 +159,14 @@ class SemgrepCoreLSServer:
             },
         )
 
-    def init_login(self) -> JsonObject:
-        session_id, url = make_login_url()
-        return {"url": url, "sessionId": str(session_id)}
-
     def m_semgrep__login(self) -> Optional[JsonObject]:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
         if self.config.logged_in:
             self.notify_show_message(3, "Already logged in to Semgrep Code")
             return None
         else:
-            return self.init_login()
+            session_id, url = make_login_url()
+            return {"url": url, "sessionId": str(session_id)}
 
     def m_semgrep__login_finish(self, url: str, sessionId: str) -> None:
         """Called by client to finish login to Semgrep App and save token"""
@@ -190,11 +188,11 @@ class SemgrepCoreLSServer:
                     auth.set_token(login_token)
                     state = get_state()
                     state.app_session.authenticate()
+                    self.update_rules_file()
+                    self.update_targets_file()
                     self.notify_show_message(
                         3, f"Successfully logged in to Semgrep Code"
                     )
-                    self.update_rules_file()
-                    self.update_targets_file()
                 else:
                     self.notify_show_message(1, f"Failed to log in to Semgrep Code")
                 return
@@ -219,7 +217,6 @@ class SemgrepCoreLSServer:
                 PosixPath(urllib.request.url2pathname(uri.path))
                 not in self.config.target_manager.get_all_files()
             )
-            log.info(f"Opened {uri.path}, {found}")
             if found:
                 self.update_targets_file()
 
@@ -237,9 +234,11 @@ class SemgrepCoreLSServer:
             self.notify_show_message(3, "Logged out of Semgrep Code")
             self.update_rules_file()
             self.update_targets_file()
+            print(self.config.rules)
 
         if method == "semgrep/refreshRules":
             self.update_rules_file()
+            self.update_targets_file()
         self.core_writer.write(msg)
 
     def on_core_message(self, msg: JsonObject) -> None:
@@ -248,6 +247,11 @@ class SemgrepCoreLSServer:
     def start(self) -> None:
         """Start the json-rpc endpoint"""
         self.std_reader.listen(self.on_std_message)
+
+    def stop(self) -> None:
+        """Stop the language server"""
+        self.core_writer.write({"jsonrpc": "2.0", "method": "exit"})
+        self.core_process.wait()
 
 
 def run_server() -> None:

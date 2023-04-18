@@ -87,10 +87,11 @@ let record_results session results files =
       (fun ((m, _) : Processed_run.t) -> m.location.path)
       results
   in
+  (* Clear out all results first *)
+  Common2.iter (fun file -> Hashtbl.add session.documents file []) files;
   Common2.iter
     (fun (file, results) -> Hashtbl.add session.documents file results)
-    results_by_file;
-  Common2.iter (fun file -> Hashtbl.add session.documents file []) files
+    results_by_file
 
 let scanned_files session =
   Hashtbl.fold (fun file _ acc -> file :: acc) session.documents []

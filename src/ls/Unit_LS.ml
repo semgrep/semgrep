@@ -33,6 +33,7 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
+  let rule = { rule with id = ("print", fk) } in
   let rule_id =
     {
       Pattern_match.id = fst rule.id;
@@ -44,11 +45,11 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   in
   let match_of_file file =
     let range_loc =
-      ( { Parse_info.str = ""; charpos = 0; line = 0; column = 0; file },
+      ( { Parse_info.str = ""; charpos = 0; line = 1; column = 0; file },
         {
           Parse_info.str = "";
           charpos = String.length "print(\"hello world\")";
-          line = 0;
+          line = 1;
           column = 0;
           file;
         } )
@@ -216,8 +217,16 @@ let processed_run () =
     let file2 =
       add_file ~content:"# nosem\nprint(\"hello world\")" workspace ()
     in
-    let files = [ file1; file2 ] in
-    let expected = [] in
+    let file3 =
+      add_file ~content:"# print(\"hello world\") # nosemgrep: print" workspace
+        ()
+    in
+    let file4 =
+      add_file ~content:"# print(\"hello world\") # nosemgrep: other_rule"
+        workspace ()
+    in
+    let files = [ file1; file2; file3; file4 ] in
+    let expected = [ file4 ] in
     test_processed_run files expected false
   in
   let tests =

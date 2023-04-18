@@ -147,6 +147,7 @@ module Server = struct
       Session.record_results server.session results files;
       (* LSP expects empty diagnostics to clear problems *)
       let files = Session.scanned_files server.session in
+      let files = Common2.uniq files in
       let diagnostics = Diagnostics.diagnostics_of_results results files in
       let _ = end_progress server token in
       batch_notify server diagnostics
@@ -185,12 +186,8 @@ module Server = struct
           logger#info "Scanning %s" (Uri.to_string uri);
           let _ = scan_file server uri in
           server
-      | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ } ->
-          logger#info "Login finished";
-          refresh_rules server
-      | CN.UnknownNotification { method_ = "semgrep/logout"; _ } ->
-          logger#info "Logging out";
-          refresh_rules server
+      | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ }
+      | CN.UnknownNotification { method_ = "semgrep/logout"; _ }
       | CN.UnknownNotification { method_ = "semgrep/refreshRules"; _ } ->
           logger#info "Refreshing rules";
           refresh_rules server
@@ -221,10 +218,9 @@ module Server = struct
             }
           in
           server
-      | CN.UnknownNotification { method_ = "semgrep/scanWorkspace"; _ } ->
-          logger#info "Scanning workspace";
-          let _ = scan_workspace server in
-          server
+      | CN.Exit ->
+          logger#info "Client exited";
+          { server with state = State.Stopped }
       | _ ->
           logger#warning "Unhandled notification";
           server
@@ -249,7 +245,6 @@ module Server = struct
             |> Yojson.Safe.Util.to_bool_option
             |> Option.value ~default:false
           in
-          logger#info "only_git_dirty %b" only_git_dirty;
           let workspace_uri =
             match workspaceFolders with
             | Some (Some ({ uri; _ } :: _)) -> Uri.to_path uri
@@ -327,11 +322,12 @@ module Server = struct
 
   let rec rpc_loop server () =
     let%lwt client_msg = Io.read server.session.incoming in
-    match client_msg with
-    | None ->
-        logger#info "Client disconnected";
+    match (client_msg, server.state) with
+    | None, _
+    | _, State.Stopped ->
+        logger#info "Server stopped";
         Lwt.return ()
-    | Some msg ->
+    | Some msg, _ ->
         let%lwt server = handle_client_message msg server in
         rpc_loop server ()
 
