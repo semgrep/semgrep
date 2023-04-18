@@ -1,0 +1,24 @@
+{
+  "name": "@semgrep/lang-php",
+  "version": "0.0.1",
+  "description": "Semgrep php parser",
+  "main": "dist/index.js",
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts"
+  ],
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "make dist/index.js dist/index.d.ts",
+    "test": "jest",
+    "prepublish": "make dist/index.js dist/index.d.ts"
+  },
+  "author": "Semgrep, Inc.",
+  "license": "LGPL-2.1",
+  "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.21.2",
+    "@babel/preset-typescript": "^7.21.4",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.4"
+  }
+}
