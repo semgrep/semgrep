@@ -92,16 +92,25 @@ def ci_mock(mocker):
 
     ci_file_content = dedent(
         """
-        rules:
-        - id: eqeq-four
-          pattern: $X == 4
-          message: "useless comparison to 4"
-          languages: [python]
-          severity: ERROR
-          metadata:
-            dev.semgrep.actions: ["block"]
-          fix: $X == 2
-        """
+{
+  "rules": [
+    {
+      "id": "eqeq-four",
+      "pattern": "$X == 4",
+      "message": "useless comparison to 4",
+      "languages": [
+        "python"
+      ],
+      "severity": "ERROR",
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ]
+      },
+      "fix": "$X == 2"
+    }
+  ]
+}        """
     ).lstrip()
 
     mocker.patch.object(

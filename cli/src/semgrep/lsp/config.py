@@ -1,3 +1,4 @@
+import json
 import urllib
 from typing import Any
 from typing import List
@@ -14,7 +15,6 @@ from semgrep.metrics import MetricsState
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.semgrep_main import get_file_ignore
-from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
 
@@ -28,33 +28,15 @@ class LSPConfig:
         # This is easier than checking if they are None everywhere
         if "scan" not in lsp_config:
             lsp_config["scan"] = {}
-        if "lsp" not in lsp_config:
-            lsp_config["lsp"] = {}
+
         self._settings: Mapping[str, Mapping[str, Any]] = lsp_config
-        self._workspace_folders = workspace_folders
-        self.update_target_manager()
+        self._workspace_folders: List[JsonObject] = workspace_folders
+        self.rules: List[Rule] = []
+        self.refresh_target_manager()
 
     # =====================
     # Semgrep scan settings
     # =====================
-
-    @property
-    def configs(self) -> List[str]:
-        """Get all valid configs to run semgrep on for the current workspace"""
-        configs = []
-        settings_configs = self._settings["scan"].get("configuration")
-        if settings_configs is not None:
-            configs.extend(settings_configs)
-        if self.logged_in:
-            # this can fail if something isn't a git repo
-            try:
-                configs.append(self.scan_url)
-            except Exception:
-                pass
-        if len(configs) > 0:
-            return configs
-        else:
-            return ["auto"]
 
     @property
     def jobs(self) -> int:
@@ -81,13 +63,34 @@ class LSPConfig:
         return get_project_url()
 
     @property
-    def scan_url(self) -> str:
-        get_state()
+    def ci_rules(self) -> List[Rule]:
         scan_handler = ScanHandler(True)
         metadata = generate_meta_from_environment(None)
         metadata_dict = metadata.to_dict()
         scan_handler.fetch_and_init_scan_config(metadata_dict)
-        return scan_handler.rules
+        json_rules = json.loads(scan_handler.rules).get("rules", [])
+        rules = [Rule.from_json(r) for r in json_rules]
+        return rules
+
+    @property
+    def local_rules(self) -> List[Rule]:
+        configs = []
+        settings_configs = self._settings["scan"].get("configuration")
+
+        if settings_configs is not None:
+            configs.extend(settings_configs)
+        if len(configs) == 0:
+            return []
+
+        configs_obj, _ = get_config(None, None, configs, project_url=self.project_url)
+        rules = configs_obj.get_rules(True)
+        return rules
+
+    @property
+    def auto_rules(self) -> List[Rule]:
+        configs_obj, _ = get_config(None, None, ["auto"], project_url=self.project_url)
+        rules = configs_obj.get_rules(True)
+        return rules
 
     # =====================
     # Semgrep LSP settings
@@ -109,14 +112,6 @@ class LSPConfig:
     @property
     def settings(self) -> JsonObject:
         return self._settings
-
-    @property
-    def rules(self) -> List[Rule]:
-        configs_obj, _ = get_config(
-            None, None, self.configs, project_url=self.project_url
-        )
-        all_rules = configs_obj.get_rules(True)
-        return all_rules
 
     @property
     def head_commit(self) -> Optional[str]:
@@ -145,11 +140,17 @@ class LSPConfig:
     def logged_in(self) -> bool:
         return self.token is not None and auth.is_valid_token(self.token)
 
+    @property
+    def debug(self) -> bool:
+        trace = self._settings.get("trace")
+        debug = trace.get("server") if trace else None
+        return debug is not None and debug == "verbose"
+
     # =====================
     # Config management
     # =====================
 
-    def update_target_manager(self) -> None:
+    def refresh_target_manager(self) -> None:
         self.target_manager = TargetManager(
             includes=self.include,
             excludes=self.exclude,
@@ -158,3 +159,13 @@ class LSPConfig:
             file_ignore=get_file_ignore(),
             target_strings=self.folder_paths,
         )
+
+    def refresh_rules(self) -> None:
+        self.rules = []
+        logged_in = self.logged_in
+
+        self.rules.extend(self.local_rules)
+        if logged_in:
+            self.rules.extend(self.ci_rules)
+        elif len(self.rules) == 0:
+            self.rules.extend(self.auto_rules)

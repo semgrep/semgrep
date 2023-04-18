@@ -7,7 +7,6 @@ import tempfile
 import threading
 import time
 import urllib
-from builtins import Exception
 from pathlib import PosixPath
 from tempfile import _TemporaryFileWrapper
 from typing import Any
@@ -40,7 +39,7 @@ class SemgrepCoreLSServer:
         self.target_file = target_file
 
     def update_targets_file(self) -> None:
-        self.config.update_target_manager()
+        self.config.refresh_target_manager()
         self.plan = CoreRunner.plan_core_run(
             self.config.rules, self.config.target_manager, set()
         )
@@ -56,29 +55,17 @@ class SemgrepCoreLSServer:
         self.target_file.flush()
 
     def update_rules_file(self) -> None:
-        try:
-            rules = self.config.rules
-            rule_file_contents = json.dumps(
-                {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
-            )
-            self.rule_file.seek(0, 0)
-            self.rule_file.write(rule_file_contents)
-            self.rule_file.truncate(len(rule_file_contents))
-            self.rule_file.flush()
-        except Exception as e:
-            self.notify_show_message(3, f"Error updating rules: {e}")
+        self.config.refresh_rules()
+        rules = self.config.rules
+        rule_file_contents = json.dumps(
+            {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
+        )
+        self.rule_file.seek(0, 0)
+        self.rule_file.write(rule_file_contents)
+        self.rule_file.truncate(len(rule_file_contents))
+        self.rule_file.flush()
 
     def start_ls(self) -> None:
-        self.plan = CoreRunner.plan_core_run(
-            self.config.rules, self.config.target_manager, set()
-        )
-
-        start = time.time()
-        # Only get dirty files for the first scan
-        self.update_targets_file()
-        self.update_rules_file()
-        log.info(f"Semgrep LSP initialized in {time.time() - start} seconds")
-
         cmd = [
             "semgrep-core",
             "-j",
@@ -91,8 +78,10 @@ class SemgrepCoreLSServer:
             str(self.config.max_memory),
             "-fast",
             "-ls",
-            "-debug",
         ]
+        if self.config.debug:
+            cmd.append("-debug")
+
         self.core_process = subprocess.Popen(
             cmd,
             cwd=self.config.folder_paths[0],
@@ -142,7 +131,6 @@ class SemgrepCoreLSServer:
                 3,
                 "Login to enable additional proprietary Semgrep Registry rules and running custom policies from Semgrep App",
             )
-        self.start_ls()
 
     def notify(self, method: str, params: JsonObject) -> None:
         """Send a notification to the client"""
@@ -210,6 +198,11 @@ class SemgrepCoreLSServer:
         params = msg.get("params", {})
         if method == "initialize":
             self.m_initialize(**params)
+            self.start_ls()
+
+        if method == "initialized":
+            self.update_rules_file()
+            self.update_targets_file()
 
         if method == "textDocument/didOpen":
             uri = urllib.parse.urlparse(params["textDocument"]["uri"])
@@ -238,6 +231,7 @@ class SemgrepCoreLSServer:
         if method == "semgrep/refreshRules":
             self.update_rules_file()
             self.update_targets_file()
+
         self.core_writer.write(msg)
 
     def on_core_message(self, msg: JsonObject) -> None:

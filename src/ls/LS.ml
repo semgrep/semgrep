@@ -242,8 +242,7 @@ module Server = struct
           in
           let only_git_dirty =
             Yojson.Safe.Util.member "onlyGitDirty" lsp_options
-            |> Yojson.Safe.Util.to_bool_option
-            |> Option.value ~default:false
+            |> Yojson.Safe.Util.to_bool_option |> Option.value ~default:true
           in
           let workspace_uri =
             match workspaceFolders with
