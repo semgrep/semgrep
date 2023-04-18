@@ -98,7 +98,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
 
-2.  If there are any issues, please ask us at our Slack channel <a href="https://go.semgrep.dev/slack" target="_blank"> https://go.semgrep.dev/slack</a>
+2.  If there are any issues, please ask in the Smegrep Slack group <a href="https://go.semgrep.dev/slack" target="_blank"> https://go.semgrep.dev/slack</a>
 
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
@@ -119,7 +119,7 @@ and:
 
 Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
 
-Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
+Semgrep is developed and commercially supported by [Semgrep, Inc., a software security company](https://semgrep.dev).
 
 ### Semgrep Rules
 
@@ -171,7 +171,7 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 - [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
 - [Contributing](https://semgrep.dev/docs/contributing/contributing/)
 - [Build instructions for developers](INSTALL.md)
-- [Ask questions in the r2c Community Slack](https://go.semgrep.dev/slack)
+- [Ask questions in the Semgrep community Slack](https://go.semgrep.dev/slack)
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
