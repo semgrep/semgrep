@@ -5,16 +5,16 @@ ESBUILD_DEFAULTS = \
 	--log-override:duplicate-case=silent
 
 .PHONY: default
-default:
-	npm ci
-	npm run build
+default: build
 
 .PHONY: test
 test:
 	npm run test
 
 .PHONY: build
-build: dist/index.js dist/index.d.ts
+build:
+	npm ci
+	npm run build
 
 .PHONY: clean
 clean:

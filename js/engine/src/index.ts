@@ -1,13 +1,13 @@
 import LibYamlFactory from "../../libyaml/dist/libyaml";
 
-export type Lang = number;
 export type Mountpoint = object;
+export type Lang = number;
 
 export interface Parser {
   getLang: () => Lang;
+  setMountpoints: (mountpoints: Mountpoint[]) => void;
+  parseTarget: (filename: string) => any;
   parsePattern: (printErrors: boolean, pattern: string) => any;
-  parseTarget: (str: string) => any;
-  setMountPoints: (mountpoints: Mountpoint[]) => void;
 }
 
 export interface Engine {
@@ -32,7 +32,7 @@ export const EngineFactory: (
     },
   });
   const {
-    getMountPoints,
+    getMountpoints,
     setLibYamlWasmModule,
     setParsePattern,
     setJustParseWithLang,
@@ -68,7 +68,7 @@ export const EngineFactory: (
   return {
     lookupLang,
     addParser: (parser: Parser) => {
-      parser.setMountPoints(getMountPoints()); // inherit engine's mount points
+      parser.setMountpoints(getMountpoints());
       languages.set(parser.getLang(), parser);
     },
     hasParser: (lang: Lang) => languages.has(lang),

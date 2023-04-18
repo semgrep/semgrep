@@ -4,9 +4,9 @@
   "description": "Javascript bindings for the semgrep engine",
   "main": "dist/index.js",
   "scripts": {
-    "build": "make build",
+    "build": "make dist/index.js dist/index.d.ts",
     "test": "jest",
-    "prepublish": "make build"
+    "prepublish": "make dist/index.js dist/index.d.ts"
   },
   "repository": {
     "type": "git",
