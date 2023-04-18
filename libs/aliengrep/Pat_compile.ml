@@ -70,11 +70,6 @@ let ellipsis_pat param =
   sprintf {|(?: (?&%s)(?:%s(?&%s))*? )??|} param.node_name param.whitespace_pat
     param.node_name
 
-(*
-   to do:
-   - metavariables: capturing groups
-   - reoccurring metavariables: backreferences
-*)
 let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   (* Pattern definitions
 

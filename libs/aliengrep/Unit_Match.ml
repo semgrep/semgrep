@@ -160,6 +160,23 @@ let test_brackets () =
   (* default multiline config doesn't treat quotes as brackets *)
   check mconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
 
+let test_backreferences () =
+  check uconf {|$A ... $A|} {|a, b, c, a, d|}
+    [
+      Num_matches 1;
+      Match_value {|a, b, c, a|};
+      Capture_value ((Metavariable, "A"), "a");
+    ];
+  (* no overlaps -> only 2 matches *)
+  check uconf {|$A ... $A ... $A|} {|a x x x a x x x a x x x x a|}
+    [
+      Num_matches 2;
+      Match_value {|a x x x a x x x a|};
+      Match_value {|x x x|};
+      Capture_value ((Metavariable, "A"), "a");
+      Capture_value ((Metavariable, "A"), "x");
+    ]
+
 let tests =
   [
     ("word", test_word);
@@ -168,4 +185,5 @@ let tests =
     ("long ellipsis", test_long_ellipsis);
     ("metavariables", test_metavariables);
     ("brackets", test_brackets);
+    ("backreferences", test_backreferences);
   ]
