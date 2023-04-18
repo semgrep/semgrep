@@ -49,7 +49,7 @@ USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
 
 # The --project-root option is used to prevent the .semgrepignore
 # at the root of the git project to be taken into account when testing,
-# which is is a new behavior in osemgrep.
+# which is a new behavior in osemgrep.
 OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", "."]
 
 # The semgrep command suitable to run semgrep as a separate process.
@@ -109,7 +109,12 @@ def invoke_osemgrep(
         arg_list = shlex.split(args)
     elif isinstance(args, List):
         arg_list = args
-    argv: List[str] = [OSEMGREP_PATH] + OSEMGREP_COMPATIBILITY_ARGS + arg_list
+    argv: List[str] = []
+    # ugly: adding --project-root for --help would trigger the wrong help message
+    if "-h" in arg_list or "--help" in arg_list:
+        argv = [OSEMGREP_PATH] + arg_list
+    else:
+        argv = [OSEMGREP_PATH] + OSEMGREP_COMPATIBILITY_ARGS + arg_list
     env_dict = {}
     if env:
         env_dict = env

@@ -204,14 +204,14 @@ https://docs.python.org/3/library/glob.html
 
 let o_max_target_bytes : int Term.t =
   let info =
-    Arg.info
-      [ "max-target-bytes" ]
-      (* TOPORT: should use default.max_target_bytes in message *)
+    Arg.info [ "max-target-bytes" ]
       ~doc:
-        {|Maximum size for a file to be scanned by Semgrep, e.g
+        ({|Maximum size for a file to be scanned by Semgrep, e.g
 '1.5MB'. Any input program larger than this will be ignored. A zero or
-negative value disables this filter. Defaults to 1000000 bytes.
-|}
+negative value disables this filter. Defaults to |}
+        ^ string_of_int default.targeting_conf.max_target_bytes
+        ^ {| bytes.
+|})
   in
   Arg.value
     (Arg.opt Cmdliner_helpers.number_of_bytes_converter
