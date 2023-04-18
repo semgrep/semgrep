@@ -623,15 +623,6 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
  
      maybe_set_git_safe_directories()
  
-@@ -76,6 +92,6 @@ cli.add_command(login)
- cli.add_command(logout)
- cli.add_command(publish)
- cli.add_command(scan)
--cli.add_command(install_deep_semgrep)
-+cli.add_command(install_semgrep_pro)
- cli.add_command(shouldafound)
- cli.add_command(lsp)
-Only in /home/pad/yy/cli/src/semgrep: command.py
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/commands/ci.py /home/pad/yy/cli/src/semgrep/commands/ci.py
 --- /tmp/semgrep/cli/src/semgrep/commands/ci.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/commands/ci.py	2023-04-12 12:55:37.489634222 +0200
