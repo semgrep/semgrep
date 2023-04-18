@@ -134,12 +134,32 @@ let is_js env =
   | Some lang -> Lang.is_js lang
 
 let is_global = function
-  | Global -> true
-  | _ -> false
+  | Global (* OSS *)
+  | GlobalName _ (* Pro *) ->
+      true
+  | LocalVar
+  | Parameter
+  | EnclosedVar
+  | ImportedEntity _
+  | ImportedModule _
+  | TypeName
+  | Macro
+  | EnumConstant ->
+      false
 
 let is_class_field env = function
-  | EnclosedVar -> is_lang env Lang.Java
-  | __else__ -> false
+  | EnclosedVar (* OSS *)
+  | GlobalName _ (* Pro *) ->
+      is_lang env Lang.Java
+  | Global
+  | LocalVar
+  | Parameter
+  | ImportedEntity _
+  | ImportedModule _
+  | TypeName
+  | Macro
+  | EnumConstant ->
+      false
 
 let is_resolved_name _kind sid = not (SId.is_unsafe_default sid)
 
@@ -382,6 +402,10 @@ let var_stats prog : var_stats =
             incr stat.lvalue;
             super#visit_definition env x
         | _ -> super#visit_definition env x
+
+      (* TODO An `ExprStmt` method call (probably returning 'void') should count as
+       * a potential assignment too... We need a visit_stmt here. E.g. in Ruby
+       * `a.concat(b)` is going to update `a`. *)
 
       method! visit_expr env x =
         match x.e with
@@ -687,7 +711,8 @@ let propagate_basic lang prog =
                | Some svalue -> add_constant_env id (sid, svalue) env
                | None ->
                    if Dataflow_svalue.is_symbolic_expr rexp then
-                     add_constant_env id (sid, Sym rexp) env);
+                     add_constant_env id (sid, Sym rexp) env;
+                   ());
             self#visit_expr venv rexp
         | Assign (e1, _, e2)
         | AssignOp (e1, _, e2) ->
