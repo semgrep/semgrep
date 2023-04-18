@@ -202,7 +202,8 @@ let inFirstOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
-  | LBRACKET _ ->
+  | LBRACKET _
+  | DEDENT _ ->
       false
   | _ ->
       logger#info "inFirstOfStat: true for %s" (Dumper.dump x);
