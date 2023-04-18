@@ -8,7 +8,7 @@ jobs:
   build-test-javascript:
     name: Build Test Semgrep Javascript
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:ubuntu-2023-04-03
+    container: returntocorp/ocaml:ubuntu-2023-04-17
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
