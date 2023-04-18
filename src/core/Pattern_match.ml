@@ -55,8 +55,7 @@ type taint_call_trace =
 [@@deriving show, eq]
 
 type taint_trace = {
-  source : taint_call_trace;
-  tokens : tainted_tokens;
+  sources : (taint_call_trace * tainted_tokens) list;
   sink : taint_call_trace;
 }
 [@@deriving show, eq]

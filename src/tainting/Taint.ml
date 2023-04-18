@@ -87,28 +87,6 @@ let _show_source { call_trace; label } =
 type arg_pos = string * int [@@deriving show]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
-type source_to_sink = {
-  source : source;
-  tokens : tainted_tokens;
-  sink : sink;
-  merged_env : Metavariable.bindings;
-}
-[@@deriving show]
-
-type finding =
-  | SrcToSink of source_to_sink
-  | SrcToReturn of source * tainted_tokens * G.tok
-  | ArgToSink of arg * tainted_tokens * sink
-  | ArgToReturn of arg * tainted_tokens * G.tok
-  | ArgToArg of arg * tainted_tokens * arg (* TODO: CleanArg ? *)
-[@@deriving show]
-
-type signature = finding list
-
-let _show_source_to_sink { source; sink; _ } =
-  Printf.sprintf "%s ~~~> %s" (_show_source source)
-    (_show_call_trace (fun _ -> "sink") sink)
-
 let _show_arg { pos = s, i; offset = os } =
   if os <> [] then
     let os_str =
@@ -116,14 +94,6 @@ let _show_arg { pos = s, i; offset = os } =
     in
     Printf.sprintf "arg(%s)#%d.%s" s i os_str
   else Printf.sprintf "arg(%s)#%d" s i
-
-let _show_finding = function
-  | SrcToSink x -> _show_source_to_sink x
-  | SrcToReturn (src, _, _) -> Printf.sprintf "return (%s)" (_show_source src)
-  | ArgToSink (a, _, _) -> Printf.sprintf "%s ----> sink" (_show_arg a)
-  | ArgToReturn (a, _, _) -> Printf.sprintf "return (%s)" (_show_arg a)
-  | ArgToArg (a1, _, a2) ->
-      Printf.sprintf "%s ----> %s" (_show_arg a1) (_show_arg a2)
 
 (*****************************************************************************)
 (* Taint *)
@@ -180,6 +150,39 @@ let _show_taint taint =
       let r = Range.range_of_token_locations tok1 tok2 in
       Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
   | Arg arg_lval -> _show_arg arg_lval
+
+let _show_taints taints = Common2.string_of_list _show_taint taints
+
+type taints_to_sink = {
+  (* These taints were incoming to the sink, under a certain
+     REQUIRES expression.
+     When we discharge the taint signature, we will produce
+     a certain number of findings suitable to how the sink was
+     reached.
+  *)
+  taints_with_precondition : taint list * G.expr;
+  sink : sink;
+  merged_env : Metavariable.bindings;
+}
+[@@deriving show]
+
+type finding =
+  | ToSink of taints_to_sink
+  | ToReturn of taint list * G.tok
+  | ArgToArg of arg * tainted_tokens * arg (* TODO: CleanArg ? *)
+[@@deriving show]
+
+type signature = finding list
+
+let _show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
+  Common.spf "%s ~~~> %s" (_show_taints taints)
+    (_show_call_trace (fun _ -> "sink") sink)
+
+let _show_finding = function
+  | ToSink x -> _show_taints_to_sink x
+  | ToReturn (taints, _) -> Printf.sprintf "return (%s)" (_show_taints taints)
+  | ArgToArg (a1, _, a2) ->
+      Printf.sprintf "%s ----> %s" (_show_arg a1) (_show_arg a2)
 
 (*****************************************************************************)
 (* Taint sets *)

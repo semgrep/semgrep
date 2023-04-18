@@ -1200,11 +1200,9 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
   let sink_id = String.concat ":" env.path in
-  let default_sink_requires = R.default_sink_requires (snd key) in
   let parse_from_dict dict f =
     let sink_requires =
-      take_opt dict env parse_taint_requires "requires"
-      |> Option.value ~default:default_sink_requires
+      (snd key, take_opt dict env parse_taint_requires "requires")
     in
     let sink_formula = f env dict in
     { R.sink_id; sink_formula; sink_requires }
@@ -1216,7 +1214,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let sink_formula = R.P (parse_xpattern env value) in
-        { sink_id; sink_formula; sink_requires = default_sink_requires }
+        { sink_id; sink_formula; sink_requires = (snd key, None) }
     | Right dict -> parse_from_dict dict parse_formula_from_dict
 
 let parse_taint_pattern env key (value : G.expr) =
