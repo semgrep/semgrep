@@ -210,10 +210,10 @@ let pick_taint taint1 taint2 =
 
 module Taint_set = struct
   module Taint_map = Map.Make (struct
-    type t = orig
+    type t = taint
 
     let compare k1 k2 =
-      match (k1, k2) with
+      match (k1.orig, k2.orig) with
       | Arg _, Src _ -> -1
       | Src _, Arg _ -> 1
       | Arg a1, Arg a2 -> Stdlib.compare a1 a2
@@ -255,7 +255,7 @@ module Taint_set = struct
      * coupling: If this changes, make sure to update docs for the `Taint.signature` type.
      *)
     set
-    |> Taint_map.update taint.orig (function
+    |> Taint_map.update taint (function
          | None -> Some taint
          | Some taint' -> Some (pick_taint taint taint'))
 
@@ -268,7 +268,20 @@ module Taint_set = struct
     set1 |> Taint_map.filter (fun k _ -> not (Taint_map.mem k set2))
 
   let singleton taint = add taint empty
-  let map f set = Taint_map.map f set
+
+  (* Because `Taint_set` is internally represented with a map, we cannot just
+     map the codomain taint, using the internal provided `map` function. We
+     want to map the keys too.
+     Unfortunately, the keys and values are different types, so it's not as
+     straightforward.
+     Fortunately, we can exploit a property of
+  *)
+  let map f set =
+    let bindings = Taint_map.bindings set in
+    bindings
+    |> Common.map (fun (t1, t2) -> (f t1, f t2))
+    |> List.to_seq |> Taint_map.of_seq
+
   let iter f set = Taint_map.iter (fun _k -> f) set
   let fold f set acc = Taint_map.fold (fun _k -> f) set acc
 
