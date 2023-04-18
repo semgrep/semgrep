@@ -264,7 +264,10 @@ let pp_skipped ppf
         List.iter
           (fun (Out.{ path; _ } : Out.skipped_target) ->
             Fmt.pf ppf "  • %s@." path)
-          xs
+          (List.sort
+             (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
+               String.compare a.path b.path)
+             xs)
   in
 
   Fmt.pf ppf " %a@. %a@.@."

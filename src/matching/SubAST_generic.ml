@@ -145,7 +145,7 @@ let subexprs_of_expr with_symbolic_propagation e =
          |> Common.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
-  | New (_, _t, args) -> subexprs_of_args args
+  | New (_, _t, _ii, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e :: subexprs_of_args args
@@ -255,7 +255,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | ArrayAccess (_e1, (_, _e2, _)) -> []
   | SliceAccess (_e1, _e2) -> []
   | Comprehension (_, (_, (_e, _xs), _)) -> []
-  | New (_, _t, _args) -> []
+  | New (_, _t, _ii, _args) -> []
   | OtherExpr (_, _anys) -> []
   | RawExpr _ -> []
   | Alias (_, _e1) -> []

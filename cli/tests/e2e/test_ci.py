@@ -293,6 +293,17 @@ def mock_autofix(request, mocker):
             "GITHUB_REF": BRANCH_NAME,
             "GITHUB_SERVER_URL": "https://github.com",
         },
+        {  # Github full scan with SEMGREP env vars set
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "push",
+            "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_JOB_URL": "customjoburl.com",
+            "GITHUB_ACTOR": "some_test_username",
+            "SEMGREP_PR_ID": "312",  # should make the event_name `pull_request`
+            "SEMGREP_PR_TITLE": "PR_TITLE",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
         {  # github but different server url - full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -330,6 +341,23 @@ def mock_autofix(request, mocker):
             "CI_MERGE_REQUEST_IID": "unused-iid-test-placeholder",
             "CI_MERGE_REQUEST_DIFF_BASE_SHA": "unused-commit-test-placeholder",
             "CI_MERGE_REQUEST_TITLE": "unused-merge-request-title-test-placeholder",
+        },
+        {  # Gitlab PR but with SEMGREP env vars set
+            "CI": "true",
+            "GITLAB_CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "CI_PIPELINE_SOURCE": "merge_request_event",  # or push
+            "CI_MERGE_REQUEST_TARGET_BRANCH_NAME": MAIN_BRANCH_NAME,
+            # Sent in metadata but no actual functionality change
+            "CI_MERGE_REQUEST_PROJECT_URL": "https://some.project.url.test.placeholder",
+            "CI_JOB_TOKEN": "some-token-test-placeholder",
+            "CI_COMMIT_REF_NAME": BRANCH_NAME,
+            "SEMGREP_COMMIT": "unused-commit-test-placeholder",
+            "SEMGREP_REPO_URL": "https://example.com/gitlab-org/gitlab-foss",
+            "SEMGREP_JOB_URL": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
+            "SEMGREP_PR_ID": "unused-iid-test-placeholder",
+            "CI_MERGE_REQUEST_DIFF_BASE_SHA": "unused-commit-test-placeholder",
+            "SEMGREP_PR_TITLE": "unused-merge-request-title-test-placeholder",
         },
         {  # Gitlab
             "CI": "true",
@@ -525,9 +553,11 @@ def mock_autofix(request, mocker):
     ids=[
         "local",
         "github-push",
+        "github-push-special-env-vars",
         "github-enterprise",
         "github-pr",
         "gitlab",
+        "gitlab-special-env-vars",
         "gitlab-push",
         "circleci",
         "circleci-overwrite-autodetected-variables",

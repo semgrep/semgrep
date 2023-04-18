@@ -319,7 +319,7 @@ and expr (x : expr) =
       let tok = info tok in
       let e = expr e in
       let args = bracket (list (fun arg -> G.Arg (expr arg))) args in
-      G.New (tok, H.expr_to_type e, args)
+      G.New (tok, H.expr_to_type e, G.empty_id_info (), args)
   | Arr v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.Array, v1)
