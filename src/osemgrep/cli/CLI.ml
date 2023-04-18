@@ -5,7 +5,7 @@
    Semgrep command-line entry point.
 
    This module determines the subcommand invoked on the command line
-   and has another module handle it as if it were an independent command.
+   and has another module handle it as if it was an independent command.
    Exceptions are caught and turned into an appropriate exit code
    (unless you used --debug).
 
@@ -36,13 +36,14 @@ Options:
   -h, --help  Show this message and exit.
 
 Commands:
-  ci            The recommended way to run semgrep in CI
-  login         Obtain and save credentials for semgrep.dev
-  logout        Remove locally stored credentials to semgrep.dev
-  lsp           [EXPERIMENTAL] Start the Semgrep LSP server
-  publish       Upload rule to semgrep.dev
-  scan          Run semgrep rules on files
-  shouldafound  Report a false negative in this project.
+  ci                   The recommended way to run semgrep in CI
+  install-semgrep-pro  Install the Semgrep Pro Engine
+  login                Obtain and save credentials for semgrep.dev
+  logout               Remove locally stored credentials to semgrep.dev
+  lsp                  [EXPERIMENTAL] Start the Semgrep LSP server
+  publish              Upload rule to semgrep.dev
+  scan                 Run semgrep rules on files
+  shouldafound         Report a false negative in this project.
 |}
 
 let default_subcommand = "scan"
@@ -92,7 +93,16 @@ let default_subcommand = "scan"
 
 (* This is used to determine if we should fall back to assuming 'scan'. *)
 let known_subcommands =
-  [ "ci"; "login"; "logout"; "lsp"; "publish"; "scan"; "shouldafound" ]
+  [
+    "ci";
+    "install-semgrep-pro";
+    "login";
+    "logout";
+    "lsp";
+    "publish";
+    "scan";
+    "shouldafound";
+  ]
 
 (* Exit with a code that a proper semgrep implementation would never return.
    Uncaught OCaml exception result in exit code 2.
@@ -128,13 +138,13 @@ let dispatch_subcommand argv =
        *)
       match subcmd with
       | "ci" -> Ci_subcommand.main subcmd_argv
+      | "install-semgrep-pro" -> missing_subcommand ()
       | "login" -> Login_subcommand.main subcmd_argv
       | "logout" -> Logout_subcommand.main subcmd_argv
       | "lsp" -> missing_subcommand ()
       | "publish" -> missing_subcommand ()
       | "scan" -> Scan_subcommand.main subcmd_argv
       | "shouldafound" -> missing_subcommand ()
-      (* TOPORT: cli.add_command(install_pro) *)
       | _else_ -> (* should have defaulted to 'scan' above *) assert false)
   [@@profiling]
 

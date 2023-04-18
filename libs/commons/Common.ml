@@ -315,6 +315,16 @@ let map2 f l1 l2 = fast_map2 1000 f l1 l2
 (* Other list functions *)
 (*****************************************************************************)
 
+let hd_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | head :: _ -> head
+
+let tl_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | _ :: tail -> tail
+
 let mapi f l = map2 f (List.init (List.length l) Fun.id) l
 
 (* Tail-recursive to prevent stack overflows. *)

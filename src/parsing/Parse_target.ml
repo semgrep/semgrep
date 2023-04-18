@@ -134,6 +134,6 @@ let parse_and_resolve_name_fail_if_partial lang file =
 (*****************************************************************************)
 let parse_program file =
   let file = Fpath.v file in
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let lang = Lang.lang_of_filename_exn file in
   let res = just_parse_with_lang lang !!file in
   res.ast

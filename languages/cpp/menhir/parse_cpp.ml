@@ -316,7 +316,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.PI.rest <- save1; tr.PI.current <- save2; tr.PI.passed <- save3;
           (try
              Parser_cpp2.toplevel (lexer_function tr) lexbuf_fake
-             |> List.hd |> fst
+             |> Common.hd_exn "unexpected empty list" |> fst
            with Failure "hd" ->
              logger#error "no elements";
              raise Parsing.Parse_error
@@ -375,7 +375,8 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.Parsing_helpers.rest <- rest';
           tr.Parsing_helpers.passed <- passed';
 
-          tr.Parsing_helpers.current <- List.hd passed';
+          tr.Parsing_helpers.current <-
+            Common.hd_exn "can't be happening" passed';
 
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in
@@ -518,7 +519,7 @@ let parse_with_dypgen file =
   *)
   try
     Parser_cpp2.main (lexer_function tr) lexbuf_fake
-    |> List.hd |> fst
+    |> Common.hd_exn "unexpected empty list" |> fst
   with Dyp.Syntax_error ->
     raise (Parse_info.Parsing_error (TH.info_of_tok tr.PI.current))
 *)

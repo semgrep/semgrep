@@ -1,0 +1,192 @@
+{
+  "rules": [
+    {
+      "id": "yaml.github-actions.security.run-shell-injection.run-shell-injection",
+      "languages": [
+        "yaml"
+      ],
+      "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
+      "metadata": {
+        "category": "security",
+        "confidence": "HIGH",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "cwe2021-top25": true,
+        "cwe2022-top25": true,
+        "impact": "HIGH",
+        "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+        "likelihood": "HIGH",
+        "owasp": [
+          "A01:2017 - Injection",
+          "A03:2021 - Injection"
+        ],
+        "references": [
+          "https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#understanding-the-risk-of-script-injections",
+          "https://securitylab.github.com/research/github-actions-untrusted-input/"
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "origin": "community",
+            "rule_id": "v8UjQj",
+            "url": "https://semgrep.dev/playground/r/K3TPZA/yaml.github-actions.security.run-shell-injection.run-shell-injection",
+            "version_id": "K3TPZA"
+          }
+        },
+        "shortlink": "https://sg.run/pkzk",
+        "source": "https://semgrep.dev/r/yaml.github-actions.security.run-shell-injection.run-shell-injection",
+        "subcategory": [
+          "vuln"
+        ],
+        "technology": [
+          "github-actions"
+        ]
+      },
+      "patterns": [
+        {
+          "pattern-inside": "steps: [...]"
+        },
+        {
+          "pattern-inside": "- run: ...\n  ...\n"
+        },
+        {
+          "pattern": "run: $SHELL"
+        },
+        {
+          "metavariable-pattern": {
+            "language": "generic",
+            "metavariable": "$SHELL",
+            "patterns": [
+              {
+                "pattern-either": [
+                  {
+                    "pattern": "${{ github.event.issue.title }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.issue.body }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.pull_request.title }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.pull_request.body }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.comment.body }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.review.body }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.review_comment.body }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.pages. ... .page_name}}"
+                  },
+                  {
+                    "pattern": "${{ github.event.head_commit.message }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.head_commit.author.email }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.head_commit.author.name }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.commits ... .author.email }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.commits ... .author.name }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.pull_request.head.ref }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.pull_request.head.label }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.pull_request.head.repo.default_branch }}"
+                  },
+                  {
+                    "pattern": "${{ github.head_ref }}"
+                  },
+                  {
+                    "pattern": "${{ github.event.inputs ... }}"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "severity": "ERROR"
+    },
+    {
+      "id": "yaml.github-actions.security.curl-eval.curl-eval",
+      "languages": [
+        "yaml"
+      ],
+      "message": "Data is being eval'd from a `curl` command. An attacker with control of the server in the `curl` command could inject malicious code into the `eval`, resulting in a system comrpomise. Avoid eval'ing untrusted data if you can. If you must do this, consider checking the SHA sum of the content returned by the server to verify its integrity.",
+      "metadata": {
+        "category": "security",
+        "confidence": "LOW",
+        "cwe": [
+          "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+        ],
+        "cwe2021-top25": true,
+        "cwe2022-top25": true,
+        "impact": "HIGH",
+        "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+        "likelihood": "LOW",
+        "owasp": [
+          "A01:2017 - Injection",
+          "A03:2021 - Injection"
+        ],
+        "references": [
+          "https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#understanding-the-risk-of-script-injections"
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "origin": "community",
+            "rule_id": "X5Udrd",
+            "url": "https://semgrep.dev/playground/r/DkT3ge/yaml.github-actions.security.curl-eval.curl-eval",
+            "version_id": "DkT3ge"
+          }
+        },
+        "shortlink": "https://sg.run/9r7r",
+        "source": "https://semgrep.dev/r/yaml.github-actions.security.curl-eval.curl-eval",
+        "subcategory": [
+          "audit"
+        ],
+        "technology": [
+          "github-actions",
+          "bash",
+          "curl"
+        ]
+      },
+      "patterns": [
+        {
+          "pattern-inside": "steps: [...]"
+        },
+        {
+          "pattern-inside": "- run: ...\n  ...\n"
+        },
+        {
+          "pattern": "run: $SHELL"
+        },
+        {
+          "metavariable-pattern": {
+            "language": "bash",
+            "metavariable": "$SHELL",
+            "patterns": [
+              {
+                "pattern": "$DATA=<... curl ...>\n...\neval <... $DATA ...>\n"
+              }
+            ]
+          }
+        }
+      ],
+      "severity": "ERROR"
+    }
+  ]
+}

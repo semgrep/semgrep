@@ -7,6 +7,21 @@ open Printf
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*
+   Provide missing error->string conversion
+*)
+type error = Pcre.error =
+  | Partial
+  | BadPartial
+  | BadPattern of string * int
+  | BadUTF8
+  | BadUTF8Offset
+  | MatchLimit
+  | RecursionLimit
+  | WorkspaceSize
+  | InternalError of string
+[@@deriving show]
+
+(*
    Flag required for the following to succeed:
      Pcre.regexp ~flags:[`UTF8] "\\x{200E}"
 *)
@@ -54,6 +69,10 @@ let exec_to_strings ?iflags ?flags ?rex ?pos ?callout subj =
 
 let split ?iflags ?flags ?rex ?pos ?max ?callout subj =
   try Ok (Pcre.split ?iflags ?flags ?rex ?pos ?max ?callout subj) with
+  | Pcre.Error err -> Error err
+
+let full_split ?iflags ?flags ?rex ?pos ?max ?callout subj =
+  try Ok (Pcre.full_split ?iflags ?flags ?rex ?pos ?max ?callout subj) with
   | Pcre.Error err -> Error err
 
 let string_of_error (error : Pcre.error) =

@@ -53,7 +53,7 @@ type 'tok tokens_state = {
 let mk_tokens_state toks =
   {
     rest = toks;
-    current = List.hd toks;
+    current = Common.hd_exn "unexpected empty list" toks;
     passed =
       []
       (* passed_clean = [];

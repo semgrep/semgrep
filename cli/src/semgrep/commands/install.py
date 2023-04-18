@@ -78,7 +78,7 @@ def run_install_semgrep_pro() -> None:
 
     semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
 
-    with state.app_session.get(url, timeout=60, stream=True) as r:
+    with state.app_session.get(url, timeout=180, stream=True) as r:
         if r.status_code == 401:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again."

@@ -91,8 +91,10 @@ let split_single_string_to_array str pos =
       | acc_h :: acc_t, [] :: chunks_t ->
           reduce ((acc_h ^ " ") :: acc_t) chunks_t
       | acc_h :: acc_t, chunks_h :: chunks_t ->
-          let first = List.hd chunks_h in
-          let rest_rev = List.rev (List.tl chunks_h) in
+          let first = Common.hd_exn "unexpected empty list" chunks_h in
+          let rest_rev =
+            List.rev (Common.tl_exn "unexpected empty list" chunks_h)
+          in
           reduce (rest_rev @ ((acc_h ^ " " ^ first) :: acc_t)) chunks_t
     in
     reduce [] chunks
@@ -509,7 +511,10 @@ let resolve_block_delim with_cb no_cb =
 
 let merge_binop xs =
   wrap xs (fun xs ->
-      let newest, l = (List.hd xs, List.tl xs) in
+      let newest, l =
+        ( Common.hd_exn "unexpected empty list" xs,
+          Common.tl_exn "unexpected empty list" xs )
+      in
       let l' = uniq_list compare_expr l in
       let fail () =
         let l' = uniq_list compare_expr (newest :: l') in
@@ -533,7 +538,10 @@ let merge_binop xs =
 
 let merge_topcall xs =
   wrap xs (fun xs ->
-      let newest, l = (List.hd xs, List.tl xs) in
+      let newest, l =
+        ( Common.hd_exn "unexpected empty list" xs,
+          Common.tl_exn "unexpected empty list" xs )
+      in
 
       let l' = uniq_list compare_expr l in
       match (l', newest) with
@@ -550,7 +558,10 @@ let merge_topcall xs =
 
 let merge_stmt xs =
   wrap xs (fun xs ->
-      let newest, l = (List.hd xs, List.tl xs) in
+      let newest, l =
+        ( Common.hd_exn "unexpected empty list" xs,
+          Common.tl_exn "unexpected empty list" xs )
+      in
 
       let l' = uniq_list compare_expr l in
       match (l', newest) with

@@ -286,6 +286,9 @@ class JSON:
     def as_list(self) -> List["JSON"]:
         return cast(List["JSON"], self.value)
 
+    def as_int(self) -> int:
+        return cast(int, self.value)
+
 
 # Utilities
 whitespace = regex(r"\s*")

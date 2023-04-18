@@ -17,7 +17,8 @@ on:
         type: "choice"
         # These options are passed directly into christian-draeger/increment-semantic-version in the `next-vesion` step to decide which of X.Y.Z to increment
         options:
-          - "major"
+          # Many folks are concerned about a mis-click and releasing 2.0 - remove the option.
+          # - "major"
           - "feature"
           - "bug"
       dry-run:
@@ -49,7 +50,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Check out code
         uses: actions/checkout@v3
         id: checkout
@@ -68,7 +69,7 @@ jobs:
         id: latest-version
         run: |
           LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
-          echo ::set-output name=latest-version::${LATEST_TAG}
+          echo "latest-version=${LATEST_TAG}" >> $GITHUB_OUTPUT
       - name: Bump release version
         id: next-version
         uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
@@ -111,7 +112,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Check out code
         uses: actions/checkout@v3
         id: checkout
@@ -124,7 +125,7 @@ jobs:
         run: |
           RELEASE_BRANCH="release-${{ needs.get-version.outputs.version }}"
           git checkout -b ${RELEASE_BRANCH}
-          echo ::set-output name=release-branch::${RELEASE_BRANCH}
+          echo "release-branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
       - name: Run `make release`
         id: make-release
         env:
@@ -198,7 +199,7 @@ jobs:
           #GH actions doesn't provide an easy way to determine this, so we capture the number and go from there.
           PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
 
-          echo "::set-output name=pr-number::$PR_NUMBER"
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
   wait-for-pr-checks:
     if: ${{ ! inputs.dry-run }}
@@ -243,7 +244,7 @@ jobs:
           # We can't do this above because sometimes all checks aren't yet ready by the time the first one is, so we end up in a case where
           # we aren't getting waiting for all checks.
           LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
-          echo "::set-output name=num-checks::${LEN_CHECKS}"
+          echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
 
   create-tag:
     if: ${{ ! inputs.dry-run }}
@@ -267,7 +268,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Check out code
         uses: actions/checkout@v3
         id: checkout
@@ -329,7 +330,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Create Draft Release Semgrep Interfaces
         id: create_release_semgrep_interfaces
         uses: softprops/action-gh-release@v1

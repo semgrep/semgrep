@@ -5,6 +5,7 @@
  (libraries
    commons
    fmt
+   terminal_size
    semgrep.reporting
  )
  (preprocess

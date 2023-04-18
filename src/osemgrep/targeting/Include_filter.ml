@@ -24,7 +24,7 @@ let create ~project_root patterns =
           ~source:
             (Glob_matcher.string_loc ~source_name:"include pattern"
                ~source_kind:(Some "include") pat)
-          ~anchor:Glob_matcher.root_pattern pat)
+          ~anchor:Glob_pattern.root_pattern pat)
       patterns
   in
   let no_match_loc =

@@ -133,7 +133,7 @@ let parse2 opt_timeout file =
         in
         HH.do_fail "program" l' Ast_ruby.show_program;
 
-        let ast = List.hd l' in
+        let ast = Common.hd_exn "unexpected empty list" l' in
         (*orig-todo? Ast.mod_ast (replace_heredoc state) ast*)
         { Parsing_result.ast; tokens = List.rev !toks; stat }
       with
@@ -196,7 +196,7 @@ let any_of_string ?timeout str =
         in
         HH.do_fail "any" l' Ast_ruby.show_any;
 
-        let ast = List.hd l' in
+        let ast = Common.hd_exn "unexpected empty list" l' in
         ast
       with
       | (Dyp.Syntax_error | Failure _ | Stack.Empty | Parse_ruby_timeout) as exn

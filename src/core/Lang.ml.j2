@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -106,6 +106,12 @@ let langs_of_filename filename =
   | FT.PL FT.Scala -> [ Scala ]
   | FT.PL (FT.Web FT.Html) -> [ Html ]
   | _ -> []
+
+let lang_of_filename_exn filename =
+  match langs_of_filename filename with
+  | x :: _ -> x
+  | [] -> failwith ("Could not infer a language from the filename: " ^
+                      Fpath.to_string filename)
 
 let to_string = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.name }}"
