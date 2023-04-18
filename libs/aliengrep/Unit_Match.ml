@@ -86,8 +86,10 @@ let test_whitespace () =
   check mconf "a b" "a\nb" [ Num_matches 1; Match_value "a\nb" ]
 
 let test_ellipsis () =
-  check uconf {|...|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
-  check uconf {|a...b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ]
+  check uconf {|a...b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
+  check uconf {|a...b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
+  check uconf {|a...b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
+  check uconf {|a...b|} {|a b b|} [ Num_matches 1; Match_value "a b" ]
 
 let tests =
   [

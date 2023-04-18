@@ -22,6 +22,44 @@ type t = {
 [@@deriving show]
 
 (*
+   PCRE patterns and names of PCRE patterns that depend whether we allow
+   newlines as ordinary whitespace.
+*)
+type param = {
+  whitespace_seq : string;
+  not_whitespace_char : string;
+  bracket_name : string;
+  node_name : string;
+  nonempty_seq_name : string;
+}
+
+(* uniline mode and regular ellipsis "..." *)
+let uniline_param =
+  {
+    whitespace_seq = {|[[:blank:]]*+|};
+    not_whitespace_char = {|[^[:blank:]]|};
+    bracket_name = "ubracket";
+    node_name = "unode";
+    nonempty_seq_name = "useq";
+  }
+
+(* multiline mode and long ellipsis "...." *)
+let multiline_param =
+  {
+    whitespace_seq = {|[[:space:]]*+|};
+    not_whitespace_char = {|[^[:space:]]|};
+    bracket_name = "mbracket";
+    node_name = "mnode";
+    nonempty_seq_name = "mseq";
+  }
+
+(*
+   Create a named PCRE pattern. The name must be a valid identifier
+   PCRE (alphanumeric or something).
+*)
+let define name pat = sprintf {|(?(DEFINE)(?<%s> %s))|} name pat
+
+(*
    to do:
    - ellipses: lazy repeat
    - metavariables: capturing groups
@@ -41,62 +79,55 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
 
      (?&foo) is a reference to the pattern named foo.
   *)
-  let blank = {|[[:blank:]]*+|} in
-  let space = {|[[:space:]]*+|} in
-  (* whitespace *)
-  let def_ws =
-    sprintf {|(?(DEFINE)(?<ws>%s))|} (if conf.multiline then space else blank)
+  let default_param =
+    if conf.multiline then multiline_param else uniline_param
   in
+  (* sequence of whitespace characters *)
+  let def_ws = define "ws" default_param.whitespace_seq in
+  (* any non-whitespace character *)
+  let def_notws = define "notws" default_param.not_whitespace_char in
   let word_char = Pcre_util.char_class_of_list conf.word_chars in
-  let def_word =
-    (* match any word *)
-    sprintf {|(?(DEFINE)(?<word>%s++))|} word_char
-  in
+  (* match any word *)
+  let def_word = define "word" (sprintf {|%s++|} word_char) in
   (* left word boundary *)
-  let def_lwb = sprintf {|(?(DEFINE)(?<lwb>(?<!%s)))|} word_char in
+  let def_lwb = define "lwb" (sprintf {|(?<!%s)|} word_char) in
   (* right word boundary *)
-  let def_rwb = sprintf {|(?(DEFINE)(?<rwb>(?!%s)))|} word_char in
-  let def_bracket =
-    sprintf {|(?(DEFINE)(?<bracket>%s))|}
+  let def_rwb = define "rwb" (sprintf {|(?!%s)|} word_char) in
+  let def_bracket param =
+    define param.bracket_name (* = ubracket or mbracket *)
       (conf.braces
       |> Common.map (fun (open_, close) ->
-             sprintf {|%s(?&seq)%s|}
+             sprintf {|%s(?&%s)??%s|}
                (String.make 1 open_ |> Pcre_util.quote)
+               param.nonempty_seq_name (* = useq or mseq *)
                (String.make 1 close |> Pcre_util.quote))
-      |> String.concat "|")
+      |> String.concat " | ")
   in
-  let def_node =
-    (* Note that '.' may not match newlines. This is incompatible with
-       the `DOTALL option of Pcre. *)
-    sprintf {|(?(DEFINE)(?<node>(?&word)|(?&bracket)|(?&ws)|.))|}
+  let def_node param =
+    define param.node_name
+      (sprintf {|(?&word)|(?&%s)|%s|} param.bracket_name
+         param.not_whitespace_char)
   in
-  (* multiline sequence of any nodes *)
-  let def_mseq =
-    (* lazy repeat *)
-    sprintf {|(?(DEFINE)(?<mseq>%s(?:(?&node)%s)*?))|} space space
+  (* sequence of any nodes to be captured by a regular ellipsis or a long
+     ellipsis.
+
+     Warning from PCRE: "All subroutine calls, whether recursive or not,
+     are always treated as atomic groups"
+     TODO: fix this by inlining any pattern that needs backtracking.
+  *)
+  let def_nonemptyseq param =
+    (* lazy repeat: favor shortest repeat for ellipses *)
+    define param.nonempty_seq_name
+      (sprintf {|(?&%s)(%s(?&%s))*?|} param.node_name param.whitespace_seq
+         param.node_name)
   in
-  (* uniline sequence of any nodes *)
-  let def_useq =
-    (* lazy repeat *)
-    sprintf {|(?(DEFINE)(?<useq>%s(?:(?&node)%s)*?))|} blank blank
-  in
-  (* sequence of nodes *)
-  let def_seq =
-    sprintf {|(?(DEFINE)(?<seq>(?&%s)))|}
-      (if conf.multiline then "mseq" else "useq")
+  let parametrized_definitions param =
+    [ def_bracket param; def_node param; def_nonemptyseq param ]
   in
   let definitions =
-    [
-      def_lwb;
-      def_rwb;
-      def_ws;
-      def_word;
-      def_bracket;
-      def_node;
-      def_mseq;
-      def_useq;
-      def_seq;
-    ]
+    [ def_lwb; def_rwb; def_ws; def_notws; def_word ]
+    @ parametrized_definitions uniline_param
+    @ parametrized_definitions multiline_param
   in
   let word str =
     (* match a specific word *)
@@ -131,13 +162,13 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
     let add str = acc := str :: !acc in
     let rec of_node (node : Pat_AST.node) =
       match node with
-      | Ellipsis -> add {|(?&useq)|}
-      | Long_ellipsis -> add {|(?&mseq)|}
+      | Ellipsis -> add {|(?&useq)??|}
+      | Long_ellipsis -> add {|(?&mseq)??|}
       | Metavar name -> add (capture (Metavariable, name) {|(?&word)|})
       | Metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) {|(?&useq)|})
+          add (capture (Metavariable_ellipsis, name) {|(?&useq)??|})
       | Long_metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) {|(?&mseq)|})
+          add (capture (Metavariable_ellipsis, name) {|(?&mseq)??|})
       | Bracket (open_, seq, close) ->
           add (Pcre_util.quote (String.make 1 open_));
           of_seq seq;
@@ -155,7 +186,15 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
 let compile conf pattern_ast =
   let pcre_pattern, metavariable_groups = to_regexp conf pattern_ast in
   (* `EXTENDED = literal whitespace and comments are ignored *)
-  let pcre = SPcre.regexp ~flags:[ `EXTENDED ] pcre_pattern in
+  let pcre =
+    try SPcre.regexp ~flags:[ `EXTENDED ] pcre_pattern with
+    | exn ->
+        (* bug *)
+        let e = Exception.catch exn in
+        Logs.err (fun m ->
+            m "Failed to compile PCRE pattern:\n%s\n" pcre_pattern);
+        Exception.reraise e
+  in
   { pcre_pattern; pcre; metavariable_groups }
 
 let from_string conf pat_str =
