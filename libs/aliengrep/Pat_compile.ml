@@ -26,32 +26,49 @@ type t = {
    newlines as ordinary whitespace.
 *)
 type param = {
-  whitespace_seq : string;
-  not_whitespace_char : string;
+  (* ignorable whitespace pattern, which or may or may not include newlines *)
+  whitespace_pat : string;
+  (* - must match any single significant non-word character such as punctuation
+       or non-ASCII characters.
+     - may not match ignorable whitespace.
+     - may match a word character but it's not required.
+  *)
+  other_char : string;
   bracket_name : string;
   node_name : string;
-  nonempty_seq_name : string;
 }
 
 (* uniline mode and regular ellipsis "..." *)
 let uniline_param =
   {
-    whitespace_seq = {|[[:blank:]]*+|};
-    not_whitespace_char = {|[^[:blank:]]|};
+    whitespace_pat = {|[[:blank:]]*+|};
+    other_char = {|[^[:space:]]|};
     bracket_name = "ubracket";
     node_name = "unode";
-    nonempty_seq_name = "useq";
   }
 
 (* multiline mode and long ellipsis "...." *)
 let multiline_param =
   {
-    whitespace_seq = {|[[:space:]]*+|};
-    not_whitespace_char = {|[^[:space:]]|};
+    whitespace_pat = {|[[:space:]]*+|};
+    other_char = {|[^[:blank:]]|};
     bracket_name = "mbracket";
     node_name = "mnode";
-    nonempty_seq_name = "mseq";
   }
+
+(* sequence of any nodes to be captured by a regular ellipsis or by a long
+   ellipsis. It uses lazy quantifiers so as to favor shorter matches over
+   longer matches.
+
+   Warning from PCRE: "All subroutine calls, whether recursive or not,
+   are always treated as atomic groups"
+
+   Because of this limitation and because we need backtracking when matching
+   an ellipsis followed by a specific node, this pattern must remain inline.
+*)
+let ellipsis_pat param =
+  sprintf {|(?: (?&%s)(%s(?&%s))*? )??|} param.node_name param.whitespace_pat
+    param.node_name
 
 (*
    Create a named PCRE pattern. The name must be a valid identifier
@@ -61,10 +78,8 @@ let define name pat = sprintf {|(?(DEFINE)(?<%s> %s))|} name pat
 
 (*
    to do:
-   - ellipses: lazy repeat
    - metavariables: capturing groups
    - reoccurring metavariables: backreferences
-   - recursive structure: reference to root pattern
 *)
 let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   (* Pattern definitions
@@ -83,9 +98,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
     if conf.multiline then multiline_param else uniline_param
   in
   (* sequence of whitespace characters *)
-  let def_ws = define "ws" default_param.whitespace_seq in
-  (* any non-whitespace character *)
-  let def_notws = define "notws" default_param.not_whitespace_char in
+  let def_ws = define "ws" default_param.whitespace_pat in
   let word_char = Pcre_util.char_class_of_list conf.word_chars in
   (* match any word *)
   let def_word = define "word" (sprintf {|%s++|} word_char) in
@@ -97,35 +110,19 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
     define param.bracket_name (* = ubracket or mbracket *)
       (conf.braces
       |> Common.map (fun (open_, close) ->
-             sprintf {|%s(?&%s)??%s|}
+             sprintf {|%s%s%s|}
                (String.make 1 open_ |> Pcre_util.quote)
-               param.nonempty_seq_name (* = useq or mseq *)
+               (ellipsis_pat param)
                (String.make 1 close |> Pcre_util.quote))
       |> String.concat " | ")
   in
   let def_node param =
     define param.node_name
-      (sprintf {|(?&word)|(?&%s)|%s|} param.bracket_name
-         param.not_whitespace_char)
+      (sprintf {|(?&word)|(?&%s)|%s|} param.bracket_name param.other_char)
   in
-  (* sequence of any nodes to be captured by a regular ellipsis or a long
-     ellipsis.
-
-     Warning from PCRE: "All subroutine calls, whether recursive or not,
-     are always treated as atomic groups"
-     TODO: fix this by inlining any pattern that needs backtracking.
-  *)
-  let def_nonemptyseq param =
-    (* lazy repeat: favor shortest repeat for ellipses *)
-    define param.nonempty_seq_name
-      (sprintf {|(?&%s)(%s(?&%s))*?|} param.node_name param.whitespace_seq
-         param.node_name)
-  in
-  let parametrized_definitions param =
-    [ def_bracket param; def_node param; def_nonemptyseq param ]
-  in
+  let parametrized_definitions param = [ def_bracket param; def_node param ] in
   let definitions =
-    [ def_lwb; def_rwb; def_ws; def_notws; def_word ]
+    [ def_lwb; def_rwb; def_ws; def_word ]
     @ parametrized_definitions uniline_param
     @ parametrized_definitions multiline_param
   in
@@ -162,13 +159,20 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
     let add str = acc := str :: !acc in
     let rec of_node (node : Pat_AST.node) =
       match node with
-      | Ellipsis -> add {|(?&useq)??|}
-      | Long_ellipsis -> add {|(?&mseq)??|}
+      | Ellipsis when not conf.multiline -> add (ellipsis_pat uniline_param)
+      | Long_ellipsis
+      | Ellipsis ->
+          add (ellipsis_pat multiline_param)
       | Metavar name -> add (capture (Metavariable, name) {|(?&word)|})
+      | Metavar_ellipsis name when not conf.multiline ->
+          add
+            (capture (Metavariable_ellipsis, name) (ellipsis_pat uniline_param))
+      | Long_metavar_ellipsis name
       | Metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) {|(?&useq)??|})
-      | Long_metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) {|(?&mseq)??|})
+          add
+            (capture
+               (Metavariable_ellipsis, name)
+               (ellipsis_pat multiline_param))
       | Bracket (open_, seq, close) ->
           add (Pcre_util.quote (String.make 1 open_));
           of_seq seq;
@@ -180,7 +184,16 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
     let elements = List.rev !acc in
     String.concat ("\n" ^ {|(?&ws)|} ^ "\n") elements
   in
-  let root = sprintf "%s\n%s" (String.concat "\n" definitions) entrypoint in
+  let root =
+    sprintf {|# definitions
+%s
+
+# entry point
+%s
+|}
+      (String.concat "\n" definitions)
+      entrypoint
+  in
   (root, get_capturing_group_array ())
 
 let compile conf pattern_ast =

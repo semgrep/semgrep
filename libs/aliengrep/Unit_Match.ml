@@ -18,6 +18,7 @@ type expectation =
   | Capture of Pat_compile.metavariable
   | Capture_value of Pat_compile.metavariable * string
   | Not of expectation
+[@@deriving show]
 
 let match_subs (x : Match.match_) = x.match_loc.substring
 let _subs (loc : Match.loc) = loc.substring
@@ -65,7 +66,7 @@ let check conf pat_string target_string expectations =
   List.iter
     (fun expectation ->
       if not (check_expectation expectation matches) then
-        failwith "unexpected test result")
+        failwith ("failed expectation: " ^ show_expectation expectation))
     expectations
 
 let uconf = Conf.default_uniline_conf
@@ -86,14 +87,35 @@ let test_whitespace () =
   check mconf "a b" "a\nb" [ Num_matches 1; Match_value "a\nb" ]
 
 let test_ellipsis () =
+  (* test behavior shared with long ellipsis *)
   check uconf {|a...b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
   check uconf {|a...b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
   check uconf {|a...b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
-  check uconf {|a...b|} {|a b b|} [ Num_matches 1; Match_value "a b" ]
+  check uconf {|a...b|} {|a b b|} [ Num_matches 1; Match_value "a b" ];
+  check uconf {|a...b b c|} {|a b b b c|}
+    [ Num_matches 1; Match_value "a b b b c" ];
+  (* test behavior specific to regular ellipsis *)
+  check uconf {|a...b|} "a\nb" [ Num_matches 0 ];
+  (* in multiline mode, a regular ellipsis matches newlines *)
+  check mconf {|a...b|} "a\nx\nx\nb" [ Num_matches 1; Match_value "a\nx\nx\nb" ]
+
+let test_long_ellipsis () =
+  (* test behavior shared with regular ellipsis *)
+  check uconf {|a....b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
+  check uconf {|a....b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
+  check uconf {|a....b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
+  check uconf {|a....b|} {|a b b|} [ Num_matches 1; Match_value "a b" ];
+  check uconf {|a....b b c|} {|a b b b c|}
+    [ Num_matches 1; Match_value "a b b b c" ];
+  (* test behavior specific to long ellipsis *)
+  check uconf {|a....b|} "a\nb" [ Num_matches 1; Match_value "a\nb" ];
+  check mconf {|a....b|} "a\nx\nx\nb"
+    [ Num_matches 1; Match_value "a\nx\nx\nb" ]
 
 let tests =
   [
     ("word", test_word);
     ("whitespace", test_whitespace);
     ("ellipsis", test_ellipsis);
+    ("long ellipsis", test_long_ellipsis);
   ]
