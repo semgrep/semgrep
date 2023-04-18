@@ -102,13 +102,6 @@ copy-core-for-cli:
 	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/osemgrep
 	cp _build/install/default/bin/osemgrep cli/src/semgrep/bin/
-	# Libraries
-	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	cp _build/install/default/bin/semgrep_bridge_core.so \
-	  cli/src/semgrep/bin/
-	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	cp _build/install/default/bin/semgrep_bridge_python.so \
-	  cli/src/semgrep/bin/
 
 # Same as copy-core-for-cli but faster. This is suitable for local testing
 # of semgrep.
@@ -125,13 +118,6 @@ symlink-core-for-cli:
 	rm -f cli/src/semgrep/bin/osemgrep
 	ln -s ../../../../bin/osemgrep \
 	  cli/src/semgrep/bin/osemgrep
-	# Libraries
-	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	ln -s ../../../../bin/semgrep_bridge_core.so \
-	  cli/src/semgrep/bin/semgrep_bridge_core.so
-	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	ln -s ../../../../bin/semgrep_bridge_python.so \
-	  cli/src/semgrep/bin/semgrep_bridge_python.so
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.

@@ -546,7 +546,9 @@ let taint_trace_of_src_traces_and_sink sources sink =
 
 let pm_of_finding finding =
   match finding with
-  | T.ToReturn (_taints, _) -> None
+  | T.ArgToArg _
+  | T.ToReturn _ ->
+      None
   | ToSink { taints_with_precondition = taints, requires; sink; merged_env } ->
       (* TODO: We might want to report functions that let input taint
          * go into a sink (?) *)
@@ -661,6 +663,7 @@ let check_fundef lang options taint_config opt_ent fdef =
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _
+        | G.ParamReceiver _
         | G.OtherParam (_, _) ->
             env)
       Lval_env.empty

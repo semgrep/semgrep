@@ -17,7 +17,6 @@ val parse_options :
   cmdline_options -> Arg.usage_msg -> string array -> string list
 
 (* Another wrapper that does Arg.align automatically *)
-(* Another wrapper that does Arg.align automatically *)
 val usage : Arg.usage_msg -> cmdline_options -> unit
 
 (* Work with the options_with_title type way to organize a long

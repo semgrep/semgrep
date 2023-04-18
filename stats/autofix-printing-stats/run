@@ -214,7 +214,7 @@ let upload_results opts results =
 
 let make_opts () =
   (* Get the args. Remove the first element since that is the binary name *)
-  let args = Sys.argv |> Array.to_list |> List.tl in
+  let args = Sys.argv |> Array.to_list |> Common.tl_exn "unexpected empty list" in
   {
     upload = List.mem "--upload" args;
     verbose = List.mem "--verbose" args;

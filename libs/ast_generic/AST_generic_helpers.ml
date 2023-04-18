@@ -320,7 +320,9 @@ let parameter_to_catch_exn_opt p =
   | ParamRest (_, _p)
   | ParamHashSplat (_, _p) ->
       None
-  | OtherParam _ -> None
+  | ParamReceiver _
+  | OtherParam _ ->
+      None
 
 (*****************************************************************************)
 (* Abstract position and svalue for comparison *)

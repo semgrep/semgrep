@@ -1,3 +1,4 @@
+open File.Operators
 module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -36,15 +37,15 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
   | Some x -> x
   | None ->
       let ast =
-        (* ugly: parse_program may raise the "hd" exn when we can't infer
+        (* ugly: parse_program may raise an exn when we can't infer
          * the language from the filename.
          * TODO: we should use just_parse_with_lang and get the language
          * from the languages: field in the rule corresponding to
          * the rule_id of the match. That would require to pass
          * more info to ranges_of_path() though.
          *)
-        try Parse_target.parse_program (Fpath.to_string path) with
-        | Failure "hd" -> []
+        try Parse_target.parse_program !!path with
+        | Failure _ -> []
       in
       let ranges = Function_range.ranges ast in
       Hashtbl.add cache path ranges;

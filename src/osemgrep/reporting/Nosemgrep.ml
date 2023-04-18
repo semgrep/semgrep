@@ -137,16 +137,16 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
               in
               let cli_error : Out.cli_error =
                 {
-                  Out.code = 0;
+                  Out.code = 2;
                   level =
                     "warn"
                     (* XXX(dinosaure): use [Severity.string_of_basic_severity]? *);
-                  type_ = "nosemgrep error" (* TODO(dinosaure): correct? *);
-                  rule_id = Some rule_match.Out.check_id;
+                  type_ = "SemgrepError" (* TODO(dinosaure): correct? *);
+                  rule_id = None;
                   message = Some msg;
-                  path = Some rule_match.Out.path;
+                  path = None;
                   long_msg = None;
-                  short_msg = Some msg;
+                  short_msg = None;
                   spans = None;
                   help = None;
                 }
@@ -155,19 +155,28 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
             else errors
           in
           (id = rule_match.Out.check_id || result, errors))
-        (true, []) ids
+        (false, []) ids
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let process_ignores ~strict (out : Out.cli_output) : Out.cli_output =
+let process_ignores ~keep_ignored ~strict (out : Out.cli_output) :
+    Out.cli_output =
   let results, errors =
     (* filters [rule_match]s by the [nosemgrep] tag. *)
     Common.map_filter
       (fun rule_match ->
         let to_ignore, errors = rule_match_nosem ~strict rule_match in
-        if not to_ignore then Some (rule_match, errors) else None)
+        let rule_match =
+          {
+            rule_match with
+            extra = { rule_match.extra with is_ignored = Some to_ignore };
+          }
+        in
+        if not to_ignore then Some (rule_match, errors)
+        else if keep_ignored then Some (rule_match, errors)
+        else None)
       out.Out.results
     |> List.split
   in

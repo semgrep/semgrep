@@ -1,0 +1,11 @@
+rules:
+- id: pow-metavar-comparison 
+  patterns:
+    - pattern: |
+        foo($X, $Y)
+    - metavariable-comparison:
+        metavariable: $X
+        comparison: $X ** $Y == 8
+  message: Test
+  languages: [python]
+  severity: ERROR

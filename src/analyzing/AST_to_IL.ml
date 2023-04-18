@@ -573,7 +573,7 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, args) ->
+  | G.New (tok, ty, _TODO, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
       let arg = G.ArgType ty in
