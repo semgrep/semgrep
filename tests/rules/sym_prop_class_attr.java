@@ -4,7 +4,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 
-class BadDocumentBuilderFactoryStatic {
+class BadDocumentBuilderFactoryStatic1 {
 
     private static DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
@@ -15,7 +15,7 @@ class BadDocumentBuilderFactoryStatic {
 
 }
 
-class BadDocumentBuilderFactoryStatic {
+class BadDocumentBuilderFactoryStatic2 {
 
     private static DocumentBuilderFactory dbf;
 
