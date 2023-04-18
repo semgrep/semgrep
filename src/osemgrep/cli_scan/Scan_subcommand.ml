@@ -148,6 +148,7 @@ let analyze_skipped (skipped : Out.skipped_target list) =
 
 let pp_summary ppf
     (( _respect_git_ignore,
+       max_target_bytes,
        semgrep_ignored,
        include_ignored,
        exclude_ignored,
@@ -155,6 +156,7 @@ let pp_summary ppf
        other_ignored,
        errors ) :
       bool
+      * int
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list
@@ -191,14 +193,12 @@ let pp_summary ppf
     | xs -> Some (string_of_int (List.length xs) ^ " " ^ msg)
   in
   let out_skipped =
+    let mb = string_of_int Stdlib.(max_target_bytes / 1000 / 1000) in
     Common.map_filter Fun.id
       [
         opt_msg "files not matching --include patterns" include_ignored;
         opt_msg "files matching --exclude patterns" exclude_ignored;
-        opt_msg
-          "files larger than {self.target_manager.max_target_bytes / 1000 / \
-           1000} MB"
-          file_size_ignored;
+        opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
         opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
         opt_msg "other files ignored" other_ignored;
       ]
@@ -227,6 +227,7 @@ let pp_summary ppf
 
 let pp_skipped ppf
     (( respect_git_ignore,
+       max_target_bytes,
        semgrep_ignored,
        include_ignored,
        exclude_ignored,
@@ -234,6 +235,7 @@ let pp_skipped ppf
        other_ignored,
        errors ) :
       bool
+      * int
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list
@@ -293,8 +295,9 @@ let pp_skipped ppf
 
   Fmt.pf ppf " %a@. %a@.@."
     Fmt.(styled `Bold string)
-    "Skipped by limiting to files smaller than \
-     {self.target_manager.max_target_bytes} bytes:"
+    ("Skipped by limiting to files smaller than "
+    ^ string_of_int max_target_bytes
+    ^ " bytes:")
     Fmt.(styled `Bold string)
     "(Adjust with the --max-target-bytes flag)";
   pp_list file_size_ignored;
@@ -443,6 +446,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       Logs.info (fun m ->
           m "%a" pp_skipped
             ( conf.targeting_conf.respect_git_ignore,
+              conf.targeting_conf.max_target_bytes,
               semgrepignored,
               included,
               excluded,
@@ -452,6 +456,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           m "%a" pp_summary
             ( conf.targeting_conf.respect_git_ignore,
+              conf.targeting_conf.max_target_bytes,
               semgrepignored,
               included,
               excluded,
