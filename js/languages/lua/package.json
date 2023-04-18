@@ -1,6 +1,6 @@
 {
   "name": "@semgrep/lang-lua",
-  "version": "1.7.1",
+  "version": "0.0.1",
   "description": "Semgrep lua parser",
   "main": "dist/index.js",
   "files": [
@@ -9,8 +9,9 @@
   ],
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "make dist/index.js && tsc",
-    "test": "jest"
+    "build": "make dist/index.js dist/index.d.ts",
+    "test": "jest",
+    "prepublish": "make dist/index.js dist/index.d.ts"
   },
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",
