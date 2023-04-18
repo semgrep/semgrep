@@ -198,6 +198,7 @@ let pp_status rules targets lang_jobs respect_git_ignore ppf () =
          summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
   *)
   Fmt.pf ppf ":@.@.";
+  (* TODO origin table [Origin Rules] [Community N] *)
   Fmt_helpers.pp_table
     ("Language", [ "Rules"; "Files" ])
     ppf
@@ -263,6 +264,7 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
           m "%a"
             (pp_status all_rules all_targets lang_jobs respect_git_ignore)
             ());
+      (* TODO progress bar *)
       let results_by_language =
         lang_jobs
         |> Common.map (fun lang_job ->

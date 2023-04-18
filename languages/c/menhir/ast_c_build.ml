@@ -619,7 +619,8 @@ and constant _env x =
   | String (s, ii) -> A.String (s, ii)
   | Nullptr ii -> A.Null ii
   | Bool x -> A.Bool x
-  | MultiString iis -> A.String ("TODO", iis |> List.hd |> snd)
+  | MultiString iis ->
+      A.String ("TODO", iis |> Common.hd_exn "empty multistring" |> snd)
 
 and argument env x =
   match x with

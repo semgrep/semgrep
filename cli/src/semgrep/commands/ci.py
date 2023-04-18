@@ -274,7 +274,7 @@ def ci(
     )
 
     console.print(Title("Scan Environment", order=2))
-    console.print(debugging_table)
+    console.print(debugging_table, markup=True)
 
     fix_head_if_github_action(metadata)
 
@@ -339,9 +339,13 @@ def ci(
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
         if engine_type.check_if_installed():
             console.print(
-                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
+                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]",
+                markup=True,
             )
-            console.print(f"Installed at [bold]{engine_type.get_binary_path()}[/bold]")
+            console.print(
+                f"Installed at [bold]{engine_type.get_binary_path()}[/bold]",
+                markup=True,
+            )
         else:
             run_install_semgrep_pro()
 

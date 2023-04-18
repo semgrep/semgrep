@@ -3,8 +3,6 @@
    Translated from __main__.py
 *)
 
-open Printf
-
 let register_stdlib_exception_printers () =
   (* Needs to take place after JaneStreet Base does its own registration.
      https://github.com/janestreet/base/issues/146 *)
@@ -16,14 +14,14 @@ let register_stdlib_exception_printers () =
 
 let init () =
   register_stdlib_exception_printers ();
-  Parsing_init.init ()
+  ()
 
 let main () =
   init ();
   let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
   (* TODO: remove or make debug-only *)
   if exit_code <> 0 then
-    eprintf "exiting with error status %i: %s\n%!" exit_code
+    Printf.eprintf "exiting with error status %i: %s\n%!" exit_code
       (String.concat " " (Array.to_list Sys.argv));
   exit exit_code
 

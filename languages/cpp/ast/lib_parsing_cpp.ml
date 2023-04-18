@@ -46,3 +46,8 @@ let ii_of_any any =
   in
   visitor any;
   List.rev !globals
+
+let info_of_any any =
+  match ii_of_any any with
+  | [] -> assert false
+  | first :: _ -> first

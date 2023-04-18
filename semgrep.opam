@@ -60,6 +60,7 @@ depends: [
   "parmap"
   "uri"
   "http-lwt-client" # this brings lots of dependencies. This is for osemgrep.
+  "terminal_size"
   "lsp" {= "1.7.0"}
   "visitors" {= "20210608"}
   "js_of_ocaml" {= "5.1.1"}

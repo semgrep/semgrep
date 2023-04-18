@@ -30,7 +30,7 @@ jobs:
         env:
           DOCKER_TAG: develop
         run: |
-          echo "::set-output name=docker_tag::${{ inputs.docker_tag || env.DOCKER_TAG }}"
+          echo "docker_tag=${{ inputs.docker_tag || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT
       - name: Debug
         run: |
           echo "${{ steps.get-inputs.outputs.docker_tag }}"
@@ -140,7 +140,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Wait for checks to register
         id: register-checks
         env:

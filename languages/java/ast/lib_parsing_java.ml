@@ -43,3 +43,8 @@ let extract_info_visitor recursor =
   List.rev !globals
 
 let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
+
+let info_of_any any =
+  match ii_of_any any with
+  | x :: _ -> x
+  | [] -> assert false

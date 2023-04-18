@@ -347,3 +347,7 @@ jobs:
     needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-ubuntu-x86.yaml
     secrets: inherit
+
+  build-test-javascript:
+    uses: ./.github/workflows/build-test-javascript.yaml
+    secrets: inherit
