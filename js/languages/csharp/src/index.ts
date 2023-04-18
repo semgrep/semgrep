@@ -1,31 +1,19 @@
-import ParserModuleFactory from "../dist/semgrep-parser";
-
-const PARSER_PATH = "../../../../_build/default/js/languages/csharp/Parser.bc";
-const DEFAULT_WASM_FILENAME = "semgrep-parser.wasm";
+import WasmFactory from "../dist/semgrep-parser";
+const {
+  createParser,
+} = require("../../../../_build/default/js/languages/csharp/Parser.bc");
 
 export type Mountpoint = object;
 export type Lang = number;
 
 export interface Parser {
-  setMountPoints: (mountpoints: Mountpoint[]) => void;
   getLang: () => Lang;
+  setMountpoints: (mountpoints: Mountpoint[]) => void;
   parseTarget: (filename: string) => any;
   parsePattern: (printErrors: boolean, pattern: string) => any;
-  setParserWasmModule: (module: object) => void;
 }
 
-export const ParserFactory: (wasmPath?: string) => Promise<Parser> = async (
-  wasmPath?: string
-) => {
-  const wasm = await ParserModuleFactory({
-    locateFile: (file: string) => {
-      if (wasmPath && file === DEFAULT_WASM_FILENAME) {
-        return wasmPath;
-      }
-      return file;
-    },
-  });
-  const parser = require(PARSER_PATH);
-  parser.setParserWasmModule(wasm);
-  return parser;
+export const ParserFactory: () => Promise<Parser> = async () => {
+  const wasm = await WasmFactory();
+  return createParser(wasm);
 };
