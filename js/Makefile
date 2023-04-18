@@ -7,6 +7,11 @@ test:
 	make -C engine test
 	make -C languages test
 
+.PHONY: package
+package:
+	make -C engine package
+	make -C languages package
+
 .PHONY: libyaml
 libyaml:
 	make -C libyaml

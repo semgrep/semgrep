@@ -16,6 +16,11 @@ build:
 	npm ci
 	npm run build
 
+.PHONY: package
+package:
+	npm ci
+	npm pack
+
 .PHONY: clean
 clean:
 	rm -rf dist

@@ -38,6 +38,11 @@ build:
 test:
 	npm run test
 
+.PHONY: package
+package:
+	npm ci
+	npm pack
+
 .PHONY: clean
 clean:
 	rm -rf dist

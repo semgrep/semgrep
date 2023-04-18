@@ -50,11 +50,10 @@ jobs:
           make -C js test
 
           echo "Packaging..."
-          (cd js/engine && npm pack)
-          (cd js/languages && npm pack)
+          make -C js package
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-artifacts
           path: |
             js/engine/*.tgz
-            js/languages/*.tgz
+            js/languages/**/*.tgz
