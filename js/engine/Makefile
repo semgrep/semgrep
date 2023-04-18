@@ -16,12 +16,17 @@ build:
 	npm ci
 	npm run build
 
+.PHONY: package
+package:
+	npm ci
+	npm pack
+
 .PHONY: clean
 clean:
 	rm -rf dist
 
 ../libyaml/dist/libyaml.js:
-	make -C ../libyaml dist/libyaml.js
+	make -C ../libyaml build
 
 dist/index.js: src/index.ts ../libyaml/dist/libyaml.js
 	mkdir -p dist

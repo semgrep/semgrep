@@ -9,7 +9,7 @@
   <script>
     window.EngineFactory = module.exports.EngineFactory;
   </script>
-  <script src="../languages/lua/dist/index.js"></script>
+  <script src="../languages/python/dist/index.js"></script>
   <script>
     window.ParserFactory = module.exports.ParserFactory;
 
@@ -17,7 +17,7 @@
       rules: [
         {
           id: "test",
-          languages: ["lua"],
+          languages: ["python"],
           message: "test",
           pattern: "print($X)",
           severity: "ERROR",
@@ -28,13 +28,13 @@
     (async () => {
       const engine = await EngineFactory();
 
-      jsoo_create_file("/static/rules.json", rules);
-      jsoo_create_file("/static/test.lua", "print(42)\n");
+      engine.writeFile("/static/rules.json", rules);
+      engine.writeFile("/static/test.py", "print(42)\n");
       const lua = await ParserFactory();
       engine.addParser(lua);
       document.getElementById("result").innerHTML = JSON.stringify(
         JSON.parse(
-          engine.execute("lua", "/static/rules.json", "/static/test.lua")
+          engine.execute("python", "/static/rules.json", "/static/test.py")
         ),
         null,
         2

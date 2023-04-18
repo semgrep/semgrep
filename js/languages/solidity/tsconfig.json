@@ -1,9 +1,0 @@
-{
-  "include": ["./src/index.ts"],
-  "compilerOptions": {
-    "rootDir": "./src",
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "outFile": "./dist/index.d.ts"
-  }
-}

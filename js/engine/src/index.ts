@@ -4,10 +4,10 @@ export type Mountpoint = object;
 export type Lang = number;
 
 export interface Parser {
-  getLang: () => Lang;
+  getLangs: () => Lang[];
   setMountpoints: (mountpoints: Mountpoint[]) => void;
-  parseTarget: (filename: string) => any;
-  parsePattern: (printErrors: boolean, pattern: string) => any;
+  parseTarget: (lang: Lang, filename: string) => any;
+  parsePattern: (printErrors: boolean, lang: Lang, pattern: string) => any;
 }
 
 export interface Engine {
@@ -23,14 +23,8 @@ export interface Engine {
   deleteFile: (filename: string) => void;
 }
 
-export const EngineFactory: (
-  libYamlWasmPath?: string
-) => Promise<Engine> = async (libYamlWasmPath?) => {
-  const libyaml = await LibYamlFactory({
-    locateFile: (a: string) => {
-      return libYamlWasmPath || a;
-    },
-  });
+export const EngineFactory: () => Promise<Engine> = async () => {
+  const libyaml = await LibYamlFactory();
   const {
     getMountpoints,
     setLibYamlWasmModule,
@@ -51,7 +45,7 @@ export const EngineFactory: (
     if (!parser) {
       throw new Error("No parser initialized for " + lang);
     }
-    return parser.parsePattern(printErrors, pattern);
+    return parser.parsePattern(printErrors, lang, pattern);
   };
 
   const parseFile = (lang: Lang, str: string) => {
@@ -59,7 +53,7 @@ export const EngineFactory: (
     if (!parser) {
       throw new Error("No parser initialized for " + lang);
     }
-    return parser.parseTarget(str);
+    return parser.parseTarget(lang, str);
   };
 
   setParsePattern(parsePattern);
@@ -69,7 +63,9 @@ export const EngineFactory: (
     lookupLang,
     addParser: (parser: Parser) => {
       parser.setMountpoints(getMountpoints());
-      languages.set(parser.getLang(), parser);
+      parser.getLangs().forEach((lang) => {
+        languages.set(lang, parser);
+      });
     },
     hasParser: (lang: Lang) => languages.has(lang),
     execute,
