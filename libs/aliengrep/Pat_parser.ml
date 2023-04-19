@@ -28,7 +28,7 @@ let parse (tokens : Pat_lexer.token list) : Pat_AST.node list =
         parse_seq_until (Metavar_ellipsis id :: acc) expected_close xs
     | LONG_METAVAR_ELLIPSIS id :: xs ->
         parse_seq_until (Long_metavar_ellipsis id :: acc) expected_close xs
-    | WORD str :: xs -> parse_seq_until (Other str :: acc) expected_close xs
+    | WORD str :: xs -> parse_seq_until (Word str :: acc) expected_close xs
     | OPEN (open_, new_expected_close) :: xs -> (
         match expected_close with
         | Some exp_close when exp_close = open_ ->

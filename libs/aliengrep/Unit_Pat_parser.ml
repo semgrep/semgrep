@@ -11,11 +11,11 @@ let check conf pat expected_ast =
   Alcotest.(check ast) "equal" expected_ast res
 
 let test_literal_match () =
-  check uconf "a bc!" [ Other "a"; Other "bc"; Other "!" ]
+  check uconf "a bc!" [ Word "a"; Word "bc"; Other "!" ]
 
 let test_parentheses () =
   check uconf "([x])"
-    [ Bracket ('(', [ Bracket ('[', [ Other "x" ], ']') ], ')') ];
+    [ Bracket ('(', [ Bracket ('[', [ Word "x" ], ']') ], ')') ];
   check uconf "(})" [ Bracket ('(', [ Other "}" ], ')') ];
   check uconf "(" [ Other "(" ];
   check uconf "}" [ Other "}" ];
@@ -23,20 +23,20 @@ let test_parentheses () =
   check uconf "[(}]" [ Bracket ('[', [ Other "("; Other "}" ], ']') ];
   (* Uniline mode treats quotes as brackets *)
   check uconf "''" [ Bracket ('\'', [], '\'') ];
-  check uconf "'ab'" [ Bracket ('\'', [ Other "ab" ], '\'') ];
+  check uconf "'ab'" [ Bracket ('\'', [ Word "ab" ], '\'') ];
   check uconf {|'a"b"'|}
-    [ Bracket ('\'', [ Other "a"; Bracket ('"', [ Other "b" ], '"') ], '\'') ];
+    [ Bracket ('\'', [ Word "a"; Bracket ('"', [ Word "b" ], '"') ], '\'') ];
   (* Multiline mode doesn't treat quotes as brackets *)
   check mconf {|'a"b"'|}
-    [ Other "'"; Other "a"; Other {|"|}; Other "b"; Other {|"|}; Other "'" ]
+    [ Other "'"; Word "a"; Other {|"|}; Word "b"; Other {|"|}; Other "'" ]
 
 let test_metavariables () =
   check uconf "$A $A $BB" [ Metavar "A"; Metavar "A"; Metavar "BB" ]
 
-let test_ellipsis () = check uconf "a ... b" [ Other "a"; Ellipsis; Other "b" ]
+let test_ellipsis () = check uconf "a ... b" [ Word "a"; Ellipsis; Word "b" ]
 
 let test_long_ellipsis () =
-  check uconf "a .... b" [ Other "a"; Long_ellipsis; Other "b" ]
+  check uconf "a .... b" [ Word "a"; Long_ellipsis; Word "b" ]
 
 let test_multiline () = ()
 
