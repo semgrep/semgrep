@@ -60,8 +60,14 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-js-ocaml-build
+          path: _build/default/js
       - name: Build semgrep
         run: |
+          echo "Setting up tree-sitter again..."
+          (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
+
           echo "Installing a modern version of node..."
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
           . ~/.nvm/nvm.sh
