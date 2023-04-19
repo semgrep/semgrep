@@ -30,9 +30,7 @@ jobs:
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
           echo "Building ocaml..."
-          dune build js/engine -j 4 --profile=release
-
-          dune build js/languages/python -j 4 --profile=release
+          dune build js -j 4 --profile=release
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build
