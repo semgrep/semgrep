@@ -60,7 +60,7 @@ let commentized xs =
                  match s with
                  | s when s =~ "KERN_.*" -> None
                  | s when s =~ "__.*" -> None
-                 | _ -> Some ii.PI.token)
+                 | _ -> Some ii.Tok.token)
              | Token_cpp.CppDirective
              | Token_cpp.CppAttr
              | Token_cpp.CppMacro ->
@@ -69,8 +69,8 @@ let commentized xs =
              | Token_cpp.CppPassingNormal
              | Token_cpp.CppPassingCosWouldGetError ->
                  raise Todo
-           else Some ii.PI.token
-       | T.TAny_Action ii -> Some ii.PI.token
+           else Some ii.Tok.token
+       | T.TAny_Action ii -> Some ii.Tok.token
        | _ -> None)
 
 let count_lines_commentized xs =
@@ -78,9 +78,9 @@ let count_lines_commentized xs =
   let count = ref 0 in
   commentized xs
   |> List.iter (function
-       | PI.OriginTok pinfo
-       | PI.ExpandedTok (_, pinfo, _) ->
-           let newline = pinfo.PI.pos.line in
+       | Tok.OriginTok pinfo
+       | Tok.ExpandedTok (_, pinfo, _) ->
+           let newline = pinfo.Tok.pos.line in
            if newline <> !line then (
              line := newline;
              incr count)

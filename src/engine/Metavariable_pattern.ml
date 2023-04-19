@@ -145,7 +145,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
             (* The column is only perturbed if this loc is on the first line of
              * the original metavariable match *)
             let column =
-              if loc.PI.pos.line =|= mast_start_loc.PI.pos.line then
+              if loc.Tok.pos.line =|= mast_start_loc.Tok.pos.line then
                 loc.pos.column - mast_start_loc.pos.column
               else loc.pos.column
             in
@@ -164,7 +164,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
              for when we preserve this binding and re-localize it to
              the original file.
           *)
-          let revert_loc (loc : Parse_info.token_location) =
+          let revert_loc (loc : Tok.token_location) =
             (* See fix_loc *)
             let column =
               if loc.pos.line =|= 1 then
@@ -175,7 +175,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
               loc with
               pos =
                 {
-                  charpos = loc.PI.pos.charpos + mast_start_loc.pos.charpos;
+                  charpos = loc.Tok.pos.charpos + mast_start_loc.pos.charpos;
                   line = loc.pos.line + mast_start_loc.pos.line - 1;
                   column;
                   file = mval_file;

@@ -530,8 +530,7 @@ and expr = {
   e : expr_kind;
   e_id : int;
   (* used to quickly get the range of an expression *)
-  mutable e_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
+  mutable e_range : (Tok.token_location * Tok.token_location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 
@@ -1084,8 +1083,7 @@ and stmt = {
   mutable s_strings : string Set_.t option;
       [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
-  mutable s_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
+  mutable s_range : (Tok.token_location * Tok.token_location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 

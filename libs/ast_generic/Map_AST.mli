@@ -24,7 +24,7 @@ val default_visitor : visitor_in
 val mk_visitor : visitor_in -> visitor_out
 
 val mk_fix_token_locations :
-  (Parse_info.token_location -> Parse_info.token_location) -> visitor_out
+  (Tok.token_location -> Tok.token_location) -> visitor_out
 (** Make a visitor that fixes token locations, e.g. when we want to interpret
   * a sub-AST as an independent program. This is used to implement
   * metavariable-pattern in [Match_rules.satisfies_metavar_pattern_condition]. *)

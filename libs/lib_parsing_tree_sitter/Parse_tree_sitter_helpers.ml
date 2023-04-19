@@ -82,7 +82,7 @@ let token env (tok : Tree_sitter_run.Token.t) =
     (* TODO? more strict? raise exn? *)
   in
   let file = env.file in
-  let tok_loc = { PI.str; pos = { Pos.charpos; line; column; file } } in
+  let tok_loc = { Tok.str; pos = { Pos.charpos; line; column; file } } in
   PI.mk_info_of_loc tok_loc
 
 let str env (tok : Tree_sitter_run.Token.t) =

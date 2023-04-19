@@ -99,13 +99,13 @@ let _pos_str
 
 let tok (index, line, column) str env =
   {
-    Parse_info.token =
-      Parse_info.OriginTok
+    Tok.token =
+      Tok.OriginTok
         {
           str;
           pos = { charpos = index; line = line + 1; column; file = env.file };
         };
-    Parse_info.transfo = NoTransfo;
+    transfo = Tok.NoTransfo;
   }
 
 let mk_tok ?(style = `Plain)

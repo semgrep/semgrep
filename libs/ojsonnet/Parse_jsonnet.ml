@@ -37,7 +37,7 @@ module PI = Parse_info
 let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
   {
-    PI.str = err.substring;
+    Tok.str = err.substring;
     pos =
       {
         charpos = 0;
@@ -49,7 +49,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   }
 
 let exn_of_loc loc =
-  let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
+  let info = { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo } in
   PI.Parsing_error info |> Exception.trace
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =

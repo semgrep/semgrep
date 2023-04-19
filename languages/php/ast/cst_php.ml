@@ -862,10 +862,7 @@ type any =
 (* Some constructors *)
 (*****************************************************************************)
 let fakeInfo ?(next_to = None) str =
-  {
-    Parse_info.token = Parse_info.FakeTokStr (str, next_to);
-    transfo = Parse_info.NoTransfo;
-  }
+  { Tok.token = Tok.FakeTokStr (str, next_to); transfo = Tok.NoTransfo }
 (*****************************************************************************)
 (* Wrappers *)
 (*****************************************************************************)
@@ -930,7 +927,7 @@ let map_comma_list f xs =
  * information, to "abstract those line" (al) information.
  *)
 
-let al_info x = { x with Parse_info.token = Parse_info.Ab }
+let al_info x = { x with Tok.token = Tok.Ab }
 
 (*****************************************************************************)
 (* Views *)

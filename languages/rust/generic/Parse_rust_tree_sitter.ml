@@ -241,7 +241,7 @@ let map_primitive_type_token (_env : env) (x : CST.anon_choice_u8_6dad923) =
       tok
 
 let map_primitive_type_ident (env : env) (x : CST.anon_choice_u8_6dad923) :
-    string * PI.token_mutable =
+    string * Tok.t =
   str env (map_primitive_type_token env x)
 
 let map_primitive_type (env : env) (x : CST.anon_choice_u8_6dad923) : G.type_ =
@@ -2806,9 +2806,8 @@ and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
       | _ -> dir)
   | None -> dir
 
-and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list)
-    (use : PI.token_mutable) (scope : G.dotted_ident option) : G.directive list
-    =
+and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list) (use : Tok.t)
+    (scope : G.dotted_ident option) : G.directive list =
   let _lbracket = token env v1 (* "{" *) in
   let directives =
     match v2 with

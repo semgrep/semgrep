@@ -117,11 +117,11 @@ let test_dump_ts file =
 let info_to_json_range info =
   let loc = PI.unsafe_token_location_of_info info in
   ( J.Object
-      [ ("line", J.Int loc.PI.pos.line); ("col", J.Int loc.PI.pos.column) ],
+      [ ("line", J.Int loc.Tok.pos.line); ("col", J.Int loc.Tok.pos.column) ],
     J.Object
       [
-        ("line", J.Int loc.PI.pos.line);
-        ("col", J.Int (loc.PI.pos.column + String.length loc.PI.str));
+        ("line", J.Int loc.Tok.pos.line);
+        ("col", J.Int (loc.Tok.pos.column + String.length loc.Tok.str));
       ] )
 
 let parse_js_r2c xs =

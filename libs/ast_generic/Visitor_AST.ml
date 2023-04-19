@@ -58,10 +58,10 @@ let first_info_of_any any =
 
 class ['self] range_visitor =
   let smaller t1 t2 =
-    if compare t1.PI.pos.charpos t2.PI.pos.charpos < 0 then t1 else t2
+    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
   in
   let larger t1 t2 =
-    if compare t1.PI.pos.charpos t2.PI.pos.charpos > 0 then t1 else t2
+    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
   in
   let incorporate_tokens ranges (left, right) =
     match !ranges with
@@ -107,7 +107,7 @@ class ['self] range_visitor =
   end
 
 let extract_ranges :
-    AST_generic.any -> (PI.token_location * PI.token_location) option =
+    AST_generic.any -> (Tok.token_location * Tok.token_location) option =
   let v = new range_visitor in
   let ranges = ref None in
   fun any ->

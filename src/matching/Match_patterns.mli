@@ -1,7 +1,7 @@
 val check :
   hook:(Pattern_match.t -> unit) ->
   ?mvar_context:Metavariable.bindings option ->
-  ?range_filter:(Parse_info.token_location * Parse_info.token_location -> bool) ->
+  ?range_filter:(Tok.token_location * Tok.token_location -> bool) ->
   Config_semgrep.t * Equivalence.equivalences ->
   Mini_rule.rules ->
   Common.filename * Lang.t * Target.t ->

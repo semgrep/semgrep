@@ -12,7 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Parse_info
+open Tok
+module PI = Parse_info
 
 type dumper_precision = {
   full_info : bool;
@@ -111,7 +112,7 @@ let cmdline_flags_precision () =
         (fun () ->
           _current_precision :=
             { default_dumper_precision with full_info = true };
-          Parse_info.pp_full_token_info := true),
+          Tok.pp_full_token_info := true),
       " print also token information in dumper" );
   ]
 
@@ -120,7 +121,7 @@ let vof_info_adjustable_precision x =
   else if !_current_precision.token_info then
     OCaml.VDict
       [
-        ("line", OCaml.VInt (line_of_info x));
-        ("col", OCaml.VInt (col_of_info x));
+        ("line", OCaml.VInt (PI.line_of_info x));
+        ("col", OCaml.VInt (PI.col_of_info x));
       ]
   else OCaml.VUnit

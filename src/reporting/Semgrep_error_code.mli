@@ -9,7 +9,7 @@
 type error = {
   rule_id : Rule.rule_id option;
   typ : Output_from_core_t.core_error_kind;
-  loc : Parse_info.token_location;
+  loc : Tok.token_location;
   msg : string;
   (* ?? diff with msg? *)
   details : string option;
@@ -24,14 +24,14 @@ val g_errors : error list ref
 
 val mk_error :
   ?rule_id:Rule.rule_id option ->
-  Parse_info.token_location ->
+  Tok.token_location ->
   string ->
   Output_from_core_t.core_error_kind ->
   error
 
 val error :
   Rule.rule_id ->
-  Parse_info.token_location ->
+  Tok.token_location ->
   string ->
   Output_from_core_t.core_error_kind ->
   unit

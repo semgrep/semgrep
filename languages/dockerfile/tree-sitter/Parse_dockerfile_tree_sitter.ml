@@ -470,7 +470,7 @@ let empty_token_after tok : tok =
       let prev_len = String.length loc.str in
       let loc =
         {
-          PI.str = "";
+          Tok.str = "";
           pos =
             {
               loc.pos with
