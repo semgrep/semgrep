@@ -11,13 +11,9 @@
 (* to report errors, regular position information *)
 type token_location = {
   str : string; (* the content of the "token" *)
-  charpos : int; (* byte position, 0-based *)
-  line : int; (* 1-based *)
-  column : int; (* 0-based *)
-  file : Common.filename;
+  pos : Pos.t;
 }
 [@@deriving show, eq]
-(* see also type filepos = { l: int; c: int; } in Common2.mli *)
 
 (* to deal with expanded tokens, e.g. preprocessor like cpp for C *)
 type token_origin =

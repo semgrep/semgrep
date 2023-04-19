@@ -145,34 +145,41 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
             (* The column is only perturbed if this loc is on the first line of
              * the original metavariable match *)
             let column =
-              if loc.PI.line =|= mast_start_loc.PI.line then
-                loc.column - mast_start_loc.column
-              else loc.column
+              if loc.PI.pos.line =|= mast_start_loc.PI.pos.line then
+                loc.pos.column - mast_start_loc.pos.column
+              else loc.pos.column
             in
             {
               loc with
-              PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
-              line = loc.line - mast_start_loc.line + 1;
-              column;
-              file;
+              pos =
+                {
+                  charpos = loc.pos.charpos - mast_start_loc.pos.charpos;
+                  line = loc.pos.line - mast_start_loc.pos.line + 1;
+                  column;
+                  file;
+                };
             }
           in
           (* We need to undo the changes made to the file location,
              for when we preserve this binding and re-localize it to
              the original file.
           *)
-          let revert_loc loc =
+          let revert_loc (loc : Parse_info.token_location) =
             (* See fix_loc *)
             let column =
-              if loc.PI.line =|= 1 then loc.column + mast_start_loc.column
-              else loc.column
+              if loc.pos.line =|= 1 then
+                loc.pos.column + mast_start_loc.pos.column
+              else loc.pos.column
             in
             {
               loc with
-              PI.charpos = loc.PI.charpos + mast_start_loc.charpos;
-              line = loc.line + mast_start_loc.line - 1;
-              column;
-              file = mval_file;
+              pos =
+                {
+                  charpos = loc.PI.pos.charpos + mast_start_loc.pos.charpos;
+                  line = loc.pos.line + mast_start_loc.pos.line - 1;
+                  column;
+                  file = mval_file;
+                };
             }
           in
           match opt_xlang with

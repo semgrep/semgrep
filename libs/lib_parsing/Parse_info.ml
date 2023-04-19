@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020, 2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -28,26 +28,11 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-type token_location = {
-  str : string;
-  charpos : int;
-  line : int;
-  column : int;
-  file : string;
-}
+type token_location = { str : string; pos : Pos.t }
 [@@deriving show { with_path = false }, eq]
 
-let fake_token_location =
-  {
-    charpos = -1;
-    str = "";
-    line = -1;
-    column = -1;
-    file = "FAKE TOKEN LOCATION";
-  }
-
-let first_loc_of_file file =
-  { charpos = 0; str = ""; line = 1; column = 0; file }
+let fake_token_location = { str = ""; pos = Pos.fake_pos }
+let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
 
 type token_origin =
   (* Present both in the AST and list of tokens *)
@@ -223,7 +208,7 @@ let pp fmt t =
 (*****************************************************************************)
 
 (* for error reporting *)
-let string_of_token_location x = spf "%s:%d:%d" x.file x.line x.column
+let string_of_token_location x = Pos.string_of_pos x.pos
 
 let string_of_info x =
   match token_location_of_info x with
@@ -239,12 +224,12 @@ let str_of_info ii =
       raise (NoTokenLocation "str_of_info: Expanded or Ab")
 
 let _str_of_info ii = (unsafe_token_location_of_info ii).str
-let file_of_info ii = (unsafe_token_location_of_info ii).file
-let line_of_info ii = (unsafe_token_location_of_info ii).line
-let col_of_info ii = (unsafe_token_location_of_info ii).column
+let file_of_info ii = (unsafe_token_location_of_info ii).pos.file
+let line_of_info ii = (unsafe_token_location_of_info ii).pos.line
+let col_of_info ii = (unsafe_token_location_of_info ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
-let pos_of_info ii = (unsafe_token_location_of_info ii).charpos
+let pos_of_info ii = (unsafe_token_location_of_info ii).pos.charpos
 
 (*****************************************************************************)
 (* Lexer helpers *)
@@ -254,12 +239,15 @@ let pos_of_info ii = (unsafe_token_location_of_info ii).charpos
 let tokinfo_str_pos str pos =
   let loc =
     {
-      charpos = pos;
       str;
-      (* info filled in a post-lexing phase, see complete_token_location_large*)
-      line = -1;
-      column = -1;
-      file = "NO FILE INFO YET";
+      pos =
+        {
+          charpos = pos;
+          (* info filled in a post-lexing phase, see complete_token_location_large*)
+          line = -1;
+          column = -1;
+          file = "NO FILE INFO YET";
+        };
     }
   in
   mk_info_of_loc loc
@@ -303,10 +291,13 @@ let split_info_at_pos pos ii =
   let loc1 = { loc with str = loc1_str } in
   let loc2 =
     {
-      loc with
       str = loc2_str;
-      charpos = loc.charpos + pos;
-      column = loc.column + pos;
+      pos =
+        {
+          loc.pos with
+          charpos = loc.pos.charpos + pos;
+          column = loc.pos.column + pos;
+        };
     }
   in
   (mk_info_of_loc loc1, mk_info_of_loc loc2)
@@ -370,14 +361,14 @@ let compare_pos ii1 ii2 =
   let pos1 = get_pos (pinfo_of_info ii1) in
   let pos2 = get_pos (pinfo_of_info ii2) in
   match (pos1, pos2) with
-  | Real p1, Real p2 -> compare p1.charpos p2.charpos
+  | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
   | Virt (p1, _), Real p2 ->
-      if compare p1.charpos p2.charpos =|= -1 then -1 else 1
+      if compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
   | Real p1, Virt (p2, _) ->
-      if compare p1.charpos p2.charpos =|= 1 then 1 else -1
+      if compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
   | Virt (p1, o1), Virt (p2, o2) -> (
-      let poi1 = p1.charpos in
-      let poi2 = p2.charpos in
+      let poi1 = p1.pos.charpos in
+      let poi2 = p2.pos.charpos in
       match compare poi1 poi2 with
       | -1 -> -1
       | 0 -> compare o1 o2

@@ -80,7 +80,7 @@ let check lang { target; pattern; fix_pattern; expected } =
       let start, end_ =
         let start, end_ = match_.Pattern_match.range_loc in
         let _, _, end_charpos = Parsing_helpers.get_token_end_info end_ in
-        (start.Parse_info.charpos, end_charpos)
+        (start.Parse_info.pos.charpos, end_charpos)
       in
       let full_fixed_text =
         let before = Str.first_chars fake_target_contents start in

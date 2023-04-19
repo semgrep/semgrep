@@ -59,10 +59,9 @@ let split_two_char pi =
   let lhs = { pi with Parse_info.str = String.sub pi.Parse_info.str 0 1 } in
   let rhs =
     {
-      pi with
       Parse_info.str = String.sub pi.Parse_info.str 1 1;
-      Parse_info.charpos = pi.Parse_info.charpos + 1;
-      Parse_info.column = pi.Parse_info.column + 1;
+      pos =
+        { pi.pos with charpos = pi.pos.charpos + 1; column = pi.pos.column + 1 };
     }
   in
   (lhs, rhs)

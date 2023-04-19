@@ -28,10 +28,8 @@ let vof_filename v = OCaml.vof_string v
 let vof_token_location
     {
       str = v_str;
-      charpos = v_charpos;
-      line = v_line;
-      column = v_column;
-      file = v_file;
+      pos =
+        { charpos = v_charpos; line = v_line; column = v_column; file = v_file };
     } =
   let bnds = [] in
   let arg = vof_filename v_file in

@@ -321,8 +321,9 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                     in
                     let id =
                       Common.spf "propagator:%d:%d:%d:%d:%d:%d"
-                        loc_pfrom.charpos loc_pto.charpos from.Range.start
-                        from.Range.end_ to_.Range.start to_.Range.end_
+                        loc_pfrom.pos.charpos loc_pto.pos.charpos
+                        from.Range.start from.Range.end_ to_.Range.start
+                        to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))
 

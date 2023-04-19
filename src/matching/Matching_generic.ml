@@ -709,10 +709,13 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
-            loc with
             PI.str = s;
-            charpos = loc.charpos + pos;
-            column = loc.column + pos;
+            pos =
+              {
+                loc.pos with
+                charpos = loc.pos.charpos + pos;
+                column = loc.pos.column + pos;
+              };
           }
         in
         let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in

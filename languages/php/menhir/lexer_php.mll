@@ -542,7 +542,7 @@ rule st_in_scripting = parse
 
         let parse_info = PI.unsafe_token_location_of_info info in
         let pos_after_sym   =
-          parse_info.PI.charpos + String.length sym in
+          parse_info.PI.pos.charpos + String.length sym in
         let pos_after_white = pos_after_sym + String.length white in
 
         let whiteinfo = PI.tokinfo_str_pos white pos_after_sym in
@@ -631,7 +631,7 @@ rule st_in_scripting = parse
         let info = tokinfo lexbuf in
         let dollarinfo = PI.rewrap_str (String.make 1 dollar) info in
         let parse_info = PI.unsafe_token_location_of_info info in
-        let pos_after_sym = parse_info.PI.charpos + 2 in
+        let pos_after_sym = parse_info.PI.pos.charpos + 2 in
         let lblinfo = PI.tokinfo_str_pos s pos_after_sym in
 
         push_token (T_VARIABLE(case_str s, lblinfo));

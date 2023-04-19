@@ -14,9 +14,9 @@ let adjust_column x = x + 1
 
 let position_of_token_location loc =
   {
-    line = loc.PI.line;
-    col = adjust_column loc.PI.column;
-    offset = loc.PI.charpos;
+    line = loc.PI.pos.line;
+    col = adjust_column loc.PI.pos.column;
+    offset = loc.PI.pos.charpos;
   }
 
 let position_range min_loc max_loc =
@@ -25,15 +25,15 @@ let position_range min_loc max_loc =
   in
   (* alt: could call position_of_token_location but more symetric like that*)
   ( {
-      line = min_loc.PI.line;
-      col = adjust_column min_loc.PI.column;
-      offset = min_loc.PI.charpos;
+      line = min_loc.PI.pos.line;
+      col = adjust_column min_loc.PI.pos.column;
+      offset = min_loc.PI.pos.charpos;
     },
     { line = end_line; col = adjust_column end_col; offset = end_charpos } )
 
 let location_of_token_location loc =
   let start, end_ = position_range loc loc in
-  { path = loc.PI.file; start; end_ }
+  { path = loc.PI.pos.file; start; end_ }
 
 (* compare boilerplate (=~ deriving ord) *)
 

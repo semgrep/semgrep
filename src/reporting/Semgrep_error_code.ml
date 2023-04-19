@@ -189,8 +189,8 @@ let string_of_error err =
     | Some s -> spf "\n%s" s
   in
   spf "%s:%d:%d: %s: %s%s"
-    (source_of_string pos.PI.file)
-    pos.PI.line pos.PI.column
+    (source_of_string pos.PI.pos.file)
+    pos.PI.pos.line pos.PI.pos.column
     (Out.string_of_core_error_kind err.typ)
     err.msg details
 
@@ -264,7 +264,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
     actual_findings
     |> Common.map (fun err ->
            let loc = err.loc in
-           (loc.PI.file, loc.PI.line))
+           (loc.PI.pos.file, loc.PI.pos.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
@@ -282,7 +282,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
-                     src = loc.PI.file && l =|= loc.PI.line)
+                     src = loc.PI.pos.file && l =|= loc.PI.pos.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =
