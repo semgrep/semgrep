@@ -477,7 +477,7 @@ let taints_satisfy_requires taints expr =
   let labels = labels_of_taints taints in
   eval_label_requires ~labels expr
 
-(* Potentially produces a finding from incoming taints to a sink.
+(* Potentially produces a finding from incoming taints + call traces to a sink.
    Note that, while this sink has a `requires` and incoming labels,
    we decline to solve this now!
    We will figure out how many actual Semgrep findings are generated
@@ -563,6 +563,10 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
 let findings_of_tainted_sinks env taints sinks : T.finding list =
   sinks
   |> List.concat_map (fun (pm, sink) ->
+         (* This is where all taint findings start. If it's interproc,
+            the call trace will be later augmented into the Call variant,
+            but it starts out here as just a PM variant.
+         *)
          let taints_with_traces =
            taints |> Taints.elements |> Common.map (fun t -> (t, T.PM (pm, ())))
          in

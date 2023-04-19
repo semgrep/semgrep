@@ -184,9 +184,6 @@ type signature = finding list
 let _show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
   Common.spf "%s ~~~> %s" (_show_taints_and_traces taints) (_show_sink sink)
 
-let _show_taints { taints_with_precondition = taints, _; sink; _ } =
-  Common.spf "%s ~~~> %s" (_show_taints_and_traces taints) (_show_sink sink)
-
 let _show_finding = function
   | ToSink x -> _show_taints_to_sink x
   | ToReturn (taints, _) ->
