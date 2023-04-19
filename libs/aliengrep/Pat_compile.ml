@@ -21,8 +21,42 @@ type metavariable = metavariable_kind * string [@@deriving show]
 type t = {
   pcre_pattern : string; [@printer fun fmt -> Format.fprintf fmt "{|%s|}"]
   pcre : Pcre.regexp; [@opaque]
-  (* Array of PCRE capturing groups. Each capturing group has a metavariable
-     name. *)
+  (*
+     List of the PCRE capturing groups that we care about for extracting
+     metavariable values.
+     This is a mapping from a PCRE group ID to a metavariable.
+     Not all capturing groups are of interest because the special '(DEFINE)'
+     required for subroutine definitions introduces useless
+     capturing groups.
+
+     A pattern '$FOO $FOO' is translated into a PCRE pattern that looks
+     like '... ((?&word)) (?&whitespace) \g{3}'. The definitions of
+     the subtroutines 'word' and 'whitespace' were elided.
+     The parentheses around '(?&word)' define the capturing group.
+     \g{3} is a back-reference requiring an exact match of whatever
+     the capturing group #3 captured. This example assumes that '((?&word))'
+     is capturing group #3.
+     In this example, 'metavariable_groups' is '[3, (Metavariable, "FOO")]'.
+
+     Try this in utop:
+
+#require "pcre";;
+
+let pat = {|
+(?(DEFINE) (?<word> [a-z]+))
+(?(DEFINE) (?<whitespace> [[:space:]]* ))
+((?&word)) (?&whitespace) \g{3}
+|}
+;;
+
+let rex = Pcre.regexp ~flags:[`EXTENDED] pat in
+Pcre.extract_all ~rex {|xx ab ab xx|};;
+- : string array array = [|[|"ab ab"; ""; ""; "ab"|]|]
+
+     Note that you'd get more matches if the word pattern was inlined
+     (due to backtracking now taking place).
+     Try it.
+  *)
   metavariable_groups : (int * metavariable) list;
 }
 [@@deriving show]
