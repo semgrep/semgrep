@@ -53,6 +53,7 @@ type token =
   | Kmatch of Parse_info.t
   | Klazy of Parse_info.t
   | Kimport of Parse_info.t
+  | Kexport of Parse_info.t
   | Kimplicit of Parse_info.t
   | Kif of Parse_info.t
   | KforSome of Parse_info.t

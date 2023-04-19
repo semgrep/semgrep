@@ -958,7 +958,6 @@ let template_ = ref (fun _ -> failwith "forward ref not set")
 let defOrDcl_ = ref (fun _ _ -> failwith "forward ref not set")
 let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
-let topLevelTmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
 let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
@@ -1688,7 +1687,7 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | while `(` Expr `)` {nl} Expr
  *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
- *               | for (`(` Enumerators `)` | `{` Enumerators `}`) {nl} [yield] Expr
+ *               | for (`(` Enumerators `)` | `{` Enumerators `}` | Enumerators) {nl} [yield] Expr
  *               | throw Expr
  *               | return [Expr]
  *               | [SimpleExpr `.`] Id `=` Expr
@@ -2379,8 +2378,28 @@ and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
-    if in_.token =~= LBRACE ab then inBraces enumerators in_
-    else inParens enumerators in_
+    match in_.token with
+    | LPAREN _ -> inParens enumerators in_
+    | LBRACE _ -> inBraces enumerators in_
+    | _ ->
+        (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
+           If we enter the indentation region, the end of a for expression like:
+
+           for
+             _ <- 5
+           yield
+
+           will cause a DEDENT to be emitted before the `yield`. This messes us
+           up when determining when to end, because if we see the future DEDENT and break,
+           then we will still be on the NEWLINE.
+
+           It's easiest to just not emit the DEDENT tokens at all, which is what happens
+           if we do not enter the indentation region.
+
+           See
+           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
+        *)
+        fb (PI.unsafe_fake_info "") (enumerators in_)
   in
   newLinesOpt in_;
   let body =
@@ -2478,13 +2497,24 @@ and blockExpr in_ : block_expr =
  *                |  Pattern1 `=` Expr
  *  }}}
 *)
+
+and isEnumeratorsEnd in_ =
+  match in_.token with
+  | Kdo _
+  | Kyield _
+  | RBRACE _ ->
+      true
+  | _ -> false
+
 and enumerators in_ : enumerators =
   in_
   |> with_logging "enumerators" (fun () ->
          let enums = ref [] in
          let x = enumerator ~isFirst:true in_ in
          enums += x;
-         while TH.isStatSep in_.token do
+         while
+           TH.isStatSep in_.token && not (lookingAhead isEnumeratorsEnd in_)
+         do
            nextToken in_;
            let x = enumerator ~isFirst:false in_ in
            enums += x
@@ -2761,6 +2791,16 @@ let importClause in_ : import =
   let xs = commaSeparated importExpr in_ in
   (ii, xs)
 
+(** {{{
+ *  Export  ::= export ImportExpr {`,` ImportExpr}
+ *  }}}
+*)
+let exportClause in_ : import =
+  let ii = TH.info_of_tok in_.token in
+  accept (Kexport ab) in_;
+  let xs = commaSeparated importExpr in_ in
+  (ii, xs)
+
 (*****************************************************************************)
 (* Parsing modifiers  *)
 (*****************************************************************************)
@@ -2780,6 +2820,7 @@ let is_modifier in_ =
   ||
   match in_.token with
   | ID_LOWER ("inline", _)
+  | ID_LOWER ("opaque", _)
   | ID_LOWER ("open", _) ->
       next_is_soft_modifier_follower
   | __else__ -> false
@@ -2794,6 +2835,7 @@ let modifier_of_isLocalModifier_opt in_ =
   | Klazy ii -> Some (Lazy, ii)
   | ID_LOWER ("inline", ii) when is_modifier in_ -> Some (Inline, ii)
   | ID_LOWER ("open", ii) when is_modifier in_ -> Some (Open, ii)
+  | ID_LOWER ("opaque", ii) when is_modifier in_ -> Some (Opaque, ii)
   | _ -> None
 
 (** {{{
@@ -3554,6 +3596,7 @@ let blockStatSeq in_ : block_stat list =
 (** {{{
  *  TemplateStats    ::= TemplateStat {semi TemplateStat}
  *  TemplateStat     ::= Import
+ *                     | Export
  *                     | Annotations Modifiers Def
  *                     | Annotations Modifiers Dcl
  *                     | Expr1
@@ -3568,6 +3611,9 @@ let templateStat in_ : template_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
+  | Kexport _ ->
+      let x = exportClause in_ in
+      Some (Ex x)
   | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
@@ -3584,10 +3630,11 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
 
 (** {{{
  *  TopStatSeq ::= TopStat {semi TopStat}
- *  TopStat ::= Annotations Modifiers TmplDef
+ *  TopStat ::= Annotations Modifiers Def  (see below for discrepancy with Scala 2)
  *            | Packaging
  *            | package object ObjectDef
  *            | Import
+ *            | Export
  *            |
  *  }}}
 *)
@@ -3600,8 +3647,14 @@ let topStat in_ : top_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | t when TH.isAnnotation t || TH.isTemplateIntro t || is_modifier in_ ->
-      let x = !topLevelTmplDef_ in_ in
+  | Kexport _ ->
+      let x = exportClause in_ in
+      Some (Ex x)
+  (* This used to be a TmplDef, but in Scala 3, this can actually be any Def.
+     Def is a superset of TmplDef anyways, so we lose nothing here.
+  *)
+  | t when TH.isAnnotation t || TH.isDefIntro t || is_modifier in_ ->
+      let x = nonLocalDefOrDcl in_ in
       Some (D x)
   | _ -> None
 
@@ -4222,18 +4275,6 @@ let tmplDef attrs in_ : definition =
   | _ -> error "expected start of definition" in_
 
 (*****************************************************************************)
-(* Toplevel  *)
-(*****************************************************************************)
-
-(** Hook for IDE, for top-level classes/objects. *)
-let topLevelTmplDef in_ : definition =
-  let annots = annotations ~skipNewLines:true in_ in
-  let mods = modifiers in_ in
-  (* ast: mods withAnnotations annots *)
-  let x = tmplDef (mods_with_annots mods annots) in_ in
-  x
-
-(*****************************************************************************)
 (* Entry points  *)
 (*****************************************************************************)
 
@@ -4243,7 +4284,6 @@ let _ =
   defOrDcl_ := defOrDcl;
   tmplDef_ := tmplDef;
   blockStatSeq_ := blockStatSeq;
-  topLevelTmplDef_ := topLevelTmplDef;
   packageOrPackageObject_ := packageOrPackageObject;
 
   exprTypeArgs_ := exprTypeArgs;

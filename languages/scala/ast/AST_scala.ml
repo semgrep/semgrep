@@ -354,6 +354,7 @@ and block = block_stat list
 and block_stat =
   | D of definition
   | I of import
+  | Ex of import
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -386,6 +387,7 @@ and modifier_kind =
   | Override
   | Inline
   | Open
+  | Opaque
   (* pad: not in original spec *)
   | CaseClassOrObject
   (* less: rewrite as Packaging and object def like in original code? *)

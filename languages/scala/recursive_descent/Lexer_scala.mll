@@ -396,6 +396,7 @@ rule token = parse
 
         | "package"     -> Kpackage t
         | "import"   -> Kimport t
+        | "export"   -> Kexport t
 
         | "abstract"       -> Kabstract t
         | "final"       -> Kfinal t
