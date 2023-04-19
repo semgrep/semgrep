@@ -14,9 +14,9 @@ jobs:
       matrix:
         package:
           - engine
-          - language/go
-          - language/lua
-          - language/python
+          - languages/go
+          - languages/lua
+          - languages/python
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
