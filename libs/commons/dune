@@ -23,13 +23,4 @@
      ppx_hash
    )
  )
- (foreign_stubs
-   (language c)
-   (include_dirs
-     %{ocaml_where}
-   )
-   (names
-     fnptr_impl
-   )
- )
 )
