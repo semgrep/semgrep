@@ -107,6 +107,10 @@ type env = {
   mutable last_nl : Parse_info.t option;
   (* for logging *)
   mutable depth : int;
+  (* is the current token indented? if so, at what line and width?
+     this should be used in conjunction with nextToken/fetchToken
+  *)
+  mutable is_indented : (int * int) option;
 }
 
 let mk_env toks =
@@ -125,7 +129,8 @@ let mk_env toks =
         (* We are implicitly in an indentation zone, as with the official Scala parser:
            https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L274
         *)
-        sepRegions = [ T.DEDENT (-1) ];
+        sepRegions = [ T.DEDENT (0, 0) ];
+        is_indented = None;
       }
 
 (* We sometimes need to lookahead tokens, and call fetchToken and revert;
@@ -146,6 +151,10 @@ type location = Local | InBlock | InTemplate
 
 (* to correctly handle infix operators (in expressions, patterns, and types)*)
 type mode = FirstOp | LeftOp | RightOp [@@deriving show { with_path = false }]
+
+type indent_status =
+  | Dedent of (* line *) int * (* width *) int
+  | Indent of (* same *) int * int
 
 (*****************************************************************************)
 (* Logging/Dumpers  *)
@@ -239,11 +248,115 @@ let rec in_next_token xs =
   | x :: xs -> (
       match x with
       | Space _
-      | Comment _
-      | INDENT _
-      | DEDENT _ ->
+      | Comment _ ->
           in_next_token xs
       | _ -> Some x)
+
+(* ------------------------------------------------------------------------- *)
+(* indentation helpers *)
+(* ------------------------------------------------------------------------- *)
+
+(* If we do not do this, it's possible that we will be unable to start an
+   indentation region within LBRACES, because we will look back and see no
+   indentation region.
+
+   For instance:
+
+   { 5 match
+       case _ => 2
+   }
+
+   ^ needs to start an indentation region before the `case`!
+*)
+let rec getLastIndentationRegion sepRegions =
+  match sepRegions with
+  | DEDENT (prev_line, width) :: _ -> (prev_line, width)
+  | _ :: rest -> getLastIndentationRegion rest
+  | [] -> raise Common.Impossible
+
+let startsNewLine in_ =
+  let rec loop = function
+    | Nl _ :: _
+    | NEWLINE _ :: _ ->
+        true
+    | Space _ :: rest
+    | Comment _ :: rest
+    | DEDENT _ :: rest ->
+        loop rest
+    | _ -> false
+  in
+  loop in_.passed
+
+let getPreviousToken in_ =
+  let rec loop passed =
+    match passed with
+    | DEDENT _ :: rest
+    | NEWLINE _ :: rest
+    | NEWLINES _ :: rest
+    | Nl _ :: rest
+    | Space _ :: rest
+    | Comment _ :: rest ->
+        loop rest
+    | other :: _ -> Some other
+    | [] -> None
+  in
+  loop in_.passed
+
+(* Should we emit an INDENT or DEDENT before the current token? *)
+let getIndentStatus ?(is_opportunistic = false) in_ =
+  let tok = in_.token in
+  let prevTok = getPreviousToken in_ in
+
+  let prev_is_indent_token =
+    match prevTok with
+    | None -> false
+    | Some tok -> TH.isIndentationToken tok
+  in
+
+  let info = TH.info_of_tok tok in
+  let line = PI.line_of_info info in
+  let col = PI.col_of_info info in
+
+  let is_indented =
+    (* Here, we need to look at the last indentation region that ever existed,
+       because we want to still be able to start indentation regions inside of
+       other ones.
+    *)
+    let _prev_indent_line, prev_indent_width =
+      getLastIndentationRegion in_.sepRegions
+    in
+    col
+    > prev_indent_width (* we are indented w.r.t. the old indentation region *)
+    && (is_opportunistic || prev_is_indent_token)
+       (* and the previous token can start an indent *)
+    && (* and this token starts a new line *)
+    startsNewLine in_
+  in
+  let is_dedented =
+    (* Here, we look only at the current region, because we shouldn't be emitting
+       dedents for a region if it's been interrupted by braces or parens.
+    *)
+    match in_.sepRegions with
+    | DEDENT (_, prev_width) :: _ ->
+        col < prev_width (* we are left w.r.t. the current indentation region *)
+    | _ -> false
+  in
+
+  if is_indented then Some (Indent (line, col))
+  else if is_dedented then Some (Dedent (line, col))
+  else None
+
+(* Sometimes, we can emit an indent, irrespective of the specific token that we
+   just passed. This is in certain contextual parsing positions, such as after
+   the condition to an `if`, where we can't necessarily determine it based
+   off tokens alone.
+
+   This function allows that event to trigger.
+*)
+let opportunisticIndent in_ =
+  match getIndentStatus ~is_opportunistic:true in_ with
+  | Some (Indent (line, col)) -> in_.is_indented <- Some (line, col)
+  | _ -> ()
 
 (* ------------------------------------------------------------------------- *)
 (* newline: Newline management part1  *)
@@ -311,7 +424,6 @@ let afterLineEnd in_ =
             true
         | Space _
         | Comment _
-        | INDENT _
         | DEDENT _ ->
             loop xs
         | _ ->
@@ -336,21 +448,8 @@ let postProcessToken _in_ =
 (* fetchToken *)
 (* ------------------------------------------------------------------------- *)
 
-(* If this DEDENT matches our sepRegion index, then we know that our
-   current dedent region is ended.
-
-   This effectively makes it so [fetchToken] only stops
-   on DEDENTs when they are known to end the current sepRegion.
-
-   See the corresponding code in the Scala compiler:
-   https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L298
-*)
-let significantDedent dedent_idx in_ =
-  match in_.sepRegions with
-  | T.DEDENT idx' :: _ when dedent_idx =*= idx' -> true
-  | _ -> false
-
 let fetchToken in_ =
+  in_.is_indented <- None;
   let rec loop aux =
     match in_.rest with
     | [] -> error "IMPOSSIBLE? fetchToken: no more tokens" in_
@@ -360,20 +459,8 @@ let fetchToken in_ =
         in_.rest <- xs;
 
         match x with
-        (* If we pass a DEDENT that ends our current region,
-           we should stop and allow ourselves to look at it.
-           This is so we can consume it in statSeq.
-
-           This results in significantly simpler code, in the case
-           of nested DEDENTs (due to the ending of multiple indent regions)
-        *)
-        | DEDENT idx when significantDedent idx in_ ->
-            in_.passed <- aux @ in_.passed;
-            in_.token <- DEDENT idx
         | Space _
-        | Comment _
-        | INDENT _
-        | DEDENT _ ->
+        | Comment _ ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
@@ -384,9 +471,9 @@ let fetchToken in_ =
         | NEWLINE _
         | NEWLINES _ ->
             raise Impossible
-        | other ->
+        | _ ->
             in_.passed <- aux @ in_.passed;
-            in_.token <- other)
+            in_.token <- x)
   in
   loop [ in_.token ]
 
@@ -398,6 +485,7 @@ let fetchToken in_ =
 let nextToken in_ =
   let lastToken = in_.token in
   adjustSepRegions lastToken in_;
+
   (* STILL?: if inStringInterpolation fetchStringPart else *)
   fetchToken in_;
   (* Insert NEWLINE or NEWLINES if
@@ -422,7 +510,31 @@ let nextToken in_ =
    (* STILL?: | _ when pastBlankLine in_ -> insertNL ~newlines:true in_ *)
    (* STILL?: | _ when TH.isLeadingInfixOperator *)
    (* CHECK: scala3: "Line starts with an operator that in future" *)
-   | _ -> insertNL in_);
+   | _ -> insertNL in_
+  else
+    (* Determine if this next token should emit an INDENT or DEDENT *)
+    (* According to the Dotty compiler, emitting a NEWLINE is exclusive with
+       emitting an INDENT or DEDENT.
+       https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L596
+    *)
+    let indent_status = getIndentStatus in_ in
+    match indent_status with
+    | Some (Indent (line, width)) ->
+        (* Set our indented flag to true.
+            This bool will give us the option to enter an indentation
+            region, we might not necessarily have to.
+        *)
+        in_.is_indented <- Some (line, width)
+    | Some (Dedent (line, width)) ->
+        (* Push a DEDENT token onto our token stream.
+            This is so we can consume it in `statSeq`
+
+            This results in significantly simpler code, in the case
+            of nested DEDENTs (due to the ending of multiple indent regions)
+        *)
+        in_.rest <- in_.token :: in_.rest;
+        in_.token <- DEDENT (line, width)
+    | None -> ());
   postProcessToken in_;
   ()
 
@@ -483,23 +595,9 @@ let rec skipMatching in_ =
 (* ------------------------------------------------------------------------- *)
 
 (* Have we passed an indent?
-   Because our nextToken skips over INDENT, in places where an
-   INDENT might be syntactically significant, we might need to
-   look through the tokens we have passed to tell if we have entered
-   an indentation region.
+   If so, the `is_indented` flag should be set by our `nextToken` logic.
 *)
-let passedIndent in_ =
-  let rec loop acc =
-    match acc with
-    | [] -> None
-    | INDENT i :: _ -> Some i
-    | Space _ :: rest
-    | Nl _ :: rest
-    | NEWLINE _ :: rest ->
-        loop rest
-    | _ -> None
-  in
-  loop in_.passed
+let passedIndent in_ = in_.is_indented
 
 (* It's not always the case that a colon means we must start a
    colon and then indented block.
@@ -519,7 +617,14 @@ let enterIndentRegion in_ =
   let indent_opt = passedIndent in_ in
   match indent_opt with
   | None -> ()
-  | Some idx -> in_.sepRegions <- DEDENT idx :: in_.sepRegions
+  | Some (line, width) ->
+      (* We don't want to recurse forever in entering
+         new indent regions.
+         If we consume this indent region here, there's no reason
+         to need to use it again.
+      *)
+      in_.is_indented <- None;
+      in_.sepRegions <- DEDENT (line, width) :: in_.sepRegions
 
 (* Adjust sepREgions to end the current indent region, if we're
    at the end.
@@ -527,16 +632,14 @@ let enterIndentRegion in_ =
 let closeIndentRegion in_ =
   match (in_.token, in_.sepRegions) with
   | EOF _, _ -> ()
-  (* This check that the DEDENT idxs match up was already
+  (* This check that the DEDENTs match each other was already
      done, or we wouldn't have stopped on this token in the
      first place.
-
-     Regardless, let's keep it here, because why not.
   *)
-  | DEDENT idx, DEDENT idx' :: rest when idx =*= idx' ->
+  | DEDENT _, DEDENT _ :: rest ->
       in_.sepRegions <- rest;
       skipToken in_
-  | _ -> failwith "precondition failure"
+  | _ -> failwith "expected closing dedent (probably not emitted correctly)"
 
 (* If this next token is indented, it's quite likely we're inside of an implicit
    indented blockExpr, which can start off an `expr`.
@@ -1701,7 +1804,15 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | `:` `_` `*`
  *  }}}
 *)
-let rec expr ?(is_block_expr = false) ?(location = Local) (in_ : env) : expr =
+
+(* NOTE: indented-block-expr
+   Moreover, if this is the start to a block, then every case in the `expr`
+   recursive descent must fall through to the simpleExpr blockExpr case,
+   otherwise we will end up assuming we're in a different case when we
+   already determined we're not.
+*)
+let rec expr ?(location = Local) (in_ : env) : expr =
+  let is_block_expr = isIndentedBlockExprStart in_ in
   expr0 ~is_block_expr location in_
 
 and expr0 ?(is_block_expr = false) (location : location) (in_ : env) : expr =
@@ -2320,6 +2431,7 @@ and parseIf in_ : stmt =
         newLinesOpt in_;
         fb (PI.unsafe_fake_info "") e
   in
+  opportunisticIndent in_;
   let thenp = expr in_ in
   let elsep =
     match in_.token with
@@ -3316,16 +3428,7 @@ let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
                nextTokenAllow TH.nme_MACROkw in_;
                if TH.isMacro in_.token then
                  nextToken in_ (* AST: newmmods |= MACRO *);
-               (* NOTE: indented-block-expr
-                  Moreover, if this is the start to a block, then every case in the `expr`
-                  recursive descent must fall through to the simpleExpr blockExpr case,
-                  otherwise we will end up assuming we're in a different case when we
-                  already determined we're not.
-
-                  We'll be safe and restrict the indented blockExprs to only RHS of
-                  a `def`, because otherwise this could mess quite a few parse trees up.
-               *)
-               let x = expr ~is_block_expr:(isIndentedBlockExprStart in_) in_ in
+               let x = expr in_ in
                Some (FExpr (ii, x))
            | _ ->
                accept (EQUALS ab) in_ (* generate error message *);
