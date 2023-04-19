@@ -18,6 +18,7 @@ from typing import Union
 from boltons.iterutils import get_path
 from boltons.iterutils import partition
 from rich.padding import Padding
+from semgrep.contributors import ContributorManager
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
@@ -218,7 +219,11 @@ def run_rules(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+    ) = core_runner.invoke_semgrep(
         target_manager, rest_of_the_rules, dump_command_for_core, engine_type
     )
 
@@ -477,6 +482,14 @@ def main(
         )
     except FilesNotFoundError as e:
         raise SemgrepError(e)
+
+    contributor_manager = ContributorManager(
+        target_manager=target_manager,
+    )
+    contributors = contributor_manager.collect_contributors()
+
+    for contributor in contributors:
+        print(contributor)
 
     core_start_time = time.time()
     core_runner = CoreRunner(
