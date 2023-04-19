@@ -33,13 +33,12 @@ jobs:
           dune build js/engine -j 4 --profile=release
 
           dune build js/languages/python -j 4 --profile=release
-
-          echo "Making tarball..."
-          tar czvf build-artifacts.tar.gz _build/default/js/engine/dist/* _build/default/js/languages/*/dist/*
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build
-          path: build-artifacts.tar.gz
+          path: |
+            _build/default/js/engine/dist/*
+            _build/default/js/languages/*/dist/*
 
   build-npm-packages:
     name: Build NPM packages
@@ -63,12 +62,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-js-ocaml-build
-          path: build-artifacts.tar.gz
       - name: Build semgrep
         run: |
-          echo "Extracting build artifacts..."
-          tar xvzf build-artifacts.tar.gz
-
           echo "Installing a modern version of node..."
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
           . ~/.nvm/nvm.sh
