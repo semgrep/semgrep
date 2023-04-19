@@ -1,5 +1,11 @@
 (*
    Compile a pattern into a regexp.
+
+   PCRE pattern reference:
+     https://www.pcre.org/original/doc/html/pcrepattern.html
+
+   Dig into the test outputs to see what the generated PCRE code looks like
+   e.g. cat ~/semgrep/_build/default/tests/_build/_tests/semgrep-core/aliengrep.014.output
 *)
 
 open Printf
@@ -28,7 +34,8 @@ type t = {
 type param = {
   (* ignorable whitespace pattern, which or may or may not include newlines *)
   whitespace_pat : string;
-  (* - must match any single significant non-word character such as punctuation
+  (* other_char:
+     - must match any single significant non-word character such as punctuation
        or non-ASCII characters.
      - may not match ignorable whitespace.
      - may match a word character but it's not required.
@@ -58,7 +65,7 @@ let multiline_param =
 
 (* sequence of any nodes to be captured by a regular ellipsis or by a long
    ellipsis. It uses lazy quantifiers so as to favor shorter matches over
-   longer matches.
+   longer matches ('?' -> '??', '*' -> '*?', '+' -> '+?').
 
    Warning from PCRE: "All subroutine calls, whether recursive or not,
    are always treated as atomic groups"
@@ -70,19 +77,21 @@ let ellipsis_pat param =
   sprintf {|(?: (?&%s)(?:%s(?&%s))*? )??|} param.node_name param.whitespace_pat
     param.node_name
 
+(* We generate a rather complex PCRE pattern. The syntax assumes the
+   so-called extended mode which ignores whitespace and #-comments.
+
+   The generated code has two parts:
+   1. subroutine definitions, which assign name to patterns without
+      using them. Some of these definitions are mutually recursive due
+      to bracket matching. Patterns using mutually-recursive definitions
+      are no longer regular expressions.
+   2. the main pattern ("regexp") which references some of the
+      subroutines.
+
+   See the PCRE manual for the syntax and behavior (URL at the beginning
+   of this file).
+*)
 let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
-  (* Pattern definitions
-
-     (?(DEFINE) xxx) is a conditional pattern whose condition is always false.
-     This allows us to define a named pattern without using it at the same
-     time.
-
-     (?<foo> xxx) gives the name 'foo' to the pattern xxx (and uses it).
-     (?(DEFINE)(?<foo> xxx)) gives the name 'foo' to the pattern xxx without
-     using it.
-
-     (?&foo) is a reference to the pattern named foo.
-  *)
   let new_capturing_group =
     let n = ref 0 in
     (* start numbering groups from 1 *)
@@ -96,9 +105,10 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
      Create a subroutine i.e. a named PCRE pattern. The name must be a
      valid identifier for PCRE (alphanumeric or something).
 
-     Warning: (DEFINE) introduces a capturing group that never matches
-     anything but we have to take it into account in the numbering of
-     capturing groups when extracting metavariable captures.
+     Warning: the special '(DEFINE)' sequence creates a capturing group
+     that never matches anything but we have to take it into account
+     in the numbering of capturing groups when extracting metavariable
+     captures.
   *)
   let define name pat =
     new_capturing_group () |> ignore;
