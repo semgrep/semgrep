@@ -21,7 +21,8 @@ type match_ = {
 }
 [@@deriving show]
 
-type matches = match_ list [@@deriving show]
+(* For debugging *)
+val show_matches : match_ list -> string
 
 (* Search for matches in a target string. *)
 val search : Pat_compile.t -> string -> match_ list
