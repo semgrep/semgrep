@@ -1,4 +1,4 @@
-(* Pad's extensions to Arg for actions. See pfff's Main.ml for
+(* Arg wrappers and small extension to Arg for "actions". See pfff's Main.ml for
  * an example of use.
  *
  * DEPRECATED: this module is deprecated, you should use the
@@ -41,7 +41,7 @@ val arg_parse2 :
   (unit -> unit) ->
   (* short_usage func *) string list
 
-(* The action lib. Useful to debug supart of your system. cf some of
+(* The action lib. Useful to debug subpart of your system. See some of
  * my Main.ml for example of use. *)
 type flag_spec = Arg.key * Arg.spec * Arg.doc
 

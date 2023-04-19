@@ -24,7 +24,6 @@ open Common
  *
  * similar code:
  *  - Lexing.position
- *  - Common2.filepos (TODO: remove it)
  *  - Semgrep_output_v1.position
  *)
 
@@ -42,6 +41,9 @@ type t = {
   file : Common.filename;
 }
 [@@deriving show, eq]
+
+(* basic file position (used to be Common2.filepos) *)
+type linecol = { l : int; c : int }
 
 (*****************************************************************************)
 (* Helpers *)

@@ -2132,9 +2132,6 @@ let filename_without_leading_path prj_path s =
 
 (* realpath: see end of file *)
 
-(* basic file position *)
-type filepos = { l : int; c : int }
-
 (*****************************************************************************)
 (* i18n *)
 (*****************************************************************************)

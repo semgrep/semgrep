@@ -186,7 +186,7 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
  * Tok.t is the same type as Parse_info.t but provides special equal and
  * hash functions used by the ppx derivers eq and hash.
  *)
-type tok = Tok.t [@@deriving show, eq, hash]
+type tok = Tok_.t [@@deriving show, eq, hash]
 
 (* a shortcut to annotate some information with position information *)
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
