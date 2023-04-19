@@ -5,7 +5,10 @@ EMCC_DEFAULTS = \
    -sMODULARIZE
 
 .PHONY: default
-default:
+default: build
+
+.PHONY: build
+build:
 	npm ci
 	npm run build
 

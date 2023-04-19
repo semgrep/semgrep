@@ -26,7 +26,7 @@ clean:
 	rm -rf dist
 
 ../libyaml/dist/libyaml.js:
-	make -C ../libyaml dist/libyaml.js
+	make -C ../libyaml build
 
 dist/index.js: src/index.ts ../libyaml/dist/libyaml.js
 	mkdir -p dist
