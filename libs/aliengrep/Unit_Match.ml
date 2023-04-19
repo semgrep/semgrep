@@ -177,6 +177,31 @@ let test_backreferences () =
       Capture_value ((Metavariable, "A"), "x");
     ]
 
+let test_ellipsis_metavariable () =
+  check uconf {|[$...ITEMS]|} {|a, [ b, c ], d|}
+    [
+      Num_matches 1;
+      Match_value {|[ b, c ]|};
+      Capture_value ((Metavariable_ellipsis, "ITEMS"), {|b, c|});
+    ];
+  (* regular vs. long ellipsis in uniline mode *)
+  check uconf {|[$...ITEMS]|} "a, [ b,\nc ], d" [ Num_matches 0 ];
+  check uconf {|[$....ITEMS]|} "a, [ b,\nc ], d"
+    [
+      Num_matches 1;
+      Match_value "[ b,\nc ]";
+      Capture_value ((Metavariable_ellipsis, "ITEMS"), "b,\nc");
+    ];
+  (* backtracking and back-references *)
+  check uconf {|[$...A $...A]|} "[a b a b]"
+    [
+      Num_matches 1;
+      Match_value "[a b a b]";
+      Capture_value ((Metavariable_ellipsis, "A"), "a b");
+    ];
+  (* back-references require exact whitespace match, unfortunately *)
+  check uconf {|[$...A $...A]|} "[a b a  b]" [ Num_matches 0 ]
+
 let tests =
   [
     ("word", test_word);
@@ -186,4 +211,5 @@ let tests =
     ("metavariables", test_metavariables);
     ("brackets", test_brackets);
     ("backreferences", test_backreferences);
+    ("ellipsis metavariable", test_ellipsis_metavariable);
   ]
