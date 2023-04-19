@@ -21,7 +21,7 @@ from semgrep.console import console
 from semgrep.target_manager import TargetManager
 
 IGNORED_COMMITTERS = ["semgrep.dev"]
-IGNORED_AUTHORS = ["semgrep-ci[bot]"]
+IGNORED_AUTHORS = ["semgrep-ci[bot]", "dependabot[bot]", "r2c-argo[bot]"]
 
 
 class ContributorSource(Enum):
