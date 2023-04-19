@@ -8,9 +8,10 @@
  *)
 
 type t = {
+  (* TODO: use Fpath.t *)
   file : Common.filename;
   xlang : Xlang.t;
   lazy_content : string lazy_t;
   (* This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)
-  lazy_ast_and_errors : (AST_generic.program * Tok.token_location list) lazy_t;
+  lazy_ast_and_errors : (AST_generic.program * Tok.location list) lazy_t;
 }

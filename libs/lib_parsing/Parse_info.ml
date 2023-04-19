@@ -27,9 +27,6 @@ open Tok
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-let fake_token_location = { str = ""; pos = Pos.fake_pos }
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
-
 exception NoTokenLocation of string
 
 let mk_info_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
@@ -49,20 +46,18 @@ let unsafe_token_location_of_info ii =
   | Error msg -> raise (NoTokenLocation msg)
 
 (* Synthesize a token. *)
-let unsafe_fake_info str : token_mutable =
+let unsafe_fake_info str : Tok.t =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
 
 (* "safe" fake token *)
-let fake_info_loc next_to_loc str : token_mutable =
+let fake_info_loc next_to_loc str : Tok.t =
   (* TODO: offset seems to have no use right now (?) *)
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
-let fake_info next_to_tok str : token_mutable =
+let fake_info next_to_tok str : Tok.t =
   match token_location_of_info next_to_tok with
   | Ok loc -> fake_info_loc loc str
   | Error _ -> unsafe_fake_info str
-
-let abstract_info = { token = Ab; transfo = NoTransfo }
 
 let is_fake tok =
   match tok.token with
@@ -256,9 +251,9 @@ let get_original_token_location = function
 
 (* not used but used to be useful in coccinelle *)
 type posrv =
-  | Real of token_location
+  | Real of Tok.location
   | Virt of
-      token_location (* last real info before expanded tok *)
+      Tok.location (* last real info before expanded tok *)
       * int (* virtual offset *)
 
 let compare_pos ii1 ii2 =
@@ -323,7 +318,7 @@ let shorten_string s =
    - should be useful to a human reader
    - should not raise an exception
 *)
-let show_token_value (x : token_origin) : string =
+let show_token_value (x : Tok.origin) : string =
   match x with
   | OriginTok loc -> spf "%S" (shorten_string loc.str)
   | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)

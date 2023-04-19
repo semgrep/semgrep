@@ -166,7 +166,7 @@ let info_of_tok tok =
   |> ignore;
   Common2.some !res
 
-let abstract_info_tok tok = visitor_info_of_tok (fun _ -> PI.abstract_info) tok
+let abstract_info_tok tok = visitor_info_of_tok (fun _ -> Tok.abstract_tok) tok
 
 (*****************************************************************************)
 (* More token Helpers for Parse_scala_recursive_descent.ml *)

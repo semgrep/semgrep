@@ -45,7 +45,7 @@ type ('target_content, 'xpattern) t = {
  * expect a different location if the end part is on a different line
  * (e.g., the semgrep Python wrapper), so I now return a pair.
  *)
-and match_range = Tok.token_location * Tok.token_location
+and match_range = Tok.location * Tok.location
 
 (*****************************************************************************)
 (* Helpers *)

@@ -164,7 +164,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
              for when we preserve this binding and re-localize it to
              the original file.
           *)
-          let revert_loc (loc : Tok.token_location) =
+          let revert_loc (loc : Tok.location) =
             (* See fix_loc *)
             let column =
               if loc.pos.line =|= 1 then

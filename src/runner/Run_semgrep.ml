@@ -84,7 +84,7 @@ let timeout_function file timeout f =
   with
   | Some res -> res
   | None ->
-      let loc = PI.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
@@ -272,7 +272,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Parse_info.first_loc_of_file file in
+           let loc = Tok.first_loc_of_file file in
            let error =
              E.mk_error ~rule_id:(Some id) loc
                (spf
@@ -455,7 +455,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "critical exn while matching ruleid %s"
                          rule.MR.id;
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Parse_info.first_loc_of_file file in
+                   let loc = Tok.first_loc_of_file file in
                    let errors =
                      RP.ErrorSet.singleton
                        (E.mk_error ~rule_id:!Rule.last_matched_rule loc ""

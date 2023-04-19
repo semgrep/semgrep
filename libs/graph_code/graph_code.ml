@@ -108,7 +108,7 @@ type edge =
   | Use
 
 type nodeinfo = {
-  pos : Tok.token_location;
+  pos : Tok.location;
   props : E.property list;
   (* would be better to have a more structured form than string at some point *)
   typ : string option;

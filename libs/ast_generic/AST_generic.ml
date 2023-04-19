@@ -413,7 +413,7 @@ class virtual ['self] iter_parent =
      * contain tokens or anything else that is likely to be interesting to a
      * visitor. Subclasses can always override these with their own behavior if
      * needed. *)
-    method visit_token_location _env _ = ()
+    method visit_location _env _ = ()
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
@@ -530,7 +530,7 @@ and expr = {
   e : expr_kind;
   e_id : int;
   (* used to quickly get the range of an expression *)
-  mutable e_range : (Tok.token_location * Tok.token_location) option;
+  mutable e_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 
@@ -1083,7 +1083,7 @@ and stmt = {
   mutable s_strings : string Set_.t option;
       [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
-  mutable s_range : (Tok.token_location * Tok.token_location) option;
+  mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 

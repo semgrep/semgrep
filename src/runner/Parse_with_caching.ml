@@ -44,7 +44,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type versioned_parse_result =
   string
   * Common.filename
-  * (AST_generic.program * Tok.token_location list, Exception.t) Common.either
+  * (AST_generic.program * Tok.location list, Exception.t) Common.either
 
 (*****************************************************************************)
 (* Generic helpers *)

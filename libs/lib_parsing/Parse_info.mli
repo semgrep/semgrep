@@ -1,5 +1,4 @@
 (* TODO: split with a Parsing_error.ml ? *)
-open Tok
 
 (*****************************************************************************)
 (* Tokens *)
@@ -61,8 +60,7 @@ val register_exception_printer : unit -> unit
 (*****************************************************************************)
 
 val tokinfo : Lexing.lexbuf -> t
-val mk_info_of_loc : token_location -> t
-val first_loc_of_file : Common.filename -> token_location
+val mk_info_of_loc : Tok.location -> t
 
 (* TODO? could also be in Lexer helpers section *)
 (* can deprecate? *)
@@ -91,7 +89,6 @@ val split_info_at_pos : int -> t -> t * t
 
 exception NoTokenLocation of string
 
-val fake_token_location : token_location
 val is_fake : t -> bool
 val is_origintok : t -> bool
 
@@ -107,11 +104,11 @@ val unsafe_sc : t
 
 (* "safe" fake versions *)
 
-val fake_info_loc : token_location -> string -> t
+val fake_info_loc : Tok.location -> string -> t
 val fake_info : t -> string -> t
-val fake_bracket_loc : token_location -> 'a -> t * 'a * t
+val fake_bracket_loc : Tok.location -> 'a -> t * 'a * t
 val fake_bracket : t -> 'a -> t * 'a * t
-val sc_loc : token_location -> t
+val sc_loc : Tok.location -> t
 val sc : t -> t
 
 (* accessor *)
@@ -132,18 +129,13 @@ val file_of_info : t -> Common.filename
 
 (* Format the location file/line/column into a string *)
 val string_of_info : t -> string
-val token_location_of_info : t -> (token_location, string) result
+val token_location_of_info : t -> (Tok.location, string) result
 
 (* @raise NoTokenLocation if given an unsafe fake token (without location info) *)
-val unsafe_token_location_of_info : t -> token_location
-val get_original_token_location : token_origin -> token_location
+val unsafe_token_location_of_info : t -> Tok.location
+val get_original_token_location : Tok.origin -> Tok.location
 val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t
-
-(*****************************************************************************)
-(* Misc *)
-(*****************************************************************************)
-val abstract_info : t
 
 (*****************************************************************************)
 (* Parsing stats *)

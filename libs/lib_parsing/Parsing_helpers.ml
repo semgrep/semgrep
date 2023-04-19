@@ -260,7 +260,7 @@ let full_charpos_to_pos_str s =
  *     the field.
  * TODO: use Pos.t instead of Parse_info.token_location
  *)
-let complete_token_location_large filename table (x : Tok.token_location) =
+let complete_token_location_large filename table (x : Tok.location) =
   {
     x with
     pos =
