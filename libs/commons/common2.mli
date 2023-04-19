@@ -823,9 +823,6 @@ val realpath : filename -> filename
 val inits_of_absolute_dir : dirname -> dirname list
 val inits_of_relative_dir : dirname -> dirname list
 
-(* basic file position *)
-type filepos = { l : int; c : int }
-
 (*x: common.mli for basic types *)
 (*****************************************************************************)
 (* i18n *)
