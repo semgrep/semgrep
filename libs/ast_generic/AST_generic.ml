@@ -169,7 +169,7 @@
  * to correspond mostly to Semgrep versions. So version below can jump from
  * "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.19.0"
+let version = "1.19.0-1"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
