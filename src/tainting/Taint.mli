@@ -22,7 +22,7 @@ type source = {
 }
 [@@deriving show]
 
-type sink = Rule.taint_sink call_trace [@@deriving show]
+type sink = Pattern_match.t * Rule.taint_sink [@@deriving show]
 type arg_pos = string * int [@@deriving show]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
@@ -36,7 +36,7 @@ type orig =
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 type taints_to_sink = {
-  taints_with_precondition : taint list * AST_generic.expr;
+  taints_with_precondition : (taint * unit call_trace) list * AST_generic.expr;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
