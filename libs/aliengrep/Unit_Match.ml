@@ -20,7 +20,6 @@ type expectation =
 [@@deriving show]
 
 let match_subs (x : Match.match_) = x.match_loc.substring
-let _subs (loc : Match.loc) = loc.substring
 let check_num_matches n matches = List.length matches = n
 
 let check_match_value str matches =
@@ -202,6 +201,32 @@ let test_ellipsis_metavariable () =
   (* back-references require exact whitespace match, unfortunately *)
   check uconf {|[$...A $...A]|} "[a b a  b]" [ Num_matches 0 ]
 
+(* Demonstrate the use of long ellipsis to match multiple lines
+   in uniline mode. *)
+let test_skip_lines () =
+  check uconf "\na\nb\n" "\na\nb\n" [ Num_matches 1; Match_value "\na\nb\n" ];
+  let pat = {|
+var $ORIG = ...;
+....
+var $COPY = $ORIG;
+|} in
+  let target =
+    {|
+/* sample code */
+var a = 17;
+var b = 42;
+var c = 77;
+var d = b;
+var e = "xx";
+|}
+  in
+  check uconf pat target
+    [
+      Num_matches 1;
+      Capture_value ((Metavariable, "ORIG"), "b");
+      Capture_value ((Metavariable, "COPY"), "d");
+    ]
+
 let tests =
   [
     ("word", test_word);
@@ -212,4 +237,5 @@ let tests =
     ("brackets", test_brackets);
     ("backreferences", test_backreferences);
     ("ellipsis metavariable", test_ellipsis_metavariable);
+    ("skip lines", test_skip_lines);
   ]
