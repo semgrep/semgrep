@@ -839,7 +839,69 @@ and v_definition x : G.definition list =
   | EnumCaseDef (attrs, v1) ->
       let attrs = v_list v_attribute attrs in
       v_enum_case_definition attrs v1
+  | GivenDef v1 -> v_given_definition v1
   | VarDefs v1 -> v_variable_definitions v1
+
+and v_given_definition { gsig; gkind } =
+  let v1 =
+    match gsig with
+    | None -> []
+    | Some { g_id; g_tparams; g_using; g_colon = _ } ->
+        let g_id =
+          match g_id with
+          | None -> []
+          | Some id -> [ G.I (v_ident id) ]
+        in
+        let g_tparams =
+          [
+            G.Anys (v_type_parameters g_tparams |> Common.map (fun x -> G.Tp x));
+          ]
+        in
+        let g_using =
+          [
+            G.Anys
+              (v_list v_bindings g_using |> List.concat
+              |> Common.map (fun x -> G.Pa x));
+          ]
+        in
+        g_id @ g_tparams @ g_using
+  in
+  let v2 =
+    match gkind with
+    | GivenStructural (constr_apps, body) ->
+        let v1 =
+          v_list v_constr_app constr_apps
+          |> Common.map (fun (ty, argss) ->
+                 let flat_args =
+                   List.concat_map (fun (_, args, _) -> args) argss
+                 in
+                 G.Anys
+                   [ G.T ty; G.Anys (Common.map (fun x -> G.Ar x) flat_args) ])
+        in
+        let v2 =
+          match body with
+          | None -> []
+          | Some body ->
+              let body = v_template_body body in
+              [ G.S (Block body |> G.s) ]
+        in
+        v1 @ v2
+    | GivenType (ty, exp) ->
+        let v1 = [ G.T (v_type_ ty) ] in
+        let v2 =
+          match exp with
+          | None -> []
+          | Some exp -> [ G.E (v_expr exp) ]
+        in
+        v1 @ v2
+  in
+  let todo_kind = ("given", PI.unsafe_fake_info "given") in
+  [
+    ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
+      G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
+  ]
+
+and v_constr_app (ty, args) = (v_type_ ty, v_list v_arguments args)
 
 and v_enum_case_definition attrs v1 =
   match v1 with
@@ -875,8 +937,6 @@ and v_enum_case_definition attrs v1 =
         ( G.basic_entity ~attrs ~tparams id,
           G.EnumEntryDef { ee_args = args; ee_body = None } );
       ]
-
-and v_constr_app _v1 = ()
 
 and v_variable_definitions
     {

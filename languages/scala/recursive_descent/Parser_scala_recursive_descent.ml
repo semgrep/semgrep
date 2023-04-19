@@ -464,6 +464,20 @@ let lookingAhead2 body1 body2 in_ =
       let res2 = body2 in_' in
       res1 && res2
 
+let rec skipMatching in_ =
+  let opening = in_.token in
+  let closing =
+    match in_.token with
+    | LPAREN _ -> RPAREN ab
+    | LBRACKET _ -> RBRACKET ab
+    | _ -> failwith "precondition failure"
+  in
+  skipToken in_;
+  while not (in_.token =~= EOF ab || in_.token =~= closing) do
+    if in_.token =~= opening then skipMatching in_ else skipToken in_
+  done;
+  skipToken in_
+
 (* ------------------------------------------------------------------------- *)
 (* indentation *)
 (* ------------------------------------------------------------------------- *)
@@ -769,12 +783,17 @@ let commaSeparated part in_ = tokenSeparated (COMMA ab) part in_
 (* Idents *)
 (* ------------------------------------------------------------------------- *)
 
-(* AST: Assumed to be TermNames *)
-let ident in_ : ident =
+let ident_opt in_ : ident option =
   match TH.isIdent in_.token with
   | Some (s, info) ->
       nextToken in_;
-      (s, info)
+      Some (s, info)
+  | None -> None
+
+(* AST: Assumed to be TermNames *)
+let ident in_ : ident =
+  match ident_opt in_ with
+  | Some x -> x
   | None -> error "expecting ident" in_
 
 let rawIdent in_ : ident =
@@ -2920,7 +2939,8 @@ let paramType ?(repeatedParameterOK = true) in_ : param_type =
 (** {{{
  *  ParamClauses      ::= {ParamClause} [[nl] `(` implicit Params `)`]
  *  ParamClause       ::= [nl] `(` [Params] `)`
-                        | [nl] ‘(’ ‘using’ (DefParams | FunArgTypes) ‘)’
+                        | UsingParamClause
+ *  UsingParamClause  ::= [nl] ‘(’ ‘using’ (DefParams | FunArgTypes) ‘)’
  *  Params            ::= Param {`,` Param}
  *  Param             ::= {Annotation} [`inline`] Id [`:` ParamType] [`=` Expr]
  *  ClassParamClauses ::= {ClassParamClause} [[nl] `(` implicit ClassParams `)`]
@@ -2998,6 +3018,27 @@ let param _owner implicitmod _caseParam in_ : binding =
                  p_default = default;
                })
 
+(* parses the part of the using param clause, inside the parens *)
+let usingParamClauseInner ~caseParam owner implicitmod in_ =
+  match in_.token with
+  | ID_LOWER ("using", ii) ->
+      (* here you might have more params, or a type
+          but these are not easy to distinguish from each other :(
+      *)
+      nextToken in_;
+      let is_type =
+        TH.isTypeIntroToken in_.token
+        && lookingAhead (fun in_ -> not (in_.token =~= COLON ab)) in_
+      in
+      if is_type then
+        let tys = types in_ in
+        (Common.map (fun ty -> ParamType ty) tys, Some ii)
+      else
+        (* TODO: not right to reuse? *)
+        (* no implciitmod?*)
+        (commaSeparated (param owner implicitmod !caseParam) in_, Some ii)
+  | _ -> error "expected using param clause" in_
+
 (* CHECK: "no by-name parameter type allowed here" *)
 (* CHECK: "no * parameter type allowed here" *)
 (* AST: convert tree to parameter *)
@@ -3018,22 +3059,8 @@ let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
         | _ -> []
       in
       match in_.token with
-      | ID_LOWER ("using", ii) ->
-          (* here you might have more params, or a type
-             but these are not easy to distinguish from each other :(
-          *)
-          nextToken in_;
-          let is_type =
-            TH.isTypeIntroToken in_.token
-            && lookingAhead (fun in_ -> not (in_.token =~= COLON ab)) in_
-          in
-          if is_type then
-            let tys = types in_ in
-            (Common.map (fun ty -> ParamType ty) tys, Some ii)
-          else
-            (* TODO: not right to reuse? *)
-            (* no implciitmod?*)
-            (commaSeparated (param owner implicitmod !caseParam) in_, Some ii)
+      | ID_LOWER ("using", _) ->
+          usingParamClauseInner ~caseParam owner implicitmod in_
       | __else__ ->
           (commaSeparated (param owner implicitmod !caseParam) in_, None)
   in
@@ -3068,6 +3095,7 @@ let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
  *  VariantTypeParam      ::= {Annotation} [`+` | `-`] TypeParam
  *  FunTypeParamClauseOpt ::= [FunTypeParamClause]
  *  FunTypeParamClause    ::= `[` TypeParam {`,` TypeParam} `]`]
+ *  ^ also known as "DefTypeParamClause" in Scala 3
  *  TypeParam             ::= Id TypeParamClauseOpt TypeBounds {`<%` Type} {`:` Type}
  *  }}}
 *)
@@ -3625,9 +3653,17 @@ let templateStatSeq ~isPre in_ : self_type option * block =
 
 (** {{{
  *  TemplateBody ::= [nl] :<<< `{` TemplateStatSeq `}` >>>
+ *  WithTemplateBody ::= <<< TemplateStatSeq >>>
  *  }}}
  * @param isPre specifies whether in early initializer (true) or not (false)
 *)
+
+let withTemplateBody in_ =
+  inBracesOrIndented
+    (fun in_ ->
+      (* isPre: ??? *)
+      templateStatSeq ~isPre:false in_)
+    in_
 
 let templateBody ~isPre in_ : template_body =
   match in_.token with
@@ -3919,15 +3955,18 @@ let classDef ?(isTrait = false) ?(isCase = None) attrs in_ : definition =
  *  }}}
 *)
 
-let constrApp in_ : constr_app =
-  let annotated_ty = annotType in_ in
+let constrAppRest in_ : arguments list =
   let vds = ref [] in
   while in_.token =~= LPAREN ab do
     let x = parArgumentExprs in_ in
     vds += x;
     newLineOptWhenFollowedBy (LPAREN ab) in_
   done;
-  let arguments = List.rev !vds in
+  List.rev !vds
+
+let constrApp in_ : constr_app =
+  let annotated_ty = annotType in_ in
+  let arguments = constrAppRest in_ in
   (annotated_ty, arguments)
 
 let constrApps in_ : constr_app list =
@@ -4021,6 +4060,130 @@ let enumDef attrs in_ =
              Template tmpl ))
 
 (* ------------------------------------------------------------------------- *)
+(* GivenDef *)
+(* ------------------------------------------------------------------------- *)
+(** {{{
+ *  GivenDef ::= [GivenSig] (AnnotType [`=` Expr] | StructuralInstance)
+ *  GivenSig ::= [id] [DefTypeParamClause] {UsingParamClause} `:`
+ *  StructuralInstance ::= ConstrApp {`with` ConstrApp} [`with` WithTemplateBody]
+ *  ConstrApp ::= SimpleType1 {Annotation} {ParArgumentExprs}
+ *  }}}
+*)
+
+let structuralInstance (constr_app : constr_app) in_ : given_kind =
+  let constrs = ref [] in
+  let template_opt = ref None in
+  while in_.token =~= Kwith ab do
+    skipToken in_;
+    (* This could be either a ConstrApp, or a WithTemplateBody.
+       A WithTemplateBody is <<< >>>, meaning it can start with
+       either an LBRACE or an indented first token.
+       In the indented first token case, this could be an `id`,
+       `this`, or `TemplateStatSeq`. That's kind of complicated.
+
+       We'll just assume that starting with an indented first
+       token means that we are inside of a `WithTemplateBody`.
+    *)
+    match in_.token with
+    | LBRACE _ -> template_opt := Some (withTemplateBody in_)
+    | _ when Option.is_some (passedIndent in_) ->
+        template_opt := Some (withTemplateBody in_)
+    | _ -> constrs += constrApp in_
+  done;
+  GivenStructural (constr_app :: List.rev !constrs, !template_opt)
+
+let givenSig in_ : given_sig =
+  let id_opt = ident_opt in_ in
+  let owner =
+    match id_opt with
+    | None -> ("", PI.unsafe_fake_info "")
+    | Some x -> x
+  in
+  let tparams = typeParamClauseOpt owner None in_ in
+  let caseParam = ref false in
+  let vds = ref [] in
+  while in_.token =~= LPAREN ab do
+    let x = inParens (usingParamClauseInner ~caseParam owner []) in_ in
+    vds += x;
+    caseParam := false;
+    newLineOptWhenFollowedBy (LPAREN ab) in_
+  done;
+  let colon_ii = TH.info_of_tok in_.token in
+  accept (COLON ab) in_;
+  (* TODO: make name opt *)
+  {
+    g_id = id_opt;
+    g_tparams = tparams;
+    g_using = List.rev !vds;
+    g_colon = colon_ii;
+  }
+
+(* This function is as implemented in the Dotty compiler.
+ * https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L879
+ *)
+let isGivenSigAfterIdent in_ =
+  let rec skipParams in_ =
+    if in_.token =~= LPAREN ab || in_.token =~= LBRACKET ab then (
+      skipMatching in_;
+      skipParams in_)
+    else if in_.token =~= NEWLINE ab then (
+      skipToken in_;
+      skipParams in_)
+  in
+  skipParams in_;
+  in_.token =~= COLON ab
+
+let givenDef in_ : given_definition =
+  let given_sig =
+    match in_.token with
+    | _ when TH.isIdentBool in_.token && lookingAhead isGivenSigAfterIdent in_
+      ->
+        Some (givenSig in_)
+    | LBRACKET _ (* DefTypeParamClause *)
+    | LPAREN _ (* UsingParamClause *)
+    | COLON _ (* none of them *) ->
+        Some (givenSig in_)
+    | _ -> None
+  in
+  (* how to differentiate structuralInstance versus AnnotType?
+     they both start with a type...
+
+     The next thing we see can be either
+       ConstrApp {`with` ConstrApp} [`with` WithTemplateBody]
+     or
+       AnnotType [`=` Expr]
+
+     ConstrApp starts with SimpleType1 {Annotation}, meaning it
+     basically is the same as AnnotType, except it also has args.
+
+     So let's parse an AnnotType, and then look for a `(`, `with`, or `=`.
+     This will tell us whether we enter the first or second case, respectively.
+  *)
+  let initAnnotType = annotType in_ in
+  match in_.token with
+  | EQUALS _ ->
+      (* must be AnnotType `=` Expr *)
+      accept (EQUALS ab) in_;
+      let exp_opt = Some (expr in_) in
+      { gsig = given_sig; gkind = GivenType (initAnnotType, exp_opt) }
+  | LPAREN _ ->
+      (* This means that our ConstrApp has arguments, and we are in
+         StructuralInstance
+      *)
+      let first_constr_app_arguments = constrAppRest in_ in
+      {
+        gsig = given_sig;
+        gkind =
+          structuralInstance (initAnnotType, first_constr_app_arguments) in_;
+      }
+  | Kwith _ ->
+      (* otherwise, StructuraLInstance *)
+      { gsig = given_sig; gkind = structuralInstance (initAnnotType, []) in_ }
+  | _ ->
+      (* must be AnnotType *)
+      { gsig = given_sig; gkind = GivenType (initAnnotType, None) }
+
+(* ------------------------------------------------------------------------- *)
 (* TmplDef *)
 (* ------------------------------------------------------------------------- *)
 
@@ -4028,6 +4191,7 @@ let enumDef attrs in_ =
  *  TmplDef ::= [case] class ClassDef
  *            |  [case] object ObjectDef
  *            |  [override] trait TraitDef
+ *            | `given` GivenDef
  *            | `enum` EnumDef
  *            | `case` (id ClassConstr [`extends` ConstrApps] | ids)
  *              ^ see "note: enum-body"
@@ -4051,6 +4215,10 @@ let tmplDef attrs in_ : definition =
       (* pad: my error message *)
       | _ -> error "expecting class or object after a case" in_)
   | Kenum _ -> enumDef attrs in_
+  (* "given" is a soft keyword *)
+  | ID_LOWER ("given", _) ->
+      skipToken in_;
+      GivenDef (givenDef in_)
   | _ -> error "expected start of definition" in_
 
 (*****************************************************************************)
