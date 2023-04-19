@@ -30,10 +30,12 @@ jobs:
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
           echo "Building ocaml..."
-          dune build js -j 4 --profile=release
+          dune build js/engine -j 4 --profile=release
+
+          dune build js/languages/python -j 4 --profile=release
 
           echo "Making tarball..."
-          tar czvf build-artifacts.tar.gz _build/default/js/**/dist/*
+          tar czvf build-artifacts.tar.gz _build/default/js/engine/dist/* _build/default/js/languages/*/dist/*
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build
