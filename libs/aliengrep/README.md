@@ -48,7 +48,7 @@ The major differences with Spacegrep are:
 - Indentation in patterns or target code doesn't matter. All
   whitespace is treated as optional.
 - The sets of characters that make up words and braces are customizable.
-- There's no limit on how many lines a long ellipsis (`......`) can match.
+- There's no limit on how many lines a long ellipsis (`....`) can match.
 - [experimental] Long ellipsis `....` or `$....FOO`.
   While a regular ellipsis `...` doesn't match newlines, a long
   ellipsis `....` will.
