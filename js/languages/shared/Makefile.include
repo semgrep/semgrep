@@ -61,8 +61,8 @@ dist/semgrep-parser.js: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTR
 WASM_DEP := dist/semgrep-parser.js
 endif
 
-dist/index.js: src/index.ts $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js
+dist/index.js: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js
 	esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/index.d.ts: src/index.ts
-	tsc
+dist/index.d.ts: ../shared/index.d.ts
+	cp $^ $@

@@ -1,4 +1,4 @@
-let parse_pattern print_errors str =
+let parse_pattern print_errors _ str =
   let any =
     str
     |> Pfff_or_tree_sitter.run_pattern ~print_errors
@@ -9,7 +9,7 @@ let parse_pattern print_errors str =
   in
   Java_to_generic.any any
 
-let parse_target file =
+let parse_target _ file =
   Pfff_or_tree_sitter.run file
     [
       (* we used to start with the pfff one; it was quite good and faster
@@ -25,4 +25,4 @@ let parse_target file =
 let _ =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
-  Semgrep_js_shared.make_js_module Lang.Java parse_target parse_pattern
+  Semgrep_js_shared.make_js_module [ Lang.Java ] parse_target parse_pattern

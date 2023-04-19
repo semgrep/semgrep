@@ -6,7 +6,7 @@ const parserPromise = ParserFactory();
 
 test("it has a lang", async () => {
   const parser = await parserPromise;
-  expect(parser.getLang()).toBe(33);
+  expect(parser.getLangs()).toEqual([13, 33]);
 });
 
 test("it successfully parses a pattern", async () => {

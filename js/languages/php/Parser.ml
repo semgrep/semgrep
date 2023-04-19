@@ -1,9 +1,9 @@
-let parse_pattern _ str =
+let parse_pattern _ _ str =
   let any_cst = Parse_php.any_of_string str in
   let any = Ast_php_build.any any_cst in
   Php_to_generic.any any
 
-let parse_target file =
+let parse_target _ file =
   Pfff_or_tree_sitter.run file
     [
       Pfff
@@ -26,4 +26,4 @@ let parse_target file =
 let _ =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
-  Semgrep_js_shared.make_js_module Lang.Php parse_target parse_pattern
+  Semgrep_js_shared.make_js_module [ Lang.Php ] parse_target parse_pattern
