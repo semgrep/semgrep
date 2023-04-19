@@ -3,4 +3,4 @@
    code (string).
 *)
 
-val tests : (string * (unit -> unit)) list
+val tests : Testutil.test list
