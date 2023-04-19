@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 open AST_jsonnet
 module C = Core_jsonnet
 
@@ -457,7 +458,7 @@ and desugar_import env v : C.expr =
             let final_path = Filename.concat env.base str in
             if not (Sys.file_exists final_path) then
               error tk (spf "file does not exist: %s" final_path);
-            let ast = Parse_jsonnet.parse_program final_path in
+            let ast = Parse_jsonnet.parse_program (Fpath.v final_path) in
             let env = { env with base = Filename.dirname final_path } in
             (ast, env)
         | Some ast ->
@@ -484,9 +485,13 @@ and desugar_import env v : C.expr =
 let desugar_expr_profiled env e = desugar_expr env e [@@profiling]
 
 let desugar_program ?(import_callback = default_callback) ?(use_std = true)
-    (file : Common.filename) (e : program) : C.program =
+    (file : Fpath.t) (e : program) : C.program =
   let env =
-    { within_an_object = false; base = Filename.dirname file; import_callback }
+    {
+      within_an_object = false;
+      base = Filename.dirname !!file;
+      import_callback;
+    }
   in
   (* TODO: skipped for now because std.jsonnet contains too many complicated
    * things we don't handle, and it actually does not even parse right now.

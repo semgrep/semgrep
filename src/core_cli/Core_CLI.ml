@@ -430,16 +430,16 @@ let all_actions () =
       Arg_helpers.mk_action_1_conv Fpath.v dump_equivalences );
     ( "-dump_jsonnet_ast",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_ast );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_ast );
     ( "-dump_jsonnet_core",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_core );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_core );
     ( "-dump_jsonnet_value",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_value );
     ( "-dump_jsonnet_json",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_json );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->

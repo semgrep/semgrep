@@ -4,7 +4,7 @@
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second Pervasive.ml (now called Stdlib.ml).
+ * This file acts like a second Stdlib.ml (used to be called Pervasives.ml).
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
@@ -236,6 +236,7 @@ val erase_this_temp_file : filename -> unit
 (*****************************************************************************)
 (* Subprocess *)
 (*****************************************************************************)
+(* Deprecated? Use Bos instead? *)
 
 (* This allows to capture the output of an external command.
  * It is more convenient to use than Unix.open_process_in.
@@ -267,7 +268,8 @@ val map : ('a -> 'b) -> 'a list -> 'b list
     left to right like for [List.iter].
 *)
 
-(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the first element of a list or
+(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the
+   first element of a list or
    fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
    the exception 'Failure msg' which is only a slight improvement over
    'Common.hd_exn "unexpected empty list"'.
@@ -285,8 +287,9 @@ val map : ('a -> 'b) -> 'a list -> 'b list
 *)
 val hd_exn : string -> 'a list -> 'a
 
-(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great improvement.
-   The same recommendations as for 'Common.hd_exn "unexpected empty list"' apply. *)
+(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great
+   improvement. The same recommendations as for 'Common.hd_exn "unexpected
+   empty list"' apply. *)
 val tl_exn : string -> 'a list -> 'a list
 
 val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
@@ -387,6 +390,7 @@ val optlist_to_list : 'a list option -> 'a list
  * (see https://v2.ocaml.org/manual/bindingops.html)
  * 'let*' is one such binding operator and an alias to Option.bind.
  * [bind o f] is [f v] if [o] is [Some v] and [None] if [o] is [None].
+ *
  * Here is an example of use:
  *  let* x1 = xs |> List.find_opt (fun x -> x > 1) in
  *  let* x2 = xs |> List.find_opt (fun x -> x > 2) in
@@ -445,7 +449,7 @@ val cache_computation :
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
-(* see also the profiling library and ppx_profiling [@@profiling] annot *)
+(* See also the profiling library and profiling.ppx [@@profiling] annot *)
 
 (*
    Measure how long it takes for a function to run, returning the result
