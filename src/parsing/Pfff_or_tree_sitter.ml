@@ -32,6 +32,7 @@ let debug_exn = ref false
 (* Types *)
 (*****************************************************************************)
 
+(* TODO: switch to Fpath.t *)
 type 'ast parser =
   | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
   | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)

@@ -57,7 +57,7 @@ let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_program (file : Common.filename) : AST_jsonnet.program =
+let parse_program (file : Fpath.t) : AST_jsonnet.program =
   let res = Parse_jsonnet_tree_sitter.parse file in
   (* similar to Parse_target.run_parser and the TreeSitter case *)
   match (res.program, res.errors) with
