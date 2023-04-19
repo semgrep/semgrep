@@ -303,7 +303,7 @@ let getPreviousToken in_ =
   loop in_.passed
 
 (* Should we emit an INDENT or DEDENT before the current token? *)
-let getIndentStatus in_ =
+let getIndentStatus ?(is_opportunistic = false) in_ =
   let tok = in_.token in
   let prevTok = getPreviousToken in_ in
 
@@ -327,7 +327,8 @@ let getIndentStatus in_ =
     in
     col
     > prev_indent_width (* we are indented w.r.t. the old indentation region *)
-    && prev_is_indent_token (* and the previous token can start an indent *)
+    && (is_opportunistic || prev_is_indent_token)
+       (* and the previous token can start an indent *)
     && (* and this token starts a new line *)
     startsNewLine in_
   in
@@ -345,8 +346,15 @@ let getIndentStatus in_ =
   else if is_dedented then Some (Dedent (line, col))
   else None
 
+(* Sometimes, we can emit an indent, irrespective of the specific token that we
+   just passed. This is in certain contextual parsing positions, such as after
+   the condition to an `if`, where we can't necessarily determine it based
+   off tokens alone.
+
+   This function allows that event to trigger.
+*)
 let opportunisticIndent in_ =
-  match getIndentStatus in_ with
+  match getIndentStatus ~is_opportunistic:true in_ with
   | Some (Indent (line, col)) -> in_.is_indented <- Some (line, col)
   | _ -> ()
 
