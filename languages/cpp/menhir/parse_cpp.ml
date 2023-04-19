@@ -80,7 +80,7 @@ let count_lines_commentized xs =
   |> List.iter (function
        | PI.OriginTok pinfo
        | PI.ExpandedTok (_, pinfo, _) ->
-           let newline = pinfo.PI.line in
+           let newline = pinfo.PI.pos.line in
            if newline <> !line then (
              line := newline;
              incr count)

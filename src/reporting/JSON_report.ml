@@ -256,9 +256,9 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   *)
   let file =
     if
-      (x.file <> min_loc.file || x.file <> max_loc.file)
-      && min_loc.file <> "FAKE TOKEN LOCATION"
-    then min_loc.file
+      (x.file <> min_loc.pos.file || x.file <> max_loc.pos.file)
+      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+    then min_loc.pos.file
     else x.file
   in
   {
@@ -298,7 +298,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
  * so we would not need those conversions
  *)
 let error_to_error err =
-  let file = err.E.loc.PI.file in
+  let file = err.E.loc.pos.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
   let rule_id = err.E.rule_id in
   let error_type = err.E.typ in
@@ -353,7 +353,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let files_with_errors =
     errs
     |> List.fold_left
-         (fun acc err -> StrSet.add err.E.loc.file acc)
+         (fun acc err -> StrSet.add err.E.loc.pos.file acc)
          StrSet.empty
   in
   let count_errors = StrSet.cardinal files_with_errors in

@@ -470,10 +470,13 @@ let empty_token_after tok : tok =
       let prev_len = String.length loc.str in
       let loc =
         {
-          loc with
-          str = "";
-          charpos = loc.charpos + prev_len;
-          column = loc.column + prev_len;
+          PI.str = "";
+          pos =
+            {
+              loc.pos with
+              charpos = loc.pos.charpos + prev_len;
+              column = loc.pos.column + prev_len;
+            };
         }
       in
       PI.mk_info_of_loc loc

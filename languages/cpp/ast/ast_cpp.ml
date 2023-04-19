@@ -1022,8 +1022,13 @@ let tvoid ii = (nQ, TPrimitive (TVoid, ii))
  * used by parsing hacks
  *)
 let make_expanded ii =
+  (* TODO? use Pos.fake_pos? *)
   let noVirtPos =
-    ({ Parse_info.str = ""; charpos = 0; line = 0; column = 0; file = "" }, -1)
+    ( {
+        Parse_info.str = "";
+        pos = { charpos = 0; line = 0; column = 0; file = "" };
+      },
+      -1 )
   in
   let a, b = noVirtPos in
   {

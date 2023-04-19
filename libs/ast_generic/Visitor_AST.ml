@@ -58,10 +58,10 @@ let first_info_of_any any =
 
 class ['self] range_visitor =
   let smaller t1 t2 =
-    if compare t1.PI.charpos t2.PI.charpos < 0 then t1 else t2
+    if compare t1.PI.pos.charpos t2.PI.pos.charpos < 0 then t1 else t2
   in
   let larger t1 t2 =
-    if compare t1.PI.charpos t2.PI.charpos > 0 then t1 else t2
+    if compare t1.PI.pos.charpos t2.PI.pos.charpos > 0 then t1 else t2
   in
   let incorporate_tokens ranges (left, right) =
     match !ranges with

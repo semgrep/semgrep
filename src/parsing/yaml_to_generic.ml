@@ -101,7 +101,10 @@ let tok (index, line, column) str env =
   {
     Parse_info.token =
       Parse_info.OriginTok
-        { str; charpos = index; line = line + 1; column; file = env.file };
+        {
+          str;
+          pos = { charpos = index; line = line + 1; column; file = env.file };
+        };
     Parse_info.transfo = NoTransfo;
   }
 
