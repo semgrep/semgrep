@@ -38,7 +38,7 @@ jobs:
           name: semgrep-js-ocaml-build
           path: |
             _build/default/js/engine/dist/*
-            _build/default/js/languages/*/dist/*
+            _build/default/js/languages/**/dist/*
 
   build-npm-packages:
     name: Build NPM packages
