@@ -349,7 +349,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
       (* alt: lookup id in env to get its type, which would be cleaner *)
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
-      | Some { e = New (_, tp, (_, _, _)); _ } -> Some tp
+      | Some { e = New (_, tp, _, (_, _, _)); _ } -> Some tp
       | _ -> None)
   | Some _ -> vtype
 
@@ -366,6 +366,7 @@ let is_resolvable_name_ctx env lang =
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java
+      | Lang.Kotlin
       | Lang.Apex
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
@@ -385,6 +386,7 @@ let resolved_name_kind env lang =
        * alt: use a different scope.class?
        *)
       | Lang.Java
+      | Lang.Kotlin
       | Lang.Apex
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js

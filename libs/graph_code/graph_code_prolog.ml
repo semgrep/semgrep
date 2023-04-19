@@ -92,8 +92,8 @@ let build g =
            add
              (At
                 ( entity_of_str str,
-                  nodeinfo.G.pos.Parse_info.file,
-                  nodeinfo.G.pos.Parse_info.line ));
+                  nodeinfo.G.pos.Tok.pos.Pos.file,
+                  nodeinfo.G.pos.Tok.pos.Pos.line ));
            let t =
              match nodeinfo.G.typ with
              | None -> "unknown"

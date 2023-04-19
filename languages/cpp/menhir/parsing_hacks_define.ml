@@ -70,16 +70,16 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_lexing
 (*****************************************************************************)
 
 let mark_end_define ii =
+  let tok_loc = Parse_info.unsafe_token_location_of_info ii in
   let ii' =
     {
-      Parse_info.token =
-        Parse_info.OriginTok
+      Tok.token =
+        Tok.OriginTok
           {
-            (Parse_info.unsafe_token_location_of_info ii) with
-            Parse_info.str = "";
-            Parse_info.charpos = PI.pos_of_info ii + 1;
+            str = "";
+            pos = { tok_loc.pos with charpos = PI.pos_of_info ii + 1 };
           };
-      transfo = Parse_info.NoTransfo;
+      transfo = Tok.NoTransfo;
     }
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'

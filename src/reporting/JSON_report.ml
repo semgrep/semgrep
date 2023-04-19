@@ -211,10 +211,24 @@ let rec taint_call_trace = function
       let* call_trace = taint_call_trace call_trace in
       Some (Out.CoreCall (location, intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace { source; tokens; sink } :
+let taint_trace_to_dataflow_trace { sources; sink } :
     Out.core_match_dataflow_trace =
+  (* Here, we ignore all but the first taint trace.
+     This is because we added support for multiple sources in a single trace, but only
+     internally to semgrep-core. Externally, our CLI dataflow trace datatype still has
+     only one trace per finding. To fit into that type, we have to pick one arbitrarily.
+
+     This is fine to do, because we previously only emitted one finding per taint sink,
+     due to deduplication, so we shouldn't get more or less findings.
+     It's possible that this could change the dataflow trace of an existing finding though.
+  *)
+  let call_trace, tokens =
+    match sources with
+    | [] -> raise Common.Impossible
+    | (call_trace, tokens) :: _ -> (call_trace, tokens)
+  in
   {
-    Out.taint_source = taint_call_trace source;
+    Out.taint_source = taint_call_trace call_trace;
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
     taint_sink = taint_call_trace sink;
   }
@@ -242,9 +256,9 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   *)
   let file =
     if
-      (x.file <> min_loc.file || x.file <> max_loc.file)
-      && min_loc.file <> "FAKE TOKEN LOCATION"
-    then min_loc.file
+      (x.file <> min_loc.pos.file || x.file <> max_loc.pos.file)
+      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+    then min_loc.pos.file
     else x.file
   in
   {
@@ -270,7 +284,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
      *)
   with
   | Parse_info.NoTokenLocation s ->
-      let loc = Parse_info.first_loc_of_file x.file in
+      let loc = Tok.first_loc_of_file x.file in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
       in
@@ -284,7 +298,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
  * so we would not need those conversions
  *)
 let error_to_error err =
-  let file = err.E.loc.PI.file in
+  let file = err.E.loc.pos.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
   let rule_id = err.E.rule_id in
   let error_type = err.E.typ in
@@ -339,7 +353,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let files_with_errors =
     errs
     |> List.fold_left
-         (fun acc err -> StrSet.add err.E.loc.file acc)
+         (fun acc err -> StrSet.add err.E.loc.pos.file acc)
          StrSet.empty
   in
   let count_errors = StrSet.cardinal files_with_errors in

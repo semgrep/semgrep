@@ -43,12 +43,12 @@ let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
 *)
 let tok_pos_left tok =
   match Parse_info.token_location_of_info tok with
-  | Ok x -> x.charpos
+  | Ok x -> x.pos.charpos
   | Error _ -> max_int
 
 let tok_pos_right tok =
   match Parse_info.token_location_of_info tok with
-  | Ok x -> x.charpos
+  | Ok x -> x.pos.charpos
   | Error _ -> min_int
 
 (* Prefer non-error. In case of a tie, prefer left-handside argument. *)

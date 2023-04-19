@@ -35,7 +35,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type error = {
   rule_id : Rule.rule_id option;
   typ : Out.core_error_kind;
-  loc : Parse_info.token_location;
+  loc : Tok.location;
   msg : string;
   details : string option;
 }
@@ -100,7 +100,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   | Parse_info.Parsing_error tok ->
       let msg =
         match tok with
-        | { token = PI.OriginTok { str; _ }; _ } ->
+        | { token = Tok.OriginTok { str; _ }; _ } ->
             spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
@@ -140,14 +140,14 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
       Some (mk_error ~rule_id loc msg Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
@@ -164,7 +164,7 @@ let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
           Exception.reraise e
       | exn ->
           let trace = Exception.to_string e in
-          let loc = Parse_info.first_loc_of_file file in
+          let loc = Tok.first_loc_of_file file in
           {
             rule_id;
             typ = Out.FatalError;
@@ -189,8 +189,8 @@ let string_of_error err =
     | Some s -> spf "\n%s" s
   in
   spf "%s:%d:%d: %s: %s%s"
-    (source_of_string pos.PI.file)
-    pos.PI.line pos.PI.column
+    (source_of_string pos.Tok.pos.file)
+    pos.Tok.pos.line pos.Tok.pos.column
     (Out.string_of_core_error_kind err.typ)
     err.msg details
 
@@ -264,7 +264,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
     actual_findings
     |> Common.map (fun err ->
            let loc = err.loc in
-           (loc.PI.file, loc.PI.line))
+           (loc.Tok.pos.file, loc.Tok.pos.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
@@ -282,7 +282,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
-                     src = loc.PI.file && l =|= loc.PI.line)
+                     src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =

@@ -60,7 +60,7 @@ let commentized xs =
                  match s with
                  | s when s =~ "KERN_.*" -> None
                  | s when s =~ "__.*" -> None
-                 | _ -> Some ii.PI.token)
+                 | _ -> Some ii.Tok.token)
              | Token_cpp.CppDirective
              | Token_cpp.CppAttr
              | Token_cpp.CppMacro ->
@@ -69,8 +69,8 @@ let commentized xs =
              | Token_cpp.CppPassingNormal
              | Token_cpp.CppPassingCosWouldGetError ->
                  raise Todo
-           else Some ii.PI.token
-       | T.TAny_Action ii -> Some ii.PI.token
+           else Some ii.Tok.token
+       | T.TAny_Action ii -> Some ii.Tok.token
        | _ -> None)
 
 let count_lines_commentized xs =
@@ -78,9 +78,9 @@ let count_lines_commentized xs =
   let count = ref 0 in
   commentized xs
   |> List.iter (function
-       | PI.OriginTok pinfo
-       | PI.ExpandedTok (_, pinfo, _) ->
-           let newline = pinfo.PI.line in
+       | Tok.OriginTok pinfo
+       | Tok.ExpandedTok (_, pinfo, _) ->
+           let newline = pinfo.Tok.pos.line in
            if newline <> !line then (
              line := newline;
              incr count)
@@ -316,7 +316,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.PI.rest <- save1; tr.PI.current <- save2; tr.PI.passed <- save3;
           (try
              Parser_cpp2.toplevel (lexer_function tr) lexbuf_fake
-             |> List.hd |> fst
+             |> Common.hd_exn "unexpected empty list" |> fst
            with Failure "hd" ->
              logger#error "no elements";
              raise Parsing.Parse_error
@@ -375,7 +375,8 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.Parsing_helpers.rest <- rest';
           tr.Parsing_helpers.passed <- passed';
 
-          tr.Parsing_helpers.current <- List.hd passed';
+          tr.Parsing_helpers.current <-
+            Common.hd_exn "can't be happening" passed';
 
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in
@@ -518,7 +519,7 @@ let parse_with_dypgen file =
   *)
   try
     Parser_cpp2.main (lexer_function tr) lexbuf_fake
-    |> List.hd |> fst
+    |> Common.hd_exn "unexpected empty list" |> fst
   with Dyp.Syntax_error ->
     raise (Parse_info.Parsing_error (TH.info_of_tok tr.PI.current))
 *)

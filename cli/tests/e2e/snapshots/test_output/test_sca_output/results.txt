@@ -20,6 +20,8 @@
        rules.dependency_aware.js-sca
           oh no                     
                                     
+            5┆ bad-lib@0.0.7:
+            6┆   version "0.0.7"
                    
                    
 ┌─────────────────┐

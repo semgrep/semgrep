@@ -79,7 +79,7 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
   let charpos2 = charpos2 - 1 in
   let r = { Range.start = charpos; end_ = charpos2 } in
   let str = Range.content_at_range file r in
-  let tok_loc = { PI.str; charpos; line; column; file } in
+  let tok_loc = { Tok.str; pos = { charpos; line; column; file } } in
   (str, PI.mk_info_of_loc tok_loc)
 
 (*****************************************************************************)

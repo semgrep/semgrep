@@ -24,6 +24,6 @@ val default_callback : import_callback
 val desugar_program :
   ?import_callback:import_callback ->
   ?use_std:bool ->
-  Common.filename ->
+  Fpath.t ->
   AST_jsonnet.program ->
   Core_jsonnet.program

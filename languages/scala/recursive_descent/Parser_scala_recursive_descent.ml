@@ -140,7 +140,7 @@ let mk_env toks =
 let copy_env env = { env with token = env.token }
 
 (* Trick to use = (called =~= below) to compare tokens *)
-let ab = PI.abstract_info
+let ab = Tok.abstract_tok
 let fb = PI.fake_bracket
 let noSelfType = None
 let noMods = []
@@ -587,10 +587,7 @@ let rec skipMatching in_ =
 (* ------------------------------------------------------------------------- *)
 
 (* Have we passed an indent?
-   Because our nextToken skips over INDENT, in places where an
-   INDENT might be syntactically significant, we might need to
-   look through the tokens we have passed to tell if we have entered
-   an indentation region.
+   If so, the `is_indented` flag should be set by our `nextToken` logic.
 *)
 let passedIndent in_ = in_.is_indented
 
@@ -1799,8 +1796,14 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | `:` `_` `*`
  *  }}}
 *)
-let rec expr ?(is_block_expr = false) ?(location = Local) (in_ : env) : expr =
-  let _ = is_block_expr in
+
+(* NOTE: indented-block-expr
+   Moreover, if this is the start to a block, then every case in the `expr`
+   recursive descent must fall through to the simpleExpr blockExpr case,
+   otherwise we will end up assuming we're in a different case when we
+   already determined we're not.
+*)
+let rec expr ?(location = Local) (in_ : env) : expr =
   let is_block_expr = isIndentedBlockExprStart in_ in
   expr0 ~is_block_expr location in_
 
@@ -3417,16 +3420,7 @@ let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
                nextTokenAllow TH.nme_MACROkw in_;
                if TH.isMacro in_.token then
                  nextToken in_ (* AST: newmmods |= MACRO *);
-               (* NOTE: indented-block-expr
-                  Moreover, if this is the start to a block, then every case in the `expr`
-                  recursive descent must fall through to the simpleExpr blockExpr case,
-                  otherwise we will end up assuming we're in a different case when we
-                  already determined we're not.
-
-                  We'll be safe and restrict the indented blockExprs to only RHS of
-                  a `def`, because otherwise this could mess quite a few parse trees up.
-               *)
-               let x = expr ~is_block_expr:(isIndentedBlockExprStart in_) in_ in
+               let x = expr in_ in
                Some (FExpr (ii, x))
            | _ ->
                accept (EQUALS ab) in_ (* generate error message *);

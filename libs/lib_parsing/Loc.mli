@@ -23,9 +23,6 @@
      the sequence (loc1, loc2) = ((first, _), (_, last)) is (first, last).
 *)
 
-(* The type of a token, i.e. a leaf in a syntax tree. *)
-type tok = Parse_info.t [@@deriving show]
-
 (* A location or 'loc' for short.
 
    A location is a pair (first_token, last_token) representing a region of
@@ -35,7 +32,7 @@ type tok = Parse_info.t [@@deriving show]
 
    Tuples are convenient, let's not make this type abstract.
 *)
-type t = tok * tok [@@deriving show]
+type t = Tok.t * Tok.t [@@deriving show]
 
 (*
    'create tok1 tok2' is essentially '(tok1, tok2)' except if one of the
@@ -43,13 +40,13 @@ type t = tok * tok [@@deriving show]
    '(tok2, tok2)'. In general, it's ok to not use this function and use
    the tuple syntax directly.
 *)
-val create : tok -> tok -> t
+val create : Tok.t -> Tok.t -> t
 
 (*
    Identify the leftmost and rightmost tokens from a list and return them
    as the list's location.
 *)
-val of_toks : ('a -> tok) -> 'a list -> t
+val of_toks : ('a -> Tok.t) -> 'a list -> t
 
 (*
    Identify the leftmost and rightmost tokens from a list of locations
@@ -91,17 +88,17 @@ val is_fake : t -> bool
 val range : t -> t -> t
 
 (* Replace the start of the location, unconditionally. *)
-val update_start : tok -> t -> t
+val update_start : Tok.t -> t -> t
 
 (* Replace the end of the location, unconditionally. *)
-val update_end : t -> tok -> t
+val update_end : t -> Tok.t -> t
 
 (*
    Extend a location to the left or to right using the new token
    if it falls outside of the current location.
    Results are unspecified if the tokens overlap or come from different files.
 *)
-val extend : t -> tok -> t
+val extend : t -> Tok.t -> t
 
 (* A pair of fake tokens. Better avoided. *)
 val unsafe_fake_loc : t

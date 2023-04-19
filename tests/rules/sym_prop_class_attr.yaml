@@ -1,0 +1,16 @@
+rules:
+  - id: documentbuilderfactory-disallow-doctype-decl-missing
+    options:
+      symbolic_propagation: true
+    severity: ERROR
+    message: Test.
+    mode: taint
+    pattern-sources:
+      - pattern: |
+          DocumentBuilderFactory.newInstance();
+    pattern-sinks:
+      - patterns:
+          - pattern: $FACTORY.newDocumentBuilder();
+    languages:
+      - java
+

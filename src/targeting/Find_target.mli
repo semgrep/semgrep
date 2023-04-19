@@ -24,7 +24,7 @@ type conf = {
 }
 [@@deriving show]
 
-(* Entry point.
+(* Entry point used by osemgrep.
 
    Take a set of scanning roots which are files or folders (directories) and
    expand them into the set of files that could be targets for some

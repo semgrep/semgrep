@@ -1200,11 +1200,9 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
   let sink_id = String.concat ":" env.path in
-  let default_sink_requires = R.default_sink_requires (snd key) in
   let parse_from_dict dict f =
     let sink_requires =
-      take_opt dict env parse_taint_requires "requires"
-      |> Option.value ~default:default_sink_requires
+      (snd key, take_opt dict env parse_taint_requires "requires")
     in
     let sink_formula = f env dict in
     { R.sink_id; sink_formula; sink_requires }
@@ -1216,7 +1214,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let sink_formula = R.P (parse_xpattern env value) in
-        { sink_id; sink_formula; sink_requires = default_sink_requires }
+        { sink_id; sink_formula; sink_requires = (snd key, None) }
     | Right dict -> parse_from_dict dict parse_formula_from_dict
 
 let parse_taint_pattern env key (value : G.expr) =
@@ -1478,7 +1476,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
          *)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
-            let loc = PI.first_loc_of_file !!file in
+            let loc = Tok.first_loc_of_file !!file in
             yaml_error (PI.mk_info_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
@@ -1540,14 +1538,14 @@ let parse_file ?error_recovery file =
           (Parse_json.parse_program !!file)
     | FT.Config FT.Jsonnet ->
         if use_ojsonnet then
-          let ast = Parse_jsonnet.parse_program !!file in
+          let ast = Parse_jsonnet.parse_program file in
           (* Note that here we do not support registry-aware import;
            * those are defined in osemgrep/.../Rule_fetching.ml where
            * we use Network.get functions. Thus, semgrep-core -dump_rule
            * will not work with registry-aware import either.
            * Use osemgrep --dump-config instead.
            *)
-          let core = Desugar_jsonnet.desugar_program !!file ast in
+          let core = Desugar_jsonnet.desugar_program file ast in
           let value_ = Eval_jsonnet.eval_program core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else

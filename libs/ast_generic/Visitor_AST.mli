@@ -3,14 +3,12 @@
  * tokens inside id_type or id_info.
  *)
 val ii_of_any : AST_generic.any -> Parse_info.t list
+val info_of_any : AST_generic.any -> Parse_info.t
 
 (* may raise NoTokenLocation *)
 val first_info_of_any : AST_generic.any -> Parse_info.t
 val range_of_tokens : Parse_info.t list -> Loc.t
-
-val range_of_any_opt :
-  AST_generic.any ->
-  (Parse_info.token_location * Parse_info.token_location) option
+val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
 
 (* poor's man fold *)
 (*

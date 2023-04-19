@@ -115,15 +115,15 @@ let count_lines_and_trailing =
 let offsets_of_mval extract_mvalue =
   Metavariable.mvalue_to_any extract_mvalue
   |> Visitor_AST.range_of_any_opt
-  |> Option.map (fun (start_loc, end_loc) ->
-         let end_len = String.length end_loc.Parse_info.str in
+  |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
+         let end_len = String.length end_loc.Tok.str in
          {
-           start_pos = start_loc.charpos;
+           start_pos = start_loc.pos.charpos;
            (* subtract 1 because lines are 1-indexed, so the
                offset is one less than the current line *)
-           start_line = start_loc.Parse_info.line - 1;
-           start_col = start_loc.column;
-           end_pos = end_loc.charpos + end_len;
+           start_line = start_loc.pos.line - 1;
+           start_col = start_loc.pos.column;
+           end_pos = end_loc.pos.charpos + end_len;
          })
 
 (* Compute the rules that should be run for the extracted
@@ -213,23 +213,27 @@ let report_no_source_range erule =
 (* Result mapping helpers *)
 (*****************************************************************************)
 
-let map_loc pos line col file (loc : Parse_info.token_location) =
+let map_loc pos line col file (loc : Tok.location) =
   (* this _shouldn't_ be a fake location *)
   {
     loc with
-    charpos = loc.charpos + pos;
-    line = loc.line + line;
-    column = (if loc.line =|= 1 then loc.column + col else loc.column);
-    file;
+    pos =
+      {
+        charpos = loc.pos.charpos + pos;
+        line = loc.pos.line + line;
+        column =
+          (if loc.pos.line =|= 1 then loc.pos.column + col else loc.pos.column);
+        file;
+      };
   }
 
-let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
+let map_taint_trace map_loc { Pattern_match.sources; sink } =
   let lift_map_loc f x =
     let token =
-      match x.Parse_info.token with
-      | Parse_info.OriginTok loc -> Parse_info.OriginTok (f loc)
-      | Parse_info.ExpandedTok (pp_loc, v_loc, i) ->
-          Parse_info.ExpandedTok (f pp_loc, v_loc, i)
+      match x.Tok.token with
+      | Tok.OriginTok loc -> Tok.OriginTok (f loc)
+      | Tok.ExpandedTok (pp_loc, v_loc, i) ->
+          Tok.ExpandedTok (f pp_loc, v_loc, i)
       | x -> x
     in
     { x with token }
@@ -248,8 +252,10 @@ let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
           }
   in
   {
-    Pattern_match.source = map_taint_call_trace source;
-    tokens = Common.map map_loc tokens;
+    Pattern_match.sources =
+      Common.map
+        (fun (ct, toks) -> (map_taint_call_trace ct, Common.map map_loc toks))
+        sources;
     sink = map_taint_call_trace sink;
   }
 
@@ -394,7 +400,7 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                      start at the correct start location, but the length with
                      dictate the end, so it may not exactly correspond.
                   *)
-                  fun ({ Parse_info.charpos; _ } as loc) ->
+                  fun ({ Tok.pos = { charpos; _ }; _ } as loc) ->
                     if charpos < consumed_loc.start_pos then map_contents loc
                     else
                       (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
@@ -403,18 +409,22 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                         let (`Extract { Rule.transform; _ }) = r.Rule.mode in
                         match transform with
                         | ConcatJsonArray ->
-                            loc.line - consumed_loc.start_line - 1
-                        | __else__ -> loc.line - consumed_loc.start_line
+                            loc.pos.line - consumed_loc.start_line - 1
+                        | __else__ -> loc.pos.line - consumed_loc.start_line
                       in
                       map_snippet
                         {
                           loc with
-                          charpos = loc.charpos - consumed_loc.start_pos;
-                          line;
-                          column =
-                            (if line =|= 1 then
-                             loc.column - consumed_loc.start_col
-                            else loc.column);
+                          pos =
+                            {
+                              loc.pos with
+                              charpos = loc.pos.charpos - consumed_loc.start_pos;
+                              line;
+                              column =
+                                (if line =|= 1 then
+                                 loc.pos.column - consumed_loc.start_col
+                                else loc.pos.column);
+                            };
                         } ))
               ( { start_pos = 0; end_pos = 0; start_line = 0; start_col = 0 },
                 Buffer.create 0,

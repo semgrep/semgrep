@@ -415,8 +415,8 @@ let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
   { path = x.path; reason = x.reason }
 
 (* skipping the python intermediate FileTargetingLog for now *)
-let cli_skipped_targets ~(errors : Out.core_error list)
-    ~(skipped_targets : Out.skipped_target list) : Out.cli_skipped_target list =
+let cli_skipped_targets ~(skipped_targets : Out.skipped_target list) :
+    Out.cli_skipped_target list =
   (* TODO: skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
    *)
@@ -424,19 +424,11 @@ let cli_skipped_targets ~(errors : Out.core_error list)
   (* TODO: see _make_failed_to_analyze() in output.py,
    * core_failure_lines_by_file in target_manager.py
    *)
-  let skipped_because_of_core_errors : Out.cli_skipped_target list =
-    errors
-    |> Common.map (fun (err : Out.core_error) ->
-           {
-             Out.path = err.location.path;
-             reason = Analysis_failed_parser_or_internal_error;
-           })
-  in
   let core_skipped =
     skipped_targets |> Common.map cli_skipped_target_of_skipped_target
   in
   (* TODO: need to sort *)
-  skipped_because_of_core_errors @ core_skipped
+  core_skipped
 
 (*****************************************************************************)
 (* Entry point *)
@@ -449,13 +441,13 @@ let cli_output_of_core_results ~logging_level ~rules_source
    matches;
    errors;
    skipped_targets;
-   rules_by_engine;
-   engine_requested;
    (* LATER *)
    skipped_rules = _;
    explanations = _;
    stats = _;
    time = _;
+   rules_by_engine = _;
+   engine_requested = _;
   } ->
       let env =
         {
@@ -477,7 +469,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
       let (paths : Out.cli_paths) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
-            let skipped = cli_skipped_targets ~errors ~skipped_targets in
+            let skipped = cli_skipped_targets ~skipped_targets in
             { scanned; _comment = None; skipped }
         | _else_ ->
             {
@@ -498,6 +490,6 @@ let cli_output_of_core_results ~logging_level ~rules_source
         (* LATER *)
         time = None;
         explanations = None;
-        rules_by_engine = Some rules_by_engine;
-        engine_requested = Some engine_requested;
+        rules_by_engine = None;
+        engine_requested = None;
       }

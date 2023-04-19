@@ -224,8 +224,8 @@ let dump_ast ?(naming = false) lang file =
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
-  let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program !!file in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
   List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
@@ -234,8 +234,8 @@ let dump_il_all file =
 let dump_il file =
   let module G = AST_generic in
   let module V = Visitor_AST in
-  let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program !!file in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let report_func_def_with_name ent_opt fdef =
     let name =
@@ -430,16 +430,16 @@ let all_actions () =
       Arg_helpers.mk_action_1_conv Fpath.v dump_equivalences );
     ( "-dump_jsonnet_ast",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_ast );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_ast );
     ( "-dump_jsonnet_core",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_core );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_core );
     ( "-dump_jsonnet_value",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_value );
     ( "-dump_jsonnet_json",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_json );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->

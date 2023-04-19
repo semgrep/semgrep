@@ -14,6 +14,7 @@
  * license.txt for more details.
  *)
 open Common
+open Tok
 open Parse_info
 
 (*****************************************************************************)
@@ -53,7 +54,7 @@ type 'tok tokens_state = {
 let mk_tokens_state toks =
   {
     rest = toks;
-    current = List.hd toks;
+    current = Common.hd_exn "unexpected empty list" toks;
     passed =
       []
       (* passed_clean = [];
@@ -257,13 +258,18 @@ let full_charpos_to_pos_str s =
  * alt:
  *   - in each lexer you need to take care of newlines and update manually
  *     the field.
+ * TODO: use Pos.t instead of Parse_info.token_location
  *)
-let complete_token_location_large filename table x =
+let complete_token_location_large filename table (x : Tok.location) =
   {
     x with
-    file = filename;
-    line = fst (table x.charpos);
-    column = snd (table x.charpos);
+    pos =
+      {
+        x.pos with
+        file = filename;
+        line = fst (table x.pos.charpos);
+        column = snd (table x.pos.charpos);
+      };
   }
 
 (* Why is it better to first get all the tokens?
@@ -340,15 +346,20 @@ let mk_lexer_for_yacc toks is_comment =
   let lexbuf_fake = Lexing.from_function (fun _buf _n -> raise Impossible) in
   (tr, lexer, lexbuf_fake)
 
+(* TODO: move to Pos.ml and use Pos.t instead *)
 let adjust_pinfo_wrt_base base_loc loc =
   (* Note that charpos and columns are 0-based, whereas lines are 1-based. *)
   {
     loc with
-    charpos = base_loc.charpos + loc.charpos;
-    line = base_loc.line + loc.line - 1;
-    column =
-      (if loc.line =|= 1 then base_loc.column + loc.column else loc.column);
-    file = base_loc.file;
+    pos =
+      {
+        charpos = base_loc.pos.charpos + loc.pos.charpos;
+        line = base_loc.pos.line + loc.pos.line - 1;
+        column =
+          (if loc.pos.line =|= 1 then base_loc.pos.column + loc.pos.column
+          else loc.pos.column);
+        file = base_loc.pos.file;
+      };
   }
 
 (* Token locations are supposed to denote the beginning of a token.
@@ -364,9 +375,10 @@ let get_token_end_info loc =
         match c with
         | '\n' -> (line + 1, 0)
         | _ -> (line, col + 1))
-      (loc.line, loc.column) loc.str
+      (loc.pos.line, loc.pos.column)
+      loc.str
   in
-  (line, col, loc.charpos + String.length loc.str)
+  (line, col, loc.pos.charpos + String.length loc.str)
 
 let fix_token_location fix ii =
   {
@@ -452,9 +464,9 @@ let error_message filename (lexeme, lexstart) =
       ^ " given out of file:" ^ filename
 
 let error_message_token_location info =
-  let filename = info.file in
+  let filename = info.pos.file in
   let lexeme = info.str in
-  let lexstart = info.charpos in
+  let lexstart = info.pos.charpos in
   try error_messagebis filename (lexeme, lexstart) 0 with
   | End_of_file ->
       "PB in Common.error_message, position " ^ i_to_s lexstart

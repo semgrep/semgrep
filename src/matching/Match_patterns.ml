@@ -368,8 +368,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        "While matching pattern %s in file %s, we skipped \
                         expression at %d:%d-%d:%d (outside any range of \
                         interest)"
-                       rule.pattern_string start_loc.file start_loc.line
-                       start_loc.column end_loc.line end_loc.column;
+                       rule.pattern_string start_loc.pos.file start_loc.pos.line
+                       start_loc.pos.column end_loc.pos.line end_loc.pos.column;
                      ());
           (* try the rules on subexpressions *)
           (* this can recurse to find nested matching inside the

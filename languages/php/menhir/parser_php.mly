@@ -397,7 +397,7 @@ statement:
      additional_catch* finally_clause?
      { let try_block = ($2,$3,$4) in
        let catch_block = ($10, $11, $12) in
-       let t = List.hd $7 in (* TODO: return a list of types *)
+       let t = Common.hd_exn "unexpected empty list" $7 in (* TODO: return a list of types *)
        let catch = ($5, ($6, (t, DName $8), $9), catch_block) in
        Try($1, try_block, [catch] @ $13, o2l $14)
      }

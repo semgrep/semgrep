@@ -169,7 +169,7 @@
  * to correspond mostly to Semgrep versions. So version below can jump from
  * "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.12.1"
+let version = "1.19.0-1"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -186,7 +186,7 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
  * Tok.t is the same type as Parse_info.t but provides special equal and
  * hash functions used by the ppx derivers eq and hash.
  *)
-type tok = Tok.t [@@deriving show, eq, hash]
+type tok = Tok_.t [@@deriving show, eq, hash]
 
 (* a shortcut to annotate some information with position information *)
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
@@ -413,7 +413,7 @@ class virtual ['self] iter_parent =
      * contain tokens or anything else that is likely to be interesting to a
      * visitor. Subclasses can always override these with their own behavior if
      * needed. *)
-    method visit_token_location _env _ = ()
+    method visit_location _env _ = ()
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
@@ -530,8 +530,7 @@ and expr = {
   e : expr_kind;
   e_id : int;
   (* used to quickly get the range of an expression *)
-  mutable e_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
+  mutable e_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 
@@ -587,6 +586,7 @@ and expr_kind =
   (* operators and function application *)
   | Call of expr * arguments
   (* 'type_' below is usually a TyN or TyArray (or TyExpr).
+   * 'id_info' refers to the constructor.
    * Note that certain languages do not have a 'new' keyword
    * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
    * old: this is used to be an IdSpecial used in conjunction with
@@ -594,7 +594,7 @@ and expr_kind =
    * New is really important for typing (and other program analysis).
    * note: see also AnonClass which is also a New.
    *)
-  | New of tok (* 'new' (can be fake) *) * type_ * arguments
+  | New of tok (* 'new' (can be fake) *) * type_ * id_info * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -1083,8 +1083,7 @@ and stmt = {
   mutable s_strings : string Set_.t option;
       [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
-  mutable s_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
+  mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 
@@ -1672,7 +1671,11 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
-  (* e.g., ParamTodo in OCaml, Reciever param in Go, SingleStar and Slash
+  (* Receiver param in Go, e.g. `func (x Foo) f() { ... }`. This is important
+   * for name resolution because Go resolves methods based on the receiver type.
+   * *)
+  | ParamReceiver of parameter_classic
+  (* e.g., ParamTodo in OCaml, SingleStar and Slash
    * in Python to delimit regular parameters from special one.
    * TODO ParamRef of tok * parameter_classic in PHP/Ruby *)
   | OtherParam of todo_kind * any list
@@ -2009,7 +2012,13 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      * http://gallium.inria.fr/~fpottier/visitors/manual.pdf
      *
      * The @name annotations on types above are to disambiguate types that would
-     * otherwise be assigned a visitor method named `visit_t`. *)
+     * otherwise be assigned a visitor method named `visit_t`.
+     *
+     * To view the generated source, build, navigate to
+     * `_build/default/libs/ast_generic/`, and then run the following command:
+     *
+     * ocamlc -stop-after parsing -dsource AST_generic.pp.ml
+     * *)
     visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* Most clients should use this instead of the default `iter`. In many cases,

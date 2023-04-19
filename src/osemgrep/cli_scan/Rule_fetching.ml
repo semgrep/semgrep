@@ -140,8 +140,8 @@ let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
             "Support for Jsonnet rules is experimental and currently meant for \
              internal use only. The syntax may change or be removed at any \
              point.");
-      let ast = Parse_jsonnet.parse_program !!file in
-      let core = Desugar_jsonnet.desugar_program ~import_callback !!file ast in
+      let ast = Parse_jsonnet.parse_program file in
+      let core = Desugar_jsonnet.desugar_program ~import_callback file ast in
       let value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)

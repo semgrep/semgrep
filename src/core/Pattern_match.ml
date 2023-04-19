@@ -55,8 +55,7 @@ type taint_call_trace =
 [@@deriving show, eq]
 
 type taint_trace = {
-  source : taint_call_trace;
-  tokens : tainted_tokens;
+  sources : (taint_call_trace * tainted_tokens) list;
   sink : taint_call_trace;
 }
 [@@deriving show, eq]
@@ -69,8 +68,8 @@ type t = {
   (* location information *)
   file : Common.filename;
   (* less: redundant with location? *)
-  (* note that the two token_location can be equal *)
-  range_loc : Parse_info.token_location * Parse_info.token_location;
+  (* note that the two Tok.location can be equal *)
+  range_loc : Tok.location * Tok.location;
   (* less: do we need to be lazy? *)
   tokens : Parse_info.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)

@@ -823,9 +823,6 @@ val realpath : filename -> filename
 val inits_of_absolute_dir : dirname -> dirname list
 val inits_of_relative_dir : dirname -> dirname list
 
-(* basic file position *)
-type filepos = { l : int; c : int }
-
 (*x: common.mli for basic types *)
 (*****************************************************************************)
 (* i18n *)
@@ -1760,7 +1757,7 @@ val getDoubleParser :
 (*****************************************************************************)
 (* Parsers (cocci) *)
 (*****************************************************************************)
-(* now in h_program-lang/parse_info.ml *)
+(* now in lib_parsing/parse_info.ml *)
 (*x: common.mli misc *)
 (*****************************************************************************)
 (* Scope managment (cocci) *)
