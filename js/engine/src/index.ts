@@ -23,14 +23,8 @@ export interface Engine {
   deleteFile: (filename: string) => void;
 }
 
-export const EngineFactory: (
-  libYamlWasmPath?: string
-) => Promise<Engine> = async (libYamlWasmPath?) => {
-  const libyaml = await LibYamlFactory({
-    locateFile: (a: string) => {
-      return libYamlWasmPath || a;
-    },
-  });
+export const EngineFactory: () => Promise<Engine> = async () => {
+  const libyaml = await LibYamlFactory();
   const {
     getMountpoints,
     setLibYamlWasmModule,

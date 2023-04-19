@@ -25,9 +25,9 @@ You can also load this file in nodejs and test it with:
 js % node
 Welcome to Node.js v16.19.0.
 Type ".help" for more information.
-> const engine = await require("./engine/dist/index.js").EngineFactory();
+> const engine = await require("./engine/dist").EngineFactory();
 undefined
-> const lua = await require("./languages/lua/dist/index.js").ParserFactory();
+> const lua = await require("./languages/lua/dist").ParserFactory();
 undefined
 > engine.addParser(lua);
 undefined

@@ -1,6 +1,6 @@
 {
   "name": "@semgrep/engine",
-  "version": "1.17.1-alpha.4",
+  "version": "0.0.1",
   "description": "Javascript bindings for the semgrep engine",
   "main": "dist/index.js",
   "scripts": {
