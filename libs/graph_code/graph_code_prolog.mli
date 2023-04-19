@@ -8,7 +8,7 @@ val hook_use_edge_for_prolog :
   bool ->
   Graph_code.node * Graph_code.node ->
   Graph_code.t ->
-  Tok.token_location ->
+  Tok.location ->
   unit
 
 val build : Graph_code.t -> Prolog_code.fact list

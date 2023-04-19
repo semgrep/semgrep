@@ -284,7 +284,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
      *)
   with
   | Parse_info.NoTokenLocation s ->
-      let loc = Parse_info.first_loc_of_file x.file in
+      let loc = Tok.first_loc_of_file x.file in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
       in

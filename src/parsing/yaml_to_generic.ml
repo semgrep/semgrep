@@ -169,7 +169,7 @@ let error str v pos env =
 
 let get_res file = function
   | Result.Error (`Msg str) ->
-      let loc = PI.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let tok = PI.mk_info_of_loc loc in
       raise (PI.Other_error (str, tok))
   | Result.Ok v -> v
@@ -181,7 +181,7 @@ let do_parse env =
       let prefix, tok =
         match env.last_event with
         | None ->
-            let loc = PI.first_loc_of_file env.file in
+            let loc = Tok.first_loc_of_file env.file in
             ("(incorrect error location) ", PI.mk_info_of_loc loc)
         | Some (v, pos) ->
             ( "(approximate error location; error nearby after) ",

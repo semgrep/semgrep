@@ -35,7 +35,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type error = {
   rule_id : Rule.rule_id option;
   typ : Out.core_error_kind;
-  loc : Tok.token_location;
+  loc : Tok.location;
   msg : string;
   details : string option;
 }
@@ -140,14 +140,14 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
       Some (mk_error ~rule_id loc msg Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
@@ -164,7 +164,7 @@ let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
           Exception.reraise e
       | exn ->
           let trace = Exception.to_string e in
-          let loc = Parse_info.first_loc_of_file file in
+          let loc = Tok.first_loc_of_file file in
           {
             rule_id;
             typ = Out.FatalError;

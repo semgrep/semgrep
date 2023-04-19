@@ -1476,7 +1476,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
          *)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
-            let loc = PI.first_loc_of_file !!file in
+            let loc = Tok.first_loc_of_file !!file in
             yaml_error (PI.mk_info_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false

@@ -115,9 +115,7 @@ let count_lines_and_trailing =
 let offsets_of_mval extract_mvalue =
   Metavariable.mvalue_to_any extract_mvalue
   |> Visitor_AST.range_of_any_opt
-  |> Option.map
-       (fun ((start_loc : Tok.token_location), (end_loc : Tok.token_location))
-       ->
+  |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
          let end_len = String.length end_loc.Tok.str in
          {
            start_pos = start_loc.pos.charpos;
@@ -215,7 +213,7 @@ let report_no_source_range erule =
 (* Result mapping helpers *)
 (*****************************************************************************)
 
-let map_loc pos line col file (loc : Tok.token_location) =
+let map_loc pos line col file (loc : Tok.location) =
   (* this _shouldn't_ be a fake location *)
   {
     loc with

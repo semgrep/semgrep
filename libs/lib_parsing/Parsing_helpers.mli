@@ -43,19 +43,12 @@ val full_charpos_to_pos_str : string -> int -> int * int
 (* fill in the line and column field of token_location that were not set
  * during lexing because of limitations of ocamllex. *)
 val complete_token_location_large :
-  Common.filename ->
-  (int -> int * int) ->
-  Tok.token_location ->
-  Tok.token_location
+  Common.filename -> (int -> int * int) -> Tok.location -> Tok.location
 
-val fix_token_location :
-  (Tok.token_location -> Tok.token_location) ->
-  Tok.token_mutable ->
-  Tok.token_mutable
+val fix_token_location : (Tok.location -> Tok.location) -> Tok.t -> Tok.t
 (** Fix the location info in a token. *)
 
-val adjust_pinfo_wrt_base :
-  Tok.token_location -> Tok.token_location -> Tok.token_location
+val adjust_pinfo_wrt_base : Tok.location -> Tok.location -> Tok.location
 (** See [adjust_info_wrt_base]. *)
 
 (* Token locations are supposed to denote the beginning of a token.
@@ -64,10 +57,9 @@ val adjust_pinfo_wrt_base :
    This is something we can do at relatively low cost by going through and inspecting
    the contents of the token, plus the start information.
 *)
-val get_token_end_info : Tok.token_location -> int * int * int
+val get_token_end_info : Tok.location -> int * int * int
 
-val adjust_info_wrt_base :
-  Tok.token_location -> Tok.token_mutable -> Tok.token_mutable
+val adjust_info_wrt_base : Tok.location -> Tok.t -> Tok.t
 (** [adjust_info_wrt_base base_loc tok], where [tok] represents a location
   * relative to [base_loc], returns the same [tok] but with an absolute
   * {! token_location}. This is useful for fixing parse info after

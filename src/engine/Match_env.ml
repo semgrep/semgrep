@@ -73,7 +73,7 @@ let error env msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = PI.first_loc_of_file env.xtarget.Xtarget.file in
+  let loc = Tok.first_loc_of_file env.xtarget.Xtarget.file in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
     E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg Out.MatchingError

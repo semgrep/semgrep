@@ -106,8 +106,7 @@ class ['self] range_visitor =
     method! visit_Alias ranges id _e = self#visit_ident ranges id
   end
 
-let extract_ranges :
-    AST_generic.any -> (Tok.token_location * Tok.token_location) option =
+let extract_ranges : AST_generic.any -> (Tok.location * Tok.location) option =
   let v = new range_visitor in
   let ranges = ref None in
   fun any ->

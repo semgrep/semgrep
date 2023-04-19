@@ -39,7 +39,7 @@ type 'ast parser =
 
 type 'ast internal_result =
   | Ok of ('ast * Parsing_stat.t)
-  | Partial of 'ast * Tok.token_location list * Parsing_stat.t
+  | Partial of 'ast * Tok.location list * Parsing_stat.t
   | Error of Exception.t
 
 (* TODO: factorize with previous type *)
