@@ -498,7 +498,7 @@ let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
     (* (
         match namespace_ident with
         | Some x ->
-            Some (List.hd (unwrap_qualified_identifier x), G.empty_id_info ())
+            Some (Common.hd_exn "unexpected empty list" (unwrap_qualified_identifier x), G.empty_id_info ())
         | None -> None) *)
   in
   match namespace_ident with
@@ -1600,7 +1600,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             | None -> None
           in
           let v4 = arguments env v4 in
-          G.New (tnew, ty, v4) |> G.e
+          G.New (tnew, ty, G.empty_id_info (), v4) |> G.e
       | `Incl_exp (v1, v2) ->
           (* Q: See question below in Requ *)
           let v1 =

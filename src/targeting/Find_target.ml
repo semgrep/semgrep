@@ -1,3 +1,4 @@
+open Common
 open Osemgrep_targeting
 open File.Operators
 module In = Input_to_core_t
@@ -347,12 +348,30 @@ let get_targets conf scanning_roots =
          let paths, skipped_paths2 =
            global_filter ~opt_lang:None ~sort_by_decr_size:true paths
          in
-         (* TODO: update the comment below *)
-         (* !!!TODO!!! use conf.include_, conf.exclude_,
-          * max_target_bytes (* from the semgrep CLI, not semgrep-core *)
-          * respect_git_ignore, baseline_handler, file_ignore?, etc.
+         (* TODO: factorize with Skip_target.exlude_big_files which
+          * uses Flag_semgrep.max_target_bytes instead of the osemgrep CLI
+          * --max-target-bytes flag.
           *)
-         (paths, skipped_paths1 @ skipped_paths2))
+         let paths, skipped_paths3 =
+           paths
+           |> Common.partition_result (fun path ->
+                  let size = File.filesize path in
+                  if conf.max_target_bytes > 0 && size > conf.max_target_bytes
+                  then
+                    Error
+                      {
+                        Resp.path = !!path;
+                        reason = Too_big;
+                        details =
+                          spf "target file size exceeds %i bytes at %i bytes"
+                            conf.max_target_bytes size;
+                        rule_id = None;
+                      }
+                  else Ok path)
+         in
+
+         (* TODO: respect_git_ignore, baseline_handler, file_ignore?, etc. *)
+         (paths, skipped_paths1 @ skipped_paths2 @ skipped_paths3))
   |> (* flatten results that were grouped by project *)
   List.split
   |> fun (paths_list, skipped_paths_list) ->

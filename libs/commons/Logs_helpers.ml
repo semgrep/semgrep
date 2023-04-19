@@ -2,8 +2,9 @@
  * calls even before a precise call to setup_logging.
  *)
 let enable_logging () =
+  let pp_header _ppf (_level, _opt_header) = () in
   Logs.set_level ~all:true (Some Logs.Warning);
-  Logs.set_reporter (Logs_fmt.reporter ~app:Format.err_formatter ());
+  Logs.set_reporter (Logs_fmt.reporter ~pp_header ~app:Format.err_formatter ());
   ()
 
 (* TOPORT: with Logs a warning is displayed as:

@@ -84,7 +84,7 @@ let timeout_function file timeout f =
   with
   | Some res -> res
   | None ->
-      let loc = PI.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
@@ -116,13 +116,16 @@ let rec print_taint_call_trace ~format ~spaces = function
 
 let print_taint_trace ~format taint_trace =
   if format =*= Matching_report.Normal then (
-    let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
-    pr "  * Taint comes from:";
-    print_taint_call_trace ~format ~spaces:4 source;
-    if tokens <> [] then
-      pr
-        (spf "  * These intermediate values are tainted: %s"
-           (string_of_toks tokens));
+    let (lazy { Pattern_match.sources; sink }) = taint_trace in
+    sources
+    |> List.iteri (fun idx (source, tokens) ->
+           if idx =*= 0 then pr "  * Taint may come from this source:"
+           else pr "  * Taint may also come from this source:";
+           print_taint_call_trace ~format ~spaces:4 source;
+           if tokens <> [] then
+             pr
+               (spf "  * These intermediate values are tainted: %s"
+                  (string_of_toks tokens)));
     match sink with
     | Pattern_match.Toks _ -> ()
     | Call _ ->
@@ -269,7 +272,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Parse_info.first_loc_of_file file in
+           let loc = Tok.first_loc_of_file file in
            let error =
              E.mk_error ~rule_id:(Some id) loc
                (spf
@@ -452,7 +455,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "critical exn while matching ruleid %s"
                          rule.MR.id;
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Parse_info.first_loc_of_file file in
+                   let loc = Tok.first_loc_of_file file in
                    let errors =
                      RP.ErrorSet.singleton
                        (E.mk_error ~rule_id:!Rule.last_matched_rule loc ""

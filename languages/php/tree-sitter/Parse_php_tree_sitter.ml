@@ -1600,7 +1600,8 @@ and map_object_creation_expression (env : env)
       in
       let v4 =
         match v4 with
-        | Some x -> Some (List.hd (map_base_clause env x))
+        | Some x ->
+            Some (Common.hd_exn "unexpected empty list" (map_base_clause env x))
         | None -> None
       in
       let v5 =
@@ -2026,7 +2027,8 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v5 =
         match v5 with
-        | Some x -> Some (List.hd (map_base_clause env x))
+        | Some x ->
+            Some (Common.hd_exn "unexpected empty list" (map_base_clause env x))
         | None -> None
       in
       let v6 =

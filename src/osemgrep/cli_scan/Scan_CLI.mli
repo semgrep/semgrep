@@ -27,6 +27,8 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;
+  max_chars_per_line : int;
+  max_lines_per_finding : int;
   time_flag : bool;
   profile : bool;
   rewrite_rule_ids : bool;

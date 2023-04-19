@@ -261,9 +261,8 @@ and expr e =
       G.DeepEllipsis v1
   | NameId v1 -> G.N (name v1)
   | NameOrClassType _v1 ->
-      let ii = Lib_parsing_java.ii_of_any (AExpr e) in
-      error (List.hd ii)
-        "NameOrClassType should only appear in (ignored) annotations"
+      let ii = Lib_parsing_java.info_of_any (AExpr e) in
+      error ii "NameOrClassType should only appear in (ignored) annotations"
   | Literal v1 ->
       let v1 = literal v1 in
       G.L v1
@@ -275,7 +274,7 @@ and expr e =
       and v2 = list argument v2
       and v3 = option (bracket decls) v3 in
       match v3 with
-      | None -> G.New (v0, v1, (lp, v2, rp))
+      | None -> G.New (v0, v1, G.empty_id_info (), (lp, v2, rp))
       | Some decls ->
           let anonclass =
             G.AnonClass
@@ -303,8 +302,8 @@ and expr e =
       in
       let t = mk_array (v3 + List.length v2) in
       match v4 with
-      | None -> G.New (v0, t, fb v2)
-      | Some e -> G.New (v0, t, fb (G.Arg e :: v2)))
+      | None -> G.New (v0, t, G.empty_id_info (), fb v2)
+      | Some e -> G.New (v0, t, G.empty_id_info (), fb (G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, tok2, v2, v3, v4) ->
       let v0 = expr v0

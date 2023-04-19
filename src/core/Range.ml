@@ -102,10 +102,10 @@ let range_of_linecol_spec str file =
     else failwith (spf "could not find range %s in %s" str file))
   else failwith (spf "wrong format for linecol range spec: %s" str)
 
-let range_of_token_locations (start_loc : PI.token_location)
-    (end_loc : PI.token_location) =
-  let start = start_loc.charpos in
-  let end_ = end_loc.charpos + String.length end_loc.str - 1 in
+let range_of_token_locations (start_loc : Tok.location) (end_loc : Tok.location)
+    =
+  let start = start_loc.pos.charpos in
+  let end_ = end_loc.pos.charpos + String.length end_loc.str - 1 in
   { start; end_ }
 
 let range_of_tokens xs =

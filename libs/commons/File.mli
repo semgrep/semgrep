@@ -61,7 +61,7 @@ module Operators : sig
   val ( !! ) : Fpath.t -> string
 end
 
-(* for realpath, use Unix.realpath in ocaml >= 4.13 *)
+(* For realpath, use Unix.realpath in OCaml >= 4.13 *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
 *)

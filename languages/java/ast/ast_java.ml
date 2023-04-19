@@ -508,10 +508,7 @@ type any =
 let unwrap = fst
 
 let fakeInfo ?(next_to = None) str =
-  {
-    Parse_info.token = Parse_info.FakeTokStr (str, next_to);
-    transfo = Parse_info.NoTransfo;
-  }
+  { Tok.token = Tok.FakeTokStr (str, next_to); transfo = Tok.NoTransfo }
 
 let info_of_ident ident = snd ident
 

@@ -243,10 +243,10 @@ and vof_expr e =
   | Call (v1, v2) ->
       let v1 = vof_expr v1 and v2 = vof_arguments v2 in
       OCaml.VSum ("Call", [ v1; v2 ])
-  | New (v0, v1, v2) ->
+  | New (v0, v1, v2, v3) ->
       let v0 = vof_tok v0 in
-      let v1 = vof_type_ v1 and v2 = vof_arguments v2 in
-      OCaml.VSum ("New", [ v0; v1; v2 ])
+      let v1 = vof_type_ v1 and v2 = vof_id_info v2 and v3 = vof_arguments v3 in
+      OCaml.VSum ("New", [ v0; v1; v2; v3 ])
   | Assign (v1, v2, v3) ->
       let v1 = vof_expr v1 and v2 = vof_tok v2 and v3 = vof_expr v3 in
       OCaml.VSum ("Assign", [ v1; v2; v3 ])
@@ -1172,6 +1172,9 @@ and vof_parameter = function
   | ParamEllipsis v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("ParamEllipsis", [ v1 ])
+  | ParamReceiver v1 ->
+      let v1 = vof_parameter_classic v1 in
+      OCaml.VSum ("ParamReceiver", [ v1 ])
   | OtherParam (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherParam", [ v1; v2 ])

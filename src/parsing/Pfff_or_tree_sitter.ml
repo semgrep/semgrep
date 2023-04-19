@@ -32,13 +32,14 @@ let debug_exn = ref false
 (* Types *)
 (*****************************************************************************)
 
+(* TODO: switch to Fpath.t *)
 type 'ast parser =
   | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
   | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
 
 type 'ast internal_result =
   | Ok of ('ast * Parsing_stat.t)
-  | Partial of 'ast * PI.token_location list * Parsing_stat.t
+  | Partial of 'ast * Tok.location list * Parsing_stat.t
   | Error of Exception.t
 
 (* TODO: factorize with previous type *)
@@ -53,16 +54,19 @@ type 'ast pattern_parser =
 let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
   {
-    PI.str = err.substring;
-    charpos = 0;
-    (* fake *)
-    line = start.row + 1;
-    column = start.column;
-    file = err.file.name;
+    Tok.str = err.substring;
+    pos =
+      {
+        charpos = 0;
+        (* fake *)
+        line = start.row + 1;
+        column = start.column;
+        file = err.file.name;
+      };
   }
 
 let exn_of_loc loc =
-  let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
+  let info = { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo } in
   PI.Parsing_error info |> Exception.trace
 
 (* used by Parse_jsonnet *)

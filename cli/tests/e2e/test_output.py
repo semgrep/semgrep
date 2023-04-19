@@ -190,7 +190,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
                 # Mask variable debug output
-                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
+                re.compile(r"/(.*)/semgrep-core"),
                 re.compile(r"loaded 1 configs in(.*)"),
                 re.compile(r".*https://semgrep.dev(.*).*"),
                 re.compile(r"(.*Main\.Dune__exe__Main.*)"),
@@ -442,6 +442,19 @@ def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
     results, _errors = run_semgrep_on_copied_files(
         "rules/dependency_aware/monorepo_with_first_party.yaml",
         target_name="dependency_aware/monorepo",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
+    results, _errors = run_semgrep_on_copied_files(
+        "rules/dependency_aware/lodash-4.17.19.yaml",
+        target_name="dependency_aware/unreachable_multiple_copies/yarn.lock",
         output_format=OutputFormat.TEXT,
     )
     snapshot.assert_match(

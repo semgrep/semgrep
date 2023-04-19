@@ -1,61 +1,11 @@
-(* TODO: This module should be renamed to Tok.ml and maybe split with a Loc.ml
- * and maybe a Parsing_error.ml ?
- *)
+(* TODO: split with a Parsing_error.ml ? *)
 
 (*****************************************************************************)
 (* Tokens *)
 (*****************************************************************************)
 
-(* ('token_location' < 'token_origin' < 'token_mutable') * token_kind *)
-
-(* to report errors, regular position information *)
-type token_location = {
-  str : string; (* the content of the "token" *)
-  charpos : int; (* byte position, 0-based *)
-  line : int; (* 1-based *)
-  column : int; (* 0-based *)
-  file : Common.filename;
-}
-[@@deriving show, eq]
-(* see also type filepos = { l: int; c: int; } in Common2.mli *)
-
-(* to deal with expanded tokens, e.g. preprocessor like cpp for C *)
-type token_origin =
-  | OriginTok of token_location
-  | FakeTokStr of string * (token_location * int) option (* next to *)
-  | ExpandedTok of token_location * token_location * int
-  | Ab (* abstract token, see Parse_info.ml comment *)
-[@@deriving show, eq]
-
-(* to allow source to source transformation via token "annotations",
- * see the documentation for spatch.
- *)
-type token_mutable = {
-  token : token_origin;
-  (* for spatch *)
-  mutable transfo : transformation;
-}
-
-and transformation =
-  | NoTransfo
-  | Remove
-  | AddBefore of add
-  | AddAfter of add
-  | Replace of add
-  | AddArgsBefore of string list
-
-and add = AddStr of string | AddNewlineAndIdent
-
-(* Shortcut.
- * Technically speaking this is not a token, because we do not have
- * the kind of the token (e.g., PLUS | IDENT | IF | ...).
- * It's just a lexeme, but the word lexeme is not as known as token.
- *)
-type t = token_mutable [@@deriving eq]
-
-(* for ppx_deriving *)
-val pp_full_token_info : bool ref
-val pp : Format.formatter -> t -> unit
+(* TODO: remove at some point *)
+type t = Tok.t [@@deriving eq, show]
 
 (* mostly for the fuzzy AST builder *)
 type token_kind =
@@ -110,8 +60,7 @@ val register_exception_printer : unit -> unit
 (*****************************************************************************)
 
 val tokinfo : Lexing.lexbuf -> t
-val mk_info_of_loc : token_location -> t
-val first_loc_of_file : Common.filename -> token_location
+val mk_info_of_loc : Tok.location -> t
 
 (* TODO? could also be in Lexer helpers section *)
 (* can deprecate? *)
@@ -140,7 +89,6 @@ val split_info_at_pos : int -> t -> t * t
 
 exception NoTokenLocation of string
 
-val fake_token_location : token_location
 val is_fake : t -> bool
 val is_origintok : t -> bool
 
@@ -156,11 +104,11 @@ val unsafe_sc : t
 
 (* "safe" fake versions *)
 
-val fake_info_loc : token_location -> string -> t
+val fake_info_loc : Tok.location -> string -> t
 val fake_info : t -> string -> t
-val fake_bracket_loc : token_location -> 'a -> t * 'a * t
+val fake_bracket_loc : Tok.location -> 'a -> t * 'a * t
 val fake_bracket : t -> 'a -> t * 'a * t
-val sc_loc : token_location -> t
+val sc_loc : Tok.location -> t
 val sc : t -> t
 
 (* accessor *)
@@ -181,19 +129,13 @@ val file_of_info : t -> Common.filename
 
 (* Format the location file/line/column into a string *)
 val string_of_info : t -> string
-val token_location_of_info : t -> (token_location, string) result
+val token_location_of_info : t -> (Tok.location, string) result
 
 (* @raise NoTokenLocation if given an unsafe fake token (without location info) *)
-val unsafe_token_location_of_info : t -> token_location
-val get_original_token_location : token_origin -> token_location
+val unsafe_token_location_of_info : t -> Tok.location
+val get_original_token_location : Tok.origin -> Tok.location
 val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t
-
-(*****************************************************************************)
-(* Misc *)
-(*****************************************************************************)
-
-val abstract_info : t
 
 (*****************************************************************************)
 (* Parsing stats *)

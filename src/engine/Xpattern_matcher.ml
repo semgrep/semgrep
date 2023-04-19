@@ -45,7 +45,7 @@ type ('target_content, 'xpattern) t = {
  * expect a different location if the end part is on a different line
  * (e.g., the semgrep Python wrapper), so I now return a pair.
  *)
-and match_range = PI.token_location * PI.token_location
+and match_range = Tok.location * Tok.location
 
 (*****************************************************************************)
 (* Helpers *)
@@ -53,7 +53,7 @@ and match_range = PI.token_location * PI.token_location
 
 (* todo: same, we should not need that *)
 let info_of_token_location loc =
-  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
+  { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo }
 
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->

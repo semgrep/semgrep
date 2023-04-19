@@ -1968,7 +1968,7 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
 let program (env : env) file (x : CST.program) =
   match x with
   | `Rep_stmt xs ->
-      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let tok = PI.fake_info_loc (Tok.first_loc_of_file file) "" in
       AProgram (Common.map (statement env ~tok) xs)
   | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
   | `Exp x -> AExpr (expression env x)

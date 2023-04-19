@@ -9,3 +9,8 @@ val negatable_flag :
   doc:string ->
   string list ->
   bool Cmdliner.Term.t
+
+(* Parse command-line arguments representing a number of bytes, such as
+ * '5 mb' or '3.2GiB'
+ *)
+val number_of_bytes_converter : int Cmdliner.Arg.conv

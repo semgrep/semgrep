@@ -108,7 +108,7 @@ type edge =
   | Use
 
 type nodeinfo = {
-  pos : Parse_info.token_location;
+  pos : Tok.location;
   props : E.property list;
   (* would be better to have a more structured form than string at some point *)
   typ : string option;
@@ -360,7 +360,7 @@ let edgeinfo_opt (n1, n2) e g =
 let file_of_node n g =
   try
     let info = nodeinfo n g in
-    info.pos.Parse_info.file
+    info.pos.Tok.pos.Pos.file
   with
   | Not_found -> (
       match n with

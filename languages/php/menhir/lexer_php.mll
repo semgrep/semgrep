@@ -283,12 +283,12 @@ let reset () =
   ()
 
 let rec current_mode () =
-  try
-    Common2.top !_mode_stack
-  with Failure("hd") ->
-    error("mode_stack is empty, defaulting to INITIAL");
-    reset();
-    current_mode ()
+  match !_mode_stack with
+  | top :: _ -> top
+  | [] ->
+      error("mode_stack is empty, defaulting to INITIAL");
+      reset();
+      current_mode ()
 let push_mode mode = Common.push mode _mode_stack
 let pop_mode () = ignore(Common2.pop2 _mode_stack)
 
@@ -542,7 +542,7 @@ rule st_in_scripting = parse
 
         let parse_info = PI.unsafe_token_location_of_info info in
         let pos_after_sym   =
-          parse_info.PI.charpos + String.length sym in
+          parse_info.Tok.pos.charpos + String.length sym in
         let pos_after_white = pos_after_sym + String.length white in
 
         let whiteinfo = PI.tokinfo_str_pos white pos_after_sym in
@@ -631,7 +631,7 @@ rule st_in_scripting = parse
         let info = tokinfo lexbuf in
         let dollarinfo = PI.rewrap_str (String.make 1 dollar) info in
         let parse_info = PI.unsafe_token_location_of_info info in
-        let pos_after_sym = parse_info.PI.charpos + 2 in
+        let pos_after_sym = parse_info.Tok.pos.charpos + 2 in
         let lblinfo = PI.tokinfo_str_pos s pos_after_sym in
 
         push_token (T_VARIABLE(case_str s, lblinfo));

@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020, 2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,111 +14,18 @@
  * license.txt for more details.
  *)
 open Common
+open Tok
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Information about tokens (mostly their location).
- *
- * The main types are:
- * ('token_location' < 'token_origin' < 'token_mutable') * token_kind
- *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type token_location = {
-  str : string;
-  charpos : int;
-  line : int;
-  column : int;
-  file : string;
-}
-[@@deriving show { with_path = false }, eq]
-
-let fake_token_location =
-  {
-    charpos = -1;
-    str = "";
-    line = -1;
-    column = -1;
-    file = "FAKE TOKEN LOCATION";
-  }
-
-let first_loc_of_file file =
-  { charpos = 0; str = ""; line = 1; column = 0; file }
-
-type token_origin =
-  (* Present both in the AST and list of tokens *)
-  | OriginTok of token_location
-  (* Present only in the AST and generated after parsing. Can be used
-   * when building some extra AST elements. *)
-  | FakeTokStr of
-      string (* to help the generic pretty printer *)
-      * (* Sometimes we generate fake tokens close to existing
-         * origin tokens. This can be useful when have to give an error
-         * message that involves a fakeToken. The int is a kind of
-         * virtual position, an offset. See compare_pos below.
-         * Those are called "safe" fake tokens (in contrast to the
-         * regular/unsafe one which have no position information at all).
-         *)
-      (token_location * int) option
-  (* In the case of a XHP file, we could preprocess it and incorporate
-   * the tokens of the preprocessed code with the tokens from
-   * the original file. We want to mark those "expanded" tokens
-   * with a special tag so that if someone do some transformation on
-   * those expanded tokens they will get a warning (because we may have
-   * trouble back-propagating the transformation back to the original file).
-   *)
-  | ExpandedTok of
-      (* refers to the preprocessed file, e.g. /tmp/pp-xxxx.pphp *)
-      token_location
-      * (* kind of virtual position. This info refers to the last token
-         * before a serie of expanded tokens and the int is an offset.
-         * The goal is to be able to compare the position of tokens
-         * between then, even for expanded tokens. See compare_pos
-         * below.
-         *)
-        token_location
-      * int
-  (* The Ab constructor is (ab)used to call '=' to compare
-   * big AST portions. Indeed as we keep the token information in the AST,
-   * if we have an expression in the code like "1+1" and want to test if
-   * it's equal to another code like "1+1" located elsewhere, then
-   * the Pervasives.'=' of OCaml will not return true because
-   * when it recursively goes down to compare the leaf of the AST, that is
-   * the token_location, there will be some differences of positions. If instead
-   * all leaves use Ab, then there is no position information and we can
-   * use '='. See also the 'al_info' function below.
-   *
-   * Ab means AbstractLineTok. I Use a short name to not
-   * polluate in debug mode.
-   *)
-  | Ab
-[@@deriving show { with_path = false }, eq]
-(* with tarzan *)
-
-type token_mutable = {
-  (* contains among other things the position of the token through
-   * the token_location embedded inside the token_origin type.
-   *)
-  token : token_origin;
-  mutable transfo : transformation; (* less: mutable comments: ...; *)
-}
-
-(* poor's man refactoring *)
-and transformation =
-  | NoTransfo
-  | Remove
-  | AddBefore of add
-  | AddAfter of add
-  | Replace of add
-  | AddArgsBefore of string list
-
-and add = AddStr of string | AddNewlineAndIdent
-[@@deriving show { with_path = false }, eq]
-(* with tarzan *)
+(* TODO: remove at some point *)
+type t = Tok.t [@@deriving eq, show]
 
 exception NoTokenLocation of string
 
@@ -139,20 +46,18 @@ let unsafe_token_location_of_info ii =
   | Error msg -> raise (NoTokenLocation msg)
 
 (* Synthesize a token. *)
-let unsafe_fake_info str : token_mutable =
+let unsafe_fake_info str : Tok.t =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
 
 (* "safe" fake token *)
-let fake_info_loc next_to_loc str : token_mutable =
+let fake_info_loc next_to_loc str : Tok.t =
   (* TODO: offset seems to have no use right now (?) *)
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
-let fake_info next_to_tok str : token_mutable =
+let fake_info next_to_tok str : Tok.t =
   match token_location_of_info next_to_tok with
   | Ok loc -> fake_info_loc loc str
   | Error _ -> unsafe_fake_info str
-
-let abstract_info = { token = Ab; transfo = NoTransfo }
 
 let is_fake tok =
   match tok.token with
@@ -207,23 +112,12 @@ type token_kind =
 
 and esthet = Comment | Newline | Space
 
-(* shortcut *)
-type t = token_mutable [@@deriving eq]
-
-(* see -full_token_info in meta_parse_info.ml *)
-let pp_full_token_info = ref false
-
-(* for ppx_deriving *)
-let pp fmt t =
-  if !pp_full_token_info then pp_token_mutable fmt t
-  else Format.fprintf fmt "()"
-
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
 (* for error reporting *)
-let string_of_token_location x = spf "%s:%d:%d" x.file x.line x.column
+let string_of_token_location x = Pos.string_of_pos x.pos
 
 let string_of_info x =
   match token_location_of_info x with
@@ -239,12 +133,12 @@ let str_of_info ii =
       raise (NoTokenLocation "str_of_info: Expanded or Ab")
 
 let _str_of_info ii = (unsafe_token_location_of_info ii).str
-let file_of_info ii = (unsafe_token_location_of_info ii).file
-let line_of_info ii = (unsafe_token_location_of_info ii).line
-let col_of_info ii = (unsafe_token_location_of_info ii).column
+let file_of_info ii = (unsafe_token_location_of_info ii).pos.file
+let line_of_info ii = (unsafe_token_location_of_info ii).pos.line
+let col_of_info ii = (unsafe_token_location_of_info ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
-let pos_of_info ii = (unsafe_token_location_of_info ii).charpos
+let pos_of_info ii = (unsafe_token_location_of_info ii).pos.charpos
 
 (*****************************************************************************)
 (* Lexer helpers *)
@@ -254,12 +148,15 @@ let pos_of_info ii = (unsafe_token_location_of_info ii).charpos
 let tokinfo_str_pos str pos =
   let loc =
     {
-      charpos = pos;
       str;
-      (* info filled in a post-lexing phase, see complete_token_location_large*)
-      line = -1;
-      column = -1;
-      file = "NO FILE INFO YET";
+      pos =
+        {
+          charpos = pos;
+          (* info filled in a post-lexing phase, see complete_token_location_large*)
+          line = -1;
+          column = -1;
+          file = "NO FILE INFO YET";
+        };
     }
   in
   mk_info_of_loc loc
@@ -303,10 +200,13 @@ let split_info_at_pos pos ii =
   let loc1 = { loc with str = loc1_str } in
   let loc2 =
     {
-      loc with
       str = loc2_str;
-      charpos = loc.charpos + pos;
-      column = loc.column + pos;
+      pos =
+        {
+          loc.pos with
+          charpos = loc.pos.charpos + pos;
+          column = loc.pos.column + pos;
+        };
     }
   in
   (mk_info_of_loc loc1, mk_info_of_loc loc2)
@@ -351,9 +251,9 @@ let get_original_token_location = function
 
 (* not used but used to be useful in coccinelle *)
 type posrv =
-  | Real of token_location
+  | Real of Tok.location
   | Virt of
-      token_location (* last real info before expanded tok *)
+      Tok.location (* last real info before expanded tok *)
       * int (* virtual offset *)
 
 let compare_pos ii1 ii2 =
@@ -370,14 +270,14 @@ let compare_pos ii1 ii2 =
   let pos1 = get_pos (pinfo_of_info ii1) in
   let pos2 = get_pos (pinfo_of_info ii2) in
   match (pos1, pos2) with
-  | Real p1, Real p2 -> compare p1.charpos p2.charpos
+  | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
   | Virt (p1, _), Real p2 ->
-      if compare p1.charpos p2.charpos =|= -1 then -1 else 1
+      if compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
   | Real p1, Virt (p2, _) ->
-      if compare p1.charpos p2.charpos =|= 1 then 1 else -1
+      if compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
   | Virt (p1, o1), Virt (p2, o2) -> (
-      let poi1 = p1.charpos in
-      let poi2 = p2.charpos in
+      let poi1 = p1.pos.charpos in
+      let poi2 = p2.pos.charpos in
       match compare poi1 poi2 with
       | -1 -> -1
       | 0 -> compare o1 o2
@@ -418,7 +318,7 @@ let shorten_string s =
    - should be useful to a human reader
    - should not raise an exception
 *)
-let show_token_value (x : token_origin) : string =
+let show_token_value (x : Tok.origin) : string =
   match x with
   | OriginTok loc -> spf "%S" (shorten_string loc.str)
   | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
