@@ -139,7 +139,7 @@ let render_fix pm =
   let start, end_ =
     let start, end_ = pm.Pattern_match.range_loc in
     let _, _, end_charpos = Parsing_helpers.get_token_end_info end_ in
-    (start.Parse_info.pos.charpos, end_charpos)
+    (start.Tok.pos.charpos, end_charpos)
   in
   let target_contents = lazy (Common.read_file pm.Pattern_match.file) in
   let result =

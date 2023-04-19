@@ -35,7 +35,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type error = {
   rule_id : Rule.rule_id option;
   typ : Out.core_error_kind;
-  loc : Parse_info.token_location;
+  loc : Tok.token_location;
   msg : string;
   details : string option;
 }
@@ -100,7 +100,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   | Parse_info.Parsing_error tok ->
       let msg =
         match tok with
-        | { token = PI.OriginTok { str; _ }; _ } ->
+        | { token = Tok.OriginTok { str; _ }; _ } ->
             spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
@@ -189,8 +189,8 @@ let string_of_error err =
     | Some s -> spf "\n%s" s
   in
   spf "%s:%d:%d: %s: %s%s"
-    (source_of_string pos.PI.pos.file)
-    pos.PI.pos.line pos.PI.pos.column
+    (source_of_string pos.Tok.pos.file)
+    pos.Tok.pos.line pos.Tok.pos.column
     (Out.string_of_core_error_kind err.typ)
     err.msg details
 
@@ -264,7 +264,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
     actual_findings
     |> Common.map (fun err ->
            let loc = err.loc in
-           (loc.PI.pos.file, loc.PI.pos.line))
+           (loc.Tok.pos.file, loc.Tok.pos.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
@@ -282,7 +282,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
-                     src = loc.PI.pos.file && l =|= loc.PI.pos.line)
+                     src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =

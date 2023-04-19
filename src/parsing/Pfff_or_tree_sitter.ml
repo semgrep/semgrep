@@ -39,7 +39,7 @@ type 'ast parser =
 
 type 'ast internal_result =
   | Ok of ('ast * Parsing_stat.t)
-  | Partial of 'ast * PI.token_location list * Parsing_stat.t
+  | Partial of 'ast * Tok.token_location list * Parsing_stat.t
   | Error of Exception.t
 
 (* TODO: factorize with previous type *)
@@ -54,7 +54,7 @@ type 'ast pattern_parser =
 let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
   {
-    PI.str = err.substring;
+    Tok.str = err.substring;
     pos =
       {
         charpos = 0;
@@ -66,7 +66,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   }
 
 let exn_of_loc loc =
-  let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
+  let info = { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo } in
   PI.Parsing_error info |> Exception.trace
 
 (* used by Parse_jsonnet *)

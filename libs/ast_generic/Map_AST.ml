@@ -64,14 +64,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
     (* old: Parse_info.map_info v *)
     let k x =
       match x with
-      | { Parse_info.token = v_pinfo; transfo = v_transfo } ->
+      | { Tok.token = v_pinfo; transfo = v_transfo } ->
           let v_pinfo =
             (* todo? map_pinfo v_pinfo *)
             v_pinfo
           in
           (* not recurse in transfo ? *)
           {
-            Parse_info.token = v_pinfo;
+            Tok.token = v_pinfo;
             (* generete a fresh field *)
             transfo = v_transfo;
           }

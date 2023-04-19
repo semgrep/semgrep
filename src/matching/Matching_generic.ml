@@ -703,13 +703,13 @@ let adjust_info_remove_enclosing_quotes (s, info) =
        * this happens if the string is the result of constant folding. *)
       (s, info)
   | Ok loc -> (
-      let raw_str = loc.PI.str in
+      let raw_str = loc.Tok.str in
       let re = Str.regexp_string s in
       try
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
-            PI.str = s;
+            Tok.str = s;
             pos =
               {
                 loc.pos with
@@ -718,7 +718,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
               };
           }
         in
-        let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+        let info = { Tok.transfo = Tok.NoTransfo; token = Tok.OriginTok loc } in
         (s, info)
       with
       | Not_found ->

@@ -336,7 +336,7 @@ let abstract_for_comparison_visitor recursor =
   let hooks =
     {
       M.default_visitor with
-      M.kinfo = (fun (_k, _) i -> { i with Parse_info.token = Parse_info.Ab });
+      M.kinfo = (fun (_k, _) i -> { i with Tok.token = Tok.Ab });
       M.kidinfo =
         (fun (k, _) ii -> k { ii with AST_generic.id_svalue = ref None });
     }

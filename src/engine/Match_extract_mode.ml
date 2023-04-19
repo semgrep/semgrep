@@ -116,11 +116,9 @@ let offsets_of_mval extract_mvalue =
   Metavariable.mvalue_to_any extract_mvalue
   |> Visitor_AST.range_of_any_opt
   |> Option.map
-       (fun
-         ( (start_loc : Parse_info.token_location),
-           (end_loc : Parse_info.token_location) )
+       (fun ((start_loc : Tok.token_location), (end_loc : Tok.token_location))
        ->
-         let end_len = String.length end_loc.Parse_info.str in
+         let end_len = String.length end_loc.Tok.str in
          {
            start_pos = start_loc.pos.charpos;
            (* subtract 1 because lines are 1-indexed, so the
@@ -217,7 +215,7 @@ let report_no_source_range erule =
 (* Result mapping helpers *)
 (*****************************************************************************)
 
-let map_loc pos line col file (loc : Parse_info.token_location) =
+let map_loc pos line col file (loc : Tok.token_location) =
   (* this _shouldn't_ be a fake location *)
   {
     loc with
@@ -234,10 +232,10 @@ let map_loc pos line col file (loc : Parse_info.token_location) =
 let map_taint_trace map_loc { Pattern_match.sources; sink } =
   let lift_map_loc f x =
     let token =
-      match x.Parse_info.token with
-      | Parse_info.OriginTok loc -> Parse_info.OriginTok (f loc)
-      | Parse_info.ExpandedTok (pp_loc, v_loc, i) ->
-          Parse_info.ExpandedTok (f pp_loc, v_loc, i)
+      match x.Tok.token with
+      | Tok.OriginTok loc -> Tok.OriginTok (f loc)
+      | Tok.ExpandedTok (pp_loc, v_loc, i) ->
+          Tok.ExpandedTok (f pp_loc, v_loc, i)
       | x -> x
     in
     { x with token }
@@ -404,7 +402,7 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                      start at the correct start location, but the length with
                      dictate the end, so it may not exactly correspond.
                   *)
-                  fun ({ Parse_info.pos = { charpos; _ }; _ } as loc) ->
+                  fun ({ Tok.pos = { charpos; _ }; _ } as loc) ->
                     if charpos < consumed_loc.start_pos then map_contents loc
                     else
                       (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)

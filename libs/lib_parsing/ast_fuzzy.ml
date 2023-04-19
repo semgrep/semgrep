@@ -113,7 +113,7 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-type tok = Parse_info.t
+type tok = Tok.t
 type 'a wrap = 'a * tok
 
 type tree =

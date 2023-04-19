@@ -1024,25 +1024,21 @@ let tvoid ii = (nQ, TPrimitive (TVoid, ii))
 let make_expanded ii =
   (* TODO? use Pos.fake_pos? *)
   let noVirtPos =
-    ( {
-        Parse_info.str = "";
-        pos = { charpos = 0; line = 0; column = 0; file = "" };
-      },
+    ( { Tok.str = ""; pos = { charpos = 0; line = 0; column = 0; file = "" } },
       -1 )
   in
   let a, b = noVirtPos in
   {
     ii with
-    Parse_info.token =
-      Parse_info.ExpandedTok
-        (Parse_info.get_original_token_location ii.Parse_info.token, a, b);
+    Tok.token =
+      Tok.ExpandedTok (Parse_info.get_original_token_location ii.Tok.token, a, b);
   }
 
 let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =
   { p_name; p_type = t; p_specs; p_val }
 
 (* used by parsing hacks *)
-let rewrap_pinfo pi ii = { ii with Parse_info.token = pi }
+let rewrap_pinfo pi ii = { ii with Tok.token = pi }
 
 (* used while migrating the use of 'string' to 'name' in check_variables *)
 let (string_of_name_tmp : name -> string) =

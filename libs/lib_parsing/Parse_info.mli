@@ -1,57 +1,12 @@
-(* TODO: This module should be renamed to Tok.ml and maybe split with a Loc.ml
- * and maybe a Parsing_error.ml ?
- *)
+(* TODO: split with a Parsing_error.ml ? *)
+open Tok
 
 (*****************************************************************************)
 (* Tokens *)
 (*****************************************************************************)
 
-(* ('token_location' < 'token_origin' < 'token_mutable') * token_kind *)
-
-(* to report errors, regular position information *)
-type token_location = {
-  str : string; (* the content of the "token" *)
-  pos : Pos.t;
-}
-[@@deriving show, eq]
-
-(* to deal with expanded tokens, e.g. preprocessor like cpp for C *)
-type token_origin =
-  | OriginTok of token_location
-  | FakeTokStr of string * (token_location * int) option (* next to *)
-  | ExpandedTok of token_location * token_location * int
-  | Ab (* abstract token, see Parse_info.ml comment *)
-[@@deriving show, eq]
-
-(* to allow source to source transformation via token "annotations",
- * see the documentation for spatch.
- *)
-type token_mutable = {
-  token : token_origin;
-  (* for spatch *)
-  mutable transfo : transformation;
-}
-
-and transformation =
-  | NoTransfo
-  | Remove
-  | AddBefore of add
-  | AddAfter of add
-  | Replace of add
-  | AddArgsBefore of string list
-
-and add = AddStr of string | AddNewlineAndIdent
-
-(* Shortcut.
- * Technically speaking this is not a token, because we do not have
- * the kind of the token (e.g., PLUS | IDENT | IF | ...).
- * It's just a lexeme, but the word lexeme is not as known as token.
- *)
-type t = token_mutable [@@deriving eq]
-
-(* for ppx_deriving *)
-val pp_full_token_info : bool ref
-val pp : Format.formatter -> t -> unit
+(* TODO: remove at some point *)
+type t = Tok.t [@@deriving eq, show]
 
 (* mostly for the fuzzy AST builder *)
 type token_kind =
@@ -188,7 +143,6 @@ val min_max_ii_by_pos : t list -> t * t
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
-
 val abstract_info : t
 
 (*****************************************************************************)

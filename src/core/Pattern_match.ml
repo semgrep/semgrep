@@ -69,7 +69,7 @@ type t = {
   file : Common.filename;
   (* less: redundant with location? *)
   (* note that the two token_location can be equal *)
-  range_loc : Parse_info.token_location * Parse_info.token_location;
+  range_loc : Tok.token_location * Tok.token_location;
   (* less: do we need to be lazy? *)
   tokens : Parse_info.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)

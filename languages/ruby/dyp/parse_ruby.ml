@@ -60,22 +60,22 @@ let mk_lexer filename input_source =
     | Parsing_helpers.Str str -> Parsing_helpers.full_charpos_to_pos_str str
   in
 
-  let adjust_info ii =
+  let adjust_info (ii : Tok.t) =
     {
       ii with
-      PI.token =
+      Tok.token =
         (* could assert pinfo.filename = file ? *)
-        (match ii.PI.token with
-        | PI.OriginTok pi -> (
+        (match ii.token with
+        | Tok.OriginTok pi -> (
             try
-              PI.OriginTok
+              Tok.OriginTok
                 (Parsing_helpers.complete_token_location_large filename table pi)
             with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
                 (* pr2_gen pi *)
                 pr2_once (spf "TODO:%s: adjust info out-of-bounds" filename);
-                PI.OriginTok pi)
+                Tok.OriginTok pi)
         | _ -> failwith "adjust_info: no an OriginTok");
     }
   in
