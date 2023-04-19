@@ -20,7 +20,12 @@ open Common
 (*****************************************************************************)
 (* File position.
  *
- * See also Loc.ml for file location (file range).
+ * See also Loc.ml for file location (file region/range).
+ *
+ * similar code:
+ *  - Lexing.position
+ *  - Common2.filepos (TODO: remove it)
+ *  - Semgrep_output_v1.position
  *)
 
 (*****************************************************************************)
@@ -37,7 +42,6 @@ type t = {
   file : Common.filename;
 }
 [@@deriving show, eq]
-(* see also type filepos = { l: int; c: int; } in Common2.mli *)
 
 (*****************************************************************************)
 (* Helpers *)
