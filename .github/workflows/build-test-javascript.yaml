@@ -19,12 +19,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Cache semgrep build
-        id: cache-semgrep-build
-        uses: actions/cache@v3
-        with:
-          path: _build
-          key: semgrep-js-${{ github.sha }}
       - name: Build semgrep
         run: |
           eval $(opam env)
@@ -36,7 +30,14 @@ jobs:
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
           echo "Building ocaml..."
-          dune build js --profile=release
+          dune build js -j 4 --profile=release
+
+          echo "Making tarball..."
+          tar czvf build-artifacts.tar.gz _build/default/js/**/dist/*
+      - uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-js-ocaml-build
+          path: build-artifacts.tar.gz
 
   build-npm-packages:
     name: Build NPM packages
@@ -57,18 +58,19 @@ jobs:
       HOME: /root
     steps:
       - uses: actions/checkout@v3
-      - name: Load semgrep build
-        id: load-semgrep-build
-        uses: actions/cache/restore@v3
+      - uses: actions/download-artifact@v3
         with:
-          path: _build
-          key: semgrep-js-${{ github.sha }}
+          name: semgrep-js-ocaml-build
+          path: build-artifacts.tar.gz
       - name: Build semgrep
         run: |
-          # echo "Installing a modern version of node..."
-          # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-          # . ~/.nvm/nvm.sh
-          # nvm install --lts
+          echo "Extracting build artifacts..."
+          tar xvzf build-artifacts.tar.gz
+
+          echo "Installing a modern version of node..."
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+          . ~/.nvm/nvm.sh
+          nvm install --lts
 
           echo "Building JS + WASM..."
           make -C js/${{ matrix.package }}
