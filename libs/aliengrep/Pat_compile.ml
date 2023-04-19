@@ -162,7 +162,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   let def_rwb = define "rwb" (sprintf {|(?!%s)|} word_char) in
   let def_bracket param =
     define param.bracket_name (* = ubracket or mbracket *)
-      (conf.braces
+      (conf.brackets
       |> Common.map (fun (open_, close) ->
              sprintf {|%s%s%s|}
                (String.make 1 open_ |> Pcre_util.quote)
