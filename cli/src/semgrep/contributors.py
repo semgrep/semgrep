@@ -6,18 +6,19 @@ information for logged-in users using semgrep CLI.
 """
 
 
-from collections import defaultdict
 from datetime import datetime
-from functools import partial
-import subprocess
-from typing import Iterator, Mapping, Sequence
-from attrs import define, field, frozen
 from enum import Enum
-from pydriller import Repository, Commit
+from typing import Iterator, Sequence
 
+from attrs import define, field, frozen
+from pydriller import Commit, Repository
+from rich import box
+from rich.columns import Columns
+from rich.padding import Padding
+from rich.table import Table
+
+from semgrep.console import console
 from semgrep.target_manager import TargetManager
-from semgrep.util import sub_check_output
-
 
 IGNORED_COMMITTERS = ["semgrep.dev"]
 IGNORED_AUTHORS = ["semgrep-ci[bot]"]
@@ -88,6 +89,22 @@ class ContributorManager:
             contributors.append(contributor)
 
         return list(set(contributors))
+
+    @classmethod
+    def print(cls, contributors: Sequence[Contributor]) -> None:
+        table = Table(box=box.SIMPLE, show_edge=False)
+        table.add_column("Name")
+        table.add_column("Email")
+        table.add_column("Source")
+
+        sorted_contributors = sorted(
+            contributors, key=lambda c: (c.name, c.email, c.source)
+        )
+        for contributor in sorted_contributors:
+            table.add_row(contributor.name, contributor.email, contributor.source.value)
+
+        columns = Columns([table], padding=(1, 8))
+        console.print(Padding(columns, (1, 0)), deindent=1)
 
     def _traverse_commits(self) -> Iterator[Commit]:
         for repository in self.repositories:
