@@ -163,7 +163,6 @@ type filename = string [@@deriving show, eq]
 
 (* TODO: those are not used very often, maybe we should delete them *)
 type dirname = string
-type path = string
 
 (* for realpath, see efuns_c library  *)
 (*
