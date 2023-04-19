@@ -17,22 +17,35 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Information about tokens (mostly their position).
+(* Information about tokens (mostly their position and origin).
  *
- * The main types are:
- * 'location' < 'origin' < 't'
+ * Note that the types below are a bit complicated because we want
+ * to represent "fake" and "expanded" tokens, as well as annotate tokens
+ * with transformation. This is also partly because in many of the ASTs
+ * and CSTs in Semgrep, including AST_generic.ml, we store the
+ * tokens in the AST at the leaves, and abuse them to compute the range
+ * of constructs.
+ * alt: an alternative would be to use cleaner ASTs with range
+ * (general location) information at every nodes, in which case we
+ * would not need at least fake tokens.
+ *
+ * Technically speaking, 't' is not really a token, because the type does
+ * not store the kind of the token (e.g., PLUS | IDENT | IF | ...), just its
+ * content. It's really just a lexeme, but the word lexeme is not as
+ * known as token.
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* 'location' < 'origin' < 't' *)
 
 (* to report errors, regular position information *)
 type location = { str : string; (* the content of the "token" *) pos : Pos.t }
 [@@deriving show { with_path = false }, eq]
 
-(* to deal with expanded tokens, e.g. preprocessor like cpp for C *)
+(* to represent fake (e.g., fake semicolons in languages such as Javascript),
+ * and expanded tokens (e.g. preprocessed constructs by cpp for C/C++)
+ *)
 type origin =
   (* Present both in the AST and list of tokens *)
   | OriginTok of location
@@ -84,9 +97,6 @@ type origin =
 
 (* to allow source to source transformation via token "annotations",
  * see the documentation for spatch.
- * Technically speaking this is not a token, because we do not have
- * the kind of the token (e.g., PLUS | IDENT | IF | ...).
- * It's just a lexeme, but the word lexeme is not as known as token.
  *)
 type t = {
   (* contains among other things the position of the token through

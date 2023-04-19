@@ -1,3 +1,13 @@
+(* Token type used in many ASTs (including in AST_generic.ml) and CSTs
+ * across Semgrep.
+ *
+ * The types below are a bit complicated because we want
+ * to represent "fake" and "expanded" tokens, as well as
+ * tokens annotated with transformation.
+ *
+ * The main type below is 't', which represents a token (real or fake)
+ *)
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -45,19 +55,15 @@ type origin =
   | Ab
 [@@deriving show, eq]
 
-(* The transfo field as its name suggest is to allow source to source
- * transformation via token "annotations". See the documentation for spatch.
- *
- * Technically speaking this is not a token, because we do not have
- * the kind of the token (e.g., PLUS | IDENT | IF | ...).
- * It's just a lexeme, but the word lexeme is not as known as token.
- *)
 type t = {
   (* contains among other things the position of the token through
    * the 'location' embedded inside the 'origin' type.
    *)
   token : origin;
-  (* for spatch *)
+  (* The transfo field as its name suggest is to allow source to source
+   * transformation via token "annotations". See the documentation for spatch.
+   * TODO: remove now that we use AST-based autofix in Semgrep
+   *)
   mutable transfo : transformation;
 }
 
