@@ -140,7 +140,7 @@ val semgrep_with_rules :
   Runner_config.t ->
   (Rule.mode Rule.rule_info Common.stack * Rule.invalid_rule_error Common.stack)
   * float ->
-  Report.final_result * Common.path Common.stack
+  Report.final_result * Common.filename Common.stack
 
 (* utilities functions used in tests or semgrep-core variants *)
 

@@ -759,14 +759,7 @@ let null_string s = s = ""
 type filename = string (* TODO could check that exist :) type sux *)
 [@@deriving show, eq]
 
-(* with sexp *)
 type dirname = string
-
-(* TODO could check that exist :) type sux *)
-(* with sexp *)
-
-(* file or dir *)
-type path = string
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
