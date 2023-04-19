@@ -9,6 +9,14 @@ jobs:
     name: Build Test Semgrep Javascript
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:ubuntu-2023-04-03
+    strategy:
+      fail-fast: true
+      matrix:
+        package:
+          - engine
+          - language/go
+          - language/lua
+          - language/python
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
@@ -30,7 +38,7 @@ jobs:
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
           echo "Building ocaml..."
-          dune build js --profile=release
+          dune build js/${{ matrix.version }} --profile=release
 
           echo "Setting up emscripten..."
           git clone https://github.com/emscripten-core/emsdk.git /emsdk
@@ -44,13 +52,10 @@ jobs:
           nvm install --lts
 
           echo "Building JS + WASM..."
-          make -C js
+          make -C js/${{ matrix.package }}
 
           echo "Testing..."
-          make -C js test
-
-          echo "Packaging..."
-          make -C js package
+          make -C js/${{ matrix.package }} test
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-artifacts
