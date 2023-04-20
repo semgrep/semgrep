@@ -547,7 +547,7 @@ let taint_trace_of_src_traces_and_sink sources sink =
 
 let pm_of_finding finding =
   match finding with
-  | T.ArgToArg _
+  | T.ToArg _
   | T.ToReturn _ ->
       None
   | ToSink { taints_with_precondition = taints, requires; sink; merged_env } ->

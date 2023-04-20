@@ -1147,6 +1147,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
 (* What is the taint denoted by 'sig_arg' ? *)
 let taints_of_sig_arg env fparams fun_exp args_exps args_taints
     (sig_arg : T.arg) =
+  (* logger#flash "taints_of_sig_arg %s" (T.show_arg sig_arg); *)
   match sig_arg.offset with
   | [] when snd sig_arg.pos >= 0 (* not `this`/`self` *) ->
       find_pos_in_actual_args args_taints fparams sig_arg.pos
@@ -1154,9 +1155,24 @@ let taints_of_sig_arg env fparams fun_exp args_exps args_taints
       (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
       let* lval, _obj = lval_of_sig_arg fun_exp fparams args_exps sig_arg in
       let arg_taints = check_tainted_lval env lval |> fst in
+      logger#flash "taints_of_sig_arg -> actual lval %s -> taints %s (ENV %s)"
+        (Display_IL.string_of_lval lval) (T.show_taints arg_taints) (Lval_env.to_string T.show_taints env.lval_env);
       Some arg_taints
 
+let _debug_fun_exp_str fun_exp =
+    match fun_exp with
+    | {
+      e = Fetch { base = Var func; rev_offset = [ ] };
+      _;
+    } -> (fst func.ident)
+    | {
+      e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
+      _;
+    } -> Printf.sprintf "%s.%s" (fst obj.ident) (fst _method.ident)
+    | _ -> "<FUNC>"
+
 let check_function_signature env fun_exp args args_taints =
+  logger#flash "===== Checking fun-sig %s" (_debug_fun_exp_str fun_exp);
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
@@ -1181,6 +1197,7 @@ let check_function_signature env fun_exp args args_taints =
                          taints_of_sig_arg env fparams fun_exp args args_taints
                            arg
                        in
+                       logger#flash "ArgToReturn %s" (T.show_taints arg_taints);
                        (* Get the token of the function *)
                        let* ident =
                          match f with
@@ -1233,9 +1250,16 @@ let check_function_signature env fun_exp args args_taints =
                                 [ sink ]
                               |> report_findings env);
                        None)
-        | T.ArgToArg (src_arg, tokens, dst_arg) ->
+        | T.ToArg (taints, dst_arg) ->
+            taints
+            |> List.concat_map
+            (fun t ->
             let+ src_taints =
-              taints_of_sig_arg env fparams fun_exp args args_taints src_arg
+              match t.T.orig with
+              | Src _ ->
+                Some (Taints.singleton t)
+              | Arg src_arg ->
+                taints_of_sig_arg env fparams fun_exp args args_taints src_arg
             in
             let+ dst_lval, dst_obj =
               lval_of_sig_arg fun_exp fparams args dst_arg
@@ -1244,12 +1268,12 @@ let check_function_signature env fun_exp args args_taints =
               src_taints
               |> Taints.map (fun taint ->
                      let tokens =
-                       List.rev_append tokens (snd dst_obj.ident :: taint.tokens)
+                       List.rev_append t.tokens (snd dst_obj.ident :: taint.tokens)
                      in
                      { taint with tokens })
             in
             if Taints.is_empty dst_taints then []
-            else [ `UpdateEnv (dst_lval, dst_taints) ]
+            else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
       Some
         (fun_sig
@@ -1257,8 +1281,11 @@ let check_function_signature env fun_exp args args_taints =
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->
                match fsig with
-               | `Return taints -> (Taints.union taints taints_acc, lval_env)
+               | `Return taints -> 
+                logger#flash "fun-sig %s returns %s" (_debug_fun_exp_str fun_exp) (T.show_taints taints);
+                (Taints.union taints taints_acc, lval_env)
                | `UpdateEnv (lval, taints) ->
+                    logger#flash "fun-sig %s updates %s -> %s" (_debug_fun_exp_str fun_exp) (Display_IL.string_of_lval lval) (T.show_taints taints);
                    (taints_acc, Lval_env.add lval_env lval taints))
              (Taints.empty, env.lval_env))
   | None, _
@@ -1305,7 +1332,9 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           match
             check_function_signature { env with lval_env } e args args_taints
           with
-          | Some (call_taints, lval_env) -> (call_taints, lval_env)
+          | Some (call_taints, lval_env) -> 
+            logger#flash "returns %s with lval-env %s" (T.show_taints call_taints) (Lval_env.to_string T.show_taints lval_env);
+            (call_taints, lval_env)
           | None ->
               let call_taints =
                 if not (propagate_through_functions env) then Taints.empty
@@ -1394,11 +1423,11 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
              in
              let new_taints = Taints.diff exit_taints enter_taints in
              (* TODO: Also report if taints are _cleaned_. *)
-             new_taints |> Taints.elements
-             |> Common.map_filter (fun taint ->
-                    match taint.T.orig with
-                    | T.Arg t -> Some (T.ArgToArg (t, taint.tokens, arg))
-                    | T.Src _ -> None (* TODO SrcToArg *)))
+             if not (Taints.is_empty new_taints) then
+              [T.ToArg (new_taints |> Taints.elements, arg)]
+             else
+              []
+                    )
 
 (*****************************************************************************)
 (* Transfer *)
@@ -1440,6 +1469,7 @@ let transfer :
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
+        logger#flash "CHECK_TAINTED_INSTR lval-env %s"  (Lval_env.to_string T.show_taints lval_env');
         let opt_lval = LV.lval_of_instr_opt x in
         let lval_env' =
           match opt_lval with
@@ -1499,6 +1529,7 @@ let transfer :
     | NTodo _ ->
         in'
   in
+  logger#flash "OUT lval-env %s"  (Lval_env.to_string T.show_taints out');
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)
