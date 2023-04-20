@@ -94,13 +94,6 @@ let is_origintok ii =
 
 (* info about the current location *)
 
-(* original info *)
-let get_original_token_location = function
-  | OriginTok pi -> pi
-  | ExpandedTok (pi, _, _) -> pi
-  | FakeTokStr (_, _) -> raise (NoTokenLocation "FakeTokStr")
-  | Ab -> raise (NoTokenLocation "Ab")
-
 (* used by token_helpers *)
 
 (* not used but used to be useful in coccinelle *)

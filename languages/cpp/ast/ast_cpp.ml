@@ -1015,6 +1015,12 @@ let expr_to_arg e = Arg e
 (* often used for fake return type for constructor *)
 let tvoid ii = (nQ, TPrimitive (TVoid, ii))
 
+let get_original_token_location = function
+  | Tok.OriginTok pi -> pi
+  | Tok.ExpandedTok (pi, _, _) -> pi
+  | Tok.FakeTokStr (_, _) -> raise (Tok.NoTokenLocation "FakeTokStr")
+  | Tok.Ab -> raise (Tok.NoTokenLocation "Ab")
+
 (* When want add some info in AST that does not correspond to
  * an existing C element.
  * old: when don't want 'synchronize' on it in unparse_c.ml
@@ -1030,8 +1036,7 @@ let make_expanded ii =
   let a, b = noVirtPos in
   {
     ii with
-    Tok.token =
-      Tok.ExpandedTok (Parse_info.get_original_token_location ii.Tok.token, a, b);
+    Tok.token = Tok.ExpandedTok (get_original_token_location ii.Tok.token, a, b);
   }
 
 let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =
