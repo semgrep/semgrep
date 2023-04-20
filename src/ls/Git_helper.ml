@@ -40,7 +40,12 @@ let dirty_lines_of_file file =
   let range_of_substrings substrings =
     let line = Pcre.get_substring substrings 1 in
     let lines = Str.split (Str.regexp ",") line in
-    let start = int_of_string (List.hd lines) in
+    let first_line =
+      match lines with
+      | [] -> assert false
+      | h :: _ -> h
+    in
+    let start = int_of_string first_line in
     let change_count =
       if List.length lines > 1 then int_of_string (List.nth lines 1) else 1
     in
