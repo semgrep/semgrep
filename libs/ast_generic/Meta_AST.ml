@@ -113,7 +113,7 @@ let vof_info_adjustable_precision x =
     OCaml.VDict
       [
         ("line", OCaml.VInt (Tok.line_of_tok x));
-        ("col", OCaml.VInt (Parse_info.col_of_info x));
+        ("col", OCaml.VInt (Tok.col_of_tok x));
       ]
   else OCaml.VUnit
 

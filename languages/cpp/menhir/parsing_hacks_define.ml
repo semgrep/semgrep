@@ -77,7 +77,7 @@ let mark_end_define ii =
         Tok.OriginTok
           {
             str = "";
-            pos = { tok_loc.pos with charpos = PI.pos_of_info ii + 1 };
+            pos = { tok_loc.pos with charpos = Tok.bytepos_of_tok ii + 1 };
           };
       transfo = Tok.NoTransfo;
     }

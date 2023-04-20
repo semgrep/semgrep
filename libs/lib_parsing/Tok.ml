@@ -170,6 +170,10 @@ let unsafe_location_of_tok ii =
   | Error msg -> raise (NoTokenLocation msg)
 
 let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
+let col_of_tok ii = (unsafe_location_of_tok ii).pos.column
+
+(* todo: return a Real | Virt position ? *)
+let bytepos_of_tok ii = (unsafe_location_of_tok ii).pos.charpos
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of

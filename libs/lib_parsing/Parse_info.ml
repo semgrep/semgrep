@@ -106,10 +106,6 @@ let str_of_info ii =
 
 let _str_of_info ii = (unsafe_token_location_of_info ii).str
 let file_of_info ii = (unsafe_token_location_of_info ii).pos.file
-let col_of_info ii = (unsafe_token_location_of_info ii).pos.column
-
-(* todo: return a Real | Virt position ? *)
-let pos_of_info ii = (unsafe_token_location_of_info ii).pos.charpos
 
 (*****************************************************************************)
 (* Lexer helpers *)

@@ -315,7 +315,7 @@ let getIndentStatus ?(is_opportunistic = false) in_ =
 
   let info = TH.info_of_tok tok in
   let line = Tok.line_of_tok info in
-  let col = PI.col_of_info info in
+  let col = Tok.col_of_tok info in
 
   let is_indented =
     (* Here, we need to look at the last indentation region that ever existed,

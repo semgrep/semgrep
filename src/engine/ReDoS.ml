@@ -188,8 +188,8 @@ let safe_sub s pos sublen =
 *)
 let recover_source re_str node =
   let start, end_ = AST.location node in
-  let first_tok_pos = Parse_info.pos_of_info start in
-  let last_tok_pos = Parse_info.pos_of_info end_ in
+  let first_tok_pos = Tok.bytepos_of_tok start in
+  let last_tok_pos = Tok.bytepos_of_tok end_ in
   let last_tok_str = Parse_info.str_of_info end_ in
   let len = last_tok_pos + String.length last_tok_str - first_tok_pos in
   safe_sub re_str first_tok_pos len

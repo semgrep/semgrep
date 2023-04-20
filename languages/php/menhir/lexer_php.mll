@@ -903,7 +903,7 @@ and st_double_quotes = parse
           let info = tokinfo lexbuf in
 
           let varinfo = PI.rewrap_str ("$" ^ s) info in
-          let charpos_info = PI.pos_of_info varinfo in
+          let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
           let bra_info = PI.tokinfo_str_pos "[" pos_after_label in
@@ -951,7 +951,7 @@ and st_backquote = parse
           let info = tokinfo lexbuf in
 
           let varinfo = PI.rewrap_str ("$" ^ s) info in
-          let charpos_info = PI.pos_of_info varinfo in
+          let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
           let bra_info = PI.tokinfo_str_pos "[" pos_after_label in
@@ -997,7 +997,7 @@ and st_start_heredoc stopdoc = parse
 
       let lbl_info = PI.rewrap_str s info in
 
-      let pos = PI.pos_of_info info in
+      let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
 
@@ -1028,7 +1028,7 @@ and st_start_heredoc stopdoc = parse
           let info = tokinfo lexbuf in
 
           let varinfo = PI.rewrap_str ("$" ^ s) info in
-          let charpos_info = PI.pos_of_info varinfo in
+          let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
           let bra_info = PI.tokinfo_str_pos "[" pos_after_label in
@@ -1069,7 +1069,7 @@ and st_start_nowdoc stopdoc = parse
 
       let lbl_info = PI.rewrap_str s info in
 
-      let pos = PI.pos_of_info info in
+      let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
 

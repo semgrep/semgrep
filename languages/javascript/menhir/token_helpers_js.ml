@@ -222,4 +222,4 @@ let line_of_tok tok =
 
 let col_of_tok tok =
   let info = info_of_tok tok in
-  Parse_info.col_of_info info
+  Tok.col_of_tok info

@@ -113,6 +113,8 @@ val fake_location : location
 
 (* Extract position information *)
 val line_of_tok : t -> int
+val col_of_tok : t -> int
+val bytepos_of_tok : t -> int
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of

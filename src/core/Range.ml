@@ -112,9 +112,9 @@ let range_of_tokens xs =
   try
     let xs = List.filter PI.is_origintok xs in
     let mini, maxi = PI.min_max_ii_by_pos xs in
-    let start = PI.pos_of_info mini in
+    let start = Tok.bytepos_of_tok mini in
     let end_ =
-      PI.pos_of_info maxi + (String.length (PI.str_of_info maxi) - 1)
+      Tok.bytepos_of_tok maxi + (String.length (PI.str_of_info maxi) - 1)
     in
     Some { start; end_ }
   with

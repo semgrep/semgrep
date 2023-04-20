@@ -533,7 +533,7 @@ let label_pair (env : env) (x : CST.label_pair) : label_pair =
    a larger file. *)
 let shift_locations (str, tok) =
   let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
-  let column (* 0-based *) = max 0 (PI.col_of_info tok) in
+  let column (* 0-based *) = max 0 (Tok.col_of_tok tok) in
   String.make line '\n' ^ String.make column ' ' ^ str
 
 (* A plain ellipsis such as '...' (not e.g. '...;') is identified so
