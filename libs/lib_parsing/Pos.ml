@@ -37,7 +37,7 @@ open Common
 type t = {
   charpos : int; (* byte position, 0-based *)
   (* line x column can be filled later based on charpos.
-   * See Parsing_helpers.complete_token_location() *)
+   * See Tok.complete_location() *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   (* TODO: use Fpath.t *)
