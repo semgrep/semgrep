@@ -133,7 +133,7 @@ exception UnclosedSymbol of string
 
 let mk_token_extended x =
   let info = TH.info_of_tok x in
-  let line, col = (PI.line_of_info info, PI.col_of_info info) in
+  let line, col = (Tok.line_of_tok info, PI.col_of_info info) in
   {
     t = x;
     line;

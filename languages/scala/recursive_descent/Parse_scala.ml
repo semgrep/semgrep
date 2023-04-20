@@ -80,7 +80,7 @@ let parse filename =
         pr2 ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
         let filelines = Common2.cat_array filename in
         let checkpoint2 = Common.cat filename |> List.length in
-        let line_error = PI.line_of_info cur in
+        let line_error = Tok.line_of_tok cur in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }

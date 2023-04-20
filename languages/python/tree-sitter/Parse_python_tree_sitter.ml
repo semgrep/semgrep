@@ -721,7 +721,7 @@ and map_pattern_to_parameter (env : env) (x : CST.pattern) : param_pattern =
   | `Subs _
   | `List_pat _
   | `Attr _ ->
-      raise (PI.NoTokenLocation "")
+      raise (Tok.NoTokenLocation "")
   | `List_splat_pat x ->
       (* Via the Python 3 grammar, you can only have a pow in a pattern if the next
          is just a NAME.

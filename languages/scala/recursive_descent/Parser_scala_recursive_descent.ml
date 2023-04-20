@@ -314,7 +314,7 @@ let getIndentStatus ?(is_opportunistic = false) in_ =
   in
 
   let info = TH.info_of_tok tok in
-  let line = PI.line_of_info info in
+  let line = Tok.line_of_tok info in
   let col = PI.col_of_info info in
 
   let is_indented =

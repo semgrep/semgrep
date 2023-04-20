@@ -102,7 +102,7 @@ let rec define_line_1 acc xs =
   match xs with
   | [] -> List.rev acc
   | (TDefine ii as x) :: xs ->
-      let line = PI.line_of_info ii in
+      let line = Tok.line_of_tok ii in
       define_line_2 (x :: acc) line ii xs
   | TCppEscapedNewline ii :: xs ->
       pr2 (spf "WEIRD: a \\ outside a #define at %s" (pos ii));

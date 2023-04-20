@@ -157,7 +157,7 @@ let parse2 opt_timeout file =
             pr2 ("parse error \n = " ^ error_msg_tok cur);
             let filelines = Common2.cat_array file in
             let checkpoint2 = Common.cat file |> List.length in
-            let line_error = PI.line_of_info (TH.info_of_tok cur) in
+            let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
             Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 
           stat.PS.error_line_count <- stat.PS.total_line_count;

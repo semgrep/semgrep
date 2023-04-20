@@ -155,7 +155,7 @@ let fake_location = { str = ""; pos = Pos.fake_pos }
 (* Accessors *)
 (*****************************************************************************)
 
-let token_location_of_info ii =
+let location_of_tok (ii : t) : (location, string) Result.t =
   match ii.token with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
@@ -164,12 +164,12 @@ let token_location_of_info ii =
   | FakeTokStr (_, None) -> Error "FakeTokStr"
   | Ab -> Error "Ab"
 
-let unsafe_token_location_of_info ii =
-  match token_location_of_info ii with
+let unsafe_location_of_tok ii =
+  match location_of_tok ii with
   | Ok pinfo -> pinfo
   | Error msg -> raise (NoTokenLocation msg)
 
-let line_of_info ii = (unsafe_token_location_of_info ii).pos.line
+let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of

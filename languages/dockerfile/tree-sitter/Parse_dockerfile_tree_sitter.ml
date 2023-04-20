@@ -532,7 +532,7 @@ let label_pair (env : env) (x : CST.label_pair) : label_pair =
 (* hack to obtain correct locations when parsing a string extracted from
    a larger file. *)
 let shift_locations (str, tok) =
-  let line (* 0-based *) = max 0 (PI.line_of_info tok - 1) (* 1-based *) in
+  let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
   let column (* 0-based *) = max 0 (PI.col_of_info tok) in
   String.make line '\n' ^ String.make column ' ' ^ str
 

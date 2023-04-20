@@ -283,7 +283,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
      * pattern in x.code or the metavar does not contain any token
      *)
   with
-  | Parse_info.NoTokenLocation s ->
+  | Tok.NoTokenLocation s ->
       let loc = Tok.first_loc_of_file x.file in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
