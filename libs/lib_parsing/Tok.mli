@@ -172,15 +172,6 @@ val adjust_loc_wrt_base : location -> location -> location
 (* Adjust line x col in a location *)
 (*****************************************************************************)
 
-(* Can we deprecate those full_charpos_xxx? use
- * Parsing_helpers.tokenize_all_and_adjust_pos()?
- * Parse_ruby is still using those functions though :(
- *)
-
-(* f(i) will contain the (line x col) of the i char position *)
-val full_charpos_to_pos_large : Common.filename -> int -> int * int
-val full_charpos_to_pos_str : string -> int -> int * int
-
 (* fill in the line and column field of location that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
