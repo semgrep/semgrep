@@ -176,6 +176,14 @@ let col_of_tok ii = (unsafe_location_of_tok ii).pos.column
 let bytepos_of_tok ii = (unsafe_location_of_tok ii).pos.charpos
 let file_of_tok ii = (unsafe_location_of_tok ii).pos.file
 
+let content_of_tok ii =
+  match ii.token with
+  | OriginTok x -> x.str
+  | FakeTokStr (s, _) -> s
+  | ExpandedTok _
+  | Ab ->
+      raise (NoTokenLocation "content_of_tok: Expanded or Ab")
+
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of
    the end of a token instead.

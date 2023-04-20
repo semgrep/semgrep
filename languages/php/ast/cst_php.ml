@@ -978,7 +978,7 @@ let str_of_name x =
   | Self tok
   | Parent tok
   | LateStatic tok ->
-      Parse_info.str_of_info tok
+      Tok.content_of_tok tok
   | XName qu -> raise (TodoNamespace (info_of_qualified_ident qu))
 
 let str_of_name_namespace x =
@@ -986,7 +986,7 @@ let str_of_name_namespace x =
   | Self tok
   | Parent tok
   | LateStatic tok ->
-      Parse_info.str_of_info tok
+      Tok.content_of_tok tok
   | XName xs ->
       xs
       |> List.map (function

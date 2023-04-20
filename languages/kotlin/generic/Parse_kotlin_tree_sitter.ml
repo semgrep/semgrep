@@ -396,7 +396,7 @@ let literal_constant (env : env) (x : CST.literal_constant) =
         | Some tok -> Some (str env tok) (* "L" *)
         | None -> None
       in
-      let _str = PI.str_of_info v1 ^ fst v2 in
+      let _str = Tok.content_of_tok v1 ^ fst v2 in
       Int (iopt, PI.combine_infos v1 [ snd v2 ])
 
 let semi (env : env) x = token env x

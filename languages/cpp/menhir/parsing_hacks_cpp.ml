@@ -41,7 +41,8 @@ open Parsing_hacks_lib
 
 let no_space_between i1 i2 =
   Tok.line_of_tok i1 =|= Tok.line_of_tok i2
-  && Tok.col_of_tok i1 + String.length (PI.str_of_info i1) =|= Tok.col_of_tok i2
+  && Tok.col_of_tok i1 + String.length (Tok.content_of_tok i1)
+     =|= Tok.col_of_tok i2
 
 (*****************************************************************************)
 (* Template inference *)

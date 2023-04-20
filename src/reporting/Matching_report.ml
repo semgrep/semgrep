@@ -82,7 +82,7 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     | OneLine ->
         pr
           (prefix ^ ": "
-          ^ (ii |> Common.map PI.str_of_info |> join_with_space_if_needed))
+          ^ (ii |> Common.map Tok.content_of_tok |> join_with_space_if_needed))
   with
   | Failure "get_pos: Ab or FakeTok" ->
       pr "<could not locate match, FakeTok or AbstractTok>"

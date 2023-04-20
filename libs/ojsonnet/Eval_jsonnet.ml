@@ -508,8 +508,7 @@ and eval_binary_op env el (op, tk) er =
       | v1, v2 ->
           error tk
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
-               (Parse_info.str_of_info tk)
-               (sv v2)))
+               (Tok.content_of_tok tk) (sv v2)))
   | LSL
   | LSR
   | BitAnd
@@ -542,8 +541,7 @@ and eval_binary_op env el (op, tk) er =
       | v1, v2 ->
           error tk
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
-               (Parse_info.str_of_info tk)
-               (sv v2)))
+               (Tok.content_of_tok tk) (sv v2)))
 
 (*****************************************************************************)
 (* std.cmp *)

@@ -34,7 +34,7 @@ let str = H.str
 
 let concat_tokens first_tok other_toks : string wrap =
   let tok = PI.combine_infos first_tok other_toks in
-  (PI.str_of_info tok, tok)
+  (Tok.content_of_tok tok, tok)
 
 let opt_concat_tokens toks : string wrap option =
   match toks with
@@ -64,7 +64,7 @@ let simplify_fragments (fragments : string_fragment list) : string_fragment list
     | [] -> tail
     | first :: others ->
         let tok = PI.combine_infos first others in
-        String_content (PI.str_of_info tok, tok) :: tail
+        String_content (Tok.content_of_tok tok, tok) :: tail
   in
   let rec simplify acc = function
     | [] -> concat (List.rev acc) []
@@ -124,7 +124,7 @@ let remove_blank_prefix (x : string wrap) : string wrap =
   | None -> x
   | Some pos ->
       let _blanks, tok = PI.split_info_at_pos pos tok in
-      (PI.str_of_info tok, tok)
+      (Tok.content_of_tok tok, tok)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -147,7 +147,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
   | `Var tok -> (
       let name = str env tok (* pattern [a-zA-Z][a-zA-Z0-9_]* *) in
       let mv_tok = PI.combine_infos dollar [ snd name ] in
-      let mv_s = PI.str_of_info mv_tok in
+      let mv_s = Tok.content_of_tok mv_tok in
       match env.extra with
       | Pattern, _ when AST_generic.is_metavar_name mv_s ->
           Frag_semgrep_metavar (mv_s, mv_tok)
@@ -189,10 +189,10 @@ let expose_port (env : env) (x : CST.expose_port) : expose_port =
               | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
               | `SLAS_c773c8d tok -> token env tok (* "/udp" *)
             in
-            Some (PI.str_of_info tok, tok)
+            Some (Tok.content_of_tok tok, tok)
         | None -> None
       in
-      let port_num = port_tok |> PI.str_of_info in
+      let port_num = port_tok |> Tok.content_of_tok in
       Expose_port ((port_num, port_tok), protocol)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
@@ -497,7 +497,7 @@ let env_pair (env : env) (x : CST.env_pair) : label_pair =
                even if we returned an empty list of fragments. *)
             let tok = empty_token_after eq in
             let loc = (tok, tok) in
-            (loc, [ String_content (PI.str_of_info tok, tok) ])
+            (loc, [ String_content (Tok.content_of_tok tok, tok) ])
         | Some x -> string env x
       in
       let loc = (var_or_metavar_tok k, str_loc v |> snd) in

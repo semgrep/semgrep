@@ -1765,7 +1765,7 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
     let ident_of x =
       let tok = token env x in
-      (PI.str_of_info tok, tok)
+      (Tok.content_of_tok tok, tok)
     in
     Option.map ident_of v1
   in

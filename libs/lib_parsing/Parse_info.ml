@@ -82,14 +82,6 @@ let string_of_info x =
   | Ok loc -> string_of_token_location loc
   | Error msg -> spf "unknown location (%s)" msg
 
-let str_of_info ii =
-  match ii.token with
-  | OriginTok x -> x.str
-  | FakeTokStr (s, _) -> s
-  | ExpandedTok _
-  | Ab ->
-      raise (NoTokenLocation "str_of_info: Expanded or Ab")
-
 (*****************************************************************************)
 (* Lexer helpers *)
 (*****************************************************************************)
@@ -128,7 +120,7 @@ let rewrap_str s ii =
   }
 
 (* less: should use Buffer and not ^ so we should not need that *)
-let tok_add_s s ii = rewrap_str (str_of_info ii ^ s) ii
+let tok_add_s s ii = rewrap_str (Tok.content_of_tok ii ^ s) ii
 
 let str_of_info_fake_ok ii =
   match ii.token with

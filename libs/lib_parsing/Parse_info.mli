@@ -58,9 +58,6 @@ val unbracket : t * 'a * t -> 'a
 (* Info accessors *)
 (*****************************************************************************)
 
-(* Extract the lexeme (token) as a string *)
-val str_of_info : t -> string
-
 (* Format the location file/line/column into a string *)
 val string_of_info : t -> string
 val get_original_token_location : Tok.origin -> Tok.location

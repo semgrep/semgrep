@@ -70,7 +70,7 @@ let case_str s =
 let lang_ext_or_t_ident ii fii =
   if !Flag_php.facebook_lang_extensions
   then fii ii
-  else T_IDENT(case_str (PI.str_of_info ii), ii)
+  else T_IDENT(case_str (Tok.content_of_tok ii), ii)
 
 let t_variable_or_metavar s info =
   (* sgrep-ext: we used to generate a T_IDENT here, so a metavariable

@@ -122,7 +122,8 @@ let metavar_string_of_any any =
   any |> V.ii_of_any
   |> List.filter PI.is_origintok
   |> List.sort Parse_info.compare_pos
-  |> Common.map PI.str_of_info |> Matching_report.join_with_space_if_needed
+  |> Common.map Tok.content_of_tok
+  |> Matching_report.join_with_space_if_needed
 
 let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =

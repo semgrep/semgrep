@@ -56,7 +56,7 @@ let commentized xs =
            if !Flag_cpp.filter_classic_passed then
              match cppkind with
              | Token_cpp.CppOther -> (
-                 let s = PI.str_of_info ii in
+                 let s = Tok.content_of_tok ii in
                  match s with
                  | s when s =~ "KERN_.*" -> None
                  | s when s =~ "__.*" -> None
@@ -119,7 +119,7 @@ and multi_grouped = function
   | Token_views_cpp.Angle (tok1, xs, Some tok2) ->
       Ast_fuzzy.Angle (tokext tok1, multi_grouped_list xs, tokext tok2)
   | Token_views_cpp.Tok tok -> (
-      match PI.str_of_info (tokext tok) with
+      match Tok.content_of_tok (tokext tok) with
       | "..." -> Ast_fuzzy.Dots (tokext tok)
       | s when Ast_fuzzy.is_metavar s -> Ast_fuzzy.Metavar (s, tokext tok)
       | s -> Ast_fuzzy.Tok (s, tokext tok))
@@ -135,7 +135,7 @@ and multi_grouped_list_comma xs =
         else [ Left (acc |> List.rev |> multi_grouped_list) ]
     | x :: xs -> (
         match x with
-        | Token_views_cpp.Tok tok when PI.str_of_info (tokext tok) = "," ->
+        | Token_views_cpp.Tok tok when Tok.content_of_tok (tokext tok) = "," ->
             let before = acc |> List.rev |> multi_grouped_list in
             if null before then aux [] xs
             else Left before :: Right (tokext tok) :: aux [] xs
@@ -362,7 +362,8 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
             |> List.filter TH.is_ident_like
           in
           let error_info =
-            ( pbline |> List.map (fun tok -> PI.str_of_info (TH.info_of_tok tok)),
+            ( pbline
+              |> List.map (fun tok -> Tok.content_of_tok (TH.info_of_tok tok)),
               line_error )
           in
           stat.PS.problematic_lines <- error_info :: stat.PS.problematic_lines;

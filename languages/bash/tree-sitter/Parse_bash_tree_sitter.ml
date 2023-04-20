@@ -1396,14 +1396,14 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
           | `Semg_meta_eq tok ->
               (* pattern \$[A-Z_][A-Z_0-9]*= *)
               let mv_eq_tok = token env tok in
-              let len = String.length (PI.str_of_info mv_eq_tok) in
+              let len = String.length (Tok.content_of_tok mv_eq_tok) in
               let mv_tok, eq_tok = PI.split_info_at_pos (len - 1) mv_eq_tok in
               let assign_op = (Set, eq_tok (* "=" *)) in
               (mv_tok, assign_op)
           | `Semg_meta_pluseq tok ->
               (* pattern \$[A-Z_][A-Z_0-9]*\+= *)
               let mv_eq_tok = token env tok in
-              let len = String.length (Parse_info.str_of_info mv_eq_tok) in
+              let len = String.length (Tok.content_of_tok mv_eq_tok) in
               let mv_tok, pluseq_tok =
                 Parse_info.split_info_at_pos (len - 2) mv_eq_tok
               in
@@ -1414,7 +1414,7 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
            in which metavariables shouldn't exist.
            In such case, we should not return an assignment but convert
            $X=42 to a variable expansion and concatenation. *)
-        let mv = (PI.str_of_info mv_tok, mv_tok) in
+        let mv = (Tok.content_of_tok mv_tok, mv_tok) in
         (mv, assign_op, v2)
     | `Choice_var_name_choice_EQ_choice_choice_conc (v1, v2, v3) ->
         let var =

@@ -318,7 +318,7 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
       Left (s ^ "=", PI.combine_infos t [ teq ])
   | MethodUOperator (_, t)
   | MethodOperator (_, t) ->
-      Left (PI.str_of_info t, t)
+      Left (Tok.content_of_tok t, t)
   | MethodSpecialCall (l, (), _r) ->
       let special = ident ("call", l) in
       Left special

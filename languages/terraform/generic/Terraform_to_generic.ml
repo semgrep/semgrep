@@ -51,7 +51,7 @@ let rec map_block_body_element (x : block_body_element) : G.field =
  *)
 and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
     G.expr =
-  let id = (Parse_info.str_of_info tk, tk) in
+  let id = (Tok.content_of_tok tk, tk) in
   let labels_id =
     blabels
     |> Common.map (function

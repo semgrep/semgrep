@@ -606,7 +606,7 @@ let vof_context = function
 
 let vof_token_extended t =
   let info = TH.info_of_tok t.t in
-  let str = PI.str_of_info info in
+  let str = Tok.content_of_tok info in
   let xs = List.map vof_context t.where in
   OCaml.VTuple [ OCaml.VString str; OCaml.VList xs ]
 

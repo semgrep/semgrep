@@ -144,7 +144,7 @@ let id_of_dname_for_parameter env dname =
       error_unless_partial_error env (ii_of_dname dname)
         "expecting an ident for parameter";
       let ii = ii_of_dname dname in
-      (PI.str_of_info ii, ii)
+      (Tok.content_of_tok ii, ii)
 
 let name_of_dname_for_function dn =
   match dn with

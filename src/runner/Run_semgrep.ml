@@ -99,7 +99,7 @@ let update_cli_progress config =
 (*****************************************************************************)
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
+  String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
@@ -157,7 +157,7 @@ let print_match ?str config match_ ii_of_any =
              | Some any ->
                  any |> ii_of_any
                  |> List.filter PI.is_origintok
-                 |> Common.map PI.str_of_info
+                 |> Common.map Tok.content_of_tok
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in

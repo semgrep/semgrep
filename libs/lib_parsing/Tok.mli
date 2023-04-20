@@ -116,6 +116,9 @@ val location_of_tok : t -> (location, string) result
 (* @raise NoTokenLocation if given an unsafe fake token (without location) *)
 val unsafe_location_of_tok : t -> location
 
+(* Extract the token (really lexeme) content *)
+val content_of_tok : t -> string
+
 (* Extract position information *)
 val line_of_tok : t -> int
 val col_of_tok : t -> int

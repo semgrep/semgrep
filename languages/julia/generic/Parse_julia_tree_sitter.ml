@@ -81,7 +81,7 @@ let map_assign_operator (env : env) (tok : CST.assign_operator) =
   (* assign_operator *)
   let tok = token env tok in
   let doit op v1 v3 = AssignOp (v1, (op, tok), v3) |> G.e in
-  match PI.str_of_info tok with
+  match Tok.content_of_tok tok with
   | "+=" -> Plus |> doit
   | "-=" -> Minus |> doit
   | "*=" -> Mult |> doit
@@ -806,7 +806,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v1 = map_expression env v1 in
       let v2 = (* bitshift_operator *) token env v2 in
       let v3 = map_expression env v3 in
-      match PI.str_of_info v2 with
+      match Tok.content_of_tok v2 with
       | "<<" -> opcall (LSL, v2) [ v1; v3 ]
       | ">>" -> opcall (ASR, v2) [ v1; v3 ]
       | ">>>" -> opcall (LSR, v2) [ v1; v3 ]

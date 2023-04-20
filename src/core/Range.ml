@@ -114,7 +114,7 @@ let range_of_tokens xs =
     let mini, maxi = PI.min_max_ii_by_pos xs in
     let start = Tok.bytepos_of_tok mini in
     let end_ =
-      Tok.bytepos_of_tok maxi + (String.length (PI.str_of_info maxi) - 1)
+      Tok.bytepos_of_tok maxi + (String.length (Tok.content_of_tok maxi) - 1)
     in
     Some { start; end_ }
   with

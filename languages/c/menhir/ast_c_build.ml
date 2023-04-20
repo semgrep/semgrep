@@ -77,7 +77,7 @@ let rec ifdef_skipper xs f =
       | Some ifdef -> (
           match ifdef with
           | Ifdef tok -> (
-              logger#info "skipping: %s" (Parse_info.str_of_info tok);
+              logger#info "skipping: %s" (Tok.content_of_tok tok);
               try
                 let _, x, rest =
                   xs
