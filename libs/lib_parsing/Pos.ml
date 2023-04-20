@@ -20,11 +20,14 @@ open Common
 (*****************************************************************************)
 (* File position.
  *
- * See also Tok.location for file location (file region/range).
+ * See also Loc.t for file location (file region/range).
  *
  * similar code:
- *  - Lexing.position
- *  - Semgrep_output_v1.position
+ *  - Lexing.position (also used for Spacegrep.Loc.Pos), but no convenient
+ *    line x col
+ *  - Semgrep_output_v1.position (but no filename)
+ *  - Tree_sitter_run.Loc.pos (but no filename, no charpos, just line x col),
+ *    itself derived from Tree_sitter_bindings.Tree_sitter_output_t.position
  *)
 
 (*****************************************************************************)
