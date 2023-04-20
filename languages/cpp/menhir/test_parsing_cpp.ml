@@ -91,18 +91,18 @@ let test_dump_cpp_full file =
   Parse_cpp.init_defs !Flag_cpp.macros_h;
   let ast = Parse_cpp.parse_program file in
   let toks = Parse_cpp.tokens (Parsing_helpers.file !!file) in
-  let _precision =
-    { Meta_parse_info.full_info = true; type_info = false; token_info = true }
-  in
   let s = Ast_cpp.show_program (* TODO ~precision *) ast in
   pr s;
   toks
   |> List.iter (fun tok ->
          match tok with
-         | Parser_cpp.TComment ii ->
-             let v = Meta_parse_info.vof_info_adjustable_precision ii in
-             let s = OCaml.string_of_v v in
-             pr s
+         | Parser_cpp.TComment _ii ->
+             (* old:
+                let v = Meta_parse_info.vof_info_adjustable_precision ii in
+                let s = OCaml.string_of_v v in
+                pr s
+             *)
+             failwith "TODO: display comments in test_dump_cpp_full"
          | _ -> ());
   ()
 

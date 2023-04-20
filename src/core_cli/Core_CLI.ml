@@ -682,7 +682,7 @@ let options actions =
         Arg.Set Common.save_tmp_files,
         " keep temporary generated files" );
     ]
-  @ Meta_parse_info.cmdline_flags_precision ()
+  @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
   @ Arg_helpers.options_of_actions action (actions ())
   @ [
       ( "-version",

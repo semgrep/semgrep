@@ -100,5 +100,10 @@ val fake_location : location
 (* Helpers *)
 (*****************************************************************************)
 
+(* deprecated: you should use instead Pos.first_pos_of_file *)
 val first_loc_of_file : Common.filename -> location
+
+(* deprecated: you should use t_always_equal instead of using
+ * abstract_tok (and Ab) to compare ASTs
+ *)
 val abstract_tok : t

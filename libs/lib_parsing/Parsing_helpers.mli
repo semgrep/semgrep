@@ -40,8 +40,6 @@ val full_charpos_to_pos_str : string -> int -> int * int
 
 (* fill in the line and column field of token_location that were not set
  * during lexing because of limitations of ocamllex. *)
-(* fill in the line and column field of token_location that were not set
- * during lexing because of limitations of ocamllex. *)
 val complete_token_location_large :
   Common.filename -> (int -> int * int) -> Tok.location -> Tok.location
 
