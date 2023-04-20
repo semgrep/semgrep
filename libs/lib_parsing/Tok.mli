@@ -91,17 +91,70 @@ val pp_full_token_info : bool ref
 type t_always_equal = t [@@deriving show, eq, hash]
 
 (*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
+
+(* Token locations are supposed to denote the beginning of a token.
+   Suppose we are interested in instead having line, column, and charpos of
+   the end of a token instead.
+   This is something we can do at relatively low cost by going through and
+   inspecting the contents of the token, plus the start information.
+   TODO: rename to end_pos_of_loc and return a Pos.t instead
+*)
+val get_token_end_info : location -> int * int * int
+
+(*****************************************************************************)
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 
 val fake_location : location
 
 (*****************************************************************************)
-(* Helpers *)
+(* Builders *)
 (*****************************************************************************)
 
 (* deprecated: you should use instead Pos.first_pos_of_file *)
 val first_loc_of_file : Common.filename -> location
+
+(*****************************************************************************)
+(* Adjust location *)
+(*****************************************************************************)
+val fix_token_location : (location -> location) -> t -> t
+(** Fix the location info in a token. *)
+
+val adjust_info_wrt_base : location -> t -> t
+(** [adjust_info_wrt_base base_loc tok], where [tok] represents a location
+  * relative to [base_loc], returns the same [tok] but with an absolute
+  * {! token_location}. This is useful for fixing parse info after
+  * {! Common2.with_tmp_file}. E.g. if [base_loc] points to line 3, and
+  * [tok] points to line 2 (interpreted line 2 starting in line 3), then
+  * the adjusted token will point to line 4. *)
+
+val adjust_pinfo_wrt_base : location -> location -> location
+(** See [adjust_info_wrt_base]. *)
+
+(*****************************************************************************)
+(* Adjust line x col in a location *)
+(*****************************************************************************)
+
+(* Can we deprecate those full_charpos_xxx? use
+ * Parsing_helpers.tokenize_all_and_adjust_pos()?
+ * Parse_ruby is still using those functions though :(
+ *)
+
+(* f(i) will contain the (line x col) of the i char position *)
+val full_charpos_to_pos_large : Common.filename -> int -> int * int
+val full_charpos_to_pos_str : string -> int -> int * int
+
+(* fill in the line and column field of token_location that were not set
+ * during lexing because of limitations of ocamllex and Lexing.position.
+ *)
+val complete_token_location_large :
+  Common.filename -> (int -> int * int) -> location -> location
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
 
 (* deprecated: you should use t_always_equal instead of using
  * abstract_tok (and Ab) to compare ASTs

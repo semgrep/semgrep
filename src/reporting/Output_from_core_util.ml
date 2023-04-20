@@ -20,9 +20,7 @@ let position_of_token_location loc =
   }
 
 let position_range min_loc max_loc =
-  let end_line, end_col, end_charpos =
-    Parsing_helpers.get_token_end_info max_loc
-  in
+  let end_line, end_col, end_charpos = Tok.get_token_end_info max_loc in
   (* alt: could call position_of_token_location but more symetric like that*)
   ( {
       line = min_loc.Tok.pos.line;
