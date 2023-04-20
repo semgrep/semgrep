@@ -266,6 +266,10 @@ ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
 PIPENV='pipenv==2022.6.7'
+#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
+# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
+# so I pinned an older version
+VIRTENV='virtualenv==20.21.0'
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -282,7 +286,7 @@ PIPENV='pipenv==2022.6.7'
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS)
-	pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
+	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
 
 #TODO: deprecate scripts/install-alpine-xxx in favor of that
 install-deps-and-build-ALPINE-semgrep-core:
