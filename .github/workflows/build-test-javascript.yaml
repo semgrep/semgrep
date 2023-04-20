@@ -14,19 +14,14 @@ jobs:
     env:
       HOME: /root
     steps:
-      - name: Restore git checkout cache
-        id: restore-git
-        uses: actions/cache/restore@v3
-        with:
-          path: .
-          key: semgrep-js-git-${{ github.sha }}
       - name: Make checkout speedy
-        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
-        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         with:
           submodules: true
+      - name: Set up tree-sitter
+        run: |
+          (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
       - name: Cache git checkout
         id: cache-git
         if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
@@ -42,7 +37,6 @@ jobs:
           # TODO: figure out why the opam install eats shit on ubuntu
           #make install-deps-for-semgrep-core
 
-          (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
           echo "Building ocaml..."
@@ -82,12 +76,10 @@ jobs:
         if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         with:
           submodules: true
-      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
+      - name: Set up tree-sitter
+        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: |
-          echo "Setting up tree-sitter again..."
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
-          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-js-ocaml-build
@@ -97,6 +89,8 @@ jobs:
           node-version: "18"
       - name: Build semgrep
         run: |
+          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+
           echo "Building JS + WASM..."
           make -C js/${{ matrix.package }}
 
