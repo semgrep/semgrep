@@ -148,7 +148,7 @@ let print_match ?str config match_ ii_of_any =
      * factorize code a bit.
      *)
     let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let file, line = (PI.file_of_info mini, Tok.line_of_tok mini) in
 
     let strings_metavars =
       mvars

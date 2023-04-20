@@ -190,7 +190,7 @@ let final_type_string s =
   s
 
 let def_at_tok tk uri io =
-  let line = PI.line_of_info tk in
+  let line = Tok.line_of_tok tk in
   let col = PI.col_of_info tk in
   logger#debug "def_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)
@@ -220,7 +220,7 @@ let def_at_tok tk uri io =
       None
 
 let type_at_tok tk uri io =
-  let line = PI.line_of_info tk in
+  let line = Tok.line_of_tok tk in
   let col = PI.col_of_info tk in
   logger#debug "type_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)

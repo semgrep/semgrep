@@ -112,7 +112,7 @@ let vof_info_adjustable_precision x =
   else if !_current_precision.token_info then
     OCaml.VDict
       [
-        ("line", OCaml.VInt (Parse_info.line_of_info x));
+        ("line", OCaml.VInt (Tok.line_of_tok x));
         ("col", OCaml.VInt (Parse_info.col_of_info x));
       ]
   else OCaml.VUnit

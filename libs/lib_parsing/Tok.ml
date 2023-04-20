@@ -144,14 +144,32 @@ let pp_full_token_info = ref false
 let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 
 (*****************************************************************************)
-(* Fake stuff *)
+(* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
+
+exception NoTokenLocation of string
 
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
+
+let location_of_tok (ii : t) : (location, string) Result.t =
+  match ii.token with
+  | OriginTok pinfo -> Ok pinfo
+  (* TODO ? dangerous ? *)
+  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> Ok pinfo_pp
+  | FakeTokStr (_, Some (pi, _)) -> Ok pi
+  | FakeTokStr (_, None) -> Error "FakeTokStr"
+  | Ab -> Error "Ab"
+
+let unsafe_location_of_tok ii =
+  match location_of_tok ii with
+  | Ok pinfo -> pinfo
+  | Error msg -> raise (NoTokenLocation msg)
+
+let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of

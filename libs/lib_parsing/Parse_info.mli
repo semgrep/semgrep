@@ -28,16 +28,6 @@ val split_info_at_pos : int -> t -> t * t
 (*****************************************************************************)
 (* Fake tokens: safe vs unsafe *)
 (*****************************************************************************)
-(* "Safe" fake tokens require an existing location to attach to, and so
- * token_location_of_info will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling token_location_of_info on these
- * will raise a NoTokenLocation exception.
- *
- * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
- * "safe" fake tokens. The unsafe_* functions introduce "unsafe" fake tokens,
- * please use them only as a last resort. *)
-
-exception NoTokenLocation of string
 
 val is_fake : t -> bool
 val is_origintok : t -> bool
@@ -72,7 +62,6 @@ val unbracket : t * 'a * t -> 'a
 val str_of_info : t -> string
 
 (* Extract position information *)
-val line_of_info : t -> int
 val col_of_info : t -> int
 val pos_of_info : t -> int
 val file_of_info : t -> Common.filename

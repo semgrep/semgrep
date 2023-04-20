@@ -582,4 +582,4 @@ let info_of_tok tok =
 
 let line_of_tok tok =
   let info = info_of_tok tok in
-  Parse_info.line_of_info info
+  Tok.line_of_tok info

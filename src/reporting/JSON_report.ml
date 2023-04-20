@@ -159,7 +159,7 @@ let metavars startp_of_match_range (s, mval) =
   match range_of_any_opt startp_of_match_range any with
   | None ->
       raise
-        (Parse_info.NoTokenLocation
+        (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
               (SJ.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
@@ -283,7 +283,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
      * pattern in x.code or the metavar does not contain any token
      *)
   with
-  | Parse_info.NoTokenLocation s ->
+  | Tok.NoTokenLocation s ->
       let loc = Tok.first_loc_of_file x.file in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s

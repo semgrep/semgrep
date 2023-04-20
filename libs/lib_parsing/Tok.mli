@@ -91,8 +91,28 @@ val pp_full_token_info : bool ref
 type t_always_equal = t [@@deriving show, eq, hash]
 
 (*****************************************************************************)
+(* Fake tokens (safe and unsafe) *)
+(*****************************************************************************)
+(* "Safe" fake tokens require an existing location to attach to, and so
+ * token_location_of_info will work on these fake tokens. "Unsafe" fake tokens
+ * do not carry any location info, so calling token_location_of_info on these
+ * will raise a NoTokenLocation exception.
+ *
+ * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
+ * "safe" fake tokens. The unsafe_* functions introduce "unsafe" fake tokens,
+ * please use them only as a last resort.
+ *)
+
+exception NoTokenLocation of string
+
+val fake_location : location
+
+(*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
+
+(* Extract position information *)
+val line_of_tok : t -> int
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of
@@ -102,12 +122,6 @@ type t_always_equal = t [@@deriving show, eq, hash]
    TODO: rename to end_pos_of_loc and return a Pos.t instead
 *)
 val get_token_end_info : location -> int * int * int
-
-(*****************************************************************************)
-(* Fake tokens (safe and unsafe) *)
-(*****************************************************************************)
-
-val fake_location : location
 
 (*****************************************************************************)
 (* Builders *)
