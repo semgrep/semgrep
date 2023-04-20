@@ -67,10 +67,7 @@ let mk_lexer filename input_source =
         (* could assert pinfo.filename = file ? *)
         (match ii.token with
         | Tok.OriginTok pi -> (
-            try
-              Tok.OriginTok
-                (Tok.complete_token_location_large filename table pi)
-            with
+            try Tok.OriginTok (Tok.complete_location filename table pi) with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
                 (* pr2_gen pi *)

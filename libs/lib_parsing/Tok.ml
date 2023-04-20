@@ -164,7 +164,7 @@ let tok_of_str_and_bytepos str pos =
       pos =
         {
           charpos = pos;
-          (* info filled in a post-lexing phase, see complete_token_location_large*)
+          (* info filled in a post-lexing phase, see complete_location *)
           line = -1;
           column = -1;
           file = "NO FILE INFO YET";
@@ -264,6 +264,33 @@ let adjust_tok_wrt_base base_loc ii =
 (*****************************************************************************)
 (* Adjust line x col *)
 (*****************************************************************************)
+
+(* Lexing.ml in the standard OCaml libray does not handle
+ * the line number position.
+ * Even if there are certain fields in the Lexing.position structure, they are
+ * not maintained by the lexing engine so the following code does not work:
+ *
+ *   let pos = Lexing.lexeme_end_p lexbuf in
+ *   sprintf "at file %s, line %d, char %d" pos.pos_fname pos.pos_lnum
+ *      (pos.pos_cnum - pos.pos_bol) in
+ *
+ * Hence the function below to overcome the previous limitation,
+ * alt:
+ *   - in each lexer you need to take care of newlines and update manually
+ *     the field.
+ * TODO? use Pos.t instead of location?
+ *)
+let complete_location filename table (x : location) =
+  {
+    x with
+    pos =
+      {
+        x.pos with
+        file = filename;
+        line = fst (table x.pos.charpos);
+        column = snd (table x.pos.charpos);
+      };
+  }
 
 (*
 I used to have:
@@ -432,34 +459,6 @@ let full_charpos_to_pos_str s =
   full_charpos_to_pos_aux ();
   fun i -> (arr1.{i}, arr2.{i})
   [@@profiling]
-
-(* Currently, lexing.ml, in the standard OCaml libray, does not handle
- * the line number position.
- * Even if there are certain fields in the lexing structure, they are not
- * maintained by the lexing engine so the following code does not work:
- *
- *   let pos = Lexing.lexeme_end_p lexbuf in
- *   sprintf "at file %s, line %d, char %d" pos.pos_fname pos.pos_lnum
- *      (pos.pos_cnum - pos.pos_bol) in
- *
- * Hence those types and functions below to overcome the previous limitation,
- * (see especially complete_token_location_large()).
- * alt:
- *   - in each lexer you need to take care of newlines and update manually
- *     the field.
- * TODO: use Pos.t instead of Parse_info.token_location
- *)
-let complete_token_location_large filename table (x : location) =
-  {
-    x with
-    pos =
-      {
-        x.pos with
-        file = filename;
-        line = fst (table x.pos.charpos);
-        column = snd (table x.pos.charpos);
-      };
-  }
 
 (*****************************************************************************)
 (* Other helpers *)

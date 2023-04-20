@@ -155,7 +155,7 @@ val first_loc_of_file : Common.filename -> location
 (* Adjust location *)
 (*****************************************************************************)
 val fix_location : (location -> location) -> t -> t
-(** Fix the location info in a token. *)
+(** adjust the location in a token *)
 
 val adjust_tok_wrt_base : location -> t -> t
 (** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location
@@ -181,10 +181,10 @@ val adjust_loc_wrt_base : location -> location -> location
 val full_charpos_to_pos_large : Common.filename -> int -> int * int
 val full_charpos_to_pos_str : string -> int -> int * int
 
-(* fill in the line and column field of token_location that were not set
+(* fill in the line and column field of location that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_token_location_large :
+val complete_location :
   Common.filename -> (int -> int * int) -> location -> location
 
 (*****************************************************************************)
