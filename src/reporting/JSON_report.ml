@@ -175,7 +175,7 @@ let metavars startp_of_match_range (s, mval) =
 (* None if pi has no location information. Fake tokens should have been filtered
  * out earlier, but in case one slipped through we handle this case. *)
 let parse_info_to_location pi =
-  Tok.location_of_tok pi |> Result.to_option
+  Tok.loc_of_tok pi |> Result.to_option
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
 
@@ -317,7 +317,7 @@ let error_to_error err =
 let rec explanation_to_explanation (exp : Matching_explanation.t) :
     Out.matching_explanation =
   let { Matching_explanation.op; matches; pos; children } = exp in
-  let tloc = Tok.unsafe_location_of_tok pos in
+  let tloc = Tok.unsafe_loc_of_tok pos in
   {
     Out.op;
     children = children |> Common.map explanation_to_explanation;
@@ -372,7 +372,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
     skipped_rules =
       res.RP.skipped_rules
       |> Common.map (fun (kind, rule_id, tk) ->
-             let loc = Tok.unsafe_location_of_tok tk in
+             let loc = Tok.unsafe_loc_of_tok tk in
              {
                Out.rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;

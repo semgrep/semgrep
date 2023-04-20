@@ -94,8 +94,8 @@ type t_always_equal = t [@@deriving show, eq, hash]
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 (* "Safe" fake tokens require an existing location to attach to, and so
- * location_of_tok will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling location_of_tok on these
+ * loc_of_tok will work on these fake tokens. "Unsafe" fake tokens
+ * do not carry any location info, so calling loc_of_tok on these
  * will raise a NoTokenLocation exception.
  *
  * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
@@ -121,10 +121,10 @@ val tok_of_str_and_bytepos : string -> int -> t
 (* Accessors *)
 (*****************************************************************************)
 
-val location_of_tok : t -> (location, string) result
+val loc_of_tok : t -> (location, string) result
 
 (* @raise NoTokenLocation if given an unsafe fake token (without location) *)
-val unsafe_location_of_tok : t -> location
+val unsafe_loc_of_tok : t -> location
 
 (* Extract the token (really lexeme) content *)
 val content_of_tok : t -> string

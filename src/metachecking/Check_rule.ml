@@ -71,7 +71,7 @@ type env = { r : Rule.t; errors : E.error list ref }
 (*****************************************************************************)
 
 let error env t s =
-  let loc = Tok.unsafe_location_of_tok t in
+  let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
   let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in

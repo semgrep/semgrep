@@ -180,7 +180,7 @@ let tok_of_lexbuf lexbuf =
 (* Accessors *)
 (*****************************************************************************)
 
-let location_of_tok (ii : t) : (location, string) Result.t =
+let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii.token with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
@@ -189,17 +189,17 @@ let location_of_tok (ii : t) : (location, string) Result.t =
   | FakeTokStr (_, None) -> Error "FakeTokStr"
   | Ab -> Error "Ab"
 
-let unsafe_location_of_tok ii =
-  match location_of_tok ii with
+let unsafe_loc_of_tok ii =
+  match loc_of_tok ii with
   | Ok pinfo -> pinfo
   | Error msg -> raise (NoTokenLocation msg)
 
-let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
-let col_of_tok ii = (unsafe_location_of_tok ii).pos.column
+let line_of_tok ii = (unsafe_loc_of_tok ii).pos.line
+let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
-let bytepos_of_tok ii = (unsafe_location_of_tok ii).pos.charpos
-let file_of_tok ii = (unsafe_location_of_tok ii).pos.file
+let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.charpos
+let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
 
 let content_of_tok ii =
   match ii.token with

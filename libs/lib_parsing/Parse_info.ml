@@ -37,7 +37,7 @@ let fake_info_loc next_to_loc str : Tok.t =
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
 let fake_info next_to_tok str : Tok.t =
-  match Tok.location_of_tok next_to_tok with
+  match Tok.loc_of_tok next_to_tok with
   | Ok loc -> fake_info_loc loc str
   | Error _ -> unsafe_fake_info str
 
@@ -76,7 +76,7 @@ let sc next_to_tok = fake_info next_to_tok ";"
 let string_of_token_location x = Pos.string_of_pos x.pos
 
 let string_of_info x =
-  match Tok.location_of_tok x with
+  match Tok.loc_of_tok x with
   | Ok loc -> string_of_token_location loc
   | Error msg -> spf "unknown location (%s)" msg
 
@@ -114,7 +114,7 @@ let combine_infos x xs =
   tok_add_s str x
 
 let split_info_at_pos pos ii =
-  let loc = Tok.unsafe_location_of_tok ii in
+  let loc = Tok.unsafe_loc_of_tok ii in
   let str = loc.str in
   let loc1_str = String.sub str 0 pos in
   let loc2_str = String.sub str pos (String.length str - pos) in

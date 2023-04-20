@@ -71,7 +71,7 @@ class ['self] range_visitor =
   in
   let incorporate_token ranges tok =
     if PI.is_origintok tok then
-      let tok_loc = Tok.unsafe_location_of_tok tok in
+      let tok_loc = Tok.unsafe_loc_of_tok tok in
       incorporate_tokens ranges (tok_loc, tok_loc)
   in
   object (self : 'self)
@@ -129,7 +129,7 @@ let range_of_any_opt any =
   | G.E e when Option.is_some e.e_range -> e.e_range
   | G.S s when Option.is_some s.s_range -> s.s_range
   | G.Tk tok -> (
-      match Tok.location_of_tok tok with
+      match Tok.loc_of_tok tok with
       | Ok tok_loc -> Some (tok_loc, tok_loc)
       | Error _ -> None)
   | G.Anys [] -> None

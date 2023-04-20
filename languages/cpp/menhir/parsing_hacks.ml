@@ -95,7 +95,7 @@ let insert_virtual_positions l =
         in
         match ii.Tok.token with
         | Tok.OriginTok _pi ->
-            let prev = Tok.unsafe_location_of_tok ii in
+            let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
         | Tok.ExpandedTok (pi, _, _) ->
             let acc' = inject (Tok.ExpandedTok (pi, prev, offset)) :: acc in
@@ -114,7 +114,7 @@ let insert_virtual_positions l =
         let ii = TH.info_of_tok x in
         match ii.Tok.token with
         | Tok.OriginTok _pi ->
-            let prev = Tok.unsafe_location_of_tok ii in
+            let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
         | _ -> skip_fake (x :: acc) xs)
   in

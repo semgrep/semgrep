@@ -405,7 +405,7 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
       Some (List.fold_left mk_op (mk_op a1 a2) args)
 
 let set_e_range l r e =
-  match (Tok.location_of_tok l, Tok.location_of_tok r) with
+  match (Tok.loc_of_tok l, Tok.loc_of_tok r) with
   | Ok l, Ok r -> e.e_range <- Some (l, r)
   | Error _, _
   | _, Error _ ->

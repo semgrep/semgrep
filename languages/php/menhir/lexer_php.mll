@@ -542,7 +542,7 @@ rule st_in_scripting = parse
 
         let syminfo = PI.rewrap_str sym info in
 
-        let parse_info = Tok.unsafe_location_of_tok info in
+        let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym   =
           parse_info.Tok.pos.charpos + String.length sym in
         let pos_after_white = pos_after_sym + String.length white in
@@ -632,7 +632,7 @@ rule st_in_scripting = parse
     | ("$" as dollar) "$" (LABEL as s) {
         let info = tokinfo lexbuf in
         let dollarinfo = PI.rewrap_str (String.make 1 dollar) info in
-        let parse_info = Tok.unsafe_location_of_tok info in
+        let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym = parse_info.Tok.pos.charpos + 2 in
         let lblinfo = tokinfo_str_pos s pos_after_sym in
 

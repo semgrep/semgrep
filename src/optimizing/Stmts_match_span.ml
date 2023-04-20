@@ -112,5 +112,5 @@ let list_original_tokens x =
       let left_tokens = List.filter (is_not_after ~max_loc) left_tokens in
       let right_tokens = List.filter (is_not_before ~min_loc) right_tokens in
       (* deduplicate tokens by location *)
-      merge_and_deduplicate Tok.location_of_tok left_tokens right_tokens
+      merge_and_deduplicate Tok.loc_of_tok left_tokens right_tokens
   [@@profiling]
