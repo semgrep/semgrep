@@ -18,7 +18,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Information about tokens (mostly their position and origin).
+(* Information about tokens (mostly their location).
  *
  * Note that the types below are a bit complicated because we want
  * to represent "fake" and "expanded" tokens, as well as annotate tokens
@@ -50,7 +50,7 @@ type location = { str : string; (* the content of the "token" *) pos : Pos.t }
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
  *)
-type origin =
+type kind =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -113,9 +113,9 @@ and add = AddStr of string | AddNewlineAndIdent
 
 type t = {
   (* contains among other things the position of the token through
-   * the token_location embedded inside the token_origin type.
+   * the location embedded inside the kind type.
    *)
-  token : origin;
+  token : kind;
   (* The transfo field as its name suggests is to allow source to source
    * transformations via token "annotations". See the documentation for Spatch.
    * TODO: remove now that we use AST-based autofix in Semgrep.

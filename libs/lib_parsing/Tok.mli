@@ -18,7 +18,7 @@ type location = {
 }
 [@@deriving show, eq]
 
-type origin =
+type kind =
   (* Token found in the original file *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -67,9 +67,9 @@ and add = AddStr of string | AddNewlineAndIdent [@@deriving show, eq]
 
 type t = {
   (* contains among other things the position of the token through
-   * the 'location' embedded inside the 'origin' type.
+   * the 'location' embedded inside the kind type.
    *)
-  token : origin;
+  token : kind;
   (* The transfo field as its name suggests is to allow source to source
    * transformations via token "annotations". See the documentation for Spatch.
    * TODO: remove now that we use AST-based autofix in Semgrep.
