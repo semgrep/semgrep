@@ -20,7 +20,7 @@ open Common
 (*****************************************************************************)
 (* File position.
  *
- * See also Loc.ml for file location (file region/range).
+ * See also Tok.location for file location (file region/range).
  *
  * similar code:
  *  - Lexing.position

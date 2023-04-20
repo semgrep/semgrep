@@ -71,7 +71,7 @@ let range_of_line_spec str file =
     let line1 = s_to_i a in
     let line2 = s_to_i b in
     (* quite inefficient, but should be ok *)
-    let trans = Parsing_helpers.full_charpos_to_pos_large file in
+    let trans = Tok.full_charpos_to_pos_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
@@ -90,7 +90,7 @@ let range_of_linecol_spec str file =
     let line1, col1 = (s_to_i a, s_to_i b) in
     let line2, col2 = (s_to_i c, s_to_i d) in
     (* quite inefficient, but should be ok *)
-    let trans = Parsing_helpers.full_charpos_to_pos_large file in
+    let trans = Tok.full_charpos_to_pos_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
