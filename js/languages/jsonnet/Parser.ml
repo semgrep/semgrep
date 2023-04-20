@@ -7,7 +7,7 @@ let parse_pattern print_errors _ str =
 
 let parse_target _ file =
   Pfff_or_tree_sitter.run file
-    [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
+    [ TreeSitter (fun file -> Parse_jsonnet_tree_sitter.parse (Fpath.v file)) ]
     Jsonnet_to_generic.program
 
 let _ =
