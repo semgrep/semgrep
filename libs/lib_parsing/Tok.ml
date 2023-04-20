@@ -215,7 +215,7 @@ let content_of_tok ii =
    This is something we can do at relatively low cost by going through and
    inspecting the contents of the token, plus the start information.
 *)
-let get_token_end_info loc =
+let end_pos_of_loc loc =
   let line, col =
     Stdcompat.String.fold_left
       (fun (line, col) c ->

@@ -135,14 +135,14 @@ val col_of_tok : t -> int
 val bytepos_of_tok : t -> int
 val file_of_tok : t -> Common.filename
 
-(* Token locations are supposed to denote the beginning of a token.
-   Suppose we are interested in instead having line, column, and charpos of
-   the end of a token instead.
+(* Token positions in loc.pos denote the beginning of a token.
+   Suppose we are interested in having instead the line, column, and charpos
+   of the end of a token.
    This is something we can do at relatively low cost by going through and
-   inspecting the contents of the token, plus the start information.
-   TODO: rename to end_pos_of_loc and return a Pos.t instead
+   inspecting the content of the location, plus the start information.
+   alt: return a Pos.t instead
 *)
-val get_token_end_info : location -> int * int * int
+val end_pos_of_loc : location -> int * int * int (* line x col x charpos *)
 
 (*****************************************************************************)
 (* Builders *)
