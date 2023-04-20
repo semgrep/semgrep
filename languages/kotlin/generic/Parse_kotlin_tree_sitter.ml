@@ -1158,6 +1158,9 @@ and expression (env : env) (x : CST.expression) : expr =
       let v4 = type_ env v4 in
       let _v5 = (* ")" *) token env v5 in
       TypedMetavar (v2, v3, v4) |> G.e
+  | `Semg_named_ellips tok ->
+      (* pattern \$\.\.\.[a-zA-Z_][a-zA-Z_0-9]* *)
+      G.N (Id (str env tok, empty_id_info ())) |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in
