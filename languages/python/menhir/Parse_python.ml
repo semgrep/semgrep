@@ -148,7 +148,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
       else
         let cur = tr.Parsing_helpers.current in
         if not !Flag.error_recovery then
-          raise (Parsing_error.Parsing_error (TH.info_of_tok cur));
+          raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
         if !Flag.show_parsing_error then (
           pr2 ("parse error \n = " ^ error_msg_tok cur);

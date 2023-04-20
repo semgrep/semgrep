@@ -6,7 +6,7 @@ let from_lexbuf conf lexbuf =
   try Parser.main (Lexer.token conf) lexbuf with
   | Parsing.Parse_error ->
       let tok = Parse_info.tokinfo lexbuf in
-      raise (Parsing_error.Parsing_error tok)
+      raise (Parsing_error.Syntax_error tok)
 
 let channel conf ic = Lexing.from_channel ic |> from_lexbuf conf
 

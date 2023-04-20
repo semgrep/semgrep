@@ -1457,7 +1457,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
        * something similar.
        * *)
       if str = "...>" then G.DeepEllipsis (l, e, r) |> G.e
-      else raise (Parsing_error.Parsing_error r)
+      else raise (Parsing_error.Syntax_error r)
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =

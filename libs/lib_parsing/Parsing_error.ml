@@ -18,10 +18,10 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Errors during parsing in the general sense (lexing, scanning,
+(* Errors during parsing in the general sense (lexing, syntax,
  * building an AST, etc.).
  *
- * The exns in this module can be used in the different lexer/parsers in
+ * The exns in this module can be used in the different parsers in
  * Semgrep (especially in the ocamllex/menhir-based parsers).
  *
  * Note that those exns can be converted in Semgrep_error_code.error with
@@ -41,7 +41,7 @@ open Common
 exception Lexical_error of string * Tok.t
 
 (* better than Parsing.Parse_error, which does not have location information *)
-exception Parsing_error of Tok.t
+exception Syntax_error of Tok.t
 
 (* when we convert a CST to AST *)
 exception Ast_builder_error of string * Tok.t
@@ -99,12 +99,12 @@ let string_of_exn e =
   match e with
   (* TODO?  | NoTokenLocation msg -> Some (spf "Parse_info.NoTokenLocation (%s)" msg) *)
   | Lexical_error (msg, tok) ->
-      Some (spf "Parse_info.Lexical_error (%s, %s)" msg (p tok))
-  | Parsing_error tok -> Some (spf "Parse_info.Parsing_error (%s)" (p tok))
+      Some (spf "Parsing_error.Lexical_error (%s, %s)" msg (p tok))
+  | Syntax_error tok -> Some (spf "Parsing_error.Syntax_error (%s)" (p tok))
   | Ast_builder_error (msg, tok) ->
-      Some (spf "Parse_info.Ast_builder_error (%s, %s)" msg (p tok))
+      Some (spf "Parsing_error.Ast_builder_error (%s, %s)" msg (p tok))
   | Other_error (msg, tok) ->
-      Some (spf "Parse_info.Other_error (%s, %s)" msg (p tok))
+      Some (spf "Parsing_error.Other_error (%s, %s)" msg (p tok))
   | _ -> None
 
 (* val register_exception_printer : unit -> unit *)

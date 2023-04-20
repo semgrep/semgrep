@@ -7,7 +7,7 @@ open Parser_regexp
 
 let parse_regexp conf re_str =
   try Some (Parse.string ~conf re_str) with
-  | Parsing_error.Parsing_error _ -> None
+  | Parsing_error.Syntax_error _ -> None
 
 (* Iterate over all the nodes of a regexp *)
 let rec iter f (x : AST.t) =

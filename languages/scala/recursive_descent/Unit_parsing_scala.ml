@@ -33,7 +33,7 @@ let tests =
                    let _ast = Parse_scala.parse file in
                    Alcotest.failf "it should have thrown a Parse_error %s" file
                  with
-                 | Parsing_error.Parsing_error _ -> ()
+                 | Parsing_error.Syntax_error _ -> ()
                  | exn ->
                      Alcotest.failf "throwing wrong exn %s on %s"
                        (Common.exn_to_s exn) file) );

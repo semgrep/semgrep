@@ -117,7 +117,7 @@ let parsing_error_tests () =
                        partial errors "
                 with
                 | Parsing_error.Lexical_error _
-                | Parsing_error.Parsing_error _ ->
+                | Parsing_error.Syntax_error _ ->
                     () )))
 
 let parsing_rules_tests () =
