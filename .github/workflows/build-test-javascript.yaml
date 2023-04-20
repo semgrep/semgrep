@@ -5,8 +5,7 @@ on:
   workflow_call:
 
 jobs:
-  build-semgrep-js:
-    name: Build Semgrep.js
+  build-semgrep-js-ocaml:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:ubuntu-2023-04-03
     # We need this hack because GHA tampers with the HOME in container
@@ -24,42 +23,65 @@ jobs:
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
       - name: Cache git checkout
         id: cache-git
-        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v3
         with:
-          path: |
-            .
-          key: semgrep-js-git-${{ github.sha }}
+          path: .
+          key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
       - name: Build semgrep
         run: |
           eval $(opam env)
 
-          # TODO: figure out why the opam install eats shit on ubuntu
+          # TODO: figure out why the opam install fails on ubuntu
           #make install-deps-for-semgrep-core
 
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+
+          # TODO: figure out why we need to do this
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
-          echo "Building ocaml..."
-          dune build js/languages/lua --profile=release
+
+          dune build js --profile=release
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build
+          retention-days: 1
           path: |
             _build/default/js/engine/*.bc.js
             _build/default/js/languages/*/*.bc.js
 
-  build-npm-packages:
-    name: Build NPM packages
-    needs: [build-semgrep-js]
+  build-test-npm-packages:
+    needs: [build-semgrep-js-ocaml]
     runs-on: ubuntu-latest
     container: emscripten/emsdk:3.1.36
     strategy:
       fail-fast: true
       matrix:
         package:
+          - engine
+          - languages/bash
+          - languages/c
+          - languages/cpp
+          - languages/csharp
+          - languages/dockerfile
+          - languages/elixir
+          - languages/go
+          - languages/html
+          - languages/java
+          - languages/json
+          - languages/jsonnet
+          - languages/kotlin
+          - languages/lisp
           - languages/lua
-    # We need this hack because GHA tampers with the HOME in container
-    # and this does not play well with 'opam' installed in /root
+          - languages/ocaml
+          - languages/php
+          - languages/python
+          - languages/r
+          - languages/ruby
+          - languages/rust
+          - languages/scala
+          - languages/solidity
+          - languages/swift
+          - languages/terraform
+          - languages/typescript
     env:
       HOME: /root
     steps:
@@ -67,8 +89,7 @@ jobs:
         id: restore-git
         uses: actions/cache/restore@v3
         with:
-          path: .
-          key: semgrep-js-git-${{ github.sha }}
+          key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
       - name: Make checkout speedy
         if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: git config --global fetch.parallel 50
@@ -87,12 +108,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Build semgrep
+      - name: Build and test package
         run: |
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-
-          echo "Building JS + WASM..."
-          make -C js/${{ matrix.package }}
-
-          echo "Testing..."
-          make -C js/${{ matrix.package }} test
+          make -C js/${{ matrix.package }} build test
