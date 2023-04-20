@@ -50,7 +50,7 @@ let regexp_matcher big_str file regexp =
                         let loc =
                           { Tok.str; pos = { charpos; file; line; column } }
                         in
-                        let t = PI.mk_info_of_loc loc in
+                        let t = Tok.tok_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->

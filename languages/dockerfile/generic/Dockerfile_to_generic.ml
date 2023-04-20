@@ -126,8 +126,8 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
 
 let param_arg (x : param) : G.argument =
   let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
-  let option_tok = PI.combine_infos dashdash [ name_tok ] in
-  let option_str = PI.str_of_info dashdash ^ name_str in
+  let option_tok = Tok.combine_toks dashdash [ name_tok ] in
+  let option_str = Tok.content_of_tok dashdash ^ name_str in
   G.ArgKwdOptional ((option_str, option_tok), string_or_metavar_expr value)
 
 let opt_param_arg (x : param option) : G.argument list =
@@ -256,7 +256,7 @@ let healthcheck env loc name (x : healthcheck) =
   match x with
   | Healthcheck_semgrep_metavar id -> call_exprs name loc [ metavar_expr id ]
   | Healthcheck_none tok ->
-      call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
+      call_exprs name loc [ string_expr (Tok.content_of_tok tok, tok) ]
   | Healthcheck_cmd (_cmd_loc, params, cmd) ->
       let args = healthcheck_cmd_args env params cmd in
       call name loc args

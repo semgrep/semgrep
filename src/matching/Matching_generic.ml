@@ -697,7 +697,7 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  match PI.token_location_of_info info with
+  match Tok.loc_of_tok info with
   | Error _ ->
       (* We have no token location to adjust (typically a fake token),
        * this happens if the string is the result of constant folding. *)

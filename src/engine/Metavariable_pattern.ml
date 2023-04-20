@@ -139,7 +139,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
            * need to fix the token locations in `mast`. *)
           let mast_start_loc =
             mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
-            |> PI.unsafe_token_location_of_info
+            |> Tok.unsafe_loc_of_tok
           in
           let fix_loc file loc =
             (* The column is only perturbed if this loc is on the first line of
@@ -290,8 +290,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                      (fst env.rule.Rule.id) mvar);
                               Ok (lazy (ast, skipped_tokens))
                             with
-                            | Parsing_error.Syntax_error msg ->
-                                Error (PI.str_of_info msg))
+                            | Parsing_error.Syntax_error tk ->
+                                Error (Tok.content_of_tok tk))
                         | LRegex
                         | LGeneric ->
                             Ok

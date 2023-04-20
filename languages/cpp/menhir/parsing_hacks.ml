@@ -81,7 +81,7 @@ let filter_comment_stuff xs =
 
 (* to do at the very very end *)
 let insert_virtual_positions l =
-  let strlen x = String.length (Parse_info.str_of_info x) in
+  let strlen x = String.length (Tok.content_of_tok x) in
   let rec loop acc prev offset = function
     (* Tail-recursive to prevent stack overflows. *)
     | [] -> List.rev acc
@@ -95,7 +95,7 @@ let insert_virtual_positions l =
         in
         match ii.Tok.token with
         | Tok.OriginTok _pi ->
-            let prev = Parse_info.unsafe_token_location_of_info ii in
+            let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
         | Tok.ExpandedTok (pi, _, _) ->
             let acc' = inject (Tok.ExpandedTok (pi, prev, offset)) :: acc in
@@ -114,7 +114,7 @@ let insert_virtual_positions l =
         let ii = TH.info_of_tok x in
         match ii.Tok.token with
         | Tok.OriginTok _pi ->
-            let prev = Parse_info.unsafe_token_location_of_info ii in
+            let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
         | _ -> skip_fake (x :: acc) xs)
   in
@@ -128,7 +128,7 @@ let fix_tokens_for_language lang xs =
   |> Common.map (fun tok ->
          if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
            let ii = TH.info_of_tok tok in
-           T.TIdent (PI.str_of_info ii, ii)
+           T.TIdent (Tok.content_of_tok ii, ii)
          else tok)
 
 (*****************************************************************************)

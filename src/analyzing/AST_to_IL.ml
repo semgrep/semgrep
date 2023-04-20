@@ -476,9 +476,7 @@ and expr_aux env ?(void = false) e_gen =
             let obj_var, _obj_lval =
               mk_aux_var env tok (IL_helpers.exp_of_arg obj)
             in
-            let method_name =
-              fresh_var env tok ~str:(Parse_info.str_of_info tok)
-            in
+            let method_name = fresh_var env tok ~str:(Tok.content_of_tok tok) in
             let offset = { o = Dot method_name; oorig = NoOrig } in
             let method_lval = { base = Var obj_var; rev_offset = [ offset ] } in
             let method_ = { e = Fetch method_lval; eorig = related_tok tok } in

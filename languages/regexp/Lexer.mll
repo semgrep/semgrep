@@ -9,7 +9,7 @@ open Conf
 open Parser
 
 let loc lexbuf : loc =
-  let tok = Parse_info.tokinfo lexbuf in
+  let tok = Tok.tok_of_lexbuf lexbuf in
   (tok, tok)
 
 let int = int_of_string

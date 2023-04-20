@@ -212,7 +212,7 @@ let parse2 opt_timeout filename =
         (* coupling: update also any_of_string if you modify the code below *)
         let cur = tr.Parsing_helpers.current in
         let info = TH.info_of_tok cur in
-        let charpos = Parse_info.pos_of_info info in
+        let charpos = Tok.bytepos_of_tok info in
 
         (* try Automatic Semicolon Insertion *)
         match asi_opportunity charpos last_charpos_error cur tr with
@@ -323,7 +323,7 @@ let any_of_string s =
         | Parsing.Parse_error -> (
             let cur = tr.Parsing_helpers.current in
             let info = TH.info_of_tok cur in
-            let charpos = Parse_info.pos_of_info info in
+            let charpos = Tok.bytepos_of_tok info in
             (* try Automatic Semicolon Insertion *)
             match asi_opportunity charpos last_charpos_error cur tr with
             | None -> raise Parsing.Parse_error

@@ -894,7 +894,7 @@ let map_yul_assignment_operator (env : env) (x : CST.yul_assignment_operator) =
   | `COLON_EQ (v1, v2) ->
       let v1 = (* ":" *) token env v1 in
       let v2 = (* "=" *) token env v2 in
-      PI.combine_infos v1 [ v2 ]
+      Tok.combine_toks v1 [ v2 ]
 
 let map_yul_assignment (env : env) (x : CST.yul_assignment) : expr =
   match x with

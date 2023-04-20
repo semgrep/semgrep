@@ -113,7 +113,7 @@ let test_visitor_print file =
       Visitor_java.default_visitor with
       Visitor_java.kinfo =
         (fun (_k, _) info ->
-          let s = Parse_info.str_of_info info in
+          let s = Tok.content_of_tok info in
           pr2 s);
       Visitor_java.kexpr =
         (fun (k, _) e ->

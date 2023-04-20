@@ -373,7 +373,7 @@ let xhp_close (env : env) ((v1, v2, v3) : CST.xhp_close) =
   let v1 = (* "</" *) token env v1 in
   let v2 = [ snd (xhp_identifier_ env v2) ] in
   let v3 = (* ">" *) [ token env v3 ] in
-  PI.combine_infos v1 (v2 @ v3)
+  Tok.combine_toks v1 (v2 @ v3)
 
 let _xhp_children_declaration (env : env)
     ((v1, v2, v3, v4) : CST.xhp_children_declaration) =
@@ -1351,12 +1351,12 @@ and expression (env : env) (x : CST.expression) : G.expr =
       match x with
       | `Here (v1, v2, v3, v4, v5, v6) ->
           let v1 = (* "<<<" *) token env v1 in
-          let v2 = (* heredoc_start *) PI.combine_infos v1 [ token env v2 ] in
+          let v2 = (* heredoc_start *) Tok.combine_toks v1 [ token env v2 ] in
           let heredoc_start =
             match v3 with
             | Some tok ->
                 (* heredoc_start_newline *)
-                PI.combine_infos v2 [ token env tok ]
+                Tok.combine_toks v2 [ token env tok ]
             | None -> v2
           in
           let v4 =
@@ -1377,7 +1377,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           let heredoc_end =
             match v5 with
             | Some tok ->
-                (* heredoc_end_newline *) PI.combine_infos v6 [ token env tok ]
+                (* heredoc_end_newline *) Tok.combine_toks v6 [ token env tok ]
             | None -> v6
           in
           G.Call
@@ -2229,7 +2229,7 @@ and statement (env : env) (x : CST.statement) =
               | `Else_if (v1, v2) ->
                   let v1 = (* "else" *) token env v1 in
                   let v2 = (* "if" *) token env v2 in
-                  PI.combine_infos v1 [ v2 ]
+                  Tok.combine_toks v1 [ v2 ]
             in
             let v2 = parenthesized_expression env v2 in
             let v3 = statement env v3 in

@@ -46,7 +46,9 @@ exception Syntax_error of Tok.t
 (* when we convert a CST to AST *)
 exception Ast_builder_error of string * Tok.t
 
-(* other errors during parsing *)
+(* other errors during parsing.
+ * TODO? use Tok.location instead of Tok.t?
+ *)
 exception Other_error of string * Tok.t
 
 (*****************************************************************************)
@@ -55,7 +57,7 @@ exception Other_error of string * Tok.t
 
 (* val lexical_error : string -> Lexing.lexbuf -> unit *)
 let lexical_error s lexbuf =
-  let info = Parse_info.tokinfo lexbuf in
+  let info = Tok.tok_of_lexbuf lexbuf in
   if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (s, info))
   else if !Flag_parsing.verbose_lexing then Common.pr2_once ("LEXER: " ^ s)
   else ()
@@ -80,7 +82,7 @@ let shorten_string s =
    - should be useful to a human reader
    - should not raise an exception
 *)
-let show_token_value (x : Tok.origin) : string =
+let show_token_value (x : Tok.kind) : string =
   match x with
   | OriginTok loc -> spf "%S" (shorten_string loc.str)
   | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)

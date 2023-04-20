@@ -144,7 +144,7 @@ let id_of_dname_for_parameter env dname =
       error_unless_partial_error env (ii_of_dname dname)
         "expecting an ident for parameter";
       let ii = ii_of_dname dname in
-      (PI.str_of_info ii, ii)
+      (Tok.content_of_tok ii, ii)
 
 let name_of_dname_for_function dn =
   match dn with
@@ -362,7 +362,7 @@ let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
     (* pattern "[^\\n']" *)
   in
   let v3 = token env v3 (* "'" *) in
-  let t = PI.combine_infos v1 [ v2; v3 ] in
+  let t = Tok.combine_toks v1 [ v2; v3 ] in
   Char (s, t)
 
 let map_preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
@@ -408,7 +408,7 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
   let s = v2 |> Common.map fst |> String.concat "" in
   let xs = v2 |> Common.map snd in
   let v3 = token env v3 (* "\"" *) in
-  let t = PI.combine_infos v1 (xs @ [ v3 ]) in
+  let t = Tok.combine_toks v1 (xs @ [ v3 ]) in
   (s, t)
 
 let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =

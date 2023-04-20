@@ -434,7 +434,7 @@ let map_str_escaped_char (env : env) (x : CST.str_escaped_char) =
       let s1, t1 = (* "\\" *) str env v1 in
       let s2, t2 = (* "u" *) str env v2 in
       let s3, t3 = (* pattern \{[0-9a-fA-F]+\} *) str env v3 in
-      (String.concat "" [ s1; s2; s3 ], PI.combine_infos t1 [ t2; t3 ])
+      (String.concat "" [ s1; s2; s3 ], Tok.combine_toks t1 [ t2; t3 ])
 
 let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
     (e : G.expr) =
@@ -1765,7 +1765,7 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
     let ident_of x =
       let tok = token env x in
-      (PI.str_of_info tok, tok)
+      (Tok.content_of_tok tok, tok)
     in
     Option.map ident_of v1
   in

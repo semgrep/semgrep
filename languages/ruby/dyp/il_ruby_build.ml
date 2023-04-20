@@ -229,7 +229,7 @@ let special_of_string pos x : expr =
   match x with
   | "true" -> EId True
   | "false" -> EId False
-  | "__FILE__" -> ELit (String (Parse_info.file_of_info pos))
+  | "__FILE__" -> ELit (String (Tok.file_of_tok pos))
   | "__LINE__" -> ELit (Num (spf "%d" (Tok.line_of_tok pos)))
   | _ -> raise (Invalid_argument "special_of_string")
 

@@ -1439,7 +1439,7 @@ numeric_literal:
   | T_FLOAT { $1 }
 numeric_literal_as_string: numeric_literal
     { let t = snd $1 in
-      let s = Parse_info.str_of_info t in
+      let s = Tok.content_of_tok t in
       let s' =
         match Common2.float_of_string_opt s with
         | None -> s
@@ -1668,7 +1668,7 @@ primary_no_stmt: TUnknown TComment { raise Impossible }
 (* used for entities, parameters, labels, etc. *)
 id:
  | T_ID  %prec below_COLON               { $1 }
- | ident_semi_keyword { PI.str_of_info $1, $1 }
+ | ident_semi_keyword { Tok.content_of_tok $1, $1 }
 
 (* add here keywords which are not considered reserved by ECMA *)
 ident_semi_keyword:
@@ -1689,7 +1689,7 @@ ident_semi_keyword:
 (* alt: use the _last_non_whitespace_like_token trick and look if
  * previous token was a period to return a T_ID
  *)
-ident_keyword: ident_keyword_bis { PI.str_of_info $1, $1 }
+ident_keyword: ident_keyword_bis { Tok.content_of_tok $1, $1 }
 
 ident_keyword_bis:
  | T_FUNCTION { $1 }

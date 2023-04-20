@@ -200,7 +200,7 @@ let call loc name exprs =
   G.Call (name loc, bracket loc (Common.map (fun e -> G.Arg e) exprs)) |> G.e
 
 let todo_tokens ((start, end_) : loc) =
-  let wrap tok = (Parse_info.str_of_info tok, tok) in
+  let wrap tok = (Tok.content_of_tok tok, tok) in
   if start =*= end_ then [ G.TodoK (wrap start) ]
   else [ G.TodoK (wrap start); G.TodoK (wrap end_) ]
 

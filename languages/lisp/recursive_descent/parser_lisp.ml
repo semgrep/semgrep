@@ -87,4 +87,4 @@ let info_of_tok tok =
   |> ignore;
   Common2.some !res
 
-let str_of_tok x = PI.str_of_info (info_of_tok x)
+let str_of_tok x = Tok.content_of_tok (info_of_tok x)

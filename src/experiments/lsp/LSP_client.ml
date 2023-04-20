@@ -191,7 +191,7 @@ let final_type_string s =
 
 let def_at_tok tk uri io =
   let line = Tok.line_of_tok tk in
-  let col = PI.col_of_info tk in
+  let col = Tok.col_of_tok tk in
   logger#debug "def_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)
   let line = line - 1 in
@@ -221,7 +221,7 @@ let def_at_tok tk uri io =
 
 let type_at_tok tk uri io =
   let line = Tok.line_of_tok tk in
-  let col = PI.col_of_info tk in
+  let col = Tok.col_of_tok tk in
   logger#debug "type_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)
   let line = line - 1 in
@@ -280,7 +280,7 @@ let connect_server () =
 
 let rec get_type_or_def f id =
   let tok = snd id in
-  let file = PI.file_of_info tok in
+  let file = Tok.file_of_tok tok in
   (* bugfix: ocamllsp use URIs to designate files, but it's impossible
    * to use relative paths in URIs, so you need to use the absolute path,
    * otherwise ocamlmerlin code (used internally by ocamllsp) will not

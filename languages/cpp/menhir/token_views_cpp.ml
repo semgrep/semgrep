@@ -133,7 +133,7 @@ exception UnclosedSymbol of string
 
 let mk_token_extended x =
   let info = TH.info_of_tok x in
-  let line, col = (Tok.line_of_tok info, PI.col_of_info info) in
+  let line, col = (Tok.line_of_tok info, Tok.col_of_tok info) in
   {
     t = x;
     line;
@@ -606,7 +606,7 @@ let vof_context = function
 
 let vof_token_extended t =
   let info = TH.info_of_tok t.t in
-  let str = PI.str_of_info info in
+  let str = Tok.content_of_tok info in
   let xs = List.map vof_context t.where in
   OCaml.VTuple [ OCaml.VString str; OCaml.VList xs ]
 

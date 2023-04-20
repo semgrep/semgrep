@@ -146,7 +146,7 @@ let type_parameter = function
       G.tparam_of_id v1 ~tp_bounds:v2
 
 let rec modifier (x, tok) =
-  let s = Parse_info.str_of_info tok in
+  let s = Tok.content_of_tok tok in
   match x with
   | Public -> G.attr G.Public tok
   | Protected -> G.attr G.Protected tok

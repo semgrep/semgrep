@@ -46,9 +46,9 @@ let list_to_maybe_tuple = function
 
 let mk_Literal_String (t1, xs, t2) =
   let string_kind =
-    match (PI.str_of_info t1, xs) with
-    | "'", [] -> Single ("", PI.combine_infos t1 [ t2 ])
-    | "'", [ StrChars (s, t) ] -> Single (s, PI.combine_infos t1 [ t; t2 ])
+    match (Tok.content_of_tok t1, xs) with
+    | "'", [] -> Single ("", Tok.combine_toks t1 [ t2 ])
+    | "'", [ StrChars (s, t) ] -> Single (s, Tok.combine_toks t1 [ t; t2 ])
     | _ -> Double (t1, xs, t2)
   in
   Literal (String string_kind)
@@ -1596,8 +1596,8 @@ and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
 and simple_symbol (env : env) (tok : CST.simple_symbol) : atom =
   (* TODO: split tok *)
   let t = token2 env tok in
-  let tcolon, tafter = PI.split_info_at_pos 1 t in
-  let str = PI.str_of_info tafter in
+  let tcolon, tafter = Tok.split_tok_at_bytepos 1 t in
+  let str = Tok.content_of_tok tafter in
   (tcolon, AtomSimple (str, tafter))
 
 and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =

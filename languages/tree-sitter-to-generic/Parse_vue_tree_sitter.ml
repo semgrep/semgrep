@@ -80,7 +80,7 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
   let r = { Range.start = charpos; end_ = charpos2 } in
   let str = Range.content_at_range file r in
   let tok_loc = { Tok.str; pos = { charpos; line; column; file } } in
-  (str, PI.mk_info_of_loc tok_loc)
+  (str, Tok.tok_of_loc tok_loc)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -96,7 +96,7 @@ let map_end_tag (env : env) ((v1, v2, v3) : CST.end_tag) : tok =
   let v1 = token env v1 (* "</" *) in
   let v2 = token env v2 (* end_tag_name *) in
   let v3 = token env v3 (* ">" *) in
-  PI.combine_infos v1 [ v2; v3 ]
+  Tok.combine_toks v1 [ v2; v3 ]
 
 let map_text (env : env) (x : CST.text) =
   match x with
@@ -400,8 +400,8 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
             Map_AST.default_visitor with
             Map_AST.kinfo =
               (fun (_, _) t ->
-                let base_loc = PI.unsafe_token_location_of_info tbase in
-                Tok.adjust_info_wrt_base base_loc t);
+                let base_loc = Tok.unsafe_loc_of_tok tbase in
+                Tok.adjust_tok_wrt_base base_loc t);
           }
       in
       visitor.Map_AST.vprogram x)
