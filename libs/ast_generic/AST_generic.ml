@@ -181,12 +181,12 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Token (leaf) *)
 (*****************************************************************************)
 (* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
+ * the Tok.location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
- * Tok.t is the same type as Parse_info.t but provides special equal and
+ * Tok.t_always_equal is the same type as Tok.t but provides special equal and
  * hash functions used by the ppx derivers eq and hash.
  *)
-type tok = Tok_.t [@@deriving show, eq, hash]
+type tok = Tok.t_always_equal [@@deriving show, eq, hash]
 
 (* a shortcut to annotate some information with position information *)
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
