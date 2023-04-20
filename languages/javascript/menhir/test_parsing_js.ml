@@ -147,13 +147,13 @@ let parse_js_r2c xs =
                 *)
                None
              with
-             | ( Parse_info.Parsing_error info
-               | Parse_info.Lexical_error (_, info) ) as exn ->
+             | ( Parsing_error.Parsing_error info
+               | Parsing_error.Lexical_error (_, info) ) as exn ->
                  let startp, endp = info_to_json_range info in
                  let message =
                    match exn with
-                   | Parse_info.Parsing_error _ -> "parse error"
-                   | Parse_info.Lexical_error (s, _) -> "lexical error: " ^ s
+                   | Parsing_error.Parsing_error _ -> "parse error"
+                   | Parsing_error.Lexical_error (s, _) -> "lexical error: " ^ s
                    | _ -> raise Impossible
                  in
                  Some

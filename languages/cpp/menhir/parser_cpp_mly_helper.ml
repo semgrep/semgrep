@@ -13,7 +13,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let warning s v =
   if !Flag.verbose_parsing then Common2.warning ("PARSING: " ^ s) v else v
 
-let error s tok = raise (Parse_info.Other_error (s, tok))
+let error s tok = raise (Parsing_error.Other_error (s, tok))
 let fake s = Parse_info.fake_info s
 
 (*****************************************************************************)

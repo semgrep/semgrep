@@ -2323,7 +2323,7 @@ and type_ (env : env) (x : CST.type_) : G.type_ =
       (* When type_ is called, we expect an explicit type, not "var".
          The implicit type is handled in local_variable_type. *)
       raise
-        (Parse_info.Other_error
+        (Parsing_error.Other_error
            ("Expected explicit type", Parse_tree_sitter_helpers.token env _tok))
   | `Array_type x -> array_type env x
   | `Name x ->

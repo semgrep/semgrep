@@ -85,7 +85,7 @@ let parse filename =
   | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (_info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
-        raise (PI.Parsing_error (TH.info_of_tok cur));
+        raise (Parsing_error.Parsing_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
         pr2 ("parse error \n = " ^ error_msg_tok cur);

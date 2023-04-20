@@ -1,5 +1,3 @@
-(* TODO: split with a Parsing_error.ml ? *)
-
 (*****************************************************************************)
 (* Tokens *)
 (*****************************************************************************)
@@ -7,7 +5,7 @@
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-(* mostly for the fuzzy AST builder *)
+(* TODO: move in ast_fuzzy.ml? mostly for the fuzzy AST builder *)
 type token_kind =
   | LPar
   | RPar
@@ -22,38 +20,6 @@ type token_kind =
   | Other
 
 and esthet = Comment | Newline | Space
-
-(*****************************************************************************)
-(* Errors during parsing *)
-(*****************************************************************************)
-
-(* TODO? move to Error_code.mli instead *)
-
-(* note that those exceptions can be converted in Error_code.error with
- * Error_code.try_with_exn_to_error()
- *)
-(* see also Parsing.Parse_error and Failure "empty token" raised by Lexing *)
-exception Lexical_error of string * t
-
-(* better than Parsing.Parse_error, which does not have location information *)
-exception Parsing_error of t
-
-(* when convert from CST to AST *)
-exception Ast_builder_error of string * t
-
-(* other stuff *)
-exception Other_error of string * t
-
-val lexical_error : string -> Lexing.lexbuf -> unit
-
-(*
-   Register printers for the exceptions defined in this module.
-
-   This makes 'Printexc.to_string' print the exceptions in a more complete
-   fashion than the default printer, which only prints ints and strings
-   and doesn't descend any deeper.
-*)
-val register_exception_printer : unit -> unit
 
 (*****************************************************************************)
 (* Info builders *)
@@ -136,6 +102,11 @@ val unsafe_token_location_of_info : t -> Tok.location
 val get_original_token_location : Tok.origin -> Tok.location
 val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t
+
+(*****************************************************************************)
+(* Parsing errors *)
+(*****************************************************************************)
+(* now in Parsing_error.ml *)
 
 (*****************************************************************************)
 (* Parsing stats *)

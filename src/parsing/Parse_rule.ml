@@ -1505,7 +1505,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
 let parse_yaml_rule_file file =
   let str = Common.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
-  | Parse_info.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
+  | Parsing_error.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
 
 let parse_file ?error_recovery file =
   let ast =

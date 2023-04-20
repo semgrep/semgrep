@@ -300,7 +300,8 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
   let rec tokens_aux acc =
     let tok =
       try tokenizer lexbuf with
-      | Lexical_error (s, info) -> raise (Lexical_error (s, adjust_info info))
+      | Parsing_error.Lexical_error (s, info) ->
+          raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
     if !Flag_parsing.debug_lexer then Common.pr2_gen tok;
     let tok = tok |> visitor_tok adjust_info in

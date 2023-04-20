@@ -213,7 +213,7 @@ let fix_tokens_lbody toks =
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if !Flag.error_recovery then toks
-      else raise (Parse_info.Lexical_error (msg, info))
+      else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* Entry point *)

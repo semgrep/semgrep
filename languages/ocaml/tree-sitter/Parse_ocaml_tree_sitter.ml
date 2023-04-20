@@ -617,7 +617,8 @@ let map_signed_constant (env : env) (x : CST.signed_constant) : literal =
       | Right t1, Int (_opt, t2) -> Int (None, PI.combine_infos t1 [ t2 ])
       | Right t1, Float (_opt, t2) -> Float (None, PI.combine_infos t1 [ t2 ])
       | (Left t | Right t), _ ->
-          raise (PI.Other_error ("Impossible negate of not number", t)))
+          raise
+            (Parsing_error.Other_error ("Impossible negate of not number", t)))
 
 let map_value_path (env : env) (x : CST.value_path) : name =
   match x with
@@ -1415,7 +1416,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | `Id tok ->
             let x = token env tok in
             (* pattern "[a-z_][a-zA-Z0-9_']*" *)
-            raise (PI.Other_error ("x <- y not valid", x))
+            raise (Parsing_error.Other_error ("x <- y not valid", x))
       in
       v1
   | `If_exp (v1, v2, v3, v4, v5) ->
@@ -1776,7 +1777,7 @@ and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
             LetClassic { lname = id; lparams = v1; lrettype = v2; lbody = v5 }
         | pat, [], None -> LetPattern (pat, v5)
         (* TODO: grammar js is wrong there too, this can not happen *)
-        | _ -> raise (PI.Other_error ("Invalid let binding", v4)))
+        | _ -> raise (Parsing_error.Other_error ("Invalid let binding", v4)))
     (* TODO: grammar.js is wrong, this can not happen *)
     | None -> raise Impossible
   in
