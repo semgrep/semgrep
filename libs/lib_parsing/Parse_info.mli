@@ -60,7 +60,6 @@ val unbracket : t * 'a * t -> 'a
 
 (* Extract the lexeme (token) as a string *)
 val str_of_info : t -> string
-val file_of_info : t -> Common.filename
 
 (* Format the location file/line/column into a string *)
 val string_of_info : t -> string

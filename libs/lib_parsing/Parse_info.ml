@@ -105,7 +105,6 @@ let str_of_info ii =
       raise (NoTokenLocation "str_of_info: Expanded or Ab")
 
 let _str_of_info ii = (unsafe_token_location_of_info ii).str
-let file_of_info ii = (unsafe_token_location_of_info ii).pos.file
 
 (*****************************************************************************)
 (* Lexer helpers *)

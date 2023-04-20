@@ -280,7 +280,7 @@ let connect_server () =
 
 let rec get_type_or_def f id =
   let tok = snd id in
-  let file = PI.file_of_info tok in
+  let file = Tok.file_of_tok tok in
   (* bugfix: ocamllsp use URIs to designate files, but it's impossible
    * to use relative paths in URIs, so you need to use the absolute path,
    * otherwise ocamlmerlin code (used internally by ocamllsp) will not

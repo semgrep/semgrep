@@ -64,7 +64,7 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     let end_line, _, _ =
       Tok.get_token_end_info (PI.unsafe_token_location_of_info maxi)
     in
-    let file, line = (PI.file_of_info mini, Tok.line_of_tok mini) in
+    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
     let prefix = spf "%s:%d" file line in
     let lines_str =
       File.lines_of_file (Tok.line_of_tok mini, end_line) (Fpath.v file)

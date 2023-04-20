@@ -297,7 +297,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
      * start to parse a new entity from the body of a macro, for instance
      * when parsing a define_machine() body, cf standard.h
      *)
-    let checkpoint_file = PI.file_of_info info in
+    let checkpoint_file = Tok.file_of_tok info in
 
     tr.passed <- [];
     (* for some statistics *)
@@ -381,7 +381,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in
           let checkpoint2 = Tok.line_of_tok info in
-          let checkpoint2_file = PI.file_of_info info in
+          let checkpoint2_file = Tok.file_of_tok info in
 
           was_define := passed_a_define tr;
           if !was_define && !Flag_cpp.filter_define_error then ()
@@ -403,7 +403,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     (* again not sure if checkpoint2 corresponds to end of bad region *)
     let info = TH.info_of_tok tr.Parsing_helpers.current in
     let checkpoint2 = Tok.line_of_tok info in
-    let checkpoint2_file = PI.file_of_info info in
+    let checkpoint2_file = Tok.file_of_tok info in
 
     let diffline =
       if checkpoint_file = checkpoint2_file && checkpoint_file = !!file then
