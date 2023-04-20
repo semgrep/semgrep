@@ -94,7 +94,7 @@ jobs:
           path: _build/default/js
       - uses: actions/setup-node@v3
         with:
-          node-version: "lts"
+          node-version: "18"
       - name: Build semgrep
         run: |
           echo "Building JS + WASM..."
