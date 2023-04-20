@@ -214,18 +214,6 @@ let split_info_at_pos pos ii =
 (*****************************************************************************)
 (* Errors *)
 (*****************************************************************************)
-(* this can be used in the different lexer/parsers in pfff *)
-(* coupling: see related error in Error_code and its exn_to_error *)
-exception Lexical_error of string * t
-exception Parsing_error of t
-exception Ast_builder_error of string * t
-exception Other_error of string * t
-
-let lexical_error s lexbuf =
-  let info = tokinfo lexbuf in
-  if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (s, info))
-  else if !Flag_parsing.verbose_lexing then pr2_once ("LEXER: " ^ s)
-  else ()
 
 (*****************************************************************************)
 (* Misc *)
@@ -305,44 +293,3 @@ let min_max_ii_by_pos xs =
              let minii' = if pos_leq e minii then e else minii in
              (minii', maxii'))
            (x, x)
-
-(****************************************************************************)
-(* Exception printers for Printexc.to_string *)
-(****************************************************************************)
-
-let shorten_string s =
-  if String.length s > 200 then String.sub s 0 200 ^ " ... (truncated)" else s
-
-(*
-   For error messages.
-   - should be useful to a human reader
-   - should not raise an exception
-*)
-let show_token_value (x : Tok.origin) : string =
-  match x with
-  | OriginTok loc -> spf "%S" (shorten_string loc.str)
-  | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
-  | ExpandedTok (first_loc, _, _) ->
-      (* not sure about this *)
-      spf "%S" (shorten_string first_loc.str)
-  | Ab -> "abstract token"
-
-let show_token_value_and_location (x : t) =
-  let location = string_of_info x in
-  let value = show_token_value x.token in
-  spf "%s %s" location value
-
-let string_of_exn e =
-  let p = show_token_value_and_location in
-  match e with
-  | NoTokenLocation msg -> Some (spf "Parse_info.NoTokenLocation (%s)" msg)
-  | Lexical_error (msg, tok) ->
-      Some (spf "Parse_info.Lexical_error (%s, %s)" msg (p tok))
-  | Parsing_error tok -> Some (spf "Parse_info.Parsing_error (%s)" (p tok))
-  | Ast_builder_error (msg, tok) ->
-      Some (spf "Parse_info.Ast_builder_error (%s, %s)" msg (p tok))
-  | Other_error (msg, tok) ->
-      Some (spf "Parse_info.Other_error (%s, %s)" msg (p tok))
-  | _ -> None
-
-let register_exception_printer () = Printexc.register_printer string_of_exn

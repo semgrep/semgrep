@@ -335,7 +335,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           let e = Exception.catch exn in
           if not !Flag.error_recovery then
             raise
-              (Parse_info.Parsing_error
+              (Parsing_error.Parsing_error
                  (TH.info_of_tok tr.Parsing_helpers.current));
 
           (if !Flag.show_parsing_error then
@@ -348,7 +348,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
            | Parser_cpp.Error ->
                pr2
                  ("parse error \n = " ^ error_msg_tok tr.Parsing_helpers.current)
-           | Parse_info.Other_error (s, _i) ->
+           | Parsing_error.Other_error (s, _i) ->
                pr2
                  ("semantic error " ^ s ^ "\n ="
                  ^ error_msg_tok tr.Parsing_helpers.current)

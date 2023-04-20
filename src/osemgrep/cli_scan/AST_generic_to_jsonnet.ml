@@ -33,7 +33,7 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
-let error tk s = raise (Parse_info.Other_error (s, tk))
+let error tk s = raise (Parsing_error.Other_error (s, tk))
 let fb = Parse_info.unsafe_fake_bracket
 
 (*****************************************************************************)

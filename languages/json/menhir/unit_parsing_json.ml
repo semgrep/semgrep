@@ -20,6 +20,6 @@ let tests =
                    let _ = Parse_json.parse_program file in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Parsing_error _ ->
                      Alcotest.failf "it should correctly parse %s" file) );
     ]

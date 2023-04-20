@@ -290,8 +290,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                      (fst env.rule.Rule.id) mvar);
                               Ok (lazy (ast, skipped_tokens))
                             with
-                            | PI.Parsing_error msg -> Error (PI.str_of_info msg)
-                            )
+                            | Parsing_error.Parsing_error msg ->
+                                Error (PI.str_of_info msg))
                         | LRegex
                         | LGeneric ->
                             Ok

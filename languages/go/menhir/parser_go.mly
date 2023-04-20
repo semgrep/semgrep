@@ -31,7 +31,7 @@ module PI = Parse_info
 (*****************************************************************************)
 
 let error tok s =
-  raise (Parse_info.Other_error (s, tok))
+  raise (Parsing_error.Other_error (s, tok))
 
 let rev = true
 

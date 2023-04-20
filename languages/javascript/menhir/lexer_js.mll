@@ -40,7 +40,7 @@ module PI = Parse_info
 (* shortcuts *)
 let tok = Lexing.lexeme
 let tokinfo = Parse_info.tokinfo
-let error = Parse_info.lexical_error
+let error = Parsing_error.lexical_error
 
 (* less: should use Buffer and not ^ so we should not need that *)
 let tok_add_s = PI.tok_add_s

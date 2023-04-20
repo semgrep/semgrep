@@ -165,13 +165,13 @@ exception UnreachableList
 
 let error str v pos env =
   let t = mk_tok pos (p_token v) env in
-  raise (PI.Other_error (str, t))
+  raise (Parsing_error.Other_error (str, t))
 
 let get_res file = function
   | Result.Error (`Msg str) ->
       let loc = Tok.first_loc_of_file file in
       let tok = PI.mk_info_of_loc loc in
-      raise (PI.Other_error (str, tok))
+      raise (Parsing_error.Other_error (str, tok))
   | Result.Ok v -> v
 
 let do_parse env =
@@ -187,7 +187,7 @@ let do_parse env =
             ( "(approximate error location; error nearby after) ",
               mk_tok pos (p_token v) env )
       in
-      raise (PI.Other_error (prefix ^ str, tok))
+      raise (Parsing_error.Other_error (prefix ^ str, tok))
   | Result.Ok (ev, pos) ->
       env.last_event <- Some (ev, pos);
       (ev, pos)

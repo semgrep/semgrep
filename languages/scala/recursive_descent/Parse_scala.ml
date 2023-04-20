@@ -74,7 +74,8 @@ let parse filename =
     let xs = Parser_scala_recursive_descent.parse toks in
     { Parsing_result.ast = xs; tokens = toks; stat }
   with
-  | PI.Parsing_error cur when !Flag.error_recovery && not !Flag.debug_parser ->
+  | Parsing_error.Parsing_error cur
+    when !Flag.error_recovery && not !Flag.debug_parser ->
       if !Flag.show_parsing_error then (
         pr2 ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
         let filelines = Common2.cat_array filename in

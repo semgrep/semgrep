@@ -89,8 +89,8 @@ let mk_lexer filename input_source =
   let rec lexer lexbuf =
     let tok =
       try Lexer_ruby.token state lexbuf with
-      | PI.Lexical_error (s, info) ->
-          raise (PI.Lexical_error (s, adjust_info info))
+      | Parsing_error.Lexical_error (s, info) ->
+          raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
     if !Flag_parsing.debug_lexer then Common.pr2_gen tok;
 
@@ -149,9 +149,9 @@ let parse2 opt_timeout file =
 
           (* pr2 (spf "Exn on %s = %s" file s); *)
           if (not !Flag.error_recovery) && exn =*= Dyp.Syntax_error then
-            raise (PI.Parsing_error (TH.info_of_tok cur));
+            raise (Parsing_error.Parsing_error (TH.info_of_tok cur));
           if (not !Flag.error_recovery) && exn <> Dyp.Syntax_error then
-            raise (PI.Other_error (s, TH.info_of_tok cur));
+            raise (Parsing_error.Other_error (s, TH.info_of_tok cur));
 
           if !Flag.show_parsing_error && exn =*= Dyp.Syntax_error then (
             pr2 ("parse error \n = " ^ error_msg_tok cur);

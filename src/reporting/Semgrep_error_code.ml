@@ -95,9 +95,9 @@ let error rule_id loc msg err =
  *)
 let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   match Exception.get_exn e with
-  | Parse_info.Lexical_error (s, tok) ->
+  | Parsing_error.Lexical_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.LexicalError)
-  | Parse_info.Parsing_error tok ->
+  | Parsing_error.Parsing_error tok ->
       let msg =
         match tok with
         | { token = Tok.OriginTok { str; _ }; _ } ->
@@ -105,7 +105,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
         | __else__ -> "unknown reason"
       in
       Some (mk_error_tok tok msg Out.ParseError)
-  | Parse_info.Other_error (s, tok) ->
+  | Parsing_error.Other_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
   | R.Err err -> (
       match err with

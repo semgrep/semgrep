@@ -812,7 +812,7 @@ let main (sys_argv : string array) : unit =
    can be tricky.
 *)
 let register_exception_printers () =
-  Parse_info.register_exception_printer ();
+  Parsing_error.register_exception_printer ();
   SPcre.register_exception_printer ();
   Rule.register_exception_printer ()
 

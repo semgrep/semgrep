@@ -130,10 +130,11 @@ let map_string_ (env : env) (x : CST.string_) : string_ =
         | "|||", "|||" -> TripleBar
         | x, y when x = y ->
             raise
-              (PI.Other_error (spf "unrecognized string delimiter: %s" x, t1))
+              (Parsing_error.Other_error
+                 (spf "unrecognized string delimiter: %s" x, t1))
         | x, y ->
             raise
-              (PI.Other_error
+              (Parsing_error.Other_error
                  (spf "unmatched string delimiter: '%s' and '%s'" x y, t1))
       in
       (tat, kind, (t1, [ content ], t2))

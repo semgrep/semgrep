@@ -20,7 +20,7 @@ let tests =
                    let _ = Parse_ml.parse_program file in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Parsing_error _ ->
                      Alcotest.failf "it should correctly parse %s" file) );
       (* Check that the visitor implementation correctly visit all AST
        * subelements, even when they are deep inside the AST tree (e.g.

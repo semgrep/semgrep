@@ -42,7 +42,7 @@ let recover_when_partial_error = ref true
 type env = { mutable defs_toadd : G.definition list }
 
 let empty_env () = { defs_toadd = [] }
-let error t s = raise (Parse_info.Other_error (s, t))
+let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
 let error_unless_partial_error _env t s =
