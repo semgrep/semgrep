@@ -19,6 +19,13 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+      - name: Cache git checkout
+        id: cache-git
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            .
+          key: semgrep-js-git-${{ git.sha }}
       - name: Build semgrep
         run: |
           eval $(opam env)
@@ -30,7 +37,7 @@ jobs:
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
           echo "Building ocaml..."
-          dune build js --profile=release
+          dune build js/languages/lua --profile=release
       - uses: actions/upload-artifact@v3
         with:
           name: semgrep-js-ocaml-build
@@ -47,27 +54,37 @@ jobs:
       fail-fast: true
       matrix:
         package:
-          - engine
-          - languages/go
           - languages/lua
-          - languages/python
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
       HOME: /root
     steps:
+      - name: Restore git checkout cache
+        id: cache-git
+        uses: actions/cache/restore@v3
+        with:
+          path: .
+          key: semgrep-js-git-${{ git.sha }}
+      - name: Make checkout speedy
+        if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
+        run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
+        if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
+        with:
+          submodules: true
+      - if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
+        run: |
+          echo "Setting up tree-sitter again..."
+          (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-js-ocaml-build
           path: _build/default/js
       - name: Build semgrep
         run: |
-          echo "Setting up tree-sitter again..."
-          (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
-          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
-
           echo "Installing a modern version of node..."
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
           . ~/.nvm/nvm.sh

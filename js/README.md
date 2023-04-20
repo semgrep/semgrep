@@ -17,6 +17,8 @@ has a significant impact on the size of the generated JS file. You can go
 from 110MB to 16MB!
 See https://discuss.ocaml.org/t/tutorial-full-stack-web-dev-in-ocaml-w-dream-bonsai-and-graphql/9963/8?u=aryx for more information
 
+After you've built all the OCaml, you must build the WebAssembly modules and package everything together. The easiest way to do this is by running `make` in this folder.
+
 You can then load this file in your browser and test it [here](examples/index.html).
 
 You can also load this file in nodejs and test it with:
