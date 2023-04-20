@@ -212,7 +212,7 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
                  | `Imme_expa x -> expansion env x)
           |> simplify_fragments
         in
-        let loc = Loc.of_list string_fragment_loc fragments in
+        let loc = Tok_range.of_list string_fragment_loc fragments in
         (loc, fragments)
   in
   (colon, tag)
@@ -234,7 +234,7 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
                  | `Imme_expa x -> expansion env x)
           |> simplify_fragments
         in
-        let loc = Loc.of_list string_fragment_loc fragments in
+        let loc = Tok_range.of_list string_fragment_loc fragments in
         (loc, fragments)
   in
   (at, digest)
@@ -254,7 +254,7 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
            | `Imme_expa x -> expansion env x)
   in
   let fragments = first_fragment :: fragments |> simplify_fragments in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
@@ -272,7 +272,7 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
            | `Imme_expa x -> expansion env x)
   in
   let fragments = first_fragment :: other_fragments |> simplify_fragments in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let immediate_user_name_or_group_fragment (env : env)
@@ -285,7 +285,7 @@ let immediate_user_name_or_group_fragment (env : env)
 let immediate_user_name_or_group (env : env)
     (xs : CST.immediate_user_name_or_group) : str =
   let fragments = Common.map (immediate_user_name_or_group_fragment env) xs in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) : str =
@@ -296,7 +296,7 @@ let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) : str =
   in
   let tail = Common.map (immediate_user_name_or_group_fragment env) xs in
   let fragments = head :: tail |> simplify_fragments in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
@@ -311,7 +311,7 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
       xs
     |> simplify_fragments
   in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let path0 (env : env) ((v1, v2) : CST.path) : string_fragment list =
@@ -333,14 +333,14 @@ let path0 (env : env) ((v1, v2) : CST.path) : string_fragment list =
 
 let path (env : env) (x : CST.path) : str =
   let fragments = path0 env x in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let path_or_ellipsis (env : env) (x : CST.path) : str_or_ellipsis =
   match (env.extra, path0 env x) with
   | (Pattern, _), [ String_content ("...", tok) ] -> Str_semgrep_ellipsis tok
   | _, fragments ->
-      let loc = Loc.of_list string_fragment_loc fragments in
+      let loc = Tok_range.of_list string_fragment_loc fragments in
       Str_str (loc, fragments)
 
 let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) : str =
@@ -359,7 +359,7 @@ let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) : str =
       xs
   in
   let fragments = first_fragment :: other_fragments |> simplify_fragments in
-  let loc = Loc.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list string_fragment_loc fragments in
   (loc, fragments)
 
 let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
@@ -422,7 +422,7 @@ let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
       | None -> end_
       | Some (_at, x) -> str_loc x
     in
-    Loc.range start end_
+    Tok_range.range start end_
   in
   { loc; name; tag; digest }
 
@@ -438,7 +438,7 @@ let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) : str =
   | `Unqu_str x -> unquoted_string env x
 
 let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
-    Loc.t * string_array =
+    Tok_range.t * string_array =
   let open_ = token env v1 (* "[" *) in
   let argv =
     match v2 with
@@ -709,17 +709,17 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             match v2 with
             | Some x ->
                 let param = param env x in
-                (Some param, Loc.range loc (param_loc param))
+                (Some param, Tok_range.range loc (param_loc param))
             | None -> (None, loc)
           in
           let image_spec = image_spec env v3 in
-          let loc = Loc.range loc (image_spec_loc image_spec) in
+          let loc = Tok_range.range loc (image_spec_loc image_spec) in
           let alias, loc =
             match v4 with
             | Some (v1, v2) ->
                 let as_ = token env v1 (* pattern [aA][sS] *) in
                 let alias = image_alias env v2 in
-                (Some (as_, alias), Loc.union loc (str_loc alias))
+                (Some (as_, alias), Tok_range.union loc (str_loc alias))
             | None -> (None, loc)
           in
           (env, From (loc, name, param, image_spec, alias))
@@ -736,8 +736,8 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
       | `Label_inst (v1, v2) ->
           let name = str env v1 (* pattern [lL][aA][bB][eE][lL] *) in
           let label_pairs = Common.map (label_pair env) v2 in
-          let loc = Loc.of_list label_pair_loc label_pairs in
-          let loc = Loc.extend loc (snd name) in
+          let loc = Tok_range.of_list label_pair_loc label_pairs in
+          let loc = Tok_range.extend loc (snd name) in
           (env, Label (loc, name, label_pairs))
       | `Expose_inst (v1, v2) ->
           let name = str env v1 (* pattern [eE][xX][pP][oO][sS][eE] *) in
@@ -749,7 +749,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                 | `Expa x -> Expose_fragment (expansion env x))
               v2
           in
-          let _, end_ = Loc.of_list expose_port_loc port_protos in
+          let _, end_ = Tok_range.of_list expose_port_loc port_protos in
           let loc = (wrap_tok name, end_) in
           (env, Expose (loc, name, port_protos))
       | `Env_inst (v1, v2) ->
@@ -759,7 +759,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `Rep1_env_pair xs -> Common.map (env_pair env) xs
             | `Spaced_env_pair x -> [ spaced_env_pair env x ]
           in
-          let _, end_ = Loc.of_list label_pair_loc pairs in
+          let _, end_ = Tok_range.of_list label_pair_loc pairs in
           let loc = (wrap_tok name, end_) in
           (env, Env (loc, name, pairs))
       | `Add_inst (v1, v2, v3, v4) ->
@@ -821,10 +821,12 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                     v2
                 in
                 let paths = path0 :: paths in
-                let loc = Loc.of_list str_or_ellipsis_loc paths in
+                let loc = Tok_range.of_list str_or_ellipsis_loc paths in
                 Paths (loc, paths)
           in
-          let loc = Loc.extend (array_or_paths_loc args) (wrap_tok name) in
+          let loc =
+            Tok_range.extend (array_or_paths_loc args) (wrap_tok name)
+          in
           (env, Volume (loc, name, args))
       | `User_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [uU][sS][eE][rR] *) in
@@ -861,7 +863,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | Some (v1, v2) ->
                 let eq = token env v1 (* "=" *) in
                 let value = string env v2 in
-                (Some (eq, value), Loc.extend loc (str_loc value |> snd))
+                (Some (eq, value), Tok_range.extend loc (str_loc value |> snd))
             | None -> (None, loc)
           in
           (env, Arg (loc, name, key, opt_value))
@@ -892,14 +894,14 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `NONE tok -> Healthcheck_none (token env tok (* "NONE" *))
             | `Rep_param_cmd_inst (v1, (name (* CMD *), args)) ->
                 let params = Common.map (param env) v1 in
-                let params_loc = Loc.of_list param_loc params in
+                let params_loc = Tok_range.of_list param_loc params in
                 let cmd_loc, name, run_params, args =
                   runlike_instruction env name [] args
                 in
-                let loc = Loc.range params_loc cmd_loc in
+                let loc = Tok_range.range params_loc cmd_loc in
                 Healthcheck_cmd (loc, params, (cmd_loc, name, run_params, args))
           in
-          let loc = Loc.extend (healthcheck_loc arg) (wrap_tok name) in
+          let loc = Tok_range.extend (healthcheck_loc arg) (wrap_tok name) in
           (env, Healthcheck (loc, name, arg))
       | `Shell_inst (v1, v2) ->
           let ((_, start_tok) as name) =

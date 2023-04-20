@@ -11,15 +11,15 @@ type env = AST_bash.input_kind
 let fb = Parse_info.unsafe_fake_bracket
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
-let call ((orig_name, name_tok) : string wrap) ((args_start, args_end) : Loc.t)
-    (args : G.argument list) : G.expr =
+let call ((orig_name, name_tok) : string wrap)
+    ((args_start, args_end) : Tok_range.t) (args : G.argument list) : G.expr =
   let name = (String.uppercase_ascii orig_name, name_tok) in
   let func = G.N (G.Id (name, G.empty_id_info ())) |> G.e in
   G.Call (func, (args_start, args, args_end)) |> G.e
 
 (* Same as 'call' but assumes all the arguments are ordinary, non-optional
    arguments, specified as 'expr'. *)
-let call_exprs (name : string wrap) (loc : Loc.t)
+let call_exprs (name : string wrap) (loc : Tok_range.t)
     ?(opt_args : (G.ident * G.expr) list = []) (args : G.expr list) : G.expr =
   let opt_args =
     Common.map (fun (name, e) -> G.ArgKwdOptional (name, e)) opt_args
@@ -47,7 +47,7 @@ let call_shell loc (shell_compat : shell_compatibility) args =
   let args_start, args_end = loc in
   G.Call (func, (args_start, args, args_end)) |> G.e
 
-let bracket (loc : Loc.t) x : 'a bracket =
+let bracket (loc : Tok_range.t) x : 'a bracket =
   let start, end_ = loc in
   (start, x, end_)
 

@@ -122,7 +122,7 @@ let stmt_or_expr_loc = function
 let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
   | several ->
-      let loc = Loc.of_list stmt_or_expr_loc several in
+      let loc = Tok_range.of_list stmt_or_expr_loc several in
       let stmts = Common.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 

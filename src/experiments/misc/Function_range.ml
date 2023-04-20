@@ -9,7 +9,7 @@ open AST_generic
 (* Types *)
 (*****************************************************************************)
 
-type function_info = { name : string; range : Loc.t } [@@deriving show]
+type function_info = { name : string; range : Tok_range.t } [@@deriving show]
 type ranges = function_info list [@@deriving show]
 
 (*****************************************************************************)
