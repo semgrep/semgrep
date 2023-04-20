@@ -106,6 +106,8 @@ let mk_Toplevel x =
   | [] -> raise Impossible
   | [x] -> Toplevel x
   | xs -> Toplevels xs
+
+let str_of_info x = Tok.content_of_tok x
 %}
 
 (*************************************************************************)
@@ -1327,9 +1329,9 @@ exit_expr:
 ident:
  | T_IDENT { $1 }
 
- | T_ENUM      { PI.str_of_info $1, $1 }
- | T_TYPE      { PI.str_of_info $1, $1 }
- | T_SUPER     { PI.str_of_info $1, $1 }
+ | T_ENUM      { str_of_info $1, $1 }
+ | T_TYPE      { str_of_info $1, $1 }
+ | T_SUPER     { str_of_info $1, $1 }
  (* semgrep-ext: *)
  | T_METAVAR   { $1 }
 
@@ -1342,7 +1344,7 @@ ident_encaps:
 ident_in_name:
  | ident { $1 }
  (* can't use keyword_as_ident here, too many conflicts *)
- | T_INSTANCEOF { PI.str_of_info $1, $1 }
+ | T_INSTANCEOF { str_of_info $1, $1 }
 
 (* used in class definitions *)
 ident_class_name:
@@ -1360,10 +1362,10 @@ ident_method_name:
 ident_constant_name: ident_method_name { $1 }
 
 keyword_as_ident:
- | T_PARENT      { PI.str_of_info $1, $1 }
- | T_SELF        { PI.str_of_info $1, $1 }
- | T_INSTANCEOF  { PI.str_of_info $1, $1 }
- | T_ARRAY       { PI.str_of_info $1, $1 }
+ | T_PARENT      { str_of_info $1, $1 }
+ | T_SELF        { str_of_info $1, $1 }
+ | T_INSTANCEOF  { str_of_info $1, $1 }
+ | T_ARRAY       { str_of_info $1, $1 }
  | keyword_as_ident_for_field { $1 }
 
 (* This is used in 'keyword_as_ident' above, as well as in 'member_expr' via:
@@ -1372,17 +1374,17 @@ keyword_as_ident:
  * in primary_expr, hence the move in keyword_as_ident instead.
  *)
 keyword_as_ident_for_field:
- | T_ASYNC       { PI.str_of_info $1, $1 }
- | T_INCLUDE     { PI.str_of_info $1, $1 }
- | T_PUBLIC      { PI.str_of_info $1, $1 }
- | T_DEFAULT     { PI.str_of_info $1, $1 }
- | T_LIST        { PI.str_of_info $1, $1 }
- | T_LOGICAL_AND { PI.str_of_info $1, $1 }
- | T_NEW         { PI.str_of_info $1, $1 }
- | T_FROM        { PI.str_of_info $1, $1 }
- | T_GLOBAL       { PI.str_of_info $1, $1 }
- | T_AS       { PI.str_of_info $1, $1 }
- | T_FOR       { PI.str_of_info $1, $1 }
+ | T_ASYNC       { str_of_info $1, $1 }
+ | T_INCLUDE     { str_of_info $1, $1 }
+ | T_PUBLIC      { str_of_info $1, $1 }
+ | T_DEFAULT     { str_of_info $1, $1 }
+ | T_LIST        { str_of_info $1, $1 }
+ | T_LOGICAL_AND { str_of_info $1, $1 }
+ | T_NEW         { str_of_info $1, $1 }
+ | T_FROM        { str_of_info $1, $1 }
+ | T_GLOBAL       { str_of_info $1, $1 }
+ | T_AS       { str_of_info $1, $1 }
+ | T_FOR       { str_of_info $1, $1 }
 
 (*************************************************************************)
 (* Namespace *)

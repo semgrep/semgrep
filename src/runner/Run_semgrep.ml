@@ -99,7 +99,7 @@ let update_cli_progress config =
 (*****************************************************************************)
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
+  String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
@@ -148,7 +148,7 @@ let print_match ?str config match_ ii_of_any =
      * factorize code a bit.
      *)
     let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, Tok.line_of_tok mini) in
+    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
     let strings_metavars =
       mvars
@@ -157,7 +157,7 @@ let print_match ?str config match_ ii_of_any =
              | Some any ->
                  any |> ii_of_any
                  |> List.filter PI.is_origintok
-                 |> Common.map PI.str_of_info
+                 |> Common.map Tok.content_of_tok
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in
@@ -319,7 +319,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 let exn_to_error file (e : Exception.t) =
   match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
-      let loc = PI.unsafe_token_location_of_info tok in
+      let loc = Tok.unsafe_loc_of_tok tok in
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 

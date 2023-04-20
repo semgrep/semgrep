@@ -121,7 +121,7 @@ let module_name env (v1, dots) =
   | Some toks ->
       let count =
         toks
-        |> Common.map Parse_info.str_of_info
+        |> Common.map Tok.content_of_tok
         |> String.concat "" |> String.length
       in
       let tok = Common.hd_exn "unexpected empty list" toks in

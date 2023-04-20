@@ -42,7 +42,7 @@ module Flag = Flag_parsing
 
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = Parse_info.tokinfo
+let tokinfo = Tok.tok_of_lexbuf
 let error = Parsing_error.lexical_error
 
 (* ---------------------------------------------------------------------- *)
@@ -241,7 +241,7 @@ rule token = parse
       let buf = Buffer.create 127 in
       Buffer.add_string buf "/*";
       comment 0 buf lexbuf;
-      Comment(info |> PI.rewrap_str (Buffer.contents buf))
+      Comment(info |> Tok.rewrap_str (Buffer.contents buf))
     }
 
   (* don't keep the trailing \n; it will be in another token *)
@@ -335,13 +335,13 @@ rule token = parse
   | "'" (plainid as s)
     {
       let t = tokinfo lexbuf in
-      let (tcolon, trest) = PI.split_info_at_pos 1 t in
+      let (tcolon, trest) = Tok.split_tok_at_bytepos 1 t in
       SymbolLiteral(tcolon, (s, trest))
     }
   (* semgrep-ext: note that plainid above also allow $XXX for semgrep *)
   | "'..."
      { let t = tokinfo lexbuf in
-       let (tcolon, trest) = PI.split_info_at_pos 1 t in
+       let (tcolon, trest) = Tok.split_tok_at_bytepos 1 t in
        Flag_parsing.sgrep_guard (SymbolLiteral(tcolon, ("...", trest)))
      }
   | "'" {
@@ -454,7 +454,7 @@ rule token = parse
       let buf = Buffer.create 127 in
       string buf lexbuf;
       let s = Buffer.contents buf in
-      StringLiteral(s, info |> PI.rewrap_str ("\"\"\"" ^ s ^ "\"\"\""))
+      StringLiteral(s, info |> Tok.rewrap_str ("\"\"\"" ^ s ^ "\"\"\""))
     }
   (* interpolated strings *)
   | alphaid as s '"'

@@ -126,6 +126,20 @@ class RuleMatch:
     def product(self) -> RuleProduct:
         return RuleProduct.sca if "sca_info" in self.extra else RuleProduct.sast
 
+    @property
+    def title(self) -> str:
+        if self.product == RuleProduct.sca:
+            cve_id = self.metadata.get("sca-vuln-database-identifier")
+            sca_info = self.extra.get("sca_info")
+            package_name = (
+                sca_info.dependency_match.found_dependency.package if sca_info else None
+            )
+
+            if cve_id and package_name:
+                return f"{package_name} - {cve_id}"
+
+        return self.rule_id
+
     def get_individual_line(self, line_number: int) -> str:
         line_array = get_lines(self.path, line_number, line_number)
         if len(line_array) == 0:

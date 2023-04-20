@@ -58,8 +58,9 @@ let yyback n lexbuf =
   }
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = PI.tokinfo
-let tok_add_s = PI.tok_add_s
+let tokinfo = Tok.tok_of_lexbuf
+
+let tokinfo_str_pos = Tok.tok_of_str_and_bytepos
 
 (* all string passed to T_IDENT or T_VARIABLE should go through case_str *)
 let case_str s =
@@ -70,7 +71,7 @@ let case_str s =
 let lang_ext_or_t_ident ii fii =
   if !Flag_php.facebook_lang_extensions
   then fii ii
-  else T_IDENT(case_str (PI.str_of_info ii), ii)
+  else T_IDENT(case_str (Tok.content_of_tok ii), ii)
 
 let t_variable_or_metavar s info =
   (* sgrep-ext: we used to generate a T_IDENT here, so a metavariable
@@ -406,19 +407,19 @@ rule st_in_scripting = parse
     | "/*" {
         let info = tokinfo lexbuf in
         let com = st_comment lexbuf in
-        T_COMMENT(info |> tok_add_s com)
+        T_COMMENT(info |> Tok.tok_add_s com)
       }
     | "/**/" { T_COMMENT(tokinfo lexbuf) }
 
     | "/**" { (* RESET_DOC_COMMENT(); *)
         let info = tokinfo lexbuf in
         let com = st_comment lexbuf in
-        T_DOC_COMMENT(info |> tok_add_s com)
+        T_DOC_COMMENT(info |> Tok.tok_add_s com)
       }
     | "#"|"//" {
         let info = tokinfo lexbuf in
         let com = st_one_line_comment lexbuf in
-        T_COMMENT(info |> tok_add_s com)
+        T_COMMENT(info |> Tok.tok_add_s com)
       }
 
     (* old: | WHITESPACE { T_WHITESPACE(tokinfo lexbuf) } *)
@@ -538,15 +539,15 @@ rule st_in_scripting = parse
       *)
         let info = tokinfo lexbuf in
 
-        let syminfo = PI.rewrap_str sym info in
+        let syminfo = Tok.rewrap_str sym info in
 
-        let parse_info = PI.unsafe_token_location_of_info info in
+        let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym   =
           parse_info.Tok.pos.charpos + String.length sym in
         let pos_after_white = pos_after_sym + String.length white in
 
-        let whiteinfo = PI.tokinfo_str_pos white pos_after_sym in
-        let lblinfo = PI.tokinfo_str_pos label pos_after_white in
+        let whiteinfo = tokinfo_str_pos white pos_after_sym in
+        let lblinfo = tokinfo_str_pos label pos_after_white in
 
         push_token (T_IDENT (case_str label, lblinfo));
        (* todo: could be newline ... *)
@@ -629,10 +630,10 @@ rule st_in_scripting = parse
           }
     | ("$" as dollar) "$" (LABEL as s) {
         let info = tokinfo lexbuf in
-        let dollarinfo = PI.rewrap_str (String.make 1 dollar) info in
-        let parse_info = PI.unsafe_token_location_of_info info in
+        let dollarinfo = Tok.rewrap_str (String.make 1 dollar) info in
+        let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym = parse_info.Tok.pos.charpos + 2 in
-        let lblinfo = PI.tokinfo_str_pos s pos_after_sym in
+        let lblinfo = tokinfo_str_pos s pos_after_sym in
 
         push_token (T_VARIABLE(case_str s, lblinfo));
         TDOLLAR dollarinfo
@@ -768,7 +769,7 @@ rule st_in_scripting = parse
         }
 
   (* ----------------------------------------------------------------------- *)
-    | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+    | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
     | _ {
         error ("unrecognised symbol, in token rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
@@ -824,7 +825,7 @@ and initial = parse
 
   (*------------------------------------------------------------------------ *)
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _ (* ANY_CHAR *) {
       error("unrecognised symbol, in token rule:"^tok lexbuf);
       TUnknown (tokinfo lexbuf)
@@ -879,7 +880,7 @@ and st_var_offset = parse
       pop_mode();
       TCBRA(tokinfo lexbuf);
     }
-   | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+   | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
    | _ {
        error ("unrecognised symbol, in st_var_offset rule:"^tok lexbuf);
        TUnknown (tokinfo lexbuf)
@@ -902,11 +903,11 @@ and st_double_quotes = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let varinfo = PI.rewrap_str ("$" ^ s) info in
-          let charpos_info = PI.pos_of_info varinfo in
+          let varinfo = Tok.rewrap_str ("$" ^ s) info in
+          let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
-          let bra_info = PI.tokinfo_str_pos "[" pos_after_label in
+          let bra_info = tokinfo_str_pos "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
           T_VARIABLE(case_str s, varinfo)
@@ -932,7 +933,7 @@ and st_double_quotes = parse
       pop_mode ();
       TGUIL(tokinfo lexbuf)
     }
-   | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+   | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
    | _ {
        error("unrecognised symbol, in st_double_quotes rule:"^tok lexbuf);
        TUnknown (tokinfo lexbuf)
@@ -950,11 +951,11 @@ and st_backquote = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let varinfo = PI.rewrap_str ("$" ^ s) info in
-          let charpos_info = PI.pos_of_info varinfo in
+          let varinfo = Tok.rewrap_str ("$" ^ s) info in
+          let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
-          let bra_info = PI.tokinfo_str_pos "[" pos_after_label in
+          let bra_info = tokinfo_str_pos "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
           T_VARIABLE(case_str s, varinfo)
@@ -977,7 +978,7 @@ and st_backquote = parse
       TBACKQUOTE(tokinfo lexbuf)
     }
 
-    | eof { EOF (tokinfo lexbuf |>PI.rewrap_str "") }
+    | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
     | _ {
         error ("unrecognised symbol, in st_backquote rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
@@ -995,16 +996,16 @@ and st_start_heredoc stopdoc = parse
   | (LABEL as s) (";"? as semi) (['\n' '\r'] as space) {
       let info = tokinfo lexbuf in
 
-      let lbl_info = PI.rewrap_str s info in
+      let lbl_info = Tok.rewrap_str s info in
 
-      let pos = PI.pos_of_info info in
+      let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
 
       let colon_info =
-        PI.tokinfo_str_pos semi pos_after_label in
+        tokinfo_str_pos semi pos_after_label in
       let space_info =
-        PI.tokinfo_str_pos (Common2.string_of_char space) pos_after_semi in
+        tokinfo_str_pos (Common2.string_of_char space) pos_after_semi in
 
       if s = stopdoc
       then begin
@@ -1027,11 +1028,11 @@ and st_start_heredoc stopdoc = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let varinfo = PI.rewrap_str ("$" ^ s) info in
-          let charpos_info = PI.pos_of_info varinfo in
+          let varinfo = Tok.rewrap_str ("$" ^ s) info in
+          let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
-          let bra_info = PI.tokinfo_str_pos "[" pos_after_label in
+          let bra_info = tokinfo_str_pos "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
           T_VARIABLE(case_str s, varinfo)
@@ -1052,7 +1053,7 @@ and st_start_heredoc stopdoc = parse
         T_DOLLAR_OPEN_CURLY_BRACES(tokinfo lexbuf);
       }
 
-    | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+    | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
     | _ {
         error("unrecognised symbol, in st_start_heredoc rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
@@ -1067,16 +1068,16 @@ and st_start_nowdoc stopdoc = parse
   | (LABEL as s) (";"? as semi) (['\n' '\r'] as space) {
       let info = tokinfo lexbuf in
 
-      let lbl_info = PI.rewrap_str s info in
+      let lbl_info = Tok.rewrap_str s info in
 
-      let pos = PI.pos_of_info info in
+      let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
 
       let colon_info =
-        PI.tokinfo_str_pos semi pos_after_label in
+        tokinfo_str_pos semi pos_after_label in
       let space_info =
-        PI.tokinfo_str_pos (Common2.string_of_char space) pos_after_semi in
+        tokinfo_str_pos (Common2.string_of_char space) pos_after_semi in
 
       if s = stopdoc
       then begin
@@ -1097,7 +1098,7 @@ and st_start_nowdoc stopdoc = parse
       TNewline (tokinfo lexbuf)
     }
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _ {
        error ("unrecognised symbol, in st_start_nowdoc rule:"^tok lexbuf);
        TUnknown (tokinfo lexbuf)

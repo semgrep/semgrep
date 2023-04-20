@@ -35,7 +35,7 @@ open AST_generic (* for LASOP *)
 
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = Parse_info.tokinfo
+let tokinfo = Tok.tok_of_lexbuf
 let error = Parsing_error.lexical_error
 
 }
@@ -208,7 +208,7 @@ rule token = parse
       let buf = Buffer.create 127 in
       Buffer.add_string buf "/*";
       comment buf lexbuf;
-      TComment(info |> PI.rewrap_str (Buffer.contents buf))
+      TComment(info |> Tok.rewrap_str (Buffer.contents buf))
     }
 
   (* don't keep the trailing \n; it will be in another token *)

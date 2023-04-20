@@ -30,7 +30,7 @@ let fb = PI.unsafe_fake_bracket
 
 let combine_str_and_infos l xs r =
   let s = xs |> Common.map fst |> String.concat "" in
-  let t = PI.combine_infos l (Common.map snd xs @ [ r ]) in
+  let t = Tok.combine_toks l (Common.map snd xs @ [ r ]) in
   (s, t)
 
 (*****************************************************************************)
@@ -285,7 +285,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Comp (v1, v2) ->
       let s, t = (* float *) str env v1 in
       let v2 = (* "i" *) token env v2 in
-      let finalt = PI.combine_infos t [ v2 ] in
+      let finalt = Tok.combine_toks t [ v2 ] in
       L (Imag (s, finalt)) |> G.e
   | `Str x ->
       let x = map_string_ env x in

@@ -77,7 +77,7 @@ let rec ifdef_skipper xs f =
       | Some ifdef -> (
           match ifdef with
           | Ifdef tok -> (
-              logger#info "skipping: %s" (Parse_info.str_of_info tok);
+              logger#info "skipping: %s" (Tok.content_of_tok tok);
               try
                 let _, x, rest =
                   xs
@@ -679,7 +679,7 @@ and full_type env x =
       let ii =
         match iis with
         | [] -> raise Impossible
-        | x :: xs -> PI.combine_infos x xs
+        | x :: xs -> Tok.combine_toks x xs
       in
       A.TBase (ys @ [ last_s ] |> String.concat "_", ii)
   | TFunction ft -> A.TFunction (function_type env ft)

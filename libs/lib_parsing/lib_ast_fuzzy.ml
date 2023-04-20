@@ -105,7 +105,7 @@ let mk_trees h xs =
         let body, closing, rest = look_close_paren x [] xs in
         let body' = split_comma body in
         (Ast_fuzzy.Parens (h.tokf x, body', h.tokf closing), rest)
-    | tok -> (Ast_fuzzy.Tok (Parse_info.str_of_info (h.tokf tok), h.tokf x), xs)
+    | tok -> (Ast_fuzzy.Tok (Tok.content_of_tok (h.tokf tok), h.tokf x), xs)
     (*
     (match Ast.str_of_info (tokext tok) with
     | "..." -> Ast_fuzzy.Dots (tokext tok)

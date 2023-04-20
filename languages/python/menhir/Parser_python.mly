@@ -86,7 +86,7 @@ let tuple_expr_store l =
     | _ -> expr_store e
 
 let mk_str ii =
-  let s = Parse_info.str_of_info ii in
+  let s = Tok.content_of_tok ii in
   Str (s, ii)
 
 %}

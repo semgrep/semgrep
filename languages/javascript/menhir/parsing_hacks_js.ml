@@ -164,7 +164,7 @@ let fix_tokens toks =
          | T.T_LCURLY info when Hashtbl.mem retag_lbrace info ->
              T.T_LCURLY_SEMGREP info
          | T.T_IMPORT info when Hashtbl.mem retag_keywords info ->
-             T.T_ID (PI.str_of_info info, info)
+             T.T_ID (Tok.content_of_tok info, info)
          | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->

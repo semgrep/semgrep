@@ -68,7 +68,7 @@ let rec _show_call_trace show_thing = function
       let toks =
         Lazy.force pm.PM.tokens |> List.filter Parse_info.is_origintok
       in
-      let s = toks |> Common.map Parse_info.str_of_info |> String.concat " " in
+      let s = toks |> Common.map Tok.content_of_tok |> String.concat " " in
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)

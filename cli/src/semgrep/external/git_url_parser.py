@@ -65,7 +65,7 @@ POSSIBLE_REGEXES = (
                r'((?P<resource>[\w\.\-]+))'
                r'[\:\/]{1,2}'
                r'(?P<pathname>((?P<owner>\w+)/)?'
-               r'((?P<name>[\w\-]+)(\.git|\/)?)?)$'),
+               r'((?P<name>[\w\-\.]+)(\.git|\/)?)?)$'),
 )
 
 

@@ -177,7 +177,7 @@ let map_named_label_statement (env : env) ((v1, v2) : CST.named_label_statement)
 let map_variable_name (env : env) ((v1, v2) : CST.variable_name) : A.var =
   let v1 = (* "$" *) token env v1 in
   let v2str, v2tok = _str env v2 in
-  let combined = Parse_info.combine_infos v1 [ v2tok ] in
+  let combined = Tok.combine_toks v1 [ v2tok ] in
   ("$" ^ v2str, combined)
 
 let map_namespace_aliasing_clause (env : env)
@@ -1247,7 +1247,7 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       match v3 with
       | Some e -> A.CondExpr (v1, e, v5)
       | None ->
-          let elvis = (A.ArithOp G.Elvis, Parse_info.combine_infos v2 [ v4 ]) in
+          let elvis = (A.ArithOp G.Elvis, Tok.combine_toks v2 [ v4 ]) in
           A.Binop (v1, elvis, v5))
   | `Match_exp (v1, v2, v3) ->
       let v1 = (* pattern [mM][aA][tT][cC][hH] *) token env v1 in

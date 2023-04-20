@@ -19,29 +19,14 @@ open Tok
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* TODO: remove this file, spread its content in separate files *)
 
 (*****************************************************************************)
-(* Types *)
+(* Misc *)
 (*****************************************************************************)
 
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
-
-let mk_info_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
-
-let token_location_of_info ii =
-  match ii.token with
-  | OriginTok pinfo -> Ok pinfo
-  (* TODO ? dangerous ? *)
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> Ok pinfo_pp
-  | FakeTokStr (_, Some (pi, _)) -> Ok pi
-  | FakeTokStr (_, None) -> Error "FakeTokStr"
-  | Ab -> Error "Ab"
-
-let unsafe_token_location_of_info ii =
-  match token_location_of_info ii with
-  | Ok pinfo -> pinfo
-  | Error msg -> raise (NoTokenLocation msg)
 
 (* Synthesize a token. *)
 let unsafe_fake_info str : Tok.t =
@@ -53,7 +38,7 @@ let fake_info_loc next_to_loc str : Tok.t =
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
 let fake_info next_to_tok str : Tok.t =
-  match token_location_of_info next_to_tok with
+  match Tok.loc_of_tok next_to_tok with
   | Ok loc -> fake_info_loc loc str
   | Error _ -> unsafe_fake_info str
 
@@ -92,99 +77,9 @@ let sc next_to_tok = fake_info next_to_tok ";"
 let string_of_token_location x = Pos.string_of_pos x.pos
 
 let string_of_info x =
-  match token_location_of_info x with
+  match Tok.loc_of_tok x with
   | Ok loc -> string_of_token_location loc
   | Error msg -> spf "unknown location (%s)" msg
-
-let str_of_info ii =
-  match ii.token with
-  | OriginTok x -> x.str
-  | FakeTokStr (s, _) -> s
-  | ExpandedTok _
-  | Ab ->
-      raise (NoTokenLocation "str_of_info: Expanded or Ab")
-
-let _str_of_info ii = (unsafe_token_location_of_info ii).str
-let file_of_info ii = (unsafe_token_location_of_info ii).pos.file
-let col_of_info ii = (unsafe_token_location_of_info ii).pos.column
-
-(* todo: return a Real | Virt position ? *)
-let pos_of_info ii = (unsafe_token_location_of_info ii).pos.charpos
-
-(*****************************************************************************)
-(* Lexer helpers *)
-(*****************************************************************************)
-(* now in Parsing_helpers.ml *)
-
-let tokinfo_str_pos str pos =
-  let loc =
-    {
-      str;
-      pos =
-        {
-          charpos = pos;
-          (* info filled in a post-lexing phase, see complete_token_location_large*)
-          line = -1;
-          column = -1;
-          file = "NO FILE INFO YET";
-        };
-    }
-  in
-  mk_info_of_loc loc
-
-let tokinfo lexbuf =
-  tokinfo_str_pos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
-
-let rewrap_str s ii =
-  {
-    ii with
-    token =
-      (match ii.token with
-      | OriginTok pi -> OriginTok { pi with str = s }
-      | FakeTokStr (s, info) -> FakeTokStr (s, info)
-      | Ab -> Ab
-      | ExpandedTok _ ->
-          (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
-          failwith "rewrap_str: ExpandedTok not allowed here");
-  }
-
-(* less: should use Buffer and not ^ so we should not need that *)
-let tok_add_s s ii = rewrap_str (str_of_info ii ^ s) ii
-
-let str_of_info_fake_ok ii =
-  match ii.token with
-  | OriginTok pinfo -> pinfo.str
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> pinfo_pp.str
-  | FakeTokStr (_, Some (pi, _)) -> pi.str
-  | FakeTokStr (s, None) -> s
-  | Ab -> raise (NoTokenLocation "Ab")
-
-let combine_infos x xs =
-  let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
-  tok_add_s str x
-
-let split_info_at_pos pos ii =
-  let loc = unsafe_token_location_of_info ii in
-  let str = loc.str in
-  let loc1_str = String.sub str 0 pos in
-  let loc2_str = String.sub str pos (String.length str - pos) in
-  let loc1 = { loc with str = loc1_str } in
-  let loc2 =
-    {
-      str = loc2_str;
-      pos =
-        {
-          loc.pos with
-          charpos = loc.pos.charpos + pos;
-          column = loc.pos.column + pos;
-        };
-    }
-  in
-  (mk_info_of_loc loc1, mk_info_of_loc loc2)
-
-(*****************************************************************************)
-(* Errors *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Misc *)
@@ -198,13 +93,6 @@ let is_origintok ii =
   | _ -> false
 
 (* info about the current location *)
-
-(* original info *)
-let get_original_token_location = function
-  | OriginTok pi -> pi
-  | ExpandedTok (pi, _, _) -> pi
-  | FakeTokStr (_, _) -> raise (NoTokenLocation "FakeTokStr")
-  | Ab -> raise (NoTokenLocation "Ab")
 
 (* used by token_helpers *)
 

@@ -18,7 +18,7 @@ type location = {
 }
 [@@deriving show, eq]
 
-type origin =
+type kind =
   (* Token found in the original file *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -67,9 +67,9 @@ and add = AddStr of string | AddNewlineAndIdent [@@deriving show, eq]
 
 type t = {
   (* contains among other things the position of the token through
-   * the 'location' embedded inside the 'origin' type.
+   * the 'location' embedded inside the kind type.
    *)
-  token : origin;
+  token : kind;
   (* The transfo field as its name suggests is to allow source to source
    * transformations via token "annotations". See the documentation for Spatch.
    * TODO: remove now that we use AST-based autofix in Semgrep.
@@ -94,8 +94,8 @@ type t_always_equal = t [@@deriving show, eq, hash]
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 (* "Safe" fake tokens require an existing location to attach to, and so
- * token_location_of_info will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling token_location_of_info on these
+ * loc_of_tok will work on these fake tokens. "Unsafe" fake tokens
+ * do not carry any location info, so calling loc_of_tok on these
  * will raise a NoTokenLocation exception.
  *
  * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
@@ -108,62 +108,93 @@ exception NoTokenLocation of string
 val fake_location : location
 
 (*****************************************************************************)
-(* Accessors *)
-(*****************************************************************************)
-
-(* Extract position information *)
-val line_of_tok : t -> int
-
-(* Token locations are supposed to denote the beginning of a token.
-   Suppose we are interested in instead having line, column, and charpos of
-   the end of a token instead.
-   This is something we can do at relatively low cost by going through and
-   inspecting the contents of the token, plus the start information.
-   TODO: rename to end_pos_of_loc and return a Pos.t instead
-*)
-val get_token_end_info : location -> int * int * int
-
-(*****************************************************************************)
-(* Builders *)
+(* Loc builders *)
 (*****************************************************************************)
 
 (* deprecated: you should use instead Pos.first_pos_of_file *)
 val first_loc_of_file : Common.filename -> location
 
 (*****************************************************************************)
+(* Token builders *)
+(*****************************************************************************)
+
+val tok_of_lexbuf : Lexing.lexbuf -> t
+val tok_of_loc : location -> t
+
+(* deprecated: TODO used only in Lexer_php.mll *)
+val tok_of_str_and_bytepos : string -> int -> t
+
+(* used mainly by tree-sitter based parsers in semgrep.
+ * [combine_toks t1 ts] will return a token where t1::ts
+ * have been combined in a single token, with a starting pos
+ * of t1.pos.
+ *)
+val combine_toks : t -> t list -> t
+
+(* this function assumes the full content of the token is on the same
+ * line, otherwise the line/col of the result might be wrong *)
+val split_tok_at_bytepos : int -> t -> t * t
+
+(*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
+
+val loc_of_tok : t -> (location, string) result
+
+(* @raise NoTokenLocation if given an unsafe fake token (without location) *)
+val unsafe_loc_of_tok : t -> location
+
+(* Extract the token (really lexeme) content *)
+val content_of_tok : t -> string
+
+(* Extract position information *)
+val line_of_tok : t -> int
+val col_of_tok : t -> int
+val bytepos_of_tok : t -> int
+val file_of_tok : t -> Common.filename
+
+(* Token positions in loc.pos denote the beginning of a token.
+   Suppose we are interested in having instead the line, column, and charpos
+   of the end of a token.
+   This is something we can do at relatively low cost by going through and
+   inspecting the content of the location, plus the start information.
+   alt: return a Pos.t instead
+*)
+val end_pos_of_loc : location -> int * int * int (* line x col x charpos *)
+
+(*****************************************************************************)
+(* Adjust string *)
+(*****************************************************************************)
+
+(* Deprecated: but still used in many ocamllex lexers in Semgrep *)
+val rewrap_str : string -> t -> t
+val tok_add_s : string -> t -> t
+
+(*****************************************************************************)
 (* Adjust location *)
 (*****************************************************************************)
-val fix_token_location : (location -> location) -> t -> t
-(** Fix the location info in a token. *)
+val fix_location : (location -> location) -> t -> t
+(** adjust the location in a token *)
 
-val adjust_info_wrt_base : location -> t -> t
-(** [adjust_info_wrt_base base_loc tok], where [tok] represents a location
+val adjust_tok_wrt_base : location -> t -> t
+(** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location
   * relative to [base_loc], returns the same [tok] but with an absolute
-  * {! token_location}. This is useful for fixing parse info after
+  * {! location}. This is useful for fixing tokens after
   * {! Common2.with_tmp_file}. E.g. if [base_loc] points to line 3, and
   * [tok] points to line 2 (interpreted line 2 starting in line 3), then
   * the adjusted token will point to line 4. *)
 
-val adjust_pinfo_wrt_base : location -> location -> location
-(** See [adjust_info_wrt_base]. *)
+val adjust_loc_wrt_base : location -> location -> location
+(** See [adjust_tok_wrt_base]. *)
 
 (*****************************************************************************)
 (* Adjust line x col in a location *)
 (*****************************************************************************)
 
-(* Can we deprecate those full_charpos_xxx? use
- * Parsing_helpers.tokenize_all_and_adjust_pos()?
- * Parse_ruby is still using those functions though :(
- *)
-
-(* f(i) will contain the (line x col) of the i char position *)
-val full_charpos_to_pos_large : Common.filename -> int -> int * int
-val full_charpos_to_pos_str : string -> int -> int * int
-
-(* fill in the line and column field of token_location that were not set
+(* fill in the line and column field of location that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_token_location_large :
+val complete_location :
   Common.filename -> (int -> int * int) -> location -> location
 
 (*****************************************************************************)

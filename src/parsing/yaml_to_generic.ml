@@ -170,7 +170,7 @@ let error str v pos env =
 let get_res file = function
   | Result.Error (`Msg str) ->
       let loc = Tok.first_loc_of_file file in
-      let tok = PI.mk_info_of_loc loc in
+      let tok = Tok.tok_of_loc loc in
       raise (Parsing_error.Other_error (str, tok))
   | Result.Ok v -> v
 
@@ -182,7 +182,7 @@ let do_parse env =
         match env.last_event with
         | None ->
             let loc = Tok.first_loc_of_file env.file in
-            ("(incorrect error location) ", PI.mk_info_of_loc loc)
+            ("(incorrect error location) ", Tok.tok_of_loc loc)
         | Some (v, pos) ->
             ( "(approximate error location; error nearby after) ",
               mk_tok pos (p_token v) env )
@@ -575,7 +575,7 @@ let mask_unicode str =
 let parse_yaml_file ~is_target file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
-  let charpos_to_pos = Some (Tok.full_charpos_to_pos_large file) in
+  let charpos_to_pos = Some (Pos.full_charpos_to_pos_large file) in
   let parser = get_res file (S.parser str) in
   let env =
     {

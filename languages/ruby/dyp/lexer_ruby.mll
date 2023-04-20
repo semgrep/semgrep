@@ -51,12 +51,12 @@ module Utils = Utils_ruby
 
 (* shortcuts *)
 let str = Lexing.lexeme
-(* TODO: rename tok *)
-let tk = PI.tokinfo
+(* TODO: rename tokinfo *)
+let tk = Tok.tok_of_lexbuf
 (* later: use T_UNKNOWN and this function *)
 let _error = Parsing_error.lexical_error
 let add_to_tok lexbuf t =
-  PI.tok_add_s (str lexbuf) t
+  Tok.tok_add_s (str lexbuf) t
 
 (* ---------------------------------------------------------------------- *)
 (* Lexer/Parser state *)
@@ -854,7 +854,7 @@ and interp_lexer do_eof delim_f escape_f buf t state = parse
 
   | "#{"
       { S.beg_state state;
-        let t = PI.tok_add_s (Buffer.contents buf ^ str lexbuf) t in
+        let t = Tok.tok_add_s (Buffer.contents buf ^ str lexbuf) t in
         let tok = T_INTERP_STR(Buffer.contents buf, t) in
         let k state lexbuf =
            interp_lexer2 do_eof delim_f escape_f (Buffer.create 31)
@@ -866,7 +866,7 @@ and interp_lexer do_eof delim_f escape_f buf t state = parse
   | _ as c
       { if delim_f c
         then
-          let t = PI.tok_add_s (Buffer.contents buf ^ str lexbuf) t in
+          let t = Tok.tok_add_s (Buffer.contents buf ^ str lexbuf) t in
           T_INTERP_END(Buffer.contents buf, t)
         else begin
           Buffer.add_char buf c;

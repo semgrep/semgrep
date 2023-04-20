@@ -208,7 +208,7 @@ let tests =
           match e with
           | ObjGet (_v, _tok, Id name) ->
               let info = Ast.info_of_name name in
-              Alcotest.(check int) "same values" 4 (Parse_info.col_of_info info)
+              Alcotest.(check int) "same values" 4 (Tok.col_of_tok info)
           | _ -> Alcotest.fail "not good AST" )
       (*-----------------------------------------------------------------------*)
       (* Sgrep *)

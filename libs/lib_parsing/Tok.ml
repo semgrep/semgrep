@@ -18,7 +18,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Information about tokens (mostly their position and origin).
+(* Information about tokens (mostly their location).
  *
  * Note that the types below are a bit complicated because we want
  * to represent "fake" and "expanded" tokens, as well as annotate tokens
@@ -50,7 +50,7 @@ type location = { str : string; (* the content of the "token" *) pos : Pos.t }
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
  *)
-type origin =
+type kind =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -113,9 +113,9 @@ and add = AddStr of string | AddNewlineAndIdent
 
 type t = {
   (* contains among other things the position of the token through
-   * the token_location embedded inside the token_origin type.
+   * the location embedded inside the kind type.
    *)
-  token : origin;
+  token : kind;
   (* The transfo field as its name suggests is to allow source to source
    * transformations via token "annotations". See the documentation for Spatch.
    * TODO: remove now that we use AST-based autofix in Semgrep.
@@ -155,7 +155,7 @@ let fake_location = { str = ""; pos = Pos.fake_pos }
 (* Accessors *)
 (*****************************************************************************)
 
-let location_of_tok (ii : t) : (location, string) Result.t =
+let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii.token with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
@@ -164,12 +164,25 @@ let location_of_tok (ii : t) : (location, string) Result.t =
   | FakeTokStr (_, None) -> Error "FakeTokStr"
   | Ab -> Error "Ab"
 
-let unsafe_location_of_tok ii =
-  match location_of_tok ii with
+let unsafe_loc_of_tok ii =
+  match loc_of_tok ii with
   | Ok pinfo -> pinfo
   | Error msg -> raise (NoTokenLocation msg)
 
-let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
+let line_of_tok ii = (unsafe_loc_of_tok ii).pos.line
+let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
+
+(* todo: return a Real | Virt position ? *)
+let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.charpos
+let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
+
+let content_of_tok ii =
+  match ii.token with
+  | OriginTok x -> x.str
+  | FakeTokStr (s, _) -> s
+  | ExpandedTok _
+  | Ab ->
+      raise (NoTokenLocation "content_of_tok: Expanded or Ab")
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of
@@ -177,7 +190,7 @@ let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
    This is something we can do at relatively low cost by going through and
    inspecting the contents of the token, plus the start information.
 *)
-let get_token_end_info loc =
+let end_pos_of_loc loc =
   let line, col =
     Stdcompat.String.fold_left
       (fun (line, col) c ->
@@ -190,11 +203,85 @@ let get_token_end_info loc =
   (line, col, loc.pos.charpos + String.length loc.str)
 
 (*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
+
+let tok_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
+
+let tok_of_str_and_bytepos str pos =
+  let loc =
+    {
+      str;
+      pos =
+        {
+          charpos = pos;
+          (* info filled in a post-lexing phase, see complete_location *)
+          line = -1;
+          column = -1;
+          file = "NO FILE INFO YET";
+        };
+    }
+  in
+  tok_of_loc loc
+
+let tok_of_lexbuf lexbuf =
+  tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
+
+let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+
+let rewrap_str s ii =
+  {
+    ii with
+    token =
+      (match ii.token with
+      | OriginTok pi -> OriginTok { pi with str = s }
+      | FakeTokStr (s, info) -> FakeTokStr (s, info)
+      | Ab -> Ab
+      | ExpandedTok _ ->
+          (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
+          failwith "rewrap_str: ExpandedTok not allowed here");
+  }
+
+(* less: should use Buffer and not ^ so we should not need that *)
+let tok_add_s s ii = rewrap_str (content_of_tok ii ^ s) ii
+
+let str_of_info_fake_ok ii =
+  match ii.token with
+  | OriginTok pinfo -> pinfo.str
+  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> pinfo_pp.str
+  | FakeTokStr (_, Some (pi, _)) -> pi.str
+  | FakeTokStr (s, None) -> s
+  | Ab -> raise (NoTokenLocation "Ab")
+
+let combine_toks x xs =
+  let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
+  tok_add_s str x
+
+let split_tok_at_bytepos pos ii =
+  let loc = unsafe_loc_of_tok ii in
+  let str = loc.str in
+  let loc1_str = String.sub str 0 pos in
+  let loc2_str = String.sub str pos (String.length str - pos) in
+  let loc1 = { loc with str = loc1_str } in
+  let loc2 =
+    {
+      str = loc2_str;
+      pos =
+        {
+          loc.pos with
+          charpos = loc.pos.charpos + pos;
+          column = loc.pos.column + pos;
+        };
+    }
+  in
+  (tok_of_loc loc1, tok_of_loc loc2)
+
+(*****************************************************************************)
 (* Adjusting location *)
 (*****************************************************************************)
 
-(* TODO: move to Pos.ml and use Pos.t instead *)
-let adjust_pinfo_wrt_base base_loc loc =
+(* TODO? move to Pos.ml and use Pos.t instead *)
+let adjust_loc_wrt_base base_loc loc =
   (* Note that charpos and columns are 0-based, whereas lines are 1-based. *)
   {
     loc with
@@ -209,7 +296,7 @@ let adjust_pinfo_wrt_base base_loc loc =
       };
   }
 
-let fix_token_location fix ii =
+let fix_location fix ii =
   {
     ii with
     token =
@@ -220,12 +307,15 @@ let fix_token_location fix ii =
       | Ab -> Ab);
   }
 
-let adjust_info_wrt_base base_loc ii =
-  fix_token_location (adjust_pinfo_wrt_base base_loc) ii
+let adjust_tok_wrt_base base_loc ii =
+  fix_location (adjust_loc_wrt_base base_loc) ii
 
 (*****************************************************************************)
 (* Adjust line x col *)
 (*****************************************************************************)
+
+let complete_location filename table (x : location) =
+  { x with pos = Pos.complete_position filename table x.pos }
 
 (*
 I used to have:
@@ -287,147 +377,11 @@ let distribute_info_items_toplevel a b c =
   Common.profile_code "distribute_info_items" (fun () ->
     distribute_info_items_toplevel2 a b c
   )
-
  *)
-let full_charpos_to_pos_large file =
-  let chan = open_in_bin file in
-  let size = Common2.filesize file + 2 in
-
-  (* old: let arr = Array.create size  (0,0) in *)
-  let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  Bigarray.Array1.fill arr1 0;
-  Bigarray.Array1.fill arr2 0;
-
-  let charpos = ref 0 in
-  let line = ref 0 in
-
-  let full_charpos_to_pos_aux () =
-    try
-      while true do
-        let s = input_line chan in
-        incr line;
-        let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
-        let col = ref 0 in
-        for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
-          arr1.{!charpos + i} <- !line;
-          arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
-            incr line;
-            col := -1);
-          incr col
-        done;
-        charpos := !charpos + len + 1
-      done
-    with
-    | End_of_file ->
-        for
-          i = !charpos
-          to (* old: Array.length arr *)
-             Bigarray.Array1.dim arr1 - 1
-        do
-          (* old: arr.(i) <- (!line, 0); *)
-          arr1.{i} <- !line;
-          arr2.{i} <- 0
-        done;
-        ()
-  in
-  full_charpos_to_pos_aux ();
-  close_in chan;
-  fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
-
-(* This is mostly a copy-paste of full_charpos_to_pos_large,
-   but using a string for a target instead of a file. *)
-let full_charpos_to_pos_str s =
-  let size = String.length s + 2 in
-
-  (* old: let arr = Array.create size  (0,0) in *)
-  let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  Bigarray.Array1.fill arr1 0;
-  Bigarray.Array1.fill arr2 0;
-
-  let charpos = ref 0 in
-  let line = ref 0 in
-  let str_lines = String.split_on_char '\n' s in
-
-  let full_charpos_to_pos_aux () =
-    List.iter
-      (fun s ->
-        incr line;
-        let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
-        let col = ref 0 in
-        for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
-          arr1.{!charpos + i} <- !line;
-          arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
-            incr line;
-            col := -1);
-          incr col
-        done;
-        charpos := !charpos + len + 1)
-      str_lines
-  in
-  full_charpos_to_pos_aux ();
-  fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
-
-(* Currently, lexing.ml, in the standard OCaml libray, does not handle
- * the line number position.
- * Even if there are certain fields in the lexing structure, they are not
- * maintained by the lexing engine so the following code does not work:
- *
- *   let pos = Lexing.lexeme_end_p lexbuf in
- *   sprintf "at file %s, line %d, char %d" pos.pos_fname pos.pos_lnum
- *      (pos.pos_cnum - pos.pos_bol) in
- *
- * Hence those types and functions below to overcome the previous limitation,
- * (see especially complete_token_location_large()).
- * alt:
- *   - in each lexer you need to take care of newlines and update manually
- *     the field.
- * TODO: use Pos.t instead of Parse_info.token_location
- *)
-let complete_token_location_large filename table (x : location) =
-  {
-    x with
-    pos =
-      {
-        x.pos with
-        file = filename;
-        line = fst (table x.pos.charpos);
-        column = snd (table x.pos.charpos);
-      };
-  }
 
 (*****************************************************************************)
 (* Other helpers *)
 (*****************************************************************************)
-
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
 
 (* used only in the Scala parser for now *)
 let abstract_tok = { token = Ab; transfo = NoTransfo }

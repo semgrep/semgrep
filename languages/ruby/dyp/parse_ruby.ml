@@ -56,8 +56,8 @@ let mk_lexer filename input_source =
   let table =
     match input_source with
     | Parsing_helpers.File file ->
-        Tok.full_charpos_to_pos_large (Fpath.to_string file)
-    | Parsing_helpers.Str str -> Tok.full_charpos_to_pos_str str
+        Pos.full_charpos_to_pos_large (Fpath.to_string file)
+    | Parsing_helpers.Str str -> Pos.full_charpos_to_pos_str str
   in
 
   let adjust_info (ii : Tok.t) =
@@ -67,10 +67,7 @@ let mk_lexer filename input_source =
         (* could assert pinfo.filename = file ? *)
         (match ii.token with
         | Tok.OriginTok pi -> (
-            try
-              Tok.OriginTok
-                (Tok.complete_token_location_large filename table pi)
-            with
+            try Tok.OriginTok (Tok.complete_location filename table pi) with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
                 (* pr2_gen pi *)

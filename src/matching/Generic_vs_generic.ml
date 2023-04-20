@@ -1273,20 +1273,20 @@ and m_wrap_m_int_opt (a1, a2) (b1, b2) =
    * a syntax OCaml int_of_string could not parse,
    * we default to a string comparison *)
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
+      let a1 = Tok.content_of_tok a2 in
       (* bugfix: not that with constant propagation, some integers don't have
        * a real token associated with them, so b2 may be a FakeTok, but
        * Parse_info.str_of_info does not raise an exn anymore on a FakeTok
        *)
-      let b1 = Parse_info.str_of_info b2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_wrap_m_string_opt (a1, a2) (b1, b2) =
   match (a1, b1) with
   | Some s1, Some s2 when String.equal s1 s2 -> return ()
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
-      let b1 = Parse_info.str_of_info b2 in
+      let a1 = Tok.content_of_tok a2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_wrap_m_float_opt (a1, a2) (b1, b2) =
@@ -1294,8 +1294,8 @@ and m_wrap_m_float_opt (a1, a2) (b1, b2) =
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
   | Some f1, Some f2 when f1 =*= f2 -> return ()
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
-      let b1 = Parse_info.str_of_info b2 in
+      let a1 = Tok.content_of_tok a2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_literal_svalue a b =

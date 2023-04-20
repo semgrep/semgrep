@@ -71,7 +71,7 @@ let range_of_line_spec str file =
     let line1 = s_to_i a in
     let line2 = s_to_i b in
     (* quite inefficient, but should be ok *)
-    let trans = Tok.full_charpos_to_pos_large file in
+    let trans = Pos.full_charpos_to_pos_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
@@ -90,7 +90,7 @@ let range_of_linecol_spec str file =
     let line1, col1 = (s_to_i a, s_to_i b) in
     let line2, col2 = (s_to_i c, s_to_i d) in
     (* quite inefficient, but should be ok *)
-    let trans = Tok.full_charpos_to_pos_large file in
+    let trans = Pos.full_charpos_to_pos_large file in
     let start = ref (-1) in
     let end_ = ref (-1) in
     for i = 0 to Common2.filesize file do
@@ -112,9 +112,9 @@ let range_of_tokens xs =
   try
     let xs = List.filter PI.is_origintok xs in
     let mini, maxi = PI.min_max_ii_by_pos xs in
-    let start = PI.pos_of_info mini in
+    let start = Tok.bytepos_of_tok mini in
     let end_ =
-      PI.pos_of_info maxi + (String.length (PI.str_of_info maxi) - 1)
+      Tok.bytepos_of_tok maxi + (String.length (Tok.content_of_tok maxi) - 1)
     in
     Some { start; end_ }
   with

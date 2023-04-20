@@ -778,7 +778,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                      if_explanations env
                        (Common.map fst ranges_with_bindings)
                        []
-                       (Out.Filter (PI.str_of_info tok), tok)
+                       (Out.Filter (Tok.content_of_tok tok), tok)
                    in
                    (ranges_with_bindings, expl :: acc_expls))
                  (Common.map (fun x -> (x, [])) ranges, [])

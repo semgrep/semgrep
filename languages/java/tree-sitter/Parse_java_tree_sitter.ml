@@ -136,7 +136,7 @@ let multiline_string_fragment (env : env) (x : CST.multiline_string_fragment) =
           v2
         |> Common2.unzip
       in
-      (s ^ String.concat "" strs, PI.combine_infos t toks)
+      (s ^ String.concat "" strs, Tok.combine_toks t toks)
 
 let escape_sequence_ (env : env) (x : CST.escape_sequence_) =
   match x with
@@ -156,7 +156,7 @@ let string_literal env s =
         |> Common2.unzip
       in
       let tok2 = token env quote2 in
-      (String.concat "" strs, PI.combine_infos tok1 (toks @ [ tok2 ]))
+      (String.concat "" strs, Tok.combine_toks tok1 (toks @ [ tok2 ]))
   | `Mult_str_lit (quote1, contents, quote2) ->
       let tok1 = token env quote1 in
       let strs, toks =
@@ -168,7 +168,7 @@ let string_literal env s =
         |> Common2.unzip
       in
       let tok2 = token env quote2 in
-      (String.concat "" strs, PI.combine_infos tok1 (toks @ [ tok2 ]))
+      (String.concat "" strs, Tok.combine_toks tok1 (toks @ [ tok2 ]))
 
 let float_literal env tok =
   let s, t = str env tok in

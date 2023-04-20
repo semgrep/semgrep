@@ -76,7 +76,7 @@ let fix_tokens_asi xs =
             x :: y :: aux env xs
         (* otherwise do ASI *)
         | _ ->
-            let iifake = Parse_info.rewrap_str "FAKE ';'" ii in
+            let iifake = Tok.rewrap_str "FAKE ';'" ii in
             (* implicit semicolon insertion *)
             x :: LSEMICOLON iifake :: y :: aux env xs)
     | x :: xs -> x :: aux env xs

@@ -145,7 +145,7 @@ let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : string wrap
   in
   let v3 = token env v3 (* "\"" *) in
   let s = v2 |> Common.map fst |> String.concat "" in
-  (s, PI.combine_infos v1 (Common.map snd v2 @ [ v3 ]))
+  (s, Tok.combine_toks v1 (Common.map snd v2 @ [ v3 ]))
 
 let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) : string wrap =
   let v1 =
@@ -165,7 +165,7 @@ let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) : string wrap =
   in
   let v3 = token env v3 (* "'" *) in
   let s = fst v2 in
-  (s, PI.combine_infos v1 [ snd v2; v3 ])
+  (s, Tok.combine_toks v1 [ snd v2; v3 ])
 
 let anon_choice_pat_25b90ba_4a37f8c (env : env)
     (x : CST.anon_choice_pat_25b90ba_4a37f8c) =
@@ -1285,7 +1285,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
       let ys = xs |> Common.map snd in
       (* repeat1 in grammar.js so Common.hd_exn "unexpected empty list" is safe *)
       let tk =
-        PI.combine_infos
+        Tok.combine_toks
           (Common.hd_exn "impossible!!!" ys)
           (Common.tl_exn "unexpected empty list" ys)
       in

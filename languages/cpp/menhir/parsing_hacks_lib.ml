@@ -91,7 +91,7 @@ let msg_change_tok tok =
   (* mostly in parsing_hacks_pp.ml *)
   (* cppext: *)
   | TComment_Pp (directive, ii) -> (
-      let s = PI.str_of_info ii in
+      let s = Tok.content_of_tok ii in
       match (directive, s) with
       | Token_cpp.CppMacro, _ -> pr2_pp (spf "MACRO: commented at %s" (pos ii))
       | Token_cpp.CppDirective, _ when s =~ "#define.*" ->
@@ -109,7 +109,7 @@ let msg_change_tok tok =
           ())
   | TOBrace_DefineInit ii -> pr2_pp (spf "DEFINE: initializer at %s" (pos ii))
   | TIdent_MacroString ii ->
-      let s = PI.str_of_info ii in
+      let s = Tok.content_of_tok ii in
       s
       |> msg_gen
            (fun s ->
@@ -160,7 +160,7 @@ let msg_change_tok tok =
   (* mostly in parsing_hacks_cpp.ml *)
   (* c++ext: *)
   | TComment_Cpp (directive, ii) -> (
-      let s = PI.str_of_info ii in
+      let s = Tok.content_of_tok ii in
       match (directive, s) with
       | Token_cpp.CplusplusTemplate, _ ->
           pr2_cplusplus (spf "COM-TEMPLATE: commented at %s" (pos ii))

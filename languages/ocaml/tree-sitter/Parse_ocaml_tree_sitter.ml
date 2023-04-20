@@ -385,7 +385,7 @@ let map_string_ (env : env) ((v1, v2, v3) : CST.string_) : string wrap =
   let v3 = token env v3 (* "\"" *) in
   let s = v2 |> Common.map fst |> String.concat "" in
   let ts = v2 |> Common.map snd in
-  (s, PI.combine_infos v1 (ts @ [ v3 ]))
+  (s, Tok.combine_toks v1 (ts @ [ v3 ]))
 
 let map_parenthesized_operator (env : env)
     ((v1, v2, v3) : CST.parenthesized_operator) : string wrap =
@@ -448,7 +448,7 @@ let map_parenthesized_operator (env : env)
         in
         let xs = [ v2 ] @ v3 @ v4 in
         let s = "." ^ (xs |> Common.map fst |> String.concat "") in
-        (s, PI.combine_infos v1 (xs |> Common.map snd))
+        (s, Tok.combine_toks v1 (xs |> Common.map snd))
     | `Let_op tok -> str env tok (* let_operator *)
     | `And_op tok -> str env tok (* and_operator *)
     | `Match_op tok -> str env tok
@@ -500,7 +500,7 @@ let map_tag (env : env) ((v1, v2) : CST.tag) =
 let map_type_variable (env : env) ((v1, v2) : CST.type_variable) : ident =
   let v1 = token env v1 (* "'" *) in
   let v2 = map_anon_choice_inst_var_name_cbd841f env v2 in
-  ("'" ^ fst v2, PI.combine_infos v1 [ snd v2 ])
+  ("'" ^ fst v2, Tok.combine_toks v1 [ snd v2 ])
 
 let map_polymorphic_variant_pattern (env : env)
     ((v1, v2) : CST.polymorphic_variant_pattern) : pattern =
@@ -525,7 +525,7 @@ let map_constant (env : env) (x : CST.constant) : literal =
       let v1 = token env v1 (* "'" *) in
       let s, v2 = map_character_content env v2 in
       let v3 = token env v3 (* "'" *) in
-      Char (s, PI.combine_infos v1 [ v2; v3 ])
+      Char (s, Tok.combine_toks v1 [ v2; v3 ])
   | `Str x ->
       let x = map_string_ env x in
       String x
@@ -541,7 +541,7 @@ let map_constant (env : env) (x : CST.constant) : literal =
       let v5 = token env v5 (* "}" *) in
       let s = v3 |> Common.map fst |> String.concat "" in
       let xs = [ v2 ] @ Common.map snd v3 @ [ v4; v5 ] in
-      String (s, PI.combine_infos v1 xs)
+      String (s, Tok.combine_toks v1 xs)
   | `Bool x -> map_boolean env x
   | `Unit x -> map_unit_ env x
 
@@ -611,11 +611,11 @@ let map_signed_constant (env : env) (x : CST.signed_constant) : literal =
       let v1 = map_anon_choice_PLUS_da42005 env v1 in
       let v2 = number env v2 (* tok_choice_pat_4349e4b *) in
       match (v1, v2) with
-      | Left t1, Int (opt, t2) -> Int (opt, PI.combine_infos t1 [ t2 ])
-      | Left t1, Float (opt, t2) -> Float (opt, PI.combine_infos t1 [ t2 ])
+      | Left t1, Int (opt, t2) -> Int (opt, Tok.combine_toks t1 [ t2 ])
+      | Left t1, Float (opt, t2) -> Float (opt, Tok.combine_toks t1 [ t2 ])
       (* TODO: negate nums *)
-      | Right t1, Int (_opt, t2) -> Int (None, PI.combine_infos t1 [ t2 ])
-      | Right t1, Float (_opt, t2) -> Float (None, PI.combine_infos t1 [ t2 ])
+      | Right t1, Int (_opt, t2) -> Int (None, Tok.combine_toks t1 [ t2 ])
+      | Right t1, Float (_opt, t2) -> Float (None, Tok.combine_toks t1 [ t2 ])
       | (Left t | Right t), _ ->
           raise
             (Parsing_error.Other_error ("Impossible negate of not number", t)))
@@ -1311,11 +1311,11 @@ and map_constructor_declaration (env : env)
         | `LBRACK_RBRACK (v1, v2) ->
             let v1 = token env v1 (* "[" *) in
             let v2 = token env v2 (* "]" *) in
-            ("[]", PI.combine_infos v1 [ v2 ])
+            ("[]", Tok.combine_toks v1 [ v2 ])
         | `LPAR_RPAR (v1, v2) ->
             let v1 = token env v1 (* "(" *) in
             let v2 = token env v2 (* ")" *) in
-            ("()", PI.combine_infos v1 [ v2 ])
+            ("()", Tok.combine_toks v1 [ v2 ])
         | `True tok -> str env tok (* "true" *)
         | `False tok -> str env tok (* "false" *))
   in

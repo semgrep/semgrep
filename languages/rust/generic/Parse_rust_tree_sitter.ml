@@ -304,7 +304,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
             | Some i -> Some (-i)
             | None -> None
           in
-          G.PatLiteral (G.Int (iopt, PI.combine_infos (snd neg) [ t ]))
+          G.PatLiteral (G.Int (iopt, Tok.combine_toks (snd neg) [ t ]))
       | `Float_lit tok ->
           let fopt, t = float_literal env tok in
           (* float_literal *)
@@ -313,7 +313,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
             | Some f -> Some (-.f)
             | None -> None
           in
-          G.PatLiteral (G.Float (fopt, PI.combine_infos (snd neg) [ t ])))
+          G.PatLiteral (G.Float (fopt, Tok.combine_toks (snd neg) [ t ])))
 
 let map_extern_modifier (env : env) ((v1, v2) : CST.extern_modifier) :
     G.attribute list =
@@ -1985,9 +1985,9 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
   let name =
     match name with
     | G.Id ((s, i1), info) ->
-        G.Id ((s ^ "!", PI.combine_infos i1 [ bang ]), info)
+        G.Id ((s ^ "!", Tok.combine_toks i1 [ bang ]), info)
     | G.IdQualified ({ name_last = (s, i1), topt; _ } as qualified_info) ->
-        let s, t = (s ^ "!", PI.combine_infos i1 [ bang ]) in
+        let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
         G.IdQualified { qualified_info with name_last = ((s, t), topt) }
   in
   let l, xs, r = map_token_tree env v3 in
@@ -2674,7 +2674,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let lparen = str env v1 (* "(" *) in
       let rparen = str env v2 (* ")" *) in
       let str = Common.map fst [ lparen; rparen ] |> String.concat "" in
-      G.ty_builtin (str, PI.combine_infos (snd lparen) [ snd rparen ])
+      G.ty_builtin (str, Tok.combine_toks (snd lparen) [ snd rparen ])
   | `Array_type (v1, v2, v3, v4) ->
       let lbracket = token env v1 (* "[" *) in
       let ty = map_type_ env v2 in
