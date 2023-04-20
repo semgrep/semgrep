@@ -234,6 +234,11 @@ let is_hcl lang =
   | Lang.Terraform -> true
   | _ -> false
 
+let mk_class_constructor_name (ty :G.type_) cons_id_info =
+    match ty with
+    | { t = TyN (G.Id (id, _)); _} when Option.is_some !(cons_id_info.G.id_resolved) -> Some (G.Id (id, cons_id_info))
+    | __else__ -> None
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -573,13 +578,15 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, _TODO, args) ->
-      (* TODO: lift up New in IL like we did in AST_generic *)
-      let special = (New, tok) in
-      let arg = G.ArgType ty in
+  | G.New (tok, ty, cons_id_info, args) ->
+      let lval = fresh_lval env tok in
       let args = arguments env (PI.unbracket args) in
-      add_call env tok eorig ~void (fun res ->
-          CallSpecial (res, special, argument env arg :: args))
+      let opt_cons =
+        mk_class_constructor_name ty cons_id_info
+        |> Option.map var_of_name
+      in
+      add_instr env (mk_i (New (lval, ty, opt_cons, args)) eorig);
+      mk_e (Fetch lval) NoOrig
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
       let args = arguments env (PI.unbracket args) in
@@ -1150,31 +1157,19 @@ and stmt_aux env st =
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
       ss @ ss'
-  | G.DefStmt ({name = EN obj; _}, G.VarDef{ G.vinit = Some ({e = G.New (tok, ({ t = TyN type_name; _} as ty),
+  | G.DefStmt ({name = EN obj; _}, G.VarDef{ G.vinit = Some ({e = G.New (_tok, ty,
    (
-    {id_resolved = {contents = Some (GlobalName _, _)}; _} as
+    (* {id_resolved = {contents = Some (GlobalName _, _)}; _} as *)
     cons_id_info
    ), args); _} as new_exp); _}) ->
       let obj' = var_of_name obj in
       let obj_lval = lval_of_base (Var obj') in
-      let new_stmt =
-        let eorig = SameAs new_exp in
-        let special = (New, tok) in
-        let arg = G.ArgType ty in
-        mk_s (Instr (mk_i (CallSpecial (Some obj_lval, special, [argument env arg])) eorig))
-      in
-      let constructor =
-        match type_name with
-        | G.Id (id, _) -> G.Id (id, cons_id_info)
-        | G.IdQualified _ ->
-            todo (G.S st)
-      in
-      let constructor' = var_of_name constructor in
       let ss, args' = args_with_pre_stmts env (PI.unbracket args) in
-
-      let constructor_exp = mk_e (Fetch {obj_lval with rev_offset = [{o=Dot constructor'; oorig=NoOrig}]}) (SameAs (N constructor |> G.e)) in
-      logger#flash "HERE DefStmt New -> constructor call";
-      ss @ [ new_stmt ; mk_s (Instr (mk_i (Call (None, constructor_exp, args')) NoOrig )) ]
+      let opt_cons =
+        mk_class_constructor_name ty cons_id_info
+        |> Option.map var_of_name
+      in
+      ss @ [ mk_s (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp))) ]
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in

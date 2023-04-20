@@ -33,6 +33,7 @@ let rexps_of_instr x =
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
   | Call (_, e1, args) -> e1 :: Common.map exp_of_arg args
+  | New (_, _, _, args)
   | CallSpecial (_, _, args) -> Common.map exp_of_arg args
   | FixmeInstr _ -> []
 
@@ -95,6 +96,7 @@ let lval_of_instr_opt x =
   | Assign (lval, _)
   | AssignAnon (lval, _)
   | Call (Some lval, _, _)
+  | New (lval, _, _, _)
   | CallSpecial (Some lval, _, _) ->
       Some lval
   | Call _

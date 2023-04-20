@@ -266,13 +266,13 @@ and instr_kind =
   | AssignAnon of lval * anonymous_entity
   | Call of lval option * exp (* less: enforce lval? *) * exp argument list
   | CallSpecial of lval option * call_special wrap * exp argument list
+  | New of lval * G.type_ * name option (* constructor *) * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
 
 and call_special =
   | Eval
   (* TODO: lift up like in AST_generic *)
-  | New
   | Typeof
   | Instanceof
   | Sizeof

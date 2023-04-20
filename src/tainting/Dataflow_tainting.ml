@@ -308,6 +308,7 @@ let top_level_sinks_in_nodes config flow =
                Seq.cons instr.iorig
                  (match instr.i with
                  | Call (_, c, args) -> Seq.cons c.eorig (origs_of_args args)
+                 | New (_, _, _, args)
                  | CallSpecial (_, _, args) -> origs_of_args args
                  | Assign (_, e) -> List.to_seq [ e.eorig ]
                  | AssignAnon _
@@ -1355,6 +1356,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
          * when `x` is tainted, because the call is represented in IL as `(x.foo)()`.
          * TODO: Properly track taint through objects. *)
         (Taints.union e_taints call_taints, lval_env)
+    | New (_, _, _, args)
     | CallSpecial (_, _, args) ->
         args
         |> Common.map IL_helpers.exp_of_arg
