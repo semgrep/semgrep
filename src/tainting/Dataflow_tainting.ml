@@ -1469,7 +1469,7 @@ let transfer :
     match node.F.n with
     | NInstr x ->
         let taints, lval_env' = check_tainted_instr env x in
-        logger#flash "CHECK_TAINTED_INSTR lval-env %s"  (Lval_env.to_string T.show_taints lval_env');
+        (* logger#flash "CHECK_TAINTED_INSTR lval-env %s"  (Lval_env.to_string T.show_taints lval_env'); *)
         let opt_lval = LV.lval_of_instr_opt x in
         let lval_env' =
           match opt_lval with
@@ -1529,7 +1529,7 @@ let transfer :
     | NTodo _ ->
         in'
   in
-  logger#flash "OUT lval-env %s"  (Lval_env.to_string T.show_taints out');
+  (* logger#flash "OUT lval-env %s"  (Lval_env.to_string T.show_taints out'); *)
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)

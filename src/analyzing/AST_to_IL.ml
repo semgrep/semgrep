@@ -1150,7 +1150,11 @@ and stmt_aux env st =
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
       ss @ ss'
-  | G.DefStmt ({name = EN obj; _}, G.VarDef{ G.vinit = Some ({e = G.New (tok, ({ t = TyN type_name; _} as ty), cons_id_info, args); _} as new_exp); _}) ->
+  | G.DefStmt ({name = EN obj; _}, G.VarDef{ G.vinit = Some ({e = G.New (tok, ({ t = TyN type_name; _} as ty),
+   (
+    {id_resolved = {contents = Some (GlobalName _, _)}; _} as
+    cons_id_info
+   ), args); _} as new_exp); _}) ->
       let obj' = var_of_name obj in
       let obj_lval = lval_of_base (Var obj') in
       let new_stmt =
