@@ -12,7 +12,6 @@
 
    semgrep_core
    semgrep_optimizing
-   semgrep_lsp
    ; No dependencies to semgrep_parsing here!
    ; we use parsers in Unit_matcher.ml but they are passed in
    ; via a parameter in tests().
