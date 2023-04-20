@@ -89,6 +89,7 @@ jobs:
         id: restore-git
         uses: actions/cache/restore@v3
         with:
+          path: .
           key: semgrep-with-submodules-and-tree-sitter-${{ github.sha }}
       - name: Make checkout speedy
         if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
