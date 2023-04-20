@@ -3,6 +3,9 @@ open Types
 open Testutil
 module Out = Output_from_core_t
 
+(** Try to test all of the more complex parts of the LS, but save the e2e stuff
+    for the python side as testing there is easier *)
+
 let lwt_test test () = Lwt_main.run (test ())
 
 let mock_session () =

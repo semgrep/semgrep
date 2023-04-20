@@ -25,9 +25,9 @@ from semgrep.types import JsonObject
 
 log = logging.getLogger(__name__)
 
-# A lot of this could be put in core runner, but once ported that would be unnecessary
-# and putting it there would require a lot of changes (so stuff doesn't print out).
-#
+# This is essentially a "middleware" between the client and the core LS. Since
+# core/osemgrep does't have the target manager yet, we need to do that stuff
+# here.
 class SemgrepCoreLSServer:
     def __init__(
         self, rule_file: _TemporaryFileWrapper, target_file: _TemporaryFileWrapper
@@ -60,6 +60,7 @@ class SemgrepCoreLSServer:
         rule_file_contents = json.dumps(
             {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
         )
+        # Same as before re: sharing files with semgrep-core
         self.rule_file.seek(0, 0)
         self.rule_file.write(rule_file_contents)
         self.rule_file.truncate(len(rule_file_contents))
@@ -84,7 +85,6 @@ class SemgrepCoreLSServer:
 
         self.core_process = subprocess.Popen(
             cmd,
-            cwd=self.config.folder_paths[0],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
         )
@@ -92,12 +92,29 @@ class SemgrepCoreLSServer:
         self.core_reader = JsonRpcStreamReader(self.core_process.stdout)
         self.core_writer = JsonRpcStreamWriter(self.core_process.stdin)
 
+        # Listening for messages is blocking, and we could try and guess how
+        # often core will respond and ready it synchronously, but that'd be obnoxious
         def core_handler() -> None:
             self.core_reader.listen(self.on_core_message)
 
         self.thread = threading.Thread(target=core_handler)
         self.thread.daemon = True
         self.thread.start()
+
+    def notify(self, method: str, params: JsonObject) -> None:
+        """Send a notification to the client"""
+        jsonrpc_msg = {"jsonrpc": "2.0", "method": method, "params": params}
+        self.std_writer.write(jsonrpc_msg)
+
+    def notify_show_message(self, type: int, message: str) -> None:
+        """Show a message to the user"""
+        self.notify(
+            "window/showMessage",
+            {
+                "type": type,
+                "message": message,
+            },
+        )
 
     def m_initialize(
         self,
@@ -132,29 +149,15 @@ class SemgrepCoreLSServer:
                 "Login to enable additional proprietary Semgrep Registry rules and running custom policies from Semgrep App",
             )
 
-    def notify(self, method: str, params: JsonObject) -> None:
-        """Send a notification to the client"""
-        jsonrpc_msg = {"jsonrpc": "2.0", "method": method, "params": params}
-        self.std_writer.write(jsonrpc_msg)
-
-    def notify_show_message(self, type: int, message: str) -> None:
-        """Show a message to the user"""
-        self.notify(
-            "window/showMessage",
-            {
-                "type": type,
-                "message": message,
-            },
-        )
-
-    def m_semgrep__login(self) -> Optional[JsonObject]:
+    def m_semgrep__login(self, id: str) -> None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
         if self.config.logged_in:
             self.notify_show_message(3, "Already logged in to Semgrep Code")
-            return None
         else:
             session_id, url = make_login_url()
-            return {"url": url, "sessionId": str(session_id)}
+            body = {"url": url, "sessionId": str(session_id)}
+            response = {"id": id, "result": body}
+            self.on_core_message(response)
 
     def m_semgrep__login_finish(self, url: str, sessionId: str) -> None:
         """Called by client to finish login to Semgrep App and save token"""
@@ -194,6 +197,7 @@ class SemgrepCoreLSServer:
 
     def on_std_message(self, msg: JsonObject) -> None:
         # We love a middleware
+        id = msg.get("id", "")
         method = msg.get("method", "")
         params = msg.get("params", {})
         if method == "initialize":
@@ -206,6 +210,8 @@ class SemgrepCoreLSServer:
 
         if method == "textDocument/didOpen":
             uri = urllib.parse.urlparse(params["textDocument"]["uri"])
+            # Updating targets can take awhile if the project is large
+            # So only update them if it's not already in the target manager
             found = (
                 PosixPath(urllib.request.url2pathname(uri.path))
                 not in self.config.target_manager.get_all_files()
@@ -214,9 +220,7 @@ class SemgrepCoreLSServer:
                 self.update_targets_file()
 
         if method == "semgrep/login":
-            body = self.m_semgrep__login()
-            response = {"id": msg["id"], "result": body}
-            self.on_core_message(response)
+            self.m_semgrep__login(id)
             return
 
         if method == "semgrep/loginFinish":

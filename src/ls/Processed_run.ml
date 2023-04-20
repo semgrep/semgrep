@@ -4,6 +4,7 @@ type t = Semgrep_output_v1_t.core_match * Rule.rule
 
 (* This is copied from osemgrep/Nosem.ml, when porting is done we should use
    stuff from there *)
+(* Trying to include that part of osemgrep causes a dependency cycle :( *)
 
 let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
@@ -14,6 +15,7 @@ let _nosem_previous_line_re =
     ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
+(** Given a file and some matches, filter the matches out that don't reside in lines changed since last commit *)
 let filter_dirty_lines files matches =
   let dirty_files = Hashtbl.create 10 in
   let%lwt () =
@@ -40,6 +42,7 @@ let filter_dirty_lines files matches =
       Lwt.return res)
     matches
 
+(** Get the first and previous line of a match *)
 let get_match_lines (loc : Semgrep_output_v1_t.location) =
   let file_buffer = Common.read_file loc.path in
   let file_lines = Str.split (Str.regexp "\n") file_buffer in
@@ -49,6 +52,9 @@ let get_match_lines (loc : Semgrep_output_v1_t.location) =
   in
   prev_line ^ line
 
+(* Once again, this will be subsumed by osemgrep once it's ready *)
+
+(** Check if a match is ignored by a nosem comment *)
 let nosem_ignored (loc : Semgrep_output_v1_t.location) rule_id =
   let line = get_match_lines loc in
   let matched_inline = SPcre.exec ~rex:_nosem_inline_re line in
@@ -68,6 +74,9 @@ let nosem_ignored (loc : Semgrep_output_v1_t.location) rule_id =
   let matched_prev = match_ok matched_prev in
   matched_inline || matched_prev
 
+(* Will be subsumed by osemgrep *)
+
+(** Replaces metavar placeholders in text with their value *)
 let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
   Common2.fold
     (fun text ((l, v) : string * Semgrep_output_v1_t.metavar_value) ->
@@ -75,6 +84,7 @@ let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
       Str.global_replace re v.abstract_content text)
     text metavars
 
+(* Get fix from rule, then make it make sense in context *)
 let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   let rule_fix (r : Rule.t) =
     match r.fix with
@@ -89,12 +99,14 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   in
   fix
 
+(** This does the postprocessing of matches the semgrep python side usually does, and also filters out matches depending on git status *)
 let of_matches ?(only_git_dirty = true) matches hrules files =
   let matches, _ =
     Common.partition_either
       (JSON_report.match_to_match (Some Autofix.render_fix))
       matches
   in
+  (* Match up the rules with the matches so we can get fixes, rule ids, messages *)
   let matches =
     Common.map
       (fun (m : Semgrep_output_v1_t.core_match) ->
@@ -113,16 +125,19 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
       matches
   in
   let%lwt git_repo = is_git_repo () in
+  (* Filter dirty lines *)
   let%lwt matches =
     if only_git_dirty && git_repo then filter_dirty_lines files matches
     else Lwt.return matches
   in
+  (* Filter misc severities *)
   let matches =
     Common2.filter
       (fun ((_, r) : t) ->
         r.severity <> Rule.Experiment && r.severity <> Rule.Inventory)
       matches
   in
+  (* Filter nosem comments. We should do this conditionally at some point *)
   let matches =
     Common2.filter
       (fun ((m, _) : t) -> not (nosem_ignored m.location m.rule_id))

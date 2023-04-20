@@ -1,3 +1,4 @@
+open Yojson.Safe.Util
 open Lsp
 open Types
 open Lsp_util
@@ -33,14 +34,15 @@ let diagnostic_of_match ((m, r) : Processed_run.t) =
     | None -> `Assoc []
     | Some json -> JSON.to_yojson json
   in
+  (* Not sure why I need this, but some OCaml magic symbols make things work *)
   let metadata = (metadata :> Yojson.Safe.t) in
-  let source = metadata |> Yojson.Safe.Util.member "source" in
+  let source = metadata |> member "source" in
   let source =
     match source with
     | `String s -> Some s
     | __else__ -> None
   in
-  let shortlink = metadata |> Yojson.Safe.Util.member "shortlink" in
+  let shortlink = metadata |> member "shortlink" in
   let shortlink =
     match shortlink with
     | `String s -> Some s

@@ -40,6 +40,7 @@ DEFAULT_CAPABILITIES = {
             "maxTargetBytes": 0,
             "onlyGitDirty": True,
         },
+        "trace": {"server": "verbose"},
         "metrics": "on",
     },
     "capabilities": {},
@@ -65,8 +66,13 @@ def run_semgrep_ls(mocker):
     def response_iterator():
         counter = 0
         while True:
+            try_counter = 0
             while server.std_writer.write.call_count <= counter:
+                try_counter += 1
                 time.sleep(0.1)
+                assert (
+                    try_counter < 100
+                ), "Timed out waiting for response from Semgrep LS"
             yield server.std_writer.write.call_args_list[counter][0][0]
             counter += 1
 
@@ -425,8 +431,6 @@ def test_ls_full(
 
     if logged_in:
         assert response["method"] == "window/showMessage"
-        # this is just the result of login
-        next(responses)
     else:
         assert response["result"]["url"] != ""
         assert response["result"]["sessionId"] != ""
