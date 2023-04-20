@@ -2,10 +2,10 @@
  * across Semgrep.
  *
  * The types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens, as well as
- * tokens annotated with transformation.
+ * to represent "fake" and "expanded" tokens. We also want to
+ * annotate tokens with transformation (for Spatch).
  *
- * The main type below is 't', which represents a token (real or fake)
+ * The main type below is 't', which represents a token (real or fake).
  *)
 
 (*****************************************************************************)
@@ -26,48 +26,36 @@ type origin =
   | FakeTokStr of
       string (* to help the generic pretty printer, e.g. "," *)
       * (* Sometimes we generate fake tokens close to existing
-         * origin tokens. This can be useful when have to give an error
+         * origin tokens. This can be useful when we need to give an error
          * message that involves a fakeToken. The int is a kind of
          * virtual position, an offset.
          * Those are called "safe" fake tokens (in contrast to the
          * regular/unsafe one which have no position information at all).
          *)
       (location * int) option
-  (* "Expanded" tokens maked with a special tag so that if someone do
-   * some transformation on those expanded tokens, they will get a warning
+  (* "Expanded" tokens are marked with a special tag so that if someone does
+   * a transformation on those expanded tokens, they will get a warning
    * (because we may have trouble back-propagating the transformation back
    *  to the original file).
    *)
   | ExpandedTok of
       (* refers to the preprocessed file, e.g. /tmp/pp-xxxx.pphp *)
       location
-      * (* kind of virtual position. This info refers to the last token
-         * before a serie of expanded tokens and the int is an offset.
+      * (* kind of a virtual position. The location refers to the last token
+         * before a series of expanded tokens and the int is an offset.
          * The goal is to be able to compare the position of tokens
-         * between then, even for expanded tokens. See compare_pos
-         * below.
+         * between then, even for expanded tokens. See compare_pos().
          *)
         location
       * int
   (* The Ab constructor is (ab)used to call '=' to compare big AST portions.
    * Ab means AbstractLineTok (short name to not polluate in debug mode).
+   * An alternative is to use the t_always_equal special type below.
    *)
   | Ab
 [@@deriving show, eq]
 
-type t = {
-  (* contains among other things the position of the token through
-   * the 'location' embedded inside the 'origin' type.
-   *)
-  token : origin;
-  (* The transfo field as its name suggest is to allow source to source
-   * transformation via token "annotations". See the documentation for spatch.
-   * TODO: remove now that we use AST-based autofix in Semgrep
-   *)
-  mutable transfo : transformation;
-}
-
-and transformation =
+type transformation =
   | NoTransfo
   | Remove
   | AddBefore of add
@@ -77,11 +65,33 @@ and transformation =
 
 and add = AddStr of string | AddNewlineAndIdent [@@deriving show, eq]
 
-(* to customize deriving show dynamically *)
+type t = {
+  (* contains among other things the position of the token through
+   * the 'location' embedded inside the 'origin' type.
+   *)
+  token : origin;
+  (* The transfo field as its name suggests is to allow source to source
+   * transformations via token "annotations". See the documentation for Spatch.
+   * TODO: remove now that we use AST-based autofix in Semgrep.
+   *)
+  mutable transfo : transformation;
+}
+[@@deriving show, eq]
+
+(* to customize show() dynamically *)
 val pp_full_token_info : bool ref
 
+(* As opposed to 't', the equal and hash functions for 't_always_equal'
+ * are actually not automatically derived; Tok.ml provides customized
+ * behavior where we assume all tokens are equal.
+ * This is used by Semgrep in AST_generic and Raw_tree to be able to
+ * check for equality of big AST constructs (e.g., complex expressions) by not
+ * caring about differences in token positions.
+ *)
+type t_always_equal = t [@@deriving show, eq, hash]
+
 (*****************************************************************************)
-(* Fake tokens: save vs unsafe *)
+(* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 
 val fake_location : location

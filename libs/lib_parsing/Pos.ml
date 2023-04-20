@@ -34,7 +34,7 @@ open Common
 type t = {
   charpos : int; (* byte position, 0-based *)
   (* line x column can be filled later based on charpos.
-   * See Parsing_helpers.complete_token_location *)
+   * See Parsing_helpers.complete_token_location() *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   (* TODO: use Fpath.t *)
@@ -42,7 +42,7 @@ type t = {
 }
 [@@deriving show, eq]
 
-(* basic file position (used to be Common2.filepos) *)
+(* basic file position (used to be Common2.filepos) (unused in Semgrep) *)
 type linecol = { l : int; c : int }
 
 (*****************************************************************************)

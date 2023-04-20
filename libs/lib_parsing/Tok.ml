@@ -22,14 +22,15 @@
  * Note that the types below are a bit complicated because we want
  * to represent "fake" and "expanded" tokens, as well as annotate tokens
  * with transformation. This is also partly because in many of the ASTs
- * and CSTs in Semgrep, including AST_generic.ml, we store the
- * tokens in the AST at the leaves, and abuse them to compute the range
- * of constructs.
+ * and CSTs in Semgrep, including in AST_generic.ml, we store the
+ * tokens in the ASTs/CSTs at the leaves, and abuse them to compute the range
+ * of constructs (they are also convenient for precise error reporting).
  * alt: an alternative would be to use cleaner ASTs with range
  * (general location) information at every nodes, in which case we
- * would not need at least fake tokens.
+ * would not need at least the fake tokens (we might still need
+ * the ExpandedTok type construct though).
  *
- * Technically speaking, 't' is not really a token, because the type does
+ * Technically speaking, 't' below is not really a token, because the type does
  * not store the kind of the token (e.g., PLUS | IDENT | IF | ...), just its
  * content. It's really just a lexeme, but the word lexeme is not as
  * known as token.
@@ -44,10 +45,10 @@ type location = { str : string; (* the content of the "token" *) pos : Pos.t }
 [@@deriving show { with_path = false }, eq]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
- * and expanded tokens (e.g. preprocessed constructs by cpp for C/C++)
+ * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
  *)
 type origin =
-  (* Present both in the AST and list of tokens *)
+  (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
    * when building some extra AST elements. *)
@@ -95,20 +96,8 @@ type origin =
   | Ab
 [@@deriving show { with_path = false }, eq]
 
-(* to allow source to source transformation via token "annotations",
- * see the documentation for spatch.
- *)
-type t = {
-  (* contains among other things the position of the token through
-   * the token_location embedded inside the token_origin type.
-   *)
-  token : origin;
-  (* for spatch *)
-  mutable transfo : transformation; (* less: mutable comments: ...; *)
-}
-
 (* poor's man refactoring *)
-and transformation =
+type transformation =
   | NoTransfo
   | Remove
   | AddBefore of add
@@ -118,6 +107,28 @@ and transformation =
 
 and add = AddStr of string | AddNewlineAndIdent
 [@@deriving show { with_path = false }, eq]
+
+type t = {
+  (* contains among other things the position of the token through
+   * the token_location embedded inside the token_origin type.
+   *)
+  token : origin;
+  (* The transfo field as its name suggests is to allow source to source
+   * transformations via token "annotations". See the documentation for Spatch.
+   * TODO: remove now that we use AST-based autofix in Semgrep.
+   *)
+  mutable transfo : transformation; (* less: mutable comments: ...; *)
+}
+[@@deriving show { with_path = false }, eq]
+
+type t_always_equal = t [@@deriving show]
+
+(* sgrep: we do not care about position when comparing for equality 2 ASTs.
+ * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
+ *)
+let equal_t_always_equal _t1 _t2 = true
+let hash_t_always_equal _t = 0
+let hash_fold_t_always_equal acc _t = acc
 
 (*****************************************************************************)
 (* Dumpers *)
