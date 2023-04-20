@@ -183,7 +183,7 @@ let error x in_ =
   if !Flag.debug_parser then (
     pr2 (T.show tok);
     pr2 x);
-  raise (Parsing_error.Parsing_error info)
+  raise (Parsing_error.Syntax_error info)
 
 let warning s = if !Flag.debug_parser then pr2 ("WARNING: " ^ s)
 
@@ -221,7 +221,7 @@ let convertToParam tk e =
   | _ ->
       (* CHECK: "not a legal formal parameter" *)
       warning (spf "convertToParam: not handled %s" (AST.show_expr e));
-      raise (Parsing_error.Parsing_error tk)
+      raise (Parsing_error.Syntax_error tk)
 
 let convertToParams tk e =
   match e with
@@ -4461,14 +4461,14 @@ let try_rule toks frule =
 
 let parse toks =
   try try_rule toks compilationUnit with
-  | Parsing_error.Parsing_error _ as err1 -> (
+  | Parsing_error.Syntax_error _ as err1 -> (
       let e1 = Exception.catch err1 in
       try try_rule toks block with
-      | Parsing_error.Parsing_error _ -> Exception.reraise e1)
+      | Parsing_error.Syntax_error _ -> Exception.reraise e1)
 
 let semgrep_pattern toks =
   try try_rule toks (fun in_ -> Ex (expr in_)) with
-  | Parsing_error.Parsing_error _ -> (
+  | Parsing_error.Syntax_error _ -> (
       try try_rule toks (fun in_ -> Ss (block in_)) with
-      | Parsing_error.Parsing_error _ ->
+      | Parsing_error.Syntax_error _ ->
           try_rule toks (fun in_ -> Pr (compilationUnit in_)))

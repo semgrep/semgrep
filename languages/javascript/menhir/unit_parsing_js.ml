@@ -24,7 +24,7 @@ let tests =
                    let _ = Parse_js.parse_program file in
                    ()
                  with
-                 | Parsing_error.Parsing_error _
+                 | Parsing_error.Syntax_error _
                  | Common.Todo ->
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "regression files typescript",
@@ -41,7 +41,7 @@ let tests =
                    let _ = Parse_js.parse_program file in
                    ()
                  with
-                 | Parsing_error.Parsing_error _
+                 | Parsing_error.Syntax_error _
                  | Common.Todo ->
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "rejecting bad code",
@@ -52,7 +52,7 @@ let tests =
                 let _ = Parse_js.program_of_string "echo 1+" in
                 Alcotest.fail "it should have thrown a Parse_error exception")
           with
-          | Parsing_error.Parsing_error _ -> () )
+          | Parsing_error.Syntax_error _ -> () )
       (*
     "the javascript AST mapper", (fun () ->
       let js_ex = "foo(42, 101);" in

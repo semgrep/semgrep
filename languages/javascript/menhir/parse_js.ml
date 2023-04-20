@@ -263,7 +263,7 @@ let parse2 opt_timeout filename =
           stat.PS.error_line_count <-
             stat.PS.error_line_count + (max_line - line_start);
           [])
-        else raise (Parsing_error.Parsing_error (TH.info_of_tok err_tok))
+        else raise (Parsing_error.Syntax_error (TH.info_of_tok err_tok))
   in
   let items =
     match

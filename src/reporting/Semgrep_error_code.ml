@@ -97,7 +97,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   match Exception.get_exn e with
   | Parsing_error.Lexical_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.LexicalError)
-  | Parsing_error.Parsing_error tok ->
+  | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
         | { token = Tok.OriginTok { str; _ }; _ } ->

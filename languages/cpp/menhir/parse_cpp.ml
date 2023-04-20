@@ -335,7 +335,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           let e = Exception.catch exn in
           if not !Flag.error_recovery then
             raise
-              (Parsing_error.Parsing_error
+              (Parsing_error.Syntax_error
                  (TH.info_of_tok tr.Parsing_helpers.current));
 
           (if !Flag.show_parsing_error then

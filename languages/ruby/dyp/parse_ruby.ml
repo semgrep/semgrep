@@ -149,7 +149,7 @@ let parse2 opt_timeout file =
 
           (* pr2 (spf "Exn on %s = %s" file s); *)
           if (not !Flag.error_recovery) && exn =*= Dyp.Syntax_error then
-            raise (Parsing_error.Parsing_error (TH.info_of_tok cur));
+            raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
           if (not !Flag.error_recovery) && exn <> Dyp.Syntax_error then
             raise (Parsing_error.Other_error (s, TH.info_of_tok cur));
 

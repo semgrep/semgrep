@@ -333,7 +333,7 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
               Left (s, t)
           | _ -> Right (interpolated_string (l, xs, r) |> G.e)))
   (* sgrep-ext: this should be covered in the caller *)
-  | MethodEllipsis t -> raise (Parsing_error.Parsing_error t)
+  | MethodEllipsis t -> raise (Parsing_error.Syntax_error t)
 
 and interpolated_string (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
