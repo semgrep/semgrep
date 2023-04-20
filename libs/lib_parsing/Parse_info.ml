@@ -86,32 +86,6 @@ let unsafe_sc = unsafe_fake_info ";"
 let sc_loc next_to_loc = fake_info_loc next_to_loc ";"
 let sc next_to_tok = fake_info next_to_tok ";"
 
-type token_kind =
-  (* for the fuzzy parser and sgrep/spatch fuzzy AST *)
-  | LPar
-  | RPar
-  | LBrace
-  | RBrace
-  | LBracket
-  | RBracket
-  | LAngle
-  | RAngle
-  (* for the unparser helpers in spatch, and to filter
-   * irrelevant tokens in the fuzzy parser
-   *)
-  | Esthet of esthet
-  (* mostly for the lexer helpers, and for fuzzy parser *)
-  (* less: want to factorize all those TH.is_eof to use that?
-   * but extra cost? same for TH.is_comment?
-   * todo: could maybe get rid of that now that we don't really use
-   * berkeley DB and prefer Prolog, and so we don't need a sentinel
-   * ast elements to associate the comments with it
-   *)
-  | Eof
-  | Other
-
-and esthet = Comment | Newline | Space
-
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
