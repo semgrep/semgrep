@@ -94,8 +94,8 @@ type t_always_equal = t [@@deriving show, eq, hash]
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 (* "Safe" fake tokens require an existing location to attach to, and so
- * token_location_of_info will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling token_location_of_info on these
+ * location_of_tok will work on these fake tokens. "Unsafe" fake tokens
+ * do not carry any location info, so calling location_of_tok on these
  * will raise a NoTokenLocation exception.
  *
  * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
@@ -154,19 +154,19 @@ val first_loc_of_file : Common.filename -> location
 (*****************************************************************************)
 (* Adjust location *)
 (*****************************************************************************)
-val fix_token_location : (location -> location) -> t -> t
+val fix_location : (location -> location) -> t -> t
 (** Fix the location info in a token. *)
 
-val adjust_info_wrt_base : location -> t -> t
-(** [adjust_info_wrt_base base_loc tok], where [tok] represents a location
+val adjust_tok_wrt_base : location -> t -> t
+(** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location
   * relative to [base_loc], returns the same [tok] but with an absolute
-  * {! token_location}. This is useful for fixing parse info after
+  * {! location}. This is useful for fixing tokens after
   * {! Common2.with_tmp_file}. E.g. if [base_loc] points to line 3, and
   * [tok] points to line 2 (interpreted line 2 starting in line 3), then
   * the adjusted token will point to line 4. *)
 
-val adjust_pinfo_wrt_base : location -> location -> location
-(** See [adjust_info_wrt_base]. *)
+val adjust_loc_wrt_base : location -> location -> location
+(** See [adjust_tok_wrt_base]. *)
 
 (*****************************************************************************)
 (* Adjust line x col in a location *)

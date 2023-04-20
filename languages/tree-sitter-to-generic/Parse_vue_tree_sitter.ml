@@ -401,7 +401,7 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
             Map_AST.kinfo =
               (fun (_, _) t ->
                 let base_loc = Tok.unsafe_location_of_tok tbase in
-                Tok.adjust_info_wrt_base base_loc t);
+                Tok.adjust_tok_wrt_base base_loc t);
           }
       in
       visitor.Map_AST.vprogram x)

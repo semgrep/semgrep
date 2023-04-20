@@ -231,8 +231,8 @@ let get_token_end_info loc =
 (* Adjusting location *)
 (*****************************************************************************)
 
-(* TODO: move to Pos.ml and use Pos.t instead *)
-let adjust_pinfo_wrt_base base_loc loc =
+(* TODO? move to Pos.ml and use Pos.t instead *)
+let adjust_loc_wrt_base base_loc loc =
   (* Note that charpos and columns are 0-based, whereas lines are 1-based. *)
   {
     loc with
@@ -247,7 +247,7 @@ let adjust_pinfo_wrt_base base_loc loc =
       };
   }
 
-let fix_token_location fix ii =
+let fix_location fix ii =
   {
     ii with
     token =
@@ -258,8 +258,8 @@ let fix_token_location fix ii =
       | Ab -> Ab);
   }
 
-let adjust_info_wrt_base base_loc ii =
-  fix_token_location (adjust_pinfo_wrt_base base_loc) ii
+let adjust_tok_wrt_base base_loc ii =
+  fix_location (adjust_loc_wrt_base base_loc) ii
 
 (*****************************************************************************)
 (* Adjust line x col *)
