@@ -40,7 +40,7 @@ let str = H.str
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
 let fb = Parse_info.unsafe_fake_bracket
-let invalid () = raise (PI.NoTokenLocation "Invalid program")
+let invalid () = raise (Tok.NoTokenLocation "Invalid program")
 
 (* AST builders helpers
  * less: could be moved in AST_Python.ml to factorize things with

@@ -27,8 +27,6 @@ open Tok
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-exception NoTokenLocation of string
-
 let mk_info_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
 
 let token_location_of_info ii =
@@ -108,7 +106,6 @@ let str_of_info ii =
 
 let _str_of_info ii = (unsafe_token_location_of_info ii).str
 let file_of_info ii = (unsafe_token_location_of_info ii).pos.file
-let line_of_info ii = (unsafe_token_location_of_info ii).pos.line
 let col_of_info ii = (unsafe_token_location_of_info ii).pos.column
 
 (* todo: return a Real | Virt position ? *)

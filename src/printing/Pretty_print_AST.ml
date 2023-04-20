@@ -86,7 +86,7 @@ let token ?(d = "TODO") tok =
   (* this exn can trigger now only for Parse_info.Ab (abstracted token),
    * which should never happen. We don't use Parse_info.Ab anymore.
    *)
-  | Parse_info.NoTokenLocation _ -> d
+  | Tok.NoTokenLocation _ -> d
 
 type lang_kind = CLikeSemiColon | Other
 

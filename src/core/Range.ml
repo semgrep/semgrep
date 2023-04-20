@@ -118,7 +118,7 @@ let range_of_tokens xs =
     in
     Some { start; end_ }
   with
-  | PI.NoTokenLocation _ -> None
+  | Tok.NoTokenLocation _ -> None
 
 let hmemo = Hashtbl.create 101
 

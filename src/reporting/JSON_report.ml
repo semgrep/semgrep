@@ -159,7 +159,7 @@ let metavars startp_of_match_range (s, mval) =
   match range_of_any_opt startp_of_match_range any with
   | None ->
       raise
-        (Parse_info.NoTokenLocation
+        (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
               (SJ.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
