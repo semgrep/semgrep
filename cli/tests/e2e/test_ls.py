@@ -435,7 +435,7 @@ def test_ls_full(
         assert response["result"]["url"] != ""
         assert response["result"]["sessionId"] != ""
 
-        mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value="1")
         mocker.patch("semgrep.app.auth.get_token", return_value="token")
 
         send_semgrep_login_finish(server)
