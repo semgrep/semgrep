@@ -434,7 +434,7 @@ let map_str_escaped_char (env : env) (x : CST.str_escaped_char) =
       let s1, t1 = (* "\\" *) str env v1 in
       let s2, t2 = (* "u" *) str env v2 in
       let s3, t3 = (* pattern \{[0-9a-fA-F]+\} *) str env v3 in
-      (String.concat "" [ s1; s2; s3 ], PI.combine_infos t1 [ t2; t3 ])
+      (String.concat "" [ s1; s2; s3 ], Tok.combine_toks t1 [ t2; t3 ])
 
 let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
     (e : G.expr) =

@@ -152,31 +152,6 @@ exception NoTokenLocation of string
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (*****************************************************************************)
-(* Builders *)
-(*****************************************************************************)
-
-let tok_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
-
-let tok_of_str_and_bytepos str pos =
-  let loc =
-    {
-      str;
-      pos =
-        {
-          charpos = pos;
-          (* info filled in a post-lexing phase, see complete_location *)
-          line = -1;
-          column = -1;
-          file = "NO FILE INFO YET";
-        };
-    }
-  in
-  tok_of_loc loc
-
-let tok_of_lexbuf lexbuf =
-  tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
-
-(*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
@@ -226,6 +201,80 @@ let end_pos_of_loc loc =
       loc.str
   in
   (line, col, loc.pos.charpos + String.length loc.str)
+
+(*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
+
+let tok_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
+
+let tok_of_str_and_bytepos str pos =
+  let loc =
+    {
+      str;
+      pos =
+        {
+          charpos = pos;
+          (* info filled in a post-lexing phase, see complete_location *)
+          line = -1;
+          column = -1;
+          file = "NO FILE INFO YET";
+        };
+    }
+  in
+  tok_of_loc loc
+
+let tok_of_lexbuf lexbuf =
+  tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
+
+let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+
+let rewrap_str s ii =
+  {
+    ii with
+    token =
+      (match ii.token with
+      | OriginTok pi -> OriginTok { pi with str = s }
+      | FakeTokStr (s, info) -> FakeTokStr (s, info)
+      | Ab -> Ab
+      | ExpandedTok _ ->
+          (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
+          failwith "rewrap_str: ExpandedTok not allowed here");
+  }
+
+(* less: should use Buffer and not ^ so we should not need that *)
+let tok_add_s s ii = rewrap_str (content_of_tok ii ^ s) ii
+
+let str_of_info_fake_ok ii =
+  match ii.token with
+  | OriginTok pinfo -> pinfo.str
+  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> pinfo_pp.str
+  | FakeTokStr (_, Some (pi, _)) -> pi.str
+  | FakeTokStr (s, None) -> s
+  | Ab -> raise (NoTokenLocation "Ab")
+
+let combine_toks x xs =
+  let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
+  tok_add_s str x
+
+let split_tok_at_bytepos pos ii =
+  let loc = unsafe_loc_of_tok ii in
+  let str = loc.str in
+  let loc1_str = String.sub str 0 pos in
+  let loc2_str = String.sub str pos (String.length str - pos) in
+  let loc1 = { loc with str = loc1_str } in
+  let loc2 =
+    {
+      str = loc2_str;
+      pos =
+        {
+          loc.pos with
+          charpos = loc.pos.charpos + pos;
+          column = loc.pos.column + pos;
+        };
+    }
+  in
+  (tok_of_loc loc1, tok_of_loc loc2)
 
 (*****************************************************************************)
 (* Adjusting location *)
@@ -333,8 +382,6 @@ let distribute_info_items_toplevel a b c =
 (*****************************************************************************)
 (* Other helpers *)
 (*****************************************************************************)
-
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
 
 (* used only in the Scala parser for now *)
 let abstract_tok = { token = Ab; transfo = NoTransfo }

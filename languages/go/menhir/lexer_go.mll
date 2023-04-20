@@ -208,7 +208,7 @@ rule token = parse
       let buf = Buffer.create 127 in
       Buffer.add_string buf "/*";
       comment buf lexbuf;
-      TComment(info |> PI.rewrap_str (Buffer.contents buf))
+      TComment(info |> Tok.rewrap_str (Buffer.contents buf))
     }
 
   (* don't keep the trailing \n; it will be in another token *)

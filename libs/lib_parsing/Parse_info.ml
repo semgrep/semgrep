@@ -19,9 +19,10 @@ open Tok
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* TODO: remove this file, spread its content in separate files *)
 
 (*****************************************************************************)
-(* Types *)
+(* Misc *)
 (*****************************************************************************)
 
 (* TODO: remove at some point *)
@@ -79,62 +80,6 @@ let string_of_info x =
   match Tok.loc_of_tok x with
   | Ok loc -> string_of_token_location loc
   | Error msg -> spf "unknown location (%s)" msg
-
-(*****************************************************************************)
-(* Lexer helpers *)
-(*****************************************************************************)
-(* now in Parsing_helpers.ml *)
-
-let rewrap_str s ii =
-  {
-    ii with
-    token =
-      (match ii.token with
-      | OriginTok pi -> OriginTok { pi with str = s }
-      | FakeTokStr (s, info) -> FakeTokStr (s, info)
-      | Ab -> Ab
-      | ExpandedTok _ ->
-          (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
-          failwith "rewrap_str: ExpandedTok not allowed here");
-  }
-
-(* less: should use Buffer and not ^ so we should not need that *)
-let tok_add_s s ii = rewrap_str (Tok.content_of_tok ii ^ s) ii
-
-let str_of_info_fake_ok ii =
-  match ii.token with
-  | OriginTok pinfo -> pinfo.str
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> pinfo_pp.str
-  | FakeTokStr (_, Some (pi, _)) -> pi.str
-  | FakeTokStr (s, None) -> s
-  | Ab -> raise (NoTokenLocation "Ab")
-
-let combine_infos x xs =
-  let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
-  tok_add_s str x
-
-let split_info_at_pos pos ii =
-  let loc = Tok.unsafe_loc_of_tok ii in
-  let str = loc.str in
-  let loc1_str = String.sub str 0 pos in
-  let loc2_str = String.sub str pos (String.length str - pos) in
-  let loc1 = { loc with str = loc1_str } in
-  let loc2 =
-    {
-      str = loc2_str;
-      pos =
-        {
-          loc.pos with
-          charpos = loc.pos.charpos + pos;
-          column = loc.pos.column + pos;
-        };
-    }
-  in
-  (Tok.tok_of_loc loc1, Tok.tok_of_loc loc2)
-
-(*****************************************************************************)
-(* Errors *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Misc *)

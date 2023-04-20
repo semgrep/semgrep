@@ -33,7 +33,7 @@ let token = H.token
 let str = H.str
 
 let concat_tokens first_tok other_toks : string wrap =
-  let tok = PI.combine_infos first_tok other_toks in
+  let tok = Tok.combine_toks first_tok other_toks in
   (Tok.content_of_tok tok, tok)
 
 let opt_concat_tokens toks : string wrap option =
@@ -63,7 +63,7 @@ let simplify_fragments (fragments : string_fragment list) : string_fragment list
     match toks with
     | [] -> tail
     | first :: others ->
-        let tok = PI.combine_infos first others in
+        let tok = Tok.combine_toks first others in
         String_content (Tok.content_of_tok tok, tok) :: tail
   in
   let rec simplify acc = function
@@ -123,7 +123,7 @@ let remove_blank_prefix (x : string wrap) : string wrap =
   match find_nonblank s with
   | None -> x
   | Some pos ->
-      let _blanks, tok = PI.split_info_at_pos pos tok in
+      let _blanks, tok = Tok.split_tok_at_bytepos pos tok in
       (Tok.content_of_tok tok, tok)
 
 (*****************************************************************************)
@@ -146,7 +146,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
   match v2 with
   | `Var tok -> (
       let name = str env tok (* pattern [a-zA-Z][a-zA-Z0-9_]* *) in
-      let mv_tok = PI.combine_infos dollar [ snd name ] in
+      let mv_tok = Tok.combine_toks dollar [ snd name ] in
       let mv_s = Tok.content_of_tok mv_tok in
       match env.extra with
       | Pattern, _ when AST_generic.is_metavar_name mv_s ->
@@ -480,7 +480,7 @@ let empty_token_after tok : tok =
         }
       in
       Tok.tok_of_loc loc
-  | Error _ -> PI.rewrap_str "" tok
+  | Error _ -> Tok.rewrap_str "" tok
 
 let env_pair (env : env) (x : CST.env_pair) : label_pair =
   match x with
@@ -581,14 +581,14 @@ let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
 let comment_line (env : env)
     (((hash_tok, comment_tok), backslash_tok) : CST.comment_line) : tok =
   let tok =
-    PI.combine_infos (token env hash_tok)
+    Tok.combine_toks (token env hash_tok)
       [ token env comment_tok; token env backslash_tok ]
   in
   (* TODO: the token called backslash_tok should be a newline according
      to the grammar, not a backslash. Looks like a bug in the parser.
      We have to add the newline here to end the comment and get correct
      line locations. *)
-  PI.tok_add_s "\n" tok
+  Tok.tok_add_s "\n" tok
 
 let shell_command (env : env) (x : CST.shell_command) =
   match x with
@@ -617,7 +617,7 @@ let shell_command (env : env) (x : CST.shell_command) =
                let shell_line_cont =
                  (* we would omit this if it weren't for preserving
                     line numbers *)
-                 PI.rewrap_str "\\\n" dockerfile_line_cont
+                 Tok.rewrap_str "\\\n" dockerfile_line_cont
                in
                let comment_lines =
                  Common.map (comment_line env) comment_lines

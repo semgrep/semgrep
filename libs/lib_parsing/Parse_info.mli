@@ -1,25 +1,5 @@
-(*****************************************************************************)
-(* Tokens *)
-(*****************************************************************************)
-
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
-
-(*****************************************************************************)
-(* Info builders *)
-(*****************************************************************************)
-
-(* TODO? could also be in Lexer helpers section *)
-(* can deprecate? *)
-val rewrap_str : string -> t -> t
-val tok_add_s : string -> t -> t
-
-(* used mainly by tree-sitter based parsers in semgrep *)
-val combine_infos : t -> t list -> t
-
-(* this function assumes the full content of the token is on the same
- * line, otherwise the line/col of the result might be wrong *)
-val split_info_at_pos : int -> t -> t * t
 
 (*****************************************************************************)
 (* Fake tokens: safe vs unsafe *)
@@ -63,18 +43,3 @@ val get_original_token_location : Tok.kind -> Tok.location
 (* comparison (TODO? should use deriving ord?) *)
 val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t
-
-(*****************************************************************************)
-(* Parsing errors *)
-(*****************************************************************************)
-(* now in Parsing_error.ml *)
-
-(*****************************************************************************)
-(* Parsing stats *)
-(*****************************************************************************)
-(* now in Parsing_stat.ml *)
-
-(*****************************************************************************)
-(* Lexer helpers *)
-(*****************************************************************************)
-(* now in Parsing_helpers.ml *)

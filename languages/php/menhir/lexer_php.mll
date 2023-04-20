@@ -59,7 +59,6 @@ let yyback n lexbuf =
 (* shortcuts *)
 let tok = Lexing.lexeme
 let tokinfo = Tok.tok_of_lexbuf
-let tok_add_s = PI.tok_add_s
 
 let tokinfo_str_pos = Tok.tok_of_str_and_bytepos
 
@@ -408,19 +407,19 @@ rule st_in_scripting = parse
     | "/*" {
         let info = tokinfo lexbuf in
         let com = st_comment lexbuf in
-        T_COMMENT(info |> tok_add_s com)
+        T_COMMENT(info |> Tok.tok_add_s com)
       }
     | "/**/" { T_COMMENT(tokinfo lexbuf) }
 
     | "/**" { (* RESET_DOC_COMMENT(); *)
         let info = tokinfo lexbuf in
         let com = st_comment lexbuf in
-        T_DOC_COMMENT(info |> tok_add_s com)
+        T_DOC_COMMENT(info |> Tok.tok_add_s com)
       }
     | "#"|"//" {
         let info = tokinfo lexbuf in
         let com = st_one_line_comment lexbuf in
-        T_COMMENT(info |> tok_add_s com)
+        T_COMMENT(info |> Tok.tok_add_s com)
       }
 
     (* old: | WHITESPACE { T_WHITESPACE(tokinfo lexbuf) } *)
@@ -540,7 +539,7 @@ rule st_in_scripting = parse
       *)
         let info = tokinfo lexbuf in
 
-        let syminfo = PI.rewrap_str sym info in
+        let syminfo = Tok.rewrap_str sym info in
 
         let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym   =
@@ -631,7 +630,7 @@ rule st_in_scripting = parse
           }
     | ("$" as dollar) "$" (LABEL as s) {
         let info = tokinfo lexbuf in
-        let dollarinfo = PI.rewrap_str (String.make 1 dollar) info in
+        let dollarinfo = Tok.rewrap_str (String.make 1 dollar) info in
         let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym = parse_info.Tok.pos.charpos + 2 in
         let lblinfo = tokinfo_str_pos s pos_after_sym in
@@ -770,7 +769,7 @@ rule st_in_scripting = parse
         }
 
   (* ----------------------------------------------------------------------- *)
-    | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+    | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
     | _ {
         error ("unrecognised symbol, in token rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
@@ -826,7 +825,7 @@ and initial = parse
 
   (*------------------------------------------------------------------------ *)
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _ (* ANY_CHAR *) {
       error("unrecognised symbol, in token rule:"^tok lexbuf);
       TUnknown (tokinfo lexbuf)
@@ -881,7 +880,7 @@ and st_var_offset = parse
       pop_mode();
       TCBRA(tokinfo lexbuf);
     }
-   | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+   | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
    | _ {
        error ("unrecognised symbol, in st_var_offset rule:"^tok lexbuf);
        TUnknown (tokinfo lexbuf)
@@ -904,7 +903,7 @@ and st_double_quotes = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let varinfo = PI.rewrap_str ("$" ^ s) info in
+          let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
@@ -934,7 +933,7 @@ and st_double_quotes = parse
       pop_mode ();
       TGUIL(tokinfo lexbuf)
     }
-   | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+   | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
    | _ {
        error("unrecognised symbol, in st_double_quotes rule:"^tok lexbuf);
        TUnknown (tokinfo lexbuf)
@@ -952,7 +951,7 @@ and st_backquote = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let varinfo = PI.rewrap_str ("$" ^ s) info in
+          let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
@@ -979,7 +978,7 @@ and st_backquote = parse
       TBACKQUOTE(tokinfo lexbuf)
     }
 
-    | eof { EOF (tokinfo lexbuf |>PI.rewrap_str "") }
+    | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
     | _ {
         error ("unrecognised symbol, in st_backquote rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
@@ -997,7 +996,7 @@ and st_start_heredoc stopdoc = parse
   | (LABEL as s) (";"? as semi) (['\n' '\r'] as space) {
       let info = tokinfo lexbuf in
 
-      let lbl_info = PI.rewrap_str s info in
+      let lbl_info = Tok.rewrap_str s info in
 
       let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
@@ -1029,7 +1028,7 @@ and st_start_heredoc stopdoc = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let varinfo = PI.rewrap_str ("$" ^ s) info in
+          let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
@@ -1054,7 +1053,7 @@ and st_start_heredoc stopdoc = parse
         T_DOLLAR_OPEN_CURLY_BRACES(tokinfo lexbuf);
       }
 
-    | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+    | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
     | _ {
         error("unrecognised symbol, in st_start_heredoc rule:"^tok lexbuf);
         TUnknown (tokinfo lexbuf)
@@ -1069,7 +1068,7 @@ and st_start_nowdoc stopdoc = parse
   | (LABEL as s) (";"? as semi) (['\n' '\r'] as space) {
       let info = tokinfo lexbuf in
 
-      let lbl_info = PI.rewrap_str s info in
+      let lbl_info = Tok.rewrap_str s info in
 
       let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
@@ -1099,7 +1098,7 @@ and st_start_nowdoc stopdoc = parse
       TNewline (tokinfo lexbuf)
     }
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _ {
        error ("unrecognised symbol, in st_start_nowdoc rule:"^tok lexbuf);
        TUnknown (tokinfo lexbuf)

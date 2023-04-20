@@ -318,7 +318,7 @@ rule token = parse
     {
       let info = tokinfo lexbuf in
       let com = comment lexbuf in
-      TComment(info |> Parse_info.tok_add_s com)
+      TComment(info |> Tok.tok_add_s com)
     }
   (* don't keep the trailing \n; it will be in another token *)
   | "//" InputCharacter*
@@ -430,7 +430,7 @@ rule token = parse
   | ">>=" { OPERATOR_EQ (LSR, tokinfo lexbuf) }
   | ">>>="{ OPERATOR_EQ (ASR, tokinfo lexbuf) }
 
-  | SUB? eof { EOF (tokinfo lexbuf |> Parse_info.rewrap_str "") }
+  | SUB? eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
 
   | _ {
   error ("unrecognised symbol, in token rule:"^tok lexbuf) lexbuf;

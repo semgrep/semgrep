@@ -2157,7 +2157,7 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
   let t =
     match xs with
     | [] -> Parse_info.fake_info lquote ""
-    | (_, t) :: ys -> Parse_info.combine_infos t (Common.map snd ys)
+    | (_, t) :: ys -> Tok.combine_toks t (Common.map snd ys)
   in
   (lquote, (s, t), rquote)
 

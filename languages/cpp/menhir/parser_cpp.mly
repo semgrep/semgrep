@@ -387,15 +387,15 @@ operator_kind:
  (* ->*  -> *)
  | TPtrOpStar { PtrOpOp PtrStarOp, $1 } | TPtrOp { PtrOpOp PtrOp,     $1 }
  (* () [] (double tokens) *)
- | "(" ")" { AccessOp ParenOp, PI.combine_infos $1 [$2] }
- | "[" "]" { AccessOp ArrayOp, PI.combine_infos $1 [$2] }
+ | "(" ")" { AccessOp ParenOp, Tok.combine_toks $1 [$2] }
+ | "[" "]" { AccessOp ArrayOp, Tok.combine_toks $1 [$2] }
  (* new delete *)
  | Tnew    { AllocOp NewOp,    $1 } | Tdelete { AllocOp DeleteOp, $1 }
  (*new[] delete[] (tripple tokens) *)
  | Tnew    TOCro_new TCCro_new
-    { AllocOp NewArrayOp,  PI.combine_infos $1 [$2;$3] }
+    { AllocOp NewArrayOp,  Tok.combine_toks $1 [$2;$3] }
  | Tdelete TOCro_new TCCro_new
-    { AllocOp DeleteArrayOp, PI.combine_infos $1 [$2;$3] }
+    { AllocOp DeleteArrayOp, Tok.combine_toks $1 [$2;$3] }
 
 
 qualified_id:

@@ -114,8 +114,26 @@ val fake_location : location
 val tok_of_lexbuf : Lexing.lexbuf -> t
 val tok_of_loc : location -> t
 
+(* deprecated: you should use instead Pos.first_pos_of_file *)
+val first_loc_of_file : Common.filename -> location
+
 (* deprecated: TODO used only in Lexer_php.mll *)
 val tok_of_str_and_bytepos : string -> int -> t
+
+(* used mainly by tree-sitter based parsers in semgrep.
+ * [combine_toks t1 ts] will return a token where t1::ts
+ * have been combined in a single token, with a starting pos
+ * of t1.pos.
+ *)
+val combine_toks : t -> t list -> t
+
+(* this function assumes the full content of the token is on the same
+ * line, otherwise the line/col of the result might be wrong *)
+val split_tok_at_bytepos : int -> t -> t * t
+
+(* Deprecated? *)
+val rewrap_str : string -> t -> t
+val tok_add_s : string -> t -> t
 
 (*****************************************************************************)
 (* Accessors *)
@@ -143,13 +161,6 @@ val file_of_tok : t -> Common.filename
    alt: return a Pos.t instead
 *)
 val end_pos_of_loc : location -> int * int * int (* line x col x charpos *)
-
-(*****************************************************************************)
-(* Builders *)
-(*****************************************************************************)
-
-(* deprecated: you should use instead Pos.first_pos_of_file *)
-val first_loc_of_file : Common.filename -> location
 
 (*****************************************************************************)
 (* Adjust location *)

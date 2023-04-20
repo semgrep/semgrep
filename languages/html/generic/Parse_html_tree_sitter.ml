@@ -76,7 +76,7 @@ let map_end_tag (env : env) (x : CST.end_tag) : tok =
       let v1 = token env v1 (* "</" *) in
       let v2 = token env v2 (* end_tag_name *) in
       let v3 = token env v3 (* ">" *) in
-      PI.combine_infos v1 [ v2; v3 ]
+      Tok.combine_toks v1 [ v2; v3 ]
 
 let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
   let id = str env v1 (* pattern "[^<>\"'/=\\s]+" *) in

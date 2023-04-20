@@ -720,6 +720,6 @@ module PI = Parse_info
 
 (* used both by Parsing_hacks_js and Parse_js *)
 let fakeInfoAttach info =
-  let info = PI.rewrap_str "';' (from ASI)" info in
+  let info = Tok.rewrap_str "';' (from ASI)" info in
   let loc = Tok.unsafe_loc_of_tok info in
   { Tok.token = Tok.FakeTokStr (";", Some (loc, -1)); transfo = Tok.NoTransfo }

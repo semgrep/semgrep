@@ -176,17 +176,17 @@ and map_ident_or_op (env : env) = function
   | IdOperator (v1, v2) ->
       let t1 = map_tok env v1 in
       let _op, t2 = map_wrap env (map_operator env) v2 in
-      let id = (Tok.content_of_tok t2, PI.combine_infos t1 [ t2 ]) in
+      let id = (Tok.content_of_tok t2, Tok.combine_toks t1 [ t2 ]) in
       (id, None)
   | IdDestructor (v1, v2) ->
       let t1 = map_tok env v1 and s, t2 = map_ident env v2 in
-      let id = (Tok.content_of_tok t1 ^ s, PI.combine_infos t1 [ t2 ]) in
+      let id = (Tok.content_of_tok t1 ^ s, Tok.combine_toks t1 [ t2 ]) in
       (id, None)
   | IdConverter (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
       let ii = Visitor_AST.ii_of_any (G.T v2) in
       let s = v1 :: ii |> Common.map Tok.content_of_tok |> String.concat "" in
-      let t = PI.combine_infos v1 ii in
+      let t = Tok.combine_toks v1 ii in
       let id = (s, t) in
       (id, None)
 
@@ -572,7 +572,7 @@ and map_constant env x : G.literal =
       let t =
         match v1 |> Common.map snd with
         | [] -> raise Impossible
-        | x :: xs -> PI.combine_infos x xs
+        | x :: xs -> Tok.combine_toks x xs
       in
       G.String (fb (s, t))
   | Bool v1 ->

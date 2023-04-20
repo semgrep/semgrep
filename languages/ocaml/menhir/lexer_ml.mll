@@ -169,7 +169,7 @@ rule token = parse
   | "(*" {
       let info = tokinfo lexbuf in
       let com = comment lexbuf in
-      TComment(info |> Parse_info.tok_add_s com)
+      TComment(info |> Tok.tok_add_s com)
     }
 
   (* ext: fsharp *)
@@ -361,7 +361,7 @@ rule token = parse
       let buf = Buffer.create 100 in
       string buf lexbuf;
       let s = Buffer.contents buf in
-      TString (s, info |> Parse_info.tok_add_s (s ^ "\""))
+      TString (s, info |> Tok.tok_add_s (s ^ "\""))
     }
 
   (* new feature I discovered thx to McPeak.
@@ -372,7 +372,7 @@ rule token = parse
       let buf = Buffer.create 100 in
       quoted_string buf lexbuf;
       let s = Buffer.contents buf in
-      TString (s, info |> Parse_info.tok_add_s (s ^ "|}"))
+      TString (s, info |> Tok.tok_add_s (s ^ "|}"))
   }
   (* ----------------------------------------------------------------------- *)
   (* Chars *)

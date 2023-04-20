@@ -362,7 +362,7 @@ let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
     (* pattern "[^\\n']" *)
   in
   let v3 = token env v3 (* "'" *) in
-  let t = PI.combine_infos v1 [ v2; v3 ] in
+  let t = Tok.combine_toks v1 [ v2; v3 ] in
   Char (s, t)
 
 let map_preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
@@ -408,7 +408,7 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
   let s = v2 |> Common.map fst |> String.concat "" in
   let xs = v2 |> Common.map snd in
   let v3 = token env v3 (* "\"" *) in
-  let t = PI.combine_infos v1 (xs @ [ v3 ]) in
+  let t = Tok.combine_toks v1 (xs @ [ v3 ]) in
   (s, t)
 
 let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =

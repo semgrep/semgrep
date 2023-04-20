@@ -175,7 +175,7 @@ let string_literal (env : env) (x : CST.string_literal) =
       let v3 = token env v3 (* "\"" *) in
       let str = v2 |> Common.map fst |> String.concat "" in
       let toks = (v2 |> Common.map snd) @ [ v3 ] in
-      (str, PI.combine_infos v1 toks)
+      (str, Tok.combine_toks v1 toks)
 
 let import_spec (env : env) ((v1, v2) : CST.import_spec) =
   let v1 =

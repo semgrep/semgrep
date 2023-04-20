@@ -88,7 +88,7 @@ rule token = parse
       let buf = Buffer.create 100 in
       string buf lexbuf;
       let s = Buffer.contents buf in
-      TString (s, info |> Parse_info.tok_add_s (s ^ "\""))
+      TString (s, info |> Tok.tok_add_s (s ^ "\""))
     }
 
    (* maybe elisp specific *)
@@ -123,7 +123,7 @@ rule token = parse
     }
 
   (* ----------------------------------------------------------------------- *)
-  | eof { EOF (tokinfo lexbuf |> Parse_info.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _ {
         if !Flag.verbose_lexing
         then pr2_once ("LEXER:unrecognised symbol, in token rule:"^tok lexbuf);

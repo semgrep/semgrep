@@ -409,7 +409,7 @@ and literal = function
   | Unit (v1, v2) ->
       let v1 = tok v1 in
       let v2 = tok v2 in
-      let t = Parse_info.combine_infos v1 [ v2 ] in
+      let t = Tok.combine_toks v1 [ v2 ] in
       G.Unit t
 
 and argument = function

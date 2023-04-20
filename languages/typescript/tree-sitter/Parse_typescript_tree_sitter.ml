@@ -158,7 +158,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let close = token env v3 (* "\"" *) in
       let str = contents |> Common.map fst |> String.concat "" in
       let toks = (contents |> Common.map snd) @ [ close ] in
-      (str, PI.combine_infos open_ toks)
+      (str, Tok.combine_toks open_ toks)
   | `SQUOT_rep_choice_unes_single_str_frag_SQUOT (v1, v2, v3) ->
       let open_ = token env v1 (* "'" *) in
       let v2 =
@@ -173,7 +173,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let close = token env v3 (* "'" *) in
       let str = v2 |> Common.map fst |> String.concat "" in
       let toks = (v2 |> Common.map snd) @ [ close ] in
-      (str, PI.combine_infos open_ toks)
+      (str, Tok.combine_toks open_ toks)
 
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import_export) =
   let star = token env v1 (* "*" *) in
@@ -199,7 +199,7 @@ let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
   | `Jsx_name_name x ->
       let id1, id2 = jsx_namespace_name env x in
       let str = fst id1 ^ ":" ^ fst id2 in
-      (str, PI.combine_infos (snd id1) [ snd id2 ])
+      (str, Tok.combine_toks (snd id1) [ snd id2 ])
 
 let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
     a_ident list =
@@ -224,11 +224,11 @@ let jsx_element_name (env : env) (x : CST.jsx_element_name) : a_ident =
         | [] -> raise Impossible
         | x :: xs -> (x, xs)
       in
-      (str, PI.combine_infos (snd hd) (tl |> Common.map snd))
+      (str, Tok.combine_toks (snd hd) (tl |> Common.map snd))
   | `Jsx_name_name x ->
       let id1, id2 = jsx_namespace_name env x in
       let str = fst id1 ^ ":" ^ fst id2 in
-      (str, PI.combine_infos (snd id1) [ snd id2 ])
+      (str, Tok.combine_toks (snd id1) [ snd id2 ])
 
 let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element)
     =
@@ -236,7 +236,7 @@ let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element)
   let v2 = token env v2 (* "/" *) in
   let str, v3 = jsx_element_name env v3 in
   let v4 = token env v4 (* ">" *) in
-  let t = PI.combine_infos v1 [ v2; v3; v4 ] in
+  let t = Tok.combine_toks v1 [ v2; v3; v4 ] in
   (str, t)
 
 let from_clause (env : env) ((v1, v2) : CST.from_clause) : tok * string wrap =
@@ -368,7 +368,7 @@ let concat_nested_identifier (idents : a_ident list) : a_ident =
     | [] -> assert false
     | x :: xs -> (x, xs)
   in
-  (str, PI.combine_infos x xs)
+  (str, Tok.combine_toks x xs)
 
 (* 'import id = require(...)' are Commonjs-style import.
  * See https://www.typescriptlang.org/docs/handbook/2/modules.html#commonjs-style-import-and-export- for reference.
@@ -398,7 +398,7 @@ let literal_type (env : env) (x : CST.literal_type) : expr =
       in
       let s2, t2 = str env v2 (* number *) in
       (* TODO: float_of_string_opt_also_from_hexoctbin *)
-      L (Num (float_of_string_opt (s ^ s2), PI.combine_infos t1 [ t2 ]))
+      L (Num (float_of_string_opt (s ^ s2), Tok.combine_toks t1 [ t2 ]))
   | `Num tok ->
       let n = number env tok in
       L (Num n)
@@ -563,7 +563,7 @@ and jsx_self_clos_elem (env : env)
   let v3 = Common.map (jsx_attribute_ env) v3 in
   let v4 = token env v4 (* "/" *) in
   let v5 = token env v5 (* ">" *) in
-  let t2 = PI.combine_infos v4 [ v5 ] in
+  let t2 = Tok.combine_toks v4 [ v5 ] in
   (v1, v2, v3, t2)
 
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment) : xml
@@ -574,8 +574,8 @@ and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment) : xml
   let v4 = token env v4 (* "<" *) in
   let v5 = token env v5 (* "/" *) in
   let v6 = token env v6 (* ">" *) in
-  let t1 = PI.combine_infos v1 [ v2 ] in
-  let t2 = PI.combine_infos v4 [ v5; v6 ] in
+  let t1 = Tok.combine_toks v1 [ v2 ] in
+  let t2 = Tok.combine_toks v4 [ v5; v6 ] in
   { xml_kind = XmlFragment (t1, t2); xml_attrs = []; xml_body = v3 }
 
 and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) :
@@ -1304,7 +1304,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
               let v1 = token env v1 (* "new" *) in
               let v2 = token env v2 (* "." *) in
               let v3 = token env v3 (* "target" *) in
-              let t = PI.combine_infos v1 [ v2; v3 ] in
+              let t = Tok.combine_toks v1 [ v2; v3 ] in
               IdSpecial (NewTarget, t)
           | `Call_exp x -> call_expression env x)
       | `Non_null_exp x -> non_null_expression env x)

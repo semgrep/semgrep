@@ -63,7 +63,7 @@ let concatenate_string_wraps xs =
   let strings, toks = List.split xs in
   match toks with
   | [] -> None
-  | x :: xs -> Some (String.concat "" strings, PI.combine_infos x xs)
+  | x :: xs -> Some (String.concat "" strings, Tok.combine_toks x xs)
 
 let concatenate_literal_fragments xs =
   let rec concat acc = function
@@ -315,7 +315,7 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   | MethodId v -> Left (variable v)
   | MethodIdAssign (id, teq, id_kind) ->
       let s, t = variable (id, id_kind) in
-      Left (s ^ "=", PI.combine_infos t [ teq ])
+      Left (s ^ "=", Tok.combine_toks t [ teq ])
   | MethodUOperator (_, t)
   | MethodOperator (_, t) ->
       Left (Tok.content_of_tok t, t)
@@ -329,7 +329,7 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
       | AtomFromString (l, xs, r) -> (
           match xs with
           | [ StrChars (s, t2) ] ->
-              let t = PI.combine_infos l [ t2; r ] in
+              let t = Tok.combine_toks l [ t2; r ] in
               Left (s, t)
           | _ -> Right (interpolated_string (l, xs, r) |> G.e)))
   (* sgrep-ext: this should be covered in the caller *)
@@ -433,7 +433,7 @@ and atom tcolon x =
   | AtomFromString (l, xs, r) -> (
       match xs with
       | [ StrChars (s, t2) ] ->
-          let t = PI.combine_infos l [ t2; r ] in
+          let t = Tok.combine_toks l [ t2; r ] in
           G.L (G.Atom (tcolon, (s, t)))
       | _ -> interpolated_string (l, xs, r))
 
@@ -449,7 +449,7 @@ and literal x =
       G.L (G.Float (f, tok x))
   | Complex x -> G.L (G.Imag (wrap string x))
   | Rational ((s, t1), t2) ->
-      let t = PI.combine_infos t1 [ t2 ] in
+      let t = Tok.combine_toks t1 [ t2 ] in
       G.L (G.Ratio (s, t))
   | Char x -> G.L (G.Char (wrap string x))
   | Nil t -> G.L (G.Null (tok t))

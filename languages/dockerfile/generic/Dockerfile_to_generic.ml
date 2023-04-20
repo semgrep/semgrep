@@ -126,7 +126,7 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
 
 let param_arg (x : param) : G.argument =
   let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
-  let option_tok = PI.combine_infos dashdash [ name_tok ] in
+  let option_tok = Tok.combine_toks dashdash [ name_tok ] in
   let option_str = Tok.content_of_tok dashdash ^ name_str in
   G.ArgKwdOptional ((option_str, option_tok), string_or_metavar_expr value)
 
