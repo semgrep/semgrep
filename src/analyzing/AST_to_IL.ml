@@ -1150,8 +1150,15 @@ and stmt_aux env st =
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
       ss @ ss'
-  | G.DefStmt ({name = EN obj; _}, G.VarDef{ G.vinit = Some ({e = G.New (_tok, { t = TyN type_name; _}, cons_id_info, args); _} as new_exp); _}) ->
+  | G.DefStmt ({name = EN obj; _}, G.VarDef{ G.vinit = Some ({e = G.New (tok, ({ t = TyN type_name; _} as ty), cons_id_info, args); _} as new_exp); _}) ->
       let obj' = var_of_name obj in
+      let obj_lval = lval_of_base (Var obj') in
+      let new_stmt =
+        let eorig = SameAs new_exp in
+        let special = (New, tok) in
+        let arg = G.ArgType ty in
+        mk_s (Instr (mk_i (CallSpecial (Some obj_lval, special, [argument env arg])) eorig))
+      in
       let constructor =
         match type_name with
         | G.Id (id, _) -> G.Id (id, cons_id_info)
@@ -1160,10 +1167,10 @@ and stmt_aux env st =
       in
       let constructor' = var_of_name constructor in
       let ss, args' = args_with_pre_stmts env (PI.unbracket args) in
-      let obj_lval = lval_of_base (Var obj') in
+
       let constructor_exp = mk_e (Fetch {obj_lval with rev_offset = [{o=Dot constructor'; oorig=NoOrig}]}) (SameAs (N constructor |> G.e)) in
       logger#flash "HERE DefStmt New -> constructor call";
-      ss @ [ mk_s (Instr (mk_i (Call (Some obj_lval, constructor_exp, args')) (SameAs new_exp))) ]
+      ss @ [ new_stmt ; mk_s (Instr (mk_i (Call (None, constructor_exp, args')) NoOrig )) ]
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
