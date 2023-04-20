@@ -5,22 +5,6 @@
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-(* TODO: move in ast_fuzzy.ml? mostly for the fuzzy AST builder *)
-type token_kind =
-  | LPar
-  | RPar
-  | LBrace
-  | RBrace
-  | LBracket
-  | RBracket
-  | LAngle
-  | RAngle
-  | Esthet of esthet
-  | Eof
-  | Other
-
-and esthet = Comment | Newline | Space
-
 (*****************************************************************************)
 (* Info builders *)
 (*****************************************************************************)

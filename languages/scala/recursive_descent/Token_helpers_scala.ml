@@ -12,9 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
 open Token_scala
-module PI = Parse_info
+module PI = Lib_ast_fuzzy
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
