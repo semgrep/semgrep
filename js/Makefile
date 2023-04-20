@@ -1,6 +1,12 @@
 .PHONY: default
 default: libyaml engine languages
 
+.PHONY: build
+test:
+	cd libyaml; $(MAKE) build
+	cd engine; $(MAKE) build
+	cd languages; $(MAKE) build
+
 .PHONY: test
 test:
 	cd libyaml; $(MAKE) test
