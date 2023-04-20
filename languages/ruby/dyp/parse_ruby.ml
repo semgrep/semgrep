@@ -56,26 +56,26 @@ let mk_lexer filename input_source =
   let table =
     match input_source with
     | Parsing_helpers.File file ->
-        Parsing_helpers.full_charpos_to_pos_large (Fpath.to_string file)
-    | Parsing_helpers.Str str -> Parsing_helpers.full_charpos_to_pos_str str
+        Tok.full_charpos_to_pos_large (Fpath.to_string file)
+    | Parsing_helpers.Str str -> Tok.full_charpos_to_pos_str str
   in
 
-  let adjust_info ii =
+  let adjust_info (ii : Tok.t) =
     {
       ii with
-      PI.token =
+      Tok.token =
         (* could assert pinfo.filename = file ? *)
-        (match ii.PI.token with
-        | PI.OriginTok pi -> (
+        (match ii.token with
+        | Tok.OriginTok pi -> (
             try
-              PI.OriginTok
-                (Parsing_helpers.complete_token_location_large filename table pi)
+              Tok.OriginTok
+                (Tok.complete_token_location_large filename table pi)
             with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
                 (* pr2_gen pi *)
                 pr2_once (spf "TODO:%s: adjust info out-of-bounds" filename);
-                PI.OriginTok pi)
+                Tok.OriginTok pi)
         | _ -> failwith "adjust_info: no an OriginTok");
     }
   in
@@ -89,8 +89,8 @@ let mk_lexer filename input_source =
   let rec lexer lexbuf =
     let tok =
       try Lexer_ruby.token state lexbuf with
-      | PI.Lexical_error (s, info) ->
-          raise (PI.Lexical_error (s, adjust_info info))
+      | Parsing_error.Lexical_error (s, info) ->
+          raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
     if !Flag_parsing.debug_lexer then Common.pr2_gen tok;
 
@@ -133,7 +133,7 @@ let parse2 opt_timeout file =
         in
         HH.do_fail "program" l' Ast_ruby.show_program;
 
-        let ast = List.hd l' in
+        let ast = Common.hd_exn "unexpected empty list" l' in
         (*orig-todo? Ast.mod_ast (replace_heredoc state) ast*)
         { Parsing_result.ast; tokens = List.rev !toks; stat }
       with
@@ -149,15 +149,15 @@ let parse2 opt_timeout file =
 
           (* pr2 (spf "Exn on %s = %s" file s); *)
           if (not !Flag.error_recovery) && exn =*= Dyp.Syntax_error then
-            raise (PI.Parsing_error (TH.info_of_tok cur));
+            raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
           if (not !Flag.error_recovery) && exn <> Dyp.Syntax_error then
-            raise (PI.Other_error (s, TH.info_of_tok cur));
+            raise (Parsing_error.Other_error (s, TH.info_of_tok cur));
 
           if !Flag.show_parsing_error && exn =*= Dyp.Syntax_error then (
             pr2 ("parse error \n = " ^ error_msg_tok cur);
             let filelines = Common2.cat_array file in
             let checkpoint2 = Common.cat file |> List.length in
-            let line_error = PI.line_of_info (TH.info_of_tok cur) in
+            let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
             Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 
           stat.PS.error_line_count <- stat.PS.total_line_count;
@@ -196,7 +196,7 @@ let any_of_string ?timeout str =
         in
         HH.do_fail "any" l' Ast_ruby.show_any;
 
-        let ast = List.hd l' in
+        let ast = Common.hd_exn "unexpected empty list" l' in
         ast
       with
       | (Dyp.Syntax_error | Failure _ | Stack.Empty | Parse_ruby_timeout) as exn

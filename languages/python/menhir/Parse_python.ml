@@ -83,7 +83,7 @@ let tokens parsing_mode input_source =
      * It's better to generate proper parsing error exn.
      *)
     | Failure s ->
-        Parse_info.lexical_error s lexbuf;
+        Parsing_error.lexical_error s lexbuf;
         T.EOF (Parse_info.tokinfo lexbuf)
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
@@ -148,14 +148,14 @@ let rec parse_basic ?(parsing_mode = Python) filename =
       else
         let cur = tr.Parsing_helpers.current in
         if not !Flag.error_recovery then
-          raise (PI.Parsing_error (TH.info_of_tok cur));
+          raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
         if !Flag.show_parsing_error then (
           pr2 ("parse error \n = " ^ error_msg_tok cur);
 
           let filelines = Common2.cat_array filename in
           let checkpoint2 = Common.cat filename |> List.length in
-          let line_error = PI.line_of_info (TH.info_of_tok cur) in
+          let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
           Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         { Parsing_result.ast = []; tokens = toks; stat }

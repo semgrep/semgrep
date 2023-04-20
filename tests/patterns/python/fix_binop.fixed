@@ -2,3 +2,6 @@
 bar((3 * 2))
 # MATCH:
 bar(((5 + 3) * 2))
+# Test case for #2902
+# MATCH:
+bar(((1 + (5 + 3)) * 2))

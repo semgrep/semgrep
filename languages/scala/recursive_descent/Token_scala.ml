@@ -53,6 +53,7 @@ type token =
   | Kmatch of Parse_info.t
   | Klazy of Parse_info.t
   | Kimport of Parse_info.t
+  | Kexport of Parse_info.t
   | Kimplicit of Parse_info.t
   | Kif of Parse_info.t
   | KforSome of Parse_info.t
@@ -66,6 +67,7 @@ type token =
   | Kclass of Parse_info.t
   | Kcatch of Parse_info.t
   | Kcase of Parse_info.t
+  | Kenum of Parse_info.t
   | Kabstract of Parse_info.t
   | IntegerLiteral of (int option * Parse_info.t)
   | ID_UPPER of (string * Parse_info.t)
@@ -78,6 +80,7 @@ type token =
   | EQUALS of Parse_info.t
   | EOF of Parse_info.t
   | DOT of Parse_info.t
+  | QUOTE of Parse_info.t
   | Comment of Parse_info.t
   | CharacterLiteral of (string * Parse_info.t)
   | COMMA of Parse_info.t
@@ -86,6 +89,7 @@ type token =
   | BANG of Parse_info.t
   | AT of Parse_info.t
   | ARROW of Parse_info.t
+  | DEDENT of (* line *) int * (* width *) int
 [@@deriving show { with_path = false }]
 
 type t = token [@@deriving show]

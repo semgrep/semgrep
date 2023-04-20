@@ -175,7 +175,9 @@ class SemgrepCoreLSServer:
                 as_json = r.json()
                 login_token = as_json.get("token")
                 state = get_state()
-                if login_token is not None and auth.is_valid_token(login_token):
+                if login_token is not None and auth.get_deployment_from_token(
+                    login_token
+                ):
                     auth.set_token(login_token)
                     state = get_state()
                     state.app_session.authenticate()

@@ -1,0 +1,13 @@
+(executables
+ (names Parser)
+ (libraries
+    parser_csharp.ast_generic
+    semgrep_js_shared
+ )
+ (modes js)
+  (js_of_ocaml
+  (javascript_files semgrep.js)
+  )
+ (preprocess
+  (pps js_of_ocaml-ppx))
+)

@@ -63,7 +63,7 @@ let subexprs_of_stmt_kind = function
   (* n *)
   | For (_, MultiForEach es, _) ->
       es
-      |> List.filter_map (function
+      |> Common.map_filter (function
            | FE (_, _, e) -> Some [ e ]
            | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
            | FEllipsis _ -> None)
@@ -145,7 +145,7 @@ let subexprs_of_expr with_symbolic_propagation e =
          |> Common.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
-  | New (_, _t, args) -> subexprs_of_args args
+  | New (_, _t, _ii, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e :: subexprs_of_args args
@@ -153,7 +153,7 @@ let subexprs_of_expr with_symbolic_propagation e =
       e1
       :: (e2 |> PI.unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
-         |> Common.map Option.to_list |> List.flatten)
+         |> List.concat_map Option.to_list)
   | Yield (_, eopt, _) -> Option.to_list eopt
   | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
@@ -165,14 +165,14 @@ let subexprs_of_expr with_symbolic_propagation e =
   (* TODO? or call recursively on e? *)
   | ParenExpr (_, e, _) -> [ e ]
   | Xml { xml_attrs; xml_body; _ } ->
-      List.filter_map
+      Common.map_filter
         (function
           | XmlAttr (_, _, e)
           | XmlAttrExpr (_, e, _) ->
               Some e
           | _ -> None)
         xml_attrs
-      @ List.filter_map
+      @ Common.map_filter
           (function
             | XmlExpr (_, Some e, _) -> Some e
             | XmlXml xml -> Some (Xml xml |> AST_generic.e)
@@ -255,7 +255,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | ArrayAccess (_e1, (_, _e2, _)) -> []
   | SliceAccess (_e1, _e2) -> []
   | Comprehension (_, (_, (_e, _xs), _)) -> []
-  | New (_, _t, _args) -> []
+  | New (_, _t, _ii, _args) -> []
   | OtherExpr (_, _anys) -> []
   | RawExpr _ -> []
   | Alias (_, _e1) -> []
@@ -304,10 +304,9 @@ let substmts_of_stmt st =
   | Block (_, xs, _) -> xs
   | Switch (_, _, xs) ->
       xs
-      |> Common.map (function
+      |> List.concat_map (function
            | CasesAndBody (_, st) -> [ st ]
            | CaseEllipsis _ -> [])
-      |> List.flatten
   | Try (_, st, xs, opt) -> (
       [ st ]
       @ (xs |> Common.map Common2.thd3)
@@ -341,25 +340,21 @@ let substmts_of_stmt st =
 (* Visitors  *)
 (*****************************************************************************)
 (* TODO: move in pfff at some point *)
-let do_visit_with_ref mk_hooks any =
+let do_visit_with_ref visitor any =
   let res = ref [] in
-  let hooks = mk_hooks res in
-  let vout = V.mk_visitor hooks in
-  vout any;
+  visitor#visit_any res any;
   List.rev !res
 
 let lambdas_in_expr e =
-  do_visit_with_ref
-    (fun aref ->
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (k, _) e ->
-            match e.e with
-            | Lambda def -> Common.push def aref
-            | _ -> k e);
-      })
-    (E e)
+  let visitor =
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info
+
+      (* TODO Should we recurse into the Lambda? *)
+      method! visit_Lambda aref def = Common.push def aref
+    end
+  in
+  do_visit_with_ref visitor (E e)
   [@@profiling]
 
 (* opti: using memoization speed things up a bit too
@@ -398,7 +393,7 @@ let flatten_substmts_of_stmts xs =
     (if !go_really_deeper_stmt then
      let es = subexprs_of_stmt x in
      (* getting deeply nested lambdas stmts *)
-     let lambdas = es |> Common.map lambdas_in_expr_memo |> List.flatten in
+     let lambdas = es |> List.concat_map lambdas_in_expr_memo in
      lambdas
      |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
      |> List.iter aux);

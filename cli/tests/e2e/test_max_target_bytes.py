@@ -7,6 +7,7 @@ from tests.fixtures import RunSemgrep
 def test_max_target_bytes(run_semgrep_in_tmp: RunSemgrep, snapshot, max_bytes):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
+        target_name="basic",
         options=["--max-target-bytes", max_bytes],
         assert_exit_code=None,
     )

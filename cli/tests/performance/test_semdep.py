@@ -4,6 +4,7 @@ from time import time
 import pytest
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "file_size,target,max_time",
     [
@@ -13,7 +14,7 @@ import pytest
         for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
         for target in [
             "Gemfile.lock",
-            "go.sum",
+            "go.mod",
             "gradle.lockfile",
             "maven_dep_tree.txt",
             "package-lock.json",

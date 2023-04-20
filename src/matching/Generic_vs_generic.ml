@@ -745,7 +745,12 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
      the cases that do decompose on `a` or `b`.
   *)
   | _, G.Cast (_, _, b1) when arguments_have_changed ->
-      m_expr a b1 >||> m_expr ~arguments_have_changed:false a b
+      (* We apply this equivalence only if not at the root, meaning we've done work
+         to get here, and should consider all possibilities.
+         This is similar to symbolic propagation.
+      *)
+      (if not is_root then m_expr a b1 else fail ())
+      >||> m_expr ~arguments_have_changed:false a b
   (* equivalence: name resolving! *)
   (* todo: it would be nice to factorize the aliasing code by just calling
    * m_name, but below we use make_dotted, which is different from what
@@ -926,8 +931,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
-  | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
-      m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
+  | G.New (_a0, a1, _a2, a3), B.New (_b0, b1, _b2, b3) ->
+      m_type_ a1 b1 >>= fun () -> m_arguments a3 b3
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -941,7 +946,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
         when List.length vars =|= List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
-          let mult_assigns = List.map2 create_assigns vars vals in
+          let mult_assigns = Common.map2 create_assigns vars vals in
           let rec aux xs =
             match xs with
             | [] -> fail ()
@@ -1470,7 +1475,7 @@ and m_compatible_type lang typed_mvar t e =
 and type_of_expr lang e : G.type_ option * G.ident option =
   match e.B.e with
   (* TODO? or generate a fake "new" id for LSP to query on tk? *)
-  | B.New (_tk, t, _) -> (Some t, None)
+  | B.New (_tk, t, _ii, _) -> (Some t, None)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
@@ -2894,6 +2899,7 @@ and m_parameter a b =
       let* () = m_tok a1 b1 in
       m_parameter_classic a2 b2
   | G.ParamPattern a1, B.ParamPattern b1 -> m_pattern a1 b1
+  | G.ParamReceiver a1, B.ParamReceiver b1 -> m_parameter_classic a1 b1
   | G.OtherParam (a1, a2), B.OtherParam (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ParamEllipsis a1, B.ParamEllipsis b1 -> m_tok a1 b1
@@ -2902,6 +2908,7 @@ and m_parameter a b =
   | G.ParamRest _, _
   | G.ParamHashSplat _, _
   | G.ParamEllipsis _, _
+  | G.ParamReceiver _, _
   | G.OtherParam _, _ ->
       fail ()
 
@@ -3525,6 +3532,7 @@ and m_any a b =
   | G.Tp a1, B.Tp b1 -> m_type_parameter a1 b1
   | G.Ta a1, B.Ta b1 -> m_type_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
+  | G.XmlAt a1, B.XmlAt b1 -> m_xml_attr a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
   | G.I a1, B.I b1 -> m_ident a1 b1
@@ -3548,6 +3556,7 @@ and m_any a b =
   | G.Tp _, _
   | G.Ta _, _
   | G.At _, _
+  | G.XmlAt _, _
   | G.Dk _, _
   | G.Pr _, _
   | G.Fld _, _

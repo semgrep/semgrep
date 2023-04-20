@@ -23,7 +23,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-from typing import TYPE_CHECKING
 
 from attr import asdict
 from attr import define
@@ -34,15 +33,14 @@ from rich import box
 from rich.columns import Columns
 from rich.padding import Padding
 from rich.progress import BarColumn
-from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
 from rich.progress import TaskID
+from rich.progress import TaskProgressColumn
 from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
 
-import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
@@ -64,7 +62,6 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
@@ -190,7 +187,7 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str], total: int) -> None:
+    def __init__(self, cmd: List[str], total: int, engine_type: EngineType) -> None:
         """
         cmd: semgrep-core command to run
         total: how many rules to run / how many "." we expect to see a priori
@@ -202,6 +199,7 @@ class StreamingSemgrepCore:
         self._stderr = ""
         self._progress_bar: Optional[Progress] = None
         self._progress_bar_task_id: Optional[TaskID] = None
+        self._engine_type: EngineType = engine_type
 
         # Map from file name to contents, to be checked before the real
         # file system when servicing requests from semgrep-core.
@@ -242,7 +240,6 @@ class StreamingSemgrepCore:
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
-
         has_started = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
@@ -257,14 +254,31 @@ class StreamingSemgrepCore:
                 # that are looking for it. Make sure `semgrep-core exited with unexpected output`
                 # and `interfile analysis` are both in the message, or talk to Emma.
                 raise SemgrepError(
-                    "semgrep-core exited with unexpected output.\n\n"
-                    "\tThis can happen because it overflowed the stack or used too much memory.\n"
-                    "\tTry changing the stack limit with `ulimit -s <limit>` or adding\n"
-                    "\t`--max-memory <memory>` to the semgrep command. For CI runs with interfile\n"
-                    "\tanalysis, the default max-memory is 5000MB. Depending on the memory\n"
-                    "\tavailable in your runner, you may need to lower it. We recommend choosing\n"
-                    "\ta limit 70% of the available memory to allow for some overhead. If you have\n"
-                    "\ttried these steps and still are seeing this error, please contact us."
+                    f"""
+                    You are seeing this because the engine was killed.
+
+                    The most common reason this happens is because it used too much memory.
+                    If your repo is large (~10k files or more), you have three options:
+                    1. Increase the amount of memory available to semgrep
+                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
+                        recommend using 1 job if you are running out of memory.
+                    3. Scan the repo in parts (contact us for help)
+
+                    Otherwise, it is likely that semgrep is hitting the limit on only some
+                    files. In this case, you can try to set the limit on the amount of memory
+                    semgrep can use on each file with `--max-memory <memory>`. We recommend
+                    lowering this to a limit 70% of the available memory. For CI runs with
+                    interfile analysis, the default max-memory is 5000MB. Without, the default
+                    is unlimited.
+
+                    The last thing you can try if none of these work is to raise the stack
+                    limit with `ulimit -s <limit>`.
+
+                    If you have tried all these steps and still are seeing this error, please
+                    contact us.
+
+                       Error: semgrep-core exited with unexpected output
+                    """
                 )
 
             if (
@@ -281,10 +295,21 @@ class StreamingSemgrepCore:
                 break
 
             if line_bytes == b".\n" and not reading_json:
-                num_scanned_targets += 1
+                # We expect to see 3 dots for each target, when running interfile analysis:
+                # - once when finishing phase 4, name resolution, on that target
+                # - once when finishing phase 5, taint configs, on that target
+                # - once when finishing analysis on that target as usual
+                #
+                # However, for regular OSS Semgrep, we only print one dot per
+                # target, that being the last bullet point listed above.
+                #
+                # So a dot counts as 1 progress if running Pro, but 3 progress if
+                # running the OSS engine.
+                advanced_targets = 1 if self._engine_type.is_interfile else 3
+
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
-                        self._progress_bar_task_id, completed=num_scanned_targets
+                        self._progress_bar_task_id, advance=advanced_targets
                     )
             elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
@@ -388,52 +413,6 @@ class StreamingSemgrepCore:
         # Return exit code of cmd. process should already be done
         return await process.wait()
 
-    def _run_forked_analysis_in_child(self) -> None:
-        """
-        Run semgrep_analyze from within the child process.
-        """
-        # Like in the exec case, try to expand limits in the child.
-        setrlimits_preexec_fn()
-
-        # TYPE_CHECKING is always false at run time, but by doing this,
-        # mypy will know which module 'semgrep_bridge_python' refers to,
-        # and hence check the calls to it.
-        if TYPE_CHECKING:
-            import semgrep_bridge_python
-        else:
-            semgrep_bridge_python = SemgrepCore.get_bridge_module()
-
-        # Currently, we delay initializing the OCaml runtime until we
-        # are in the forked child.  Later, we may want to hoist this to
-        # the parent somewhere so multiple queries can be more
-        # efficiently performed in the context of a Snowflake UDF.
-        semgrep_bridge_python.startup()
-
-        # Invoke the semgrep_bridge_python module.
-        err = semgrep_bridge_python.semgrep_analyze(self._cmd, self._handle_read_file)
-
-        if err != None:
-            # Convey an error back to the parent.
-            print(err, file=sys.stderr)
-            sys.exit(2)
-
-        semgrep_bridge_python.shutdown()
-
-    async def _stream_fork_subprocess(self) -> int:
-        """
-        Run semgrep_bridge_python.so in a forked (but not exec'd) child
-        process, consuming its output asynchronously.
-
-        Return its exit code when it terminates.
-        """
-        process = await fork_subprocess.start_fork_subprocess(
-            lambda: self._run_forked_analysis_in_child(), limit=INPUT_BUFFER_LIMIT
-        )
-
-        await self._handle_process_outputs(process.stdout, process.stderr)
-
-        return process.wait()
-
     def execute(self) -> int:
         """
         Run semgrep-core and listen to stdout to update
@@ -445,9 +424,11 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            # align progress bar to output by indenting 2 spaces
+            # (the +1 space comes from column gap)
+            TextColumn(" "),
             BarColumn(),
-            MofNCompleteColumn(),
-            TextColumn("tasks"),
+            TaskProgressColumn(),
             TimeElapsedColumn(),
             console=console,
             disable=(
@@ -462,10 +443,7 @@ class StreamingSemgrepCore:
                 "", total=self._total, start=False
             )
 
-            if SemgrepCore.using_bridge_module():
-                rc = asyncio.run(self._stream_fork_subprocess())
-            else:
-                rc = asyncio.run(self._stream_exec_subprocess())
+        rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
@@ -644,7 +622,7 @@ class Plan:
         for origin, count in sorted(
             origin_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            origin_name = origin.replace("_", " ").title()
+            origin_name = origin.replace("_", " ").capitalize()
 
             table.add_row(origin_name, str(count))
 
@@ -652,14 +630,14 @@ class Plan:
 
     def table_by_sca_analysis(self) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Rule Type")
+        table.add_column("Analysis")
         table.add_column("Rules", justify="right")
 
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
-            "legacy": "Presence",
-            "malicious": "Presence",
-            "upgrade-only": "Presence",
+            "legacy": "Basic",
+            "malicious": "Basic",
+            "upgrade-only": "Basic",
         }
 
         sca_analysis_counts = collections.Counter(
@@ -741,6 +719,7 @@ class CoreRunner:
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
+        self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
@@ -1087,14 +1066,9 @@ class CoreRunner:
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(
-                # We expect to see 3 dots for each target, when running interfile analysis:
-                # - once when finishing phase 4, name resolution, on that target
-                # - once when finishing phase 5, taint configs, on that target
-                # - once when finishing analysis on that target as usual
-                cmd,
-                plan.num_targets * 3 if engine.is_interfile else plan.num_targets,
-            )
+            # Multiplied by three, because we have three places in Pro Engine to
+            # report progress, versus one for OSS Engine.
+            runner = StreamingSemgrepCore(cmd, plan.num_targets * 3, engine)
             runner.vfs_map = vfs_map
             returncode = runner.execute()
 
@@ -1262,7 +1236,8 @@ Exception raised: `{e}`
                 *configs,
             ]
 
-            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
+            # only scanning combined rules
+            runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
             returncode = runner.execute()
 
             # Process output

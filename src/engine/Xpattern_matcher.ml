@@ -28,7 +28,7 @@ module G = AST_generic
 (*****************************************************************************)
 
 (* This type and matches_of_matcher() below factorize code between
- * the regexp, spacegrep, and now comby matchers.
+ * the regexp and spacegrep.
  *)
 type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
@@ -45,7 +45,7 @@ type ('target_content, 'xpattern) t = {
  * expect a different location if the end part is on a different line
  * (e.g., the semgrep Python wrapper), so I now return a pair.
  *)
-and match_range = PI.token_location * PI.token_location
+and match_range = Tok.location * Tok.location
 
 (*****************************************************************************)
 (* Helpers *)
@@ -53,7 +53,7 @@ and match_range = PI.token_location * PI.token_location
 
 (* todo: same, we should not need that *)
 let info_of_token_location loc =
-  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
+  { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo }
 
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
@@ -72,7 +72,7 @@ let (matches_of_matcher :
         let res, match_time =
           Common.with_time (fun () ->
               xpatterns
-              |> Common.map (fun (xpat, id, pstr) ->
+              |> List.concat_map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
                      |> Common.map (fun ((loc1, loc2), env) ->
@@ -86,8 +86,7 @@ let (matches_of_matcher :
                               taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
                               engine_kind = OSS;
-                            }))
-              |> List.flatten)
+                            })))
         in
         RP.make_match_result res Report.ErrorSet.empty
           { RP.parse_time; match_time }
@@ -97,8 +96,7 @@ let hmemo = Hashtbl.create 101
 
 let line_col_of_charpos file charpos =
   let conv =
-    Common.memoized hmemo file (fun () ->
-        Parsing_helpers.full_charpos_to_pos_large file)
+    Common.memoized hmemo file (fun () -> Tok.full_charpos_to_pos_large file)
   in
   conv charpos
 

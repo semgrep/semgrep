@@ -9,7 +9,7 @@ from typing import List
 from typing import Optional
 
 from semdep.external.parsy import regex
-from semdep.external.parsy import string
+from semdep.parsers import preprocessors
 from semdep.parsers.poetry import key_value
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import pair
@@ -25,7 +25,7 @@ logger = getLogger(__name__)
 
 
 manifest_block = pair(
-    regex(r"\[(.*)\]\n", flags=0, group=1), key_value.sep_by(string("\n"))
+    regex(r"\[(.*)\]\n+", flags=0, group=1), key_value.sep_by(regex(r"\n+"))
 )
 
 manifest = (
@@ -34,9 +34,9 @@ manifest = (
         if block[0] not in ["packages", "dev-packages"]
         else {x[0] for x in block[1]}
     )
-    .sep_by(string("\n").at_least(1))
+    .sep_by(regex(r"\n+").at_least(1))
     .map(lambda sets: {x for s in sets if s for x in s})
-    << string("\n").optional()
+    << regex(r"\n+").optional()
 )
 
 
@@ -48,7 +48,16 @@ def parse_pipfile(
         return []
 
     deps = lockfile_json_opt.as_dict()["default"].as_dict()
-    manifest_deps = safe_path_parse(manifest_path, manifest)
+    manifest_deps = safe_path_parse(
+        manifest_path, manifest, preprocess=preprocessors.CommentRemover()
+    )
+
+    # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
+    sanitized_manifest_deps = (
+        {dep.lower().replace("-", "_") for dep in manifest_deps}
+        if manifest_deps
+        else manifest_deps
+    )
 
     def extract_pipfile_hashes(
         hashes: List[str],
@@ -82,7 +91,9 @@ def parse_pipfile(
                 )
                 if "hashes" in fields
                 else {},
-                transitivity=transitivity(manifest_deps, [package]),
+                transitivity=transitivity(
+                    sanitized_manifest_deps, [package.lower().replace("-", "_")]
+                ),
                 line_number=dep_json.line_number,
             )
         )

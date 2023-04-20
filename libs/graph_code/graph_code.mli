@@ -4,7 +4,7 @@ and entity_name = string
 
 type nodeinfo = {
   (* the filename embedded inside token_location can be a readable path *)
-  pos : Parse_info.token_location;
+  pos : Tok.location;
   props : Entity_code.property list;
   typ : string option;
 }

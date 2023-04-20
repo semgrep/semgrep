@@ -241,7 +241,7 @@ let map_primitive_type_token (_env : env) (x : CST.anon_choice_u8_6dad923) =
       tok
 
 let map_primitive_type_ident (env : env) (x : CST.anon_choice_u8_6dad923) :
-    string * PI.token_mutable =
+    string * Tok.t =
   str env (map_primitive_type_token env x)
 
 let map_primitive_type (env : env) (x : CST.anon_choice_u8_6dad923) : G.type_ =
@@ -2806,9 +2806,8 @@ and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
       | _ -> dir)
   | None -> dir
 
-and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list)
-    (use : PI.token_mutable) (scope : G.dotted_ident option) : G.directive list
-    =
+and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list) (use : Tok.t)
+    (scope : G.dotted_ident option) : G.directive list =
   let _lbracket = token env v1 (* "{" *) in
   let directives =
     match v2 with
@@ -2944,7 +2943,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
   | `Asso_type v1 -> [ map_associated_type env v1 ]
   (* was moved in _statement instead of declaration_statement by ruin *)
   | `Let_decl (v1, v2, v3, v4, v5, v6) ->
-      let let_ = token env v1 (* "let" *) in
+      let _let_ = token env v1 (* "let" *) in
       let mutability =
         Option.map
           (fun tok ->
@@ -2976,8 +2975,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
       let ent =
         {
           (* Patterns are difficult to convert to expressions, so wrap it *)
-          G.name =
-            G.EDynamic (G.OtherExpr (("LetPat", let_), [ G.P pattern ]) |> G.e);
+          G.name = G.EPattern pattern;
           G.attrs;
           G.tparams = [];
         }

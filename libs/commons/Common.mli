@@ -4,7 +4,7 @@
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second Pervasive.ml (now called Stdlib.ml).
+ * This file acts like a second Stdlib.ml (used to be called Pervasives.ml).
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
@@ -138,9 +138,13 @@ val join : string (* sep *) -> string list -> string
 val split : string (* sep regexp *) -> string -> string list
 
 (*****************************************************************************)
-(* File path *)
+(* Real file paths - deprecated, use File.mli *)
 (*****************************************************************************)
-(* Deprecated? Should we start to use FPath.ml from dbunzli? *)
+(* Deprecated.
+
+   Migration in progress: File.ml reproduces the functions below and uses
+   Fpath.t instead of string to represent file/directory paths.
+*)
 
 (* Some signatures are arguably clearer when using 'filename' instead of
  * 'string' (see write_file below for an example).
@@ -159,7 +163,6 @@ type filename = string [@@deriving show, eq]
 
 (* TODO: those are not used very often, maybe we should delete them *)
 type dirname = string
-type path = string
 
 (* for realpath, see efuns_c library  *)
 (*
@@ -179,7 +182,7 @@ val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
 val follow_symlinks : bool ref
 
 (*****************************************************************************)
-(* IO *)
+(* IO - deprecated, use File.mli *)
 (*****************************************************************************)
 
 (* Inputs a line of text in a platform-agnostic way. Should be preferred over
@@ -232,6 +235,7 @@ val erase_this_temp_file : filename -> unit
 (*****************************************************************************)
 (* Subprocess *)
 (*****************************************************************************)
+(* Deprecated? Use Bos instead? *)
 
 (* This allows to capture the output of an external command.
  * It is more convenient to use than Unix.open_process_in.
@@ -259,6 +263,42 @@ val null : 'a list -> bool
 
 val map : ('a -> 'b) -> 'a list -> 'b list
 (** Same as [List.map] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
+(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the
+   first element of a list or
+   fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
+   the exception 'Failure msg' which is only a slight improvement over
+   'Common.hd_exn "unexpected empty list"'.
+
+   In general, you should prefer a match-with and not have to call a
+   function to extract the first element of a list.
+
+   Usage: Common.hd_exn "found an empty list of things" xs
+
+   If receiving an empty list is a bug, prefer the following:
+
+     match xs with
+     | [] -> assert false
+     | xs -> ...
+*)
+val hd_exn : string -> 'a list -> 'a
+
+(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great
+   improvement. The same recommendations as for 'Common.hd_exn "unexpected
+   empty list"' apply. *)
+val tl_exn : string -> 'a list -> 'a list
+
+val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
+(** Same as [List.map2] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
+val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
+(** Same as [List.mapi] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from
     left to right like for [List.iter].
 *)
@@ -349,6 +389,7 @@ val optlist_to_list : 'a list option -> 'a list
  * (see https://v2.ocaml.org/manual/bindingops.html)
  * 'let*' is one such binding operator and an alias to Option.bind.
  * [bind o f] is [f v] if [o] is [Some v] and [None] if [o] is [None].
+ *
  * Here is an example of use:
  *  let* x1 = xs |> List.find_opt (fun x -> x > 1) in
  *  let* x2 = xs |> List.find_opt (fun x -> x > 2) in
@@ -407,7 +448,7 @@ val cache_computation :
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
-(* see also the profiling library and ppx_profiling [@@profiling] annot *)
+(* See also the profiling library and profiling.ppx [@@profiling] annot *)
 
 (*
    Measure how long it takes for a function to run, returning the result

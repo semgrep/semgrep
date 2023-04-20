@@ -301,10 +301,10 @@ def test_ls_full(
     monkeypatch.chdir(root)
 
     if logged_in:
-        mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value="1")
         mocker.patch("semgrep.app.auth.get_token", return_value="token")
     else:
-        mocker.patch("semgrep.app.auth.is_valid_token", return_value=False)
+        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
 
     server, responses = run_semgrep_ls
 
@@ -459,7 +459,7 @@ def test_ls_full(
             assert "eqeq-five" not in ids
 
     # logout
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=False)
+    mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
     send_semgrep_logout(server)
 
     # Logged out succesfully

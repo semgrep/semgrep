@@ -102,20 +102,33 @@ type stable_id = path [@@deriving show]
 (* Directives *)
 (*****************************************************************************)
 
-type import_selector = ident_or_wildcard * alias option
-and alias = tok (* => *) * ident_or_wildcard [@@deriving show]
+type import_path_elem =
+  | ImportId of ident
+  | ImportThis of tok
+  | ImportSuper of tok
+[@@deriving show]
+
+type import_path = import_path_elem list [@@deriving show]
+
+type named_selector = import_path_elem * ident_or_wildcard option
+and wildcard_selector = (ident, tok * type_ option) either
+
+and import_selector =
+  | NamedSelector of named_selector
+  | WildCardSelector of wildcard_selector
 
 (* semgrep-ext: we allow single identifiers here so we can support import $X *)
-type import_expr = (ident, stable_id * import_spec) either
+and import_expr =
+  | ImportExprSpec of import_path * import_spec
+  | ImportExprMvar of ident
 
 and import_spec =
-  | ImportId of ident
-  | ImportWildcard of tok (* '_' *)
+  | ImportNamed of named_selector
+  | ImportWildcard of wildcard_selector
   | ImportSelectors of import_selector list bracket
-[@@deriving show { with_path = false }]
 
-type import = tok (* 'import' *) * import_expr list [@@deriving show]
-type package = tok (* 'package' *) * qualified_ident [@@deriving show]
+and import = tok (* 'import' *) * import_expr list
+and package = tok (* 'package' *) * qualified_ident
 
 (*****************************************************************************)
 (* Start of big recursive type *)
@@ -133,7 +146,7 @@ type package = tok (* 'package' *) * qualified_ident [@@deriving show]
 (* todo: interpolated strings? can be a literal pattern too?
  * scala3: called simple_literal
  *)
-type literal =
+and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
@@ -170,6 +183,7 @@ and type_ =
   | TyByName of tok (* => *) * type_
   | TyAnnotated of type_ * annotation list (* at least one *)
   | TyRefined of type_ option * refinement
+  | TyMatch of type_ * tok (* match *) * type_case_clauses
   | TyExistential of type_ * tok (* 'forSome' *) * refinement
   | TyWith of type_ * tok (* 'with' *) * type_
   | TyWildcard of tok (* '_' *) * type_bounds
@@ -210,6 +224,7 @@ and pattern =
   (* less: only last element of a pattern list? *)
   | PatUnderscoreStar of tok (* '_' *) * tok (* '*' *)
   | PatDisj of pattern * tok (* | *) * pattern
+  | PatQuoted of quoted
   (* semgrep-ext: *)
   | PatEllipsis of tok
 
@@ -243,6 +258,7 @@ and expr =
   | Match of expr * tok (* 'match' *) * case_clauses bracket
   | Lambda of function_definition
   | New of tok * template_definition
+  | Quoted of quoted
   | BlockExpr of block_expr
   | S of stmt
   (* semgrep-ext: *)
@@ -253,31 +269,38 @@ and expr =
 (* only Name, or DotAccess, or Apply! (e.g., for ArrAccess) *)
 and lhs = expr
 
+(* represents: ParArgumentExprs, ArgumentExprs *)
 and arguments =
   | Args of argument list bracket
+  | ArgUsing of argument list bracket
   (* Ruby-style last argument used as a block (nice when defining your
    * own control structure) *)
   | ArgBlock of block_expr
 (* less: no keyword argument in Scala? *)
 
 and argument = expr
-and case_clauses = case_clause list
+and case_clauses = (pattern, block) case_clause list
+and type_case_clauses = (((* _ *) tok, type_) either, type_) case_clause list
 
-and case_clause =
-  | CC of case_clause_classic
+and ('a, 'b) case_clause =
+  | CC of ('a, 'b) case_clause_classic
   (* semgrep-ext: *)
   | CaseEllipsis of tok
 
-and case_clause_classic = {
+and ('a, 'b) case_clause_classic = {
   casetoks : tok (* 'case' *) * tok (* '=>' *);
-  casepat : pattern;
+  case_left : 'a;
   caseguard : guard option;
-  casebody : block;
+  case_right : 'b;
 }
 
 and guard = tok (* 'if' *) * expr
 and block_expr = block_expr_kind bracket
 and block_expr_kind = BEBlock of block | BECases of case_clauses
+
+and quoted =
+  | QuotedBlock of tok * block bracket
+  | QuotedType of tok * type_ bracket
 
 (*****************************************************************************)
 (* Statements *)
@@ -331,6 +354,7 @@ and block = block_stat list
 and block_stat =
   | D of definition
   | I of import
+  | Ex of import
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -361,6 +385,9 @@ and modifier_kind =
   | Protected of ident_or_this bracket option
   (* misc (and nice!) *)
   | Override
+  | Inline
+  | Open
+  | Opaque
   (* pad: not in original spec *)
   | CaseClassOrObject
   (* less: rewrite as Packaging and object def like in original code? *)
@@ -368,6 +395,7 @@ and modifier_kind =
   (* just for variables/fields/class params *)
   | Val (* immutable *)
   | Var (* mutable *)
+  | EnumClass (* for enum classes *)
 
 and annotation = tok (* @ *) * type_ (* usually just a TyName*) * arguments list
 and attribute = A of annotation | M of modifier
@@ -402,6 +430,8 @@ and type_parameters = type_parameter list bracket option
 (* definition or declaration (def or dcl) *)
 and definition =
   | DefEnt of entity * definition_kind
+  | EnumCaseDef of attribute list * enum_case_definition
+  | GivenDef of given_definition
   (* note that some VarDefs are really disgused FuncDef when
    * the vbody is a BECases
    *)
@@ -438,6 +468,22 @@ and definition_kind =
   | Template of template_definition
 
 (* ------------------------------------------------------------------------- *)
+(* Enums *)
+(* ------------------------------------------------------------------------- *)
+and enum_case_definition = EnumConstr of enum_constr | EnumIds of ident list
+
+and enum_constr = {
+  eid : ident;
+  etyparams : type_parameters;
+  eparams : bindings list;
+  eattrs : attribute list;
+  eextends : constr_app list;
+}
+
+(* annotations built into type *)
+and constr_app = type_ * arguments list
+
+(* ------------------------------------------------------------------------- *)
 (* Functions/Methods *)
 (* ------------------------------------------------------------------------- *)
 and function_definition = {
@@ -461,10 +507,11 @@ and fbody =
   | FExpr of tok (* = (or => for lambdas) *) * expr
 
 (* fake brackets for single param in short lambdas *)
-and bindings = binding list bracket
+and bindings = (binding list * tok option (* using *)) bracket
 
 and binding =
   | ParamClassic of parameter_classic
+  | ParamType of type_
   (* semgrep-ext: *)
   | ParamEllipsis of tok
 
@@ -510,7 +557,30 @@ and template_body = (self_type option * block) bracket
 and self_type = ident_or_this * type_ option * tok (* '=>' *)
 
 (* Case classes/objects are handled via attributes in the entity *)
-and template_kind = Class | Trait | Object | Singleton (* via new *)
+and template_kind =
+  | Class
+  | Trait
+  | Object
+  | Singleton
+  (* via new *)
+  | Enum
+
+(* ------------------------------------------------------------------------- *)
+(* Given definitions *)
+(* ------------------------------------------------------------------------- *)
+and given_sig = {
+  g_id : ident option;
+  g_tparams : type_parameters;
+  g_using : bindings list;
+  g_colon : tok;
+}
+
+and given_kind =
+  | GivenStructural of constr_app list * template_body option
+  (* combination of both alias instance and abstract instance *)
+  | GivenType of type_ * expr option
+
+and given_definition = { gsig : given_sig option; gkind : given_kind }
 
 (* ------------------------------------------------------------------------- *)
 (* Typedef *)

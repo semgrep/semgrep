@@ -62,9 +62,7 @@ let fresh acc =
   (seen_lhs acc (LId id), LId id)
 
 let fresh_global pos =
-  let name =
-    sprintf "$__druby_global_%d_%d" (Parse_info.line_of_info pos) (uniq ())
-  in
+  let name = sprintf "$__druby_global_%d_%d" (Tok.line_of_tok pos) (uniq ()) in
   Var (Global, name)
 
 let formal_counter = ref 0
@@ -232,7 +230,7 @@ let special_of_string pos x : expr =
   | "true" -> EId True
   | "false" -> EId False
   | "__FILE__" -> ELit (String (Parse_info.file_of_info pos))
-  | "__LINE__" -> ELit (Num (spf "%d" (Parse_info.line_of_info pos)))
+  | "__LINE__" -> ELit (Num (spf "%d" (Tok.line_of_tok pos)))
   | _ -> raise (Invalid_argument "special_of_string")
 
 let refactor_id_kind _pos : Ast.id_kind -> var_kind = function

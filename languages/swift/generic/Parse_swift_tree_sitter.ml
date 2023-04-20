@@ -1457,7 +1457,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
        * something similar.
        * *)
       if str = "...>" then G.DeepEllipsis (l, e, r) |> G.e
-      else raise (PI.Parsing_error r)
+      else raise (Parsing_error.Syntax_error r)
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =
@@ -3040,7 +3040,7 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
         | `User_type x -> map_user_type env x
       in
       let v2 = map_constructor_suffix env v2 in
-      G.New (G.fake "new", v1, v2) |> G.e
+      G.New (G.fake "new", v1, G.empty_id_info (), v2) |> G.e
   | `Navi_exp x -> map_navigation_expression env x
   | `Prefix_exp (v1, v2) ->
       let e = map_expression env v2 in

@@ -13,6 +13,7 @@
  *
  *)
 open Common
+open File.Operators
 module Flag = Flag_parsing
 module PI = Parse_info
 module PS = Parsing_stat
@@ -59,7 +60,7 @@ let commentized xs =
                  match s with
                  | s when s =~ "KERN_.*" -> None
                  | s when s =~ "__.*" -> None
-                 | _ -> Some ii.PI.token)
+                 | _ -> Some ii.Tok.token)
              | Token_cpp.CppDirective
              | Token_cpp.CppAttr
              | Token_cpp.CppMacro ->
@@ -68,8 +69,8 @@ let commentized xs =
              | Token_cpp.CppPassingNormal
              | Token_cpp.CppPassingCosWouldGetError ->
                  raise Todo
-           else Some ii.PI.token
-       | T.TAny_Action ii -> Some ii.PI.token
+           else Some ii.Tok.token
+       | T.TAny_Action ii -> Some ii.Tok.token
        | _ -> None)
 
 let count_lines_commentized xs =
@@ -77,9 +78,9 @@ let count_lines_commentized xs =
   let count = ref 0 in
   commentized xs
   |> List.iter (function
-       | PI.OriginTok pinfo
-       | PI.ExpandedTok (_, pinfo, _) ->
-           let newline = pinfo.PI.line in
+       | Tok.OriginTok pinfo
+       | Tok.ExpandedTok (_, pinfo, _) ->
+           let newline = pinfo.Tok.pos.line in
            if newline <> !line then (
              line := newline;
              incr count)
@@ -150,7 +151,7 @@ and multi_grouped_list_comma xs =
  *)
 let parse_fuzzy file =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      let toks_orig = tokens (Parsing_helpers.file file) in
+      let toks_orig = tokens (Parsing_helpers.file !!file) in
       let toks =
         toks_orig
         |> Common.exclude (fun x ->
@@ -175,7 +176,7 @@ let parse_fuzzy file =
 let extract_macros file =
   Common.save_excursion Flag.verbose_lexing false (fun () ->
       let toks =
-        tokens (* todo: ~profile:false *) (Parsing_helpers.file file)
+        tokens (* todo: ~profile:false *) (Parsing_helpers.file !!file)
       in
       let toks = Parsing_hacks_define.fix_tokens_define toks in
       Pp_token.extract_macros toks)
@@ -193,9 +194,9 @@ let (_defs : (string, Pp_token.define_body) Hashtbl.t) = Hashtbl.create 101
  * can call add_defs to add local macro definitions.
  *)
 let add_defs file =
-  if not (Sys.file_exists file) then
-    failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" file);
-  logger#info "Using %s macro file" file;
+  if not (Sys.file_exists !!file) then
+    failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" !!file);
+  logger#info "Using %s macro file" !!file;
   let xs = extract_macros file in
   xs |> List.iter (fun (k, v) -> Hashtbl.add _defs k v)
 
@@ -263,13 +264,13 @@ let passed_a_define tr =
  *)
 let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     (Ast.program, T.token) Parsing_result.t =
-  let stat = Parsing_stat.default_stat file in
-  let filelines = Common2.cat_array file in
+  let stat = Parsing_stat.default_stat !!file in
+  let filelines = Common2.cat_array !!file in
 
   (* -------------------------------------------------- *)
   (* call lexer and get all the tokens *)
   (* -------------------------------------------------- *)
-  let toks_orig = tokens (Parsing_helpers.file file) in
+  let toks_orig = tokens (Parsing_helpers.file !!file) in
 
   let toks =
     try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
@@ -291,7 +292,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
      * It would be better to record when we have a } or ; in parser.mly,
      *  cos we know that they are the last symbols of external_declaration2.
      *)
-    let checkpoint = PI.line_of_info info in
+    let checkpoint = Tok.line_of_tok info in
     (* bugfix: may not be equal to 'file' as after macro expansions we can
      * start to parse a new entity from the body of a macro, for instance
      * when parsing a define_machine() body, cf standard.h
@@ -315,7 +316,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.PI.rest <- save1; tr.PI.current <- save2; tr.PI.passed <- save3;
           (try
              Parser_cpp2.toplevel (lexer_function tr) lexbuf_fake
-             |> List.hd |> fst
+             |> Common.hd_exn "unexpected empty list" |> fst
            with Failure "hd" ->
              logger#error "no elements";
              raise Parsing.Parse_error
@@ -334,7 +335,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           let e = Exception.catch exn in
           if not !Flag.error_recovery then
             raise
-              (Parse_info.Parsing_error
+              (Parsing_error.Syntax_error
                  (TH.info_of_tok tr.Parsing_helpers.current));
 
           (if !Flag.show_parsing_error then
@@ -347,7 +348,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
            | Parser_cpp.Error ->
                pr2
                  ("parse error \n = " ^ error_msg_tok tr.Parsing_helpers.current)
-           | Parse_info.Other_error (s, _i) ->
+           | Parsing_error.Other_error (s, _i) ->
                pr2
                  ("semantic error " ^ s ^ "\n ="
                  ^ error_msg_tok tr.Parsing_helpers.current)
@@ -374,18 +375,19 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           tr.Parsing_helpers.rest <- rest';
           tr.Parsing_helpers.passed <- passed';
 
-          tr.Parsing_helpers.current <- List.hd passed';
+          tr.Parsing_helpers.current <-
+            Common.hd_exn "can't be happening" passed';
 
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in
-          let checkpoint2 = PI.line_of_info info in
+          let checkpoint2 = Tok.line_of_tok info in
           let checkpoint2_file = PI.file_of_info info in
 
           was_define := passed_a_define tr;
           if !was_define && !Flag_cpp.filter_define_error then ()
           else if
             (* bugfix: *)
-            checkpoint_file = checkpoint2_file && checkpoint_file = file
+            checkpoint_file = checkpoint2_file && checkpoint_file = !!file
           then
             Parsing_helpers.print_bad line_error (checkpoint, checkpoint2)
               filelines
@@ -400,11 +402,11 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
 
     (* again not sure if checkpoint2 corresponds to end of bad region *)
     let info = TH.info_of_tok tr.Parsing_helpers.current in
-    let checkpoint2 = PI.line_of_info info in
+    let checkpoint2 = Tok.line_of_tok info in
     let checkpoint2_file = PI.file_of_info info in
 
     let diffline =
-      if checkpoint_file = checkpoint2_file && checkpoint_file = file then
+      if checkpoint_file = checkpoint2_file && checkpoint_file = !!file then
         checkpoint2 - checkpoint
       else 0
       (* TODO? so if error come in middle of something ? where the
@@ -443,17 +445,17 @@ let parse2 file : (Ast.program, T.token) Parsing_result.t =
       try parse_with_lang ~lang:Flag_cpp.C file with
       | _exn -> parse_with_lang ~lang:Flag_cpp.Cplusplus file)
   | FT.PL (FT.Cplusplus _) -> parse_with_lang ~lang:Flag_cpp.Cplusplus file
-  | _ -> failwith (spf "not a C/C++ file: %s" file)
+  | _ -> failwith (spf "not a C/C++ file: %s" !!file)
 
 let parse file : (Ast.program, T.token) Parsing_result.t =
   Profiling.profile_code "Parse_cpp.parse" (fun () ->
       try parse2 file with
       | Stack_overflow ->
-          logger#error "PB stack overflow in %s" file;
+          logger#error "PB stack overflow in %s" !!file;
           {
             Parsing_result.ast = [];
             tokens = [];
-            stat = { (PS.bad_stat file) with PS.have_timeout = true };
+            stat = { (PS.bad_stat !!file) with PS.have_timeout = true };
           })
 
 let parse_program file =
@@ -517,7 +519,7 @@ let parse_with_dypgen file =
   *)
   try
     Parser_cpp2.main (lexer_function tr) lexbuf_fake
-    |> List.hd |> fst
+    |> Common.hd_exn "unexpected empty list" |> fst
   with Dyp.Syntax_error ->
     raise (Parse_info.Parsing_error (TH.info_of_tok tr.PI.current))
 *)

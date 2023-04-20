@@ -228,8 +228,104 @@ let rec fast_map rec_calls_remaining f l =
 let map f l = fast_map 1000 f l
 
 (*****************************************************************************)
+(* List.map2 *)
+(*****************************************************************************)
+
+let rec slow_map2 acc f l1 l2 =
+  match (l1, l2) with
+  | [], [] -> rev5 acc
+  | [ a1 ], [ a2 ] -> rev5 (Elt (f a1 a2, acc))
+  | [ a1; b1 ], [ a2; b2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      rev5 (Elt (b, Elt (a, acc)))
+  | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      rev5 (Elt (c, Elt (b, Elt (a, acc))))
+  | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      let d = f d1 d2 in
+      rev5 (Elt (d, Elt (c, Elt (b, Elt (a, acc)))))
+  | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      let d = f d1 d2 in
+      let e = f e1 e2 in
+      rev5 (Elt (e, Elt (d, Elt (c, Elt (b, Elt (a, acc))))))
+  | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      let d = f d1 d2 in
+      let e = f e1 e2 in
+      slow_map2 (Tuple (e, d, c, b, a, acc)) f l1 l2
+  | _other -> raise (Failure "Common.map2: lists not equal length")
+
+let rec fast_map2 rec_calls_remaining f l1 l2 =
+  if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
+  else
+    match (l1, l2) with
+    | [], [] -> []
+    | [ a1 ], [ a2 ] -> [ f a1 a2 ]
+    | [ a1; b1 ], [ a2; b2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        [ a; b ]
+    | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        [ a; b; c ]
+    | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        [ a; b; c; d ]
+    | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        let e = f e1 e2 in
+        [ a; b; c; d; e ]
+    | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        let e = f e1 e2 in
+        a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
+    | _other -> raise (Failure "Common.map2: lists not equal length")
+
+(*
+   This implementation of List.map makes at most 1000 non-tailrec calls
+   before switching to a slower tailrec implementation.
+
+   Additionally, this implementation guarantees left-to-right evaluation.
+*)
+let map2 f l1 l2 = fast_map2 1000 f l1 l2
+
+(*****************************************************************************)
 (* Other list functions *)
 (*****************************************************************************)
+
+let hd_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | head :: _ -> head
+
+let tl_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | _ :: tail -> tail
+
+let mapi f l = map2 f (List.init (List.length l) Fun.id) l
 
 (* Tail-recursive to prevent stack overflows. *)
 let flatten xss =
@@ -663,14 +759,7 @@ let null_string s = s = ""
 type filename = string (* TODO could check that exist :) type sux *)
 [@@deriving show, eq]
 
-(* with sexp *)
 type dirname = string
-
-(* TODO could check that exist :) type sux *)
-(* with sexp *)
-
-(* file or dir *)
-type path = string
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s

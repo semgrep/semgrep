@@ -86,7 +86,7 @@ let token ?(d = "TODO") tok =
   (* this exn can trigger now only for Parse_info.Ab (abstracted token),
    * which should never happen. We don't use Parse_info.Ab anymore.
    *)
-  | Parse_info.NoTokenLocation _ -> d
+  | Tok.NoTokenLocation _ -> d
 
 type lang_kind = CLikeSemiColon | Other
 
@@ -556,7 +556,7 @@ and expr env e =
   | N (IdQualified qualified_info) -> id_qualified env qualified_info
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
-  | New (_, t, es) -> new_call env (t, es)
+  | New (_, t, _, es) -> new_call env (t, es)
   | L x -> literal env x
   | Container (Tuple, (_, es, _)) -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, (_, e2, _)) ->

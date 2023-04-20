@@ -106,8 +106,8 @@ let facts_of_function lang def =
 (* Entry point *)
 (*****************************************************************************)
 let gen_facts file outdir =
-  let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
+  let lang = Lang.lang_of_filename_exn (Fpath.v file) in
   Naming_AST.resolve lang ast;
 
   (* less: use treesitter also later
@@ -116,14 +116,14 @@ let gen_facts file outdir =
   let facts = ref [] in
 
   let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def -> Common.push (facts_of_function lang def) facts);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info
+
+      method! visit_function_definition _env def =
+        Common.push (facts_of_function lang def) facts
+    end
   in
-  v (G.Pr ast);
+  v#visit_program () ast;
 
   let facts = !facts |> List.rev |> List.flatten in
   pr2 (spf "generating %d facts in %s" (List.length facts) outdir);

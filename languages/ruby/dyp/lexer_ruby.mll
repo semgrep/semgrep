@@ -54,7 +54,7 @@ let str = Lexing.lexeme
 (* TODO: rename tok *)
 let tk = PI.tokinfo
 (* later: use T_UNKNOWN and this function *)
-let _error = PI.lexical_error
+let _error = Parsing_error.lexical_error
 let add_to_tok lexbuf t =
   PI.tok_add_s (str lexbuf) t
 

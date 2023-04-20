@@ -1,4 +1,4 @@
-(* Pad's extensions to Arg for actions. See pfff's Main.ml for
+(* Arg wrappers and small extension to Arg for "actions". See pfff's Main.ml for
  * an example of use.
  *
  * DEPRECATED: this module is deprecated, you should use the
@@ -16,7 +16,6 @@ type cmdline_sections = options_with_title list
 val parse_options :
   cmdline_options -> Arg.usage_msg -> string array -> string list
 
-(* Another wrapper that does Arg.align automatically *)
 (* Another wrapper that does Arg.align automatically *)
 val usage : Arg.usage_msg -> cmdline_options -> unit
 
@@ -42,7 +41,7 @@ val arg_parse2 :
   (unit -> unit) ->
   (* short_usage func *) string list
 
-(* The action lib. Useful to debug supart of your system. cf some of
+(* The action lib. Useful to debug subpart of your system. See some of
  * my Main.ml for example of use. *)
 type flag_spec = Arg.key * Arg.spec * Arg.doc
 
@@ -68,3 +67,12 @@ val options_of_actions :
 
 val do_action : Arg.key -> string list (* args *) -> cmdline_actions -> unit
 val action_list : cmdline_actions -> Arg.key list
+
+(*
+   Wrappers around mk_action_1_arg and mk_action_n_arg
+   that can handle the conversion from string to Fpath.t or some other type:
+
+     mk_action_1_conv Fpath.v do_something_with_the_file
+*)
+val mk_action_1_conv : (string -> 'a) -> ('a -> unit) -> action_func
+val mk_action_n_conv : (string -> 'a) -> ('a list -> unit) -> action_func

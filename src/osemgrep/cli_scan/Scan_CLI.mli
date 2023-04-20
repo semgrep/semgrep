@@ -27,11 +27,13 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;
+  max_chars_per_line : int;
+  max_lines_per_finding : int;
   time_flag : bool;
   profile : bool;
   rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.config;
+  metrics : Metrics_.config;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -39,6 +41,7 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
+  nosem : bool;
 }
 [@@deriving show]
 

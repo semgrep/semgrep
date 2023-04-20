@@ -33,7 +33,7 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   let fk = Parse_info.unsafe_fake_info "" in
   let xlang = Xlang.L (lang, []) in
   let pattern = Parse_pattern.parse_pattern lang pattern_string in
-  let xpat = Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) in
+  let xpat = Xpattern.mk_xpat (Xpattern.Sem (lazy pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
   let rule = { rule with id = ("print", fk) } in
@@ -47,14 +47,17 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
     }
   in
   let match_of_file file =
-    let range_loc =
-      ( { Parse_info.str = ""; charpos = 0; line = 1; column = 0; file },
+    let range_loc : Tok.location * Tok.location =
+      ( { str = ""; pos = { charpos = 0; line = 1; column = 0; file } },
         {
-          Parse_info.str = "";
-          charpos = String.length "print(\"hello world\")";
-          line = 1;
-          column = 0;
-          file;
+          str = "";
+          pos =
+            {
+              charpos = String.length "print(\"hello world\")";
+              line = 1;
+              column = 0;
+              file;
+            };
         } )
     in
     {

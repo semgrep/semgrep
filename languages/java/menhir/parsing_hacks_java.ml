@@ -55,7 +55,10 @@ let fix_tokens_generics xs =
     let depth_angle = env in
     if depth_angle < 0 then (
       logger#error "depth_angle < 0, %d" depth_angle;
-      logger#error "%s" (Dumper.dump (List.hd xs));
+      logger#error "%s"
+        (match xs with
+        | x :: _ -> Dumper.dump x
+        | [] -> "<can't get info from empty list>");
       (* alt: failwith "depth < 0" *)
       aux 0 xs)
     else
@@ -245,7 +248,7 @@ let fix_tokens_fuzzy toks =
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if !Flag.error_recovery then toks
-      else raise (Parse_info.Lexical_error (msg, info))
+      else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* Entry point *)

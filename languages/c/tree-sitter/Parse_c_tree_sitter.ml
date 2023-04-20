@@ -1283,8 +1283,12 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
       let xs = v1 @ v2 in
       let s = xs |> Common.map fst |> String.concat " " in
       let ys = xs |> Common.map snd in
-      (* repeat1 in grammar.js so List.hd is safe *)
-      let tk = PI.combine_infos (List.hd ys) (List.tl ys) in
+      (* repeat1 in grammar.js so Common.hd_exn "unexpected empty list" is safe *)
+      let tk =
+        PI.combine_infos
+          (Common.hd_exn "impossible!!!" ys)
+          (Common.tl_exn "unexpected empty list" ys)
+      in
       TBase (s, tk)
   | `Prim_type tok ->
       let t = str env tok (* primitive_type *) in

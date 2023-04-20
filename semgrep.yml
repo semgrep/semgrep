@@ -87,6 +87,24 @@ rules:
       exclude:
         - SPcre.ml
 
+  - id: no-list-map2
+    pattern: List.map2
+    message: >-
+      `List.map2` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.map2` instead.
+    fix: Common.map2
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: no-list-map
     pattern: List.map
     message: >-
@@ -105,12 +123,52 @@ rules:
         - graph_code/*
         - lib_parsing/*
 
+  - id: no-list-filter-map
+    pattern: List.filter_map
+    message: >-
+      `List.filter_map` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.map_filter` instead.
+    fix: Common.map_filter
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
+  - id: no-list-mapi
+    pattern: List.mapi
+    message: >-
+      `List.mapi` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.mapi` instead.
+    fix: Common.mapi
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: use-concat-map
     pattern-either:
       - pattern: List.map ... |> List.flatten
       - pattern: Common.map ... |> List.flatten
       - pattern: List.map ... |> List.concat
       - pattern: Common.map ... |> List.concat
+      - pattern: ... |> List.map ... |> List.flatten
+      - pattern: ... |> Common.map ... |> List.flatten
+      - pattern: ... |> List.map ... |> List.concat
+      - pattern: ... |> Common.map ... |> List.concat
       - pattern: List.flatten ( List.map ... )
       - pattern: List.flatten ( Common.map ... )
       - pattern: List.concat ( List.map ... )
@@ -278,3 +336,32 @@ rules:
         - changelog.d/*.changed
         - changelog.d/*.fixed
         - changelog.d/*.infra
+  - id: pass-console-to-rich-progress
+    patterns:
+      - pattern: rich.progress.track(...)
+      - pattern-not: rich.progress.track(..., console=semgrep.console.console)
+    message: >-
+      You need to pass our custom console to rich progress bars
+      so that it progress to the correct output stream (usually stderr).
+    languages: [python]
+    severity: ERROR
+
+  - id: list-hd
+    pattern: List.hd
+    message: >-
+      Don't use 'List.hd' because it raises an unhelpful exception if its
+      argument is an empty list. Prefer a match-with, possibly combined with
+      'assert false' e.g. 'match xs with [] -> assert false | x :: _ -> ...'.
+    fix: Common.hd_exn "unexpected empty list"
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: list-tl
+    pattern: List.tl
+    message: >-
+      Don't use 'List.tl' because it raises an unhelpful exception if its
+      argument is an empty list. Prefer a match-with, possibly combined with
+      'assert false' e.g. 'match xs with [] -> assert false | _ :: xs -> ...'.
+    fix: Common.tl_exn "unexpected empty list"
+    languages: [ocaml]
+    severity: WARNING

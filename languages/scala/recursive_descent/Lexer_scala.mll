@@ -43,7 +43,7 @@ module Flag = Flag_parsing
 (* shortcuts *)
 let tok = Lexing.lexeme
 let tokinfo = Parse_info.tokinfo
-let error = Parse_info.lexical_error
+let error = Parsing_error.lexical_error
 
 (* ---------------------------------------------------------------------- *)
 (* Lexer State *)
@@ -69,12 +69,12 @@ let reset () =
   ()
 
 let rec current_mode () =
-  try
-    Common2.top !_mode_stack
-  with Failure("hd") ->
-    pr2("mode_stack is empty, defaulting to INITIAL");
-    reset();
-    current_mode ()
+  match !_mode_stack with
+  | top :: _ -> top
+  | [] ->
+      pr2("mode_stack is empty, defaulting to INITIAL");
+      reset();
+      current_mode ()
 
 let push_mode mode = Common.push mode _mode_stack
 let pop_mode () = ignore(Common2.pop2 _mode_stack)
@@ -344,6 +344,9 @@ rule token = parse
        let (tcolon, trest) = PI.split_info_at_pos 1 t in
        Flag_parsing.sgrep_guard (SymbolLiteral(tcolon, ("...", trest)))
      }
+  | "'" {
+    QUOTE (tokinfo lexbuf)
+  }
 
   (* ----------------------------------------------------------------------- *)
   (* Keywords and ident *)
@@ -378,7 +381,8 @@ rule token = parse
 
         | "class"      -> Kclass t
         | "trait"      -> Ktrait t
-        | "object"      -> Kobject t
+        | "object"     -> Kobject t
+        | "enum"       -> Kenum t
         | "new"      -> Knew t
         | "super" -> Ksuper t
         | "this" -> Kthis t
@@ -392,6 +396,7 @@ rule token = parse
 
         | "package"     -> Kpackage t
         | "import"   -> Kimport t
+        | "export"   -> Kexport t
 
         | "abstract"       -> Kabstract t
         | "final"       -> Kfinal t

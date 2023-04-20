@@ -18,6 +18,8 @@ module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -107,7 +109,8 @@ and metavar_cond =
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
-and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
+and metavar_analysis_kind = CondEntropy | CondReDoS
+[@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -174,7 +177,7 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
-  sink_requires : AST_generic.expr;
+  sink_requires : tok * AST_generic.expr option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -215,8 +218,10 @@ let default_source_label = "__SOURCE__"
 let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
 let default_propagator_requires tok = G.L (G.Bool (true, tok)) |> G.e
 
-let default_sink_requires tok =
-  G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+let get_sink_requires { sink_requires = tok, expr; _ } =
+  match expr with
+  | None -> G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+  | Some expr -> expr
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)

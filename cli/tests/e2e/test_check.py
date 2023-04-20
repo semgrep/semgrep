@@ -54,6 +54,17 @@ def test_basic_rule__relative(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+def test_basic_jsonnet_rule(
+    monkeypatch: pytest.MonkeyPatch, run_semgrep_in_tmp: RunSemgrep, snapshot
+):
+    monkeypatch.setenv("R2C_INTERNAL_JSONNET_LIB", "rules/jsonnet/lib")
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/jsonnet/python/basic.jsonnet").stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
 def test_deduplication(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Check that semgrep runs a rule only once even when different in the metadata
@@ -107,6 +118,20 @@ def test_script(run_semgrep_in_tmp: RunSemgrep, snapshot):
         run_semgrep_in_tmp(
             "rules/eqeq-python.yaml",
             target_name="script/",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/js_html_concat.yaml",
+            target_name="extract/js_html_concat.html",
         ).stdout,
         "results.json",
     )

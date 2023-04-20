@@ -282,6 +282,14 @@ and eval_op op values code =
   | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
   | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
   | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
+  | G.Pow, [ Int i1; Int i2 ] -> Int (Common2.power i1 i2)
+  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** float_of_int i2)
+  | G.Pow, [ Int i1; Float i2 ] -> Float (float_of_int i1 ** i2)
+  | G.Pow, [ Float i1; Float i2 ] -> Float (i1 ** i2)
+  | G.BitNot, [ Int i1 ] -> Int (Int.lognot i1)
+  | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int.logand i1 i2)
+  | G.BitOr, [ Int i1; Int i2 ] -> Int (Int.logor i1 i2)
+  | G.BitXor, [ Int i1; Int i2 ] -> Int (Int.logxor i1 i2)
   | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 =*= v2)
   | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= float_of_int v2)
   (* TODO? dangerous use of polymorphic =*= ? *)
@@ -354,7 +362,7 @@ let text_of_binding mvar mval =
             (G.show_any any);
           None
       | Some (min, max) ->
-          let file = min.Parse_info.file in
+          let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))
 

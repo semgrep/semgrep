@@ -186,6 +186,7 @@ let print_parsing_stat_list ?(verbose = false) statxs =
 (*****************************************************************************)
 
 let print_regression_information ~ext xs newscore =
+  let xs = File.Path.to_strings xs in
   let dirname_opt =
     match xs with
     | [ x ] when Common2.is_directory x -> Some (Common.fullpath x)

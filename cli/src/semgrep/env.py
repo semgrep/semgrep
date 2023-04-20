@@ -90,6 +90,8 @@ class Env:
     shouldafound_no_email: bool = field()
     min_fetch_depth: int = field()
 
+    r2c_internal_jsonnet_lib: Path = field()
+
     @version_check_timeout.default
     def version_check_timeout_default(self) -> int:
         value = os.getenv("SEMGREP_VERSION_CHECK_TIMEOUT", "2")
@@ -155,3 +157,12 @@ class Env:
     def min_fetch_depth_default(self) -> int:
         value = os.getenv("SEMGREP_GHA_MIN_FETCH_DEPTH", "0")
         return int(value)
+
+    # R2C_INTERNAL_JSONNET
+    @r2c_internal_jsonnet_lib.default
+    def r2c_internal_jsonnet_lib_default(self) -> Path:
+        value = os.getenv("R2C_INTERNAL_JSONNET_LIB")
+        if value:
+            return Path(value)
+        # TODO what should the default path be?
+        return Path.home()

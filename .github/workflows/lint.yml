@@ -1,7 +1,7 @@
-# The goal of this workflow is mostly to run pre-commit on every pull requests.
+# The main goal of this workflow is to run pre-commit on every pull requests.
+# It also runs some Github Actions (GHA) lint checks
+# TODO: we should port those GHA checks to semgrep and add then in semgrep-rules
 
-#TODO? we could rename to 'pre-commit' really. We used to run another "lint-style" command
-# for the changelog, but we don't anymore, so all that remains is just pre-commit stuff
 name: lint
 
 on:
@@ -71,7 +71,7 @@ jobs:
     # This custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in dev/dev.opam)
     # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: returntocorp/ocaml:ubuntu-2022-09-24
+    container: returntocorp/ocaml:ubuntu-2023-04-17
     # HOME in the container is tampered by GHA and modified from /root to /home/github
     # which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
     # hence the ugly use of 'env: HOME ...' below.

@@ -133,12 +133,12 @@ exception UnclosedSymbol of string
 
 let mk_token_extended x =
   let info = TH.info_of_tok x in
-  let line, col = (PI.line_of_info info, PI.col_of_info info) in
+  let line, col = (Tok.line_of_tok info, PI.col_of_info info) in
   {
     t = x;
     line;
     col;
-    (* we use List.hd at a few places, so convenient to have a sentinel *)
+    (* we use Common.hd_exn "unexpected empty list" at a few places, so convenient to have a sentinel *)
     where = [ InTopLevel ];
     new_tokens_before = [];
   }

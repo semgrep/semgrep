@@ -64,14 +64,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
     (* old: Parse_info.map_info v *)
     let k x =
       match x with
-      | { Parse_info.token = v_pinfo; transfo = v_transfo } ->
+      | { Tok.token = v_pinfo; transfo = v_transfo } ->
           let v_pinfo =
             (* todo? map_pinfo v_pinfo *)
             v_pinfo
           in
           (* not recurse in transfo ? *)
           {
-            Parse_info.token = v_pinfo;
+            Tok.token = v_pinfo;
             (* generete a fresh field *)
             transfo = v_transfo;
           }
@@ -278,11 +278,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | Call (v1, v2) ->
             let v1 = map_expr v1 and v2 = map_arguments v2 in
             Call (v1, v2)
-        | New (v1, v2, v3) ->
+        | New (v1, v2, v3, v4) ->
             let v1 = map_tok v1
             and v2 = map_type_ v2
-            and v3 = map_arguments v3 in
-            New (v1, v2, v3)
+            and v3 = map_id_info v3
+            and v4 = map_arguments v4 in
+            New (v1, v2, v3, v4)
         | Assign (v1, v2, v3) ->
             let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
             Assign (v1, v2, v3)
@@ -996,6 +997,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | ParamEllipsis v1 ->
         let v1 = map_tok v1 in
         ParamEllipsis v1
+    | ParamReceiver v1 ->
+        let v1 = map_parameter_classic v1 in
+        ParamReceiver v1
     | OtherParam (v1, v2) ->
         let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
         OtherParam (v1, v2)
@@ -1278,6 +1282,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | At v1 ->
         let v1 = map_attribute v1 in
         At v1
+    | XmlAt v1 ->
+        let v1 = map_xml_attribute v1 in
+        XmlAt v1
     | Dk v1 ->
         let v1 = map_definition_kind v1 in
         Dk v1
@@ -1346,5 +1353,5 @@ let mk_fix_token_locations fix =
               s with
               s_range = Option.map (fun (x, y) -> (fix x, fix y)) s.s_range;
             });
-      kinfo = (fun (_, _) t -> Parsing_helpers.fix_token_location fix t);
+      kinfo = (fun (_, _) t -> Tok.fix_token_location fix t);
     }

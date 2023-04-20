@@ -21,7 +21,7 @@ module FT = File_type
 (*****************************************************************************)
 
 let find_source_files_of_dir_or_files xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | FT.PL (FT.C ("l" | "y")) -> false
@@ -46,3 +46,8 @@ let ii_of_any any =
   in
   visitor any;
   List.rev !globals
+
+let info_of_any any =
+  match ii_of_any any with
+  | [] -> assert false
+  | first :: _ -> first

@@ -117,7 +117,6 @@ let partition_xpatterns xs =
   let semgrep = ref [] in
   let spacegrep = ref [] in
   let regexp = ref [] in
-  let comby = ref [] in
   xs
   |> List.iter (fun (xpat, inside) ->
          let { XP.pid; pstr = str, _; pat } = xpat in
@@ -125,9 +124,8 @@ let partition_xpatterns xs =
          | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
          | XP.Regexp x ->
-             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp
-         | XP.Comby x -> Common.push (x, pid, str) comby);
-  (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
+             Common.push (Regexp_engine.pcre_compile x, pid, str) regexp);
+  (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp)
 
 let group_matches_per_pattern_id (xs : Pattern_match.t list) :
     id_to_match_results =
@@ -191,7 +189,7 @@ let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
-  |> Common.map (fun mr ->
+  |> List.concat_map (fun mr ->
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
@@ -212,7 +210,6 @@ let debug_semgrep config mini_rules file lang ast =
            *)
            res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
          res)
-  |> List.flatten
 
 (*****************************************************************************)
 (* Evaluating Semgrep patterns *)
@@ -220,7 +217,7 @@ let debug_semgrep config mini_rules file lang ast =
 
 let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
     (xtarget : Xtarget.t)
-    (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
+    (patterns : (Pattern.t Lazy.t * bool * Xpattern.pattern_id * string) list) :
     RP.times RP.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
@@ -234,7 +231,9 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
       let matches, match_time =
         Common.with_time (fun () ->
             let mini_rules =
-              patterns |> Common.map (mini_rule_of_pattern xlang rule)
+              patterns
+              |> Common.map (function (lazy pat), b, c, d ->
+                     mini_rule_of_pattern xlang rule (pat, b, c, d))
             in
 
             if !debug_timeout || !debug_matches then
@@ -263,7 +262,7 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 
 let selector_from_formula f =
   match f with
-  | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
+  | R.P { Xpattern.pat = Sem ((lazy pattern), _); pid; pstr } -> (
       match pattern with
       | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
           Some { mvar; pattern; pid; pstr }
@@ -319,7 +318,7 @@ let run_selector_on_ranges env selector_opt ranges =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
       in
-      let patterns = [ (pattern, false, pid, fst pstr) ] in
+      let patterns = [ (lazy pattern, false, pid, fst pstr) ] in
       let res =
         matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
           patterns
@@ -361,7 +360,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let fm_mval_range_locs =
       fm_mvals
-      |> List.filter_map (fun (focus_mvar, mval) ->
+      |> Common.map_filter (fun (focus_mvar, mval) ->
              let* range_loc =
                Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval)
              in
@@ -382,7 +381,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     in
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
-      List.filter_map
+      Common.map_filter
         (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
@@ -451,7 +450,7 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
    * I don't match over xlang and instead assume we could have multiple
    * kinds of patterns at the same time.
    *)
-  let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
+  let patterns, spacegreps, regexps = partition_xpatterns xpatterns in
 
   (* final result *)
   RP.collate_pattern_results
@@ -459,7 +458,6 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
-      Xpattern_match_comby.matches_of_combys combys lazy_content file;
     ]
   [@@profiling]
 
@@ -485,7 +483,9 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
     match xpat.pat with
     (* TODO: generalize to more patterns *)
     | Sem
-        ( G.Ss [ s1; { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ }; s2 ],
+        ( (lazy
+            (G.Ss
+              [ s1; { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ }; s2 ])),
           _lang ) ->
         let subs = [ G.S s1; G.S s2 ] in
         (* we could optimize and run matches_of_patterns() below once
@@ -500,7 +500,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
           |> Common.map (fun pat ->
                  let match_result =
                    matches_of_patterns env.rule env.xconf env.xtarget
-                     [ (pat, false, xpat.pid, "TODO") ]
+                     [ (lazy pat, false, xpat.pid, "TODO") ]
                  in
                  let matches = match_result.matches in
                  (* TODO: equivalent to an abstract_content, so not great *)
@@ -525,7 +525,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   xs
-  |> List.filter_map (fun (r, new_bindings) ->
+  |> Common.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with

@@ -24,10 +24,19 @@ type source = {
 
 type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = string * int [@@deriving show]
+type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
-type source_to_sink = {
-  source : source;
-  tokens : tainted_tokens;
+(** The origin of taint, where does taint comes from? *)
+type orig =
+  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
+  | Arg of arg
+      (** A taint variable (potential taint coming through an argument). *)
+[@@deriving show]
+
+type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+
+type taints_to_sink = {
+  taints_with_precondition : taint list * AST_generic.expr;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
@@ -35,17 +44,16 @@ type source_to_sink = {
 
 (** Function-level finding (not necessarily a Semgrep finding). These may
   * depend on taint variables so they must be interpreted on a specific
-  * context. *)
+  * context.
+  *)
 type finding =
-  | SrcToSink of source_to_sink
-      (** A taint source inside the function reaches a sink. *)
-  | SrcToReturn of source * tainted_tokens * AST_generic.tok
-      (** A taint source inside the function reaches a `return` statement,
-   * therefore the result of the function is tainted.  *)
-  | ArgToSink of arg_pos * tainted_tokens * sink
-      (** If this argument was tainted, the taint would reach a sink. *)
-  | ArgToReturn of arg_pos * tainted_tokens * AST_generic.tok
-      (** If this argument was tainted, the taint would reach a `return` statement. *)
+  | ToSink of taints_to_sink
+      (** Taint sources or potentially-tainted arguments inside the function
+          reach a sink. *)
+  | ToReturn of taint list * AST_generic.tok
+      (** Taint sources or potentially-tainted arguments
+          would reach a `return` statement. *)
+  | ArgToArg of arg * tainted_tokens * arg
 [@@deriving show]
 
 type signature = finding list
@@ -61,15 +69,6 @@ type signature = finding list
  * THINK: We could write this in a way that resembles a function type,
  *   but right now it would probably just add complexity. *)
 
-(** The origin of taint, where does taint comes from? *)
-type orig =
-  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_pos
-      (** A taint variable (potential taint coming through an argument). *)
-[@@deriving show]
-
-type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
-
 (** A set of taint sources. *)
 module Taint_set : sig
   type t
@@ -80,6 +79,7 @@ module Taint_set : sig
   val singleton : taint -> t
   val add : taint -> t -> t
   val union : t -> t -> t
+  val diff : t -> t -> t
   val map : (taint -> taint) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
@@ -95,4 +95,5 @@ val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string
+val _show_arg : arg -> string
 val _show_finding : finding -> string

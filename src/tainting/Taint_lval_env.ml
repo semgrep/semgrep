@@ -207,3 +207,5 @@ let to_string taint_to_str { tainted; propagated; cleaned } =
   ^ LvalSet.fold
       (fun dn s -> s ^ Display_IL.string_of_lval dn ^ " ")
       cleaned "[CLEANED]"
+
+let seq_of_tainted env = LvalMap.to_seq env.tainted

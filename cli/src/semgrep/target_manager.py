@@ -74,10 +74,15 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
 }
 
 ECOSYSTEM_TO_LOCKFILES = {
-    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
-    Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
+    Ecosystem(Pypi()): [
+        "Pipfile.lock",
+        "poetry.lock",
+        "requirements.txt",
+        "requirements3.txt",
+    ],
+    Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
     Ecosystem(Gem()): ["Gemfile.lock"],
-    Ecosystem(Gomod()): ["go.sum"],
+    Ecosystem(Gomod()): ["go.mod"],
     Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
 }
@@ -231,7 +236,7 @@ class FileTargetingLog:
 
         yield 1, "Always skipped by Semgrep:"
         if self.always_skipped:
-            for path in self.always_skipped:
+            for path in sorted(self.always_skipped):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
@@ -247,21 +252,21 @@ class FileTargetingLog:
         yield 1, "Skipped by .semgrepignore:"
         yield 1, "(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
         if self.semgrepignored:
-            for path in self.semgrepignored:
+            for path in sorted(self.semgrepignored):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
         yield 1, "Skipped by --include patterns:"
         if self.cli_includes:
-            for path in self.cli_includes:
+            for path in sorted(self.cli_includes):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
         yield 1, "Skipped by --exclude patterns:"
         if self.cli_excludes:
-            for path in self.cli_excludes:
+            for path in sorted(self.cli_excludes):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
@@ -269,14 +274,14 @@ class FileTargetingLog:
         yield 1, f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:"
         yield 1, "(Adjust with the --max-target-bytes flag)"
         if self.size_limit:
-            for path in self.size_limit:
+            for path in sorted(self.size_limit):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
         yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
         if self.core_failure_lines_by_file:
-            for path, lines in self.core_failure_lines_by_file.items():
+            for path, lines in sorted(self.core_failure_lines_by_file.items()):
                 if lines is None:
                     skipped = "all"
                 else:
@@ -318,6 +323,8 @@ class FileTargetingLog:
         return output
 
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
+        # coupling: if you add a reason here,
+        # add it also to semgrep_output_v1.atd.
         for path in self.always_skipped:
             yield {"path": str(path), "reason": "always_skipped"}
         for path in self.semgrepignored:

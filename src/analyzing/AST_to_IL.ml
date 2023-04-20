@@ -64,7 +64,7 @@ let impossible any_generic = raise (Fixme (Impossible, any_generic))
 let locate opt_tok s =
   let opt_loc =
     try Option.map Parse_info.string_of_info opt_tok with
-    | Parse_info.NoTokenLocation _ -> None
+    | Tok.NoTokenLocation _ -> None
   in
   match opt_loc with
   | Some loc -> spf "%s: %s" loc s
@@ -308,7 +308,7 @@ and pattern env pat =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List.mapi (fun i pat_i ->
+        |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
@@ -369,7 +369,7 @@ and assign env lhs tok rhs_exp e_gen =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List.mapi (fun i lhs_i ->
+        |> Common.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
                  {
@@ -573,7 +573,7 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, args) ->
+  | G.New (tok, ty, _TODO, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
       let arg = G.ArgType ty in
@@ -611,9 +611,10 @@ and expr_aux env ?(void = false) e_gen =
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
-  | G.AssignOp (e1, (G.Eq, tok), e2) when Parse_info.str_of_info tok = ":=" ->
-      (* We encode Go's `:=` as `AssignOp(Eq)`,
-       * see "go_to_generic.ml" in Pfff. *)
+  | G.AssignOp (e1, (G.Eq, tok), e2) ->
+      (* AsssignOp(Eq) is used to represent plain assignment in some languages,
+       * e.g. Go's `:=` is represented as `AssignOp(Eq)`, and C#'s assignments
+       * are all represented this way too. *)
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
   | G.AssignOp (e1, op, e2) ->
@@ -896,6 +897,41 @@ and record env ((_tok, origfields, _) as record_def) =
                _;
              } ->
              Some (Spread (expr env e))
+         | G.F
+             {
+               s =
+                 G.ExprStmt
+                   ( ({
+                        e =
+                          Call
+                            ( { e = N (Id (id, _)); _ },
+                              (_, [ Arg { e = Record fields; _ } ], _) );
+                        _;
+                      } as prior_expr),
+                     _ );
+               _;
+             }
+           when is_hcl env.lang ->
+             (* This is an inner block of the form
+                someblockhere {
+                  s {
+                    <args>
+                  }
+                }
+
+                We want this to be understood as a record of { <args> } being bound to
+                the name `s`.
+
+                So we just translate it to a field defining `s = <record>`.
+
+                We don't actually really care for it to be specifically defining the name `s`.
+                we just want it in there at all so that we can use it as a sink.
+             *)
+             let field_expr = record env fields in
+             (* We need to use the entire `prior_expr` here, or the range won't be quite
+                right (we'll leave out the identifier)
+             *)
+             Some (Field (id, { field_expr with eorig = SameAs prior_expr }))
          | _ when is_hcl env.lang ->
              (* For HCL constructs such as `lifecycle` blocks within a module call, the
                 IL translation engine will brick the whole record if it is encountered.
@@ -910,7 +946,7 @@ and record env ((_tok, origfields, _) as record_def) =
 and xml_expr env xml =
   let attrs =
     xml.G.xml_attrs
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlAttr (_, tok, eorig)
          | G.XmlAttrExpr (tok, eorig, _) ->
              let exp = expr env eorig in
@@ -920,7 +956,7 @@ and xml_expr env xml =
   in
   let body =
     xml.G.xml_body
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -1007,6 +1043,7 @@ and lval_of_ent env ent =
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
+  | G.EPattern (PatId (id, id_info)) -> lval env (G.N (Id (id, id_info)) |> G.e)
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
@@ -1048,7 +1085,7 @@ and expr_with_pre_stmts_opt env eopt =
 
 and for_var_or_expr_list env xs =
   xs
-  |> Common.map (function
+  |> List.concat_map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -1061,14 +1098,13 @@ and for_var_or_expr_list env xs =
                ss
                @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
            | _ -> []))
-  |> List.flatten
 
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
 and parameters _env params : name list =
   params |> Parse_info.unbracket
-  |> List.filter_map (function
+  |> Common.map_filter (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 
@@ -1120,7 +1156,7 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> PI.unbracket |> Common.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> PI.unbracket |> List.concat_map (stmt env)
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in

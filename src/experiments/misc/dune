@@ -3,11 +3,17 @@
  (name semgrep_experiments_misc)
  (wrapped false)
  (libraries
+   camlp-streams ; this is needed after OCaml 4.12.0
    commons
    lib_parsing
    pfff-lang_GENERIC-analyze
 
-   semgrep_core
+   semgrep.core
+   semgrep.reporting
+   semgrep.parsing
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps
+   ppx_deriving.show
+   ppx_profiling
+   ))
 )

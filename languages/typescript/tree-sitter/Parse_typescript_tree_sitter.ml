@@ -620,7 +620,9 @@ and jsx_expression_some env x =
   let t1, eopt, t2 = jsx_expression env x in
   match eopt with
   | None ->
-      raise (PI.Ast_builder_error ("jsx_expression_some got a None expr", t1))
+      raise
+        (Parsing_error.Ast_builder_error
+           ("jsx_expression_some got a None expr", t1))
   | Some e -> (t1, e, t2)
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
@@ -1611,7 +1613,9 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 = expression env v2 in
       match xs with
       | [ t ] -> TypeAssert (v2, t1, t)
-      | _ -> raise (PI.Ast_builder_error ("wrong type assert expr", t1)))
+      | _ ->
+          raise (Parsing_error.Ast_builder_error ("wrong type assert expr", t1))
+      )
   | `Prim_exp x -> primary_expression env x
   | `Choice_jsx_elem x ->
       let xml = jsx_element_ env x in

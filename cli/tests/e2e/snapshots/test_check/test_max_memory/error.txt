@@ -8,14 +8,7 @@ Rules:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
 
 ========================================
 Files skipped:

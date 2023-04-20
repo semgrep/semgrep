@@ -31,7 +31,7 @@ module G = AST_generic
 type _env = unit
 
 let empty_env () = ()
-let error tok s = raise (Parse_info.Ast_builder_error (s, tok))
+let error tok s = raise (Parsing_error.Ast_builder_error (s, tok))
 
 (* old: opti: to get www from 380MB to 190MB marshalled, but not worth it
  *  if !store_position then Some tok else None

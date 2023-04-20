@@ -1,11 +1,13 @@
 (library
  (public_name parser_regexp)
  (libraries
+   menhirLib ; needed when using --table
    commons
    lib_parsing
  )
  (preprocess (pps ppx_deriving.show))
 )
 (ocamllex Lexer)
+; --table helps to generate a smaller engine.js file
 (menhir (modules Parser)
-        (flags --unused-tokens --explain --fixed-exception))
+        (flags --unused-tokens --explain --table --fixed-exception))

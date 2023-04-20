@@ -1030,7 +1030,7 @@ catch_formal_parameter:
   | "..." { CatchEllipsis $1 }
 
 (* javaext: ? *)
-catch_type: list_sep(type_, OR) { List.hd $1, List.tl $1 }
+catch_type: list_sep(type_, OR) { Common.hd_exn "unexpected empty list" $1, Common.tl_exn "unexpected empty list" $1 }
 
 (* javaext: ? *)
 resource_specification: "(" list_sep(resource, ";") ";"? ")"

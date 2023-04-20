@@ -722,4 +722,7 @@ module PI = Parse_info
 let fakeInfoAttach info =
   let info = PI.rewrap_str "';' (from ASI)" info in
   let pinfo = PI.unsafe_token_location_of_info info in
-  { PI.token = PI.FakeTokStr (";", Some (pinfo, -1)); transfo = PI.NoTransfo }
+  {
+    Tok.token = Tok.FakeTokStr (";", Some (pinfo, -1));
+    transfo = Tok.NoTransfo;
+  }

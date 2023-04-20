@@ -12,9 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
 open Token_scala
-module PI = Parse_info
+module PI = Lib_ast_fuzzy
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -28,11 +27,11 @@ let is_eof = function
 
 let is_comment = function
   | Comment _
-  | Space _ ->
-      true
+  | Space _
   (* newline has a meaning in the parser, so should not skip *)
   (* old: | Nl _ -> true *)
-  | _ -> false
+  | _ ->
+      false
 
 let token_kind_of_tok t =
   match t with
@@ -45,6 +44,7 @@ let token_kind_of_tok t =
   | Comment _ -> PI.Esthet PI.Comment
   | Space _ -> PI.Esthet PI.Space
   | Nl _ -> PI.Esthet PI.Newline
+  (* TODO? indent and dedent *)
   | _ -> PI.Other
 
 (*****************************************************************************)
@@ -108,6 +108,7 @@ let visitor_info_of_tok f = function
   | BANG ii -> BANG (f ii)
   | AT ii -> AT (f ii)
   | DOT ii -> DOT (f ii)
+  | QUOTE ii -> QUOTE (f ii)
   | COMMA ii -> COMMA (f ii)
   | COLON ii -> COLON (f ii)
   | Kyield ii -> Kyield (f ii)
@@ -128,11 +129,13 @@ let visitor_info_of_tok f = function
   | Kpackage ii -> Kpackage (f ii)
   | Koverride ii -> Koverride (f ii)
   | Kobject ii -> Kobject (f ii)
+  | Kenum ii -> Kenum (f ii)
   | Knull ii -> Knull (f ii)
   | Knew ii -> Knew (f ii)
   | Kmatch ii -> Kmatch (f ii)
   | Klazy ii -> Klazy (f ii)
   | Kimport ii -> Kimport (f ii)
+  | Kexport ii -> Kexport (f ii)
   | Kimplicit ii -> Kimplicit (f ii)
   | Kif ii -> Kif (f ii)
   | KforSome ii -> KforSome (f ii)
@@ -147,6 +150,7 @@ let visitor_info_of_tok f = function
   | Kcatch ii -> Kcatch (f ii)
   | Kcase ii -> Kcase (f ii)
   | Kabstract ii -> Kabstract (f ii)
+  | DEDENT (i1, i2) -> DEDENT (i1, i2)
   | Ellipsis ii -> Ellipsis (f ii)
 
 let info_of_tok tok =
@@ -159,7 +163,7 @@ let info_of_tok tok =
   |> ignore;
   Common2.some !res
 
-let abstract_info_tok tok = visitor_info_of_tok (fun _ -> PI.abstract_info) tok
+let abstract_info_tok tok = visitor_info_of_tok (fun _ -> Tok.abstract_tok) tok
 
 (*****************************************************************************)
 (* More token Helpers for Parse_scala_recursive_descent.ml *)
@@ -197,7 +201,8 @@ let inFirstOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
-  | LBRACKET _ ->
+  | LBRACKET _
+  | DEDENT _ ->
       false
   | _ ->
       logger#info "inFirstOfStat: true for %s" (Dumper.dump x);
@@ -233,6 +238,7 @@ let inLastOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
+  | DEDENT _
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
@@ -245,6 +251,7 @@ let inLastOfStat x =
 (* ------------------------------------------------------------------------- *)
 
 let isIdent = function
+  | ID_LOWER ("given", _) -> None
   | ID_LOWER (s, info)
   | ID_UPPER (s, info)
   | ID_BACKQUOTED (s, info)
@@ -321,6 +328,7 @@ let isNumericLit = function
 (* Statement separators *)
 (* ------------------------------------------------------------------------- *)
 
+(* TODO? indent and dedent *)
 let isStatSep = function
   | NEWLINE _
   | NEWLINES _
@@ -330,6 +338,7 @@ let isStatSep = function
 
 let isStatSeqEnd = function
   | RBRACE _
+  | DEDENT _
   | EOF _ ->
       true
   | _ -> false
@@ -371,7 +380,9 @@ let isLocalModifier = function
 let isTemplateIntro = function
   | Kobject _
   | Kclass _
-  | Ktrait _ ->
+  | Kenum _
+  | Ktrait _
+  | ID_LOWER ("given", _) ->
       true
   (*TODO | Kcaseobject | | Kcaseclass *)
   | Kcase _ -> true
@@ -381,6 +392,7 @@ let isDclIntro = function
   | Kval _
   | Kvar _
   | Kdef _
+  | Kcase _
   | Ktype _ ->
       true
   | _ -> false
@@ -402,6 +414,7 @@ let isExprIntro x =
   | USCORE _
   | LPAREN _
   | LBRACE _
+  | QUOTE _
   (* | XMLSTART  *)
   (* semgrep-ext: *)
   | Ellipsis _
@@ -428,6 +441,37 @@ let isTypeIntroToken x =
 (* ------------------------------------------------------------------------- *)
 (* Misc *)
 (* ------------------------------------------------------------------------- *)
+
+let isIndentationToken = function
+  | COLON _
+  | EQUALS _
+  | ARROW _
+  | LARROW _
+  | Kif _
+  | Kwith _
+  (* there is no "then" keyword, because it's only a keyword in Scala 3 *)
+  (* for now, let's just say "then" doesn't trigger an indentation region *)
+  | Kelse _
+  | Kwhile _
+  | Kdo _
+  | Ktry _
+  | Kcatch _
+  | Kfinally _
+  | Kfor _
+  | Kyield _
+  | Kmatch _ ->
+      true
+  | _ -> false
+
+(* From the Scala 3 specification:
+   > A soft modifier is treated as potential modifier of a definition if it is
+     followed by a hard modifier or a keyword combination starting a definition
+     (def, val, var, type, given, class, trait, object, enum, case class, case
+     object). Between the two words there may be a sequence of newline tokens
+     and soft modifiers.
+   https://docs.scala-lang.org/scala3/reference/soft-modifier.html
+*)
+let isSoftModifierFollower x = isModifier x || isDefIntro x
 
 let isCaseDefEnd = function
   | RBRACE _

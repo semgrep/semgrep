@@ -49,7 +49,7 @@ let str = H.str
 
 (* for declarators *)
 let id x = x
-let error t s = raise (Parse_info.Other_error (s, t))
+let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* To use in situations where we should raise an error, unless
  * tree-sitter partially parsed the file, in which case the AST may

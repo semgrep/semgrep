@@ -37,6 +37,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
+        (
+            "rules/dependency_aware/ruby-sca.yaml",
+            "dependency_aware/ruby-with-multiple-remotes",
+        ),
         ("rules/dependency_aware/log4shell.yaml", "dependency_aware/log4j"),
         ("rules/dependency_aware/rust-sca.yaml", "dependency_aware/rust"),
         ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi"),
@@ -63,9 +67,15 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/nested_package_lock/",
         ),
         ("rules/dependency_aware/js-yarn2-sca.yaml", "dependency_aware/yarn2"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-workspaces"),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements3",
         ),
         (
             "rules/dependency_aware/transitive_and_direct.yaml",
@@ -89,6 +99,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         (
             "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_joined",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
             "dependency_aware/maven_dep_tree_optional",
         ),
         (
@@ -98,6 +112,14 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/js-sca.yaml",
             "dependency_aware/package-lock_resolved_false",
+        ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/deeply_nested_package_lock",
+        ),
+        (
+            "rules/dependency_aware/js-yarn2-sca.yaml",
+            "dependency_aware/package-lock-v3",
         ),
     ],
 )
@@ -116,7 +138,6 @@ def test_dependency_aware_rules(
         ("1.2-beta-2", "> 1.0, < 1.2", True),
         ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
         ("1.0.10.1", "< 1.0.10.2", True),
-        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
         ("1.3.4-SNAPSHOT", "< 1.3.4", True),
         ("1.0-SNAPSHOT", "> 1.0-alpha", True),
         ("2.17.2", "< 2.3.1", False),
@@ -124,6 +145,9 @@ def test_dependency_aware_rules(
         ("2.0.0", "< 10.0.0", True),
         ("0.2.0", "< 0.10.0", True),
         ("0.0.2", "< 0.0.10", True),
+        ("2.14.0", "< 2.9.10.3", False),
+        ("2.14.0-beta", "< 2.9.10.3", False),
+        ("1.1.1.1-SNAPSHOT", "< 1.1.1.1", True),
     ],
 )
 def test_maven_version_comparison(version, specifier, outcome):

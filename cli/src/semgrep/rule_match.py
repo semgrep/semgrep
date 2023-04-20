@@ -27,6 +27,7 @@ from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.util import get_lines
 
 if TYPE_CHECKING:
@@ -120,6 +121,10 @@ class RuleMatch:
     @property
     def end(self) -> core.Position:
         return self.match.location.end
+
+    @property
+    def product(self) -> RuleProduct:
+        return RuleProduct.sca if "sca_info" in self.extra else RuleProduct.sast
 
     def get_individual_line(self, line_number: int) -> str:
         line_array = get_lines(self.path, line_number, line_number)
@@ -394,6 +399,7 @@ class RuleMatch:
         if dataflow_trace:
             taint_source = None
             intermediate_vars = None
+            taint_sink = None
             if dataflow_trace.taint_source:
                 taint_source = translate_core_match_call_trace(
                     dataflow_trace.taint_source

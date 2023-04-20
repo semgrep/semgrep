@@ -91,6 +91,7 @@ type fun_env = (var, Taint.Taint_set.t) Hashtbl.t
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
 val str_of_name : IL.name -> var
+val taints_satisfy_requires : Taint.taints -> AST_generic.expr -> bool
 
 val hook_function_taint_signature :
   (config ->
@@ -103,6 +104,7 @@ val hook_function_taint_signature :
 val fixpoint :
   ?in_env:Taint_lval_env.t ->
   ?name:var ->
+  Lang.t ->
   Config_semgrep.t ->
   config ->
   IL.cfg ->

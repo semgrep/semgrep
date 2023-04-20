@@ -78,7 +78,8 @@ let put_back_lookahead_token_if_needed tr item_opt =
          *)
         logger#debug "putting back lookahead token %s" (Dumper.dump current);
         tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
-        tr.Parsing_helpers.passed <- List.tl tr.Parsing_helpers.passed)
+        tr.Parsing_helpers.passed <-
+          Common.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
 
 (*****************************************************************************)
 (* ASI (Automatic Semicolon Insertion) part 2 *)
@@ -139,7 +140,7 @@ let asi_insert charpos last_charpos_error tr
   in
   (* like in Parse_info.mk_tokens_state *)
   tr.Parsing_helpers.rest <- toks;
-  tr.Parsing_helpers.current <- List.hd toks;
+  tr.Parsing_helpers.current <- Common.hd_exn "impossible empty list" toks;
   tr.Parsing_helpers.passed <- [];
   (* try again!
    * This significantly slow-down parsing, especially on minimized
@@ -262,7 +263,7 @@ let parse2 opt_timeout filename =
           stat.PS.error_line_count <-
             stat.PS.error_line_count + (max_line - line_start);
           [])
-        else raise (PI.Parsing_error (TH.info_of_tok err_tok))
+        else raise (Parsing_error.Syntax_error (TH.info_of_tok err_tok))
   in
   let items =
     match

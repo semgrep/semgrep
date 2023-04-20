@@ -40,12 +40,10 @@ Experimental Rules:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
 Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
-/<MASKED>/semgrep<MASKED> -json -rules <MASKED>-json_time -fast --debug
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
 <MASKED>
 <MASKED>

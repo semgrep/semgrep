@@ -24,7 +24,7 @@ let parse_json_string json =
   try
     Some
       (Yojson.Safe.read_string
-         (Yojson.init_lexer ~buf:(Bi_outbuf.create 128) ())
+         (Yojson.init_lexer ~buf:(Buffer.create 128) ())
          (Lexing.from_string json))
   with
   | Yojson.Json_error _ -> None

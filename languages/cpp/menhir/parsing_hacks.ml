@@ -93,29 +93,27 @@ let insert_virtual_positions l =
               | ii -> Ast_cpp.rewrap_pinfo pi ii)
             x
         in
-        match ii.Parse_info.token with
-        | Parse_info.OriginTok _pi ->
+        match ii.Tok.token with
+        | Tok.OriginTok _pi ->
             let prev = Parse_info.unsafe_token_location_of_info ii in
             loop (x :: acc) prev (strlen ii) xs
-        | Parse_info.ExpandedTok (pi, _, _) ->
+        | Tok.ExpandedTok (pi, _, _) ->
+            let acc' = inject (Tok.ExpandedTok (pi, prev, offset)) :: acc in
+            loop acc' prev (offset + strlen ii) xs
+        | Tok.FakeTokStr (s, _) ->
             let acc' =
-              inject (Parse_info.ExpandedTok (pi, prev, offset)) :: acc
+              inject (Tok.FakeTokStr (s, Some (prev, offset))) :: acc
             in
             loop acc' prev (offset + strlen ii) xs
-        | Parse_info.FakeTokStr (s, _) ->
-            let acc' =
-              inject (Parse_info.FakeTokStr (s, Some (prev, offset))) :: acc
-            in
-            loop acc' prev (offset + strlen ii) xs
-        | Parse_info.Ab -> failwith "abstract not expected")
+        | Tok.Ab -> failwith "abstract not expected")
   in
   let rec skip_fake acc = function
     (* Tail-recursive to prevent stack overflows. *)
     | [] -> List.rev acc
     | x :: xs -> (
         let ii = TH.info_of_tok x in
-        match ii.Parse_info.token with
-        | Parse_info.OriginTok _pi ->
+        match ii.Tok.token with
+        | Tok.OriginTok _pi ->
             let prev = Parse_info.unsafe_token_location_of_info ii in
             loop (x :: acc) prev (strlen ii) xs
         | _ -> skip_fake (x :: acc) xs)
@@ -182,7 +180,7 @@ let fix_tokens_fuzzy toks =
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if !Flag.error_recovery then toks
-      else raise (Parse_info.Lexical_error (msg, info))
+      else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* Fix tokens *)
