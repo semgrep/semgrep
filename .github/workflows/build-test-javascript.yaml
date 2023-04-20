@@ -14,13 +14,22 @@ jobs:
     env:
       HOME: /root
     steps:
+      - name: Restore git checkout cache
+        id: restore-git
+        uses: actions/cache/restore@v3
+        with:
+          path: .
+          key: semgrep-js-git-${{ github.sha }}
       - name: Make checkout speedy
+        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
+        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         with:
           submodules: true
       - name: Cache git checkout
         id: cache-git
+        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v3
         with:
           path: |
@@ -61,19 +70,19 @@ jobs:
       HOME: /root
     steps:
       - name: Restore git checkout cache
-        id: cache-git
+        id: restore-git
         uses: actions/cache/restore@v3
         with:
           path: .
           key: semgrep-js-git-${{ github.sha }}
       - name: Make checkout speedy
-        if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
-        if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
+        if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         with:
           submodules: true
-      - if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.restore-git.outputs.cache-hit != 'true' }}
         run: |
           echo "Setting up tree-sitter again..."
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
@@ -83,13 +92,11 @@ jobs:
         with:
           name: semgrep-js-ocaml-build
           path: _build/default/js
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "lts"
       - name: Build semgrep
         run: |
-          echo "Installing a modern version of node..."
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-          . ~/.nvm/nvm.sh
-          nvm install --lts
-
           echo "Building JS + WASM..."
           make -C js/${{ matrix.package }}
 
