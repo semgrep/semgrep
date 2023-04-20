@@ -152,6 +152,31 @@ exception NoTokenLocation of string
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
+
+let tok_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
+
+let tok_of_str_and_bytepos str pos =
+  let loc =
+    {
+      str;
+      pos =
+        {
+          charpos = pos;
+          (* info filled in a post-lexing phase, see complete_token_location_large*)
+          line = -1;
+          column = -1;
+          file = "NO FILE INFO YET";
+        };
+    }
+  in
+  tok_of_loc loc
+
+let tok_of_lexbuf lexbuf =
+  tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
+
+(*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 

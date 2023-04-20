@@ -84,7 +84,7 @@ let tokens parsing_mode input_source =
      *)
     | Failure s ->
         Parsing_error.lexical_error s lexbuf;
-        T.EOF (Parse_info.tokinfo lexbuf)
+        T.EOF (Tok.tok_of_lexbuf lexbuf)
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof

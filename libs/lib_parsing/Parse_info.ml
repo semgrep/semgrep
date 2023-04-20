@@ -27,8 +27,6 @@ open Tok
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-let mk_info_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
-
 (* Synthesize a token. *)
 let unsafe_fake_info str : Tok.t =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
@@ -87,25 +85,6 @@ let string_of_info x =
 (*****************************************************************************)
 (* now in Parsing_helpers.ml *)
 
-let tokinfo_str_pos str pos =
-  let loc =
-    {
-      str;
-      pos =
-        {
-          charpos = pos;
-          (* info filled in a post-lexing phase, see complete_token_location_large*)
-          line = -1;
-          column = -1;
-          file = "NO FILE INFO YET";
-        };
-    }
-  in
-  mk_info_of_loc loc
-
-let tokinfo lexbuf =
-  tokinfo_str_pos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
-
 let rewrap_str s ii =
   {
     ii with
@@ -151,7 +130,7 @@ let split_info_at_pos pos ii =
         };
     }
   in
-  (mk_info_of_loc loc1, mk_info_of_loc loc2)
+  (Tok.tok_of_loc loc1, Tok.tok_of_loc loc2)
 
 (*****************************************************************************)
 (* Errors *)

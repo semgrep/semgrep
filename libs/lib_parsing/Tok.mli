@@ -108,6 +108,16 @@ exception NoTokenLocation of string
 val fake_location : location
 
 (*****************************************************************************)
+(* Token builders *)
+(*****************************************************************************)
+
+val tok_of_lexbuf : Lexing.lexbuf -> t
+val tok_of_loc : location -> t
+
+(* deprecated: TODO used only in Lexer_php.mll *)
+val tok_of_str_and_bytepos : string -> int -> t
+
+(*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 

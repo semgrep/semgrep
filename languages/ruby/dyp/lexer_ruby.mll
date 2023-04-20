@@ -51,8 +51,8 @@ module Utils = Utils_ruby
 
 (* shortcuts *)
 let str = Lexing.lexeme
-(* TODO: rename tok *)
-let tk = PI.tokinfo
+(* TODO: rename tokinfo *)
+let tk = Tok.tok_of_lexbuf
 (* later: use T_UNKNOWN and this function *)
 let _error = Parsing_error.lexical_error
 let add_to_tok lexbuf t =

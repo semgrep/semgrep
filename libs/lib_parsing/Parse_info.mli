@@ -9,12 +9,8 @@ type t = Tok.t [@@deriving eq, show]
 (* Info builders *)
 (*****************************************************************************)
 
-val tokinfo : Lexing.lexbuf -> t
-val mk_info_of_loc : Tok.location -> t
-
 (* TODO? could also be in Lexer helpers section *)
 (* can deprecate? *)
-val tokinfo_str_pos : string -> int -> t
 val rewrap_str : string -> t -> t
 val tok_add_s : string -> t -> t
 

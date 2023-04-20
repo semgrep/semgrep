@@ -479,7 +479,7 @@ let empty_token_after tok : tok =
             };
         }
       in
-      PI.mk_info_of_loc loc
+      Tok.tok_of_loc loc
   | Error _ -> PI.rewrap_str "" tok
 
 let env_pair (env : env) (x : CST.env_pair) : label_pair =
