@@ -41,12 +41,12 @@ let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
    token. Only their fallback differs when no position is known.
 *)
 let tok_pos_left tok =
-  match Parse_info.token_location_of_info tok with
+  match Tok.location_of_tok tok with
   | Ok x -> x.pos.charpos
   | Error _ -> max_int
 
 let tok_pos_right tok =
-  match Parse_info.token_location_of_info tok with
+  match Tok.location_of_tok tok with
   | Ok x -> x.pos.charpos
   | Error _ -> min_int
 

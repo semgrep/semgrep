@@ -297,9 +297,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                 (* TODO: log a warning when we cannot obtain a taint propagator due to
                  * lacking range info. *)
                 match
-                  Parse_info.
-                    ( token_location_of_info tok_pfrom,
-                      token_location_of_info tok_pto )
+                  (Tok.location_of_tok tok_pfrom, Tok.location_of_tok tok_pto)
                 with
                 | Error _, _
                 | _, Error _ ->

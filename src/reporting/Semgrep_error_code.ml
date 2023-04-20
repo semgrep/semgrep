@@ -76,7 +76,7 @@ let mk_error ?(rule_id = None) loc msg err =
   { rule_id; loc; typ = err; msg; details = None }
 
 let mk_error_tok ?(rule_id = None) tok msg err =
-  let loc = PI.unsafe_token_location_of_info tok in
+  let loc = Tok.unsafe_location_of_tok tok in
   mk_error ~rule_id loc msg err
 
 let error rule_id loc msg err =
@@ -116,7 +116,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
             {
               rule_id = Some rule_id;
               typ = Out.PatternParseError yaml_path;
-              loc = PI.unsafe_token_location_of_info pos;
+              loc = Tok.unsafe_location_of_tok pos;
               msg =
                 spf
                   "Invalid pattern for %s:\n\

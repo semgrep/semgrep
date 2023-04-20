@@ -63,10 +63,6 @@ val str_of_info : t -> string
 
 (* Format the location file/line/column into a string *)
 val string_of_info : t -> string
-val token_location_of_info : t -> (Tok.location, string) result
-
-(* @raise NoTokenLocation if given an unsafe fake token (without location info) *)
-val unsafe_token_location_of_info : t -> Tok.location
 val get_original_token_location : Tok.origin -> Tok.location
 val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t

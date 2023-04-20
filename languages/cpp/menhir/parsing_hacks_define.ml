@@ -70,7 +70,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_lexing
 (*****************************************************************************)
 
 let mark_end_define ii =
-  let tok_loc = Parse_info.unsafe_token_location_of_info ii in
+  let tok_loc = Tok.unsafe_location_of_tok ii in
   let ii' =
     {
       Tok.token =

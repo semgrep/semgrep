@@ -29,20 +29,6 @@ type t = Tok.t [@@deriving eq, show]
 
 let mk_info_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
 
-let token_location_of_info ii =
-  match ii.token with
-  | OriginTok pinfo -> Ok pinfo
-  (* TODO ? dangerous ? *)
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> Ok pinfo_pp
-  | FakeTokStr (_, Some (pi, _)) -> Ok pi
-  | FakeTokStr (_, None) -> Error "FakeTokStr"
-  | Ab -> Error "Ab"
-
-let unsafe_token_location_of_info ii =
-  match token_location_of_info ii with
-  | Ok pinfo -> pinfo
-  | Error msg -> raise (NoTokenLocation msg)
-
 (* Synthesize a token. *)
 let unsafe_fake_info str : Tok.t =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
@@ -53,7 +39,7 @@ let fake_info_loc next_to_loc str : Tok.t =
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
 let fake_info next_to_tok str : Tok.t =
-  match token_location_of_info next_to_tok with
+  match Tok.location_of_tok next_to_tok with
   | Ok loc -> fake_info_loc loc str
   | Error _ -> unsafe_fake_info str
 
@@ -92,7 +78,7 @@ let sc next_to_tok = fake_info next_to_tok ";"
 let string_of_token_location x = Pos.string_of_pos x.pos
 
 let string_of_info x =
-  match token_location_of_info x with
+  match Tok.location_of_tok x with
   | Ok loc -> string_of_token_location loc
   | Error msg -> spf "unknown location (%s)" msg
 
@@ -103,8 +89,6 @@ let str_of_info ii =
   | ExpandedTok _
   | Ab ->
       raise (NoTokenLocation "str_of_info: Expanded or Ab")
-
-let _str_of_info ii = (unsafe_token_location_of_info ii).str
 
 (*****************************************************************************)
 (* Lexer helpers *)
@@ -159,7 +143,7 @@ let combine_infos x xs =
   tok_add_s str x
 
 let split_info_at_pos pos ii =
-  let loc = unsafe_token_location_of_info ii in
+  let loc = Tok.unsafe_location_of_tok ii in
   let str = loc.str in
   let loc1_str = String.sub str 0 pos in
   let loc2_str = String.sub str pos (String.length str - pos) in

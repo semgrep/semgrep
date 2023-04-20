@@ -227,8 +227,8 @@ let error_message_token_location (info : Tok.location) =
       ^ " given out of file:" ^ filename
 
 let error_message_info info =
-  let pinfo = Parse_info.unsafe_token_location_of_info info in
-  error_message_token_location pinfo
+  let loc = Tok.unsafe_location_of_tok info in
+  error_message_token_location loc
 
 let print_bad line_error (start_line, end_line) filelines =
   pr2 ("badcount: " ^ i_to_s (end_line - start_line));

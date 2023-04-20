@@ -319,7 +319,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 let exn_to_error file (e : Exception.t) =
   match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
-      let loc = PI.unsafe_token_location_of_info tok in
+      let loc = Tok.unsafe_location_of_tok tok in
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 

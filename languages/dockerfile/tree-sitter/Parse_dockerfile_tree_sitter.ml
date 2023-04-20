@@ -465,7 +465,7 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
    TODO: move this function to Parse_info?
 *)
 let empty_token_after tok : tok =
-  match PI.token_location_of_info tok with
+  match Tok.location_of_tok tok with
   | Ok loc ->
       let prev_len = String.length loc.str in
       let loc =
