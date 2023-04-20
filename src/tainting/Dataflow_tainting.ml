@@ -1356,6 +1356,34 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
          * when `x` is tainted, because the call is represented in IL as `(x.foo)()`.
          * TODO: Properly track taint through objects. *)
         (Taints.union e_taints call_taints, lval_env)
+    (* TODO: Refactor wrt Call *)
+    | New (_lval, _ty, Some constructor, args) ->
+        let args_taints, (lval_env, all_taints) =
+          args
+          |> List.fold_left_map
+               (fun (lval_env, all_taints) arg ->
+                 let taints, lval_env =
+                   check_expr { env with lval_env } (IL_helpers.exp_of_arg arg)
+                 in
+                 let new_acc = (lval_env, taints :: all_taints) in
+                 match arg with
+                 | Unnamed _ -> (new_acc, Unnamed taints)
+                 | Named (id, _) -> (new_acc, Named (id, taints)))
+               (env.lval_env, [])
+          |> Common2.swap
+        in
+        let all_args_taints =
+          List.fold_left Taints.union Taints.empty all_taints
+        in
+        (* let eorig =  in *)
+         ( match
+            check_function_signature { env with lval_env } constructor args args_taints
+          with
+          | Some (call_taints, lval_env) -> 
+            logger#flash "returns %s with lval-env %s" (T.show_taints call_taints) (Lval_env.to_string T.show_taints lval_env);
+            (call_taints, lval_env)
+          | None ->
+              (all_args_taints, lval_env))
     | New (_, _, _, args)
     | CallSpecial (_, _, args) ->
         args
@@ -1498,7 +1526,10 @@ let transfer :
               else
                 (* Instruction returns safe data, remove taints from lval.
                  * See [Taint_lval_env] for details. *)
-                Lval_env.clean lval_env' lval
+                (match x.i with
+                | New _ -> lval_env'
+                | _ -> 
+                Lval_env.clean lval_env' lval)
           | None ->
               (* Instruction returns 'void' or its return value is ignored. *)
               lval_env'

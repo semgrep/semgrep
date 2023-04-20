@@ -578,14 +578,10 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, cons_id_info, args) ->
+  | G.New (tok, ty, _cons_id_info, args) ->
       let lval = fresh_lval env tok in
       let args = arguments env (PI.unbracket args) in
-      let opt_cons =
-        mk_class_constructor_name ty cons_id_info
-        |> Option.map var_of_name
-      in
-      add_instr env (mk_i (New (lval, ty, opt_cons, args)) eorig);
+      add_instr env (mk_i (New (lval, ty, None, args)) eorig);
       mk_e (Fetch lval) NoOrig
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
@@ -1166,8 +1162,11 @@ and stmt_aux env st =
       let obj_lval = lval_of_base (Var obj') in
       let ss, args' = args_with_pre_stmts env (PI.unbracket args) in
       let opt_cons =
-        mk_class_constructor_name ty cons_id_info
-        |> Option.map var_of_name
+        let* cons = mk_class_constructor_name ty cons_id_info in
+        let cons' = var_of_name cons in
+        (* let cons_orig = SameAs (G.DotAccess (G.N obj |> G.e, tok, G.FN cons) |> G.e) in *)
+        let cons_exp = mk_e (Fetch {obj_lval with rev_offset = [{o=Dot cons'; oorig=NoOrig}]}) (SameAs (N cons |> G.e) ) in
+        Some cons_exp
       in
       ss @ [ mk_s (Instr (mk_i (New (obj_lval, ty, opt_cons, args')) (SameAs new_exp))) ]
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->

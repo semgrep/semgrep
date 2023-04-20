@@ -75,7 +75,7 @@ let short_string_of_node_kind nkind =
             | Some lval -> string_of_lval lval ^ " = "
           in
           lval_str ^ string_of_exp exp ^ "(" ^ string_of_arguments args ^ ")"
-      | New (lval, ty, _ii, args) ->
+      | New (lval, ty, _cons, args) ->
           Common.spf "%s = new %s(%s)" (string_of_lval lval) (string_of_type ty) (string_of_arguments args)
       | CallSpecial (lval_opt, (call_special, _tok), args) ->
           let lval_str =
