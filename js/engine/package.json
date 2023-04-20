@@ -5,8 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "make dist/index.js dist/index.d.ts",
-    "test": "jest",
-    "prepublish": "make dist/index.js dist/index.d.ts"
+    "test": "jest"
   },
   "repository": {
     "type": "git",

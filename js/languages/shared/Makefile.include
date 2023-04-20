@@ -30,17 +30,14 @@ TS_EXPORTED_FUNCTIONS ?= _tree_sitter_$(SEMGREP_TS_LANG)
 default: build
 
 .PHONY: build
-build:
-	npm ci
-	npm run build
+build: dist/index.js dist/index.d.ts
 
 .PHONY: test
-test:
-	npm run test
+test: build
+	npx jest
 
 .PHONY: package
-package:
-	npm ci
+package: build
 	npm pack
 
 .PHONY: clean
@@ -61,8 +58,11 @@ dist/semgrep-parser.js: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTR
 WASM_DEP := dist/semgrep-parser.js
 endif
 
-dist/index.js: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js
-	esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+node_modules/.package-lock.json:
+	npm ci
+
+dist/index.js: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
 dist/index.d.ts: ../shared/index.d.ts
 	cp $^ $@

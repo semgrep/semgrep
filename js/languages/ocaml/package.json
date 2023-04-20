@@ -9,9 +9,7 @@
   ],
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "make dist/index.js dist/index.d.ts",
-    "test": "jest",
-    "prepublish": "make dist/index.js dist/index.d.ts"
+    "test": "jest"
   },
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",

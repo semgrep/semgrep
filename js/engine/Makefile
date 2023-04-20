@@ -7,14 +7,12 @@ ESBUILD_DEFAULTS = \
 .PHONY: default
 default: build
 
-.PHONY: test
-test:
-	npm run test
-
 .PHONY: build
-build:
-	npm ci
-	npm run build
+build: dist/index.js dist/index.d.ts
+
+.PHONY: test
+test: build
+	npx jest
 
 .PHONY: package
 package:
@@ -26,12 +24,15 @@ clean:
 	rm -rf dist
 
 ../libyaml/dist/libyaml.js:
-	make -C ../libyaml build
+	cd ../libyaml; $(MAKE) build
 
-dist/index.js: src/index.ts ../libyaml/dist/libyaml.js
-	mkdir -p dist
-	esbuild $< $(ESBUILD_DEFAULTS) --outfile=$@
+node_modules/.package-lock.json:
+	npm ci
 
-dist/index.d.ts: src/index.ts
+dist/index.js: node_modules/.package-lock.json src/index.ts ../libyaml/dist/libyaml.js
 	mkdir -p dist
-	tsc
+	npx esbuild $< $(ESBUILD_DEFAULTS) --outfile=$@
+
+dist/index.d.ts: node_modules/.package-lock.json src/index.ts
+	mkdir -p dist
+	npx -p typescript tsc

@@ -8,17 +8,18 @@ EMCC_DEFAULTS = \
 default: build
 
 .PHONY: build
-build:
-	npm ci
-	npm run build
+build: dist/libyaml.d.ts dist/libyaml.js
+
+.PHONY: test
+test: build
+	npx jest
 
 .PHONY: clean
 clean:
 	rm -rf dist
 
-.PHONY: test
-test: default
-	npm run test
+node_modules/.package-lock.json:
+	npm ci
 
 dist/libyaml.js: *.c
 	mkdir -p dist
@@ -30,3 +31,6 @@ dist/libyaml.js: *.c
 		$(EMCC_DEFAULTS) \
 		-sEXPORTED_FUNCTIONS=_malloc,_free,_get_sizeof_yaml_parser_t,_get_sizeof_yaml_event_t,_yaml_get_version_string,_yaml_get_version,_yaml_parser_initialize,_yaml_parser_set_input_string,_yaml_parser_parse,_yaml_event_delete,_yaml_parser_delete \
 		-o $@
+
+dist/libyaml.d.ts: node_modules/.package-lock.json dist/libyaml.js
+	npx -p typescript tsc

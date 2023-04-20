@@ -3,33 +3,33 @@ default: libyaml engine languages
 
 .PHONY: test
 test:
-	make -C libyaml test
-	make -C engine test
-	make -C languages test
+	cd libyaml; $(MAKE) test
+	cd engine; $(MAKE) test
+	cd languages; $(MAKE) test
 
 .PHONY: e2e
 e2e: engine languages
-	make -C e2e test
+	cd e2e; $(MAKE) test
 
 .PHONY: package
 package:
-	make -C engine package
-	make -C languages package
+	cd engine; $(MAKE) -C engine package
+	cd languages; $(MAKE) -C languages package
 
 .PHONY: libyaml
 libyaml:
-	make -C libyaml
+	cd libyaml; $(MAKE)
 
 .PHONY: languages
 languages:
-	make -C languages
+	cd languages; $(MAKE)
 
 .PHONY: engine
 engine:
-	make -C engine
+	cd engine; $(MAKE)
 
 .PHONY: clean
 clean:
-	make -C libyaml clean
-	make -C engine clean
-	make -C languages clean
+	cd libyaml; $(MAKE) clean
+	cd engine; $(MAKE) clean
+	cd languages; $(MAKE) clean
