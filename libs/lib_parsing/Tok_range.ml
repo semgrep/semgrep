@@ -4,8 +4,7 @@
    This is used so far in intermediate, language-specific ASTs.
 *)
 
-type tok = Parse_info.t [@@deriving show]
-type t = tok * tok [@@deriving show]
+type t = Tok.t * Tok.t [@@deriving show]
 
 let fix ((left, right) as loc) =
   if Parse_info.is_fake left then (right, right)
