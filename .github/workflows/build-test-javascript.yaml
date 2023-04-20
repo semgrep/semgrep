@@ -25,7 +25,7 @@ jobs:
         with:
           path: |
             .
-          key: semgrep-js-git-${{ git.sha }}
+          key: semgrep-js-git-${{ github.sha }}
       - name: Build semgrep
         run: |
           eval $(opam env)
@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: .
-          key: semgrep-js-git-${{ git.sha }}
+          key: semgrep-js-git-${{ github.sha }}
       - name: Make checkout speedy
         if: ${{ steps.cache-git.outputs.cache-hit != 'true' }}
         run: git config --global fetch.parallel 50
