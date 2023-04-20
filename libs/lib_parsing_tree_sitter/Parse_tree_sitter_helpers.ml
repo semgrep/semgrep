@@ -28,6 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 type 'a env = {
+  (* TODO: use Fpath.t *)
   file : Common.filename;
   (* get the charpos (offset) in file given a line x col *)
   conv : (int * int, int) Hashtbl.t;
@@ -88,13 +89,6 @@ let token env (tok : Tree_sitter_run.Token.t) =
 let str env (tok : Tree_sitter_run.Token.t) =
   let _, s = tok in
   (s, token env tok)
-
-let combine_tokens_DEPRECATED env xs =
-  match xs with
-  | [] -> failwith "combine_tokens: empty list"
-  | x :: _xsTODO ->
-      let t = token env x in
-      t
 
 let debug_sexp_cst_after_error sexp_cst =
   let s = Printexc.get_backtrace () in
