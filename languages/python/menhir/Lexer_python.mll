@@ -20,7 +20,6 @@ open Common
 open Lexing
 
 open Parser_python
-module PI = Parse_info
 module Flag = Flag_parsing_python
 
 (*****************************************************************************)

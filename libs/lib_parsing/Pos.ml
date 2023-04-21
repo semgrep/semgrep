@@ -35,6 +35,7 @@ open Common
 (*****************************************************************************)
 
 type t = {
+  (* TODO? rename bytepos? handle UTF-8? *)
   charpos : int; (* byte position, 0-based *)
   (* line x column can be filled later based on charpos.
    * See complete_position() *)
@@ -64,6 +65,9 @@ let string_of_pos x = spf "%s:%d:%d" x.file x.line x.column
 (* Adjust line x col in a position *)
 (*****************************************************************************)
 
+(* conversion table, in the shape of a function *)
+type bytepos_to_linecol_fun = int -> int * int
+
 (* Lexing.ml in the standard OCaml libray does not handle
  * the line number position.
  * Even if there are certain fields in the Lexing.position structure, they are
@@ -86,7 +90,8 @@ let complete_position filename table (x : t) =
     column = snd (table x.charpos);
   }
 
-let full_charpos_to_pos_large file =
+let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun
+    =
   let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
@@ -147,7 +152,7 @@ let full_charpos_to_pos_large file =
 
 (* This is mostly a copy-paste of full_charpos_to_pos_large,
    but using a string for a target instead of a file. *)
-let full_charpos_to_pos_str s =
+let full_charpos_to_pos_str (s : string) : bytepos_to_linecol_fun =
   let size = String.length s + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)

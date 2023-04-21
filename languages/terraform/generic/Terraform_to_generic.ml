@@ -25,7 +25,7 @@ module H2 = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let map_argument (arg : argument) : G.definition =
   let id, _teq, e = arg in
@@ -79,7 +79,7 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
    * TODO: should we use something else than Call since it's already used
    * for expressions in map_expr_term() above?
    *)
-  G.Call (G.N n |> G.e, Parse_info.unsafe_fake_bracket args) |> G.e
+  G.Call (G.N n |> G.e, Tok.unsafe_fake_bracket args) |> G.e
 
 (*****************************************************************************)
 (* Entry points *)

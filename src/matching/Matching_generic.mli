@@ -169,8 +169,8 @@ val m_string_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
 
 val m_ellipsis_or_metavar_or_string : string AST_generic.wrap matcher
-val m_info : Parse_info.t matcher
-val m_tok : Parse_info.t matcher
+val m_info : Tok.t matcher
+val m_tok : Tok.t matcher
 val m_wrap : 'a matcher -> 'a AST_generic.wrap matcher
 val m_bracket : 'a matcher -> 'a AST_generic.bracket matcher
 val m_tuple3 : 'a matcher -> 'b matcher -> 'c matcher -> ('a * 'b * 'c) matcher

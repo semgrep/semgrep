@@ -91,8 +91,8 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
         (* could assert pinfo.filename = file ? *)
         (match ii.token with
         | OriginTok pi -> OriginTok (Tok.complete_location filename table pi)
-        | ExpandedTok (pi, vpi, off) ->
-            ExpandedTok (Tok.complete_location filename table pi, vpi, off)
+        | ExpandedTok (pi, vloc) ->
+            ExpandedTok (Tok.complete_location filename table pi, vloc)
         | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
         | Ab -> raise Common.Impossible);
     }

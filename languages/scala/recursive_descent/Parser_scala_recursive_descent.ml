@@ -16,7 +16,6 @@ open Common
 module T = Token_scala
 module TH = Token_helpers_scala
 module Flag = Flag_parsing
-module PI = Parse_info
 open Token_scala
 open AST_scala
 module AST = AST_scala
@@ -104,7 +103,7 @@ type env = {
   mutable rest : T.token list;
   mutable passed : T.token list;
   (* newline: last newline token *)
-  mutable last_nl : Parse_info.t option;
+  mutable last_nl : Tok.t option;
   (* for logging *)
   mutable depth : int;
   (* is the current token indented? if so, at what line and width?
@@ -141,7 +140,7 @@ let copy_env env = { env with token = env.token }
 
 (* Trick to use = (called =~= below) to compare tokens *)
 let ab = Tok.abstract_tok
-let fb = PI.fake_bracket
+let fb = Tok.fake_bracket
 let noSelfType = None
 let noMods = []
 
@@ -813,7 +812,7 @@ let inBracesOrIndented f in_ =
   | LBRACE _ -> inBraces f in_
   | _ ->
       enterIndentRegion in_;
-      let res = fb (PI.unsafe_fake_info "") (f in_) in
+      let res = fb (Tok.unsafe_fake_tok "") (f in_) in
       closeIndentRegion in_;
       res
 
@@ -2429,7 +2428,7 @@ and parseIf in_ : stmt =
         let e = expr in_ in
         accept (ID_LOWER ("then", ab)) in_;
         newLinesOpt in_;
-        fb (PI.unsafe_fake_info "") e
+        fb (Tok.unsafe_fake_tok "") e
   in
   opportunisticIndent in_;
   let thenp = expr in_ in
@@ -2468,7 +2467,7 @@ and parseWhile in_ : stmt =
         let e = expr in_ in
         newLinesOpt in_;
         accept (Kdo ab) in_;
-        fb (PI.unsafe_fake_info "") e
+        fb (Tok.unsafe_fake_tok "") e
   in
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
@@ -2511,7 +2510,7 @@ and parseFor in_ : stmt =
            See
            https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
         *)
-        fb (PI.unsafe_fake_info "") (enumerators in_)
+        fb (Tok.unsafe_fake_tok "") (enumerators in_)
   in
   newLinesOpt in_;
   let body =
@@ -3830,7 +3829,7 @@ let templateBody ~isPre in_ : template_body =
       (* must be a colon *)
       accept (COLON ab) in_;
       enterIndentRegion in_;
-      let res = fb (PI.unsafe_fake_info "") (templateStatSeq ~isPre in_) in
+      let res = fb (Tok.unsafe_fake_tok "") (templateStatSeq ~isPre in_) in
       closeIndentRegion in_;
       res
 
@@ -4252,7 +4251,7 @@ let givenSig in_ : given_sig =
   let id_opt = ident_opt in_ in
   let owner =
     match id_opt with
-    | None -> ("", PI.unsafe_fake_info "")
+    | None -> ("", Tok.unsafe_fake_tok "")
     | Some x -> x
   in
   let tparams = typeParamClauseOpt owner None in_ in

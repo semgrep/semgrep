@@ -56,7 +56,7 @@ type env = {
   within_an_object : bool;
 }
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -66,7 +66,7 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
-let fk = Parse_info.unsafe_fake_info ""
+let fk = Tok.unsafe_fake_tok ""
 let fb x = (fk, x, fk)
 let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
 let mk_array exprs = A (fk, Array exprs, fk)

@@ -20,7 +20,6 @@ module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
 module G = AST_generic
-module PI = Parse_info
 module Set = Set_
 module MV = Metavariable
 
@@ -617,7 +616,7 @@ let rewrite_metavar_comparison_strip cond =
             | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
               ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
+                G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
                 |> G.e
             | _ -> e);
       }
@@ -1416,7 +1415,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
         equivs_opt,
         options_opt ) =
     ( (match mode with
-      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
       | _ ->
           ( take rd env parse_string "message",
             take rd env parse_string_wrap "severity" )),

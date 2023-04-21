@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
 open Ast_ml
@@ -43,7 +42,7 @@ let str = H.str
 (* like in parser_ml.mly *)
 let seq1 = function
   | [ x ] -> x
-  | xs -> Sequence (PI.unsafe_fake_bracket xs)
+  | xs -> Sequence (Tok.unsafe_fake_bracket xs)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -991,7 +990,7 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) : pattern =
       let v1 = map_binding_pattern_ext env v1 in
       let v2 = token env v2 (* "," *) in
       let v3 = map_binding_pattern_ext env v3 in
-      PatTuple (PI.fake_bracket v2 [ v1; v3 ])
+      PatTuple (Tok.fake_bracket v2 [ v1; v3 ])
   | `Cons_bind_pat_f2d0ae9 (v1, v2, v3) ->
       let v1 = map_binding_pattern_ext env v1 in
       let v2 = token env v2 (* "::" *) in
@@ -1920,7 +1919,7 @@ and map_module_expression (env : env) (x : CST.module_expression) =
             let _v2 = token env v2 (* ")" *) in
             []
       in
-      ModuleTodo (("App", PI.unsafe_fake_info ""), v1 :: v2)
+      ModuleTodo (("App", Tok.unsafe_fake_tok ""), v1 :: v2)
 
 and map_module_expression_ext (env : env) (x : CST.module_expression_ext) =
   match x with
@@ -2230,7 +2229,7 @@ and map_pattern (env : env) (x : CST.pattern) : pattern =
       let v1 = map_pattern_ext env v1 in
       let v2 = token env v2 (* "," *) in
       let v3 = map_pattern_ext env v3 in
-      PatTuple (PI.fake_bracket v2 [ v1; v3 ])
+      PatTuple (Tok.fake_bracket v2 [ v1; v3 ])
   | `Cons_pat_9b4e481 (v1, v2, v3) ->
       let v1 = map_pattern_ext env v1 in
       let v2 = token env v2 (* "::" *) in

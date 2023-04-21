@@ -16,7 +16,6 @@
 open Common
 open Parser_cpp
 module Flag = Flag_parsing
-module PI = Parse_info
 module TH = Token_helpers_cpp
 module Hack = Parsing_hacks_lib
 
@@ -84,7 +83,7 @@ let mark_end_define ii =
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'
 
-let pos ii = Parse_info.string_of_info ii
+let pos ii = Tok.stringpos_of_tok ii
 
 (*****************************************************************************)
 (* Parsing hacks for #define *)

@@ -12,7 +12,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module Out = Output_from_core_j
 module R = Rule
 

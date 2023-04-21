@@ -70,5 +70,5 @@ and lazy_value = {
 (* Helpers *)
 (*****************************************************************************)
 let empty_obj : value_ =
-  let fk = Parse_info.unsafe_fake_info "" in
+  let fk = Tok.unsafe_fake_tok "" in
   Object (fk, ([], []), fk)

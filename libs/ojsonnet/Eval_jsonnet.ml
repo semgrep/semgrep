@@ -17,7 +17,6 @@ open Core_jsonnet
 module A = AST_jsonnet
 module V = Value_jsonnet
 module J = JSON
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -45,7 +44,7 @@ type env = {
 
 and local_id = LSelf | LSuper | LId of string
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (* -1, 0, 1 *)
 type cmp = Inf | Eq | Sup
@@ -58,7 +57,7 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
-let fk = Parse_info.unsafe_fake_info ""
+let fk = Tok.unsafe_fake_tok ""
 
 let sv e =
   let s = V.show_value_ e in
@@ -97,7 +96,7 @@ let tostring (v : Value_jsonnet.value_) : string =
 let log_call env str tk =
   logger#trace "calling %s> %s at %s"
     (Common2.repeat "-" env.depth |> Common.join "")
-    str (PI.string_of_info tk)
+    str (Tok.stringpos_of_tok tk)
 
 (*****************************************************************************)
 (* Builtins *)

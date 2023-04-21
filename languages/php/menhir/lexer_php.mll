@@ -21,7 +21,6 @@ open Parser_php
 module Ast = Cst_php
 module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

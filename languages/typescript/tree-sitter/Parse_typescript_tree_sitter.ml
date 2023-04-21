@@ -9,7 +9,6 @@ open Common
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
-module PI = Parse_info
 module H2 = AST_generic_helpers
 open Ast_js
 
@@ -32,8 +31,8 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fake = PI.unsafe_fake_info ""
-let fb = PI.unsafe_fake_bracket
+let fake = Tok.unsafe_fake_tok ""
+let fb = Tok.unsafe_fake_bracket
 let mk_functype (params, rett) = TyFun (params, rett)
 
 (* Note that this file also raises some Impossible and Ast_builder_error *)
@@ -113,7 +112,7 @@ let identifier_ (env : env) (x : CST.identifier_) : expr =
 (* LATER: this is overriden by another automatic_semicolon later, normal? *)
 let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
   (* do like in pfff: *)
-  PI.unsafe_fake_info ";"
+  Tok.unsafe_fake_tok ";"
 
 let semicolon (env : env) (x : CST.semicolon) =
   match x with
@@ -535,7 +534,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
         *)
         let _v2TODO =
           match v2 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         id
@@ -555,7 +554,7 @@ and jsx_self_clos_elem (env : env)
         let id = concat_nested_identifier v1 in
         let _v2TODO =
           match v2 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         id
@@ -1229,7 +1228,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
                 match v4 with
                 | `Exp x ->
                     let e = expression env x in
-                    Return (v3, Some e, PI.sc v3)
+                    Return (v3, Some e, Tok.sc v3)
                 | `Stmt_blk x -> statement_block env x
               in
               let f_kind = (G.Arrow, v3) in
@@ -1316,7 +1315,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       (* TODO: types *)
       let _v2TODO =
         match v2 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let v3 =
@@ -1335,7 +1334,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       (* TODO: types *)
       let _v3TODO =
         match v3 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let v4 = arguments env v4 in
@@ -1689,7 +1688,7 @@ and expression (env : env) (x : CST.expression) : expr =
       (* TODO types *)
       let _v3TODO =
         match v3 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let t1, xs, t2 =
@@ -2006,12 +2005,12 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       let pat =
         match opt_type with
         | None -> pat
-        | Some type_ -> Cast (pat, PI.unsafe_fake_info ":", type_)
+        | Some type_ -> Cast (pat, Tok.unsafe_fake_tok ":", type_)
       in
       let pat =
         match opt_default with
         | None -> pat
-        | Some expr -> Assign (pat, PI.unsafe_fake_info "=", expr)
+        | Some expr -> Assign (pat, Tok.unsafe_fake_tok "=", expr)
       in
       ParamPattern pat
 
@@ -2593,7 +2592,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
   let v2 = expression env v2 in
   let v3 =
     match v3 with
-    | Some x -> type_arguments env x |> PI.unbracket
+    | Some x -> type_arguments env x |> Tok.unbracket
     | None -> []
   in
   let v4 =
@@ -2603,7 +2602,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
         let v2 = expression env v2 in
         let v3 =
           match v3 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         tyname_or_expr_of_expr v2 v3)

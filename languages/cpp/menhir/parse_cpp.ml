@@ -15,7 +15,6 @@
 open Common
 open File.Operators
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 module FT = File_type
 module Ast = Ast_cpp
@@ -79,7 +78,7 @@ let count_lines_commentized xs =
   commentized xs
   |> List.iter (function
        | Tok.OriginTok pinfo
-       | Tok.ExpandedTok (_, pinfo, _) ->
+       | Tok.ExpandedTok (_, (pinfo, _)) ->
            let newline = pinfo.Tok.pos.line in
            if newline <> !line then (
              line := newline;

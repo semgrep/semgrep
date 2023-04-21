@@ -15,7 +15,6 @@
 open Common
 module AST = Ast_java
 module CST = Tree_sitter_java.CST
-module PI = Parse_info
 open Ast_java
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
@@ -39,7 +38,7 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 type env = unit H.env
 
-let fake = PI.fake_info
+let fake = Tok.fake_tok
 let token = H.token
 let str = H.str
 let option = Option.map
@@ -758,9 +757,9 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
       ((true, v1), v2)
 
 and stmt1 tok = function
-  | [] -> EmptyStmt (PI.fake_info tok ";")
+  | [] -> EmptyStmt (Tok.fake_tok tok ";")
   | [ x ] -> x
-  | xs -> Block (PI.fake_bracket tok xs)
+  | xs -> Block (Tok.fake_bracket tok xs)
 
 and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
   statement_aux env x |> stmt1 tok
@@ -1968,7 +1967,7 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
 let program (env : env) file (x : CST.program) =
   match x with
   | `Rep_stmt xs ->
-      let tok = PI.fake_info_loc (Tok.first_loc_of_file file) "" in
+      let tok = Tok.first_tok_of_file file in
       AProgram (Common.map (statement env ~tok) xs)
   | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
   | `Exp x -> AExpr (expression env x)

@@ -13,7 +13,6 @@
 open Common
 open Ast_java
 open File.Operators
-module PI = Parse_info
 module PS = Parsing_stat
 module V = Visitor_java
 module Flag = Flag_parsing

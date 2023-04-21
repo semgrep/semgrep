@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (* G is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -254,7 +253,7 @@ let make_dotted xs =
       let base = B.N (B.Id (x, B.empty_id_info ())) |> G.e in
       List.fold_left
         (fun acc e ->
-          let tok = Parse_info.fake_info (snd x) "." in
+          let tok = Tok.fake_tok (snd x) "." in
           B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
         base xs
 
@@ -1819,8 +1818,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
    * regular non-AC matching. *)
   if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
     match
-      ( H.ac_matching_nf aop (PI.unbracket aargs),
-        H.ac_matching_nf bop (PI.unbracket bargs) )
+      ( H.ac_matching_nf aop (Tok.unbracket aargs),
+        H.ac_matching_nf bop (Tok.unbracket bargs) )
     with
     | Some aargs_ac, Some bargs_ac ->
         if is_commutative_operator aop then
@@ -2331,8 +2330,7 @@ and m_stmt a b =
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
-      | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
-          m_expr suba subb
+      | B.ExprStmt (subb, _) when not (Tok.is_fake sc) -> m_expr suba subb
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()

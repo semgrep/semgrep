@@ -92,7 +92,7 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* We apply a different mapping whether we're parsing a pattern or target
    program. *)

@@ -16,7 +16,6 @@ module CST = Tree_sitter_html.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -35,7 +34,7 @@ type env = unit H.env
 let fake = AST_generic.fake
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Boilerplate converter *)

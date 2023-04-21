@@ -16,7 +16,6 @@
 open Common
 module CST = Tree_sitter_kotlin.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
@@ -36,8 +35,8 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
-let sc tok = PI.sc tok
+let fb = Tok.unsafe_fake_bracket
+let sc tok = Tok.sc tok
 
 let var_to_pattern (id, ptype) =
   let pat = PatId (id, empty_id_info ()) in

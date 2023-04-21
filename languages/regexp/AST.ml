@@ -4,7 +4,7 @@
 
 open Printf
 
-type loc = Parse_info.t * Parse_info.t
+type loc = Tok_range.t
 
 type opt =
   | Caseless
@@ -103,7 +103,7 @@ let location2 a b =
 let range (a, _) (_, b) = (a, b)
 
 let dummy_loc =
-  let tok = Parse_info.unsafe_fake_info "" in
+  let tok = Tok.unsafe_fake_tok "" in
   (tok, tok)
 
 let union (a : char_class) (b : char_class) =

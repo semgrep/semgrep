@@ -15,7 +15,6 @@
 open Common
 module CST = Tree_sitter_clojure.CST
 module R = Raw_tree
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H = Parse_tree_sitter_helpers

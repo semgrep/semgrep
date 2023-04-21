@@ -15,7 +15,6 @@
  *)
 
 module Flag = Flag_parsing
-module PI = Parse_info
 module Ast = Ast_js
 module T = Parser_js
 module TH = Token_helpers_js
@@ -93,7 +92,7 @@ let rparens_of_if toks =
 (* alt: could have instead a better Ast_fuzzy type instead of putting
  * everything in the Tok category?
  *)
-let is_identifier horigin (info : Parse_info.t) =
+let is_identifier horigin (info : Tok.t) =
   match Hashtbl.find_opt horigin info with
   | Some (T.T_ID _) -> true
   | _ -> false
@@ -192,7 +191,7 @@ let fix_tokens_ASI xs =
   let push_sc_before_x x =
     let info = TH.info_of_tok x in
     let fake = Ast.fakeInfoAttach info in
-    logger#debug "ASI: insertion fake ';' before %s" (PI.string_of_info info);
+    logger#debug "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info);
     Common.push (T.T_VIRTUAL_SEMICOLON fake) res
   in
 

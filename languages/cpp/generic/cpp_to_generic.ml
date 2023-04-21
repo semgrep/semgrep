@@ -16,7 +16,6 @@ open Common
 module H = AST_generic_helpers
 open Ast_cpp
 open OCaml (* for the map_of_xxx *)
-module PI = Parse_info
 module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -48,11 +47,12 @@ let error t s = raise (Parsing_error.Other_error (s, t))
 let error_unless_partial_error _env t s =
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
+    logger#error "error_unless_partial_error: %s, at %s" s
+      (Tok.stringpos_of_tok t)
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let map_either _env f g x =
   match x with
@@ -442,7 +442,7 @@ and map_expr env x : G.expr =
       in
       let arg = arg_of_either_expr_type v2 in
       let special = G.IdSpecial (G.Sizeof, v1) |> G.e in
-      G.Call (special, PI.unsafe_fake_bracket [ arg ]) |> G.e
+      G.Call (special, Tok.unsafe_fake_bracket [ arg ]) |> G.e
   | Cast (v1, v2) ->
       let l, t, _r = map_paren env (map_type_ env) v1
       and v2 = map_expr env v2 in
@@ -461,7 +461,7 @@ and map_expr env x : G.expr =
       |> G.e
   | ConstructedObject (v1, v2) ->
       let t = map_type_ env v1 and l, args, r = map_obj_init env v2 in
-      G.New (PI.fake_info l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
+      G.New (Tok.fake_tok l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
   | TypeId (v1, v2) ->
       let v1 = map_tok env v1
       and _l, either, _r =
@@ -484,7 +484,7 @@ and map_expr env x : G.expr =
       and v5 = map_of_option (map_obj_init env) v5 in
       let l, args, r =
         match v5 with
-        | None -> PI.unsafe_fake_bracket []
+        | None -> Tok.unsafe_fake_bracket []
         | Some (l, args, r) -> (l, args, r)
       in
       G.New (v2, v4, G.empty_id_info (), (l, args, r)) |> G.e
@@ -763,7 +763,7 @@ and map_stmt env x : G.stmt =
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
-      let st = G.Block (PI.unsafe_fake_bracket v2) |> G.s in
+      let st = G.Block (Tok.unsafe_fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
 
 (* similar to Ast_c_build.cases()
@@ -1642,7 +1642,7 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) either =
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
       fun tk ->
         let dots = H.dotted_ident_of_name v2 in
-        Left (G.ImportAll (tk, G.DottedName dots, PI.fake_info v1 "") |> G.d)
+        Left (G.ImportAll (tk, G.DottedName dots, Tok.fake_tok v1 "") |> G.d)
   | UsingAlias (v1, v2, v3) ->
       fun _tk ->
         let v1 = map_ident env v1

@@ -17,7 +17,6 @@ open Common
 module TH = Token_helpers_cpp
 module TV = Token_views_cpp
 module Parser = Parser_cpp
-module PI = Parse_info
 open Parser_cpp
 open Token_views_cpp
 open Parsing_hacks_lib
