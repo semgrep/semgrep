@@ -12,7 +12,7 @@ build: dist/index.cjs dist/index.mjs dist/index.d.ts
 
 .PHONY: test
 test: build
-	npx jest
+	npm test
 
 .PHONY: package
 package: build

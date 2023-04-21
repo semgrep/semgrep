@@ -12,7 +12,7 @@ build: dist/libyaml.js dist/libyaml.d.ts
 
 .PHONY: test
 test: build
-	npx jest
+	npm test
 
 .PHONY: clean
 clean:
