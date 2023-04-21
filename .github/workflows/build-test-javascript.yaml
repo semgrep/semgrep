@@ -82,7 +82,7 @@ jobs:
       - name: Build and test NPM packages
         run: |
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-          make -C js -j $(nproc) build test
+          make -C js -j $(nproc) test
 
           echo "Creating NPM packages..."
           make -C js -j $(nproc) package
