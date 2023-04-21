@@ -14,7 +14,6 @@
  *)
 
 module CST = Tree_sitter_python.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_python
 
@@ -39,8 +38,8 @@ let str = H.str
 
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
-let fb = Parse_info.unsafe_fake_bracket
-let invalid () = raise (PI.NoTokenLocation "Invalid program")
+let fb = Tok.unsafe_fake_bracket
+let invalid () = raise (Tok.NoTokenLocation "Invalid program")
 
 (* AST builders helpers
  * less: could be moved in AST_Python.ml to factorize things with
@@ -721,7 +720,7 @@ and map_pattern_to_parameter (env : env) (x : CST.pattern) : param_pattern =
   | `Subs _
   | `List_pat _
   | `Attr _ ->
-      raise (PI.NoTokenLocation "")
+      raise (Tok.NoTokenLocation "")
   | `List_splat_pat x ->
       (* Via the Python 3 grammar, you can only have a pow in a pattern if the next
          is just a NAME.

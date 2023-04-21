@@ -27,7 +27,6 @@
  *)
 open Common
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 module TH = Token_helpers_ruby
 module HH = Parser_ruby_helpers
@@ -56,8 +55,8 @@ let mk_lexer filename input_source =
   let table =
     match input_source with
     | Parsing_helpers.File file ->
-        Parsing_helpers.full_charpos_to_pos_large (Fpath.to_string file)
-    | Parsing_helpers.Str str -> Parsing_helpers.full_charpos_to_pos_str str
+        Pos.full_charpos_to_pos_large (Fpath.to_string file)
+    | Parsing_helpers.Str str -> Pos.full_charpos_to_pos_str str
   in
 
   let adjust_info (ii : Tok.t) =
@@ -67,10 +66,7 @@ let mk_lexer filename input_source =
         (* could assert pinfo.filename = file ? *)
         (match ii.token with
         | Tok.OriginTok pi -> (
-            try
-              Tok.OriginTok
-                (Parsing_helpers.complete_token_location_large filename table pi)
-            with
+            try Tok.OriginTok (Tok.complete_location filename table pi) with
             | Invalid_argument "index out of bounds" ->
                 (* TODO: fix! *)
                 (* pr2_gen pi *)
@@ -89,8 +85,8 @@ let mk_lexer filename input_source =
   let rec lexer lexbuf =
     let tok =
       try Lexer_ruby.token state lexbuf with
-      | PI.Lexical_error (s, info) ->
-          raise (PI.Lexical_error (s, adjust_info info))
+      | Parsing_error.Lexical_error (s, info) ->
+          raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
     if !Flag_parsing.debug_lexer then Common.pr2_gen tok;
 
@@ -149,15 +145,15 @@ let parse2 opt_timeout file =
 
           (* pr2 (spf "Exn on %s = %s" file s); *)
           if (not !Flag.error_recovery) && exn =*= Dyp.Syntax_error then
-            raise (PI.Parsing_error (TH.info_of_tok cur));
+            raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
           if (not !Flag.error_recovery) && exn <> Dyp.Syntax_error then
-            raise (PI.Other_error (s, TH.info_of_tok cur));
+            raise (Parsing_error.Other_error (s, TH.info_of_tok cur));
 
           if !Flag.show_parsing_error && exn =*= Dyp.Syntax_error then (
             pr2 ("parse error \n = " ^ error_msg_tok cur);
             let filelines = Common2.cat_array file in
             let checkpoint2 = Common.cat file |> List.length in
-            let line_error = PI.line_of_info (TH.info_of_tok cur) in
+            let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
             Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
 
           stat.PS.error_line_count <- stat.PS.total_line_count;

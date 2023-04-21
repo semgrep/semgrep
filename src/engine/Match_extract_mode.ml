@@ -167,7 +167,7 @@ let mk_extract_target dst_lang contents all_rules =
     | Xlang.LRegex -> "regex"
     | Xlang.L (x, _) -> Lang.show x
   in
-  let f : Common.dirname = Common.new_temp_file "extracted" dst_lang_str in
+  let f = Common.new_temp_file "extracted" dst_lang_str in
   Common2.write_file ~file:f contents;
   {
     In.path = f;
@@ -232,8 +232,7 @@ let map_taint_trace map_loc traces =
     let token =
       match x.Tok.token with
       | Tok.OriginTok loc -> Tok.OriginTok (f loc)
-      | Tok.ExpandedTok (pp_loc, v_loc, i) ->
-          Tok.ExpandedTok (f pp_loc, v_loc, i)
+      | Tok.ExpandedTok (pp_loc, v_loc) -> Tok.ExpandedTok (f pp_loc, v_loc)
       | x -> x
     in
     { x with token }

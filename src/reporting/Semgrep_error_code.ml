@@ -12,7 +12,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module Out = Output_from_core_j
 module R = Rule
 
@@ -76,7 +75,7 @@ let mk_error ?(rule_id = None) loc msg err =
   { rule_id; loc; typ = err; msg; details = None }
 
 let mk_error_tok ?(rule_id = None) tok msg err =
-  let loc = PI.unsafe_token_location_of_info tok in
+  let loc = Tok.unsafe_loc_of_tok tok in
   mk_error ~rule_id loc msg err
 
 let error rule_id loc msg err =
@@ -95,9 +94,9 @@ let error rule_id loc msg err =
  *)
 let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   match Exception.get_exn e with
-  | Parse_info.Lexical_error (s, tok) ->
+  | Parsing_error.Lexical_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.LexicalError)
-  | Parse_info.Parsing_error tok ->
+  | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
         | { token = Tok.OriginTok { str; _ }; _ } ->
@@ -105,7 +104,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
         | __else__ -> "unknown reason"
       in
       Some (mk_error_tok tok msg Out.ParseError)
-  | Parse_info.Other_error (s, tok) ->
+  | Parsing_error.Other_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
   | R.Err err -> (
       match err with
@@ -116,7 +115,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
             {
               rule_id = Some rule_id;
               typ = Out.PatternParseError yaml_path;
-              loc = PI.unsafe_token_location_of_info pos;
+              loc = Tok.unsafe_loc_of_tok pos;
               msg =
                 spf
                   "Invalid pattern for %s:\n\

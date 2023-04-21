@@ -143,7 +143,7 @@ val split : string (* sep regexp *) -> string -> string list
 (* Deprecated.
 
    Migration in progress: File.ml reproduces the functions below and uses
-   Fpath.t instead of string to represent file/directory paths.
+   Fpath.t instead of strings to represent file/directory paths.
 *)
 
 (* Some signatures are arguably clearer when using 'filename' instead of
@@ -161,10 +161,8 @@ type filename = string [@@deriving show, eq]
  * val equal_filename: filename -> filename -> bool
  *)
 
-(* TODO: those are not used very often, maybe we should delete them *)
-type dirname = string
+(* for realpath, see efuns_c library or Realpath.ml in trimmed pfff  *)
 
-(* for realpath, see efuns_c library  *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
 *)

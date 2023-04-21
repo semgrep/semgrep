@@ -116,8 +116,8 @@ let parsing_error_tests () =
                       "it should raise a standard parsing error exn or return \
                        partial errors "
                 with
-                | Parse_info.Lexical_error _
-                | Parse_info.Parsing_error _ ->
+                | Parsing_error.Lexical_error _
+                | Parsing_error.Syntax_error _ ->
                     () )))
 
 let parsing_rules_tests () =

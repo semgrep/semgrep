@@ -14,7 +14,6 @@
  *)
 open Common
 module CST = Tree_sitter_solidity.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
@@ -35,8 +34,8 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
-let fake s = PI.unsafe_fake_info s
+let fb = Tok.unsafe_fake_bracket
+let fake s = Tok.unsafe_fake_tok s
 
 let map_trailing_comma env v =
   match v with
@@ -894,7 +893,7 @@ let map_yul_assignment_operator (env : env) (x : CST.yul_assignment_operator) =
   | `COLON_EQ (v1, v2) ->
       let v1 = (* ":" *) token env v1 in
       let v2 = (* "=" *) token env v2 in
-      PI.combine_infos v1 [ v2 ]
+      Tok.combine_toks v1 [ v2 ]
 
 let map_yul_assignment (env : env) (x : CST.yul_assignment) : expr =
   match x with

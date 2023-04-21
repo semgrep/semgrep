@@ -42,7 +42,7 @@ type env_lbody = InIfHeader | Normal
 (* alt: could have instead a better Ast_fuzzy type instead of putting
  * everything in the Tok category?
  *)
-let is_identifier horigin (info : Parse_info.t) =
+let is_identifier horigin (info : Tok.t) =
   match Hashtbl.find_opt horigin info with
   | Some (T.LNAME _) -> true
   | _ -> false
@@ -76,7 +76,7 @@ let fix_tokens_asi xs =
             x :: y :: aux env xs
         (* otherwise do ASI *)
         | _ ->
-            let iifake = Parse_info.rewrap_str "FAKE ';'" ii in
+            let iifake = Tok.rewrap_str "FAKE ';'" ii in
             (* implicit semicolon insertion *)
             x :: LSEMICOLON iifake :: y :: aux env xs)
     | x :: xs -> x :: aux env xs
@@ -213,7 +213,7 @@ let fix_tokens_lbody toks =
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if !Flag.error_recovery then toks
-      else raise (Parse_info.Lexical_error (msg, info))
+      else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* Entry point *)

@@ -42,7 +42,7 @@ let _error = G.error
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let add_attrs ent attrs = { ent with G.attrs }
 
 let mk_var_or_func tlet params tret body =
@@ -409,7 +409,7 @@ and literal = function
   | Unit (v1, v2) ->
       let v1 = tok v1 in
       let v2 = tok v2 in
-      let t = Parse_info.combine_infos v1 [ v2 ] in
+      let t = Tok.combine_toks v1 [ v2 ] in
       G.Unit t
 
 and argument = function

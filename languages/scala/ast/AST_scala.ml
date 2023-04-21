@@ -44,7 +44,7 @@ open Common
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show]
@@ -354,6 +354,7 @@ and block = block_stat list
 and block_stat =
   | D of definition
   | I of import
+  | Ex of import
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -386,6 +387,7 @@ and modifier_kind =
   | Override
   | Inline
   | Open
+  | Opaque
   (* pad: not in original spec *)
   | CaseClassOrObject
   (* less: rewrite as Packaging and object def like in original code? *)

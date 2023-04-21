@@ -16,7 +16,6 @@ open Common
 module T = Token_scala
 module TH = Token_helpers_scala
 module Flag = Flag_parsing
-module PI = Parse_info
 open Token_scala
 open AST_scala
 module AST = AST_scala
@@ -104,9 +103,13 @@ type env = {
   mutable rest : T.token list;
   mutable passed : T.token list;
   (* newline: last newline token *)
-  mutable last_nl : Parse_info.t option;
+  mutable last_nl : Tok.t option;
   (* for logging *)
   mutable depth : int;
+  (* is the current token indented? if so, at what line and width?
+     this should be used in conjunction with nextToken/fetchToken
+  *)
+  mutable is_indented : (int * int) option;
 }
 
 let mk_env toks =
@@ -125,7 +128,8 @@ let mk_env toks =
         (* We are implicitly in an indentation zone, as with the official Scala parser:
            https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L274
         *)
-        sepRegions = [ T.DEDENT (-1) ];
+        sepRegions = [ T.DEDENT (0, 0) ];
+        is_indented = None;
       }
 
 (* We sometimes need to lookahead tokens, and call fetchToken and revert;
@@ -136,7 +140,7 @@ let copy_env env = { env with token = env.token }
 
 (* Trick to use = (called =~= below) to compare tokens *)
 let ab = Tok.abstract_tok
-let fb = PI.fake_bracket
+let fb = Tok.fake_bracket
 let noSelfType = None
 let noMods = []
 
@@ -146,6 +150,10 @@ type location = Local | InBlock | InTemplate
 
 (* to correctly handle infix operators (in expressions, patterns, and types)*)
 type mode = FirstOp | LeftOp | RightOp [@@deriving show { with_path = false }]
+
+type indent_status =
+  | Dedent of (* line *) int * (* width *) int
+  | Indent of (* same *) int * int
 
 (*****************************************************************************)
 (* Logging/Dumpers  *)
@@ -174,7 +182,7 @@ let error x in_ =
   if !Flag.debug_parser then (
     pr2 (T.show tok);
     pr2 x);
-  raise (PI.Parsing_error info)
+  raise (Parsing_error.Syntax_error info)
 
 let warning s = if !Flag.debug_parser then pr2 ("WARNING: " ^ s)
 
@@ -212,7 +220,7 @@ let convertToParam tk e =
   | _ ->
       (* CHECK: "not a legal formal parameter" *)
       warning (spf "convertToParam: not handled %s" (AST.show_expr e));
-      raise (PI.Parsing_error tk)
+      raise (Parsing_error.Syntax_error tk)
 
 let convertToParams tk e =
   match e with
@@ -239,11 +247,119 @@ let rec in_next_token xs =
   | x :: xs -> (
       match x with
       | Space _
-      | Comment _
-      | INDENT _
-      | DEDENT _ ->
+      | Comment _ ->
           in_next_token xs
       | _ -> Some x)
+
+(* ------------------------------------------------------------------------- *)
+(* indentation helpers *)
+(* ------------------------------------------------------------------------- *)
+
+(* If we do not do this, it's possible that we will be unable to start an
+   indentation region within LBRACES, because we will look back and see no
+   indentation region.
+
+   For instance:
+
+   { 5 match
+       case _ => 2
+   }
+
+   ^ needs to start an indentation region before the `case`!
+*)
+let rec getLastIndentationRegion sepRegions =
+  match sepRegions with
+  | DEDENT (prev_line, width) :: _ -> (prev_line, width)
+  | _ :: rest -> getLastIndentationRegion rest
+  | [] -> raise Common.Impossible
+
+let startsNewLine in_ =
+  let rec loop = function
+    | Nl _ :: _
+    | NEWLINE _ :: _ ->
+        true
+    | Space _ :: rest
+    | Comment _ :: rest
+    | DEDENT _ :: rest ->
+        loop rest
+    | _ -> false
+  in
+  loop in_.passed
+
+let getPreviousToken in_ =
+  let rec loop passed =
+    match passed with
+    | DEDENT _ :: rest
+    | NEWLINE _ :: rest
+    | NEWLINES _ :: rest
+    | Nl _ :: rest
+    | Space _ :: rest
+    | Comment _ :: rest ->
+        loop rest
+    | other :: _ -> Some other
+    | [] -> None
+  in
+  loop in_.passed
+
+(* Should we emit an INDENT or DEDENT before the current token? *)
+let getIndentStatus ?(is_opportunistic = false) in_ =
+  let tok = in_.token in
+  let prevTok = getPreviousToken in_ in
+
+  let prev_is_indent_token =
+    match prevTok with
+    | None -> false
+    | Some tok -> TH.isIndentationToken tok
+  in
+
+  let info = TH.info_of_tok tok in
+  let line = Tok.line_of_tok info in
+  let col = Tok.col_of_tok info in
+
+  let is_indented =
+    (* Here, we need to look at the last indentation region that ever existed,
+       because we want to still be able to start indentation regions inside of
+       other ones.
+    *)
+    let _prev_indent_line, prev_indent_width =
+      getLastIndentationRegion in_.sepRegions
+    in
+    col
+    > prev_indent_width (* we are indented w.r.t. the old indentation region *)
+    && (is_opportunistic || prev_is_indent_token)
+       (* and the previous token can start an indent *)
+    && (* and this token starts a new line *)
+    startsNewLine in_
+  in
+  let is_dedented =
+    (* Here, we look only at the current region, because we shouldn't be emitting
+       dedents for a region if it's been interrupted by braces or parens.
+    *)
+    match in_.sepRegions with
+    | DEDENT (_, prev_width) :: _ ->
+        col < prev_width (* we are left w.r.t. the current indentation region *)
+    | _ -> false
+  in
+
+  match tok with
+  (* Don't emit before an EOF. *)
+  | EOF _ -> None
+  | __else__ ->
+      if is_indented then Some (Indent (line, col))
+      else if is_dedented then Some (Dedent (line, col))
+      else None
+
+(* Sometimes, we can emit an indent, irrespective of the specific token that we
+   just passed. This is in certain contextual parsing positions, such as after
+   the condition to an `if`, where we can't necessarily determine it based
+   off tokens alone.
+
+   This function allows that event to trigger.
+*)
+let opportunisticIndent in_ =
+  match getIndentStatus ~is_opportunistic:true in_ with
+  | Some (Indent (line, col)) -> in_.is_indented <- Some (line, col)
+  | _ -> ()
 
 (* ------------------------------------------------------------------------- *)
 (* newline: Newline management part1  *)
@@ -311,7 +427,6 @@ let afterLineEnd in_ =
             true
         | Space _
         | Comment _
-        | INDENT _
         | DEDENT _ ->
             loop xs
         | _ ->
@@ -336,21 +451,8 @@ let postProcessToken _in_ =
 (* fetchToken *)
 (* ------------------------------------------------------------------------- *)
 
-(* If this DEDENT matches our sepRegion index, then we know that our
-   current dedent region is ended.
-
-   This effectively makes it so [fetchToken] only stops
-   on DEDENTs when they are known to end the current sepRegion.
-
-   See the corresponding code in the Scala compiler:
-   https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L298
-*)
-let significantDedent dedent_idx in_ =
-  match in_.sepRegions with
-  | T.DEDENT idx' :: _ when dedent_idx =*= idx' -> true
-  | _ -> false
-
 let fetchToken in_ =
+  in_.is_indented <- None;
   let rec loop aux =
     match in_.rest with
     | [] -> error "IMPOSSIBLE? fetchToken: no more tokens" in_
@@ -360,20 +462,8 @@ let fetchToken in_ =
         in_.rest <- xs;
 
         match x with
-        (* If we pass a DEDENT that ends our current region,
-           we should stop and allow ourselves to look at it.
-           This is so we can consume it in statSeq.
-
-           This results in significantly simpler code, in the case
-           of nested DEDENTs (due to the ending of multiple indent regions)
-        *)
-        | DEDENT idx when significantDedent idx in_ ->
-            in_.passed <- aux @ in_.passed;
-            in_.token <- DEDENT idx
         | Space _
-        | Comment _
-        | INDENT _
-        | DEDENT _ ->
+        | Comment _ ->
             loop (x :: aux)
         (* pad: the newline is skipped here, but reinserted conditionally in
          * insertNL() *)
@@ -384,9 +474,9 @@ let fetchToken in_ =
         | NEWLINE _
         | NEWLINES _ ->
             raise Impossible
-        | other ->
+        | _ ->
             in_.passed <- aux @ in_.passed;
-            in_.token <- other)
+            in_.token <- x)
   in
   loop [ in_.token ]
 
@@ -398,6 +488,7 @@ let fetchToken in_ =
 let nextToken in_ =
   let lastToken = in_.token in
   adjustSepRegions lastToken in_;
+
   (* STILL?: if inStringInterpolation fetchStringPart else *)
   fetchToken in_;
   (* Insert NEWLINE or NEWLINES if
@@ -422,7 +513,31 @@ let nextToken in_ =
    (* STILL?: | _ when pastBlankLine in_ -> insertNL ~newlines:true in_ *)
    (* STILL?: | _ when TH.isLeadingInfixOperator *)
    (* CHECK: scala3: "Line starts with an operator that in future" *)
-   | _ -> insertNL in_);
+   | _ -> insertNL in_
+  else
+    (* Determine if this next token should emit an INDENT or DEDENT *)
+    (* According to the Dotty compiler, emitting a NEWLINE is exclusive with
+       emitting an INDENT or DEDENT.
+       https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L596
+    *)
+    let indent_status = getIndentStatus in_ in
+    match indent_status with
+    | Some (Indent (line, width)) ->
+        (* Set our indented flag to true.
+            This bool will give us the option to enter an indentation
+            region, we might not necessarily have to.
+        *)
+        in_.is_indented <- Some (line, width)
+    | Some (Dedent (line, width)) ->
+        (* Push a DEDENT token onto our token stream.
+            This is so we can consume it in `statSeq`
+
+            This results in significantly simpler code, in the case
+            of nested DEDENTs (due to the ending of multiple indent regions)
+        *)
+        in_.rest <- in_.token :: in_.rest;
+        in_.token <- DEDENT (line, width)
+    | None -> ());
   postProcessToken in_;
   ()
 
@@ -483,23 +598,9 @@ let rec skipMatching in_ =
 (* ------------------------------------------------------------------------- *)
 
 (* Have we passed an indent?
-   Because our nextToken skips over INDENT, in places where an
-   INDENT might be syntactically significant, we might need to
-   look through the tokens we have passed to tell if we have entered
-   an indentation region.
+   If so, the `is_indented` flag should be set by our `nextToken` logic.
 *)
-let passedIndent in_ =
-  let rec loop acc =
-    match acc with
-    | [] -> None
-    | INDENT i :: _ -> Some i
-    | Space _ :: rest
-    | Nl _ :: rest
-    | NEWLINE _ :: rest ->
-        loop rest
-    | _ -> None
-  in
-  loop in_.passed
+let passedIndent in_ = in_.is_indented
 
 (* It's not always the case that a colon means we must start a
    colon and then indented block.
@@ -519,7 +620,14 @@ let enterIndentRegion in_ =
   let indent_opt = passedIndent in_ in
   match indent_opt with
   | None -> ()
-  | Some idx -> in_.sepRegions <- DEDENT idx :: in_.sepRegions
+  | Some (line, width) ->
+      (* We don't want to recurse forever in entering
+         new indent regions.
+         If we consume this indent region here, there's no reason
+         to need to use it again.
+      *)
+      in_.is_indented <- None;
+      in_.sepRegions <- DEDENT (line, width) :: in_.sepRegions
 
 (* Adjust sepREgions to end the current indent region, if we're
    at the end.
@@ -527,16 +635,14 @@ let enterIndentRegion in_ =
 let closeIndentRegion in_ =
   match (in_.token, in_.sepRegions) with
   | EOF _, _ -> ()
-  (* This check that the DEDENT idxs match up was already
+  (* This check that the DEDENTs match each other was already
      done, or we wouldn't have stopped on this token in the
      first place.
-
-     Regardless, let's keep it here, because why not.
   *)
-  | DEDENT idx, DEDENT idx' :: rest when idx =*= idx' ->
+  | DEDENT _, DEDENT _ :: rest ->
       in_.sepRegions <- rest;
       skipToken in_
-  | _ -> failwith "precondition failure"
+  | _ -> failwith "expected closing dedent (probably not emitted correctly)"
 
 (* If this next token is indented, it's quite likely we're inside of an implicit
    indented blockExpr, which can start off an `expr`.
@@ -710,7 +816,7 @@ let inBracesOrIndented f in_ =
   | LBRACE _ -> inBraces f in_
   | _ ->
       enterIndentRegion in_;
-      let res = fb (PI.unsafe_fake_info "") (f in_) in
+      let res = fb (Tok.unsafe_fake_tok "") (f in_) in
       closeIndentRegion in_;
       res
 
@@ -958,7 +1064,6 @@ let template_ = ref (fun _ -> failwith "forward ref not set")
 let defOrDcl_ = ref (fun _ _ -> failwith "forward ref not set")
 let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
-let topLevelTmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
 let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
@@ -991,8 +1096,8 @@ let literal ?(isNegated = None) ?(inPattern = false) in_ : literal =
          let negate op (x, ii) =
            match (isNegated, x) with
            | None, x -> (x, ii)
-           | Some iminus, Some n -> (Some (op n), PI.combine_infos iminus [ ii ])
-           | Some iminus, None -> (None, PI.combine_infos iminus [ ii ])
+           | Some iminus, Some n -> (Some (op n), Tok.combine_toks iminus [ ii ])
+           | Some iminus, None -> (None, Tok.combine_toks iminus [ ii ])
          in
          (* less: check that negate only on Int or Float *)
          match in_.token with
@@ -1688,7 +1793,7 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | while `(` Expr `)` {nl} Expr
  *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
- *               | for (`(` Enumerators `)` | `{` Enumerators `}`) {nl} [yield] Expr
+ *               | for (`(` Enumerators `)` | `{` Enumerators `}` | Enumerators) {nl} [yield] Expr
  *               | throw Expr
  *               | return [Expr]
  *               | [SimpleExpr `.`] Id `=` Expr
@@ -1702,7 +1807,15 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | `:` `_` `*`
  *  }}}
 *)
-let rec expr ?(is_block_expr = false) ?(location = Local) (in_ : env) : expr =
+
+(* NOTE: indented-block-expr
+   Moreover, if this is the start to a block, then every case in the `expr`
+   recursive descent must fall through to the simpleExpr blockExpr case,
+   otherwise we will end up assuming we're in a different case when we
+   already determined we're not.
+*)
+let rec expr ?(location = Local) (in_ : env) : expr =
+  let is_block_expr = isIndentedBlockExprStart in_ in
   expr0 ~is_block_expr location in_
 
 and expr0 ?(is_block_expr = false) (location : location) (in_ : env) : expr =
@@ -2319,8 +2432,9 @@ and parseIf in_ : stmt =
         let e = expr in_ in
         accept (ID_LOWER ("then", ab)) in_;
         newLinesOpt in_;
-        fb (PI.unsafe_fake_info "") e
+        fb (Tok.unsafe_fake_tok "") e
   in
+  opportunisticIndent in_;
   let thenp = expr in_ in
   let elsep =
     match in_.token with
@@ -2357,7 +2471,7 @@ and parseWhile in_ : stmt =
         let e = expr in_ in
         newLinesOpt in_;
         accept (Kdo ab) in_;
-        fb (PI.unsafe_fake_info "") e
+        fb (Tok.unsafe_fake_tok "") e
   in
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
@@ -2379,10 +2493,31 @@ and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
-    if in_.token =~= LBRACE ab then inBraces enumerators in_
-    else inParens enumerators in_
+    match in_.token with
+    | LPAREN _ -> inParens enumerators in_
+    | LBRACE _ -> inBraces enumerators in_
+    | _ ->
+        (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
+           If we enter the indentation region, the end of a for expression like:
+
+           for
+             _ <- 5
+           yield
+
+           will cause a DEDENT to be emitted before the `yield`. This messes us
+           up when determining when to end, because if we see the future DEDENT and break,
+           then we will still be on the NEWLINE.
+
+           It's easiest to just not emit the DEDENT tokens at all, which is what happens
+           if we do not enter the indentation region.
+
+           See
+           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
+        *)
+        fb (Tok.unsafe_fake_tok "") (enumerators in_)
   in
   newLinesOpt in_;
+  opportunisticIndent in_;
   let body =
     match in_.token with
     | Kyield ii ->
@@ -2478,13 +2613,24 @@ and blockExpr in_ : block_expr =
  *                |  Pattern1 `=` Expr
  *  }}}
 *)
+
+and isEnumeratorsEnd in_ =
+  match in_.token with
+  | Kdo _
+  | Kyield _
+  | RBRACE _ ->
+      true
+  | _ -> false
+
 and enumerators in_ : enumerators =
   in_
   |> with_logging "enumerators" (fun () ->
          let enums = ref [] in
          let x = enumerator ~isFirst:true in_ in
          enums += x;
-         while TH.isStatSep in_.token do
+         while
+           TH.isStatSep in_.token && not (lookingAhead isEnumeratorsEnd in_)
+         do
            nextToken in_;
            let x = enumerator ~isFirst:false in_ in
            enums += x
@@ -2761,6 +2907,16 @@ let importClause in_ : import =
   let xs = commaSeparated importExpr in_ in
   (ii, xs)
 
+(** {{{
+ *  Export  ::= export ImportExpr {`,` ImportExpr}
+ *  }}}
+*)
+let exportClause in_ : import =
+  let ii = TH.info_of_tok in_.token in
+  accept (Kexport ab) in_;
+  let xs = commaSeparated importExpr in_ in
+  (ii, xs)
+
 (*****************************************************************************)
 (* Parsing modifiers  *)
 (*****************************************************************************)
@@ -2780,6 +2936,7 @@ let is_modifier in_ =
   ||
   match in_.token with
   | ID_LOWER ("inline", _)
+  | ID_LOWER ("opaque", _)
   | ID_LOWER ("open", _) ->
       next_is_soft_modifier_follower
   | __else__ -> false
@@ -2794,6 +2951,7 @@ let modifier_of_isLocalModifier_opt in_ =
   | Klazy ii -> Some (Lazy, ii)
   | ID_LOWER ("inline", ii) when is_modifier in_ -> Some (Inline, ii)
   | ID_LOWER ("open", ii) when is_modifier in_ -> Some (Open, ii)
+  | ID_LOWER ("opaque", ii) when is_modifier in_ -> Some (Opaque, ii)
   | _ -> None
 
 (** {{{
@@ -3274,20 +3432,9 @@ let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
                nextTokenAllow TH.nme_MACROkw in_;
                if TH.isMacro in_.token then
                  nextToken in_ (* AST: newmmods |= MACRO *);
-               (* NOTE: indented-block-expr
-                  Moreover, if this is the start to a block, then every case in the `expr`
-                  recursive descent must fall through to the simpleExpr blockExpr case,
-                  otherwise we will end up assuming we're in a different case when we
-                  already determined we're not.
-
-                  We'll be safe and restrict the indented blockExprs to only RHS of
-                  a `def`, because otherwise this could mess quite a few parse trees up.
-               *)
-               let x = expr ~is_block_expr:(isIndentedBlockExprStart in_) in_ in
+               let x = expr in_ in
                Some (FExpr (ii, x))
-           | _ ->
-               accept (EQUALS ab) in_ (* generate error message *);
-               None
+           | _ -> None
          in
          (* ast: DefDef(newmods, name.toTermName, tparams,vparamss,restype, rhs) *)
          (* CHECK: "unary prefix operator definition with empty parameter list.."*)
@@ -3321,7 +3468,6 @@ let funDefOrDcl attrs in_ : definition =
                    let x = constrExpr vparamss in_ in
                    FExpr (ii, x)
                | _ ->
-                   accept (EQUALS ab) in_;
                    (* generate error message *)
                    raise Impossible
              in
@@ -3554,6 +3700,7 @@ let blockStatSeq in_ : block_stat list =
 (** {{{
  *  TemplateStats    ::= TemplateStat {semi TemplateStat}
  *  TemplateStat     ::= Import
+ *                     | Export
  *                     | Annotations Modifiers Def
  *                     | Annotations Modifiers Dcl
  *                     | Expr1
@@ -3568,6 +3715,9 @@ let templateStat in_ : template_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
+  | Kexport _ ->
+      let x = exportClause in_ in
+      Some (Ex x)
   | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
@@ -3584,10 +3734,11 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
 
 (** {{{
  *  TopStatSeq ::= TopStat {semi TopStat}
- *  TopStat ::= Annotations Modifiers TmplDef
+ *  TopStat ::= Annotations Modifiers Def  (see below for discrepancy with Scala 2)
  *            | Packaging
  *            | package object ObjectDef
  *            | Import
+ *            | Export
  *            |
  *  }}}
 *)
@@ -3600,8 +3751,14 @@ let topStat in_ : top_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | t when TH.isAnnotation t || TH.isTemplateIntro t || is_modifier in_ ->
-      let x = !topLevelTmplDef_ in_ in
+  | Kexport _ ->
+      let x = exportClause in_ in
+      Some (Ex x)
+  (* This used to be a TmplDef, but in Scala 3, this can actually be any Def.
+     Def is a superset of TmplDef anyways, so we lose nothing here.
+  *)
+  | t when TH.isAnnotation t || TH.isDefIntro t || is_modifier in_ ->
+      let x = nonLocalDefOrDcl in_ in
       Some (D x)
   | _ -> None
 
@@ -3674,7 +3831,7 @@ let templateBody ~isPre in_ : template_body =
       (* must be a colon *)
       accept (COLON ab) in_;
       enterIndentRegion in_;
-      let res = fb (PI.unsafe_fake_info "") (templateStatSeq ~isPre in_) in
+      let res = fb (Tok.unsafe_fake_tok "") (templateStatSeq ~isPre in_) in
       closeIndentRegion in_;
       res
 
@@ -4096,7 +4253,7 @@ let givenSig in_ : given_sig =
   let id_opt = ident_opt in_ in
   let owner =
     match id_opt with
-    | None -> ("", PI.unsafe_fake_info "")
+    | None -> ("", Tok.unsafe_fake_tok "")
     | Some x -> x
   in
   let tparams = typeParamClauseOpt owner None in_ in
@@ -4222,18 +4379,6 @@ let tmplDef attrs in_ : definition =
   | _ -> error "expected start of definition" in_
 
 (*****************************************************************************)
-(* Toplevel  *)
-(*****************************************************************************)
-
-(** Hook for IDE, for top-level classes/objects. *)
-let topLevelTmplDef in_ : definition =
-  let annots = annotations ~skipNewLines:true in_ in
-  let mods = modifiers in_ in
-  (* ast: mods withAnnotations annots *)
-  let x = tmplDef (mods_with_annots mods annots) in_ in
-  x
-
-(*****************************************************************************)
 (* Entry points  *)
 (*****************************************************************************)
 
@@ -4243,7 +4388,6 @@ let _ =
   defOrDcl_ := defOrDcl;
   tmplDef_ := tmplDef;
   blockStatSeq_ := blockStatSeq;
-  topLevelTmplDef_ := topLevelTmplDef;
   packageOrPackageObject_ := packageOrPackageObject;
 
   exprTypeArgs_ := exprTypeArgs;
@@ -4318,14 +4462,14 @@ let try_rule toks frule =
 
 let parse toks =
   try try_rule toks compilationUnit with
-  | PI.Parsing_error _ as err1 -> (
+  | Parsing_error.Syntax_error _ as err1 -> (
       let e1 = Exception.catch err1 in
       try try_rule toks block with
-      | PI.Parsing_error _ -> Exception.reraise e1)
+      | Parsing_error.Syntax_error _ -> Exception.reraise e1)
 
 let semgrep_pattern toks =
   try try_rule toks (fun in_ -> Ex (expr in_)) with
-  | PI.Parsing_error _ -> (
+  | Parsing_error.Syntax_error _ -> (
       try try_rule toks (fun in_ -> Ss (block in_)) with
-      | PI.Parsing_error _ ->
+      | Parsing_error.Syntax_error _ ->
           try_rule toks (fun in_ -> Pr (compilationUnit in_)))

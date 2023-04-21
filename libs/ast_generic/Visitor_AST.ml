@@ -14,7 +14,6 @@
  *)
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Extract tokens *)
@@ -48,8 +47,8 @@ let info_of_any any =
 
 let first_info_of_any any =
   let xs = ii_of_any any in
-  let xs = List.filter Parse_info.is_origintok xs in
-  let min, _max = Parse_info.min_max_ii_by_pos xs in
+  let xs = List.filter Tok.is_origintok xs in
+  let min, _max = Tok_range.min_max_toks_by_pos xs in
   min
 
 (*****************************************************************************)
@@ -70,8 +69,8 @@ class ['self] range_visitor =
         ranges := Some (smaller orig_left left, larger orig_right right)
   in
   let incorporate_token ranges tok =
-    if PI.is_origintok tok then
-      let tok_loc = PI.unsafe_token_location_of_info tok in
+    if Tok.is_origintok tok then
+      let tok_loc = Tok.unsafe_loc_of_tok tok in
       incorporate_tokens ranges (tok_loc, tok_loc)
   in
   object (self : 'self)
@@ -116,7 +115,7 @@ let extract_ranges : AST_generic.any -> (Tok.location * Tok.location) option =
     res
 
 let range_of_tokens tokens =
-  List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
+  List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
   [@@profiling]
 
 let range_of_any_opt any =
@@ -129,7 +128,7 @@ let range_of_any_opt any =
   | G.E e when Option.is_some e.e_range -> e.e_range
   | G.S s when Option.is_some s.s_range -> s.s_range
   | G.Tk tok -> (
-      match Parse_info.token_location_of_info tok with
+      match Tok.loc_of_tok tok with
       | Ok tok_loc -> Some (tok_loc, tok_loc)
       | Error _ -> None)
   | G.Anys [] -> None

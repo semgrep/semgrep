@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -50,7 +49,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 
 let exn_of_loc loc =
   let info = { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo } in
-  PI.Parsing_error info |> Exception.trace
+  Parsing_error.Syntax_error info |> Exception.trace
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let loc = loc_of_tree_sitter_error err in

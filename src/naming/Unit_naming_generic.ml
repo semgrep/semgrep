@@ -36,6 +36,6 @@ let tests parse_program =
                    let _v = AST_generic.show_any (AST_generic.Pr ast) in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Syntax_error _ ->
                      Alcotest.failf "it should correctly parse %s" !!file) );
     ]

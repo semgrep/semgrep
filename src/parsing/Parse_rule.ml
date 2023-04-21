@@ -20,7 +20,6 @@ module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
 module G = AST_generic
-module PI = Parse_info
 module Set = Set_
 module MV = Metavariable
 
@@ -617,7 +616,7 @@ let rewrite_metavar_comparison_strip cond =
             | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
               ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
+                G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
                 |> G.e
             | _ -> e);
       }
@@ -1416,7 +1415,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
         equivs_opt,
         options_opt ) =
     ( (match mode with
-      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
       | _ ->
           ( take rd env parse_string "message",
             take rd env parse_string_wrap "severity" )),
@@ -1477,7 +1476,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
             let loc = Tok.first_loc_of_file !!file in
-            yaml_error (PI.mk_info_of_loc loc)
+            yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
@@ -1505,7 +1504,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
 let parse_yaml_rule_file file =
   let str = Common.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
-  | Parse_info.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
+  | Parsing_error.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
 
 let parse_file ?error_recovery file =
   let ast =

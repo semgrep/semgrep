@@ -6,6 +6,10 @@
 
 type t = node list
 
+(*
+   The allowed characters for Bracket and for Word depend on the configuration
+   of the parser as provided by Conf.t.
+*)
 and node =
   | Ellipsis
   | Long_ellipsis
@@ -13,6 +17,7 @@ and node =
   | Metavar_ellipsis of string (* same *)
   | Long_metavar_ellipsis of string (* same *)
   | Bracket of char * t * char
+  | Word of string (* a word may not be adjacent to another word *)
   | Other of string
 [@@deriving show]
 

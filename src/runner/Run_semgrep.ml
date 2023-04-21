@@ -15,7 +15,6 @@
 open Common
 open Runner_config
 open File.Operators
-module PI = Parse_info
 module PM = Pattern_match
 module E = Semgrep_error_code
 module MR = Mini_rule
@@ -99,7 +98,7 @@ let update_cli_progress config =
 (*****************************************************************************)
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
+  String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
@@ -136,15 +135,15 @@ let print_match ?str config match_ ii_of_any =
       =
     match_
   in
-  let toks = tokens_matched_code |> List.filter PI.is_origintok in
+  let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   (if mvars =*= [] then
    Matching_report.print_match ?str ~format:match_format toks
   else
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
+    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
     let strings_metavars =
       mvars
@@ -152,8 +151,8 @@ let print_match ?str config match_ ii_of_any =
              match Common2.assoc_opt x env with
              | Some any ->
                  any |> ii_of_any
-                 |> List.filter PI.is_origintok
-                 |> Common.map PI.str_of_info
+                 |> List.filter Tok.is_origintok
+                 |> Common.map Tok.content_of_tok
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in
@@ -315,7 +314,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 let exn_to_error file (e : Exception.t) =
   match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
-      let loc = PI.unsafe_token_location_of_info tok in
+      let loc = Tok.unsafe_loc_of_tok tok in
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 
@@ -370,7 +369,7 @@ let parse_pattern lang_pattern str =
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
                 "no-id",
-                Parse_info.unsafe_fake_info "no loc" )))
+                Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
 (* for -rules *)
@@ -972,7 +971,7 @@ let semgrep_with_one_pattern config =
   | Json _ ->
       let rule, rules_parse_time =
         Common.with_time (fun () ->
-            let fk = Parse_info.unsafe_fake_info "" in
+            let fk = Tok.unsafe_fake_tok "" in
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat

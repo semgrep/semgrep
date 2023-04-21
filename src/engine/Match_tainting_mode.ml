@@ -24,7 +24,6 @@ module RM = Range_with_metavars
 module RP = Report
 module T = Taint
 module Lval_env = Taint_lval_env
-module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
 module Out = Output_from_core_t
@@ -296,11 +295,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                 in
                 (* TODO: log a warning when we cannot obtain a taint propagator due to
                  * lacking range info. *)
-                match
-                  Parse_info.
-                    ( token_location_of_info tok_pfrom,
-                      token_location_of_info tok_pto )
-                with
+                match (Tok.loc_of_tok tok_pfrom, Tok.loc_of_tok tok_pto) with
                 | Error _, _
                 | _, Error _ ->
                     None
@@ -532,12 +527,12 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
+      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
       PM.Toks toks
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
-          call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
+          call_toks = V.ii_of_any (G.E expr) |> List.filter Tok.is_origintok;
           intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }
@@ -676,7 +671,7 @@ let check_fundef lang options taint_config opt_ent fdef =
         | G.OtherParam (_, _) ->
             env)
       Lval_env.empty
-      (Parse_info.unbracket fdef.G.fparams)
+      (Tok.unbracket fdef.G.fparams)
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in

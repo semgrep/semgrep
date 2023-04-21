@@ -2,7 +2,6 @@ open Common
 open File.Operators
 module Flag = Flag_parsing
 module J = JSON
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -115,7 +114,7 @@ let test_dump_ts file =
 (*****************************************************************************)
 
 let info_to_json_range info =
-  let loc = PI.unsafe_token_location_of_info info in
+  let loc = Tok.unsafe_loc_of_tok info in
   ( J.Object
       [ ("line", J.Int loc.Tok.pos.line); ("col", J.Int loc.Tok.pos.column) ],
     J.Object
@@ -147,13 +146,13 @@ let parse_js_r2c xs =
                 *)
                None
              with
-             | ( Parse_info.Parsing_error info
-               | Parse_info.Lexical_error (_, info) ) as exn ->
+             | ( Parsing_error.Syntax_error info
+               | Parsing_error.Lexical_error (_, info) ) as exn ->
                  let startp, endp = info_to_json_range info in
                  let message =
                    match exn with
-                   | Parse_info.Parsing_error _ -> "parse error"
-                   | Parse_info.Lexical_error (s, _) -> "lexical error: " ^ s
+                   | Parsing_error.Syntax_error _ -> "syntax error"
+                   | Parsing_error.Lexical_error (s, _) -> "lexical error: " ^ s
                    | _ -> raise Impossible
                  in
                  Some

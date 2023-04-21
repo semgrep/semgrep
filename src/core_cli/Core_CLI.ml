@@ -682,7 +682,7 @@ let options actions =
         Arg.Set Common.save_tmp_files,
         " keep temporary generated files" );
     ]
-  @ Meta_parse_info.cmdline_flags_precision ()
+  @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
   @ Arg_helpers.options_of_actions action (actions ())
   @ [
       ( "-version",
@@ -812,7 +812,7 @@ let main (sys_argv : string array) : unit =
    can be tricky.
 *)
 let register_exception_printers () =
-  Parse_info.register_exception_printer ();
+  Parsing_error.register_exception_printer ();
   SPcre.register_exception_printer ();
   Rule.register_exception_printer ()
 

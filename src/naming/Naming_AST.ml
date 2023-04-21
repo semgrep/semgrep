@@ -301,8 +301,8 @@ let lookup_scope_opt (s, _) env =
 (*****************************************************************************)
 
 let error tok s =
-  if error_report then raise (Parse_info.Other_error (s, tok))
-  else logger#trace "%s at %s" s (Parse_info.string_of_info tok)
+  if error_report then raise (Parsing_error.Other_error (s, tok))
+  else logger#trace "%s at %s" s (Tok.stringpos_of_tok tok)
 
 (*****************************************************************************)
 (* Typing Helpers *)
@@ -398,7 +398,7 @@ let resolved_name_kind env lang =
 
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =
-  params |> Parse_info.unbracket
+  params |> Tok.unbracket
   |> Common.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in
@@ -653,7 +653,7 @@ let resolve lang prog =
             | ___else___ -> ());
             super#visit_definition venv x
         | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
-            let s = Parse_info.str_of_info tok in
+            let s = Tok.content_of_tok tok in
             let flookup =
               match s with
               | "global" -> lookup_global_scope
@@ -873,7 +873,7 @@ let resolve lang prog =
          * See: https://golang.org/ref/spec#Short_variable_declarations *)
         | AssignOp ({ e = N (Id (id, id_info)); _ }, (Eq, tok), e2)
           when lang =*= Lang.Go
-               && Parse_info.str_of_info tok = ":="
+               && Tok.content_of_tok tok = ":="
                && is_resolvable_name_ctx env lang ->
             (* Need to visit the RHS first so that type is populated *)
             (* If we do var a = 3, then var b = a, we want to propagate the type of a *)

@@ -16,7 +16,6 @@ open Common
 module StrSet = Common2.StringSet
 open AST_generic
 module V = Visitor_AST
-module PI = Parse_info
 module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable
@@ -120,9 +119,10 @@ let metavar_string_of_any any =
      we have y = 2 but there is no source location for 2.
      Handle such cases *)
   any |> V.ii_of_any
-  |> List.filter PI.is_origintok
-  |> List.sort Parse_info.compare_pos
-  |> Common.map PI.str_of_info |> Matching_report.join_with_space_if_needed
+  |> List.filter Tok.is_origintok
+  |> List.sort Tok.compare_pos
+  |> Common.map Tok.content_of_tok
+  |> Matching_report.join_with_space_if_needed
 
 let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =
@@ -159,7 +159,7 @@ let metavars startp_of_match_range (s, mval) =
   match range_of_any_opt startp_of_match_range any with
   | None ->
       raise
-        (Parse_info.NoTokenLocation
+        (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
               (SJ.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
@@ -174,8 +174,7 @@ let metavars startp_of_match_range (s, mval) =
 (* None if pi has no location information. Fake tokens should have been filtered
  * out earlier, but in case one slipped through we handle this case. *)
 let parse_info_to_location pi =
-  PI.token_location_of_info pi
-  |> Result.to_option
+  Tok.loc_of_tok pi |> Result.to_option
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
 
@@ -188,7 +187,7 @@ let tokens_to_single_loc toks =
    * taint rule finding but it shouldn't happen in practice. *)
   let locations =
     tokens_to_locations
-      (List.filter PI.is_origintok toks |> List.sort PI.compare_pos)
+      (List.filter Tok.is_origintok toks |> List.sort Tok.compare_pos)
   in
   let* first_loc, last_loc = first_and_last locations in
   Some
@@ -283,7 +282,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
      * pattern in x.code or the metavar does not contain any token
      *)
   with
-  | Parse_info.NoTokenLocation s ->
+  | Tok.NoTokenLocation s ->
       let loc = Tok.first_loc_of_file x.file in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
@@ -317,7 +316,7 @@ let error_to_error err =
 let rec explanation_to_explanation (exp : Matching_explanation.t) :
     Out.matching_explanation =
   let { Matching_explanation.op; matches; pos; children } = exp in
-  let tloc = PI.unsafe_token_location_of_info pos in
+  let tloc = Tok.unsafe_loc_of_tok pos in
   {
     Out.op;
     children = children |> Common.map explanation_to_explanation;
@@ -372,7 +371,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
     skipped_rules =
       res.RP.skipped_rules
       |> Common.map (fun (kind, rule_id, tk) ->
-             let loc = PI.unsafe_token_location_of_info tk in
+             let loc = Tok.unsafe_loc_of_tok tk in
              {
                Out.rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;

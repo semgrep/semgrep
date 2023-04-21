@@ -18,7 +18,6 @@ module J = JSON
 module C = Lsp.Client_request
 open Lsp
 open Types
-module PI = Parse_info
 module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -190,8 +189,8 @@ let final_type_string s =
   s
 
 let def_at_tok tk uri io =
-  let line = PI.line_of_info tk in
-  let col = PI.col_of_info tk in
+  let line = Tok.line_of_tok tk in
+  let col = Tok.col_of_tok tk in
   logger#debug "def_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)
   let line = line - 1 in
@@ -208,7 +207,7 @@ let def_at_tok tk uri io =
   logger#info "%s" (dump res);
   match res with
   | None ->
-      logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
+      logger#error "NO TYPE INFO for %s" (Tok.stringpos_of_tok tk);
       None
   | Some (`Location [ x ]) ->
       let uri = x.Location.uri in
@@ -216,12 +215,12 @@ let def_at_tok tk uri io =
       (* less: could also extract the range info in x.range *)
       Some path
   | Some (`LocationLink _ | `Location _) ->
-      logger#error "too many location for %s" (PI.string_of_info tk);
+      logger#error "too many location for %s" (Tok.stringpos_of_tok tk);
       None
 
 let type_at_tok tk uri io =
-  let line = PI.line_of_info tk in
-  let col = PI.col_of_info tk in
+  let line = Tok.line_of_tok tk in
+  let col = Tok.col_of_tok tk in
   logger#debug "type_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)
   let line = line - 1 in
@@ -238,7 +237,7 @@ let type_at_tok tk uri io =
   logger#info "%s" (dump res);
   match res with
   | None ->
-      logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
+      logger#error "NO TYPE INFO for %s" (Tok.stringpos_of_tok tk);
       None
   | Some { Hover.contents = x; _ } -> (
       match x with
@@ -280,7 +279,7 @@ let connect_server () =
 
 let rec get_type_or_def f id =
   let tok = snd id in
-  let file = PI.file_of_info tok in
+  let file = Tok.file_of_tok tok in
   (* bugfix: ocamllsp use URIs to designate files, but it's impossible
    * to use relative paths in URIs, so you need to use the absolute path,
    * otherwise ocamlmerlin code (used internally by ocamllsp) will not

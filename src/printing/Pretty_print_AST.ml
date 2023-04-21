@@ -82,11 +82,11 @@ let opt f = function
  * should never happen anymore.
  *)
 let token ?(d = "TODO") tok =
-  try Parse_info.str_of_info tok with
+  try Tok.content_of_tok tok with
   (* this exn can trigger now only for Parse_info.Ab (abstracted token),
    * which should never happen. We don't use Parse_info.Ab anymore.
    *)
-  | Parse_info.NoTokenLocation _ -> d
+  | Tok.NoTokenLocation _ -> d
 
 type lang_kind = CLikeSemiColon | Other
 

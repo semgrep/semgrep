@@ -109,7 +109,7 @@ let mvalue_to_any = function
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info, _) ->
-      G.E (G.L (G.String (Parse_info.unsafe_fake_bracket (s, info))) |> G.e)
+      G.E (G.L (G.String (Tok.unsafe_fake_bracket (s, info))) |> G.e)
 
 (* coupling: this function should be an inverse to the function above! *)
 let mvalue_of_any = function

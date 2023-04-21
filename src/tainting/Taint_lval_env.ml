@@ -128,7 +128,7 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
         match lval with
         | { IL.base = Var var; rev_offset = [] } ->
             let var_tok = snd var.ident in
-            if Parse_info.is_fake var_tok then taints
+            if Tok.is_fake var_tok then taints
             else
               taints
               |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })

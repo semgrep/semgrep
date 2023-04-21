@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -60,14 +59,12 @@ let rec join_with_space_if_needed xs =
 (*****************************************************************************)
 let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
   try
-    let mini, maxi = PI.min_max_ii_by_pos ii in
-    let end_line, _, _ =
-      Parsing_helpers.get_token_end_info (PI.unsafe_token_location_of_info maxi)
-    in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let mini, maxi = Tok_range.min_max_toks_by_pos ii in
+    let end_line, _, _ = Tok.end_pos_of_loc (Tok.unsafe_loc_of_tok maxi) in
+    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
     let prefix = spf "%s:%d" file line in
     let lines_str =
-      File.lines_of_file (PI.line_of_info mini, end_line) (Fpath.v file)
+      File.lines_of_file (Tok.line_of_tok mini, end_line) (Fpath.v file)
     in
     match format with
     | Normal ->
@@ -82,7 +79,7 @@ let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
     | OneLine ->
         pr
           (prefix ^ ": "
-          ^ (ii |> Common.map PI.str_of_info |> join_with_space_if_needed))
+          ^ (ii |> Common.map Tok.content_of_tok |> join_with_space_if_needed))
   with
   | Failure "get_pos: Ab or FakeTok" ->
       pr "<could not locate match, FakeTok or AbstractTok>"

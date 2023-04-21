@@ -7,7 +7,6 @@
    TODO: ideally once osemgrep is done we should get rid of this module
 *)
 open Output_from_core_t
-module PI = Parse_info
 
 (* pfff (and Emacs) have the first column at index 0, but not r2c *)
 let adjust_column x = x + 1
@@ -20,9 +19,7 @@ let position_of_token_location loc =
   }
 
 let position_range min_loc max_loc =
-  let end_line, end_col, end_charpos =
-    Parsing_helpers.get_token_end_info max_loc
-  in
+  let end_line, end_col, end_charpos = Tok.end_pos_of_loc max_loc in
   (* alt: could call position_of_token_location but more symetric like that*)
   ( {
       line = min_loc.Tok.pos.line;

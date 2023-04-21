@@ -1,6 +1,6 @@
 (* tokens *)
 open Parser_cpp
-module PI = Parse_info
+module PI = Lib_ast_fuzzy
 
 (*****************************************************************************)
 (* Is_xxx, categories *)
@@ -574,7 +574,7 @@ let info_of_tok tok =
   |> ignore;
   match !res with
   | Some x -> x
-  | None -> Parse_info.unsafe_fake_info "NOTOK"
+  | None -> Tok.unsafe_fake_tok "NOTOK"
 
 (*****************************************************************************)
 (* Accessors *)
@@ -582,4 +582,4 @@ let info_of_tok tok =
 
 let line_of_tok tok =
   let info = info_of_tok tok in
-  PI.line_of_info info
+  Tok.line_of_tok info

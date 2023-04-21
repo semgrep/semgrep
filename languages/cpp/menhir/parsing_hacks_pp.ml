@@ -17,7 +17,6 @@ open Common
 module TH = Token_helpers_cpp
 module TV = Token_views_cpp
 module Parser = Parser_cpp
-module PI = Parse_info
 open Parser_cpp
 open Token_views_cpp
 open Parsing_hacks_lib
@@ -419,7 +418,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* the static const case *)
@@ -434,7 +433,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       (* need retag this const, otherwise ambiguity in grammar
          21: shift/reduce conflict (shift 121, reduce 137) on Tconst
@@ -459,7 +458,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* on multiple lines *)
@@ -473,7 +472,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* linuxext: ex: DECLARE_BITMAP();
@@ -496,7 +495,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_declare ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* toplevel macros.

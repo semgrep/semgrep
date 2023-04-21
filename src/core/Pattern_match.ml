@@ -37,10 +37,10 @@
  *)
 
 (* The locations of variables which taint propagates through *)
-type tainted_tokens = Parse_info.t list [@@deriving show, eq]
+type tainted_tokens = Tok.t list [@@deriving show, eq]
 
 (* The tokens associated with a single pattern match involved in a taint trace *)
-type pattern_match_tokens = Parse_info.t list [@@deriving show, eq]
+type pattern_match_tokens = Tok.t list [@@deriving show, eq]
 
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)
 type taint_call_trace =
@@ -87,7 +87,7 @@ type t = {
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
   (* less: do we need to be lazy? *)
-  tokens : Parse_info.t list Lazy.t; [@equal fun _a _b -> true]
+  tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
   (* Lazy since construction involves forcing lazy token lists. *)

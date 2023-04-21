@@ -14,7 +14,6 @@
  *)
 open Common
 open File.Operators
-module PI = Parse_info
 module PS = Parsing_stat
 module G = AST_generic
 module J = JSON

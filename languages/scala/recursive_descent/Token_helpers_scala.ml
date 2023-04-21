@@ -12,9 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
 open Token_scala
-module PI = Parse_info
+module PI = Lib_ast_fuzzy
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -29,12 +28,10 @@ let is_eof = function
 let is_comment = function
   | Comment _
   | Space _
-  | INDENT _
-  | DEDENT _ ->
-      true
   (* newline has a meaning in the parser, so should not skip *)
   (* old: | Nl _ -> true *)
-  | _ -> false
+  | _ ->
+      false
 
 let token_kind_of_tok t =
   match t with
@@ -138,6 +135,7 @@ let visitor_info_of_tok f = function
   | Kmatch ii -> Kmatch (f ii)
   | Klazy ii -> Klazy (f ii)
   | Kimport ii -> Kimport (f ii)
+  | Kexport ii -> Kexport (f ii)
   | Kimplicit ii -> Kimplicit (f ii)
   | Kif ii -> Kif (f ii)
   | KforSome ii -> KforSome (f ii)
@@ -152,8 +150,7 @@ let visitor_info_of_tok f = function
   | Kcatch ii -> Kcatch (f ii)
   | Kcase ii -> Kcase (f ii)
   | Kabstract ii -> Kabstract (f ii)
-  | INDENT i -> INDENT i
-  | DEDENT i -> DEDENT i
+  | DEDENT (i1, i2) -> DEDENT (i1, i2)
   | Ellipsis ii -> Ellipsis (f ii)
 
 let info_of_tok tok =
@@ -204,7 +201,8 @@ let inFirstOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
-  | LBRACKET _ ->
+  | LBRACKET _
+  | DEDENT _ ->
       false
   | _ ->
       logger#info "inFirstOfStat: true for %s" (Dumper.dump x);
@@ -443,6 +441,27 @@ let isTypeIntroToken x =
 (* ------------------------------------------------------------------------- *)
 (* Misc *)
 (* ------------------------------------------------------------------------- *)
+
+let isIndentationToken = function
+  | COLON _
+  | EQUALS _
+  | ARROW _
+  | LARROW _
+  | Kif _
+  | Kwith _
+  (* there is no "then" keyword, because it's only a keyword in Scala 3 *)
+  (* for now, let's just say "then" doesn't trigger an indentation region *)
+  | Kelse _
+  | Kwhile _
+  | Kdo _
+  | Ktry _
+  | Kcatch _
+  | Kfinally _
+  | Kfor _
+  | Kyield _
+  | Kmatch _ ->
+      true
+  | _ -> false
 
 (* From the Scala 3 specification:
    > A soft modifier is treated as potential modifier of a definition if it is

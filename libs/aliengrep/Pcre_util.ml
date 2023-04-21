@@ -4,21 +4,51 @@
 
 open Printf
 
-let char_class_of_list chars =
+(* This is used to print compact, readable character classes like [a-z]
+   instead of [abcdefgh...xyz]. *)
+type char_range = Single of char | Range of char * char
+
+let close_range first_char last_char =
+  if last_char <> first_char then Range (first_char, last_char)
+  else Single first_char
+
+let identify_char_ranges (chars : char list) : char_range list =
+  let rec extend acc first_char prev_char chars =
+    match chars with
+    | [] -> close_range first_char prev_char :: acc |> List.rev
+    | c :: chars ->
+        if Char.code c = Char.code prev_char + 1 then
+          extend acc first_char c chars
+        else
+          let acc = close_range first_char prev_char :: acc in
+          extend acc c c chars
+  in
+  match List.sort Char.compare chars with
+  | [] -> []
+  | c :: chars -> extend [] c c chars
+
+(* Escape a character so it can occur safely in a PCRE character class *)
+let escape_char buf c =
+  match c with
+  | '-'
+  | '^'
+  | '['
+  | ']' ->
+      bprintf buf {|\x%02X|} (Char.code c)
+  | ' ' .. '~' -> Buffer.add_char buf c
+  | _ -> bprintf buf {|\x%02X|} (Char.code c)
+
+let char_class_of_list ?(contents_only = false) chars =
   let buf = Buffer.create 100 in
-  Buffer.add_char buf '[';
-  List.iter
-    (fun c ->
-      match c with
-      | '-'
-      | '^'
-      | '['
-      | ']' ->
-          bprintf buf {|\x%02X|} (Char.code c)
-      | ' ' .. '~' -> Buffer.add_char buf c
-      | _ -> bprintf buf {|\x%02X|} (Char.code c))
-    chars;
-  Buffer.add_char buf ']';
+  if not contents_only then Buffer.add_char buf '[';
+  identify_char_ranges chars
+  |> List.iter (function
+       | Single c -> escape_char buf c
+       | Range (first, last) ->
+           escape_char buf first;
+           Buffer.add_char buf '-';
+           escape_char buf last);
+  if not contents_only then Buffer.add_char buf ']';
   Buffer.contents buf
 
 (*

@@ -4,8 +4,10 @@
 
 (* Return a PCRE-compatible character class from a list of characters.
    (only supports ASCII characters)
+
+   If contents_only is set to true, the enclosing brackets are omitted.
 *)
-val char_class_of_list : char list -> string
+val char_class_of_list : ?contents_only:bool -> char list -> string
 
 (*
    Produce a pattern that matches a sequence of characters literally.
