@@ -1017,7 +1017,7 @@ let tvoid ii = (nQ, TPrimitive (TVoid, ii))
 
 let get_original_token_location = function
   | Tok.OriginTok pi -> pi
-  | Tok.ExpandedTok (pi, _, _) -> pi
+  | Tok.ExpandedTok (pi, _) -> pi
   | Tok.FakeTokStr (_, _) -> raise (Tok.NoTokenLocation "FakeTokStr")
   | Tok.Ab -> raise (Tok.NoTokenLocation "Ab")
 
@@ -1029,14 +1029,14 @@ let get_original_token_location = function
  *)
 let make_expanded ii =
   (* TODO? use Pos.fake_pos? *)
-  let noVirtPos =
+  let no_virt_loc =
     ( { Tok.str = ""; pos = { charpos = 0; line = 0; column = 0; file = "" } },
       -1 )
   in
-  let a, b = noVirtPos in
   {
     ii with
-    Tok.token = Tok.ExpandedTok (get_original_token_location ii.Tok.token, a, b);
+    Tok.token =
+      Tok.ExpandedTok (get_original_token_location ii.Tok.token, no_virt_loc);
   }
 
 let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =

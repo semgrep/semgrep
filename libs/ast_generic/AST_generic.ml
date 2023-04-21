@@ -25,7 +25,7 @@
  *  - Python, Ruby, Lua, Julia, Elixir
  *  - Javascript, Typescript, Vue
  *  - PHP, Hack
- *  - Java, CSharp, Kotlin
+ *  - Java, C#, Kotlin
  *  - C, C++
  *  - Go
  *  - Swift
@@ -34,23 +34,26 @@
  *  - R
  *  - Solidity
  *  - Bash, Docker
- *  - JSON, YAML, HCL, Jsonnet
- *  - TODO SQL
+ *  - JSON, XML, YAML
+ *  - Jsonnet, Terraform
+ *  - HTML
+ *  - TODO SQL, Sqlite, PostgresSQL
  *
  * See Lang.ml for the list of supported languages.
  * See IL.ml for a generic IL (Intermediate language) better suited for
- * advanced static analysis (e.g., dataflow).
+ * advanced static analysis (e.g., tainted dataflow analysis).
  *
  * rational: In the end, programming languages have a lot in Common.
  * Even though some interesting analysis are probably better done on a
  * per-language basis, many analysis are simple and require just an
  * AST and a visitor. One could duplicate those analysis for each language
  * or design an AST (this file) generic enough to factorize all those
- * analysis (e.g., unused entity). Note that we want to remain
+ * analysis. Note that we want to remain
  * as precise as possible and not lose too much information while going
  * from the specific language AST to the generic AST. We don't want
- * to be too generic as in ast_fuzzy.ml, where we have a very general
- * tree of nodes, but all the structure of the original AST is lost.
+ * to be too generic as in ast_fuzzy.ml (or Raw_tree.ml), where we have a
+ * very general tree of nodes, but all the structure of the original AST is
+ * lost.
  *
  * The generic AST tries to be as close as possible to the original code but
  * not too close. When a programming language feature is really sugar or
@@ -71,6 +74,7 @@
  *  - multiple entity imports in one declaration (e.g., from foo import {a,b})
  *    are expanded in multiple individual imports
  *    (in the example, from foo import a; from foo import b).
+ *    update: we don't expand them anymore
  *  - multiple ways to define a function are converted all to a
  *    'function_definition' (e.g., Javascript arrows are converted in that)
  *    update: but we now have a more precise function_body type
@@ -94,10 +98,10 @@
  *
  * todo:
  *  - improve things for Kotlin/Scala/Rust/C++/Java
- *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
- *  - ast_fuzzy.ml (in pfff)
+ *  - lib_parsing/ast_fuzzy.ml
+ *  - spacegrep and aliengrep of Martin with a general Pat_AST.ml
  *  - github semantic (seems dead)
  *    https://github.com/github/semantic
  *  - UAST of babelfish
@@ -169,7 +173,7 @@
  * to correspond mostly to Semgrep versions. So version below can jump from
  * "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.19.0-1"
+let version = "1.19.0-2"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -183,8 +187,11 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Contains among other things the position of the token through
  * the Tok.location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
+ *
  * Tok.t_always_equal is the same type as Tok.t but provides special equal and
- * hash functions used by the ppx derivers eq and hash.
+ * hash functions that are more conveninent in Semgrep matching context.
+ * See Matching_generic.equal_ast_bound_code() and Metavariable.equal_mvalue()
+ * for more information.
  *)
 type tok = Tok.t_always_equal [@@deriving show, eq, hash]
 

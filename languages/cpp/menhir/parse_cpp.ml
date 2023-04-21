@@ -79,7 +79,7 @@ let count_lines_commentized xs =
   commentized xs
   |> List.iter (function
        | Tok.OriginTok pinfo
-       | Tok.ExpandedTok (_, pinfo, _) ->
+       | Tok.ExpandedTok (_, (pinfo, _)) ->
            let newline = pinfo.Tok.pos.line in
            if newline <> !line then (
              line := newline;

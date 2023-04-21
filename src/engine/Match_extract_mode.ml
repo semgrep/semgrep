@@ -232,8 +232,7 @@ let map_taint_trace map_loc { Pattern_match.sources; sink } =
     let token =
       match x.Tok.token with
       | Tok.OriginTok loc -> Tok.OriginTok (f loc)
-      | Tok.ExpandedTok (pp_loc, v_loc, i) ->
-          Tok.ExpandedTok (f pp_loc, v_loc, i)
+      | Tok.ExpandedTok (pp_loc, v_loc) -> Tok.ExpandedTok (f pp_loc, v_loc)
       | x -> x
     in
     { x with token }

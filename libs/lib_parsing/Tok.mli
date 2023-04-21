@@ -44,10 +44,9 @@ type kind =
       * (* kind of a virtual position. The location refers to the last token
          * before a series of expanded tokens and the int is an offset.
          * The goal is to be able to compare the position of tokens
-         * between then, even for expanded tokens. See compare_pos().
+         * between them, even for expanded tokens. See compare_pos().
          *)
-        location
-      * int
+      (location * int)
   (* The Ab constructor is (ab)used to call '=' to compare big AST portions.
    * Ab means AbstractLineTok (short name to not polluate in debug mode).
    * An alternative is to use the t_always_equal special type below.
@@ -55,6 +54,7 @@ type kind =
   | Ab
 [@@deriving show, eq]
 
+(* for Spatch *)
 type transformation =
   | NoTransfo
   | Remove
@@ -78,7 +78,9 @@ type t = {
 }
 [@@deriving show, eq]
 
-(* to customize show() dynamically *)
+(* To customize show() dynamically. If you set this to true, AST
+ * dumper will display the full token information instead of just a '()'
+ *)
 val pp_full_token_info : bool ref
 
 (* As opposed to 't', the equal and hash functions for 't_always_equal'
@@ -106,7 +108,7 @@ exception NoTokenLocation of string
 
 val fake_location : location
 
-(* sc for semicolon, which are often fake tokens because of
+(* sc stands for semicolon. Semicolons are often fake tokens because of
  * ASI (Automatic Semicolon Insertion) in languages like Javascript.
  *)
 val sc : t -> t

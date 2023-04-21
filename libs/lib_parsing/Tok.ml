@@ -22,14 +22,17 @@ open Common
  *
  * Note that the types below are a bit complicated because we want
  * to represent "fake" and "expanded" tokens, as well as annotate tokens
- * with transformation. This is also partly because in many of the ASTs
- * and CSTs in Semgrep, including in AST_generic.ml, we store the
- * tokens in the ASTs/CSTs at the leaves, and abuse them to compute the range
- * of constructs (they are also convenient for precise error reporting).
+ * with transformation. We use fake tokens because in many of
+ * the ASTs/CSTs in Semgrep (including in AST_generic.ml) we store the
+ * tokens in the ASTs/CSTs at the leaves, and sometimes the actual
+ * token is optional (e.g., a virtual semicolon in Javascript). Moreover,
+ * we abuse those tokens at the leaves to compute the range of constructs.
+ * Finally those tokens are convenient for precise error reporting.
  * alt:
- *   - we could cleaner ASTs with range (general location) information at
+ *   - we could use cleaner ASTs with range (general location) information at
  *     every nodes, in which case we would not need at least the fake
  *     tokens (we might still need the ExpandedTok type construct though).
+ *   - we could also use more 'Tok.t option' instead of using fake tokens.
  *
  * Technically speaking, 't' below is not really a token, because the type does
  * not store the kind of the token (e.g., PLUS | IDENT | IF | ...), just its
@@ -41,8 +44,8 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-(* to report errors, regular position information.
- * TODO? move in a separate Loc.ml?
+(* To report errors, regular position information.
+ * Note that Loc.t is now an alias for Tok.location.
  *)
 type location = { str : string; (* the content of the "token" *) pos : Pos.t }
 [@@deriving show { with_path = false }, eq]
@@ -81,8 +84,7 @@ type kind =
          * between then, even for expanded tokens. See compare_pos
          * below.
          *)
-        location
-      * int
+      (location * int)
   (* The Ab constructor is (ab)used to call '=' to compare
    * big AST portions. Indeed as we keep the token information in the AST,
    * if we have an expression in the code like "1+1" and want to test if
@@ -151,11 +153,11 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
-(* Synthesize a token. *)
+(* Synthesize a fake token *)
 let unsafe_fake_tok str : t =
   { token = FakeTokStr (str, None); transfo = NoTransfo }
 
-(* "safe" fake token *)
+(* Synthesize a "safe" fake token *)
 let fake_tok_loc next_to_loc str : t =
   (* TODO: offset seems to have no use right now (?) *)
   { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
@@ -164,7 +166,7 @@ let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii.token with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> Ok pinfo_pp
+  | ExpandedTok (pinfo_pp, _) -> Ok pinfo_pp
   | FakeTokStr (_, Some (pi, _)) -> Ok pi
   | FakeTokStr (_, None) -> Error "FakeTokStr"
   | Ab -> Error "Ab"
@@ -265,7 +267,7 @@ let tok_add_s s ii = rewrap_str (content_of_tok ii ^ s) ii
 let str_of_info_fake_ok ii =
   match ii.token with
   | OriginTok pinfo -> pinfo.str
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> pinfo_pp.str
+  | ExpandedTok (pinfo_pp, _vloc) -> pinfo_pp.str
   | FakeTokStr (_, Some (pi, _)) -> pi.str
   | FakeTokStr (s, None) -> s
   | Ab -> raise (NoTokenLocation "Ab")
@@ -319,8 +321,8 @@ let fix_location fix ii =
     token =
       (match ii.token with
       | OriginTok pi -> OriginTok (fix pi)
-      | ExpandedTok (pi, vpi, off) -> ExpandedTok (fix pi, vpi, off)
-      | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
+      | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
+      | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
       | Ab -> Ab);
   }
 

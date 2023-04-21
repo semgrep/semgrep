@@ -110,7 +110,7 @@ let compare_pos ii1 ii2 =
     *)
     | FakeTokStr _ -> raise (NoTokenLocation "compare_pos: FakeTokStr")
     | Ab -> raise (NoTokenLocation "compare_pos: Ab")
-    | ExpandedTok (_pi_pp, pi_orig, offset) -> Virt (pi_orig, offset)
+    | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
   in
   let pos1 = get_pos (pinfo_of_info ii1) in
   let pos2 = get_pos (pinfo_of_info ii2) in
