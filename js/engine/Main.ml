@@ -4,7 +4,6 @@ open Js_of_ocaml
    expose the engine's mount points in order for reads to work properly in browser environments
    (see companion setter in Semgrep_js_shared.ml) *)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
-external caml_create_file : string -> string -> unit = "caml_create_file"
 
 let _ =
   Common.jsoo := true;
@@ -21,7 +20,7 @@ let _ =
        method setLibYamlWasmModule = Libyaml_stubs_js.set_libyaml_wasm_module
 
        method writeFile filename content =
-         caml_create_file (Js.to_string filename) (Js.to_string content)
+         Common.write_file (Js.to_string filename) (Js.to_string content)
 
        method deleteFile filename = Sys.remove (Js.to_string filename)
 
@@ -31,6 +30,11 @@ let _ =
        method setJustParseWithLang
            (func : Lang.t -> string -> Parsing_result2.t) =
          Parse_target.just_parse_with_lang_ref := func
+
+       method isValidLang (lang : Js.js_string Js.t) : bool =
+         match Lang.of_string_opt (Js.to_string lang) with
+         | Some _ -> true
+         | None -> false
 
        method lookupLang (lang : Js.js_string Js.t) : Lang.t =
          Lang.of_string (Js.to_string lang)
