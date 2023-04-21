@@ -205,8 +205,8 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
      - must exclude word characters.
      - may not match ignorable whitespace (so that $...X doesn't capture
        leading or trailing whitespace).
-     - may not match newline characters in uniline mode (regular ellipses,
-       not long ellipses)
+     - may not match newline characters in uniline mode (except in
+       long ellipses)
   *)
   let def_other =
     let word_chars =
