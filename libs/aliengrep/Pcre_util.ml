@@ -38,9 +38,9 @@ let escape_char buf c =
   | ' ' .. '~' -> Buffer.add_char buf c
   | _ -> bprintf buf {|\x%02X|} (Char.code c)
 
-let char_class_of_list chars =
+let char_class_of_list ?(contents_only = false) chars =
   let buf = Buffer.create 100 in
-  Buffer.add_char buf '[';
+  if not contents_only then Buffer.add_char buf '[';
   identify_char_ranges chars
   |> List.iter (function
        | Single c -> escape_char buf c
@@ -48,7 +48,7 @@ let char_class_of_list chars =
            escape_char buf first;
            Buffer.add_char buf '-';
            escape_char buf last);
-  Buffer.add_char buf ']';
+  if not contents_only then Buffer.add_char buf ']';
   Buffer.contents buf
 
 (*

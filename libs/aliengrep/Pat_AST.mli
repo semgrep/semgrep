@@ -6,6 +6,10 @@
 
 type t = node list
 
+(*
+   The allowed characters for Bracket and for Word depend on the configuration
+   of the parser as provided by Conf.t.
+*)
 and node =
   | Ellipsis
   | Long_ellipsis
