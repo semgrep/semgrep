@@ -344,6 +344,7 @@ class OutputHandler:
         final_error = None
         any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
 
+        semgrep_core_errors = []
         if self.final_error:
             final_error = self.final_error
         elif any_findings_not_ignored and self.settings.error_on_findings:
@@ -411,6 +412,8 @@ class OutputHandler:
         sast_skips_table = Table.grid()
         if self.semgrep_structured_errors:
             for error in semgrep_core_errors:
+                if error.spans is None:
+                    continue
                 for span in error.spans:
                     sast_skips_table.add_row(
                         "- ",

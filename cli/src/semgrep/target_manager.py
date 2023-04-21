@@ -40,11 +40,15 @@ import click
 from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 from boltons.iterutils import partition
+from rich.padding import Padding
+from rich.table import Table
+from rich import box
 
 from semgrep.constants import (
     UNSUPPORTED_PACKAGE_MANAGERS,
     Colors,
     UNSUPPORTED_EXT_IGNORE_LANGS,
+    PackageManagerInfo,
 )
 from semgrep.error import FilesNotFoundError
 from semgrep.formatter.text import width
@@ -142,7 +146,7 @@ class FileTargetingLog:
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
-    unsupported_lockfiles: Dict[Path, Dict] = Factory(dict)
+    unsupported_lockfiles: Dict[Path, PackageManagerInfo] = Factory(dict)
 
     @property
     def unsupported_lang_paths(self) -> FrozenSet[Path]:
@@ -295,12 +299,20 @@ class FileTargetingLog:
             yield 2, "<none>"
 
     def print(self) -> None:
-        if self.target_manager.respect_git_ignore:
-            console.print(
-                "Skipping all files ignored by git. For a full list of skipped files, run semgrep with the --verbose flag."
-            )
-
-        if
+        ignore_table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        ignore_table.add_column("Ignore reason")
+        ignore_table.add_column("Files", justify="right")
+        if self.always_skipped:
+            ignore_table.add_row("Always skipped", str(len(self.always_skipped)))
+        if self.cli_excludes:
+            ignore_table.add_row("--exclude", str(len(self.cli_excludes)))
+        if self.cli_includes:
+            ignore_table.add_row("--include", str(len(self.cli_includes)))
+        if self.size_limit:
+            ignore_table.add_row("--max-target-bytes", str(len(self.size_limit)))
+        if self.semgrepignored:
+            ignore_table.add_row(".semgrepignore", str(len(self.semgrepignored)))
+        console.print(Padding(ignore_table, (1, 0, 2, 0)))
 
     def verbose_output(self) -> str:
         formatters_by_level: Mapping[int, Callable[[str], str]] = {
@@ -793,7 +805,7 @@ class TargetManager:
             ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
         }
 
-    def get_unsupported_lockfiles(self) -> Dict[Path, Dict]:
+    def get_unsupported_lockfiles(self) -> Dict[Path, PackageManagerInfo]:
         results = {}
         for package_manager in UNSUPPORTED_PACKAGE_MANAGERS:
             if not package_manager["lockfile_path"]:

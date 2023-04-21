@@ -1,7 +1,12 @@
+"""Constant config values and data."""
 import re
 from enum import auto
 from enum import Enum
+from typing import List
+from typing import Optional
 from typing import Type
+
+from typing_extensions import TypedDict
 
 RULES_KEY = "rules"
 ID_KEY = "id"
@@ -130,23 +135,29 @@ class Colors(Enum):
     forced_white = 231  # #FFF
 
 
-"""
-ChatGPT prompt to generate:
+class PackageManagerInfo(TypedDict):
+    language: str
+    package_manager: str
+    manifest_path: str
+    lockfile_path: Optional[str]
 
---
-Please give me the top 20 package managers and their lockfiles' names in a JSON array format with the following keys: "language", "package_manager", "lockfile_path".
 
-Example entry:
+# ChatGPT prompt to generate:
 
-{"language": "python", "package_manager": "Poetry", "lockfile_path": "poetry.lock"}
+# --
+# Please give me the top 20 package managers and their lockfiles' names in a JSON array format with the following keys: "language", "package_manager", "lockfile_path".
 
-Add a field for "manifest_path". This points to the file where you specify dependencies without locking to a specific version. "manifest_path" can be null. "lockfile_path" can also be null.
---
+# Example entry:
 
-Manually converted to Python format and removed supported or weird entries
-"""
+# {"language": "python", "package_manager": "Poetry", "lockfile_path": "poetry.lock"}
+
+# Add a field for "manifest_path". This points to the file where you specify dependencies without locking to a specific version. "manifest_path" can be null. "lockfile_path" can also be null.
+# --
+
+# Manually converted to Python format and removed supported or weird entries
+
 # fmt: off
-UNSUPPORTED_PACKAGE_MANAGERS = [
+UNSUPPORTED_PACKAGE_MANAGERS: List[PackageManagerInfo] = [
     {"language": "c", "package_manager": "Conan", "manifest_path": "conanfile.txt", "lockfile_path": "conan.lock"},
     {"language": "c", "package_manager": "pkg-config", "manifest_path": ".pc", "lockfile_path": None},
     {"language": "c", "package_manager": "Vcpkg", "manifest_path": "vcpkg.json", "lockfile_path": None},
