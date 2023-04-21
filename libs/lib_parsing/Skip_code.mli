@@ -1,3 +1,7 @@
+(* This module is deprecated. You should prefer the gitignore library
+ * to skip files.
+ *)
+
 type skip =
   (* mostly to avoid parsing errors messages *)
   | Dir of Fpath.t
