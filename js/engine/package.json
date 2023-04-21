@@ -12,10 +12,17 @@
     "url": "github.com/returntocorp/semgrep"
   },
   "files": [
-    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.mjs",
     "dist/index.d.ts"
   ],
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",
   "devDependencies": {

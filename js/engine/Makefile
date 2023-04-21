@@ -8,7 +8,7 @@ ESBUILD_DEFAULTS = \
 default: build
 
 .PHONY: build
-build: dist/index.js dist/index.d.ts
+build: dist/index.cjs dist/index.mjs dist/index.d.ts
 
 .PHONY: test
 test: build
@@ -29,10 +29,14 @@ build-libyaml:
 node_modules/.package-lock.json:
 	npm ci
 
-dist/index.js: src/index.ts node_modules/.package-lock.json build-libyaml
+dist/index.cjs: src/index.ts node_modules/.package-lock.json build-libyaml
 	mkdir -p dist
-	npx esbuild $< $(ESBUILD_DEFAULTS) --outfile=$@
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/index.d.ts: node_modules/.package-lock.json dist/index.js build-libyaml
+dist/index.mjs: src/index.ts node_modules/.package-lock.json build-libyaml
+	mkdir -p dist
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
+
+dist/index.d.ts: node_modules/.package-lock.json src/index.ts build-libyaml
 	mkdir -p dist
 	npx -p typescript tsc

@@ -2,12 +2,18 @@
   "name": "@semgrep/lang-scala",
   "version": "0.0.1",
   "description": "Semgrep scala parser",
-  "main": "dist/index.js",
   "files": [
-    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.mjs",
     "dist/index.d.ts"
   ],
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
   "scripts": {
     "test": "jest"
   },

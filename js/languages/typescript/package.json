@@ -2,16 +2,20 @@
   "name": "@semgrep/lang-typescript",
   "version": "0.0.1",
   "description": "Semgrep typescript parser",
-  "main": "dist/index.js",
   "files": [
-    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.mjs",
     "dist/index.d.ts"
   ],
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
   "scripts": {
-    "build": "make dist/index.js dist/index.d.ts",
-    "test": "jest",
-    "prepublish": "make dist/index.js dist/index.d.ts"
+    "test": "jest"
   },
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",

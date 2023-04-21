@@ -30,7 +30,7 @@ TS_EXPORTED_FUNCTIONS ?= _tree_sitter_$(SEMGREP_TS_LANG)
 default: build
 
 .PHONY: build
-build: dist/index.js dist/index.d.ts
+build: dist/index.cjs dist/index.mjs dist/index.d.ts
 
 .PHONY: test
 test: build
@@ -61,9 +61,13 @@ endif
 node_modules/.package-lock.json:
 	npm ci
 
-dist/index.js: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+dist/index.cjs: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+
+dist/index.mjs: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+	mkdir -p dist
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
 
 dist/index.d.ts: ../shared/index.d.ts
 	mkdir -p dist
