@@ -341,9 +341,13 @@ let getIndentStatus ?(is_opportunistic = false) in_ =
     | _ -> false
   in
 
-  if is_indented then Some (Indent (line, col))
-  else if is_dedented then Some (Dedent (line, col))
-  else None
+  match tok with
+  (* Don't emit before an EOF. *)
+  | EOF _ -> None
+  | __else__ ->
+      if is_indented then Some (Indent (line, col))
+      else if is_dedented then Some (Dedent (line, col))
+      else None
 
 (* Sometimes, we can emit an indent, irrespective of the specific token that we
    just passed. This is in certain contextual parsing positions, such as after
@@ -2513,6 +2517,7 @@ and parseFor in_ : stmt =
         fb (Tok.unsafe_fake_tok "") (enumerators in_)
   in
   newLinesOpt in_;
+  opportunisticIndent in_;
   let body =
     match in_.token with
     | Kyield ii ->
@@ -3429,9 +3434,7 @@ let funDefRest fkind _attrs name in_ : function_definition * type_parameters =
                  nextToken in_ (* AST: newmmods |= MACRO *);
                let x = expr in_ in
                Some (FExpr (ii, x))
-           | _ ->
-               accept (EQUALS ab) in_ (* generate error message *);
-               None
+           | _ -> None
          in
          (* ast: DefDef(newmods, name.toTermName, tparams,vparamss,restype, rhs) *)
          (* CHECK: "unary prefix operator definition with empty parameter list.."*)
@@ -3465,7 +3468,6 @@ let funDefOrDcl attrs in_ : definition =
                    let x = constrExpr vparamss in_ in
                    FExpr (ii, x)
                | _ ->
-                   accept (EQUALS ab) in_;
                    (* generate error message *)
                    raise Impossible
              in
