@@ -254,7 +254,7 @@ let make_dotted xs =
       let base = B.N (B.Id (x, B.empty_id_info ())) |> G.e in
       List.fold_left
         (fun acc e ->
-          let tok = Parse_info.fake_info (snd x) "." in
+          let tok = Tok.fake_tok (snd x) "." in
           B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
         base xs
 

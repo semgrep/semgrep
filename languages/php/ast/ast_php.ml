@@ -452,7 +452,7 @@ type any =
 (*****************************************************************************)
 
 let unwrap x = fst x
-let wrap_fake s = (s, Parse_info.fake_info s)
+let wrap_fake s = (s, Tok.fake_tok s)
 
 (* TODO: replace builtin() by IdSpecial like I do in AST_generic.ml
  * builtin() is used for:

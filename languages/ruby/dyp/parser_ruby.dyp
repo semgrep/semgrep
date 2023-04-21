@@ -127,7 +127,7 @@ let dyp_merge xs =
 let token_immediate_check t1 t2 =
   ()
 
-let fake s = Parse_info.unsafe_fake_info s
+let fake s = Tok.unsafe_fake_tok s
 
 (*************************************************************************)
 (*1 AST helpers *)
@@ -602,7 +602,7 @@ one_string:
 interp_str:
   | T_SINGLE_STRING {[StrChars $1]}
   | interp_str_work<i>
-      {match i with [] -> [StrChars ("", Parse_info.unsafe_fake_info "")] | lst -> lst}
+      {match i with [] -> [StrChars ("", Tok.unsafe_fake_tok "")] | lst -> lst}
 
 interp_str_work:
   | T_INTERP_STR<s,pos> interp_code<tl>

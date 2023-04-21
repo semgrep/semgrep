@@ -1609,7 +1609,7 @@ and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
     | None -> []
   in
   let v3 = token2 env v3 (* string_end " "*) in
-  (Parse_info.fake_info v1 ":", AtomFromString (v1, res, v3))
+  (Tok.fake_tok v1 ":", AtomFromString (v1, res, v3))
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
   List.filter_map

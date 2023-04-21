@@ -37,8 +37,8 @@ let error tok s = raise (Parsing_error.Ast_builder_error (s, tok))
  *  if !store_position then Some tok else None
  *)
 let wrap tok = tok
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 let fb = Tok.fake_bracket
 let unsafe_fb = Tok.unsafe_fake_bracket
 

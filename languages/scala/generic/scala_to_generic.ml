@@ -170,7 +170,7 @@ and v_export (v1, v2) : G.directive list =
   let v2 = v_list (v_import_expr v1) v2 in
   List.flatten v2
   |> Common.map (fun x ->
-         OtherDirective (("export", PI.unsafe_fake_info "export"), [ G.Dir x ])
+         OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
          |> G.d)
 
 and v_package (v1, v2) =
@@ -907,7 +907,7 @@ and v_given_definition { gsig; gkind } =
         in
         v1 @ v2
   in
-  let todo_kind = ("given", PI.unsafe_fake_info "given") in
+  let todo_kind = ("given", Tok.unsafe_fake_tok "given") in
   [
     ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
       G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
@@ -930,7 +930,7 @@ and v_enum_case_definition attrs v1 =
       let attrs = v_list v_attribute eattrs @ attrs in
       (* TODO *)
       let _extends = v_list v_constr_app eextends in
-      let fake = PI.unsafe_fake_info "Param" in
+      let fake = Tok.unsafe_fake_tok "Param" in
       (* Here, we turn the params into arguments.
          They are represented syntactically as parameters, but they'll fit
          fine here too. This is with the understanding that this probably

@@ -548,7 +548,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, re_str, const_prop) ->
-             let fk = PI.unsafe_fake_info "" in
+             let fk = Tok.unsafe_fake_tok "" in
              let fki = AST_generic.empty_id_info () in
              let e =
                (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str

@@ -232,7 +232,7 @@ let rules_from_rules_source (source : rules_source) : rules_and_origin list =
              let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
              rules_from_dashdash_config kind)
   | Pattern (pat, xlang, fix) ->
-      let fk = Parse_info.unsafe_fake_info "" in
+      let fk = Tok.unsafe_fake_tok "" in
       (* better: '-e foo -l regex' not handled in original semgrep,
        * got a weird 'invalid pattern clause' error.
        * better: '-e foo -l generic' not handled in semgrep-core

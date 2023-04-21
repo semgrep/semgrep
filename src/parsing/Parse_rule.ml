@@ -1416,7 +1416,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
         equivs_opt,
         options_opt ) =
     ( (match mode with
-      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
       | _ ->
           ( take rd env parse_string "message",
             take rd env parse_string_wrap "severity" )),

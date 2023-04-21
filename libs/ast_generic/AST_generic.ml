@@ -2058,12 +2058,12 @@ let error tok msg = raise (Error (msg, tok))
  * to derive the tokens in those new constructs from existing constructs
  * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
  *)
-let fake s = Parse_info.unsafe_fake_info s
+let fake s = Tok.unsafe_fake_tok s
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
  * the string of a fake info
  *)
-let sc = Parse_info.unsafe_fake_info ""
+let sc = Tok.unsafe_fake_tok ""
 
 (*****************************************************************************)
 (* AST builder helpers *)
@@ -2162,7 +2162,7 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
   let s = xs |> Common.map fst |> String.concat "" in
   let t =
     match xs with
-    | [] -> Parse_info.fake_info lquote ""
+    | [] -> Tok.fake_tok lquote ""
     | (_, t) :: ys -> Tok.combine_toks t (Common.map snd ys)
   in
   (lquote, (s, t), rquote)

@@ -37,7 +37,7 @@ type env = mode H.env
 let logger = Logging.get_logger [ __MODULE__ ]
 let token = H.token
 let str = H.str
-let fk tok = Parse_info.fake_info tok ""
+let fk tok = Tok.fake_tok tok ""
 let fb = Tok.unsafe_fake_bracket
 
 (* Remove this function when everything is done *)

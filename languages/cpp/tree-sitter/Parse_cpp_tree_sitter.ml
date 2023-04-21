@@ -43,7 +43,7 @@ let recover_when_partial_error = ref true
 type env = unit H.env
 
 let token = H.token
-let fake = PI.fake_info
+let fake = Tok.fake_tok
 let fb = Tok.fake_bracket
 let str = H.str
 

@@ -7,9 +7,6 @@ type t = Tok.t [@@deriving eq, show]
 
 val is_fake : t -> bool
 val is_origintok : t -> bool
-val unsafe_fake_info : string -> t
-val fake_info_loc : Tok.location -> string -> t
-val fake_info : t -> string -> t
 
 (*****************************************************************************)
 (* Info accessors *)

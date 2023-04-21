@@ -117,7 +117,7 @@ let mk_def ?(attrs=None) (idopt, defkind) =
   (* TODO: fun default_opt -> ... *)
   let name =
     match idopt with
-    | None -> Flag_parsing.sgrep_guard (anon_semgrep_lambda, PI.unsafe_fake_info "")
+    | None -> Flag_parsing.sgrep_guard (anon_semgrep_lambda, Tok.unsafe_fake_tok "")
     | Some id -> id
   in
   match attrs with
@@ -132,7 +132,7 @@ let mk_pattern binding_pattern type_opt init_opt =
   let pat =
     match type_opt with
     | None -> binding_pattern
-    | Some type_ -> Cast(binding_pattern, PI.unsafe_fake_info ":", type_)
+    | Some type_ -> Cast(binding_pattern, Tok.unsafe_fake_tok ":", type_)
   in
   match init_opt with
   | None -> pat
@@ -140,7 +140,7 @@ let mk_pattern binding_pattern type_opt init_opt =
 
 (* Javascript has implicit returns for arrows with expression body *)
 let mk_block_return e =
-  unsafe_fb [Return (PI.unsafe_fake_info "return", Some e, Tok.unsafe_sc)]
+  unsafe_fb [Return (Tok.unsafe_fake_tok "return", Some e, Tok.unsafe_sc)]
 
 let special spec tok xs =
   Apply (IdSpecial (spec, tok), fb tok xs)
@@ -1550,7 +1550,7 @@ xhp_attribute:
     { XmlAttrExpr ($1, special Spread $2 [$3],$4)}
  (* reactjs-ext: see https://www.reactenlightenment.com/react-jsx/5.7.html *)
  | T_XHP_ATTR
-    { XmlAttr ($1, PI.fake_info (snd $1) "=", L (Bool(true, snd $1))) }
+    { XmlAttr ($1, Tok.fake_tok (snd $1) "=", L (Bool(true, snd $1))) }
  | "..."
     { XmlEllipsis $1 }
 

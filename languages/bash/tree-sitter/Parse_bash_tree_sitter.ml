@@ -1458,7 +1458,7 @@ let parse file =
       let env =
         { H.file; conv = H.line_col_to_pos file; extra = AST_bash.Program }
       in
-      let tok = PI.fake_info_loc (Tok.first_loc_of_file file) "" in
+      let tok = Tok.first_tok_of_file file in
       program env ~tok cst)
 
 let parse_pattern str =
@@ -1467,5 +1467,5 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = AST_bash.Pattern } in
-      let tok = PI.fake_info_loc (Tok.first_loc_of_file file) "" in
+      let tok = Tok.first_tok_of_file file in
       program env ~tok cst)

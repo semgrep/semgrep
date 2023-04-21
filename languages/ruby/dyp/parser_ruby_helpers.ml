@@ -352,7 +352,7 @@ let fix_broken_assoc l op r =
           let (astr, t), rest =
             match List.rev sc with
             | Ast_ruby.StrChars (s, t) :: tl -> ((s, t), tl)
-            | _ -> (("a", Parse_info.fake_info tk "a"), [])
+            | _ -> (("a", Tok.fake_tok tk "a"), [])
           in
           let len = String.length astr in
           if astr.[len - 1] == '=' then

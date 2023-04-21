@@ -461,7 +461,7 @@ and map_expr env x : G.expr =
       |> G.e
   | ConstructedObject (v1, v2) ->
       let t = map_type_ env v1 and l, args, r = map_obj_init env v2 in
-      G.New (PI.fake_info l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
+      G.New (Tok.fake_tok l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
   | TypeId (v1, v2) ->
       let v1 = map_tok env v1
       and _l, either, _r =
@@ -1642,7 +1642,7 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) either =
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
       fun tk ->
         let dots = H.dotted_ident_of_name v2 in
-        Left (G.ImportAll (tk, G.DottedName dots, PI.fake_info v1 "") |> G.d)
+        Left (G.ImportAll (tk, G.DottedName dots, Tok.fake_tok v1 "") |> G.d)
   | UsingAlias (v1, v2, v3) ->
       fun _tk ->
         let v1 = map_ident env v1

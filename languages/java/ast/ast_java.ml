@@ -561,7 +561,7 @@ let method_header mods mtype (v, formals) throws =
     m_var = canon_var mods (Some mtype) v;
     m_formals = formals;
     m_throws = throws;
-    m_body = EmptyStmt (Parse_info.fake_info (tok_of_var v) ";");
+    m_body = EmptyStmt (Tok.fake_tok (tok_of_var v) ";");
   }
 
 (* Return a list of field declarations in canonical form. *)

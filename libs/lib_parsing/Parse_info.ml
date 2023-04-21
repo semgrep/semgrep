@@ -13,20 +13,6 @@ open Tok
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-(* Synthesize a token. *)
-let unsafe_fake_info str : Tok.t =
-  { token = FakeTokStr (str, None); transfo = NoTransfo }
-
-(* "safe" fake token *)
-let fake_info_loc next_to_loc str : Tok.t =
-  (* TODO: offset seems to have no use right now (?) *)
-  { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
-
-let fake_info next_to_tok str : Tok.t =
-  match Tok.loc_of_tok next_to_tok with
-  | Ok loc -> fake_info_loc loc str
-  | Error _ -> unsafe_fake_info str
-
 let is_fake tok =
   match tok.token with
   | FakeTokStr _ -> true

@@ -689,12 +689,12 @@ let parameter_to_pattern tok (param : parameter) : a_pattern =
       let pat =
         match p_type with
         | None -> pat
-        | Some type_ -> Cast (pat, Parse_info.fake_info tok ":", type_)
+        | Some type_ -> Cast (pat, Tok.fake_tok tok ":", type_)
       in
       let pat =
         match p_default with
         | None -> pat
-        | Some expr -> Assign (pat, Parse_info.fake_info tok "=", expr)
+        | Some expr -> Assign (pat, Tok.fake_tok tok "=", expr)
       in
       (* TODO? *)
       ignore p_attrs;

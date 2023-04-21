@@ -48,7 +48,7 @@ exception SemgrepConstruct of Parse_info.t
 (*****************************************************************************)
 let map_id x = x
 let map_of_ref f x = f !x
-let fk = Parse_info.unsafe_fake_info ""
+let fk = Tok.unsafe_fake_tok ""
 
 let error any =
   let v = Meta_AST.vof_any any in

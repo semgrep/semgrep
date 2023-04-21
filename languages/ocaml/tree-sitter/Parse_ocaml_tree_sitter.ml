@@ -1920,7 +1920,7 @@ and map_module_expression (env : env) (x : CST.module_expression) =
             let _v2 = token env v2 (* ")" *) in
             []
       in
-      ModuleTodo (("App", PI.unsafe_fake_info ""), v1 :: v2)
+      ModuleTodo (("App", Tok.unsafe_fake_tok ""), v1 :: v2)
 
 and map_module_expression_ext (env : env) (x : CST.module_expression_ext) =
   match x with

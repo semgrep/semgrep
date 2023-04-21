@@ -287,16 +287,16 @@ let vardef_to_assign (ent, def) =
   let v =
     match def.vinit with
     | Some v -> v
-    | None -> L (Null (Parse_info.unsafe_fake_info "null")) |> G.e
+    | None -> L (Null (Tok.unsafe_fake_tok "null")) |> G.e
   in
-  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
   let name_or_expr = entity_name_to_expr ent.name (Some idinfo) in
   let v = Lambda def |> G.e in
-  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
 let funcbody_to_stmt = function
   | FBStmt st -> st

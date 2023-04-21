@@ -230,7 +230,7 @@ let scalar (_tag, pos, value, style) env : G.expr * E.pos =
     let token = mk_tok ~style pos value env in
     let expr =
       (match value with
-      | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
+      | "__sgrep_ellipses__" -> G.Ellipsis (Tok.fake_tok token "...")
       (* TODO: emma: I will put "" back to Null and have either a warning or
        * an error when we try to parse a string and get Null in another PR.
        *)
@@ -292,7 +292,7 @@ let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
   match (key.G.e, value.G.e) with
   | G.Ellipsis _, G.Ellipsis _ ->
       let tok = mk_tok pos1 "..." env in
-      (G.Ellipsis (Parse_info.fake_info tok "...") |> G.e, pos2)
+      (G.Ellipsis (Tok.fake_tok tok "...") |> G.e, pos2)
   (* less: use G.keyval? *)
   | _ ->
       ( G.Container (G.Tuple, mk_bracket (pos1, pos2) [ key; value ] env) |> G.e,

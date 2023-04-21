@@ -476,7 +476,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
  * This is used when someone calls `semgrep -e print -l python`
  *)
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
-  let fk = Parse_info.unsafe_fake_info "" in
+  let fk = Tok.unsafe_fake_tok "" in
   {
     id = ("-e", fk);
     mode = `Search (P xpat);

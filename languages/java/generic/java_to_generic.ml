@@ -36,8 +36,8 @@ let (string : string -> string) = id
 let (bool : bool -> bool) = id
 let (int : int -> int) = id
 let error = AST_generic.error
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
 let fb = Tok.unsafe_fake_bracket
@@ -370,7 +370,7 @@ and expr e =
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
-      G.TypedMetavar (v1, Parse_info.fake_info (snd v1) " ", v2)
+      G.TypedMetavar (v1, Tok.fake_tok (snd v1) " ", v2)
   | Lambda (v1, t, v2) ->
       let fparams = parameters v1 in
       let v2 = stmt v2 in

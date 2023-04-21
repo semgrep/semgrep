@@ -813,7 +813,7 @@ let inBracesOrIndented f in_ =
   | LBRACE _ -> inBraces f in_
   | _ ->
       enterIndentRegion in_;
-      let res = fb (PI.unsafe_fake_info "") (f in_) in
+      let res = fb (Tok.unsafe_fake_tok "") (f in_) in
       closeIndentRegion in_;
       res
 
@@ -2429,7 +2429,7 @@ and parseIf in_ : stmt =
         let e = expr in_ in
         accept (ID_LOWER ("then", ab)) in_;
         newLinesOpt in_;
-        fb (PI.unsafe_fake_info "") e
+        fb (Tok.unsafe_fake_tok "") e
   in
   opportunisticIndent in_;
   let thenp = expr in_ in
@@ -2468,7 +2468,7 @@ and parseWhile in_ : stmt =
         let e = expr in_ in
         newLinesOpt in_;
         accept (Kdo ab) in_;
-        fb (PI.unsafe_fake_info "") e
+        fb (Tok.unsafe_fake_tok "") e
   in
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
@@ -2511,7 +2511,7 @@ and parseFor in_ : stmt =
            See
            https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
         *)
-        fb (PI.unsafe_fake_info "") (enumerators in_)
+        fb (Tok.unsafe_fake_tok "") (enumerators in_)
   in
   newLinesOpt in_;
   let body =
@@ -3830,7 +3830,7 @@ let templateBody ~isPre in_ : template_body =
       (* must be a colon *)
       accept (COLON ab) in_;
       enterIndentRegion in_;
-      let res = fb (PI.unsafe_fake_info "") (templateStatSeq ~isPre in_) in
+      let res = fb (Tok.unsafe_fake_tok "") (templateStatSeq ~isPre in_) in
       closeIndentRegion in_;
       res
 
@@ -4252,7 +4252,7 @@ let givenSig in_ : given_sig =
   let id_opt = ident_opt in_ in
   let owner =
     match id_opt with
-    | None -> ("", PI.unsafe_fake_info "")
+    | None -> ("", Tok.unsafe_fake_tok "")
     | Some x -> x
   in
   let tparams = typeParamClauseOpt owner None in_ in

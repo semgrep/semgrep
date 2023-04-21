@@ -1204,7 +1204,7 @@ and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
   let pat =
     match (v2, v3) with
     (* Similar to how Python does it: *)
-    | None, None -> G.PatUnderscore (Parse_info.fake_info catch_tok "_")
+    | None, None -> G.PatUnderscore (Tok.fake_tok catch_tok "_")
     | Some v2, None -> map_binding_pattern_no_expr env v2
     (* This is impossible according to the Swift grammar - you can't have a `where`
        on the caught thing unless there was a pattern to modify in the first place.
@@ -1672,7 +1672,7 @@ and map_import_declaration (env : env)
   (* TODO Use ImportFrom for `import foo.bar.baz`? *)
   G.DirectiveStmt
     {
-      G.d = G.ImportAll (v2, G.DottedName v4, PI.unsafe_fake_info "");
+      G.d = G.ImportAll (v2, G.DottedName v4, Tok.unsafe_fake_tok "");
       d_attrs = attrs;
     }
   |> G.s
@@ -1728,7 +1728,7 @@ and map_interpolation_contents (env : env)
    * something like "\(_: 2)", which there is no real reason to use, and Swift
    * won't allow the others at all. *)
   | _ ->
-      G.OtherExpr (("UnknownInterpolation", PI.unsafe_fake_info ""), []) |> G.e
+      G.OtherExpr (("UnknownInterpolation", Tok.unsafe_fake_tok ""), []) |> G.e
 
 and map_arguments (env : env) ((v1, v2) : CST.interpolation_contents) :
     G.argument list =
@@ -2216,7 +2216,7 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
          * It's quite clear that a type can appear in this position, but the
          * generic AST expects an expression. *)
         let type_ = map_navigable_type_expression env x in
-        G.OtherExpr (("TypeExpr", PI.unsafe_fake_info ""), [ G.T type_ ]) |> G.e
+        G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ]) |> G.e
     | `Exp x -> map_expression env x
   in
   let dot, suffix = map_navigation_suffix env v2 in

@@ -764,7 +764,7 @@ and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
   let v2 =
     match v2 with
     | Some x -> map_anon_choice_choice_array_dest_abfb170 env x
-    | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
+    | None -> A.Id [ ("", Tok.fake_tok v1 "") ]
   in
   let v3 =
     Common.map
@@ -773,7 +773,7 @@ and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
         let v2 =
           match v2 with
           | Some x -> map_anon_choice_choice_array_dest_abfb170 env x
-          | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
+          | None -> A.Id [ ("", Tok.fake_tok v1 "") ]
         in
         v2)
       v3
@@ -1030,7 +1030,7 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) :
   let v4 =
     match v4 with
     | Some x -> map_variable_name env x
-    | None -> ("", Parse_info.fake_info v2 "")
+    | None -> ("", Tok.fake_tok v2 "")
   in
   let v5 = (* ")" *) token env v5 in
   let v6 = map_compound_statement env v6 in
@@ -1408,7 +1408,7 @@ and map_list_destructing (env : env)
   let v3 =
     match v3 with
     | Some x -> map_anon_choice_choice_list_dest_c865322 env x
-    | None -> A.Id [ ("", Parse_info.fake_info v2 "") ]
+    | None -> A.Id [ ("", Tok.fake_tok v2 "") ]
   in
   let v4 =
     Common.map
@@ -1417,7 +1417,7 @@ and map_list_destructing (env : env)
         let v2 =
           match v2 with
           | Some x -> map_anon_choice_choice_list_dest_c865322 env x
-          | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
+          | None -> A.Id [ ("", Tok.fake_tok v1 "") ]
         in
         v2)
       v4

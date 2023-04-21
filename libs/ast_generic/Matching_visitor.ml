@@ -176,7 +176,7 @@ class ['self] matching_visitor =
                          ( Tuple,
                            (tok, [ { e = L (String (_, id, _)); _ }; e ], _) )
                        ->
-                         let t = PI.fake_info tok ":" in
+                         let t = Tok.fake_tok tok ":" in
                          self#v_partial ~recurse:false env
                            (PartialSingleField (id, t, e))
                      | _ -> ())
@@ -189,7 +189,7 @@ class ['self] matching_visitor =
                      match e.e with
                      | Container
                          (Tuple, (tok, [ { e = N (Id (id, _)); _ }; e ], _)) ->
-                         let t = PI.fake_info tok ":" in
+                         let t = Tok.fake_tok tok ":" in
                          self#v_partial ~recurse:false env
                            (PartialSingleField (id, t, e))
                      | _ -> ())
@@ -205,7 +205,7 @@ class ['self] matching_visitor =
       (match x with
       | ArgKwd (v1, v2) ->
           let tok = snd v1 in
-          let t = PI.fake_info tok ":" in
+          let t = Tok.fake_tok tok ":" in
           self#v_partial ~recurse:false env (PartialSingleField (v1, t, v2))
       | _else -> ());
       super#visit_argument env x
@@ -267,7 +267,7 @@ class ['self] matching_visitor =
           | DefStmt
               ( { name = EN (Id (id, _)); _ },
                 FieldDefColon { vinit = Some e; _ } ) ->
-              let t = PI.fake_info (snd id) ":" in
+              let t = Tok.fake_tok (snd id) ":" in
               self#v_partial ~recurse:false env (PartialSingleField (id, t, e))
           | DefStmt (ent, def) -> self#v_flddef_as_assign_expr env ent def
           | _ -> ());

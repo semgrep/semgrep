@@ -187,13 +187,13 @@ let refine_svalue_ref c_ref c' =
 let literal_of_bool b =
   let b_str = string_of_bool b in
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.unsafe_fake_info b_str in
+  let tok = Tok.unsafe_fake_tok b_str in
   G.Bool (b, tok)
 
 let literal_of_int i =
   let i_str = string_of_int i in
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.unsafe_fake_info i_str in
+  let tok = Tok.unsafe_fake_tok i_str in
   G.Int (Some i, tok)
 
 let int_of_literal = function
@@ -203,7 +203,7 @@ let int_of_literal = function
 let literal_of_string ?tok s : G.literal =
   let tok =
     match tok with
-    | None -> Parse_info.unsafe_fake_info s
+    | None -> Tok.unsafe_fake_tok s
     | Some tok ->
         (* THIHK: IMO this should be `Parse_info.fake_info tok s`. Yet right now
          * we are picking an arbitrary token from one of the strings involved in

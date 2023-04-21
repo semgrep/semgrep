@@ -47,8 +47,8 @@ let name_of_qualified_ident x =
   in
   H.name_of_ids xs
 
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 let _fake_id tok s = (s, fake tok s)
 let unsafe_fake_id s = (s, unsafe_fake s)
 let fb = Tok.unsafe_fake_bracket

@@ -40,8 +40,8 @@ let option = Option.map
 let list = Common.map
 let bool = id
 let string = id
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 let fb = Tok.unsafe_fake_bracket
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
@@ -255,7 +255,7 @@ and formal_param_pattern = function
   | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
     | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
       let x = formal_param x in
-      G.OtherPat (("ParamPattern", PI.unsafe_fake_info ""), [ G.Pa x ])
+      G.OtherPat (("ParamPattern", Tok.unsafe_fake_tok ""), [ G.Pa x ])
 
 and scope_resolution x : G.name =
   match x with

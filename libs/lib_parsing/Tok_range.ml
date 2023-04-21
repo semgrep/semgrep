@@ -33,7 +33,7 @@ let range a b =
   else if Parse_info.is_fake start_tok then (end_tok, end_tok)
   else (start_tok, end_tok)
 
-let unsafe_fake_tok = Parse_info.unsafe_fake_info "fake"
+let unsafe_fake_tok = Tok.unsafe_fake_tok "fake"
 let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
 
 (*

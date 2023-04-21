@@ -374,7 +374,7 @@ let parse_pattern lang_pattern str =
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
                 "no-id",
-                Parse_info.unsafe_fake_info "no loc" )))
+                Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
 (* for -rules *)
@@ -976,7 +976,7 @@ let semgrep_with_one_pattern config =
   | Json _ ->
       let rule, rules_parse_time =
         Common.with_time (fun () ->
-            let fk = Parse_info.unsafe_fake_info "" in
+            let fk = Tok.unsafe_fake_tok "" in
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat

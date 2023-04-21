@@ -32,7 +32,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fake = PI.unsafe_fake_info ""
+let fake = Tok.unsafe_fake_tok ""
 let fb = Tok.unsafe_fake_bracket
 let mk_functype (params, rett) = TyFun (params, rett)
 
@@ -113,7 +113,7 @@ let identifier_ (env : env) (x : CST.identifier_) : expr =
 (* LATER: this is overriden by another automatic_semicolon later, normal? *)
 let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
   (* do like in pfff: *)
-  PI.unsafe_fake_info ";"
+  Tok.unsafe_fake_tok ";"
 
 let semicolon (env : env) (x : CST.semicolon) =
   match x with
@@ -2006,12 +2006,12 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       let pat =
         match opt_type with
         | None -> pat
-        | Some type_ -> Cast (pat, PI.unsafe_fake_info ":", type_)
+        | Some type_ -> Cast (pat, Tok.unsafe_fake_tok ":", type_)
       in
       let pat =
         match opt_default with
         | None -> pat
-        | Some expr -> Assign (pat, PI.unsafe_fake_info "=", expr)
+        | Some expr -> Assign (pat, Tok.unsafe_fake_tok "=", expr)
       in
       ParamPattern pat
 

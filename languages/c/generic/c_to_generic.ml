@@ -40,13 +40,13 @@ let either f g x =
   | Right x -> Right (g x)
 
 let string = id
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 let fb = Tok.unsafe_fake_bracket
 
 let opt_to_ident opt =
   match opt with
-  | None -> ("FakeNAME", Parse_info.unsafe_fake_info "FakeNAME")
+  | None -> ("FakeNAME", Tok.unsafe_fake_tok "FakeNAME")
   | Some n -> n
 
 (*****************************************************************************)
