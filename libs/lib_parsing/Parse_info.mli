@@ -3,7 +3,4 @@ type t = Tok.t [@@deriving eq, show]
 
 (* Format the location file/line/column into a string *)
 val string_of_info : t -> string
-
-(* comparison (TODO? should use deriving ord?) *)
-val compare_pos : t -> t -> int
 val min_max_ii_by_pos : t list -> t * t

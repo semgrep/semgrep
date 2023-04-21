@@ -220,3 +220,6 @@ val unbracket : t * 'a * t -> 'a
  * abstract_tok (and Ab) to compare ASTs
  *)
 val abstract_tok : t
+
+(* comparison (TODO? should use deriving ord?) *)
+val compare_pos : t -> t -> int

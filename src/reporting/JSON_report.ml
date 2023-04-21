@@ -121,7 +121,7 @@ let metavar_string_of_any any =
      Handle such cases *)
   any |> V.ii_of_any
   |> List.filter Tok.is_origintok
-  |> List.sort Parse_info.compare_pos
+  |> List.sort Tok.compare_pos
   |> Common.map Tok.content_of_tok
   |> Matching_report.join_with_space_if_needed
 
@@ -188,7 +188,7 @@ let tokens_to_single_loc toks =
    * taint rule finding but it shouldn't happen in practice. *)
   let locations =
     tokens_to_locations
-      (List.filter Tok.is_origintok toks |> List.sort PI.compare_pos)
+      (List.filter Tok.is_origintok toks |> List.sort Tok.compare_pos)
   in
   let* first_loc, last_loc = first_and_last locations in
   Some

@@ -424,6 +424,45 @@ let distribute_info_items_toplevel a b c =
  *)
 
 (*****************************************************************************)
+(* Compare *)
+(*****************************************************************************)
+
+(* not used but used to be useful in coccinelle *)
+type posrv =
+  | Real of location
+  | Virt of
+      location (* last real info before expanded tok *)
+      * int (* virtual offset *)
+
+let compare_pos ii1 ii2 =
+  let get_pos = function
+    | OriginTok pi -> Real pi
+    (* todo? I have this for lang_php/
+        | FakeTokStr (s, Some (pi_orig, offset)) ->
+            Virt (pi_orig, offset)
+    *)
+    | FakeTokStr _ -> raise (NoTokenLocation "compare_pos: FakeTokStr")
+    | Ab -> raise (NoTokenLocation "compare_pos: Ab")
+    | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
+  in
+  let pos1 = get_pos ii1.token in
+  let pos2 = get_pos ii2.token in
+  match (pos1, pos2) with
+  | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
+  | Virt (p1, _), Real p2 ->
+      if compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
+  | Real p1, Virt (p2, _) ->
+      if compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
+  | Virt (p1, o1), Virt (p2, o2) -> (
+      let poi1 = p1.pos.charpos in
+      let poi2 = p2.pos.charpos in
+      match compare poi1 poi2 with
+      | -1 -> -1
+      | 0 -> compare o1 o2
+      | 1 -> 1
+      | _ -> raise Impossible)
+
+(*****************************************************************************)
 (* Other helpers *)
 (*****************************************************************************)
 
