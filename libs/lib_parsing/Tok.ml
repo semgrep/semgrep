@@ -261,6 +261,7 @@ let tok_of_lexbuf lexbuf =
   tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
 
 let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 
 let rewrap_str s ii =
   {

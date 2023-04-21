@@ -93,6 +93,33 @@ val pp_full_token_info : bool ref
 type t_always_equal = t [@@deriving show, eq, hash]
 
 (*****************************************************************************)
+(* Token builders *)
+(*****************************************************************************)
+
+val tok_of_lexbuf : Lexing.lexbuf -> t
+val tok_of_loc : location -> t
+
+(* deprecated: TODO used only in Lexer_php.mll *)
+val tok_of_str_and_bytepos : string -> int -> t
+
+(* the token will be empty, but its pos will be the beginning of the file *)
+val first_tok_of_file : Common.filename -> t
+
+(* similar, the location will be empty *)
+val first_loc_of_file : Common.filename -> location
+
+(* used mainly by tree-sitter based parsers in semgrep.
+ * [combine_toks t1 ts] will return a token where t1::ts
+ * have been combined in a single token, with a starting pos
+ * of t1.pos.
+ *)
+val combine_toks : t -> t list -> t
+
+(* this function assumes the full content of the token is on the same
+ * line, otherwise the line/col of the result might be wrong *)
+val split_tok_at_bytepos : int -> t -> t * t
+
+(*****************************************************************************)
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 (* "Safe" fake tokens require an existing location to attach to, and so
@@ -117,34 +144,6 @@ val sc : t -> t
 val unsafe_sc : t
 val fake_bracket : t -> 'a -> t * 'a * t
 val unsafe_fake_bracket : 'a -> t * 'a * t
-
-(*****************************************************************************)
-(* Loc builders *)
-(*****************************************************************************)
-
-(* deprecated: you should use instead Pos.first_pos_of_file *)
-val first_loc_of_file : Common.filename -> location
-
-(*****************************************************************************)
-(* Token builders *)
-(*****************************************************************************)
-
-val tok_of_lexbuf : Lexing.lexbuf -> t
-val tok_of_loc : location -> t
-
-(* deprecated: TODO used only in Lexer_php.mll *)
-val tok_of_str_and_bytepos : string -> int -> t
-
-(* used mainly by tree-sitter based parsers in semgrep.
- * [combine_toks t1 ts] will return a token where t1::ts
- * have been combined in a single token, with a starting pos
- * of t1.pos.
- *)
-val combine_toks : t -> t list -> t
-
-(* this function assumes the full content of the token is on the same
- * line, otherwise the line/col of the result might be wrong *)
-val split_tok_at_bytepos : int -> t -> t * t
 
 (*****************************************************************************)
 (* Accessors *)
@@ -206,7 +205,7 @@ val adjust_loc_wrt_base : location -> location -> location
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
 val complete_location :
-  Common.filename -> (int -> int * int) -> location -> location
+  Common.filename -> Pos.bytepos_to_linecol_fun -> location -> location
 
 (*****************************************************************************)
 (* Misc *)
