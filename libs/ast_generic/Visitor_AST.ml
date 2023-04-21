@@ -49,7 +49,7 @@ let info_of_any any =
 let first_info_of_any any =
   let xs = ii_of_any any in
   let xs = List.filter Tok.is_origintok xs in
-  let min, _max = Parse_info.min_max_ii_by_pos xs in
+  let min, _max = Tok_range.min_max_toks_by_pos xs in
   min
 
 (*****************************************************************************)
@@ -116,7 +116,7 @@ let extract_ranges : AST_generic.any -> (Tok.location * Tok.location) option =
     res
 
 let range_of_tokens tokens =
-  List.filter Tok.is_origintok tokens |> PI.min_max_ii_by_pos
+  List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
   [@@profiling]
 
 let range_of_any_opt any =

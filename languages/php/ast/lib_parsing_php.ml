@@ -132,7 +132,7 @@ let (range_of_origin_ii : Cst_php.tok list -> (int * int) option) =
  fun ii ->
   let ii = List.filter Tok.is_origintok ii in
   try
-    let min, max = Parse_info.min_max_ii_by_pos ii in
+    let min, max = Tok_range.min_max_toks_by_pos ii in
     assert (Tok.is_origintok max);
     assert (Tok.is_origintok min);
     let strmax = Tok.content_of_tok max in

@@ -147,7 +147,7 @@ let print_match ?str config match_ ii_of_any =
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
+    let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
     let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
     let strings_metavars =

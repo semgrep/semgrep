@@ -102,3 +102,6 @@ val extend : t -> Tok.t -> t
 
 (* A pair of fake tokens. Better avoided. *)
 val unsafe_fake_loc : t
+
+(* TODO? merge with of_toks? *)
+val min_max_toks_by_pos : Tok.t list -> t
