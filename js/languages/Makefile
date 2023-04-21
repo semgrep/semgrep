@@ -13,13 +13,13 @@ test: $(SUPPORTED_LANGS:%=test-%)
 .PHONY: package
 package: $(SUPPORTED_LANGS:%=package-%)
 
-.PHONY: test-%
-test-%:
-	cd $*; $(MAKE) test
-
 .PHONY: build-%
 build-%:
 	cd $*; $(MAKE) build
+
+.PHONY: test-%
+test-%:
+	cd $*; $(MAKE) test
 
 .PHONY: package-%
 package-%:

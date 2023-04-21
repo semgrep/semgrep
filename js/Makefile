@@ -2,7 +2,7 @@
 default: libyaml engine languages
 
 .PHONY: build
-test:
+build:
 	cd libyaml; $(MAKE) build
 	cd engine; $(MAKE) build
 	cd languages; $(MAKE) build
@@ -19,8 +19,8 @@ e2e: engine languages
 
 .PHONY: package
 package:
-	cd engine; $(MAKE) -C engine package
-	cd languages; $(MAKE) -C languages package
+	cd engine; $(MAKE) package
+	cd languages; $(MAKE) package
 
 .PHONY: libyaml
 libyaml:

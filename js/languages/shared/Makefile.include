@@ -62,7 +62,9 @@ node_modules/.package-lock.json:
 	npm ci
 
 dist/index.js: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
 dist/index.d.ts: ../shared/index.d.ts
+	mkdir -p dist
 	cp $^ $@

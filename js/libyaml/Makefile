@@ -33,4 +33,5 @@ dist/libyaml.js: *.c
 		-o $@
 
 dist/libyaml.d.ts: node_modules/.package-lock.json dist/libyaml.js
+	mkdir -p dist
 	npx -p typescript tsc

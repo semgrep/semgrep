@@ -15,8 +15,7 @@ test: build
 	npx jest
 
 .PHONY: package
-package:
-	npm ci
+package: build
 	npm pack
 
 .PHONY: clean
