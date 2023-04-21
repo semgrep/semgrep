@@ -28,7 +28,7 @@ clean:
 node_modules/.package-lock.json:
 	npm ci
 
-dist/index.js: node_modules/.package-lock.json src/index.ts ../libyaml/dist/libyaml.js
+dist/index.js: src/index.ts ../libyaml/dist/libyaml.js node_modules/.package-lock.json
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --outfile=$@
 
