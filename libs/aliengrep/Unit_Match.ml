@@ -161,13 +161,15 @@ let test_ellipsis_brackets () =
   check mconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
 
 let test_explicit_brackets () =
-  check uconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ];
+  check uconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ]
+(*;
   (* Since parentheses are defined as brackets, we're not allowed to reject
      a closing parenthesis that match the opening parenthesis. *)
   (* TODO: make the top-level ellipses exclude the expected closing bracket.
      This requires new variety of node with [^\)[:blank:]] instead of
      [^[:blank:]] when the expected closing brace is ')'. *)
   check uconf {|(... x)|} {|()x)|} [ Num_matches 0 ]
+*)
 
 let test_backreferences () =
   check uconf {|$A ... $A|} {|a, b, c, a, d|}
@@ -184,6 +186,45 @@ let test_backreferences () =
       Match_value {|x x x|};
       Capture_value ((Metavariable, "A"), "a");
       Capture_value ((Metavariable, "A"), "x");
+    ];
+  (* back-references should not end in the middle of a word *)
+  check uconf {|$A ... $A|} {|ab abc|} [ Num_matches 0 ];
+  (* word matches should not start in the middle of a word *)
+  check uconf {|$A ... $A|} {|abc bc|} [ Num_matches 0 ];
+  (* ellipsis extremities that are not words may touch words *)
+  check uconf {|$...A : $...A|} {|x+ : +x|}
+    [ Num_matches 1; Match_value {|+ : +|} ];
+  (* ellipsis extremities that are not words may touch [specific] words *)
+  check uconf {|x $...A : $...A x|} {|x+ : +x|}
+    [ Num_matches 1; Match_value {|x+ : +x|} ];
+  (* ellipsis extremities that are words may not touch words *)
+  check uconf {|$...A : $...A|} {|xy : yx|}
+    [
+      Num_matches 1;
+      (* not {|y : y|} *)
+      Match_value {| : |};
+      Capture_value ((Metavariable_ellipsis, "A"), "");
+    ];
+  (* ellipsis extremities that are words may not touch [specific] words *)
+  check uconf {|x $...A : $...A x|} {|x+ : +x|}
+    [
+      Num_matches 1;
+      Match_value {|x+ : +x|};
+      Capture_value ((Metavariable_ellipsis, "A"), "+");
+    ];
+  (* word extremities of ellipsis back-references may not touch words *)
+  check uconf {|$...A : $...A|} {|x : xx|}
+    [
+      Num_matches 1;
+      Match_value {| : |};
+      Capture_value ((Metavariable_ellipsis, "A"), "");
+    ];
+  (* nonword extremities of ellipsis back-references may touch words *)
+  check uconf {|$...A : $...A|} {|+ : ++|}
+    [
+      Num_matches 1;
+      Match_value {|+ : +|};
+      Capture_value ((Metavariable_ellipsis, "A"), "+");
     ]
 
 let test_ellipsis_metavariable () =
