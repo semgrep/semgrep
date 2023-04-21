@@ -8,7 +8,7 @@ EMCC_DEFAULTS = \
 default: build
 
 .PHONY: build
-build: dist/libyaml.d.ts dist/libyaml.js
+build: dist/libyaml.js dist/libyaml.d.ts
 
 .PHONY: test
 test: build

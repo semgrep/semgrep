@@ -22,16 +22,17 @@ package: build
 clean:
 	rm -rf dist
 
-../libyaml/dist/libyaml.js:
+.PHONY: build-libyaml
+build-libyaml:
 	cd ../libyaml; $(MAKE) build
 
 node_modules/.package-lock.json:
 	npm ci
 
-dist/index.js: src/index.ts ../libyaml/dist/libyaml.js node_modules/.package-lock.json
+dist/index.js: src/index.ts node_modules/.package-lock.json build-libyaml
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --outfile=$@
 
-dist/index.d.ts: node_modules/.package-lock.json src/index.ts
+dist/index.d.ts: node_modules/.package-lock.json dist/index.js build-libyaml
 	mkdir -p dist
 	npx -p typescript tsc
