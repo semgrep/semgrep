@@ -633,8 +633,8 @@ let stmt1_with b xs =
   | [ x ] -> x
   | xs -> Block (b xs)
 
-let stmt1 tok xs = stmt1_with (Parse_info.fake_bracket tok) xs
-let unsafe_stmt1 xs = stmt1_with Parse_info.unsafe_fake_bracket xs
+let stmt1 tok xs = stmt1_with (Tok.fake_bracket tok) xs
+let unsafe_stmt1 xs = stmt1_with Tok.unsafe_fake_bracket xs
 let basic_entity id = { name = id; attrs = [] }
 
 let mk_default_entity_def tok exp =

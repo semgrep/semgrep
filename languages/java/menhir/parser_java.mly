@@ -44,7 +44,7 @@ module PI = Parse_info
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let empty_body = PI.unsafe_fake_bracket []
+let empty_body = Tok.unsafe_fake_bracket []
 let fake_dot = Parse_info.unsafe_fake_info "."
 
 (* todo? use a Ast.special? *)

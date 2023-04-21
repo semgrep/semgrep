@@ -113,6 +113,8 @@ val fake_location : location
  *)
 val sc : t -> t
 val unsafe_sc : t
+val fake_bracket : t -> 'a -> t * 'a * t
+val unsafe_fake_bracket : 'a -> t * 'a * t
 
 (*****************************************************************************)
 (* Loc builders *)

@@ -141,7 +141,7 @@ let copy_env env = { env with token = env.token }
 
 (* Trick to use = (called =~= below) to compare tokens *)
 let ab = Tok.abstract_tok
-let fb = PI.fake_bracket
+let fb = Tok.fake_bracket
 let noSelfType = None
 let noMods = []
 

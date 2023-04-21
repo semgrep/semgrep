@@ -55,14 +55,8 @@ let is_fake tok =
  * now even for "", so better again to put an empty string in it.
  *)
 
-(* used to be in AST_generic.ml *)
-let unsafe_fake_bracket x = (unsafe_fake_info "(", x, unsafe_fake_info ")")
-
 let fake_bracket_loc next_to_loc x =
   (fake_info_loc next_to_loc "(", x, fake_info_loc next_to_loc ")")
-
-let fake_bracket next_to_tok x =
-  (fake_info next_to_tok "(", x, fake_info next_to_tok ")")
 
 let unbracket (_, x, _) = x
 

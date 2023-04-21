@@ -143,7 +143,7 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Adapters *)

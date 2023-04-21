@@ -42,7 +42,7 @@ let either f g x =
 let string = id
 let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let opt_to_ident opt =
   match opt with

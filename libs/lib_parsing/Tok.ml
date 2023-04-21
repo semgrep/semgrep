@@ -179,6 +179,12 @@ let fake_tok next_to_tok str : t =
 let unsafe_sc = unsafe_fake_tok ";"
 let sc next_to_tok = fake_tok next_to_tok ";"
 
+let fake_bracket next_to_tok x =
+  (fake_tok next_to_tok "(", x, fake_tok next_to_tok ")")
+
+(* used to be in AST_generic.ml *)
+let unsafe_fake_bracket x = (unsafe_fake_tok "(", x, unsafe_fake_tok ")")
+
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)

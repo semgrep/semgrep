@@ -43,7 +43,7 @@ let cons e = function
 let tuple_expr = function
   | Single e -> e
   (* the fake could be set later in rewrap_paren below *)
-  | Tup l -> Tuple (CompList (PI.unsafe_fake_bracket l), Load)
+  | Tup l -> Tuple (CompList (Tok.unsafe_fake_bracket l), Load)
 
 let to_list = function
   | Single e -> [e]
@@ -743,7 +743,7 @@ atom_and_trailers:
             (* If everything in the brackets is a normal expression, return a
              * single tuple *)
             let tuple =
-              Tuple (CompList (PI.unsafe_fake_bracket index_exprs), Load)
+              Tuple (CompList (Tok.unsafe_fake_bracket index_exprs), Load)
             in
             Subscript (
               $1,
@@ -986,7 +986,7 @@ testlist_comp:
  * in parenthesis, e.g., (1) in a regular expr, not a tuple *)
 testlist_comp_or_expr:
   | namedexpr_or_star_expr comp_for
-     { Tuple (CompForIf (PI.unsafe_fake_bracket ($1, $2)), Load) }
+     { Tuple (CompForIf (Tok.unsafe_fake_bracket ($1, $2)), Load) }
   | tuple(namedexpr_or_star_expr)
      { tuple_expr $1 }
 

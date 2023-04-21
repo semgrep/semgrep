@@ -56,7 +56,7 @@ let optlist_to_list = function
 
 let seq1 = function
   | [x] -> x
-  | xs -> Sequence (Parse_info.unsafe_fake_bracket xs)
+  | xs -> Sequence (Tok.unsafe_fake_bracket xs)
 
 let topseqexpr v1 = mki (TopExpr (seq1 v1))
 
@@ -759,7 +759,7 @@ pattern:
        | Right _lit -> failwith "Impossible, literal with pattern argument"
      }
  (* the fake will be replace by real parens in simple_pattern last case *)
- | pattern_comma_list       %prec below_COMMA     { PatTuple (PI.unsafe_fake_bracket $1) }
+ | pattern_comma_list       %prec below_COMMA     { PatTuple (Tok.unsafe_fake_bracket $1) }
  | pattern "::" pattern                           { PatConsInfix ($1, $2, $3) }
 
  | pattern Tas val_ident                          { PatAs ($1, $3) }

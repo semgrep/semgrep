@@ -37,7 +37,7 @@ module M = Parser_ruby_helpers
 (* for fake_xxx *)
 module PI = Parse_info
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*************************************************************************)
 (*1 Dypgen merge directives *)
@@ -617,7 +617,7 @@ interp_code:
         let mk_block lst =
           match lst with
           | [x] -> x
-          | _ -> S (Block(PI.unsafe_fake_bracket lst))
+          | _ -> S (Block(fb lst))
         in
           match ss with
           | [] -> tl

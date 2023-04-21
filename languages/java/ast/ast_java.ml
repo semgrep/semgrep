@@ -553,9 +553,8 @@ let rec canon_var mods t_opt v =
       match t_opt with
       | None -> raise Common.Impossible
       | Some t ->
-          canon_var mods
-            (Some (TArray (Parse_info.fake_bracket (tok_of_var v') t)))
-            v')
+          canon_var mods (Some (TArray (Tok.fake_bracket (tok_of_var v') t))) v'
+      )
 
 let method_header mods mtype (v, formals) throws =
   {

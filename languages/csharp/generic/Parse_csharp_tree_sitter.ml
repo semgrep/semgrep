@@ -38,7 +38,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* less: we should check we consume all constraints *)
 let type_parameters_with_constraints tparams constraints : type_parameter list =
@@ -111,7 +111,7 @@ let param_from_lambda_params lambda_params =
 (* create lambda lambda_params -> expr *)
 let create_lambda lambda_params expr =
   let fparams =
-    PI.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
+    Tok.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
   in
   Lambda
     {

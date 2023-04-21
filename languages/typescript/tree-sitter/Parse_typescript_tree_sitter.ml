@@ -33,7 +33,7 @@ type env = unit H.env
 let token = H.token
 let str = H.str
 let fake = PI.unsafe_fake_info ""
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let mk_functype (params, rett) = TyFun (params, rett)
 
 (* Note that this file also raises some Impossible and Ast_builder_error *)

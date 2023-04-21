@@ -39,7 +39,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* for list/dict comprehensions *)
 let pattern_of_ids ids =

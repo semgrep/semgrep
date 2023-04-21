@@ -39,7 +39,7 @@ type env = mode H.env
 let token = H.token
 let str = H.str
 let sc = G.sc
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let fake_id s = (s, G.fake s)
 
 let deoptionalize l =

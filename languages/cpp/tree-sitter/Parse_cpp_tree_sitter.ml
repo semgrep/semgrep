@@ -44,7 +44,7 @@ type env = unit H.env
 
 let token = H.token
 let fake = PI.fake_info
-let fb = PI.fake_bracket
+let fb = Tok.fake_bracket
 let str = H.str
 
 (* for declarators *)

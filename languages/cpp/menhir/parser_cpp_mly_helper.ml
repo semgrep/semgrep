@@ -300,7 +300,7 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
          * something as a function when it's really not
          *)
         {
-          ft_params = Parse_info.unsafe_fake_bracket [];
+          ft_params = Tok.unsafe_fake_bracket [];
           ft_ret = ty;
           ft_specs = [];
           ft_const = None;

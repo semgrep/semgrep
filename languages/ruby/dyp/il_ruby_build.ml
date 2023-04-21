@@ -18,7 +18,7 @@ type 'a acc = {
   super_args : (star_expr list * expr option) option;
 }
 
-let fb = PI.fake_bracket
+let fb = Tok.fake_bracket
 
 let acc_empty old =
   { q = DQueue.empty; seen = StrSet.empty; super_args = old.super_args }

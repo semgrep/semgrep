@@ -98,7 +98,7 @@ type var_stats = (var, lr_stats) Hashtbl.t
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let ( let* ) o f = Option.bind o f
 let ( let/ ) o f = Option.iter f o
 
@@ -737,7 +737,7 @@ let propagate_dataflow lang ast =
   | Lang.Dockerfile ->
       (* Dockerfile has no functions. The whole file is just a single scope *)
       let xs =
-        AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
+        AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow

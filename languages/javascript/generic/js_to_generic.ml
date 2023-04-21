@@ -36,7 +36,7 @@ let list = Common.map
 let bool = id
 let string = id
 let error = AST_generic.error
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)

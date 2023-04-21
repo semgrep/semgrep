@@ -19,7 +19,7 @@ let uniq_list cmp lst =
   in
   u (List.sort cmp lst)
 
-let fb = Parse_info.fake_bracket
+let fb = Tok.fake_bracket
 
 (*****************************************************************************)
 (* Lexer/Parser extra state *)

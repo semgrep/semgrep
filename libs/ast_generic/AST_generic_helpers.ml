@@ -302,7 +302,7 @@ let funcbody_to_stmt = function
   | FBStmt st -> st
   | FBExpr e -> G.exprstmt e
   | FBDecl sc -> Block (sc, [], sc) |> G.s
-  | FBNothing -> Block (Parse_info.unsafe_fake_bracket []) |> G.s
+  | FBNothing -> Block (Tok.unsafe_fake_bracket []) |> G.s
 
 let has_keyword_attr kwd attrs =
   attrs
@@ -388,7 +388,7 @@ let ac_matching_nf op args =
         logger#error
           "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
           (show_operator op)
-          (show_arguments (Parse_info.unsafe_fake_bracket args));
+          (show_arguments (Tok.unsafe_fake_bracket args));
         None)
   else None
 
@@ -399,7 +399,7 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
       let mk_op x y =
         Call
           ( IdSpecial (Op op, tok) |> G.e,
-            Parse_info.unsafe_fake_bracket [ Arg x; Arg y ] )
+            Tok.unsafe_fake_bracket [ Arg x; Arg y ] )
         |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)

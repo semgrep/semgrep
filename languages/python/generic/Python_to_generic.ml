@@ -97,7 +97,7 @@ let string = id
 let bool = id
 let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -332,7 +332,7 @@ and argument env = function
       let e = expr env e in
       G.Arg
         (G.Comprehension
-           (G.List, PI.unsafe_fake_bracket (e, list (for_if env) xs))
+           (G.List, Tok.unsafe_fake_bracket (e, list (for_if env) xs))
         |> G.e)
 
 and for_if env = function
@@ -447,7 +447,7 @@ and param_pattern env = function
   | PatternName n -> G.PatId (name env n, G.empty_id_info ())
   | PatternTuple t ->
       let t = list (param_pattern env) t in
-      G.PatTuple (PI.unsafe_fake_bracket t)
+      G.PatTuple (Tok.unsafe_fake_bracket t)
 
 and parameters env xs : G.parameter list =
   xs
@@ -462,7 +462,7 @@ and parameters env xs : G.parameter list =
            G.Param { (G.param_of_id n) with G.ptype = topt }
        | ParamPattern (PatternTuple pat, _) ->
            let pat = list (param_pattern env) pat in
-           G.ParamPattern (G.PatTuple (PI.unsafe_fake_bracket pat))
+           G.ParamPattern (G.PatTuple (Tok.unsafe_fake_bracket pat))
        | ParamStar (t, (n, topt)) ->
            let n = name env n in
            let topt = option (type_ env) topt in
@@ -720,7 +720,7 @@ and stmt_aux env x =
           [
             G.exprstmt
               (G.Assign
-                 ( G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e,
+                 ( G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e,
                    v2,
                    v3 )
               |> G.e);
@@ -880,7 +880,7 @@ and excepthandler env = function
                 G.CatchParam
                   (G.param_of_type
                      (H.expr_to_type
-                        (G.Container (G.Tuple, PI.unsafe_fake_bracket [ e ])
+                        (G.Container (G.Tuple, Tok.unsafe_fake_bracket [ e ])
                         |> G.e))))
         | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
@@ -895,7 +895,7 @@ and decorator env (t, v1, v2) =
   let args =
     match v2 with
     | Some (t1, x, t2) -> (t1, x, t2)
-    | None -> PI.unsafe_fake_bracket []
+    | None -> Tok.unsafe_fake_bracket []
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, args)

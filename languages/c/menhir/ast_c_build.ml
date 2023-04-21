@@ -164,7 +164,7 @@ and declaration env x =
                        A.f_name = x.A.v_name;
                        f_type = ft;
                        f_static = storage =*= A.Static;
-                       f_body = PI.fake_bracket (snd x.A.v_name) [];
+                       f_body = Tok.fake_bracket (snd x.A.v_name) [];
                      }
                | _ -> A.VarDef x))
   (* todo *)
@@ -440,7 +440,7 @@ and stmt env st =
       raise Todo
   | ExprStmt (eopt, t) -> (
       match eopt with
-      | None -> A.Block (PI.fake_bracket t [])
+      | None -> A.Block (Tok.fake_bracket t [])
       | Some e -> A.ExprSt (expr env e, t))
   | Label (s, _, st) -> A.Label (s, stmt env st)
   | Case _

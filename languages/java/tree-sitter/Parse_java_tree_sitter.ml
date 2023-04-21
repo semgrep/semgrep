@@ -760,7 +760,7 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
 and stmt1 tok = function
   | [] -> EmptyStmt (PI.fake_info tok ";")
   | [ x ] -> x
-  | xs -> Block (PI.fake_bracket tok xs)
+  | xs -> Block (Tok.fake_bracket tok xs)
 
 and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
   statement_aux env x |> stmt1 tok

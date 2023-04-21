@@ -35,7 +35,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let fake s = PI.unsafe_fake_info s
 
 let map_trailing_comma env v =

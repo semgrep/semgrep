@@ -39,8 +39,8 @@ let error tok s = raise (Parsing_error.Ast_builder_error (s, tok))
 let wrap tok = tok
 let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = PI.fake_bracket
-let unsafe_fb = PI.unsafe_fake_bracket
+let fb = Tok.fake_bracket
+let unsafe_fb = Tok.unsafe_fake_bracket
 
 let stmt1_with b xs =
   match xs with

@@ -36,7 +36,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let sc tok = Tok.sc tok
 
 let var_to_pattern (id, ptype) =

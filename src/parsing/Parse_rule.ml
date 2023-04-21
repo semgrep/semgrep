@@ -617,7 +617,7 @@ let rewrite_metavar_comparison_strip cond =
             | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
               ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
+                G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
                 |> G.e
             | _ -> e);
       }

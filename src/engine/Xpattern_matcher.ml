@@ -114,6 +114,6 @@ let mval_of_string str t =
     match int_of_string_opt str with
     | Some i -> G.Int (Some i, t)
     (* TODO? could try float_of_string_opt? *)
-    | None -> G.String (PI.unsafe_fake_bracket (str, t))
+    | None -> G.String (Tok.unsafe_fake_bracket (str, t))
   in
   MV.E (G.L literal |> G.e)

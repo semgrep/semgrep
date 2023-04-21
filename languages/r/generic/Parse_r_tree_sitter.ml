@@ -26,7 +26,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let combine_str_and_infos l xs r =
   let s = xs |> Common.map fst |> String.concat "" in

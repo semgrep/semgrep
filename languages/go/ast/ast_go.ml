@@ -395,8 +395,8 @@ let stmt1_with b xs =
   | [ st ] -> st
   | xs -> Block (b xs)
 
-let stmt1 tok xs = stmt1_with (Parse_info.fake_bracket tok) xs
-let unsafe_stmt1 xs = stmt1_with Parse_info.unsafe_fake_bracket xs
+let stmt1 tok xs = stmt1_with (Tok.fake_bracket tok) xs
+let unsafe_stmt1 xs = stmt1_with Tok.unsafe_fake_bracket xs
 
 let item1 xs =
   match xs with

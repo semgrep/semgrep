@@ -35,7 +35,7 @@ type env = unit H.env
 let fake = AST_generic.fake
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Boilerplate converter *)

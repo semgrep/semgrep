@@ -78,7 +78,7 @@ let rec map_expr env v : G.expr =
       let _tsemi = map_tok env v3 in
       let e = map_expr env v4 in
       let stmts = defs |> Common.map (fun def -> G.DefStmt def |> G.s) in
-      let block = PI.unsafe_fake_bracket (stmts @ [ G.exprstmt e ]) in
+      let block = Tok.unsafe_fake_bracket (stmts @ [ G.exprstmt e ]) in
       G.stmt_to_expr (G.Block block |> G.s)
   | DotAccess (v1, v2, v3) ->
       let e = map_expr env v1 in
@@ -243,7 +243,7 @@ and map_assert_ env (v1, v2, v3) : G.stmt =
   let eopt = (map_option map_tuple) env v3 in
   let es = e :: Option.to_list eopt in
   let args = es |> Common.map G.arg in
-  let st = G.Assert (tassert, PI.unsafe_fake_bracket args, G.sc) |> G.s in
+  let st = G.Assert (tassert, Tok.unsafe_fake_bracket args, G.sc) |> G.s in
   st
 
 and map_arr_inside env v =

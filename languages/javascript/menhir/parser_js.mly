@@ -58,8 +58,8 @@ module G = AST_generic
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
-let fb = PI.fake_bracket
-let unsafe_fb = PI.unsafe_fake_bracket
+let fb = Tok.fake_bracket
+let unsafe_fb = Tok.unsafe_fake_bracket
 
 let sndopt = function
   | None -> None

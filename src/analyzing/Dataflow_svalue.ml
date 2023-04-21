@@ -54,7 +54,7 @@ let warning _tok s =
 (*****************************************************************************)
 
 let str_of_name name = spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Constness *)

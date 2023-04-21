@@ -154,7 +154,7 @@ let mk_bracket
     tok (e_index', e_line, e_column) ")" env )
 
 let mk_id str pos env = G.Id ((str, mk_tok pos "" env), G.empty_id_info ())
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Error management *)
