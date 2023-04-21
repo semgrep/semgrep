@@ -167,7 +167,7 @@ let mk_extract_target dst_lang contents all_rules =
     | Xlang.LRegex -> "regex"
     | Xlang.L (x, _) -> Lang.show x
   in
-  let f : Common.dirname = Common.new_temp_file "extracted" dst_lang_str in
+  let f = Common.new_temp_file "extracted" dst_lang_str in
   Common2.write_file ~file:f contents;
   {
     In.path = f;

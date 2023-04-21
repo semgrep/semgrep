@@ -70,13 +70,16 @@ val remove_edge : node * node -> edge -> t -> unit
 
 (* graph construction helpers *)
 val create_initial_hierarchy : t -> unit
-val create_intermediate_directories_if_not_present : t -> Common.dirname -> unit
+
+val create_intermediate_directories_if_not_present :
+  t -> Common.filename (* a dir *) -> unit
+
 val remove_empty_nodes : t -> node list -> unit
 
 (* useful for bytecode <-> source file heuristic matching *)
 val basename_to_readable_disambiguator :
   Common.filename list ->
-  root:Common.dirname ->
+  root:Common.filename (* a dir *) ->
   string (* basename *) ->
   Common.filename list
 
