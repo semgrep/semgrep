@@ -79,7 +79,18 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Build and test package
+      - name: Build and test NPM packages
         run: |
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           make -C js -j $(nproc) build test
+
+          echo "Creating NPM packages..."
+          make -C js -j $(nproc) package
+      - name: Upload NPM artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-js-npm-packages
+          retention-days: 7
+          path: |
+            js/languages/*/semgrep-lang-*.tgz
+            js/engine/semgrep-engine-*.tgz
