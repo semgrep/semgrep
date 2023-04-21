@@ -710,7 +710,7 @@ and short_lambda_def env def =
     f_return_type = None;
     f_body =
       (match def.sl_body with
-      | SLExpr e -> A.Expr (expr env e, PI.sc sl_tok)
+      | SLExpr e -> A.Expr (expr env e, Tok.sc sl_tok)
       | SLBody (lb, body, rb) ->
           Block (lb, List.fold_right (stmt_and_def env) body [], rb));
     f_kind = (A.ShortLambda, sl_tok);

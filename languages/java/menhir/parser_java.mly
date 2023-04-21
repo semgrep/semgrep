@@ -826,7 +826,7 @@ variable_arity_parameter:
 
 (* no need %prec LOW_PRIORITY_RULE as in parser_js.mly ?*)
 lambda_body:
- | expression { Expr ($1, PI.unsafe_sc) }
+ | expression { Expr ($1, Tok.unsafe_sc) }
  | block      { $1 }
 
 (*----------------------------*)
@@ -874,7 +874,7 @@ statement:
  | while_statement  { $1 }
  | for_statement  { $1 }
  (* sgrep-ext: *)
- | "..." { Flag_parsing.sgrep_guard (Expr (Ellipsis $1, PI.sc $1)) }
+ | "..." { Flag_parsing.sgrep_guard (Expr (Ellipsis $1, Tok.sc $1)) }
 
 statement_without_trailing_substatement:
  | block  { $1 }

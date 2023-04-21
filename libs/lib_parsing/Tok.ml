@@ -133,6 +133,8 @@ let equal_t_always_equal _t1 _t2 = true
 let hash_t_always_equal _t = 0
 let hash_fold_t_always_equal acc _t = acc
 
+exception NoTokenLocation of string
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
@@ -147,13 +149,16 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 
-exception NoTokenLocation of string
-
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
-(*****************************************************************************)
-(* Accessors *)
-(*****************************************************************************)
+(* Synthesize a token. *)
+let unsafe_fake_tok str : t =
+  { token = FakeTokStr (str, None); transfo = NoTransfo }
+
+(* "safe" fake token *)
+let fake_tok_loc next_to_loc str : t =
+  (* TODO: offset seems to have no use right now (?) *)
+  { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
 let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii.token with
@@ -163,6 +168,18 @@ let loc_of_tok (ii : t) : (location, string) Result.t =
   | FakeTokStr (_, Some (pi, _)) -> Ok pi
   | FakeTokStr (_, None) -> Error "FakeTokStr"
   | Ab -> Error "Ab"
+
+let fake_tok next_to_tok str : t =
+  match loc_of_tok next_to_tok with
+  | Ok loc -> fake_tok_loc loc str
+  | Error _ -> unsafe_fake_tok str
+
+let unsafe_sc = unsafe_fake_tok ";"
+let sc next_to_tok = fake_tok next_to_tok ";"
+
+(*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
 
 let unsafe_loc_of_tok ii =
   match loc_of_tok ii with

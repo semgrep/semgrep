@@ -1229,7 +1229,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
                 match v4 with
                 | `Exp x ->
                     let e = expression env x in
-                    Return (v3, Some e, PI.sc v3)
+                    Return (v3, Some e, Tok.sc v3)
                 | `Stmt_blk x -> statement_block env x
               in
               let f_kind = (G.Arrow, v3) in

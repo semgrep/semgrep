@@ -140,7 +140,7 @@ let mk_pattern binding_pattern type_opt init_opt =
 
 (* Javascript has implicit returns for arrows with expression body *)
 let mk_block_return e =
-  unsafe_fb [Return (PI.unsafe_fake_info "return", Some e, PI.unsafe_sc)]
+  unsafe_fb [Return (PI.unsafe_fake_info "return", Some e, Tok.unsafe_sc)]
 
 let special spec tok xs =
   Apply (IdSpecial (spec, tok), fb tok xs)
@@ -1145,7 +1145,7 @@ stmt:
  (* sgrep-ext:
   * TODO add an sc? then remove the other ugly "..." and less conflicts?
   *)
- | "..." { [ExprStmt (Ellipsis $1, PI.sc $1)] }
+ | "..." { [ExprStmt (Ellipsis $1, Tok.sc $1)] }
 
 %inline
 stmt1: stmt { unsafe_stmt1 $1 }

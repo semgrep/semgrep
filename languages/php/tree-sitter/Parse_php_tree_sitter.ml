@@ -89,9 +89,9 @@ let map_empty_statement_to_semicolon env empty =
 
 let stmt1 xs =
   match xs with
-  | [] -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc [])
+  | [] -> A.Block (Parse_info.fake_bracket Tok.unsafe_sc [])
   | [ st ] -> st
-  | xs -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc xs)
+  | xs -> A.Block (Parse_info.fake_bracket Tok.unsafe_sc xs)
 
 let fake_call_to_builtin (env : env) tok args =
   let str, tok = tok in
@@ -506,7 +506,7 @@ let map_union_type (env : env) ((v1, v2) : CST.union_type) =
   in
   match v2 with
   | [] -> v1
-  | _ -> HintTuple (Parse_info.fake_bracket Parse_info.unsafe_sc (v1 :: v2))
+  | _ -> HintTuple (Parse_info.fake_bracket Tok.unsafe_sc (v1 :: v2))
 
 let map_type_ (env : env) (x : CST.type_) = map_union_type env x
 
@@ -1711,7 +1711,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
           A.m_modifiers = v1;
           A.f_attrs = [];
           A.l_uses = [];
-          A.f_body = Expr (v7, Parse_info.unsafe_sc);
+          A.f_body = Expr (v7, Tok.unsafe_sc);
         }
   | `Obj_crea_exp x -> map_object_creation_expression env x
   | `Update_exp x -> map_update_expression env x
@@ -1791,7 +1791,7 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 =
               match v3 with
               | Some x -> map_else_clause env x
-              | None -> map_empty_block env Parse_info.unsafe_sc
+              | None -> map_empty_block env Tok.unsafe_sc
             in
             (v1, v2, v3)
         | `Colon_blk_rep_else_if_clause_2_opt_else_clause_2_pat_endif_choice_auto_semi
@@ -1801,7 +1801,7 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 =
               match v3 with
               | Some x -> map_else_clause_2 env x
-              | None -> map_empty_block env Parse_info.unsafe_sc
+              | None -> map_empty_block env Tok.unsafe_sc
             in
             let v4 = (* pattern [eE][nN][dD][iI][fF] *) token env v4 in
             let v5 = map_semicolon env v5 in

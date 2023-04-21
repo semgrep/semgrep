@@ -266,7 +266,7 @@ let env_decl pairs =
     pairs
     |> Common.map (function
          | Label_semgrep_ellipsis tok ->
-             G.ExprStmt (G.Ellipsis tok |> G.e, PI.unsafe_sc) |> G.s
+             G.ExprStmt (G.Ellipsis tok |> G.e, Tok.unsafe_sc) |> G.s
          | Label_pair (_loc, key, _eq, value) -> (
              match key with
              | Var_ident v

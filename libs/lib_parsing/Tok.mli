@@ -95,17 +95,22 @@ type t_always_equal = t [@@deriving show, eq, hash]
 (*****************************************************************************)
 (* "Safe" fake tokens require an existing location to attach to, and so
  * loc_of_tok will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling loc_of_tok on these
+ * do not carry any location info, so calling loc_of_tok on those
  * will raise a NoTokenLocation exception.
  *
- * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
- * "safe" fake tokens. The unsafe_* functions introduce "unsafe" fake tokens,
- * please use them only as a last resort.
+ * Always prefer "safe" functions (no "unsafe_" prefix); use the unsafe_*
+ * functions only as a last resort.
  *)
 
 exception NoTokenLocation of string
 
 val fake_location : location
+
+(* sc for semicolon, which are often fake tokens because of
+ * ASI (Automatic Semicolon Insertion) in languages like Javascript.
+ *)
+val sc : t -> t
+val unsafe_sc : t
 
 (*****************************************************************************)
 (* Loc builders *)

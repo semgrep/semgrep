@@ -13,11 +13,6 @@ val is_origintok : t -> bool
 val unsafe_fake_info : string -> t
 val unsafe_fake_bracket : 'a -> t * 'a * t
 
-(* sc for semicolon, which are often fake tokens because of
- * ASI (Automatic Semicolon Insertion) in languages like Javascript.
- *)
-val unsafe_sc : t
-
 (* "safe" fake versions *)
 
 val fake_info_loc : Tok.location -> string -> t
@@ -25,7 +20,6 @@ val fake_info : t -> string -> t
 val fake_bracket_loc : Tok.location -> 'a -> t * 'a * t
 val fake_bracket : t -> 'a -> t * 'a * t
 val sc_loc : Tok.location -> t
-val sc : t -> t
 
 (* accessor *)
 val unbracket : t * 'a * t -> 'a
