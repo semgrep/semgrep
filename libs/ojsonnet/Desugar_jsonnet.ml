@@ -41,13 +41,14 @@ module C = Core_jsonnet
  * import yaml files (e.g., local x = import 'foo.yaml') or rules from the
  * registry (e.g., local x = import 'p/python').
  *)
-type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
+type import_callback =
+  Common.filename (* a directory *) -> string -> AST_jsonnet.expr option
 
 let default_callback _ _ = None
 
 type env = {
   (* like in Python jsonnet binding, "the base is the directly of the file" *)
-  base : Common.dirname;
+  base : Common.filename; (* a directory *)
   import_callback : import_callback;
   (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec
