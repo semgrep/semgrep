@@ -1,6 +1,0 @@
-Scala: Can now parse indented `for` expression, such as
-
-for
-  _ <- 5
-yield
-  ...

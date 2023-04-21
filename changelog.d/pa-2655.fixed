@@ -1,2 +1,0 @@
-CLI: Fixed a bug where repositories with a dot in the name would cause
-semgrep ci scans to crash

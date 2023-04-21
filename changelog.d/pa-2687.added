@@ -1,5 +1,0 @@
-Scala: Can now parse indented matches, like:
-
-e match
-  case foo => "foo"
-  case bar => "bar"

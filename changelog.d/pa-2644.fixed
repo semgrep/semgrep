@@ -1,5 +1,0 @@
-CLI: Setting Semgrep-specific environment variables for metadata (like
-SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_PR_ID, and friends) now
-properly works on GitHub and GitLab CI scans.
-
-If not set, functionality is same as before.
