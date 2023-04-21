@@ -151,6 +151,16 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 
+let is_fake tok =
+  match tok.token with
+  | FakeTokStr _ -> true
+  | _ -> false
+
+let is_origintok ii =
+  match ii.token with
+  | OriginTok _ -> true
+  | _ -> false
+
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (* Synthesize a fake token *)

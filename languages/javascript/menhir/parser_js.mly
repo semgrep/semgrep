@@ -78,7 +78,7 @@ let fix_sgrep_module_item xs =
     when s = anon_semgrep_lambda ->
       Expr (Fun (def, None))
   | [ExprStmt (e, sc) as x] ->
-      if PI.is_fake sc
+      if Tok.is_fake sc
       then Expr e
       else Stmt x
   | [x] -> Stmt x

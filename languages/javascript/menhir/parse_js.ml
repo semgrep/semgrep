@@ -68,7 +68,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
       (* bugfix: without test on is_origintok, the parser timeout
        * TODO: why?
        *)
-      if (not (PI.is_origintok info)) || List.mem info iis then ()
+      if (not (Tok.is_origintok info)) || List.mem info iis then ()
       else (
         (* TODO: could sanity check that what we put back make sense, for
          * example we should never put back a closing '}', which can

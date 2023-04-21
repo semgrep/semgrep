@@ -131,6 +131,9 @@ val split_tok_at_bytepos : int -> t -> t * t
  * functions only as a last resort.
  *)
 
+val is_fake : t -> bool
+val is_origintok : t -> bool
+
 exception NoTokenLocation of string
 
 val fake_location : location

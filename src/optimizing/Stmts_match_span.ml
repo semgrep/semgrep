@@ -95,7 +95,7 @@ let merge_and_deduplicate get_key a b =
   List.rev !acc
 
 let extract_tokens stmts =
-  Visitor_AST.ii_of_any (Ss stmts) |> List.filter Parse_info.is_origintok
+  Visitor_AST.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
 
 let is_not_before ~min_loc tok = Parse_info.compare_pos min_loc tok <= 0
 let is_not_after ~max_loc tok = Parse_info.compare_pos tok max_loc <= 0

@@ -140,7 +140,7 @@ let print_match ?str config match_ ii_of_any =
       =
     match_
   in
-  let toks = tokens_matched_code |> List.filter PI.is_origintok in
+  let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   (if mvars =*= [] then
    Matching_report.print_match ?str ~format:match_format toks
   else
@@ -156,7 +156,7 @@ let print_match ?str config match_ ii_of_any =
              match Common2.assoc_opt x env with
              | Some any ->
                  any |> ii_of_any
-                 |> List.filter PI.is_origintok
+                 |> List.filter Tok.is_origintok
                  |> Common.map Tok.content_of_tok
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))

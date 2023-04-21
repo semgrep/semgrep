@@ -528,12 +528,12 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
+      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
       PM.Toks toks
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
-          call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
+          call_toks = V.ii_of_any (G.E expr) |> List.filter Tok.is_origintok;
           intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }

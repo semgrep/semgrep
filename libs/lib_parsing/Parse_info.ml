@@ -13,11 +13,6 @@ open Tok
 (* TODO: remove at some point *)
 type t = Tok.t [@@deriving eq, show]
 
-let is_fake tok =
-  match tok.token with
-  | FakeTokStr _ -> true
-  | _ -> false
-
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
@@ -33,17 +28,6 @@ let string_of_info x =
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
-
-let pinfo_of_info ii = ii.token
-
-let is_origintok ii =
-  match ii.token with
-  | OriginTok _ -> true
-  | _ -> false
-
-(* info about the current location *)
-
-(* used by token_helpers *)
 
 (* not used but used to be useful in coccinelle *)
 type posrv =
@@ -63,8 +47,8 @@ let compare_pos ii1 ii2 =
     | Ab -> raise (NoTokenLocation "compare_pos: Ab")
     | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
   in
-  let pos1 = get_pos (pinfo_of_info ii1) in
-  let pos2 = get_pos (pinfo_of_info ii2) in
+  let pos1 = get_pos ii1.token in
+  let pos2 = get_pos ii2.token in
   match (pos1, pos2) with
   | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
   | Virt (p1, _), Real p2 ->

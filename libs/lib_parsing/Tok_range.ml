@@ -7,20 +7,18 @@
 type t = Tok.t * Tok.t [@@deriving show]
 
 let fix ((left, right) as loc) =
-  if Parse_info.is_fake left then (right, right)
-  else if Parse_info.is_fake right then (left, left)
+  if Tok.is_fake left then (right, right)
+  else if Tok.is_fake right then (left, left)
   else loc
 
 let create left right =
-  if Parse_info.is_fake left then (right, right)
-  else if Parse_info.is_fake right then (left, left)
+  if Tok.is_fake left then (right, right)
+  else if Tok.is_fake right then (left, left)
   else (left, right)
 
-let is_fake (left, right) = Parse_info.is_fake left || Parse_info.is_fake right
-let left_loc_tok (left, right) = if Parse_info.is_fake left then right else left
-
-let right_loc_tok (left, right) =
-  if Parse_info.is_fake right then left else right
+let is_fake (left, right) = Tok.is_fake left || Tok.is_fake right
+let left_loc_tok (left, right) = if Tok.is_fake left then right else left
+let right_loc_tok (left, right) = if Tok.is_fake right then left else right
 
 (*
    Form a new location from a leftmost location and a rightmost location.
@@ -29,8 +27,8 @@ let right_loc_tok (left, right) =
 let range a b =
   let start_tok = left_loc_tok a in
   let end_tok = right_loc_tok b in
-  if Parse_info.is_fake end_tok then (start_tok, start_tok)
-  else if Parse_info.is_fake start_tok then (end_tok, end_tok)
+  if Tok.is_fake end_tok then (start_tok, start_tok)
+  else if Tok.is_fake start_tok then (end_tok, end_tok)
   else (start_tok, end_tok)
 
 let unsafe_fake_tok = Tok.unsafe_fake_tok "fake"
@@ -68,8 +66,8 @@ let update_end (start, _) new_end_tok : t = (start, new_end_tok)
 let extend (start, end_) tok =
   (* Eliminate any fake token that might exist in the original location,
      if possible. *)
-  let start = if Parse_info.is_fake start then end_ else start in
-  let end_ = if Parse_info.is_fake end_ then start else end_ in
+  let start = if Tok.is_fake start then end_ else start in
+  let end_ = if Tok.is_fake end_ then start else end_ in
   (* Extend the location to the left, to the right, or both in pathological
      cases. *)
   (min_tok start tok, max_tok tok end_)

@@ -2331,8 +2331,7 @@ and m_stmt a b =
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
-      | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
-          m_expr suba subb
+      | B.ExprStmt (subb, _) when not (Tok.is_fake sc) -> m_expr suba subb
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
