@@ -1,3 +1,0 @@
-Java: Private static variables that are defined just once in a static block,
-even if they are not declared `final`, will be considered as `final` by
-constant-propagation.

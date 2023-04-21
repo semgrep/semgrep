@@ -1,2 +1,0 @@
-The different lists of skipped files output by Semgrep when given --verbose will
-now be sorted, to make it easier to `diff` the outputs of two runs.
