@@ -19,7 +19,6 @@ val fake_info_loc : Tok.location -> string -> t
 val fake_info : t -> string -> t
 val fake_bracket_loc : Tok.location -> 'a -> t * 'a * t
 val fake_bracket : t -> 'a -> t * 'a * t
-val sc_loc : Tok.location -> t
 
 (* accessor *)
 val unbracket : t * 'a * t -> 'a

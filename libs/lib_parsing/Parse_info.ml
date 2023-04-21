@@ -65,7 +65,6 @@ let fake_bracket next_to_tok x =
   (fake_info next_to_tok "(", x, fake_info next_to_tok ")")
 
 let unbracket (_, x, _) = x
-let sc_loc next_to_loc = fake_info_loc next_to_loc ";"
 
 (*****************************************************************************)
 (* Accessors *)
