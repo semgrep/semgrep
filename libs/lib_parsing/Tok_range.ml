@@ -50,11 +50,11 @@ let tok_pos_right tok =
   | Error _ -> min_int
 
 (* Prefer non-error. In case of a tie, prefer left-handside argument. *)
-let min_tok (a : Parse_info.t) (b : Parse_info.t) =
+let min_tok (a : Tok.t) (b : Tok.t) =
   if tok_pos_left a <= tok_pos_left b then a else b
 
 (* Prefer non-error. In case of a tie, prefer right-handside argument. *)
-let max_tok (a : Parse_info.t) (b : Parse_info.t) =
+let max_tok (a : Tok.t) (b : Tok.t) =
   if tok_pos_right b >= tok_pos_right a then b else a
 
 let update_start new_start_tok (_, end_) : t = (new_start_tok, end_)

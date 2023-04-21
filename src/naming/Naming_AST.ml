@@ -302,7 +302,7 @@ let lookup_scope_opt (s, _) env =
 
 let error tok s =
   if error_report then raise (Parsing_error.Other_error (s, tok))
-  else logger#trace "%s at %s" s (Parse_info.string_of_info tok)
+  else logger#trace "%s at %s" s (Tok.stringpos_of_tok tok)
 
 (*****************************************************************************)
 (* Typing Helpers *)

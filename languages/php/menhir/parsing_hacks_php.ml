@@ -287,7 +287,7 @@ let fix_tokens xs =
           | TCBRACE _ii, _x :: xs -> xs
           | TCBRACE ii, [] ->
               failwith
-                (spf "unmatching closing brace at %s" (PI.string_of_info ii))
+                (spf "unmatching closing brace at %s" (Tok.stringpos_of_tok ii))
           | TSEMICOLON _ii, (FunctionHeader | TypeHeader) :: rest -> rest
           (* default case *)
           | _, st -> st

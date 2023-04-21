@@ -101,12 +101,12 @@ let rec ifdef_skipper xs f =
                 | _ -> raise Impossible
               with
               | Not_found ->
-                  failwith
-                    (spf "%s: unclosed ifdef" (Parse_info.string_of_info tok)))
+                  failwith (spf "%s: unclosed ifdef" (Tok.stringpos_of_tok tok))
+              )
           | IfdefElse tok
           | IfdefElseif tok
           | IfdefEndif tok ->
-              failwith (spf "%s: no ifdef" (Parse_info.string_of_info tok))))
+              failwith (spf "%s: no ifdef" (Tok.stringpos_of_tok tok))))
 
 let bracket_keep of_a (t1, x, t2) = (t1, of_a x, t2)
 

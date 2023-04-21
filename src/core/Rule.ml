@@ -382,19 +382,16 @@ let string_of_invalid_rule_error_kind = function
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
-  spf "invalid rule %s, %s: %s" rule_id
-    (Parse_info.string_of_info pos)
+  spf "invalid rule %s, %s: %s" rule_id (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
   match error with
   | InvalidRule x -> string_of_invalid_rule_error x
   | InvalidYaml (msg, pos) ->
-      spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg
+      spf "invalid YAML, %s: %s" (Tok.stringpos_of_tok pos) msg
   | DuplicateYamlKey (key, pos) ->
-      spf "invalid YAML, %s: duplicate key %S"
-        (Parse_info.string_of_info pos)
-        key
+      spf "invalid YAML, %s: duplicate key %S" (Tok.stringpos_of_tok pos) key
   | UnparsableYamlException s ->
       (* TODO: what's the string s? *)
       spf "unparsable YAML: %s" s

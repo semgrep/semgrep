@@ -48,7 +48,8 @@ let error t s = raise (Parsing_error.Other_error (s, t))
 let error_unless_partial_error _env t s =
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
+    logger#error "error_unless_partial_error: %s, at %s" s
+      (Tok.stringpos_of_tok t)
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x

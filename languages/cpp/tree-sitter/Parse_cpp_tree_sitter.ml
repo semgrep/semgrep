@@ -62,7 +62,8 @@ let error_unless_partial_error _env t s =
    *)
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
+    logger#error "error_unless_partial_error: %s, at %s" s
+      (Tok.stringpos_of_tok t)
 
 (* see tree-sitter-cpp/grammar.js *)
 let parse_operator _env (s, t) : operator wrap =
@@ -208,7 +209,7 @@ let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
        * code as a StructuredBinding when it's not.
        *)
       logger#error "Weird DNStructuredBinding without an init at %s"
-        (PI.string_of_info (snd id));
+        (Tok.stringpos_of_tok (snd id));
       V ({ name = name_of_id id; specs = v_specs }, { v_type; v_init })
 
 (*****************************************************************************)

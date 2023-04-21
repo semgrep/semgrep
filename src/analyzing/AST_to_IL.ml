@@ -63,7 +63,7 @@ let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
 let locate opt_tok s =
   let opt_loc =
-    try Option.map Parse_info.string_of_info opt_tok with
+    try Option.map Tok.stringpos_of_tok opt_tok with
     | Tok.NoTokenLocation _ -> None
   in
   match opt_loc with

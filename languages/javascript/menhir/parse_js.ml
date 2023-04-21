@@ -131,7 +131,7 @@ let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
   let info = TH.info_of_tok passed_offending in
   let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
-  logger#debug "ASI: insertion fake ';' at %s" (PI.string_of_info info);
+  logger#debug "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info);
 
   let toks =
     List.rev passed_after

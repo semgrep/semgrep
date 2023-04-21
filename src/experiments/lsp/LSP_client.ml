@@ -208,7 +208,7 @@ let def_at_tok tk uri io =
   logger#info "%s" (dump res);
   match res with
   | None ->
-      logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
+      logger#error "NO TYPE INFO for %s" (Tok.stringpos_of_tok tk);
       None
   | Some (`Location [ x ]) ->
       let uri = x.Location.uri in
@@ -216,7 +216,7 @@ let def_at_tok tk uri io =
       (* less: could also extract the range info in x.range *)
       Some path
   | Some (`LocationLink _ | `Location _) ->
-      logger#error "too many location for %s" (PI.string_of_info tk);
+      logger#error "too many location for %s" (Tok.stringpos_of_tok tk);
       None
 
 let type_at_tok tk uri io =
@@ -238,7 +238,7 @@ let type_at_tok tk uri io =
   logger#info "%s" (dump res);
   match res with
   | None ->
-      logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
+      logger#error "NO TYPE INFO for %s" (Tok.stringpos_of_tok tk);
       None
   | Some { Hover.contents = x; _ } -> (
       match x with

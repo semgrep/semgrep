@@ -154,6 +154,9 @@ val unsafe_fake_bracket : 'a -> t * 'a * t
 
 val loc_of_tok : t -> (location, string) result
 
+(* Format the location file/line/column into a string *)
+val stringpos_of_tok : t -> string
+
 (* @raise NoTokenLocation if given an unsafe fake token (without location) *)
 val unsafe_loc_of_tok : t -> location
 

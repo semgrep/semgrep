@@ -84,7 +84,7 @@ let mark_end_define ii =
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'
 
-let pos ii = Parse_info.string_of_info ii
+let pos ii = Tok.stringpos_of_tok ii
 
 (*****************************************************************************)
 (* Parsing hacks for #define *)

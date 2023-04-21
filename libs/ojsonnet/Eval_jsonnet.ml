@@ -97,7 +97,7 @@ let tostring (v : Value_jsonnet.value_) : string =
 let log_call env str tk =
   logger#trace "calling %s> %s at %s"
     (Common2.repeat "-" env.depth |> Common.join "")
-    str (PI.string_of_info tk)
+    str (Tok.stringpos_of_tok tk)
 
 (*****************************************************************************)
 (* Builtins *)

@@ -133,7 +133,7 @@ let parse filename =
     | Parsing_error.Other_error (s, info) ->
         pr2
           (spf "Parse error: %s, {%s} at %s" s (Tok.content_of_tok info)
-             (PI.string_of_info info));
+             (Tok.stringpos_of_tok info));
         stat.PS.error_line_count <- stat.PS.total_line_count;
         None
     | exn -> Exception.catch_and_reraise exn

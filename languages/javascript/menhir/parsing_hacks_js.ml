@@ -192,7 +192,7 @@ let fix_tokens_ASI xs =
   let push_sc_before_x x =
     let info = TH.info_of_tok x in
     let fake = Ast.fakeInfoAttach info in
-    logger#debug "ASI: insertion fake ';' before %s" (PI.string_of_info info);
+    logger#debug "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info);
     Common.push (T.T_VIRTUAL_SEMICOLON fake) res
   in
 

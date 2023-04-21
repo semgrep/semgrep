@@ -39,7 +39,7 @@ let msg_gen is_known printer s =
   if not !Flag_cpp.filter_msg then printer s
   else if not (is_known s) then printer s
 
-let pos ii = Parse_info.string_of_info ii
+let pos ii = Tok.stringpos_of_tok ii
 
 (*****************************************************************************)
 (* Some debugging functions  *)

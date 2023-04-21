@@ -92,7 +92,7 @@ let show_token_value (x : Tok.kind) : string =
   | Ab -> "abstract token"
 
 let show_token_value_and_location (x : Tok.t) =
-  let location = Parse_info.string_of_info x in
+  let location = Tok.stringpos_of_tok x in
   let value = show_token_value x.token in
   spf "%s %s" location value
 
