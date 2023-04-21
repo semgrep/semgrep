@@ -1726,11 +1726,11 @@ and refactor_stmt (acc : stmt acc) (e : Ast.expr) : stmt acc =
       let body' = C.seq body_lst pos in
       acc_enqueue (C.metaclass e' body' pos) acc
   | Ast.D (Ast.BeginBlock (pos, lst)) ->
-      let body_acc = refactor_stmt_list (acc_empty acc) (PI.unbracket lst) in
+      let body_acc = refactor_stmt_list (acc_empty acc) (Tok.unbracket lst) in
       let body' = C.seq (DQueue.to_list body_acc.q) pos in
       acc_enqueue (mkstmt (Begin body') pos) acc
   | Ast.D (Ast.EndBlock (pos, lst)) ->
-      let body_acc = refactor_stmt_list (acc_empty acc) (PI.unbracket lst) in
+      let body_acc = refactor_stmt_list (acc_empty acc) (Tok.unbracket lst) in
       let body' = C.seq (DQueue.to_list body_acc.q) pos in
       acc_enqueue (mkstmt (End body') pos) acc
   | Ast.S (Ast.ExnBlock body) ->
@@ -1955,7 +1955,7 @@ and refactor_block_formal acc t pos : stmt acc * block_formal_param =
       in
       (acc, Formal_star2 s)
   | Ast.Formal_tuple f_lst ->
-      let acc, lst = refactor_block_formal_list acc (PI.unbracket f_lst) pos in
+      let acc, lst = refactor_block_formal_list acc (Tok.unbracket f_lst) pos in
       (acc, Formal_tuple lst)
   | Ast.Formal_amp _ ->
       Log.fatal (Log.of_tok pos) "refactor_block_formal: & arg?"

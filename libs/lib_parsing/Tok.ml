@@ -416,5 +416,7 @@ let distribute_info_items_toplevel a b c =
 (* Other helpers *)
 (*****************************************************************************)
 
+let unbracket (_, x, _) = x
+
 (* used only in the Scala parser for now *)
 let abstract_tok = { token = Ab; transfo = NoTransfo }

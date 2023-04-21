@@ -169,7 +169,7 @@ class ['self] matching_visitor =
            * below in Tuple a String|Id
            *)
           | Dict ->
-              v2 |> PI.unbracket
+              v2 |> Tok.unbracket
               |> List.iter (fun e ->
                      match e.e with
                      | Container
@@ -184,7 +184,7 @@ class ['self] matching_visitor =
            * TODO? generate Dict in go_to_generic.ml instead directly?
            *)
           | List ->
-              v2 |> PI.unbracket
+              v2 |> Tok.unbracket
               |> List.iter (fun e ->
                      match e.e with
                      | Container

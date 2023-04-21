@@ -107,6 +107,8 @@ type t_always_equal = t [@@deriving show, eq, hash]
 exception NoTokenLocation of string
 
 val fake_location : location
+val fake_tok : t -> string -> t
+val unsafe_fake_tok : string -> t
 
 (* sc stands for semicolon. Semicolons are often fake tokens because of
  * ASI (Automatic Semicolon Insertion) in languages like Javascript.
@@ -209,6 +211,8 @@ val complete_location :
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
+
+val unbracket : t * 'a * t -> 'a
 
 (* deprecated: you should use t_always_equal instead of using
  * abstract_tok (and Ab) to compare ASTs

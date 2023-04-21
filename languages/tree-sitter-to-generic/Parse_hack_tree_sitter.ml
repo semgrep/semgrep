@@ -2058,7 +2058,7 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
   let v3 =
     match v3 with
     | `Choice_var x -> variablish env x
-    | `Braced_exp x -> PI.unbracket (braced_expression env x)
+    | `Braced_exp x -> Tok.unbracket (braced_expression env x)
     | `Choice_type x -> G.N (G.Id (keyword env x, G.empty_id_info ())) |> G.e
   in
   match v3.e with
@@ -2801,7 +2801,7 @@ and xhp_attribute (env : env) (x : CST.xhp_attribute) =
         match v3 with
         | `Str tok ->
             (* string *) G.L (stringify_without_quotes (str env tok)) |> G.e
-        | `Braced_exp x -> PI.unbracket (braced_expression env x)
+        | `Braced_exp x -> Tok.unbracket (braced_expression env x)
       in
       G.XmlAttr (v1, v2, v3)
   | `Choice_braced_exp x ->

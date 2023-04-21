@@ -263,7 +263,7 @@ and v_type_kind = function
       and _v2 = v_tok v2
       and v3 = v_type_ v3 in
       let ts =
-        v1 |> PI.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
+        v1 |> Tok.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
   | TyTuple v1 ->
@@ -495,7 +495,7 @@ and v_expr e : G.expr =
       let v1 = v_expr v1
       and v2 = v_tok v2
       and v3 = v_bracket v_case_clauses v3 in
-      let st = G.Switch (v2, Some (G.Cond v1), PI.unbracket v3) |> G.s in
+      let st = G.Switch (v2, Some (G.Cond v1), Tok.unbracket v3) |> G.s in
       G.stmt_to_expr st
   | S v1 ->
       let v1 = v_stmt v1 in
@@ -642,24 +642,24 @@ and v_stmt = function
             v2)
           v4
       in
-      G.If (v1, G.Cond (PI.unbracket v2), v3, v4) |> G.s
+      G.If (v1, G.Cond (Tok.unbracket v2), v3, v4) |> G.s
   | While (v1, v2, v3) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2
       and v3 = v_expr_for_stmt v3 in
-      G.While (v1, G.Cond (PI.unbracket v2), v3) |> G.s
+      G.While (v1, G.Cond (Tok.unbracket v2), v3) |> G.s
   | DoWhile (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_expr_for_stmt v2
       and _v3 = v_tok v3
       and v4 = v_bracket v_expr v4 in
-      G.DoWhile (v1, v2, PI.unbracket v4) |> G.s
+      G.DoWhile (v1, v2, Tok.unbracket v4) |> G.s
   | For (v1, v2, v3) ->
       (* See https://scala-lang.org/files/archive/spec/2.13/06-expressions.html#for-comprehensions-and-for-loops
        * for an explanation of for loops in scala
        *)
       let v1 = v_tok v1
-      and v2 = v2 |> PI.unbracket |> v_enumerators
+      and v2 = v2 |> Tok.unbracket |> v_enumerators
       and v3 = v_for_body v3 in
       G.For (v1, G.MultiForEach v2, v3) |> G.s
   | Return (v1, v2) ->
@@ -798,7 +798,7 @@ and v_modifier_kind = function
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  let args = v3 |> Common.map PI.unbracket |> List.flatten in
+  let args = v3 |> Common.map Tok.unbracket |> List.flatten in
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
@@ -1035,7 +1035,7 @@ and v_fbody body : G.function_body =
       G.FBExpr v2
 
 and v_bindings v =
-  v_bracket (fun (a, b) -> v_list (v_binding b) a) v |> PI.unbracket
+  v_bracket (fun (a, b) -> v_list (v_binding b) a) v |> Tok.unbracket
 
 and v_binding using_opt v : G.parameter =
   let pattrs =

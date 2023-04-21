@@ -535,7 +535,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
         *)
         let _v2TODO =
           match v2 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         id
@@ -555,7 +555,7 @@ and jsx_self_clos_elem (env : env)
         let id = concat_nested_identifier v1 in
         let _v2TODO =
           match v2 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         id
@@ -1316,7 +1316,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       (* TODO: types *)
       let _v2TODO =
         match v2 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let v3 =
@@ -1335,7 +1335,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       (* TODO: types *)
       let _v3TODO =
         match v3 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let v4 = arguments env v4 in
@@ -1689,7 +1689,7 @@ and expression (env : env) (x : CST.expression) : expr =
       (* TODO types *)
       let _v3TODO =
         match v3 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let t1, xs, t2 =
@@ -2593,7 +2593,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
   let v2 = expression env v2 in
   let v3 =
     match v3 with
-    | Some x -> type_arguments env x |> PI.unbracket
+    | Some x -> type_arguments env x |> Tok.unbracket
     | None -> []
   in
   let v4 =
@@ -2603,7 +2603,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
         let v2 = expression env v2 in
         let v3 =
           match v3 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         tyname_or_expr_of_expr v2 v3)

@@ -714,9 +714,8 @@ let add_decorators_to_declarations decorators declarations =
   List.map (add_decorators_to_declaration decorators) declarations
 
 (*****************************************************************************)
-(* Helpers, could also be put in lib_parsing.ml instead *)
+(* Helpers. TODO: move in Tok.ml instead *)
 (*****************************************************************************)
-module PI = Parse_info
 
 (* used both by Parsing_hacks_js and Parse_js *)
 let fakeInfoAttach info =

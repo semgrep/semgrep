@@ -415,7 +415,7 @@ and struct_def { s_name; s_kind; s_flds } =
       (entity, G.TypeDef { G.tbody = G.AndType fields })
   | Union ->
       let ctors =
-        v3 |> PI.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
+        v3 |> Tok.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
       in
       (entity, G.TypeDef { G.tbody = G.OrType ctors })
 

@@ -1582,7 +1582,7 @@ and map_object_creation_expression (env : env)
       let v2 = map_class_type_designator env v2 in
       let v3 =
         match v3 with
-        | Some x -> Parse_info.unbracket (map_arguments env x)
+        | Some x -> Tok.unbracket (map_arguments env x)
         | None -> []
       in
       A.New (v1, v2, v3)

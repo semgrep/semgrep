@@ -948,7 +948,7 @@ and interpolated_verbatim_string_content (env : env)
     (x : CST.interpolated_verbatim_string_content) =
   match x with
   | `Inte_verb_str_text x -> L (interpolated_verbatim_string_text env x) |> G.e
-  | `Interp x -> PI.unbracket (interpolation env x)
+  | `Interp x -> Tok.unbracket (interpolation env x)
 
 and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
   let v1 = token env v1 (* "[" *) in
@@ -1076,7 +1076,7 @@ and interpolated_string_content (env : env)
     (x : CST.interpolated_string_content) =
   match x with
   | `Inte_str_text x -> L (interpolated_string_text env x) |> G.e
-  | `Interp x -> PI.unbracket (interpolation env x)
+  | `Interp x -> Tok.unbracket (interpolation env x)
 
 and checked_expression (env : env) (x : CST.checked_expression) =
   match x with

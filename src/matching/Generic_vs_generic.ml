@@ -1819,8 +1819,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
    * regular non-AC matching. *)
   if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
     match
-      ( H.ac_matching_nf aop (PI.unbracket aargs),
-        H.ac_matching_nf bop (PI.unbracket bargs) )
+      ( H.ac_matching_nf aop (Tok.unbracket aargs),
+        H.ac_matching_nf bop (Tok.unbracket bargs) )
     with
     | Some aargs_ac, Some bargs_ac ->
         if is_commutative_operator aop then

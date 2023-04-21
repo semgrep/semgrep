@@ -629,8 +629,7 @@ let find_pos_in_actual_args args_taints fparams =
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
         | __else__ -> param :: acc)
-      (Parse_info.unbracket fparams)
-      []
+      (Tok.unbracket fparams) []
   in
   let _ =
     (* We then process all of the positional arguments in order of the remaining parameters.

@@ -11,9 +11,6 @@ val unsafe_fake_info : string -> t
 val fake_info_loc : Tok.location -> string -> t
 val fake_info : t -> string -> t
 
-(* accessor *)
-val unbracket : t * 'a * t -> 'a
-
 (*****************************************************************************)
 (* Info accessors *)
 (*****************************************************************************)

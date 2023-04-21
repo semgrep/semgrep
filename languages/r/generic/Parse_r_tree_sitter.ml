@@ -348,7 +348,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       let id =
         match v3 with
         | `Id x -> map_identifier env x
-        | `Str x -> map_string_ env x |> Parse_info.unbracket
+        | `Str x -> map_string_ env x |> Tok.unbracket
       in
       DotAccess (e, t, FN (H2.name_of_id id)) |> G.e
   | `Slot (v1, v2, v3) ->
