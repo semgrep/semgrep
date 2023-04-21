@@ -2046,7 +2046,7 @@ class virtual ['self] iter_no_id_info =
  * This is captured in Main.exn_to_error to pinpoint the error location.
  * alt: reuse Parse_info.Ast_builder_error exn.
  *)
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 let error tok msg = raise (Error (msg, tok))
 

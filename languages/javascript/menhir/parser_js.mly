@@ -18,7 +18,6 @@ open Common
 
 open AST_generic
 open Ast_js
-module PI = Parse_info
 module G = AST_generic
 
 (*************************************************************************)
@@ -169,34 +168,34 @@ let mk_Encaps opt (t1, xs, _t2) =
 (* Tokens *)
 (*************************************************************************)
 
-%token <Parse_info.t> TUnknown  (* unrecognized token *)
-%token <Parse_info.t> EOF
+%token <Tok.t> TUnknown  (* unrecognized token *)
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The space/comment tokens *)
 (*-----------------------------------------*)
 (* coupling: Token_helpers.is_comment *)
-%token <Parse_info.t> TCommentSpace TCommentNewline   TComment
+%token <Tok.t> TCommentSpace TCommentNewline   TComment
 
 (*-----------------------------------------*)
 (* The normal tokens *)
 (*-----------------------------------------*)
 
 (* tokens with a value *)
-%token<int option * Parse_info.t> T_INT
-%token<float option * Parse_info.t> T_FLOAT
-%token<string * Parse_info.t> T_ID
+%token<int option * Tok.t> T_INT
+%token<float option * Tok.t> T_FLOAT
+%token<string * Tok.t> T_ID
 
-%token<string * Parse_info.t> T_STRING
-%token<string * Parse_info.t> T_ENCAPSED_STRING
-%token<(Parse_info.t * (string * Parse_info.t) * Parse_info.t) * (string * Parse_info.t) option> T_REGEX
+%token<string * Tok.t> T_STRING
+%token<string * Tok.t> T_ENCAPSED_STRING
+%token<(Tok.t * (string * Tok.t) * Tok.t) * (string * Tok.t) option> T_REGEX
 
 (*-----------------------------------------*)
 (* Keyword tokens *)
 (*-----------------------------------------*)
 (* coupling: if you add an element here, expand also ident_keyword_bis
  * and also maybe the special hack for regexp in lexer_js.mll *)
-%token <Parse_info.t>
+%token <Tok.t>
  T_FUNCTION T_CONST T_VAR T_LET
  T_IF T_ELSE
  T_WHILE T_FOR T_DO T_CONTINUE T_BREAK
@@ -219,7 +218,7 @@ let mk_Encaps opt (t1, xs, _t2) =
 (*-----------------------------------------*)
 
 (* syntax *)
-%token <Parse_info.t>
+%token <Tok.t>
  T_LCURLY "{" T_RCURLY "}"
  T_LPAREN "(" T_RPAREN ")"
  T_LBRACKET "[" T_RBRACKET "]"
@@ -238,7 +237,7 @@ let mk_Encaps opt (t1, xs, _t2) =
 
 
 (* operators *)
-%token <Parse_info.t>
+%token <Tok.t>
  T_OR T_AND
  T_BIT_OR T_BIT_XOR T_BIT_AND
  T_PLUS T_MINUS
@@ -257,30 +256,30 @@ let mk_Encaps opt (t1, xs, _t2) =
 (*-----------------------------------------*)
 (* XHP tokens *)
 (*-----------------------------------------*)
-%token <string * Parse_info.t> T_XHP_OPEN_TAG
+%token <string * Tok.t> T_XHP_OPEN_TAG
 (* The 'option' is for closing tags like </> *)
-%token <string option * Parse_info.t> T_XHP_CLOSE_TAG
+%token <string option * Tok.t> T_XHP_CLOSE_TAG
 
 (* ending part of the opening tag *)
-%token <Parse_info.t> T_XHP_GT T_XHP_SLASH_GT
+%token <Tok.t> T_XHP_GT T_XHP_SLASH_GT
 
-%token <string * Parse_info.t> T_XHP_ATTR T_XHP_TEXT
+%token <string * Tok.t> T_XHP_ATTR T_XHP_TEXT
 (* '<>', see https://reactjs.org/docs/fragments.html#short-syntax *)
-%token <Parse_info.t> T_XHP_SHORT_FRAGMENT
+%token <Tok.t> T_XHP_SHORT_FRAGMENT
 
 (*-----------------------------------------*)
 (* Extra tokens: *)
 (*-----------------------------------------*)
 
 (* Automatically Inserted Semicolon (ASI), see parse_js.ml *)
-%token <Parse_info.t> T_VIRTUAL_SEMICOLON
+%token <Tok.t> T_VIRTUAL_SEMICOLON
 (* fresh_token: the opening '(' of the parameters preceding an '->' *)
-%token <Parse_info.t> T_LPAREN_ARROW
+%token <Tok.t> T_LPAREN_ARROW
 
 (* fresh_token: the opening '(' of the parameters of a method in semgrep *)
-%token <Parse_info.t> T_LPAREN_METHOD_SEMGREP
+%token <Tok.t> T_LPAREN_METHOD_SEMGREP
 (* fresh_token: the first '{' in a semgrep pattern for objects *)
-%token <Parse_info.t> T_LCURLY_SEMGREP
+%token <Tok.t> T_LCURLY_SEMGREP
 
 (*************************************************************************)
 (* Priorities *)
@@ -333,11 +332,11 @@ let mk_Encaps opt (t1, xs, _t2) =
 (* just for better type error *)
 %type <Ast_js.stmt list> stmt item module_item
 %type <Ast_js.definition list> decl
-%type <Parse_info.t> sc
+%type <Tok.t> sc
 %type <Ast_js.expr> element binding_elision_element binding_element
 %type <Ast_js.property list> class_element
 %type <Ast_js.property> binding_property
-%type <Parse_info.t * Ast_js.expr> initializeur
+%type <Tok.t * Ast_js.expr> initializeur
 
 %%
 (*************************************************************************)

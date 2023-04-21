@@ -77,21 +77,17 @@ open Common
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
 
-(* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
- * transformation field that makes possible spatch on the code.
- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
-type a_todo_category = string wrap [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
+type a_todo_category = string wrap [@@deriving show]
 
 (* real or fake when ASI (automatic semicolon insertion) *)
-type sc = Parse_info.t [@@deriving show] (* with tarzan *)
+type sc = Tok.t [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Name *)
@@ -149,19 +145,18 @@ type special =
   (* less: should be in statement and unsugared in x+=1 or even x = x + 1 *)
   | IncrDecr of (AST_generic.incr_decr * AST_generic.prefix_postfix)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
-type a_label = string wrap [@@deriving show] (* with tarzan *)
+type a_label = string wrap [@@deriving show]
 
 (* the filename is not "resolved".
  * alt: use a reference like for resolved_name set in graph_code_js.ml and
  * module_path_js.ml? *)
-type a_filename = string wrap [@@deriving show] (* with tarzan *)
+type a_filename = string wrap [@@deriving show]
 
 (* Used for decorators and for TyName in AST_generic.type_.
  * Otherwise for regular JS dotted names are encoded with ObjAccess instead.
  *)
-type a_dotted_ident = a_ident list [@@deriving show] (* with tarzan *)
+type a_dotted_ident = a_ident list [@@deriving show]
 
 (* when doing export default Foo and import Bar, ... *)
 let default_entity = "!default!"
@@ -550,14 +545,14 @@ and import_specifier = a_ident * a_ident option
  *)
 (* less: can remove and below when StmtTodo disappear *)
 and a_toplevel = stmt
-(* [@@deriving show { with_path = false} ] (* with tarzan *) *)
+(* [@@deriving show { with_path = false} ] *)
 
 (*****************************************************************************)
 (* Program *)
 (*****************************************************************************)
 
 and a_program = a_toplevel list
-(* [@@deriving show { with_path = false} ] (* with tarzan *) *)
+(* [@@deriving show { with_path = false} ] *)
 
 (*****************************************************************************)
 (* Any *)
@@ -589,7 +584,6 @@ and any =
   | Partial of partial
   | Tk of tok
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)

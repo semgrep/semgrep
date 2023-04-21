@@ -16,7 +16,6 @@ open Common
 module T = Token_scala
 module TH = Token_helpers_scala
 module Flag = Flag_parsing
-module PI = Parse_info
 open Token_scala
 open AST_scala
 module AST = AST_scala
@@ -104,7 +103,7 @@ type env = {
   mutable rest : T.token list;
   mutable passed : T.token list;
   (* newline: last newline token *)
-  mutable last_nl : Parse_info.t option;
+  mutable last_nl : Tok.t option;
   (* for logging *)
   mutable depth : int;
   (* is the current token indented? if so, at what line and width?

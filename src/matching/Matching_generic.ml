@@ -19,7 +19,6 @@ module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module Env = Metavariable_capture
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

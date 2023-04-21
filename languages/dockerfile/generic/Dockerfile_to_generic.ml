@@ -2,7 +2,6 @@
    Convert Dockerfile-specific AST to generic AST.
 *)
 
-module PI = Parse_info
 module G = AST_generic
 open AST_dockerfile
 

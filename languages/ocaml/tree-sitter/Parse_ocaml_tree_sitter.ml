@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module CST = Tree_sitter_ocaml.CST
 module H = Parse_tree_sitter_helpers
 open Ast_ml

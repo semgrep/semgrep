@@ -24,7 +24,6 @@ module RM = Range_with_metavars
 module RP = Report
 module T = Taint
 module Lval_env = Taint_lval_env
-module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
 module Out = Output_from_core_t

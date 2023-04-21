@@ -15,7 +15,6 @@
 open Common
 open Runner_config
 open File.Operators
-module PI = Parse_info
 module PM = Pattern_match
 module E = Semgrep_error_code
 module MR = Mini_rule

@@ -24,7 +24,6 @@ open Common
 module G = AST_generic
 module CST = Tree_sitter_hack.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 module H2 = AST_generic_helpers
 
 (*****************************************************************************)

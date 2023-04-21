@@ -16,7 +16,6 @@
 open Common
 open Parser_lisp
 open Ast_lisp
-module PI = Parse_info
 module PS = Parsing_stat
 
 (* we don't need a full grammar for lisp code, so we put everything,

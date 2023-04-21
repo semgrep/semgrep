@@ -19,7 +19,6 @@ module Flag_cpp = Flag_parsing_cpp
 module TH = Token_helpers_cpp
 module TV = Token_views_cpp
 module T = Parser_cpp
-module PI = Parse_info
 module F = Ast_fuzzy
 
 (*****************************************************************************)

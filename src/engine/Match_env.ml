@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 module E = Semgrep_error_code
-module PI = Parse_info
 module Out = Output_from_core_t
 module PM = Pattern_match
 

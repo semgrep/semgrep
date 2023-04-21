@@ -20,7 +20,6 @@ module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
 module G = AST_generic
-module PI = Parse_info
 module Set = Set_
 module MV = Metavariable
 

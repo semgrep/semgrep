@@ -56,7 +56,7 @@ type env = {
   within_an_object : bool;
 }
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (*****************************************************************************)
 (* Helpers *)

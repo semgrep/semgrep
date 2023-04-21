@@ -27,7 +27,6 @@
  *)
 open Common
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 module TH = Token_helpers_ruby
 module HH = Parser_ruby_helpers

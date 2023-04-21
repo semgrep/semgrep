@@ -29,7 +29,6 @@
  *)
 open Common
 open AST_python
-module PI = Parse_info
 
 (* intermediate helper type *)
 type single_or_tuple =

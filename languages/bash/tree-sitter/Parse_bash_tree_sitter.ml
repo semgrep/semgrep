@@ -9,7 +9,6 @@
 open Common
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
-module PI = Parse_info
 open AST_bash
 module H = Parse_tree_sitter_helpers
 

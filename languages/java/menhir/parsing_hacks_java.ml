@@ -19,7 +19,6 @@ module Flag = Flag_parsing
 module TH = Token_helpers_java
 module F = Ast_fuzzy
 module T = Parser_java
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -41,7 +40,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * everything in the Tok category?
  * coupling: copy-paste of Parsing_hacks_go.is_identifier
  *)
-let is_identifier horigin (info : Parse_info.t) =
+let is_identifier horigin (info : Tok.t) =
   match Hashtbl.find_opt horigin info with
   | Some (IDENTIFIER _) -> true
   | _ -> false

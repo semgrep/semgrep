@@ -4,7 +4,7 @@
 
 open Printf
 
-type loc = Parse_info.t * Parse_info.t
+type loc = Tok_range.t
 
 type opt =
   | Caseless

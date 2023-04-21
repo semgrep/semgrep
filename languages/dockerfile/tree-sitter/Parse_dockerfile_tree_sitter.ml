@@ -8,7 +8,6 @@
 open! Common
 module AST = AST_dockerfile
 module CST = Tree_sitter_dockerfile.CST
-module PI = Parse_info
 open AST_dockerfile
 module H = Parse_tree_sitter_helpers
 

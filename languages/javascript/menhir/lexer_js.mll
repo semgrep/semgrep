@@ -18,7 +18,6 @@ open Common
 
 open Parser_js
 module Flag = Flag_parsing
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

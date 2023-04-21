@@ -17,7 +17,6 @@ open Core_jsonnet
 module A = AST_jsonnet
 module V = Value_jsonnet
 module J = JSON
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -45,7 +44,7 @@ type env = {
 
 and local_id = LSelf | LSuper | LId of string
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (* -1, 0, 1 *)
 type cmp = Inf | Eq | Sup

@@ -15,7 +15,6 @@
  *)
 
 module Flag = Flag_parsing
-module PI = Parse_info
 module Ast = Ast_js
 module T = Parser_js
 module TH = Token_helpers_js
@@ -93,7 +92,7 @@ let rparens_of_if toks =
 (* alt: could have instead a better Ast_fuzzy type instead of putting
  * everything in the Tok category?
  *)
-let is_identifier horigin (info : Parse_info.t) =
+let is_identifier horigin (info : Tok.t) =
   match Hashtbl.find_opt horigin info with
   | Some (T.T_ID _) -> true
   | _ -> false

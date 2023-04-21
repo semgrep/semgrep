@@ -16,7 +16,6 @@
 open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_python
-module PI = Parse_info
 module PS = Parsing_stat
 module Lexer = Lexer_python
 module T = Parser_python

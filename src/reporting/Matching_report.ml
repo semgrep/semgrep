@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

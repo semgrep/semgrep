@@ -1,5 +1,3 @@
-(*s: lib_parsing_php.ml *)
-(*s: Facebook copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2009-2011 Facebook
@@ -14,14 +12,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: Facebook copyright *)
 open Common
 open File.Operators
-module PI = Parse_info
 
-(*s: basic pfff module open and aliases *)
 (*module Ast = Cst_php*)
-(*e: basic pfff module open and aliases *)
 
 (*****************************************************************************)
 (* Wrappers *)

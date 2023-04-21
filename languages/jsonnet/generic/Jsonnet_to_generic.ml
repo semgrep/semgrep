@@ -14,7 +14,6 @@
  *)
 open AST_jsonnet
 module G = AST_generic
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

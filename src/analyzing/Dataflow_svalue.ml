@@ -14,7 +14,6 @@
  *)
 open Common
 open IL
-module PI = Parse_info
 module G = AST_generic
 module F = IL
 module D = Dataflow_core

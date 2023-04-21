@@ -15,7 +15,6 @@
 open Common
 open File.Operators
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 module FT = File_type
 module Ast = Ast_cpp

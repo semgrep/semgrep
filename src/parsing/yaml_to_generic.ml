@@ -18,7 +18,6 @@ module S = Yaml.Stream
 module E = Yaml.Stream.Event
 module M = Yaml.Stream.Mark
 module G = AST_generic
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -71,7 +70,7 @@ type env = {
 (* Helper functions *)
 (*****************************************************************************)
 
-exception UnrecognizedAlias of Parse_info.t
+exception UnrecognizedAlias of Tok.t
 
 let sgrep_ellipses_inline = "__sgrep_ellipses__"
 let sgrep_ellipses = "__sgrep_ellipses__: __sgrep_ellipses__"

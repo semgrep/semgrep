@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
 module HPfff = Parser_cpp_mly_helper

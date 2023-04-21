@@ -1,7 +1,7 @@
 open Utils_ruby
 open Il_ruby
 
-type pos2 = Parse_info.t
+type pos2 = Tok.t
 
 let uniq_counter = ref 0
 

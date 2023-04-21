@@ -14,7 +14,6 @@
  *)
 open Common
 open Parser_php
-module PI = Parse_info
 module TH = Token_helpers_php
 
 (*****************************************************************************)

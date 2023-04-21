@@ -18,7 +18,6 @@ module FT = File_type
 open Rule
 module R = Rule
 module E = Semgrep_error_code
-module PI = Parse_info
 module P = Pattern_match
 module RP = Report
 module SJ = Output_from_core_j

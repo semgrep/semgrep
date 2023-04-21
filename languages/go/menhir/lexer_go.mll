@@ -14,9 +14,7 @@
  * license.txt for more details.
  *)
 open Common
-
 open Parser_go
-module PI = Parse_info
 module Flag = Flag_parsing
 open AST_generic (* for LASOP *)
 

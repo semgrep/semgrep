@@ -18,7 +18,6 @@ open AST_generic
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

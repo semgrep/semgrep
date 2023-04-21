@@ -15,7 +15,6 @@
  *)
 open Common
 module Flag = Flag_parsing
-module PI = Parse_info
 module T = Parser_cpp
 module TH = Token_helpers_cpp
 

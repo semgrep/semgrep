@@ -14,7 +14,6 @@
  *)
 open Common
 open Ast_json
-module PI = Parse_info
 module M = Map_AST
 module G = AST_generic
 

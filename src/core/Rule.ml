@@ -332,7 +332,7 @@ let last_matched_rule : rule_id option ref = ref None
 (* Those are recoverable errors; We can just skip the rules containing them.
  * TODO? put in Output_from_core.atd?
  *)
-type invalid_rule_error = invalid_rule_error_kind * rule_id * Parse_info.t
+type invalid_rule_error = invalid_rule_error_kind * rule_id * Tok.t
 
 and invalid_rule_error_kind =
   | InvalidLanguage of string (* the language string *)
@@ -352,8 +352,8 @@ and invalid_rule_error_kind =
 (* General errors *)
 type error =
   | InvalidRule of invalid_rule_error
-  | InvalidYaml of string * Parse_info.t
-  | DuplicateYamlKey of string * Parse_info.t
+  | InvalidYaml of string * Tok.t
+  | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
 
 (* can't use Error because it's used for severity *)

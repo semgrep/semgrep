@@ -16,7 +16,6 @@ open Common
 module H = AST_generic_helpers
 open Ast_cpp
 open OCaml (* for the map_of_xxx *)
-module PI = Parse_info
 module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]

@@ -16,7 +16,6 @@ module CST = Tree_sitter_html.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

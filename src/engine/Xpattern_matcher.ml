@@ -14,7 +14,6 @@
  *)
 open Common
 module MV = Metavariable
-module PI = Parse_info
 module PM = Pattern_match
 module RP = Report
 module G = AST_generic

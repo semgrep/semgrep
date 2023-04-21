@@ -15,7 +15,6 @@
 open Common
 open Ast_cpp
 module A = Ast_c
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -45,9 +44,9 @@ let cnt = ref 0
 (* Types *)
 (*****************************************************************************)
 
-exception ObsoleteConstruct of string * Parse_info.t
+exception ObsoleteConstruct of string * Tok.t
 exception CplusplusConstruct
-exception TodoConstruct of string * Parse_info.t
+exception TodoConstruct of string * Tok.t
 exception CaseOutsideSwitch
 exception MacroInCase
 

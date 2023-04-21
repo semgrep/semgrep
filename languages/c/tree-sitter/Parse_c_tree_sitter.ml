@@ -15,7 +15,6 @@
 open Common
 module AST = Ast_c
 module CST = Tree_sitter_c.CST
-module PI = Parse_info
 open Ast_cpp
 open Ast_c
 module G = AST_generic

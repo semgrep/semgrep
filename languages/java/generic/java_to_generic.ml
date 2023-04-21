@@ -16,7 +16,6 @@ open Common
 open Ast_java
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

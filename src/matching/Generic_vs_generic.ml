@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (* G is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later

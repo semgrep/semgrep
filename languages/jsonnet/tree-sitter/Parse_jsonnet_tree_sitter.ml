@@ -16,7 +16,6 @@ open Common
 open File.Operators
 module CST = Tree_sitter_jsonnet.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 open AST_jsonnet
 module J = AST_jsonnet
 

@@ -40,7 +40,7 @@
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show]

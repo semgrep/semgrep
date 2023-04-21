@@ -14,7 +14,6 @@
  *)
 open Common
 open Ast_php
-module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 

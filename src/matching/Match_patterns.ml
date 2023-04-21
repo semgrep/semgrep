@@ -15,7 +15,6 @@
  *)
 open AST_generic
 module V = Visitor_AST
-module PI = Parse_info
 module MR = Mini_rule
 module Eq = Equivalence
 module PM = Pattern_match

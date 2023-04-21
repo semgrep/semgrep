@@ -16,7 +16,6 @@ open Common
 module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
 module Boilerplate = Tree_sitter_ruby.Boilerplate
-module PI = Parse_info
 open Ast_ruby
 module G = AST_generic
 module H = Parse_tree_sitter_helpers

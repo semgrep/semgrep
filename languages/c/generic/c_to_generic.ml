@@ -15,7 +15,6 @@
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 open Ast_cpp
 open Ast_c
 

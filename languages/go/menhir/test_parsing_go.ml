@@ -1,6 +1,5 @@
 open Common
 open File.Operators
-module PI = Parse_info
 module PS = Parsing_stat
 module Flag = Flag_parsing
 

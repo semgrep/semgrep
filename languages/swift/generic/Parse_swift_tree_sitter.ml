@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 module CST = Tree_sitter_swift.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers

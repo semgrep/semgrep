@@ -157,7 +157,7 @@ val print_match :
   ?str:string ->
   Runner_config.t ->
   Pattern_match.t ->
-  (Metavariable.mvalue -> Parse_info.t list) ->
+  (Metavariable.mvalue -> Tok.t list) ->
   unit
 
 (* This function prints a dot, which is consumed by the Python CLI to update

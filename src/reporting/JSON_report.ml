@@ -16,7 +16,6 @@ open Common
 module StrSet = Common2.StringSet
 open AST_generic
 module V = Visitor_AST
-module PI = Parse_info
 module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable

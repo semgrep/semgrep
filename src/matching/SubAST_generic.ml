@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module PI = Parse_info
 module H = AST_generic_helpers
 module V = Visitor_AST
 

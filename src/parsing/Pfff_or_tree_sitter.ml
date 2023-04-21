@@ -14,7 +14,6 @@
  *)
 open Common
 module Flag = Flag_semgrep
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

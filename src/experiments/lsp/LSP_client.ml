@@ -18,7 +18,6 @@ module J = JSON
 module C = Lsp.Client_request
 open Lsp
 open Types
-module PI = Parse_info
 module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]

@@ -14,7 +14,6 @@
  *)
 open Common
 module CST = Tree_sitter_solidity.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic

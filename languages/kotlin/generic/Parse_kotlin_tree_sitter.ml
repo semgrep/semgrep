@@ -16,7 +16,6 @@
 open Common
 module CST = Tree_sitter_kotlin.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers

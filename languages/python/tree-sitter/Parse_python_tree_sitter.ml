@@ -14,7 +14,6 @@
  *)
 
 module CST = Tree_sitter_python.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_python
 

@@ -15,7 +15,6 @@
 open Common
 open Cst_php
 module A = Ast_php
-module PI = Parse_info
 module G = AST_generic
 
 (*****************************************************************************)

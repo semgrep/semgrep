@@ -16,7 +16,6 @@ open Common
 module CST = Tree_sitter_rust.CST
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
-module PI = Parse_info
 module G = AST_generic
 
 (*****************************************************************************)

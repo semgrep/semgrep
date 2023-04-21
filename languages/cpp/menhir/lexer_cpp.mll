@@ -23,7 +23,6 @@ open Ast_cpp (* to factorise tokens with OpAssign, ... *)
 module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
 module Ast = Ast_cpp
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)

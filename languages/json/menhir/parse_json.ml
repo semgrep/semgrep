@@ -14,7 +14,6 @@
  *)
 open Common
 open Parse_js
-module PI = Parse_info
 module TH = Token_helpers_js
 module Flag = Flag_parsing
 

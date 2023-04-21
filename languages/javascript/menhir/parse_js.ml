@@ -17,7 +17,6 @@ open Common
 module Flag = Flag_parsing
 module Ast = Ast_js
 module TH = Token_helpers_js
-module PI = Parse_info
 module PS = Parsing_stat
 
 let logger = Logging.get_logger [ __MODULE__ ]
