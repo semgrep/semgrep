@@ -224,8 +224,8 @@ let taint_trace_to_dataflow_trace traces : Out.core_match_dataflow_trace =
   let source_call_trace, tokens, sink_call_trace =
     match traces with
     | [] -> raise Common.Impossible
-    | (source_call_trace, tokens, sink_call_trace) :: _ ->
-        (source_call_trace, tokens, sink_call_trace)
+    | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
+        (source_trace, tokens, sink_trace)
   in
   {
     Out.taint_source = taint_call_trace source_call_trace;

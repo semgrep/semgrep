@@ -22,7 +22,9 @@ type source = {
 }
 [@@deriving show]
 
-type sink = Pattern_match.t * Rule.taint_sink [@@deriving show]
+type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
+[@@deriving show]
+
 type arg_pos = string * int [@@deriving show]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
@@ -35,8 +37,20 @@ type orig =
 
 type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
+type taint_to_sink_item = {
+  taint : taint;
+  sink_trace : unit call_trace;
+      (** This trace is from the current calling context of the taint finding,
+        to the sink.
+        It's a `unit` call_trace because we don't actually need the item at the
+        end, and we need to be able to dispatch on the particular variant of taint
+        (source or arg).
+        *)
+}
+[@@deriving show]
+
 type taints_to_sink = {
-  taints_with_precondition : (taint * unit call_trace) list * AST_generic.expr;
+  taints_with_precondition : taint_to_sink_item list * AST_generic.expr;
   sink : sink;
   merged_env : Metavariable.bindings;
 }

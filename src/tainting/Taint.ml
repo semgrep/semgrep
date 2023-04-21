@@ -55,7 +55,8 @@ type source = {
 }
 [@@deriving show]
 
-type sink = Pattern_match.t * Rule.taint_sink [@@deriving show]
+type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
+[@@deriving show]
 
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
@@ -151,14 +152,17 @@ let _show_taint taint =
       Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
   | Arg arg_lval -> _show_arg arg_lval
 
-let _show_taint_and_trace (taint, trace) =
+let _show_sink { rule_sink; _ } = rule_sink.Rule.sink_id
+
+type taint_to_sink_item = { taint : taint; sink_trace : unit call_trace }
+[@@deriving show]
+
+let _show_taint_to_sink_item { taint; sink_trace } =
   Printf.sprintf "%s@{%s}" (_show_taint taint)
-    (_show_call_trace [%show: unit] trace)
+    (_show_call_trace [%show: unit] sink_trace)
 
 let _show_taints_and_traces taints =
-  Common2.string_of_list _show_taint_and_trace taints
-
-let _show_sink (_, ts) = ts.Rule.sink_id
+  Common2.string_of_list _show_taint_to_sink_item taints
 
 type taints_to_sink = {
   (* These taints were incoming to the sink, under a certain
@@ -167,7 +171,7 @@ type taints_to_sink = {
      a certain number of findings suitable to how the sink was
      reached.
   *)
-  taints_with_precondition : (taint * unit call_trace) list * G.expr;
+  taints_with_precondition : taint_to_sink_item list * G.expr;
   sink : sink;
   merged_env : Metavariable.bindings;
 }

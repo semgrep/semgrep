@@ -117,16 +117,16 @@ let rec print_taint_call_trace ~format ~spaces = function
 let print_taint_trace ~format taint_trace =
   if format =*= Matching_report.Normal then
     taint_trace |> Lazy.force
-    |> List.iteri (fun idx (source, tokens, sink) ->
+    |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
            if idx =*= 0 then pr "  * Taint may come from this source:"
            else pr "  * Taint may also come from this source:";
-           print_taint_call_trace ~format ~spaces:4 source;
+           print_taint_call_trace ~format ~spaces:4 source_trace;
            if tokens <> [] then
              pr
                (spf "  * These intermediate values are tainted: %s"
                   (string_of_toks tokens));
            pr "  * This is how taint reaches the sink:";
-           print_taint_call_trace ~format ~spaces:4 sink)
+           print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,

@@ -547,24 +547,29 @@ let pm_of_finding finding =
   | T.ArgToArg _
   | T.ToReturn _ ->
       None
-  | ToSink { taints_with_precondition = taints, requires; sink; merged_env } ->
+  | ToSink
+      {
+        taints_with_precondition = taints, requires;
+        sink = { pm = sink_pm; _ };
+        merged_env;
+      } ->
       (* TODO: We might want to report functions that let input taint
          * go into a sink (?) *)
       if
         not
           (D.taints_satisfy_requires
-             (T.Taint_set.of_list (Common.map fst taints))
+             (T.Taint_set.of_list (Common.map (fun t -> t.T.taint) taints))
              requires)
       then None
       else
-        let sink_pm, _ = sink in
         (* these arg taints are not useful to us, because we are within
            the function, not at the call-site. so we don't know what
            the argument taints are.
         *)
         let source_taints, _args_taints =
           taints
-          |> Common.partition_either (fun ({ T.orig; tokens }, sink_trace) ->
+          |> Common.partition_either
+               (fun { T.taint = { orig; tokens }; sink_trace } ->
                  match orig with
                  | Src src -> Left (src, tokens, sink_trace)
                  | Arg arg -> Right arg)
@@ -579,9 +584,11 @@ let pm_of_finding finding =
         let traces =
           source_taints
           |> Common.map (fun (src, tokens, sink_trace) ->
-                 ( convert_taint_call_trace src.T.call_trace,
-                   tokens,
-                   convert_taint_call_trace sink_trace ))
+                 {
+                   PM.source_trace = convert_taint_call_trace src.T.call_trace;
+                   tokens;
+                   sink_trace = convert_taint_call_trace sink_trace;
+                 })
         in
         (* We always report the finding on the sink that gets tainted, the call trace
             * must be used to explain how exactly the taint gets there. At some point

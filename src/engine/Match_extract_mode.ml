@@ -252,10 +252,12 @@ let map_taint_trace map_loc traces =
           }
   in
   Common.map
-    (fun (source_ct, toks, sink_ct) ->
-      ( map_taint_call_trace source_ct,
-        Common.map map_loc toks,
-        map_taint_call_trace sink_ct ))
+    (fun { Pattern_match.source_trace; tokens; sink_trace } ->
+      {
+        Pattern_match.source_trace = map_taint_call_trace source_trace;
+        tokens = Common.map map_loc tokens;
+        sink_trace = map_taint_call_trace sink_trace;
+      })
     traces
 
 let map_res map_loc tmpfile file

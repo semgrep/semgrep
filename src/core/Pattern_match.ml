@@ -54,11 +54,28 @@ type taint_call_trace =
     }
 [@@deriving show, eq]
 
-type taint_trace =
-  (* source *)
-  (taint_call_trace * tainted_tokens * (* sink *) taint_call_trace) list
+(* The trace of a single source of taint, to the sink.
+   There may be many of these, taking different paths. For a single
+   sink, the fact that it produces a finding might be the product of
+   many taints, due to labels.
+   These taints may also take their own paths, because they might arrive
+   via different variables.
+*)
+type taint_trace_item = {
+  source_trace : taint_call_trace;
+      (** This is the path that the taint takes, from the source, to get to
+        the current function in which the taint finding is reported. *)
+  tokens : tainted_tokens;
+      (** This is the path taken within the current function, to link the
+        taint source obtained earlier with a sink. Both of these might
+        be done through a chain of function calls. *)
+  sink_trace : taint_call_trace;
+      (** This is the path that the taint takes, from the function context,
+        to get to the sink. *)
+}
 [@@deriving show, eq]
 
+type taint_trace = taint_trace_item list [@@deriving show, eq]
 type engine_kind = OSS | Pro [@@deriving show, eq]
 
 type t = {
