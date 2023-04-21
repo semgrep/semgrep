@@ -1,18 +1,3 @@
-(* Yoann Padioleau
- *
- * Copyright (C) 2010 Facebook
- * Copyright (C) 2020, 2023 r2c
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * version 2.1 as published by the Free Software Foundation, with the
- * special exception on linking described in file license.txt.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
- * license.txt for more details.
- *)
 open Common
 open Tok
 
@@ -46,17 +31,6 @@ let is_fake tok =
   match tok.token with
   | FakeTokStr _ -> true
   | _ -> false
-
-(* TODO: the use of unsafe_fake_xxx is usually because the token
- * does not exist in the original file. It's better then to generate
- * an empty string in the FakeTokStr so that pretty printer will
- * not generate those brackets or semicolons. Moreover
- * we use unsafe_fake_bracket not only for () but also for [], {}, and
- * now even for "", so better again to put an empty string in it.
- *)
-
-let fake_bracket_loc next_to_loc x =
-  (fake_info_loc next_to_loc "(", x, fake_info_loc next_to_loc ")")
 
 let unbracket (_, x, _) = x
 

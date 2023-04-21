@@ -10,7 +10,6 @@ val is_origintok : t -> bool
 val unsafe_fake_info : string -> t
 val fake_info_loc : Tok.location -> string -> t
 val fake_info : t -> string -> t
-val fake_bracket_loc : Tok.location -> 'a -> t * 'a * t
 
 (* accessor *)
 val unbracket : t * 'a * t -> 'a

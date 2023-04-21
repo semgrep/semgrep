@@ -176,6 +176,14 @@ let fake_tok next_to_tok str : t =
   | Ok loc -> fake_tok_loc loc str
   | Error _ -> unsafe_fake_tok str
 
+(* TODO? the use of unsafe_fake_xxx is usually because the token
+ * does not exist in the original file. It's better then to generate
+ * an empty string in the FakeTokStr so that pretty printer will
+ * not generate those brackets or semicolons. Moreover
+ * we use unsafe_fake_bracket not only for () but also for [], {}, and
+ * now even for "", so better again to put an empty string in it?
+ *)
+
 let unsafe_sc = unsafe_fake_tok ";"
 let sc next_to_tok = fake_tok next_to_tok ";"
 
