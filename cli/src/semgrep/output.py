@@ -15,6 +15,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 from typing import Type
 
 import requests
@@ -273,19 +274,27 @@ class OutputHandler:
     @staticmethod
     def _make_failed_to_analyze(
         semgrep_core_errors: Sequence[SemgrepCoreError],
-    ) -> Mapping[Path, Optional[int]]:
+    ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
         def update_failed_to_analyze(
-            memo: Mapping[Path, Optional[int]], err: SemgrepCoreError
-        ) -> Mapping[Path, Optional[int]]:
+            memo: Mapping[Path, Tuple[Optional[int], List[out.RuleId]]],
+            err: SemgrepCoreError,
+        ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
             path = Path(err.core.location.path)
-            so_far = memo.get(path, 0)
-            if err.spans is None or so_far is None:
+            so_far = memo.get(path)
+            if err.spans is None or so_far is None or so_far[0] is None:
                 num_lines = None
             else:
-                num_lines = so_far + sum(
+                num_lines = so_far[0] + sum(
                     s.end.line - s.start.line + 1 for s in err.spans
                 )
-            return {**memo, path: num_lines}
+            if so_far is not None:
+                rule_ids = so_far[1]
+            else:
+                rule_ids = []
+            if err.core.rule_id is not None:
+                rule_ids.append(err.core.rule_id)
+
+            return {**memo, path: (num_lines, rule_ids)}
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
