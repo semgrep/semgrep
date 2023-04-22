@@ -124,11 +124,17 @@ let param_of_conf (conf : Conf.t) =
    Because of this limitation and because we need backtracking when matching
    an ellipsis followed by a specific node, this pattern must remain inline.
 *)
-let ellipsis_pat_of_spacing_param sp =
-  sprintf {|(?: (?&%s)(?:%s(?&%s))*? )??|} sp.node_name sp.whitespace_pat
-    sp.node_name
+let ellipsis_pat_of_spacing_param ~excluded_brace sp =
+  let exclude_char =
+    match excluded_brace with
+    | None -> ""
+    | Some c -> sprintf {|(?!%s)|} (Pcre.quote (String.make 1 c))
+  in
+  sprintf {|(?: %s(?&%s)(?:%s%s(?&%s))*? )??|} exclude_char sp.node_name
+    sp.whitespace_pat exclude_char sp.node_name
 
-let ellipsis_pat param = ellipsis_pat_of_spacing_param param.ellipsis
+let ellipsis_pat ~excluded_brace param =
+  ellipsis_pat_of_spacing_param ~excluded_brace param.ellipsis
 
 (* In addition to allowing newlines in-between the sequence elements,
    a long ellipsis pattern must allow leading and trailing whitespace
@@ -136,16 +142,16 @@ let ellipsis_pat param = ellipsis_pat_of_spacing_param param.ellipsis
    We try to include as little leading/trailing whitespace as possible,
    though.
 *)
-let long_ellipsis_pat param =
+let long_ellipsis_pat ~excluded_brace param =
   if param.multiline_mode then
     (* in multiline mode, a long ellipsis is the same as a regular
        ellipsis. This minimize leading and trailing whitespace captured
        by the ellipsis. *)
-    ellipsis_pat_of_spacing_param param.ellipsis
+    ellipsis_pat_of_spacing_param ~excluded_brace param.ellipsis
   else
     (* uniline mode *)
     sprintf {|(?:\n %s)?? %s (?:%s \n)??|} param.long_ellipsis.whitespace_pat
-      (ellipsis_pat_of_spacing_param param.long_ellipsis)
+      (ellipsis_pat_of_spacing_param ~excluded_brace param.long_ellipsis)
       param.long_ellipsis.whitespace_pat
 
 (* We generate a rather complex PCRE pattern. The syntax assumes the
@@ -203,16 +209,17 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
      - must match any single significant non-word character such as punctuation
        or non-ASCII characters.
      - must exclude word characters.
+     - must exclude the closing brace character if one is expected.
      - may not match ignorable whitespace (so that $...X doesn't capture
        leading or trailing whitespace).
      - may not match newline characters in uniline mode (except in
        long ellipses)
   *)
   let def_other =
-    let word_chars =
+    let excluded_chars =
       Pcre_util.char_class_of_list ~contents_only:true conf.word_chars
     in
-    let pat = sprintf {|[^[:space:]%s]|} word_chars in
+    let pat = sprintf {|[^[:space:]%s]|} excluded_chars in
     define "other" pat
   in
   let def_bracket sparam =
@@ -221,9 +228,10 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
       |> Common.map (fun (open_, close) ->
              sprintf {|%s%s%s|}
                (String.make 1 open_ |> Pcre_util.quote)
-               (ellipsis_pat_of_spacing_param sparam)
+               (ellipsis_pat_of_spacing_param ~excluded_brace:(Some close)
+                  sparam)
                (String.make 1 close |> Pcre_util.quote))
-      |> String.concat " | ")
+      |> String.concat "\n  | ")
   in
   let def_node sparam =
     define sparam.node_name
@@ -274,23 +282,36 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   let entrypoint =
     let acc = ref [] in
     let add str = acc := str :: !acc in
-    let rec of_node (node : Pat_AST.node) =
+    (* excluded_brace = closing brace that can only be used as a closing
+       brace matching the currently open brace. This is to prevent
+       a semgrep pattern like '(...x)' from matching '()x)'.
+       Other closing brace characters that may be found are mismatched
+       and treated as ordinary punctuation characters ("other") forming
+       a node.
+    *)
+    let rec of_node ~excluded_brace (node : Pat_AST.node) =
       match node with
-      | Ellipsis -> add (ellipsis_pat param)
-      | Long_ellipsis -> add (long_ellipsis_pat param)
+      | Ellipsis -> add (ellipsis_pat ~excluded_brace param)
+      | Long_ellipsis -> add (long_ellipsis_pat ~excluded_brace param)
       | Metavar name -> add (capture (Metavariable, name) {|(?&word)|})
       | Metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) (ellipsis_pat param))
+          add
+            (capture
+               (Metavariable_ellipsis, name)
+               (ellipsis_pat ~excluded_brace param))
       | Long_metavar_ellipsis name ->
-          add (capture (Metavariable_ellipsis, name) (long_ellipsis_pat param))
+          add
+            (capture
+               (Metavariable_ellipsis, name)
+               (long_ellipsis_pat ~excluded_brace param))
       | Bracket (open_, seq, close) ->
           add (Pcre_util.quote (String.make 1 open_));
-          of_seq seq;
+          of_seq ~excluded_brace:(Some close) seq;
           add (Pcre_util.quote (String.make 1 close))
       | Word str -> add (word str)
       | Other str -> add (Pcre_util.quote str)
-    and of_seq xs = List.iter of_node xs in
-    of_seq ast;
+    and of_seq ~excluded_brace xs = List.iter (of_node ~excluded_brace) xs in
+    of_seq ~excluded_brace:None ast;
     let elements = List.rev !acc in
     String.concat ("\n" ^ {|(?&ws)|} ^ "\n") elements
   in
