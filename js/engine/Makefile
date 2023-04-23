@@ -8,7 +8,7 @@ ESBUILD_DEFAULTS = \
 default: build
 
 .PHONY: build
-build: dist/index.cjs dist/index.mjs dist/index.d.ts
+build: dist/index.js dist/index.d.ts dist/libyaml.wasm
 
 .PHONY: test
 test: build
@@ -22,21 +22,22 @@ package: build
 clean:
 	rm -rf dist
 
-.PHONY: build-libyaml
-build-libyaml:
+../libyaml/dist/index.js ../libyaml/dist/libyaml.wasm:
 	cd ../libyaml; $(MAKE) build
 
-node_modules/.package-lock.json:
+package-lock.json:
+	npm install
+
+node_modules/.package-lock.json: package-lock.json
 	npm ci
 
-dist/index.cjs: src/index.ts node_modules/.package-lock.json build-libyaml
+dist/index.js: src/index.ts node_modules/.package-lock.json ../libyaml/dist/index.js
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/index.mjs: src/index.ts node_modules/.package-lock.json build-libyaml
-	mkdir -p dist
-	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
+dist/libyaml.wasm: ../libyaml/dist/libyaml.wasm
+	cp $^ $@
 
-dist/index.d.ts: node_modules/.package-lock.json src/index.ts build-libyaml
+dist/index.d.ts: node_modules/.package-lock.json src/index.ts
 	mkdir -p dist
 	npx -p typescript tsc

@@ -8,4 +8,4 @@ export interface Parser {
   parsePattern: (printErrors: boolean, lang: Lang, pattern: string) => any;
 }
 
-export declare const ParserFactory: () => Promise<Parser>;
+export declare const ParserFactory: (wasmUri?: string) => Promise<Parser>;

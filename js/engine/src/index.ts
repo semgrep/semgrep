@@ -1,5 +1,7 @@
 import LibYamlFactory from "../../libyaml/dist/libyaml";
 
+import { getDirname } from "cross-dirname";
+
 export type Mountpoint = object;
 export type Lang = number;
 
@@ -23,8 +25,16 @@ export interface Engine {
   deleteFile: (filename: string) => void;
 }
 
-export const EngineFactory: () => Promise<Engine> = async () => {
-  const libyaml = await LibYamlFactory();
+export const EngineFactory: (
+  libYamlWasmUri?: string
+) => Promise<Engine> = async (libYamlWasmUri?: string) => {
+  if (!libYamlWasmUri) {
+    libYamlWasmUri = `${getDirname()}/libyaml.wasm`;
+  }
+  const libyaml = await LibYamlFactory({
+    locateFile: (uri: string) =>
+      uri === "libyaml.wasm" ? libYamlWasmUri : uri,
+  });
   const {
     getMountpoints,
     setLibYamlWasmModule,

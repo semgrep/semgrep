@@ -20,11 +20,11 @@ COMMON_TS_EXPORTED_FUNCTIONS = _malloc,_free,_ts_parser_new,_ts_parser_set_langu
 EMCC_DEFAULTS = \
    -sALLOW_MEMORY_GROWTH=1 \
    -sEXPORTED_RUNTIME_METHODS=AsciiToString,stringToAscii,stringToUTF8,getValue,setValue \
-   -sSINGLE_FILE \
    -sMODULARIZE
 
 SEMGREP_TS_LANG ?= $(SEMGREP_LANG)
 TS_EXPORTED_FUNCTIONS ?= _tree_sitter_$(SEMGREP_TS_LANG)
+VERSION ?= 0.0.1
 
 .PHONY: default
 default: build
@@ -45,7 +45,7 @@ clean:
 	rm -rf dist
 
 ifndef NO_WASM
-dist/semgrep-parser.js: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
+dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
 	mkdir -p dist
 	emcc \
 		-O3 \
@@ -56,16 +56,27 @@ dist/semgrep-parser.js: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTR
 		-sEXPORTED_FUNCTIONS=$(TS_EXPORTED_FUNCTIONS),$(COMMON_TS_EXPORTED_FUNCTIONS) \
 		-o $@
 WASM_DEP := dist/semgrep-parser.js
+WASM_NAME := semgrep-parser
 endif
 
-node_modules/.package-lock.json:
+package.json: ../shared/package.json.liquid
+	npx liquidjs -t @$^ -o $@ --context '{"lang": "$(SEMGREP_LANG)", "wasm": "$(WASM_NAME)", "version": "$(VERSION)"}'
+
+package-lock.json: package.json
+	npm install
+
+node_modules/.package-lock.json: package-lock.json
 	npm ci
 
-dist/index.cjs: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+dist/entrypoint.js: ../shared/entrypoint.js.liquid
+	mkdir -p dist
+	npx liquidjs -t @$^ -o $@ --context '{"lang": "$(SEMGREP_LANG)", "wasm": "$(WASM_NAME)"}'
+
+dist/index.cjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/index.mjs: src/index.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+dist/index.mjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
 

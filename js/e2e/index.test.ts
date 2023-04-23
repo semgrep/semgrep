@@ -1,7 +1,7 @@
 import { expect, test } from "@jest/globals";
 
 const { EngineFactory } = require("../engine/dist/index");
-const { ParserFactory } = require("../languages/go/dist/index");
+const { ParserFactory } = require("../languages/go/dist/index.cjs");
 
 test("it can parse a golang file", async () => {
   const engine = await EngineFactory();

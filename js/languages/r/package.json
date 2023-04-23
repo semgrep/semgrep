@@ -1,11 +1,12 @@
 {
-  "name": "@semgrep/lang-lua",
+  "name": "@semgrep/lang-r",
   "version": "0.0.1",
-  "description": "Semgrep lua parser",
+  "description": "Semgrep r parser",
   "files": [
     "dist/index.cjs",
     "dist/index.mjs",
-    "dist/index.d.ts"
+    "dist/index.d.ts",
+    "dist/semgrep-parser.wasm"
   ],
   "types": "dist/index.d.ts",
   "exports": {
@@ -20,10 +21,10 @@
   "author": "Semgrep, Inc.",
   "license": "LGPL-2.1",
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.21.2",
-    "@babel/preset-typescript": "^7.21.4",
     "esbuild": "^0.17.17",
-    "jest": "^29.5.0",
-    "typescript": "^5.0.4"
+    "jest": "^29.5.0"
+  },
+  "dependencies": {
+    "cross-dirname": "^0.1.0"
   }
 }
