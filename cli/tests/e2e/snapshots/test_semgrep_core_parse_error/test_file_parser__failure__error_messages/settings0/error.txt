@@ -42,7 +42,7 @@ Files skipped:
 
    • <none>
 
-  [1m[24mSkipped by analysis failure due to parsing or internal Semgrep error[0m
+  [1m[24mPartially analyzed due to a parsing or internal Semgrep error[0m
 
    • [36m[22m[24mtargets/bad/invalid_go.go (2 lines skipped)[0m
 
