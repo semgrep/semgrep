@@ -86,13 +86,13 @@ let show_token_value (x : Tok.kind) : string =
   match x with
   | OriginTok loc -> spf "%S" (shorten_string loc.str)
   | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
-  | ExpandedTok (first_loc, _, _) ->
+  | ExpandedTok (first_loc, _) ->
       (* not sure about this *)
       spf "%S" (shorten_string first_loc.str)
   | Ab -> "abstract token"
 
 let show_token_value_and_location (x : Tok.t) =
-  let location = Parse_info.string_of_info x in
+  let location = Tok.stringpos_of_tok x in
   let value = show_token_value x.token in
   spf "%s %s" location value
 

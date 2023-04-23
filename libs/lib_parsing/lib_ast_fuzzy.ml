@@ -268,7 +268,7 @@ let (mk_mapper : map_visitor -> trees -> trees) =
 (* Extractor *)
 (*****************************************************************************)
 
-let (toks_of_trees : trees -> Parse_info.t list) =
+let (toks_of_trees : trees -> Tok.t list) =
  fun trees ->
   let globals = ref [] in
   let hooks =

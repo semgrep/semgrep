@@ -44,10 +44,9 @@ type kind =
       * (* kind of a virtual position. The location refers to the last token
          * before a series of expanded tokens and the int is an offset.
          * The goal is to be able to compare the position of tokens
-         * between then, even for expanded tokens. See compare_pos().
+         * between them, even for expanded tokens. See compare_pos().
          *)
-        location
-      * int
+      (location * int)
   (* The Ab constructor is (ab)used to call '=' to compare big AST portions.
    * Ab means AbstractLineTok (short name to not polluate in debug mode).
    * An alternative is to use the t_always_equal special type below.
@@ -55,6 +54,7 @@ type kind =
   | Ab
 [@@deriving show, eq]
 
+(* for Spatch *)
 type transformation =
   | NoTransfo
   | Remove
@@ -78,7 +78,9 @@ type t = {
 }
 [@@deriving show, eq]
 
-(* to customize show() dynamically *)
+(* To customize show() dynamically. If you set this to true, AST
+ * dumper will display the full token information instead of just a '()'
+ *)
 val pp_full_token_info : bool ref
 
 (* As opposed to 't', the equal and hash functions for 't_always_equal'
@@ -91,30 +93,6 @@ val pp_full_token_info : bool ref
 type t_always_equal = t [@@deriving show, eq, hash]
 
 (*****************************************************************************)
-(* Fake tokens (safe and unsafe) *)
-(*****************************************************************************)
-(* "Safe" fake tokens require an existing location to attach to, and so
- * loc_of_tok will work on these fake tokens. "Unsafe" fake tokens
- * do not carry any location info, so calling loc_of_tok on these
- * will raise a NoTokenLocation exception.
- *
- * Always prefer "safe" functions (no "unsafe_" prefix), which only introduce
- * "safe" fake tokens. The unsafe_* functions introduce "unsafe" fake tokens,
- * please use them only as a last resort.
- *)
-
-exception NoTokenLocation of string
-
-val fake_location : location
-
-(*****************************************************************************)
-(* Loc builders *)
-(*****************************************************************************)
-
-(* deprecated: you should use instead Pos.first_pos_of_file *)
-val first_loc_of_file : Common.filename -> location
-
-(*****************************************************************************)
 (* Token builders *)
 (*****************************************************************************)
 
@@ -123,6 +101,12 @@ val tok_of_loc : location -> t
 
 (* deprecated: TODO used only in Lexer_php.mll *)
 val tok_of_str_and_bytepos : string -> int -> t
+
+(* the token will be empty, but its pos will be the beginning of the file *)
+val first_tok_of_file : Common.filename -> t
+
+(* similar, the location will be empty *)
+val first_loc_of_file : Common.filename -> location
 
 (* used mainly by tree-sitter based parsers in semgrep.
  * [combine_toks t1 ts] will return a token where t1::ts
@@ -136,10 +120,42 @@ val combine_toks : t -> t list -> t
 val split_tok_at_bytepos : int -> t -> t * t
 
 (*****************************************************************************)
+(* Fake tokens (safe and unsafe) *)
+(*****************************************************************************)
+(* "Safe" fake tokens require an existing location to attach to, and so
+ * loc_of_tok will work on these fake tokens. "Unsafe" fake tokens
+ * do not carry any location info, so calling loc_of_tok on those
+ * will raise a NoTokenLocation exception.
+ *
+ * Always prefer "safe" functions (no "unsafe_" prefix); use the unsafe_*
+ * functions only as a last resort.
+ *)
+
+val is_fake : t -> bool
+val is_origintok : t -> bool
+
+exception NoTokenLocation of string
+
+val fake_location : location
+val fake_tok : t -> string -> t
+val unsafe_fake_tok : string -> t
+
+(* sc stands for semicolon. Semicolons are often fake tokens because of
+ * ASI (Automatic Semicolon Insertion) in languages like Javascript.
+ *)
+val sc : t -> t
+val unsafe_sc : t
+val fake_bracket : t -> 'a -> t * 'a * t
+val unsafe_fake_bracket : 'a -> t * 'a * t
+
+(*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
 val loc_of_tok : t -> (location, string) result
+
+(* Format the location file/line/column into a string *)
+val stringpos_of_tok : t -> string
 
 (* @raise NoTokenLocation if given an unsafe fake token (without location) *)
 val unsafe_loc_of_tok : t -> location
@@ -195,13 +211,18 @@ val adjust_loc_wrt_base : location -> location -> location
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
 val complete_location :
-  Common.filename -> (int -> int * int) -> location -> location
+  Common.filename -> Pos.bytepos_to_linecol_fun -> location -> location
 
 (*****************************************************************************)
 (* Misc *)
 (*****************************************************************************)
 
+val unbracket : t * 'a * t -> 'a
+
 (* deprecated: you should use t_always_equal instead of using
  * abstract_tok (and Ab) to compare ASTs
  *)
 val abstract_tok : t
+
+(* comparison (TODO? should use deriving ord?) *)
+val compare_pos : t -> t -> int

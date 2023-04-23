@@ -17,7 +17,6 @@ open Common
 module Flag = Flag_parsing
 module Ast = Ast_js
 module TH = Token_helpers_js
-module PI = Parse_info
 module PS = Parsing_stat
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -68,7 +67,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
       (* bugfix: without test on is_origintok, the parser timeout
        * TODO: why?
        *)
-      if (not (PI.is_origintok info)) || List.mem info iis then ()
+      if (not (Tok.is_origintok info)) || List.mem info iis then ()
       else (
         (* TODO: could sanity check that what we put back make sense, for
          * example we should never put back a closing '}', which can
@@ -131,7 +130,7 @@ let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
   let info = TH.info_of_tok passed_offending in
   let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
-  logger#debug "ASI: insertion fake ';' at %s" (PI.string_of_info info);
+  logger#debug "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info);
 
   let toks =
     List.rev passed_after

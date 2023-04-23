@@ -18,7 +18,6 @@ open File.Operators
 open Pfff_or_tree_sitter
 open Parsing_result2
 module Flag = Flag_semgrep
-module PI = Parse_info
 module E = Semgrep_error_code
 module Out = Output_from_core_t
 module OutH = Output_from_core_util

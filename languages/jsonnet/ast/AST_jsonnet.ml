@@ -47,7 +47,7 @@
 (* Tokens (leaves) *)
 (*****************************************************************************)
 
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 type 'a wrap = 'a * tok [@@deriving show]
 type 'a bracket = tok * 'a * tok [@@deriving show]
 

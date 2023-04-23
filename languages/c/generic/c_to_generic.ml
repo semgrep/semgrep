@@ -15,7 +15,6 @@
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 open Ast_cpp
 open Ast_c
 
@@ -40,13 +39,13 @@ let either f g x =
   | Right x -> Right (g x)
 
 let string = id
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = PI.unsafe_fake_bracket
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
+let fb = Tok.unsafe_fake_bracket
 
 let opt_to_ident opt =
   match opt with
-  | None -> ("FakeNAME", Parse_info.unsafe_fake_info "FakeNAME")
+  | None -> ("FakeNAME", Tok.unsafe_fake_tok "FakeNAME")
   | Some n -> n
 
 (*****************************************************************************)
@@ -415,7 +414,7 @@ and struct_def { s_name; s_kind; s_flds } =
       (entity, G.TypeDef { G.tbody = G.AndType fields })
   | Union ->
       let ctors =
-        v3 |> PI.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
+        v3 |> Tok.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
       in
       (entity, G.TypeDef { G.tbody = G.OrType ctors })
 

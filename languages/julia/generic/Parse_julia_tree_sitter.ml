@@ -18,7 +18,6 @@ module H = Parse_tree_sitter_helpers
 module G = AST_generic
 open AST_generic
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,8 +36,8 @@ type env = context H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
-let sc tok = PI.sc tok
+let fb = Tok.unsafe_fake_bracket
+let sc tok = Tok.sc tok
 
 let in_pattern env =
   match env.H.extra with

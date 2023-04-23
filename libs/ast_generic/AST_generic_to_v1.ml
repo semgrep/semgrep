@@ -17,7 +17,6 @@ open OCaml (* map_of_string, map_of_option, ... *)
 open AST_generic
 module G = AST_generic
 module B = Ast_generic_v1_t
-module PI = Parse_info
 module H = AST_generic_helpers
 
 (*****************************************************************************)
@@ -41,14 +40,14 @@ module H = AST_generic_helpers
 (* alt: we could allow to dump the generic AST of a pattern, but
  * let's make it simple for now and just support the dump of target files
  *)
-exception SemgrepConstruct of Parse_info.t
+exception SemgrepConstruct of Tok.t
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let map_id x = x
 let map_of_ref f x = f !x
-let fk = Parse_info.unsafe_fake_info ""
+let fk = Tok.unsafe_fake_tok ""
 
 let error any =
   let v = Meta_AST.vof_any any in

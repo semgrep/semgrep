@@ -16,7 +16,6 @@ open Common
 module R = Rule
 module XP = Xpattern
 module MV = Metavariable
-module PI = Parse_info
 module J = JSON
 module SP = Semgrep_prefilter_t
 

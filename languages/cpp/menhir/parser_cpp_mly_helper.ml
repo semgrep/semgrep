@@ -14,7 +14,7 @@ let warning s v =
   if !Flag.verbose_parsing then Common2.warning ("PARSING: " ^ s) v else v
 
 let error s tok = raise (Parsing_error.Other_error (s, tok))
-let fake s = Parse_info.fake_info s
+let fake s = Tok.fake_tok s
 
 (*****************************************************************************)
 (* Parse helpers functions *)
@@ -128,7 +128,7 @@ let type_and_storage_from_decl
         | Sto (Auto, ii) -> TAuto ii
         | _ ->
             (* old: error "no type (could default to 'int')" (Common.hd_exn "unexpected empty list" iit) *)
-            TPrimitive (TInt, Parse_info.unsafe_fake_info "int"))
+            TPrimitive (TInt, Tok.unsafe_fake_tok "int"))
     | None, None, Some t -> t
     | sign_opt, short_long_opt, topt ->
         let sign =
@@ -300,7 +300,7 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
          * something as a function when it's really not
          *)
         {
-          ft_params = Parse_info.unsafe_fake_bracket [];
+          ft_params = Tok.unsafe_fake_bracket [];
           ft_ret = ty;
           ft_specs = [];
           ft_const = None;

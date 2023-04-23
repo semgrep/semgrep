@@ -73,8 +73,8 @@ let ranges_matched lang file pattern : Range.t list =
   let matches =
     Match_patterns.check
       ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
-        let toks = xs |> List.filter Parse_info.is_origintok in
-        let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
+        let toks = xs |> List.filter Tok.is_origintok in
+        let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
         let minii_loc = Tok.unsafe_loc_of_tok minii in
         E.error "Synthesizier tests" minii_loc "" Out.SemgrepMatchFound)
       (Config_semgrep.default_config, equiv)

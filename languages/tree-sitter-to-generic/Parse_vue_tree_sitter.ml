@@ -15,7 +15,6 @@
 open Common
 module CST = Tree_sitter_vue.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 
@@ -42,7 +41,7 @@ type env = extra H.env
 let fake = AST_generic.fake
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* val str_if_wrong_content_temporary_fix :
    'a env -> Tree_sitter_run.Token.t -> string * Parse_info.t

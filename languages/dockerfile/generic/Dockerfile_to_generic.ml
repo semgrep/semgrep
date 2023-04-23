@@ -2,13 +2,12 @@
    Convert Dockerfile-specific AST to generic AST.
 *)
 
-module PI = Parse_info
 module G = AST_generic
 open AST_dockerfile
 
 type env = AST_bash.input_kind
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
 let call ((orig_name, name_tok) : string wrap)
@@ -246,7 +245,7 @@ let expose_port_expr (x : expose_port) : G.expr list =
       [
         G.Container
           ( G.Tuple,
-            PI.unsafe_fake_bracket
+            Tok.unsafe_fake_bracket
               [ string_expr port_tok; string_expr protocol_tok ] )
         |> G.e;
       ]
@@ -266,7 +265,7 @@ let env_decl pairs =
     pairs
     |> Common.map (function
          | Label_semgrep_ellipsis tok ->
-             G.ExprStmt (G.Ellipsis tok |> G.e, PI.unsafe_sc) |> G.s
+             G.ExprStmt (G.Ellipsis tok |> G.e, Tok.unsafe_sc) |> G.s
          | Label_pair (_loc, key, _eq, value) -> (
              match key with
              | Var_ident v
@@ -277,7 +276,7 @@ let env_decl pairs =
                  in
                  G.DefStmt (entity, vardef) |> G.s))
   in
-  G.StmtExpr (G.Block (PI.unsafe_fake_bracket decls) |> G.s) |> G.e
+  G.StmtExpr (G.Block (Tok.unsafe_fake_bracket decls) |> G.s) |> G.e
 
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with

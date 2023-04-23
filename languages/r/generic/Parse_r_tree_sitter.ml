@@ -14,7 +14,6 @@
  *)
 module CST = Tree_sitter_r.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
@@ -26,7 +25,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let combine_str_and_infos l xs r =
   let s = xs |> Common.map fst |> String.concat "" in
@@ -348,7 +347,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       let id =
         match v3 with
         | `Id x -> map_identifier env x
-        | `Str x -> map_string_ env x |> Parse_info.unbracket
+        | `Str x -> map_string_ env x |> Tok.unbracket
       in
       DotAccess (e, t, FN (H2.name_of_id id)) |> G.e
   | `Slot (v1, v2, v3) ->

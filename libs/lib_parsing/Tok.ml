@@ -22,14 +22,17 @@ open Common
  *
  * Note that the types below are a bit complicated because we want
  * to represent "fake" and "expanded" tokens, as well as annotate tokens
- * with transformation. This is also partly because in many of the ASTs
- * and CSTs in Semgrep, including in AST_generic.ml, we store the
- * tokens in the ASTs/CSTs at the leaves, and abuse them to compute the range
- * of constructs (they are also convenient for precise error reporting).
+ * with transformation. We use fake tokens because in many of
+ * the ASTs/CSTs in Semgrep (including in AST_generic.ml) we store the
+ * tokens in the ASTs/CSTs at the leaves, and sometimes the actual
+ * token is optional (e.g., a virtual semicolon in Javascript). Moreover,
+ * we abuse those tokens at the leaves to compute the range of constructs.
+ * Finally those tokens are convenient for precise error reporting.
  * alt:
- *   - we could cleaner ASTs with range (general location) information at
+ *   - we could use cleaner ASTs with range (general location) information at
  *     every nodes, in which case we would not need at least the fake
  *     tokens (we might still need the ExpandedTok type construct though).
+ *   - we could also use more 'Tok.t option' instead of using fake tokens.
  *
  * Technically speaking, 't' below is not really a token, because the type does
  * not store the kind of the token (e.g., PLUS | IDENT | IF | ...), just its
@@ -41,8 +44,8 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-(* to report errors, regular position information.
- * TODO? move in a separate Loc.ml?
+(* To report errors, regular position information.
+ * Note that Loc.t is now an alias for Tok.location.
  *)
 type location = { str : string; (* the content of the "token" *) pos : Pos.t }
 [@@deriving show { with_path = false }, eq]
@@ -81,8 +84,7 @@ type kind =
          * between then, even for expanded tokens. See compare_pos
          * below.
          *)
-        location
-      * int
+      (location * int)
   (* The Ab constructor is (ab)used to call '=' to compare
    * big AST portions. Indeed as we keep the token information in the AST,
    * if we have an expression in the code like "1+1" and want to test if
@@ -133,6 +135,8 @@ let equal_t_always_equal _t1 _t2 = true
 let hash_t_always_equal _t = 0
 let hash_fold_t_always_equal acc _t = acc
 
+exception NoTokenLocation of string
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
@@ -147,22 +151,66 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 
-exception NoTokenLocation of string
+let is_fake tok =
+  match tok.token with
+  | FakeTokStr _ -> true
+  | _ -> false
+
+let is_origintok ii =
+  match ii.token with
+  | OriginTok _ -> true
+  | _ -> false
 
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
-(*****************************************************************************)
-(* Accessors *)
-(*****************************************************************************)
+(* Synthesize a fake token *)
+let unsafe_fake_tok str : t =
+  { token = FakeTokStr (str, None); transfo = NoTransfo }
+
+(* Synthesize a "safe" fake token *)
+let fake_tok_loc next_to_loc str : t =
+  (* TODO: offset seems to have no use right now (?) *)
+  { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
 
 let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii.token with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> Ok pinfo_pp
+  | ExpandedTok (pinfo_pp, _) -> Ok pinfo_pp
   | FakeTokStr (_, Some (pi, _)) -> Ok pi
   | FakeTokStr (_, None) -> Error "FakeTokStr"
   | Ab -> Error "Ab"
+
+let fake_tok next_to_tok str : t =
+  match loc_of_tok next_to_tok with
+  | Ok loc -> fake_tok_loc loc str
+  | Error _ -> unsafe_fake_tok str
+
+(* TODO? the use of unsafe_fake_xxx is usually because the token
+ * does not exist in the original file. It's better then to generate
+ * an empty string in the FakeTokStr so that pretty printer will
+ * not generate those brackets or semicolons. Moreover
+ * we use unsafe_fake_bracket not only for () but also for [], {}, and
+ * now even for "", so better again to put an empty string in it?
+ *)
+
+let unsafe_sc = unsafe_fake_tok ";"
+let sc next_to_tok = fake_tok next_to_tok ";"
+
+let fake_bracket next_to_tok x =
+  (fake_tok next_to_tok "(", x, fake_tok next_to_tok ")")
+
+(* used to be in AST_generic.ml *)
+let unsafe_fake_bracket x = (unsafe_fake_tok "(", x, unsafe_fake_tok ")")
+
+(*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
+
+let stringpos_of_tok (x : t) : string =
+  match loc_of_tok x with
+  | Ok loc -> Pos.string_of_pos loc.pos
+  | Error msg -> spf "unknown location (%s)" msg
 
 let unsafe_loc_of_tok ii =
   match loc_of_tok ii with
@@ -228,6 +276,7 @@ let tok_of_lexbuf lexbuf =
   tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
 
 let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 
 let rewrap_str s ii =
   {
@@ -248,7 +297,7 @@ let tok_add_s s ii = rewrap_str (content_of_tok ii ^ s) ii
 let str_of_info_fake_ok ii =
   match ii.token with
   | OriginTok pinfo -> pinfo.str
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> pinfo_pp.str
+  | ExpandedTok (pinfo_pp, _vloc) -> pinfo_pp.str
   | FakeTokStr (_, Some (pi, _)) -> pi.str
   | FakeTokStr (s, None) -> s
   | Ab -> raise (NoTokenLocation "Ab")
@@ -302,8 +351,8 @@ let fix_location fix ii =
     token =
       (match ii.token with
       | OriginTok pi -> OriginTok (fix pi)
-      | ExpandedTok (pi, vpi, off) -> ExpandedTok (fix pi, vpi, off)
-      | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
+      | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
+      | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
       | Ab -> Ab);
   }
 
@@ -380,8 +429,49 @@ let distribute_info_items_toplevel a b c =
  *)
 
 (*****************************************************************************)
+(* Compare *)
+(*****************************************************************************)
+
+(* not used but used to be useful in coccinelle *)
+type posrv =
+  | Real of location
+  | Virt of
+      location (* last real info before expanded tok *)
+      * int (* virtual offset *)
+
+let compare_pos ii1 ii2 =
+  let get_pos = function
+    | OriginTok pi -> Real pi
+    (* todo? I have this for lang_php/
+        | FakeTokStr (s, Some (pi_orig, offset)) ->
+            Virt (pi_orig, offset)
+    *)
+    | FakeTokStr _ -> raise (NoTokenLocation "compare_pos: FakeTokStr")
+    | Ab -> raise (NoTokenLocation "compare_pos: Ab")
+    | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
+  in
+  let pos1 = get_pos ii1.token in
+  let pos2 = get_pos ii2.token in
+  match (pos1, pos2) with
+  | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
+  | Virt (p1, _), Real p2 ->
+      if compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
+  | Real p1, Virt (p2, _) ->
+      if compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
+  | Virt (p1, o1), Virt (p2, o2) -> (
+      let poi1 = p1.pos.charpos in
+      let poi2 = p2.pos.charpos in
+      match compare poi1 poi2 with
+      | -1 -> -1
+      | 0 -> compare o1 o2
+      | 1 -> 1
+      | _ -> raise Impossible)
+
+(*****************************************************************************)
 (* Other helpers *)
 (*****************************************************************************)
+
+let unbracket (_, x, _) = x
 
 (* used only in the Scala parser for now *)
 let abstract_tok = { token = Ab; transfo = NoTransfo }

@@ -65,8 +65,8 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  (* TODO: use Fpath.t option instead of Common.dirname *)
-  parsing_cache_dir : Common.dirname; (* "" means no cache *)
+  (* TODO: use Fpath.t option *)
+  parsing_cache_dir : Common.filename; (* "" means no cache *)
   filter_irrelevant_rules : bool;
   (* Flag used by the semgrep-python wrapper *)
   target_source : target_source option;

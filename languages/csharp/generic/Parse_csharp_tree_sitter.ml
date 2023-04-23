@@ -18,7 +18,6 @@ module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,7 +37,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* less: we should check we consume all constraints *)
 let type_parameters_with_constraints tparams constraints : type_parameter list =
@@ -111,7 +110,7 @@ let param_from_lambda_params lambda_params =
 (* create lambda lambda_params -> expr *)
 let create_lambda lambda_params expr =
   let fparams =
-    PI.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
+    Tok.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
   in
   Lambda
     {
@@ -948,7 +947,7 @@ and interpolated_verbatim_string_content (env : env)
     (x : CST.interpolated_verbatim_string_content) =
   match x with
   | `Inte_verb_str_text x -> L (interpolated_verbatim_string_text env x) |> G.e
-  | `Interp x -> PI.unbracket (interpolation env x)
+  | `Interp x -> Tok.unbracket (interpolation env x)
 
 and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
   let v1 = token env v1 (* "[" *) in
@@ -1076,7 +1075,7 @@ and interpolated_string_content (env : env)
     (x : CST.interpolated_string_content) =
   match x with
   | `Inte_str_text x -> L (interpolated_string_text env x) |> G.e
-  | `Interp x -> PI.unbracket (interpolation env x)
+  | `Interp x -> Tok.unbracket (interpolation env x)
 
 and checked_expression (env : env) (x : CST.checked_expression) =
   match x with

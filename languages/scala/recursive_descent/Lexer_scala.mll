@@ -14,9 +14,7 @@
  * license.txt for more details.
  *)
 open Common
-
 open Token_scala
-module PI = Parse_info
 module Flag = Flag_parsing
 
 (*****************************************************************************)

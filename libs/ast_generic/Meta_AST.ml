@@ -55,7 +55,7 @@ let vof_token_origin = function
       in
       OCaml.VSum ("FakeTokStr", [ v1; opt ])
   | Ab -> OCaml.VSum ("Ab", [])
-  | ExpandedTok (v1, v2, v3) ->
+  | ExpandedTok (v1, (v2, v3)) ->
       let v1 = vof_token_location v1 in
       let v2 = vof_token_location v2 in
       let v3 = OCaml.vof_int v3 in

@@ -41,13 +41,14 @@ module C = Core_jsonnet
  * import yaml files (e.g., local x = import 'foo.yaml') or rules from the
  * registry (e.g., local x = import 'p/python').
  *)
-type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
+type import_callback =
+  Common.filename (* a directory *) -> string -> AST_jsonnet.expr option
 
 let default_callback _ _ = None
 
 type env = {
   (* like in Python jsonnet binding, "the base is the directly of the file" *)
-  base : Common.dirname;
+  base : Common.filename; (* a directory *)
   import_callback : import_callback;
   (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec
@@ -56,7 +57,7 @@ type env = {
   within_an_object : bool;
 }
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -66,7 +67,7 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
-let fk = Parse_info.unsafe_fake_info ""
+let fk = Tok.unsafe_fake_tok ""
 let fb x = (fk, x, fk)
 let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
 let mk_array exprs = A (fk, Array exprs, fk)

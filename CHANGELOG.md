@@ -6,6 +6,53 @@
 
 <!-- insertion point -->
 
+## [1.19.0](https://github.com/returntocorp/semgrep/releases/tag/v1.19.0) - 2023-04-21
+
+### Added
+
+- Java: Private static variables that are defined just once in a static block,
+  even if they are not declared `final`, will be considered as `final` by
+  constant-propagation. (pa-2228)
+- Scala: Can now parse indented matches, like:
+
+  e match
+  case foo => "foo"
+  case bar => "bar" (pa-2687)
+
+- Scala: Can now parse arguments with `using`, as well as splatted arguments.
+
+  E.g. foo(using bar) and foo(1, 2, bar\*) (pa-2688)
+
+- Scala: Added parsing of `enum` constructs. (pa-2691)
+- Scala: Can now parse `given` definitions (pa-2692)
+- Scala: Can now parse `export`s (pa-2693)
+- Scala: Can now parse top-level definitions (as added in Scala 3) (pa-2694)
+- Scala: Can now parse indented `for` expression, such as
+
+  for
+  \_ <- 5
+  yield
+  ... (pa-2695)
+
+- The title of Supply Chain findings will now consist of the package name and CVE,
+  instead of just the rule's UUID. (sc-580)
+
+### Changed
+
+- The different lists of skipped files output by Semgrep when given --verbose will
+  now be sorted, to make it easier to `diff` the outputs of two runs. (pa-2700)
+
+### Fixed
+
+- CLI: Setting Semgrep-specific environment variables for metadata (like
+  SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_PR_ID, and friends) now
+  properly works on GitHub and GitLab CI scans.
+
+  If not set, functionality is same as before. (pa-2644)
+
+- CLI: Fixed a bug where repositories with a dot in the name would cause
+  semgrep ci scans to crash (pa-2655)
+
 ## [1.18.0](https://github.com/returntocorp/semgrep/releases/tag/v1.18.0) - 2023-04-14
 
 ### Added

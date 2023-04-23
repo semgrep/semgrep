@@ -29,7 +29,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let replace metavar_tbl pattern_ast =
   (* Use a mapper to traverse the AST. For each metavar, look up what it is

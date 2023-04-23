@@ -16,5 +16,5 @@
    time we define Loc.t as Tok.location
 *)
 
-(* alias to the most common "location" type used in Semgrep *)
+(* alias to the most common location type used in Semgrep *)
 type t = Tok.location [@@deriving show]

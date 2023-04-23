@@ -42,7 +42,7 @@ type env_lbody = InIfHeader | Normal
 (* alt: could have instead a better Ast_fuzzy type instead of putting
  * everything in the Tok category?
  *)
-let is_identifier horigin (info : Parse_info.t) =
+let is_identifier horigin (info : Tok.t) =
   match Hashtbl.find_opt horigin info with
   | Some (T.LNAME _) -> true
   | _ -> false

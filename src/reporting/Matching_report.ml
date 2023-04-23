@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -60,7 +59,7 @@ let rec join_with_space_if_needed xs =
 (*****************************************************************************)
 let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
   try
-    let mini, maxi = PI.min_max_ii_by_pos ii in
+    let mini, maxi = Tok_range.min_max_toks_by_pos ii in
     let end_line, _, _ = Tok.end_pos_of_loc (Tok.unsafe_loc_of_tok maxi) in
     let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
     let prefix = spf "%s:%d" file line in

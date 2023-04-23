@@ -60,7 +60,6 @@ open Common
 module Flag = Flag_parsing
 
 open Cst_php
-module PI = Parse_info
 
 let mk_param s =
   { p_type = None;
@@ -114,41 +113,41 @@ let str_of_info x = Tok.content_of_tok x
 (* Tokens *)
 (*************************************************************************)
 
-%token <Parse_info.t> TUnknown (* unrecognized token *)
-%token <Parse_info.t> EOF
+%token <Tok.t> TUnknown (* unrecognized token *)
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The space/comment tokens *)
 (*-----------------------------------------*)
 (* coupling: Token_helpers.is_real_comment *)
-%token <Parse_info.t> TSpaces TNewline
+%token <Tok.t> TSpaces TNewline
 
 (* not mentionned in this grammar. filtered in parse_php.ml *)
-%token <Parse_info.t> T_COMMENT T_DOC_COMMENT
+%token <Tok.t> T_COMMENT T_DOC_COMMENT
 
 (* when use preprocessor and want to mark removed tokens as commented *)
-%token <Parse_info.t> TCommentPP
+%token <Tok.t> TCommentPP
 
 (*-----------------------------------------*)
 (* The normal tokens *)
 (*-----------------------------------------*)
-%token <bool * Parse_info.t> T_BOOL
-%token <int option * Parse_info.t> T_LNUMBER
-%token <float option * Parse_info.t> T_DNUMBER
-%token <string * Parse_info.t>
+%token <bool * Tok.t> T_BOOL
+%token <int option * Tok.t> T_LNUMBER
+%token <float option * Tok.t> T_DNUMBER
+%token <string * Tok.t>
  (* T_IDENT is for a regular ident and  T_VARIABLE is for a dollar ident. *)
  T_IDENT T_VARIABLE
  T_CONSTANT_ENCAPSED_STRING   T_ENCAPSED_AND_WHITESPACE  T_INLINE_HTML
  (* used only for offset of array access inside strings *)
  T_NUM_STRING
  T_STRING_VARNAME
-(*in original: %token <Parse_info.t> T_CHARACTER T_BAD_CHARACTER *)
+(*in original: %token <Tok.t> T_CHARACTER T_BAD_CHARACTER *)
 
 (*-----------------------------------------*)
 (* Keyword tokens *)
 (*-----------------------------------------*)
 
-%token <Parse_info.t>
+%token <Tok.t>
  T_IF T_ELSE T_ELSEIF T_ENDIF
  T_DO  T_WHILE   T_ENDWHILE  T_FOR     T_ENDFOR T_FOREACH T_ENDFOREACH
  T_SWITCH  T_ENDSWITCH T_CASE T_DEFAULT    T_BREAK T_CONTINUE
@@ -180,7 +179,7 @@ let str_of_info x = Tok.content_of_tok x
 (* Punctuation tokens *)
 (*-----------------------------------------*)
 
-%token <Parse_info.t>
+%token <Tok.t>
  T_OBJECT_OPERATOR "->" T_ARROW "=>" T_DOUBLE_ARROW "==>"
  T_OPEN_TAG  T_CLOSE_TAG T_OPEN_TAG_WITH_ECHO T_CLOSE_TAG_OF_ECHO
  T_START_HEREDOC    T_END_HEREDOC
@@ -221,20 +220,20 @@ let str_of_info x = Tok.content_of_tok x
 (*-----------------------------------------*)
 (* PHP language extensions: *)
 (*-----------------------------------------*)
-%token <Parse_info.t> T_YIELD T_FROM T_AWAIT
-%token <Parse_info.t> T_SUPER
+%token <Tok.t> T_YIELD T_FROM T_AWAIT
+%token <Tok.t> T_SUPER
 
 (* phpext: for hack and also for semgrep *)
-%token <Parse_info.t> T_ELLIPSIS "..."
+%token <Tok.t> T_ELLIPSIS "..."
 (* semgrep-ext: *)
-%token <Parse_info.t> LDots "<..." RDots "...>"
-%token <string * Parse_info.t> T_METAVAR
+%token <Tok.t> LDots "<..." RDots "...>"
+%token <string * Tok.t> T_METAVAR
 
 
 (* lexing hack to parse lambda params properly *)
-%token <Parse_info.t> T_LAMBDA_OPAR T_LAMBDA_CPAR
+%token <Tok.t> T_LAMBDA_OPAR T_LAMBDA_CPAR
 
-%token <Parse_info.t> T_ENUM
+%token <Tok.t> T_ENUM
 
 (*************************************************************************)
 (* Priorities *)

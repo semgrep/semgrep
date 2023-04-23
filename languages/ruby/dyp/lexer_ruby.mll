@@ -28,8 +28,6 @@
  *)
 open Common
 module Flag = Flag_parsing
-module PI = Parse_info
-
 open Parser_ruby (* the tokens *)
 module S2 = Parser_ruby_helpers
 module S = Lexer_parser_ruby

@@ -8,7 +8,6 @@
 open! Common
 module AST = AST_dockerfile
 module CST = Tree_sitter_dockerfile.CST
-module PI = Parse_info
 open AST_dockerfile
 module H = Parse_tree_sitter_helpers
 
@@ -49,7 +48,7 @@ let unsafe_concat_tokens toks : string wrap =
       if strict then assert false
       else
         let s = "" in
-        (s, PI.unsafe_fake_info s)
+        (s, Tok.unsafe_fake_tok s)
 
 (*
    Collapse consecutive literal string fragments.

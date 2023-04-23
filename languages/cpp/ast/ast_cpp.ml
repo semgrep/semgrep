@@ -66,11 +66,7 @@
 (* Tokens *)
 (*****************************************************************************)
 
-(* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
- * transformation field that makes possible spatch on C/C++/cpp code.
- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show]
@@ -1017,7 +1013,7 @@ let tvoid ii = (nQ, TPrimitive (TVoid, ii))
 
 let get_original_token_location = function
   | Tok.OriginTok pi -> pi
-  | Tok.ExpandedTok (pi, _, _) -> pi
+  | Tok.ExpandedTok (pi, _) -> pi
   | Tok.FakeTokStr (_, _) -> raise (Tok.NoTokenLocation "FakeTokStr")
   | Tok.Ab -> raise (Tok.NoTokenLocation "Ab")
 
@@ -1029,14 +1025,14 @@ let get_original_token_location = function
  *)
 let make_expanded ii =
   (* TODO? use Pos.fake_pos? *)
-  let noVirtPos =
+  let no_virt_loc =
     ( { Tok.str = ""; pos = { charpos = 0; line = 0; column = 0; file = "" } },
       -1 )
   in
-  let a, b = noVirtPos in
   {
     ii with
-    Tok.token = Tok.ExpandedTok (get_original_token_location ii.Tok.token, a, b);
+    Tok.token =
+      Tok.ExpandedTok (get_original_token_location ii.Tok.token, no_virt_loc);
   }
 
 let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =
