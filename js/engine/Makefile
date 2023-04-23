@@ -36,6 +36,7 @@ dist/index.js: src/index.ts node_modules/.package-lock.json ../libyaml/dist/inde
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
 dist/libyaml.wasm: ../libyaml/dist/libyaml.wasm
+	mkdir -p dist
 	cp $^ $@
 
 dist/index.d.ts: node_modules/.package-lock.json src/index.ts
