@@ -104,7 +104,6 @@ class Parser(str):
             'owner': None,
         }
         for regex in POSSIBLE_REGEXES:
-            print("url", self._url)
             match = regex.search(self._url)
             if match:
                 d.update(match.groupdict())
