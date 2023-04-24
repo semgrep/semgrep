@@ -18,9 +18,12 @@ test: build
 	npm ci
 	npm test
 
-downloads/pcre-8.45/configure:
+downloads/pcre-8.45.tar.gz:
 	mkdir -p downloads
-	cd downloads; curl -L "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download" | tar xvz -
+	curl -L -o $@ "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download"
+
+downloads/pcre-8.45/configure: downloads/pcre-8.45.tar.gz
+	cd downloads; tar xzf pcre-8.45.tar.gz
 
 downloads/pcre-8.45/Makefile: downloads/pcre-8.45/configure
 	cd downloads/pcre-8.45; emconfigure ./configure --enable-utf8
