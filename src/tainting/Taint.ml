@@ -269,7 +269,27 @@ module Taint_set = struct
     set1 |> Taint_map.filter (fun k _ -> not (Taint_map.mem k set2))
 
   let singleton taint = add taint empty
-  let map f set = Taint_map.map f set
+
+  (* Because `Taint_set` is internally represented with a map, we cannot just
+     map the codomain taint, using the internal provided `map` function. We
+     want to map the keys too.
+     Unfortunately, the keys and values are different types, so it's not as
+     straightforward.
+     Fortunately, we can exploit a property of the map, which is that the
+     `orig` of the domain and codomain should be the same. So it should be fine
+     to simply map the codomain taint, and then take its `orig` as the key.
+  *)
+  let map f set =
+    let bindings = Taint_map.bindings set in
+    bindings
+    (* Here, we assume the invariant that the orig must be
+       the same in the domain and codomain.
+    *)
+    |> Common.map (fun (_, t2) ->
+           let new_taint = f t2 in
+           (new_taint.orig, new_taint))
+    |> List.to_seq |> Taint_map.of_seq
+
   let iter f set = Taint_map.iter (fun _k -> f) set
   let fold f set acc = Taint_map.fold (fun _k -> f) set acc
 
