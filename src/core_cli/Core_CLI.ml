@@ -87,6 +87,7 @@ let output_format = ref Runner_config.default.output_format
 let match_format = ref Runner_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
 let ls = ref Runner_config.default.ls
+let interactive_mode = ref Runner_config.default.interactive_mode
 
 (* ------------------------------------------------------------------------- *)
 (* limits *)
@@ -204,6 +205,7 @@ let dump_pattern (file : Fpath.t) =
       pr s)
 
 let dump_ast ?(naming = false) lang file =
+  Common.(pr2 (spf "dumpin ast"));
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
       let { Parsing_result2.ast; skipped_tokens; _ } =
@@ -370,6 +372,7 @@ let mk_config () =
     action = !action;
     version = Version.version;
     roots = [] (* This will be set later in main () *);
+    interactive_mode = !interactive_mode;
   }
 
 (*****************************************************************************)
@@ -535,6 +538,7 @@ let options actions =
     ( "-f",
       Arg.Set_string pattern_file,
       " <file> use the file content as the pattern" );
+    ("-i", Arg.Set interactive_mode, " enable interactive mode");
     ( "-rules",
       Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );

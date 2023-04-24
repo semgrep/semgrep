@@ -1034,9 +1034,30 @@ let semgrep_with_one_pattern config =
       if n > 0 then pr2 (spf "error count: %d" n)
 
 (*****************************************************************************)
+(* semgrep-core -i (interactive mode) *)
+(*****************************************************************************)
+
+let semgrep_with_interactive_mode config =
+  (* TODO: support generic and regex patterns as well. See code in Deep.
+   * Just use Parse_rule.parse_xpattern xlang (str, fk)
+   *)
+  let lang = Xlang.lang_of_opt_xlang_exn config.lang in
+
+  (* copied from -e *)
+  let roots = config.roots |> Common.map replace_named_pipe_by_regular_file in
+  let files, _skipped = Find_target.files_of_dirs_or_files (Some lang) roots in
+  let xlang = Xlang.L (lang, []) in
+  let xtargets =
+    files |> Common.map Fpath.to_string
+    |> Common.map (xtarget_of_file config xlang)
+  in
+  Match_interactive_mode.check_interactive (print_match config) xlang xtargets
+
+(*****************************************************************************)
 (* Semgrep dispatch *)
 (*****************************************************************************)
 let semgrep_dispatch config =
   if config.rule_source <> None then
     semgrep_with_rules_and_formatted_output config
+  else if config.interactive_mode then semgrep_with_interactive_mode config
   else semgrep_with_one_pattern config

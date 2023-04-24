@@ -57,6 +57,7 @@ type t = {
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;
   ls : bool;
+  interactive_mode : bool;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
   timeout : float;
@@ -111,6 +112,7 @@ let default =
     match_format = Matching_report.Normal;
     mvars = [];
     ls = false;
+    interactive_mode = false;
     (* Limits *)
     (* maximum time to spend running a rule on a single file *)
     timeout = 0.;
