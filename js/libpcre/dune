@@ -1,5 +1,5 @@
 (library
- (name libpcre_js_stubs)
+ (name libpcre_stubs_js)
  (wrapped false)
  (js_of_ocaml
   (javascript_files runtime.js))
