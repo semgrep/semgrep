@@ -380,6 +380,7 @@ function pcre_exec_stub_bc(
     module.exports = {
       pcre_version_stub,
       pcre_config_utf8_stub,
+      pcre_compile_stub_bc,
     };
   }
 })();

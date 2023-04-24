@@ -18,4 +18,22 @@ describe("pcre-ocaml stubs", () => {
     const stubs = require("../libpcre");
     expect(stubs.pcre_config_utf8_stub()).toBe(1);
   });
+
+  test("correctly fails to compile an invalid regex", async () => {
+    await libpcrePromise;
+    const stubs = require("../libpcre");
+    expect(() => stubs.pcre_compile_stub_bc(0, 0, `(`)).toThrow(
+      "missing ) at offset 1"
+    );
+  });
+
+  test("compiles a regex that javascript cant", async () => {
+    await libpcrePromise;
+    const stubs = require("../libpcre");
+    stubs.pcre_compile_stub_bc(
+      0,
+      0,
+      `////(?i)snyk.{0,50}['|\"|\`]?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}['\"\\s]?`
+    );
+  });
 });
