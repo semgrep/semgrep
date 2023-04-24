@@ -161,15 +161,17 @@ let test_ellipsis_brackets () =
   check mconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
 
 let test_explicit_brackets () =
-  check uconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ]
-(*;
+  check uconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ];
   (* Since parentheses are defined as brackets, we're not allowed to reject
-     a closing parenthesis that match the opening parenthesis. *)
-  (* TODO: make the top-level ellipses exclude the expected closing bracket.
-     This requires new variety of node with [^\)[:blank:]] instead of
-     [^[:blank:]] when the expected closing brace is ')'. *)
-  check uconf {|(... x)|} {|()x)|} [ Num_matches 0 ]
-*)
+     a closing parenthesis that matches the opening parenthesis. *)
+  check uconf {|(... x)|} {|()x)|} [ Num_matches 0 ];
+  check uconf {|(...)|} {|([])|} [ Num_matches 1; Match_value {|([])|} ];
+  (* The behavior of the following test cases is subject to change.
+     There's only so much we can do when braces are mismatched. *)
+  check uconf {|(...)|} {|([)|} [ Num_matches 1; Match_value {|([)|} ];
+  check uconf {|(...)|} {|(])|} [ Num_matches 1; Match_value {|(])|} ];
+  check uconf {|(...)|} {|([)]|} [ Num_matches 0 ];
+  check uconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
 let test_backreferences () =
   check uconf {|$A ... $A|} {|a, b, c, a, d|}
