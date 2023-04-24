@@ -61,7 +61,9 @@ depends: [
   "uri"
   "http-lwt-client" # this brings lots of dependencies. This is for osemgrep.
   "terminal_size"
-  "lsp" {= "1.7.0"}
+  "lwt"
+  "lwt_ppx"
+  "lsp" {= "1.15.1-5.0"}
   "visitors" {= "20210608"}
   "js_of_ocaml" {= "5.1.1"}
   "js_of_ocaml-compiler" {= "5.1.1"}
