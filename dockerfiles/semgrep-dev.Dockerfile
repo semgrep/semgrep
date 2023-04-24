@@ -17,10 +17,13 @@ FROM returntocorp/semgrep:develop
 # Various utilities. We can always install them during the CI job but it's
 # it's nice to do it here while we're root.
 #
+# TODO: remove the explicit python3 install once our version of alpine has python3.11
+#
 RUN apk add --no-cache \
   bash \
   curl \
   jq && \
+  apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main python3 && \
   apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
 
 # Let the user know how their container was built
