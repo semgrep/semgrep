@@ -1,37 +1,44 @@
 ESBUILD_DEFAULTS = \
 	--bundle \
 	--minify \
-	--platform=neutral \
-	--log-override:duplicate-case=silent \
-	--external:path \
-	--external:fs \
-	--external:constants \
-	--external:tty \
-	--external:child_process
+	--platform=node \
+	--log-override:duplicate-case=silent
 
 .PHONY: default
-default:
-	npm ci
-	npm run build
-
-.PHONY: test
-test:
-	npm run test
+default: build
 
 .PHONY: build
-build: dist/index.cjs dist/index.mjs
+build: dist/index.js dist/index.d.ts dist/libyaml.wasm
+
+.PHONY: test
+test: build
+	npm test
+
+.PHONY: package
+package: build
+	npm pack
 
 .PHONY: clean
 clean:
 	rm -rf dist
 
-../libyaml/dist/libyaml.js:
-	make -C ../libyaml dist/libyaml.js
+../libyaml/dist/index.js ../libyaml/dist/libyaml.wasm:
+	cd ../libyaml; $(MAKE) build
 
-dist/index.cjs: src/index.ts ../libyaml/dist/libyaml.js
-	mkdir -p dist
-	esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+package-lock.json:
+	npm install
 
-dist/index.mjs: src/index.ts ../libyaml/dist/libyaml.js
+node_modules/.package-lock.json: package-lock.json
+	npm ci
+
+dist/index.js: src/index.ts node_modules/.package-lock.json ../libyaml/dist/index.js
 	mkdir -p dist
-	esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+
+dist/libyaml.wasm: ../libyaml/dist/libyaml.wasm
+	mkdir -p dist
+	cp $^ $@
+
+dist/index.d.ts: node_modules/.package-lock.json src/index.ts
+	mkdir -p dist
+	npx -p typescript tsc

@@ -83,18 +83,3 @@ function pcre_set_imp_match_limit_recursion_stub_bc(rex) {
 function pcre_capturecount_stub_bc(rex) {
   return 0; // TODO
 }
-
-//Provides: octs_create_parser_jsonnet
-function octs_create_parser_jsonnet() {
-  return null;
-}
-
-//Provides: octs_create_parser_typescript
-function octs_create_parser_typescript() {
-  return null;
-}
-
-//Provides: octs_create_parser_tsx
-function octs_create_parser_tsx() {
-  return null;
-}

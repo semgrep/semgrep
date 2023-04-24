@@ -4,7 +4,6 @@
   "description": "Javascript bindings for libyaml and ocaml-yaml",
   "main": "libyaml.test.js",
   "scripts": {
-    "build": "make dist/libyaml.js && tsc",
     "test": "jest"
   },
   "author": "Tom Petr <tom@r2c.dev>",

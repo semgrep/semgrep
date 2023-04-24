@@ -1,13 +1,15 @@
 import LibYamlFactory from "../../libyaml/dist/libyaml";
 
-export type Lang = number;
+import { getDirname } from "cross-dirname";
+
 export type Mountpoint = object;
+export type Lang = number;
 
 export interface Parser {
-  getLang: () => Lang;
-  parsePattern: (printErrors: boolean, pattern: string) => any;
-  parseTarget: (str: string) => any;
-  setMountPoints: (mountpoints: Mountpoint[]) => void;
+  getLangs: () => Lang[];
+  setMountpoints: (mountpoints: Mountpoint[]) => void;
+  parseTarget: (lang: Lang, filename: string) => any;
+  parsePattern: (printErrors: boolean, lang: Lang, pattern: string) => any;
 }
 
 export interface Engine {
@@ -24,15 +26,17 @@ export interface Engine {
 }
 
 export const EngineFactory: (
-  libYamlWasmPath?: string
-) => Promise<Engine> = async (libYamlWasmPath?) => {
+  libYamlWasmUri?: string
+) => Promise<Engine> = async (libYamlWasmUri?: string) => {
+  if (!libYamlWasmUri) {
+    libYamlWasmUri = `${getDirname()}/libyaml.wasm`;
+  }
   const libyaml = await LibYamlFactory({
-    locateFile: (a: string) => {
-      return libYamlWasmPath || a;
-    },
+    locateFile: (uri: string) =>
+      uri === "libyaml.wasm" ? libYamlWasmUri : uri,
   });
   const {
-    getMountPoints,
+    getMountpoints,
     setLibYamlWasmModule,
     setParsePattern,
     setJustParseWithLang,
@@ -51,7 +55,7 @@ export const EngineFactory: (
     if (!parser) {
       throw new Error("No parser initialized for " + lang);
     }
-    return parser.parsePattern(printErrors, pattern);
+    return parser.parsePattern(printErrors, lang, pattern);
   };
 
   const parseFile = (lang: Lang, str: string) => {
@@ -59,7 +63,7 @@ export const EngineFactory: (
     if (!parser) {
       throw new Error("No parser initialized for " + lang);
     }
-    return parser.parseTarget(str);
+    return parser.parseTarget(lang, str);
   };
 
   setParsePattern(parsePattern);
@@ -68,8 +72,10 @@ export const EngineFactory: (
   return {
     lookupLang,
     addParser: (parser: Parser) => {
-      parser.setMountPoints(getMountPoints()); // inherit engine's mount points
-      languages.set(parser.getLang(), parser);
+      parser.setMountpoints(getMountpoints());
+      parser.getLangs().forEach((lang) => {
+        languages.set(lang, parser);
+      });
     },
     hasParser: (lang: Lang) => languages.has(lang),
     execute,
