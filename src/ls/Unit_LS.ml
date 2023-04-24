@@ -30,7 +30,7 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
     =
   let pattern_string = "print(...)" in
   let lang = Lang.Python in
-  let fk = Parse_info.unsafe_fake_info "" in
+  let fk = Tok.unsafe_fake_tok "" in
   let xlang = Xlang.L (lang, []) in
   let pattern = Parse_pattern.parse_pattern lang pattern_string in
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (lazy pattern, lang)) in
