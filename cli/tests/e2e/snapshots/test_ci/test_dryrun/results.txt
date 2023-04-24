@@ -7,6 +7,10 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 === end of exit code
 
 === stdout - plain
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_dryrun0/project_name
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_dryrun0/project_name
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_dryrun0/project_name
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_dryrun0/project_name
                             
                             
 ┌──────────────────────────┐

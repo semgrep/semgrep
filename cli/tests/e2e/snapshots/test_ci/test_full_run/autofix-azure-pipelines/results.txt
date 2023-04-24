@@ -7,6 +7,7 @@ BUILD_BUILDID="some_id" BUILD_REPOSITORY_URI="https://github.com/project_name/pr
 === end of exit code
 
 === stdout - plain
+url https://github.com/project_name/project_name.git
                             
                             
 ┌──────────────────────────┐

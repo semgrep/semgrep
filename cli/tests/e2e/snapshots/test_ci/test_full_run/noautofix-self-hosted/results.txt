@@ -7,6 +7,7 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
 === end of exit code
 
 === stdout - plain
+url https://some.enterprise.url.com/org_name/project_name/project_name
                             
                             
 ┌──────────────────────────┐

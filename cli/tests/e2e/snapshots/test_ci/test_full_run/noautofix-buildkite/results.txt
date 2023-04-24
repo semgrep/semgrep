@@ -7,6 +7,12 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 === end of exit code
 
 === stdout - plain
+url git@github.com/project_name/project_name.git
+url git@github.com/project_name/project_name.git
+url git@github.com/project_name/project_name.git
+url git@github.com/project_name/project_name.git
+url git@github.com/project_name/project_name.git
+url git@github.com/project_name/project_name.git
                             
                             
 ┌──────────────────────────┐

@@ -7,6 +7,10 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of exit code
 
 === stdout - plain
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_outputs_autofix___gitlab_0/project_name
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_outputs_autofix___gitlab_0/project_name
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_outputs_autofix___gitlab_0/project_name
+url /tmp/pytest-of-runner/pytest-0/popen-gw0/test_outputs_autofix___gitlab_0/project_name
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
   "scan": {
@@ -276,6 +280,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     }
   ]
 }
+
 === end of stdout - plain
 
 === stderr - plain

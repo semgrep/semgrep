@@ -7,6 +7,10 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
 === end of exit code
 
 === stdout - plain
+url https://gitlab.net/foo.bar/a-b/a-b-c-d
+url https://gitlab.net/foo.bar/a-b/a-b-c-d
+url https://gitlab.net/foo.bar/a-b/a-b-c-d
+url https://gitlab.net/foo.bar/a-b/a-b-c-d
                             
                             
 ┌──────────────────────────┐
