@@ -3,12 +3,14 @@ default: libyaml engine languages
 
 .PHONY: build
 build:
+	cd libpcre; $(MAKE) build
 	cd libyaml; $(MAKE) build
 	cd engine; $(MAKE) build
 	cd languages; $(MAKE) build
 
 .PHONY: test
 test:
+	cd libpcre; $(MAKE) test
 	cd libyaml; $(MAKE) test
 	cd engine; $(MAKE) test
 	cd languages; $(MAKE) test
@@ -21,6 +23,10 @@ e2e: engine languages
 package:
 	cd engine; $(MAKE) package
 	cd languages; $(MAKE) package
+
+.PHONY: libpcre
+libpcre:
+	cd libpcre; $(MAKE)
 
 .PHONY: libyaml
 libyaml:
@@ -36,6 +42,7 @@ engine:
 
 .PHONY: clean
 clean:
+	cd libpcre; $(MAKE) clean
 	cd libyaml; $(MAKE) clean
 	cd engine; $(MAKE) clean
 	cd languages; $(MAKE) clean

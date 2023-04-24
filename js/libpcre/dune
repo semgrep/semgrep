@@ -1,0 +1,7 @@
+(library
+ (name libpcre_js_stubs)
+ (wrapped false)
+ (js_of_ocaml
+  (javascript_files runtime.js))
+ (preprocess
+  (pps js_of_ocaml-ppx)))

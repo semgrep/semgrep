@@ -1,3 +1,11 @@
+EMCC_DEFAULTS = \
+   -sALLOW_MEMORY_GROWTH=1 \
+   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,stringToAscii,lengthBytesUTF8,getValue,setValue \
+   -sMODULARIZE
+
+include ../libyaml/Makefile.include
+include ../libpcre/Makefile.include
+
 ESBUILD_DEFAULTS = \
 	--bundle \
 	--minify \
@@ -8,7 +16,7 @@ ESBUILD_DEFAULTS = \
 default: build
 
 .PHONY: build
-build: dist/index.js dist/index.d.ts dist/libyaml.wasm
+build: dist/index.js dist/index.d.ts
 
 .PHONY: test
 test: build
@@ -22,8 +30,20 @@ package: build
 clean:
 	rm -rf dist
 
-../libyaml/dist/index.js ../libyaml/dist/libyaml.wasm:
-	cd ../libyaml; $(MAKE) build
+../libyaml/dist/libyaml.o:
+	cd ../libyaml; $(MAKE) dist/libyaml.o
+
+../libpcre/dist/libpcre.a:
+	cd ../libpcre; $(MAKE) dist/libpcre.a
+
+dist/semgrep-engine.js dist/semgrep-engine.wasm: ../libyaml/dist/libyaml.o ../libpcre/dist/libpcre.a
+	mkdir -p dist
+	emcc \
+		-O3 \
+		$^ \
+		$(EMCC_DEFAULTS) \
+		-sEXPORTED_FUNCTIONS=_malloc,_free,$(YAML_EXPORTED_METHODS),$(PCRE_EXPORTED_METHODS) \
+		-o $(word 1,$@)
 
 package-lock.json:
 	npm install
@@ -31,14 +51,10 @@ package-lock.json:
 node_modules/.package-lock.json: package-lock.json
 	npm ci
 
-dist/index.js: src/index.ts node_modules/.package-lock.json ../libyaml/dist/index.js
+dist/index.js: src/index.js node_modules/.package-lock.json dist/semgrep-engine.js ../../_build/default/js/engine/Main.bc.js
 	mkdir -p dist
 	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
 
-dist/libyaml.wasm: ../libyaml/dist/libyaml.wasm
+dist/index.d.ts: src/index.d.ts
 	mkdir -p dist
 	cp $^ $@
-
-dist/index.d.ts: node_modules/.package-lock.json src/index.ts
-	mkdir -p dist
-	npx -p typescript tsc

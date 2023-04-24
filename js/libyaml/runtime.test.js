@@ -74,7 +74,7 @@ describe("libyaml", () => {
 describe("ocaml-yaml stubs", () => {
   const libyamlPromise = LibYamlFactory();
   globalThis.exposeYamlStubsForTesting = true;
-  const stubs = require("./yaml");
+  const stubs = require("../libyaml");
   test("yaml_stub_1_yaml_get_version_string", async () => {
     stubs.set_libyaml_wasm_module(await libyamlPromise);
     const version = stubs.yaml_stub_1_yaml_get_version_string();
