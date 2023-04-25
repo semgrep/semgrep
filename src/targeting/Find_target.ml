@@ -203,15 +203,14 @@ let sort_files_by_decreasing_size files =
    the language-independent 'select_global_targets'.
 *)
 let global_filter ~opt_lang ~sort_by_decr_size paths =
-  let paths, skipped1 = Skip_target.exclude_files_in_skip_lists paths in
-  let paths, skipped2 =
+  let paths, skipped1 =
     match opt_lang with
     | None -> (paths, [])
     | Some lang -> Guess_lang.inspect_files lang paths
   in
-  let paths, skipped3 = Skip_target.exclude_big_files paths in
-  let paths, skipped4 = Skip_target.exclude_minified_files paths in
-  let skipped = Common.flatten [ skipped1; skipped2; skipped3; skipped4 ] in
+  let paths, skipped2 = Skip_target.exclude_big_files paths in
+  let paths, skipped3 = Skip_target.exclude_minified_files paths in
+  let skipped = Common.flatten [ skipped1; skipped2; skipped3 ] in
   let sorted_paths =
     if sort_by_decr_size then sort_files_by_decreasing_size paths else paths
   in
