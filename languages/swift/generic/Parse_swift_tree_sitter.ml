@@ -1849,13 +1849,18 @@ and map_lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) :
     (* We inject into an `OtherStmtWithStmt` here because we needed somewhere for the
        capture list to go. This is not permitted with just a regular statement, so there is
        a new variant `OSWS_Closure` to signify this.
+       We put it into the top-level statements so that we do not prevent the inner statements
+       from surviving IL translation. It shouldn't mess anything up, because it shouldn't be
+       translated.
     *)
+    let capture_group_stmt =
+      G.exprstmt
+        (G.OtherExpr
+           (("CaptureGroup", v1), Common.map (fun x -> G.Pa x) captures)
+        |> G.e)
+    in
     G.FBStmt
-      (G.OtherStmtWithStmt
-         ( G.OSWS_Closure,
-           Common.map (fun x -> G.Pa x) captures,
-           G.Block (Tok.unsafe_fake_bracket stmts) |> G.s )
-      |> G.s)
+      (G.Block (Tok.unsafe_fake_bracket (capture_group_stmt :: stmts)) |> G.s)
   in
   let _rb = (* "}" *) token env v4 in
   let def =
