@@ -43,18 +43,6 @@ let length_of_call_trace ct =
   in
   loop 0 ct
 
-type source = {
-  call_trace : Rule.taint_source call_trace;
-  label : string;
-      (* This is needed because we may change the label of a taint,
-         from the original source that it came from.
-         This happens from propagators which change the label of the taint.
-         We don't put it under `taint`, though, because Arg taints are
-         supposed to be polymorphic in label.
-      *)
-}
-[@@deriving show]
-
 type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
 [@@deriving show]
 
@@ -71,13 +59,6 @@ let rec _show_call_trace show_thing = function
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
-
-let _show_source { call_trace; label } =
-  (* We want to show the actual label, not the originating label.
-     This may change, for instance, if we have ever propagated this taint to
-     a different label.
-  *)
-  _show_call_trace (fun _ -> label) call_trace
 
 (*****************************************************************************)
 (* Signatures *)
@@ -98,11 +79,67 @@ let _show_arg { pos = s, i; offset = os } =
 (* Taint *)
 (*****************************************************************************)
 
-type orig = Src of source | Arg of arg [@@deriving show]
-type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+type source = {
+  call_trace : Rule.taint_source call_trace;
+  label : string;
+      (* This is needed because we may change the label of a taint,
+         from the original source that it came from.
+         This happens from propagators which change the label of the taint.
+         We don't put it under `taint`, though, because Arg taints are
+         supposed to be polymorphic in label.
+      *)
+  precondition : (taint list * G.expr) option;
+}
+[@@deriving show]
+
+and orig = Src of source | Arg of arg [@@deriving show]
+and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+
+let _show_precondition precondition =
+  match precondition with
+  | None -> ""
+  | __else__ -> "[pre]"
+
+let add_precondition_to_taint ~incoming formula t =
+  (* If there is no precondition attached to the taint
+     being produced, then it's unconditionally existent!
+  *)
+  let precondition =
+    match formula with
+    | None -> None
+    | Some f -> Some (incoming, f)
+  in
+  match t.orig with
+  | Src src ->
+      let new_src =
+        match src.precondition with
+        | None -> { src with precondition }
+        | Some _ -> failwith "TODO"
+      in
+      { t with orig = Src new_src }
+  | Arg _ -> failwith "TODO"
+
+let rec replace_precondition_arg_taint ~arg_fn taint =
+  match taint.orig with
+  | Arg arg -> arg_fn arg
+  | Src ({ precondition = None; _ } as src) -> [ { taint with orig = Src src } ]
+  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
+      let new_incoming =
+        List.concat_map (replace_precondition_arg_taint ~arg_fn) incoming
+      in
+      let new_precondition = Some (new_incoming, expr) in
+      [ { taint with orig = Src { src with precondition = new_precondition } } ]
+
+let _show_source { call_trace; label; precondition } =
+  (* We want to show the actual label, not the originating label.
+     This may change, for instance, if we have ever propagated this taint to
+     a different label.
+  *)
+  let precondition_prefix = _show_precondition precondition in
+  precondition_prefix ^ _show_call_trace (fun _ -> label) call_trace
 
 let src_of_pm (pm, (x : Rule.taint_source)) =
-  Src { call_trace = PM (pm, x); label = x.label }
+  Src { call_trace = PM (pm, x); label = x.label; precondition = None }
 
 let taint_of_pm pm = { orig = src_of_pm pm; tokens = [] }
 
@@ -143,11 +180,13 @@ let _show_taint taint =
     | Call (_, _, x) -> depth (acc + 1) x
   in
   match taint.orig with
-  | Src { call_trace; label } ->
+  | Src { call_trace; label; precondition } ->
       let pm, _ = pm_of_trace call_trace in
       let tok1, tok2 = pm.range_loc in
       let r = Range.range_of_token_locations tok1 tok2 in
-      Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
+      let precondition_prefix = _show_precondition precondition in
+      Printf.sprintf "%s(%d,%d)#%s|%d|" precondition_prefix r.start r.end_ label
+        (depth 0 call_trace)
   | Arg arg_lval -> _show_arg arg_lval
 
 let _show_sink { rule_sink; _ } = rule_sink.Rule.sink_id

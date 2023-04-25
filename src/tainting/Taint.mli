@@ -11,6 +11,12 @@ type 'a call_trace =
       (** An indirect match through a function call. *)
 [@@deriving show]
 
+type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
+[@@deriving show]
+
+type arg_pos = string * int [@@deriving show]
+type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
+
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -19,23 +25,18 @@ type source = {
         this label may have changed, for instance by being propagated to
         a different label.
       *)
+  precondition : (taint list * AST_generic.expr) option;
 }
 [@@deriving show]
 
-type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
-[@@deriving show]
-
-type arg_pos = string * int [@@deriving show]
-type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
-
 (** The origin of taint, where does taint comes from? *)
-type orig =
+and orig =
   | Src of source  (** An actual taint source (`pattern-sources:` match). *)
   | Arg of arg
       (** A taint variable (potential taint coming through an argument). *)
 [@@deriving show]
 
-type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 type taint_to_sink_item = {
   taint : taint;
@@ -108,6 +109,13 @@ val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
 val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
+
+val add_precondition_to_taint :
+  incoming:taint list -> AST_generic.expr option -> taint -> taint
+
+val replace_precondition_arg_taint :
+  arg_fn:(arg -> taint list) -> taint -> taint list
+
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string

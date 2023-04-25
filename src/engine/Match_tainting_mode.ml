@@ -551,9 +551,10 @@ let pm_of_finding finding =
       (* TODO: We might want to report functions that let input taint
          * go into a sink (?) *)
       if
+        (* TODO: this needs to be more involved. *)
         not
           (D.taints_satisfy_requires
-             (T.Taint_set.of_list (Common.map (fun t -> t.T.taint) taints))
+             (Common.map (fun t -> t.T.taint) taints)
              requires)
       then None
       else

@@ -436,12 +436,12 @@ let partition_mutating_sources sources_matches =
          m.spec.source_by_side_effect && is_exact m)
 
 let labels_of_taints taints : LabelSet.t =
-  taints |> Taints.to_seq
-  |> Seq.filter_map (fun (t : T.taint) ->
+  taints
+  |> List.filter_map (fun (t : T.taint) ->
          match t.orig with
          | Src src -> Some src.label
          | Arg _ -> None)
-  |> LabelSet.of_seq
+  |> LabelSet.of_list
 
 (* coupling: if you modify the code here, you may need to modify 'Parse_rule.parse_taint_requires' too. *)
 let rec eval_label_requires ~labels e =
@@ -473,9 +473,18 @@ and eval_label_args ~labels args =
       logger#error "Unexpected argument kind";
       false :: eval_label_args ~labels args'
 
-let taints_satisfy_requires taints expr =
-  let labels = labels_of_taints taints in
+let rec is_real_taint taint =
+  match taint.T.orig with
+  | Arg _ -> false
+  | Src { precondition = None; _ } -> true
+  | Src { precondition = Some (incoming, expr); _ } ->
+      solve_formula (incoming, expr)
+
+and solve_formula (incoming, expr) =
+  let labels = List.filter is_real_taint incoming |> labels_of_taints in
   eval_label_requires ~labels expr
+
+let taints_satisfy_requires taints expr = solve_formula (taints, expr)
 
 (* Potentially produces a finding from incoming taints + call traces to a sink.
    Note that, while this sink has a `requires` and incoming labels,
@@ -592,21 +601,31 @@ let check_orig_if_sink env ?filter_sinks orig taints =
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings
 
-let filter_new_taint_sources_by_labels labels taints =
-  Taints.fold
-    (fun new_taint taints ->
-      match new_taint.orig with
-      | Arg _ -> Taints.add new_taint taints
-      | Src src ->
-          let _, ts = T.pm_of_trace src.call_trace in
-          let req = eval_label_requires ~labels ts.source_requires in
-          if req then Taints.add new_taint taints else taints)
-    taints Taints.empty
+(* For all our new sources, we need to know that they only hold if a certain
+   formula holds of the incoming taints to the source.
+   So here we just do the job of actually constraining the taints to have these
+   preconditions.
+   Later on, when we produce a pattern match, we will solve to see if this
+   formula is satisfied. We don't know right now, however, because there may be
+   argument taint involved.
+*)
+let restrict_new_taint_sources_with_incoming_taints ~incoming taints =
+  Taints.map
+    (fun taint ->
+      let requires =
+        match taint.orig with
+        | Src src -> Some (snd (T.pm_of_trace src.call_trace)).source_requires
+        | Arg _ -> None
+      in
+      let incoming = Taints.elements incoming in
+      T.add_precondition_to_taint ~incoming requires taint)
+    taints
 
-let union_new_taint_sources_filtering_labels ~new_ curr =
-  let labels = labels_of_taints curr in
-  let new_filtered = filter_new_taint_sources_by_labels labels new_ in
-  Taints.union new_filtered curr
+let union_new_taint_sources ~new_ curr =
+  let new_restricted =
+    restrict_new_taint_sources_with_incoming_taints ~incoming:curr new_
+  in
+  Taints.union new_restricted curr
 
 let find_pos_in_actual_args args_taints fparams =
   let pos_args_taints, named_args_taints =
@@ -798,7 +817,7 @@ let handle_taint_propagators env thing taints =
     List.partition (fun p -> p.spec.kind =*= `From) propagators
   in
   (* These are all the labels flowing in to the current thing we're looking at. *)
-  let labels = labels_of_taints taints in
+  let labels = labels_of_taints (Taints.elements taints) in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
@@ -853,7 +872,7 @@ let handle_taint_propagators env thing taints =
   in
   (taints_propagated, lval_env)
 
-let find_lval_taint_sources env ~labels lval =
+let find_lval_taint_sources env incoming_taints lval =
   let source_pms = lval_is_source env.config lval in
   let mut_source_pms, reg_source_pms =
     (* If the lvalue is an exact match (overlap > 0.99) for a source
@@ -865,10 +884,10 @@ let find_lval_taint_sources env ~labels lval =
   in
   let taints_sources_reg =
     reg_source_pms |> taints_of_matches
-    |> filter_new_taint_sources_by_labels labels
+    |> restrict_new_taint_sources_with_incoming_taints ~incoming:incoming_taints
   and taints_sources_mut =
     mut_source_pms |> taints_of_matches
-    |> filter_new_taint_sources_by_labels labels
+    |> restrict_new_taint_sources_with_incoming_taints ~incoming:incoming_taints
   in
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
@@ -956,9 +975,8 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
       let current_taints = Taints.union sub_new_taints taints_from_env in
-      let labels = labels_of_taints current_taints in
       let taints_from_sources, lval_env =
-        find_lval_taint_sources { env with lval_env } ~labels lval
+        find_lval_taint_sources { env with lval_env } current_taints lval
       in
       (* Check sub-expressions in the offset. *)
       let taints_from_offset, lval_env =
@@ -1108,10 +1126,7 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
         orig_is_source env.config exp.eorig |> taints_of_matches
       in
       let taints_exp, lval_env = check_subexpr exp in
-      let taints =
-        taints_exp
-        |> union_new_taint_sources_filtering_labels ~new_:taints_sources
-      in
+      let taints = taints_exp |> union_new_taint_sources ~new_:taints_sources in
       let taints_propagated, var_env =
         handle_taint_propagators { env with lval_env } (`Exp exp) taints
       in
@@ -1188,13 +1203,10 @@ let check_function_signature env fun_exp args args_taints =
                        let call_trace =
                          T.Call (eorig, t.tokens, src.call_trace)
                        in
+                       let new_src = { src with call_trace } in
                        Some
                          (`Return
-                           (Taints.singleton
-                              {
-                                orig = Src { src with call_trace };
-                                tokens = [];
-                              }))
+                           (Taints.singleton { t with orig = Src new_src }))
                    | Arg arg ->
                        let* arg_taints =
                          taints_of_sig_arg env fparams fun_exp args args_taints
@@ -1224,6 +1236,9 @@ let check_function_signature env fun_exp args args_taints =
                                   in
                                   { taint with tokens }))))
         | T.ToSink { taints_with_precondition = taints, _requires; sink; _ } ->
+            let arg_fn arg =
+              taints_of_sig_arg env fparams fun_exp args args_taints arg
+            in
             let incoming_taints =
               taints
               |> List.concat_map (fun { T.taint; sink_trace } ->
@@ -1266,12 +1281,20 @@ let check_function_signature env fun_exp args args_taints =
                          let sink_trace =
                            T.Call (eorig, taint.tokens, sink_trace)
                          in
-                         let+ arg_taints =
-                           taints_of_sig_arg env fparams fun_exp args
-                             args_taints arg
-                         in
+                         let+ arg_taints = arg_fn arg in
                          arg_taints |> Taints.elements
                          |> Common.map (fun x -> { T.taint = x; sink_trace }))
+              |> List.concat_map (fun { T.taint; sink_trace } ->
+                     let new_taints =
+                       T.replace_precondition_arg_taint
+                         ~arg_fn:(fun arg ->
+                           let+ res = arg_fn arg in
+                           Taints.elements res)
+                         taint
+                     in
+                     Common.map
+                       (fun t -> { T.taint = t; sink_trace })
+                       new_taints)
             in
             findings_of_tainted_sink env incoming_taints sink
             |> report_findings env;
@@ -1387,8 +1410,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       in
       let taints_instr, lval_env' = check_instr instr.i in
       let taints =
-        taints_instr
-        |> union_new_taint_sources_filtering_labels ~new_:taint_sources
+        taints_instr |> union_new_taint_sources ~new_:taint_sources
       in
       let taints_propagated, lval_env' =
         handle_taint_propagators
