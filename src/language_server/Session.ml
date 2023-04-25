@@ -29,8 +29,6 @@ let create capabilities config =
 
 (* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
 (* Once osemgrep is ready, we can just use target manager directly here *)
-
-(** Get the targets for a given session. Filters based on git status, and targets provided by the python wrapper *)
 let targets session =
   let config = session.config in
   let%lwt git_repo = Git_helper.is_git_repo () in
@@ -60,7 +58,6 @@ let targets session =
   in
   Lwt.return { targets with target_mappings }
 
-(** Load rules from provided config, and save them in cached_rules *)
 let load_rules session =
   let config = session.config in
   let rules =
@@ -77,8 +74,6 @@ let load_rules session =
   { session with cached_rules = Some (Rules rules) }
 
 (* Can be useful in places *)
-
-(** Get the hashtable of cached rules *)
 let hrules session =
   let rules =
     match session.cached_rules with
@@ -89,23 +84,18 @@ let hrules session =
   in
   Rule.hrules_of_rules rules
 
-(** Saves scan results for a file for later, such as when we need to generate code actions*)
 let record_results session results files =
   let results_by_file =
-    Common2.group_by_mapped_key
-      (fun ((m, _) : Processed_run.t) -> m.location.path)
-      results
+    Common.group_by (fun ((m, _) : Processed_run.t) -> m.location.path) results
   in
   (* Clear out all results first *)
-  Common2.iter (fun file -> Hashtbl.add session.documents file []) files;
-  Common2.iter
+  List.iter (fun file -> Hashtbl.add session.documents file []) files;
+  List.iter
     (fun (file, results) -> Hashtbl.add session.documents file results)
     results_by_file
 
 (* Useful for when we need to reset diagnostics, such as when changing what rules we've run *)
-
-(** Get what files we have scanned so far*)
 let scanned_files session =
   (* We can get duplicates apparently *)
   Hashtbl.fold (fun file _ acc -> file :: acc) session.documents []
-  |> Common2.uniq
+  |> List.sort_uniq String.compare

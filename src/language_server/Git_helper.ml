@@ -24,7 +24,6 @@ let is_git_repo () =
   | Unix.WEXITED 0 -> Lwt.return true
   | _ -> Lwt.return false
 
-(** Returns a list of (start, end) line numbers for each dirty line in the file. Assumes that you've checked the file (and CWD) is in a git repo *)
 let dirty_lines_of_file file =
   (* In the future we can make the HEAD part a parameter, and allow users to scan against other branches *)
   let cmd = ("git", [| "git"; "diff"; "-U0"; "HEAD"; file |]) in
@@ -66,7 +65,6 @@ let dirty_lines_of_file file =
 
 (* Once osemgrep is ported, this function will probably be subsumed by something else *)
 
-(** Returns a list of files that are dirty in the current git repo *)
 let dirty_files () =
   let cmd =
     ("git", [| "git"; "status"; "--porcelain"; "--ignore-submodules" |])

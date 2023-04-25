@@ -311,11 +311,6 @@ def test_ls_full(
     # initialize
     send_initialize(server, [root])
 
-    if not logged_in:
-        response = next(responses)
-        # login prompt
-        assert response["method"] == "window/showMessage"
-
     response = next(responses)
     assert "capabilities" in response["result"]
 
