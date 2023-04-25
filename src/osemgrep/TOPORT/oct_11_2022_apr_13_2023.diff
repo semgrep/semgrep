@@ -56,40 +56,14 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/app/scans.py /home/pad/yy/cli/src/semgrep/app/scans.py
 --- /tmp/semgrep/cli/src/semgrep/app/scans.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/app/scans.py	2023-03-17 09:21:14.519881198 +0100
-@@ -2,6 +2,7 @@
- import json
- import os
- from collections import Counter
-+from copy import deepcopy
- from pathlib import Path
- from typing import Any
- from typing import Dict
-@@ -9,6 +10,7 @@ from typing import FrozenSet
- from typing import List
- from typing import Optional
- from typing import Set
-+from typing import TYPE_CHECKING
- from urllib.parse import urlencode
- 
- import click
-@@ -16,26 +18,32 @@ import requests
- from boltons.iterutils import partition
- 
- from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-+from semgrep.constants import RuleSeverity
- from semgrep.error import SemgrepError
+@@ -2,0 +2,0 @@
+@@ -16,19 +18,21 @@ import requests
  from semgrep.parsing_data import ParsingData
  from semgrep.rule import Rule
  from semgrep.rule_match import RuleMatchMap
 +from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
  from semgrep.state import get_state
  from semgrep.verbose_logging import getLogger
- 
- 
-+if TYPE_CHECKING:
-+    from semgrep.engine import EngineType
-+
- logger = getLogger(__name__)
  
  
  class ScanHandler:
@@ -422,13 +396,7 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/app/session.py /home/pad/yy/cli/src/semgrep/app/session.py
 --- /tmp/semgrep/cli/src/semgrep/app/session.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/app/session.py	2023-04-12 12:55:37.489634222 +0200
-@@ -1,5 +1,6 @@
- import os
- import subprocess
-+from http.cookiejar import MozillaCookieJar
- from pathlib import Path
- from typing import Any
- from typing import Optional
+@@ -1,0 +1,0 @@
 @@ -77,6 +78,37 @@ class UserAgent:
          return result
  
@@ -504,22 +472,12 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/autofix.py /home/pad/yy/cli/src/semgrep/autofix.py
 --- /tmp/semgrep/cli/src/semgrep/autofix.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/autofix.py	2023-01-13 13:09:55.750083251 +0100
-@@ -1,11 +1,15 @@
+@@ -1,4 +1,5 @@
  import re
 +from functools import cmp_to_key
  from pathlib import Path
  from typing import Dict
-+from typing import Iterable
- from typing import List
- from typing import Set
- from typing import Tuple
  
- from semgrep.error import SemgrepError
-+from semgrep.rule import Rule
-+from semgrep.rule_match import OrderedRuleMatchList
- from semgrep.rule_match import RuleMatch
- from semgrep.rule_match import RuleMatchMap
- from semgrep.util import unit_str
 @@ -130,6 +134,73 @@ def _write_contents(path: Path, contents
      path.write_text(contents)
  
@@ -1918,17 +1876,9 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/core_output.py /home/pad/yy/cli/src/semgrep/core_output.py
 --- /tmp/semgrep/cli/src/semgrep/core_output.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/core_output.py	2023-03-17 09:21:14.529881197 +0100
-@@ -14,8 +14,10 @@ from typing import Set
+@@ -14,2 +14,2 @@ from typing import Set
  from typing import Tuple
  
-+from semgrep.error import FATAL_EXIT_CODE
- from semgrep.error import Level
- from semgrep.error import SemgrepCoreError
- from semgrep.error import SemgrepError
-+from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
- from semgrep.rule import Rule
- from semgrep.rule_match import RuleMatch
- from semgrep.rule_match import RuleMatchSet
 @@ -77,10 +78,15 @@ def core_error_to_semgrep_error(err: cor
          or isinstance(err.error_type.value, core.LexicalError)
          or isinstance(err.error_type.value, core.PartialParsing)
@@ -1970,29 +1920,9 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/core_runner.py /home/pad/yy/cli/src/semgrep/core_runner.py
 --- /tmp/semgrep/cli/src/semgrep/core_runner.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/core_runner.py	2023-04-12 12:55:37.489634222 +0200
-@@ -8,13 +8,17 @@ import subprocess
- import sys
- import tempfile
- from datetime import datetime
-+from functools import lru_cache
- from pathlib import Path
- from typing import Any
- from typing import Callable
- from typing import cast
- from typing import Coroutine
-+from typing import DefaultDict
- from typing import Dict
-+from typing import FrozenSet
- from typing import List
-+from typing import Mapping
- from typing import Optional
- from typing import Sequence
- from typing import Set
-@@ -22,33 +26,49 @@ from typing import Tuple
+@@ -22,32 +26,47 @@ from typing import Tuple
  from typing import TYPE_CHECKING
  
- from attr import asdict
-+from attr import define
  from attr import field
  from attr import frozen
 +from boltons.iterutils import get_path
@@ -2942,28 +2872,10 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
              )
              core_output = parse_core_output(output_json)
  
-diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/default_group.py /home/pad/yy/cli/src/semgrep/default_group.py
---- /tmp/semgrep/cli/src/semgrep/default_group.py	2023-04-13 11:00:52.889774289 +0200
-+++ /home/pad/yy/cli/src/semgrep/default_group.py	2023-02-20 09:00:19.780001987 +0100
-@@ -85,5 +85,5 @@ class DefaultGroup(click.Group):
-         """
-         cmd_name, cmd, args = super().resolve_command(ctx, args)
-         if hasattr(ctx, "_default_command_overwrite_args0"):
--            args.insert(0, ctx._default_command_overwrite_args0)  # type: ignore
-+            args.insert(0, ctx._default_command_overwrite_args0)
-         return cmd_name, cmd, args
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/dependency_aware_rule.py /home/pad/yy/cli/src/semgrep/dependency_aware_rule.py
 --- /tmp/semgrep/cli/src/semgrep/dependency_aware_rule.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/dependency_aware_rule.py	2023-02-21 17:27:23.810182962 +0100
-@@ -1,15 +1,18 @@
-+from functools import lru_cache
- from pathlib import Path
-+from typing import Callable
- from typing import Dict
- from typing import Iterator
- from typing import List
--from typing import Set
- from typing import Tuple
+@@ -1,9 +1,11 @@
  
  import semgrep.output_from_core as core
 -from semdep.find_lockfiles import find_single_lockfile
@@ -3267,22 +3179,6 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/formatter/gitlab_sast.py /home/pad/yy/cli/src/semgrep/formatter/gitlab_sast.py
 --- /tmp/semgrep/cli/src/semgrep/formatter/gitlab_sast.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/formatter/gitlab_sast.py	2023-02-28 13:23:46.240097814 +0100
-@@ -1,13 +1,15 @@
- import hashlib
- import json
-+from datetime import datetime
- from typing import Any
- from typing import Dict
- from typing import Iterable
- from typing import Mapping
- from typing import Sequence
- 
- from semgrep.rule import Rule
- from semgrep.rule_match import RuleMatch
-+from semgrep.state import get_state
- 
- 
- def _to_gitlab_severity(semgrep_severity: RuleSeverity) -> str:
 @@ -37,9 +39,8 @@ def _construct_semgrep_rule_url(rule_id:
  
  class GitlabSastFormatter(BaseFormatter):
@@ -3452,23 +3348,6 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/formatter/sarif.py /home/pad/yy/cli/src/semgrep/formatter/sarif.py
 --- /tmp/semgrep/cli/src/semgrep/formatter/sarif.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/formatter/sarif.py	2023-02-28 13:23:46.240097814 +0100
-@@ -1,7 +1,8 @@
- import json
- from typing import Any
-+from typing import Dict
- from typing import Iterable
- from typing import Mapping
- from typing import Optional
- from typing import Sequence
- 
-@@ -13,12 +14,174 @@ from semgrep.error import SemgrepError
- from semgrep.formatter.base import BaseFormatter
- from semgrep.rule import Rule
- from semgrep.rule_match import RuleMatch
-+from semgrep.verbose_logging import getLogger
-+
-+logger = getLogger(__name__)
- 
  
  class SarifFormatter(BaseFormatter):
      @staticmethod
@@ -3741,22 +3620,7 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/formatter/text.py /home/pad/yy/cli/src/semgrep/formatter/text.py
 --- /tmp/semgrep/cli/src/semgrep/formatter/text.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/formatter/text.py	2023-03-25 17:10:17.159558674 +0100
-@@ -1,19 +1,25 @@
- import textwrap
-+from contextlib import contextmanager
- from itertools import groupby
- from pathlib import Path
- from shutil import get_terminal_size
- from typing import Any
- from typing import cast
-+from typing import Dict
- from typing import Iterable
- from typing import Iterator
- from typing import List
- from typing import Mapping
- from typing import Optional
- from typing import Sequence
-+from typing import Tuple
+@@ -1,7 +1,10 @@
  
  import click
  import colorama
@@ -5282,22 +5146,7 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/metrics.py /home/pad/yy/cli/src/semgrep/metrics.py
 --- /tmp/semgrep/cli/src/semgrep/metrics.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/metrics.py	2023-03-17 09:21:14.529881197 +0100
-@@ -16,6 +16,7 @@ from typing import NewType
- from typing import Optional
- from typing import Sequence
- from typing import Set
-+from typing import TYPE_CHECKING
- from urllib.parse import urlparse
- 
- import click
-@@ -35,6 +36,9 @@ from semgrep.semgrep_types import Langua
- from semgrep.types import FilteredMatches
- from semgrep.verbose_logging import getLogger
- 
-+if TYPE_CHECKING:
-+    from semgrep.engine import EngineType
-+
- logger = getLogger(__name__)
+@@ -16,2 +16,2 @@ from typing import NewType
  
  METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 @@ -71,12 +75,15 @@ class FileStats(TypedDict, total=False):
@@ -5653,13 +5502,6 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
              self.severities,
 +            is_ci_invocation=self.is_ci_invocation,
          )
-diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/parsing_data.py /home/pad/yy/cli/src/semgrep/parsing_data.py
---- /tmp/semgrep/cli/src/semgrep/parsing_data.py	2023-04-13 11:00:52.889774289 +0200
-+++ /home/pad/yy/cli/src/semgrep/parsing_data.py	2022-11-02 22:44:28.737000525 +0100
-@@ -66,3 +66,3 @@ class ParsingData:
-             lang_parse_data.targets_with_errors += 1
- 
-         # The error types checked here should comprise the parse related errors
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/profiling.py /home/pad/yy/cli/src/semgrep/profiling.py
 --- /tmp/semgrep/cli/src/semgrep/profiling.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/profiling.py	2022-12-06 09:32:02.560492621 +0100
@@ -6881,17 +6723,7 @@ diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git 
 diff -u -p -b -B -r -x .semantic.cache -x .depend -x CVS -x .hg -x .svn -x .git -x _darcs /tmp/semgrep/cli/src/semgrep/util.py /home/pad/yy/cli/src/semgrep/util.py
 --- /tmp/semgrep/cli/src/semgrep/util.py	2023-04-13 11:00:52.889774289 +0200
 +++ /home/pad/yy/cli/src/semgrep/util.py	2023-02-20 09:00:19.790001987 +0100
-@@ -14,6 +14,7 @@ from typing import List
- from typing import Optional
- from typing import Sequence
- from typing import TypeVar
-+from typing import Union
- from urllib.parse import urlparse
- 
- import click
-@@ -91,7 +92,7 @@ def terminal_wrap(text: str) -> str:
-     return "\n".join(wrapped_paras)
- 
+@@ -14,5 +14,5 @@ from typing import List
  
 -def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
 +def sub_check_output(cmd: Sequence[Union[str, Path]], **kwargs: Any) -> Any:

@@ -4,13 +4,13 @@
  (libraries
    str
    unix
+   fpath
    yojson
    ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
    cmdliner
-   fpath
    re
    pcre
    parmap
