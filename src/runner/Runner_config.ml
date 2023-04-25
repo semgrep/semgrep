@@ -29,11 +29,6 @@ type target_source =
   | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
 
-(* All rules and targets applicable to a specific language.
-   This is passed directly by the new osemgrep implementation, not
-   from the semgrep-core command line. *)
-type lang_job = { lang : Xlang.t; targets : Fpath.t list; rules : Rule.t list }
-
 type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
@@ -49,7 +44,7 @@ type t = {
   pattern_string : string;
   pattern_file : filename; (* TODO: use Fpath.t option *)
   rule_source : rule_source option;
-  lang_job : lang_job option;
+  lang_job : Lang_job.t option;
   equivalences_file : string; (* TODO: use Fpath.t option *)
   lang : Xlang.t option;
   roots : Fpath.t list;

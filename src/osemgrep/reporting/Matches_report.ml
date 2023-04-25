@@ -1,5 +1,16 @@
 module Out = Semgrep_output_v1_t
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(*
+  Partially translated from formatters/text.py
+*)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let ellipsis_string = " ... "
 let base_indent = String.make 8 ' '
 let findings_indent_depth = String.make 10 ' '
@@ -237,6 +248,10 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
   match cur with
   | Some m -> print_one last m None
   | None -> ()
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let pp_cli_output ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (cli_output : Out.cli_output) =
