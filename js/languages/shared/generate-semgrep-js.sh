@@ -1,4 +1,5 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
+set -eu
 
 for LANG in "$@"; do
 cat <<EOF
