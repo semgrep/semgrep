@@ -14,6 +14,7 @@
  *)
 open Common
 open AST_generic
+open Naming_utils
 module V = Visitor_AST
 module H = AST_generic_helpers
 
@@ -407,22 +408,6 @@ let params_of_parameters env params : scope =
            Some (H.str_of_ident id, resolved)
        | _ -> None)
 
-(* In Angular JS, we have some "Injectable" classes, which are marked with an
-   @Injectable decorator.
-   https://angular.io/guide/dependency-injection-in-action
-   These classes may reference parameters to the constructor of the class, outside
-   of the actual code of the constructor itself.
-   So we must add them to the scope, should we find the decorator and a constructor's
-   parameters.
-   This also works for `@Component`.
-*)
-let is_js_angular_decorator s =
-  match s with
-  | "Injectable"
-  | "Component" ->
-      true
-  | _ -> false
-
 let js_get_angular_constructor_args env attrs defs =
   let is_injectable =
     List.exists
@@ -750,19 +735,7 @@ let resolve lang prog =
         | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
             (* for Go *)
             let sid = SId.mk () in
-            let pkgname =
-              let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
-              if pkgbase =~ "v[0-9]+" then
-                (* e.g. google.golang.org/api/youtube/v3 *)
-                match pkgpath with
-                | [] -> pkgbase
-                | _ -> Common2.list_last pkgpath
-              else if pkgbase =~ "\\(.+\\)-go" then
-                (* e.g. github.com/dgrijalva/jwt-go *)
-                matched1 pkgbase
-              else (* default convention *)
-                pkgbase
-            in
+            let pkgname = go_package_alias s in
             let base = (pkgname, tok) in
             let canonical = dotted_to_canonical [ base ] in
             let resolved = untyped_ent (ImportedModule canonical, sid) in
