@@ -26,7 +26,8 @@ RUN apk add --no-cache \
 #
 # Install python >= 3.11 needed by pre-commit (for what operation?)
 RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main python3 && \
-  [[ "$(python3 --version)" =~ 3\.11\.[0-9]+ ]]
+  python3 --version > /tmp/python-version && \
+  grep -F 3.11 /tmp/python-version
 # Install version XXX of pre-commit needed for YYY (requires python >= 3.11):
 RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
 
