@@ -23,6 +23,7 @@
                         "message": {
                           "text": "Source: 'source1()' @ 'targets/taint/taint.py:3'"
                         },
+                        "nestingLevel": 0,
                         "physicalLocation": {
                           "artifactLocation": {
                             "uri": "targets/taint/taint.py"
@@ -47,6 +48,7 @@
                         "message": {
                           "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
                         },
+                        "nestingLevel": 0,
                         "physicalLocation": {
                           "artifactLocation": {
                             "uri": "targets/taint/taint.py"
@@ -71,6 +73,7 @@
                         "message": {
                           "text": "Propagator : 'b' @ 'targets/taint/taint.py:8'"
                         },
+                        "nestingLevel": 0,
                         "physicalLocation": {
                           "artifactLocation": {
                             "uri": "targets/taint/taint.py"
@@ -95,6 +98,7 @@
                         "message": {
                           "text": "Sink: 'sink1(b)' @ 'targets/taint/taint.py:9'"
                         },
+                        "nestingLevel": 1,
                         "physicalLocation": {
                           "artifactLocation": {
                             "uri": "targets/taint/taint.py"
