@@ -595,6 +595,7 @@ let regexp_prefilter_of_rule (r : R.rule) =
         | `Extract { formula = f; _ } ->
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+        | `Join _ -> raise Common.Todo
       with
       (* TODO: see tests/rules/tainted-filename.yaml *)
       | CNF_exploded ->

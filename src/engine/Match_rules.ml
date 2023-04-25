@@ -191,7 +191,8 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                | `Extract extract_spec ->
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
-                     match_hook xconf xtarget))
+                     match_hook xconf xtarget
+               | `Join _ -> raise Common.Todo))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
