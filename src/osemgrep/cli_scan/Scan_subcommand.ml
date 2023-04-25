@@ -146,173 +146,6 @@ let analyze_skipped (skipped : Out.skipped_target list) =
     try List.assoc `Other groups with
     | Not_found -> [] )
 
-let pp_summary ppf
-    (( _respect_git_ignore,
-       max_target_bytes,
-       semgrep_ignored,
-       include_ignored,
-       exclude_ignored,
-       file_size_ignored,
-       other_ignored,
-       errors ) :
-      bool
-      * int
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list) =
-  Fmt_helpers.pp_heading ppf "Scan summary";
-  (* TODO
-        if self.target_manager.baseline_handler:
-            limited_fragments.append(
-                "Scan was limited to files changed since baseline commit."
-            )
-  *)
-  (* TODO
-        elif self.target_manager.respect_git_ignore:
-            # Each target could be a git repo, and we respect the git ignore
-            # of each target, so to be accurate with this print statement we
-            # need to check if any target is a git repo and not just the cwd
-            targets_not_in_git = 0
-            dir_targets = 0
-            for t in self.target_manager.targets:
-                if t.path.is_dir():
-                    dir_targets += 1
-                    try:
-                        t.files_from_git_ls()
-                    except (subprocess.SubprocessError, FileNotFoundError):
-                        targets_not_in_git += 1
-                        continue
-            if targets_not_in_git != dir_targets:
-                limited_fragments.append(f"Scan was limited to files tracked by git.")
-  *)
-  let opt_msg msg = function
-    | [] -> None
-    | xs -> Some (string_of_int (List.length xs) ^ " " ^ msg)
-  in
-  let out_skipped =
-    let mb = string_of_int Stdlib.(max_target_bytes / 1000 / 1000) in
-    Common.map_filter Fun.id
-      [
-        opt_msg "files not matching --include patterns" include_ignored;
-        opt_msg "files matching --exclude patterns" exclude_ignored;
-        opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
-        opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
-        opt_msg "other files ignored" other_ignored;
-      ]
-  in
-  let out_partial =
-    opt_msg
-      "files only partially analyzed due to a parsing or internal Semgrep error"
-      errors
-  in
-  match (out_skipped, out_partial) with
-  | [], None -> ()
-  | xs, parts ->
-      (* TODO if limited_fragments:
-              for fragment in limited_fragments:
-                  message += f"\n  {fragment}" *)
-      Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
-      Option.iter (fun txt -> Fmt.pf ppf "  Partially scanned: %s@." txt) parts;
-      (match xs with
-      | [] -> ()
-      | xs ->
-          Fmt.pf ppf "  Scan skipped: %s@." (String.concat ", " xs);
-          Fmt.pf ppf
-            "  For a full list of skipped files, run semgrep with the \
-             --verbose flag.@.");
-      Fmt.pf ppf "@."
-
-let pp_skipped ppf
-    (( respect_git_ignore,
-       max_target_bytes,
-       semgrep_ignored,
-       include_ignored,
-       exclude_ignored,
-       file_size_ignored,
-       other_ignored,
-       errors ) :
-      bool
-      * int
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list) =
-  Fmt.pf ppf "%s@.Files skipped:@.%s@." (String.make 40 '=')
-    (String.make 40 '=');
-  Fmt_helpers.pp_heading ppf "Files skipped";
-  (* TODO: always skipped *)
-  Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
-  if respect_git_ignore then (
-    Fmt.pf ppf " %a@.@."
-      Fmt.(styled `Bold string)
-      "(Disable by passing --no-git-ignore)";
-    Fmt.pf ppf "  • <all files not listed by `git ls-files` were skipped>@.")
-  else (
-    Fmt.pf ppf " %a@.@."
-      Fmt.(styled `Bold string)
-      "(Disabled with --no-git-ignore)";
-    Fmt.pf ppf "  • <none>@.");
-  Fmt.pf ppf "@.";
-
-  let pp_list (xs : Out.skipped_target list) =
-    match xs with
-    | [] -> Fmt.pf ppf "  • <none>@."
-    | xs ->
-        List.iter
-          (fun (Out.{ path; _ } : Out.skipped_target) ->
-            Fmt.pf ppf "  • %s@." path)
-          (List.sort
-             (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
-               String.compare a.path b.path)
-             xs)
-  in
-
-  Fmt.pf ppf " %a@. %a@.@."
-    Fmt.(styled `Bold string)
-    "Skipped by .semgrepignore:"
-    Fmt.(styled `Bold string)
-    "(See: \
-     https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)";
-  pp_list semgrep_ignored;
-  Fmt.pf ppf "@.";
-
-  Fmt.pf ppf " %a@.@."
-    Fmt.(styled `Bold string)
-    "Skipped by --include patterns:";
-  pp_list include_ignored;
-  Fmt.pf ppf "@.";
-
-  Fmt.pf ppf " %a@.@."
-    Fmt.(styled `Bold string)
-    "Skipped by --exclude patterns:";
-  pp_list exclude_ignored;
-  Fmt.pf ppf "@.";
-
-  Fmt.pf ppf " %a@. %a@.@."
-    Fmt.(styled `Bold string)
-    ("Skipped by limiting to files smaller than "
-    ^ string_of_int max_target_bytes
-    ^ " bytes:")
-    Fmt.(styled `Bold string)
-    "(Adjust with the --max-target-bytes flag)";
-  pp_list file_size_ignored;
-  Fmt.pf ppf "@.";
-
-  Fmt.pf ppf " %a@.@." Fmt.(styled `Bold string) "Skipped for other reasons:";
-  pp_list other_ignored;
-  Fmt.pf ppf "@.";
-
-  Fmt.pf ppf " %a@.@."
-    Fmt.(styled `Bold string)
-    "Skipped by analysis failure due to parsing or internal Semgrep error";
-  pp_list errors;
-  Fmt.pf ppf "@."
-
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -444,7 +277,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let cli_errors = Output.output_result conf res in
 
       Logs.info (fun m ->
-          m "%a" pp_skipped
+          m "%a" Skipped_report.pp_skipped
             ( conf.targeting_conf.respect_git_ignore,
               conf.targeting_conf.max_target_bytes,
               semgrepignored,
@@ -454,7 +287,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
               other_ignored,
               errors_skipped ));
       Logs.app (fun m ->
-          m "%a" pp_summary
+          m "%a" Summary_report.pp_summary
             ( conf.targeting_conf.respect_git_ignore,
               conf.targeting_conf.max_target_bytes,
               semgrepignored,

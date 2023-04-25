@@ -855,7 +855,7 @@ let semgrep_with_raw_results_and_exn_handler config =
    It should get simplified when we get rid of the Python wrapper.
    For now, we avoid code duplication.
 *)
-let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
+let semgrep_with_prepared_rules_and_targets config (x : Lang_job.t) =
   let lang_str = Xlang.to_string x.lang in
   let rule_ids (* what are these for? *) =
     Common.map

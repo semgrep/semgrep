@@ -133,7 +133,7 @@ val semgrep_with_raw_results_and_exn_handler :
 *)
 val semgrep_with_prepared_rules_and_targets :
   Runner_config.t ->
-  Runner_config.lang_job ->
+  Lang_job.t ->
   Exception.t option * Report.final_result * Common.filename list
 
 val semgrep_with_rules :
