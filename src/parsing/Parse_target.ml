@@ -108,9 +108,10 @@ let parse_and_resolve_name lang file =
    * among a set of files in a project like codegraph.
    *)
   AST_generic.SId.unsafe_reset_counter ();
-  Naming_AST.resolve lang ast;
-  Constant_propagation.propagate_basic lang ast;
-  Constant_propagation.propagate_dataflow lang ast;
+  if not !Flag.no_resolving then (
+    Naming_AST.resolve lang ast;
+    Constant_propagation.propagate_basic lang ast;
+    Constant_propagation.propagate_dataflow lang ast);
   if !Flag.use_bloom_filter then Bloom_annotation.annotate_program ast;
   logger#info "Parse_target.parse_and_resolve_name done";
   res

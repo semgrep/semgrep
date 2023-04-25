@@ -615,6 +615,9 @@ let options actions =
     ( "-filter_irrelevant_rules",
       Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
+    ( "-no_resolving",
+      Arg.Set Flag.no_resolving,
+      " don't do naming/constant prop" );
     ( "-no_filter_irrelevant_rules",
       Arg.Clear filter_irrelevant_rules,
       " do not filter rules" );

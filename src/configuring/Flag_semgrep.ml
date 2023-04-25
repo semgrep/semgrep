@@ -71,3 +71,9 @@ let equivalence_mode = ref false
 
 (* One-off experiment for Raja (See Raja_experiment.ml) *)
 let raja = ref false
+
+(* No constant propagation or naming
+   This is useful for quick searches which don't need full
+   semantic information. We could use this for the VS Code extension.
+*)
+let no_resolving = ref false
