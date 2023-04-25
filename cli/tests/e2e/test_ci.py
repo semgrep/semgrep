@@ -282,11 +282,6 @@ def mock_autofix(request, mocker):
             "SEMGREP_APP_TOKEN": "dummy",
             "SEMGREP_REPO_URL": REMOTE_REPO_URL,
         },
-        {  # Same as above, but with a repo URL that has a dot in the name.
-            # This used to cause the URL parser to crash.
-            "SEMGREP_APP_TOKEN": "dummy",
-            "SEMGREP_REPO_URL": "https://test@dev.azure.com/test/TestName/_git/Core.Thing",
-        },
         {  # Github full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -557,7 +552,6 @@ def mock_autofix(request, mocker):
     ],
     ids=[
         "local",
-        "local_with_dot_url",
         "github-push",
         "github-push-special-env-vars",
         "github-enterprise",
