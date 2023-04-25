@@ -1234,6 +1234,30 @@ let check_function_signature env fun_exp args args_taints =
                             source of taint reaches the sink upon invocation of this function.
                             As such, we don't need to touch its call trace.
                          *)
+                         (* Additionally, we keep this taint around, as compared to before,
+                            when we assumed that only a single taint was necessary to produce
+                            a finding.
+                            Before, we assumed we could get rid of it because a
+                            previous `findings_of_tainted_sink` call would have already
+                            reported on this source. However, with interprocedural taint labels,
+                            a finding may now be dependent on multiple such taints. If we were
+                            to get rid of this source taint now, we might fail to report a
+                            finding from a function call, because we failed to store the information
+                            of this source taint within that function's taint signature.
+
+                            e.g.
+
+                            def bar(y):
+                              foo(y)
+
+                            def foo(x):
+                              a = source_a
+                              sink_of_a_and_b(a, x)
+
+                            Here, we need to keep the source taint around, or our `bar` function
+                            taint signature will fail to realize that the taint of `source_a` is
+                            going into `sink_of_a_and_b`, and we will fail to produce a finding.
+                         *)
                          [ { T.taint; sink_trace } ]
                      | Arg arg ->
                          (* Here, we modify the call trace associated to the argument,
