@@ -210,10 +210,9 @@ let rec taint_call_trace = function
       let* call_trace = taint_call_trace call_trace in
       Some (Out.CoreCall (location, intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace { sources; sink } :
-    Out.core_match_dataflow_trace =
-  (* Here, we ignore all but the first taint trace.
-     This is because we added support for multiple sources in a single trace, but only
+let taint_trace_to_dataflow_trace traces : Out.core_match_dataflow_trace =
+  (* Here, we ignore all but the first taint trace, for source or sink.
+     This is because we added support for multiple sources/sinks in a single trace, but only
      internally to semgrep-core. Externally, our CLI dataflow trace datatype still has
      only one trace per finding. To fit into that type, we have to pick one arbitrarily.
 
@@ -221,15 +220,16 @@ let taint_trace_to_dataflow_trace { sources; sink } :
      due to deduplication, so we shouldn't get more or less findings.
      It's possible that this could change the dataflow trace of an existing finding though.
   *)
-  let call_trace, tokens =
-    match sources with
+  let source_call_trace, tokens, sink_call_trace =
+    match traces with
     | [] -> raise Common.Impossible
-    | (call_trace, tokens) :: _ -> (call_trace, tokens)
+    | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
+        (source_trace, tokens, sink_trace)
   in
   {
-    Out.taint_source = taint_call_trace call_trace;
+    Out.taint_source = taint_call_trace source_call_trace;
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
-    taint_sink = taint_call_trace sink;
+    taint_sink = taint_call_trace sink_call_trace;
   }
 
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match

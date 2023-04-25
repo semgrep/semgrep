@@ -537,18 +537,24 @@ let rec convert_taint_call_trace = function
           call_trace = convert_taint_call_trace ct;
         }
 
-let taint_trace_of_src_traces_and_sink sources sink =
-  { Pattern_match.sources; sink = convert_taint_call_trace sink }
-
 let pm_of_finding finding =
   match finding with
   | T.ArgToArg _
   | T.ToReturn _ ->
       None
-  | ToSink { taints_with_precondition = taints, requires; sink; merged_env } ->
+  | ToSink
+      {
+        taints_with_precondition = taints, requires;
+        sink = { pm = sink_pm; _ };
+        merged_env;
+      } ->
       (* TODO: We might want to report functions that let input taint
          * go into a sink (?) *)
-      if not (D.taints_satisfy_requires (T.Taint_set.of_list taints) requires)
+      if
+        not
+          (D.taints_satisfy_requires
+             (T.Taint_set.of_list (Common.map (fun t -> t.T.taint) taints))
+             requires)
       then None
       else
         (* these arg taints are not useful to us, because we are within
@@ -557,9 +563,10 @@ let pm_of_finding finding =
         *)
         let source_taints, _args_taints =
           taints
-          |> Common.partition_either (fun { T.orig; tokens } ->
+          |> Common.partition_either
+               (fun { T.taint = { orig; tokens }; sink_trace } ->
                  match orig with
-                 | Src src -> Left (src, tokens)
+                 | Src src -> Left (src, tokens, sink_trace)
                  | Arg arg -> Right arg)
         in
         (* The old behavior used to be that, for sinks with a `requires`, we would
@@ -571,8 +578,12 @@ let pm_of_finding finding =
         *)
         let traces =
           source_taints
-          |> Common.map (fun (src, tokens) ->
-                 (convert_taint_call_trace src.T.call_trace, tokens))
+          |> Common.map (fun (src, tokens, sink_trace) ->
+                 {
+                   PM.source_trace = convert_taint_call_trace src.T.call_trace;
+                   tokens;
+                   sink_trace = convert_taint_call_trace sink_trace;
+                 })
         in
         (* We always report the finding on the sink that gets tainted, the call trace
             * must be used to explain how exactly the taint gets there. At some point
@@ -589,10 +600,7 @@ let pm_of_finding finding =
             * for the injection bug... but most users seem to be confused about this. They
             * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
         *)
-        let taint_trace =
-          Some (lazy (taint_trace_of_src_traces_and_sink traces sink))
-        in
-        let sink_pm, _ = T.pm_of_trace sink in
+        let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
 let check_fundef lang options taint_config opt_ent fdef =

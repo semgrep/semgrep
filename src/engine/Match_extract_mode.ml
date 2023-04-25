@@ -227,7 +227,7 @@ let map_loc pos line col file (loc : Tok.location) =
       };
   }
 
-let map_taint_trace map_loc { Pattern_match.sources; sink } =
+let map_taint_trace map_loc traces =
   let lift_map_loc f x =
     let token =
       match x.Tok.token with
@@ -250,13 +250,14 @@ let map_taint_trace map_loc { Pattern_match.sources; sink } =
             call_trace = map_taint_call_trace call_trace;
           }
   in
-  {
-    Pattern_match.sources =
-      Common.map
-        (fun (ct, toks) -> (map_taint_call_trace ct, Common.map map_loc toks))
-        sources;
-    sink = map_taint_call_trace sink;
-  }
+  Common.map
+    (fun { Pattern_match.source_trace; tokens; sink_trace } ->
+      {
+        Pattern_match.source_trace = map_taint_call_trace source_trace;
+        tokens = Common.map map_loc tokens;
+        sink_trace = map_taint_call_trace sink_trace;
+      })
+    traces
 
 let map_res map_loc tmpfile file
     (mr : Report.partial_profiling Report.match_result) =
