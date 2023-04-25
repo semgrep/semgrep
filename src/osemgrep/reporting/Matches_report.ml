@@ -137,44 +137,45 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
   let stripped, _ =
     List.fold_left
       (fun (stripped, line_number) line ->
-        let line, line_off, stripped =
+        let line, line_off, stripped' =
           let ll = String.length line in
           if max_chars_per_line > 0 && ll > max_chars_per_line then
-            if start_line = line_number && m.start.col > 1 then
-              let start, ell_at_end =
-                let start_col = m.start.col - 1 in
-                if start_col >= ll - max_chars_per_line then
-                  (ll - max_chars_per_line, "")
-                else (start_col, ellipsis_string)
-              in
-              ( ellipsis_string
-                ^ String.sub line start max_chars_per_line
-                ^ ell_at_end,
-                start,
+            if start_line = line_number then
+              let start_col = m.start.col - 1 - dedented in
+              let end_col = min (start_col + max_chars_per_line) ll in
+              let data = String.sub line start_col (end_col - start_col - 1) in
+              ( (if start_col > 0 then ellipsis_string else "")
+                ^ data ^ ellipsis_string,
+                m.start.col - 1,
                 true )
             else
               ( Str.first_chars line max_chars_per_line ^ ellipsis_string,
                 0,
                 true )
-          else (line, 0, stripped)
+          else (line, 0, false)
         in
         let line_number_str = string_of_int line_number in
         let pad = String.make (11 - String.length line_number_str) ' ' in
         let col c = max 0 (c - 1 - dedented - line_off) in
+        let ellipsis_len p =
+          if stripped' && p then String.length ellipsis_string else 0
+        in
         let start_color =
-          if line_number > start_line then 0 else col m.start.col
+          if line_number > start_line then 0
+          else col m.start.col + ellipsis_len (line_off > 0)
         in
         let end_color =
-          min
-            (String.length line - 1)
-            (if line_number >= m.end_.line then col m.end_.col
-            else String.length line - 1)
+          if line_number >= m.end_.line then
+            min
+              (start_color + (m.end_.col - m.start.col))
+              (String.length line - 1 - ellipsis_len true)
+          else String.length line - 1
         in
         let a, b, c = cut line start_color end_color in
         Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
           Fmt.(styled `Bold string)
           b c;
-        (stripped, succ line_number))
+        (stripped' || stripped, succ line_number))
       (false, start_line) lines
   in
   if stripped then
