@@ -57,7 +57,7 @@ let add_capture k v env =
      If we don't call this, the cache keys will be overspecified, reducing
      or preventing reuse.
   *)
-let update_min_env env (stmt_pat : G.stmt) =
+let update_min_env env (stmt_pat : AST_generic.stmt) =
   if debug then printf "update_min_env\n";
   let backrefs =
     match stmt_pat.s_backrefs with
