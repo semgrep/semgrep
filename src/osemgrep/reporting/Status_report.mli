@@ -1,8 +1,7 @@
 val pp_status :
-  'a list ->
-  'b list ->
+  num_rules:int ->
+  num_targets:int ->
+  respect_git_ignore:bool ->
   Lang_job.t list ->
-  bool ->
   Format.formatter ->
-  unit ->
   unit

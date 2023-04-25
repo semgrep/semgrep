@@ -233,8 +233,10 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
       Logs.app (fun m ->
           m "%a"
-            (Status_report.pp_status all_rules all_targets lang_jobs
-               respect_git_ignore)
+            (fun ppf () ->
+              Status_report.pp_status ~num_rules:(List.length all_rules)
+                ~num_targets:(List.length all_targets) ~respect_git_ignore
+                lang_jobs ppf)
             ());
       (* TODO progress bar *)
       let results_by_language =
