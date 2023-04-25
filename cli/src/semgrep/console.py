@@ -45,7 +45,7 @@ class AutoIndentingConsole(Console):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.active_title: Optional[Title] = None
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, markup=False, **kwargs)
 
     @property
     def auto_indent_size(self) -> int:
@@ -61,13 +61,8 @@ class AutoIndentingConsole(Console):
         else:
             return 0
 
-    def line(self, *_: Any, **__: Any) -> None:
-        """Whenever rich internally tries to print a blank line, we ignore it.
-
-        This way we have greater control over spacing."""
-
-    def reset_title(self) -> None:
-        self.active_title = None
+    def reset_title(self, order: int = 1) -> None:
+        self.active_title = Title("", order=order)
 
     @staticmethod
     def extract_title(current: Optional[RenderableType]) -> Optional[Title]:
@@ -108,7 +103,7 @@ console.width = min(console.width, MAX_WIDTH)
 
 if __name__ == "__main__":
     """Print samples of the above components."""
-    console.print("[bold]Semgrep output formatting samples:[/bold]")
+    console.print("[bold]Semgrep output formatting samples:[/bold]", markup=True)
     console.print(Title("Level 1"))
     console.print("auto-indented text")
     console.print(Title("Level 2", order=2))
@@ -117,3 +112,4 @@ if __name__ == "__main__":
     console.print("auto-indented text")
     console.reset_title()
     console.print("auto-indented text after title reset")
+    console.print("bit of markup: [/#]")

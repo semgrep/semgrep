@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module E = Error
 module FT = File_type
 module C = Semgrep_dashdash_config
@@ -40,8 +41,7 @@ type rules_and_origin = {
 }
 
 (* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline? *)
-and origin = Common.filename option (* None for remote files *)
-[@@deriving show]
+and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -110,14 +110,17 @@ let import_callback base str =
               *)
              Logs.debug (fun m ->
                  m "trying to download from %s" (Uri.to_string url));
+             (* TODO: ask for JSON in headers which improves performance
+              * because Yaml rule parsing is slower than Json rule parsing.
+              *)
              let content =
-               try Network.get url with
-               | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
-               | exn ->
+               match Network.get url with
+               | Ok body -> body
+               | Error msg ->
                    (* was raise Semgrep_error, but equivalent to abort now *)
                    Error.abort
                      (spf "Failed to download config from %s: %s"
-                        (Uri.to_string url) (Common.exn_to_s exn))
+                        (Uri.to_string url) msg)
              in
              Logs.debug (fun m ->
                  m "finished downloading from %s" (Uri.to_string url));
@@ -129,7 +132,7 @@ let import_callback base str =
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
  *)
-let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
+let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
@@ -156,32 +159,32 @@ let parse_rule (file : filename) : Rule.rules * Rule.invalid_rule_error list =
  *  Parse_rule.is_valid_rule_filename, but we still need ojsonnet to
  *  be done).
  *)
-let load_rules_from_file file : rules_and_origin =
-  Logs.debug (fun m -> m "loading local config from %s" file);
-  if Sys.file_exists file then (
+let load_rules_from_file (file : Fpath.t) : rules_and_origin =
+  Logs.debug (fun m -> m "loading local config from %s" !!file);
+  if Sys.file_exists !!file then (
     let rules, errors = parse_rule file in
-    Logs.debug (fun m -> m "Done loading local config from %s" file);
+    Logs.debug (fun m -> m "Done loading local config from %s" !!file);
     { origin = Some file; rules; errors })
   else
     (* This should never happen because Semgrep_dashdash_config only builds
      * a File case if the file actually exists.
      *)
-    Error.abort (spf "file %s does not exist anymore" file)
+    Error.abort (spf "file %s does not exist anymore" !!file)
 
 let load_rules_from_url url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
-    try Network.get url with
-    | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
-    | exn ->
+    match Network.get url with
+    | Ok body -> body
+    | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)
         Error.abort
-          (spf "Failed to download config from %s: %s" (Uri.to_string url)
-             (Common.exn_to_s exn))
+          (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+      let file = Fpath.v file in
       let res = load_rules_from_file file in
       { res with origin = None })
 
@@ -229,7 +232,7 @@ let rules_from_rules_source (source : rules_source) : rules_and_origin list =
              let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
              rules_from_dashdash_config kind)
   | Pattern (pat, xlang, fix) ->
-      let fk = Parse_info.unsafe_fake_info "" in
+      let fk = Tok.unsafe_fake_tok "" in
       (* better: '-e foo -l regex' not handled in original semgrep,
        * got a weird 'invalid pattern clause' error.
        * better: '-e foo -l generic' not handled in semgrep-core

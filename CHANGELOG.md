@@ -4,9 +4,252 @@
 
 # Changelog
 
-This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
-
 <!-- insertion point -->
+
+## [1.19.0](https://github.com/returntocorp/semgrep/releases/tag/v1.19.0) - 2023-04-21
+
+### Added
+
+- Java: Private static variables that are defined just once in a static block,
+  even if they are not declared `final`, will be considered as `final` by
+  constant-propagation. (pa-2228)
+- Scala: Can now parse indented matches, like:
+
+  e match
+  case foo => "foo"
+  case bar => "bar" (pa-2687)
+
+- Scala: Can now parse arguments with `using`, as well as splatted arguments.
+
+  E.g. foo(using bar) and foo(1, 2, bar\*) (pa-2688)
+
+- Scala: Added parsing of `enum` constructs. (pa-2691)
+- Scala: Can now parse `given` definitions (pa-2692)
+- Scala: Can now parse `export`s (pa-2693)
+- Scala: Can now parse top-level definitions (as added in Scala 3) (pa-2694)
+- Scala: Can now parse indented `for` expression, such as
+
+  for
+  \_ <- 5
+  yield
+  ... (pa-2695)
+
+- The title of Supply Chain findings will now consist of the package name and CVE,
+  instead of just the rule's UUID. (sc-580)
+
+### Changed
+
+- The different lists of skipped files output by Semgrep when given --verbose will
+  now be sorted, to make it easier to `diff` the outputs of two runs. (pa-2700)
+
+### Fixed
+
+- CLI: Setting Semgrep-specific environment variables for metadata (like
+  SEMGREP_REPO_NAME, SEMGREP_REPO_URL, SEMGREP_PR_ID, and friends) now
+  properly works on GitHub and GitLab CI scans.
+
+  If not set, functionality is same as before. (pa-2644)
+
+- CLI: Fixed a bug where repositories with a dot in the name would cause
+  semgrep ci scans to crash (pa-2655)
+
+## [1.18.0](https://github.com/returntocorp/semgrep/releases/tag/v1.18.0) - 2023-04-14
+
+### Added
+
+- Metavariable comparison: Added support for \*\*, the exponentiation operator. (gh-7474)
+- Pro: Java: Semgrep is now able to track the propagation of taint from the
+  arguments of a method, to the object being called. So e.g. given a method
+
+      public void foo(int x) {
+          this.x = x;
+      }
+
+  and a call `o.foo(tainted)`, Semgrep will be able to track that the field
+  `x` of `o` has been tainted. (pa-2570)
+
+- Kotlin: Class fields will now receive the correct types, and be
+  found by typed metavariables correctly
+
+  This applies to examples such as:
+  class Foo {
+  var x : int
+  }
+  for the variable `x` (pa-2684)
+
+- Supply Chain support for package-lock.json version 3 (sc-586)
+
+### Fixed
+
+- metavariable-pattern: When used with the nested `language` key, if there was an
+  error parsing the `metavariable`'s content, that error could abort the analysis
+  of the current file. If there were other rules that were going to produce findings
+  on that file, those findings were not being reported. (gh-7271)
+- Matching: Fixed a bug where explicit casts of expressions would produce two matches to
+  other explicit casts.
+
+  So for instance, a pattern `(int $X)` in Java would match twice to `(int) 5`. (gh-7403)
+
+- taint-mode: Given `x = tainted`, then `x.a = safe`, then `x.a.b = tainted`, Semgrep
+  did not report `sink(x.a.b)`. Because `x.a` was clean, that made Semgrep disregard
+  the tainting of any field of `x.a` such as `x.a.b`. This now works as expected. (pa-2486)
+- When using `metavariable-pattern` to match embedded PHP code, Semgrep was
+  unconditionally adding the `<?php` opening to the embedded code. When
+  `<?php` was already present, this caused parsing errors. (pa-2696)
+- Lockfile-only supply chain findings correctly include line numbers in their match data, improving the appearence of CLI output (sc-658)
+- Increase timeout for `semgrep install-semgrep-pro` to avoid failures when the download is slow. (timeout)
+- Fixed the range reported by findings for YAML files that include an anchor, so that the match does not include the original location of the snippet bound to the anchor. (yaml-alias)
+
+## [1.17.1](https://github.com/returntocorp/semgrep/releases/tag/v1.17.1) - 2023-04-05
+
+### Fixed
+
+- Fix an issue that could lead to a crash when printing findings that contain snippets that look like markup to the Rich Python library (rich-markup-crash)
+
+## [1.17.0](https://github.com/returntocorp/semgrep/releases/tag/v1.17.0) - 2023-04-04
+
+### Added
+
+- Scala: Added proper parsing for Scala 3 style imports (pa-2678)
+
+### Changed
+
+- taint-mode: Added option `taint_assume_safe_comparisons`, disabled by default, that
+  prevents comparison operators to propagate taint, so e.g. `tainted != "something"`
+  will not be considered tainted. Note that this a syntactic check, if the operator
+  is overloaded to perform a different operation this will not be detected. (pa-2645)
+
+### Fixed
+
+- Fixed an issue where incorrect ranges for expressions containing parentheses could lead Semgrep to generate invalid autofixes in Python. (gh-2902)
+- In rare cases, Semgrep could generate invalid autofixes where Python keyword arguments were placed before positional arguments. When using AST-based autofix, it no longer makes that error. (keywordarg-autofix)
+
+## [1.16.0](https://github.com/returntocorp/semgrep/releases/tag/v1.16.0) - 2023-03-30
+
+### Added
+
+- Kotlin: Added support for typed metavariables. You can write a pattern like:
+  ($X : String)
+  to find all instances of expressions with type String. (pa-2648)
+- Scala: Semgrep can now parse programs that contain quoted expressions, context
+  parameter clauses using `using`, and soft modifiers like `inline` and `open`. (pa-2672)
+- Scala: Can now parse programs containing matches on types, such as:
+  type t = K match {
+  case Int => String
+  } (pa-2673)
+- Parsing rules can take multiple seconds at the start of a scan.
+  When running in an interactive terminal with more than 500 rules,
+  Semgrep will show a progress bar for this step. (rule-progress)
+
+### Changed
+
+- Supply Chain scans will now understand `maven_dep_tree.txt` files
+  that are made of multiple smaller `maven_dep_tree.txt` files concatenated with `cat`. (maven-dep-forest)
+- Findings of a scan are now printed with section headers per group for the following categories:
+  Code Blocking, Code Non-blocking, Supply Chain Reachable, Supply Chain Unreachable findings. (results-headings)
+- Switched to using go.mod files to read go dependencies for Semgrep Supply Chain, instead of go.sum files (sc-gomod)
+
+### Fixed
+
+- Clojure: parse 'foo/bar' as two separate tokens, so one can use
+  metavariable in it and get '$X/bar' to match 'foo/bar' (gh-7311)
+- HTML/XML: support attribute as pattern (e.g., `foo="true"`) (gh-7344)
+- Improved significantly the time to parse big rulesets such as p/default
+  from 20s to a few seconds by parsing patterns lazily and by
+  not using /tmp to parse those patterns. (pa-2597)
+- Pipfiles with a line comment or inline comment will now parse correctly. (sc-664)
+
+## [1.15.0](https://github.com/returntocorp/semgrep/releases/tag/v1.15.0) - 2023-03-15
+
+### Added
+
+- On full sca scans with dep search feature on, send dependency data for dep search (depsearch)
+- metavariable-comparison: Added support for bitwise operators `~`, `&`, `|` and `^`. (gh-7284)
+- Taint: `pattern-propagators` now have optional fields `requires` and `label`,
+  which are used identically to their counterparts in `pattern-sources` and ` pattern-sinks`, for the experimental taint labels feature.
+
+  For instance, we can define:
+
+  ```
+  pattern-propagators:
+    - pattern: |
+        $TO.foo($FROM)
+      from: $FROM
+      to: $TO
+      requires: A
+      replace-labels: [A, C]
+      label: B
+  ```
+
+  to denote a propagator which only propagates from $FROM to $TO if $FROM has
+  taint label A. In addition, it converts any taints from $TO with labels
+  A or C to have label B.
+
+  If `label` is not specified, the `to` is tainted with the same label of taint
+  that $FROM has. If `requires` is not specified, it does not require $FROM to
+  have a particular label of taint.
+
+  Additionally, `replace-labels` only restricts the label being propagated if
+  the output `label` is specified. (pa-1633)
+
+- taint-mode: Java: Support for basic field sensitivity via getters and setters.
+  Given `obj.setX(tainted)`, Semgrep will identify that a subsequent `obj.getX()`
+  carries the same taint as `tainted`. It will also differentiate between
+  `obj.getX()` and `obj.getY()`. Note that Semgrep does not examine the definitions
+  for the getter or setter methods, and it does not know whether e.g. some other
+  method `obj.clearX()` clears the taint that `obj.setX(tainted)` adds. (pa-2585)
+- Pro Engine: Semgrep CLI will now download a version of Semgrep Pro Engine
+  compatible with the current version of Semgrep CLI, as opposed to the most
+  recently released version.
+
+  This behavior is only supported for Semgrep 1.12.1 and later. Previous
+  versions will still download the most recently released version, as before. (pa-2595)
+
+### Changed
+
+- Pro: `semgrep ci` will run intrafile interprocedural taint analysis by default
+  in differential scans (aka PR scans). (Note that interfile analysis is not run
+  in differential scans for performance reasons.) (pa-2565)
+- Remove custom _entrypoint_ for returntocorp/semgrep Docker images, now you must
+  explicitly call semgrep.
+
+  This won't work now: `docker run -v $(pwd):/src returntocorp/semgrep scan ...`
+  Must do this instead: `docker run -v $(pwd):/src returntocorp/semgrep semgrep scan ...` (pa-2642)
+
+- Changed Maven version comparison to more closely reflect usage, so versions with more than 3 increments will not be treated as plain strings (sc-656)
+
+### Fixed
+
+- The AST dump produced by semgrep-core is now usable from Python
+  with the provided ATD interface and the Python code derived from it with
+  atdpy. (gh-7296)
+- Terraform: Nested blocks can now be used as sources and sinks for taint.
+  For instance, the block `x` in
+
+  resource $A $B {
+  x {
+  ...
+  }
+  } (pa-2475)
+
+- CLI: The scan progress bar now shows progress with higher granularity, and has fewer big jumps when using the Pro Engine.
+
+  The abstract unit of 'tasks' has been removed, and now only a percentage number will be displayed. (pa-2526)
+
+- Fix an error with rule targeting for extract mode. Previously, if a ruleset had
+  two rules, the first being the extract rule, the second being the rule to run,
+  no rules would run on the extracted targets. Additionally, with multiple rules
+  the wrong rule might be run on the extracted target, causing errors. Now, in
+  extract mode all the rules for the destination language will be run. (pa-2591)
+- Metrics: logged in `semgrep ci` scans now send metrics, as our Privacy.md indicates
+  (previously they incorrectly did not, which made it harder for us to track failure events) (pa-2592)
+- Rust: Basic let-statement bindings (such as `let x = tainted`) now properly
+  carry taint. (pa-2605)
+- Improved error reporting for rule parsing by correctly reporting parse errors
+  instead of engine errors in certain cases. (pa-2610)
+- Taint: Fixed an issue where an error could be thrown if semgrep-core's output
+  contained a dataflow trace without a sink. (pa-2625)
+- Julia: Properly allow string literal metavariables like "$A" to be patterns. (pa-2630)
 
 ## [1.14.0](https://github.com/returntocorp/semgrep/releases/tag/v1.14.0) - 2023-03-01
 

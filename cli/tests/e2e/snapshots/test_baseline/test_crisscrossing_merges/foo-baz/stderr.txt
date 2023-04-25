@@ -5,8 +5,6 @@ git could not find a single branch-off point, so we will compare the baseline co
 │ Scan Status │
 └─────────────┘
   Scanning 2 files tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 2 files.
   Current version has 12 findings.
 
@@ -57,14 +55,7 @@ Switching repository to baseline commit 'baz'.
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

@@ -4,13 +4,14 @@
  (libraries
    str
    unix
+   fpath
    yojson
    ANSITerminal
+   fmt
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
    cmdliner
-   fpath
    re
    pcre
    parmap
@@ -21,15 +22,6 @@
      ppx_deriving.eq
      ppx_deriving.ord
      ppx_hash
-   )
- )
- (foreign_stubs
-   (language c)
-   (include_dirs
-     %{ocaml_where}
-   )
-   (names
-     fnptr_impl
    )
  )
 )

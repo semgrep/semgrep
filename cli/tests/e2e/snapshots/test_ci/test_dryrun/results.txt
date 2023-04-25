@@ -7,53 +7,63 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
 === end of exit code
 
 === stdout - plain
-Semgrep Supply Chain Summary: 0 Reachable findings, 1 Unreachable finding
+                            
+                            
+┌──────────────────────────┐
+│ 6 Blocking Code Findings │
+└──────────────────────────┘
+           
+    foo.py 
+       eqeq-bad             
+          useless comparison
+                            
+            4┆ a == a
+            ⋮┆----------------------------------------
+            5┆ a == a
+            ⋮┆----------------------------------------
+            7┆ a == a
+            ⋮┆----------------------------------------
+           11┆ y == y
+            ⋮┆----------------------------------------
+       eqeq-four                 
+          useless comparison to 4
+                                 
+           19┆ baz == 4
+            ⋮┆----------------------------------------
+       taint-test             
+          unsafe use of danger
+                              
+           27┆ sink(d2)
+                                    
+                                    
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
+                
+    poetry.lock 
+       supply-chain1        
+          found a dependency
+                            
+            1┆ [[package]]
+            2┆ name = "badlib"
+                               
+                               
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+           
+    foo.py 
+       eqeq-five                 
+          useless comparison to 5
+                                 
+           ▶▶┆ Autofix ▶ (x == 2)
+           15┆ x == 5
+                            
+  BLOCKING CODE RULES FIRED:
+    eqeq-bad
+    eqeq-four
+    taint-test
 
-
-Unreachable Supply Chain Findings:
-
-  poetry.lock 
-     supply-chain1
-        found a dependency
-
-
-First-Party Non-Blocking Findings:
-
-  foo.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ (x == 2)
-         15┆ x == 5
-
-First-Party Blocking Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
-          ⋮┆----------------------------------------
-     taint-test
-        unsafe use of danger
-
-         27┆ sink(d2)
-
-First-Party Blocking Rules Fired:
-   eqeq-bad   
-   eqeq-four   
-   taint-test
 
 === end of stdout - plain
 
@@ -70,24 +80,20 @@ First-Party Blocking Rules Fired:
             
   CONNECTION
 Would have sent POST request to create scan
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
             
+            
   CODE RULES
   Scanning 1 file with 4 python rules.
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐
@@ -185,15 +191,15 @@ Would have sent findings and ignores blob: {
         {
             "check_id": "supply-chain1",
             "path": "poetry.lock",
-            "line": 0,
+            "line": 1,
             "column": 0,
-            "end_line": 0,
+            "end_line": 2,
             "end_column": 0,
             "message": "found a dependency",
             "severity": 2,
             "index": 0,
             "commit_date": <MASKED>
-            "syntactic_id": "ff8806e5d262f88aeebbc15b80d84f12",
+            "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
             "metadata": {
                 "dev.semgrep.actions": [
                     "block"
@@ -203,9 +209,9 @@ Would have sent findings and ignores blob: {
             "is_blocking": false,
             "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
             "hashes": {
-                "start_line_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "end_line_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "code_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "start_line_hash": "b153a50b131c8c33766f9a6658610e68af55399f8c6b69818f1b62ccd0a7d80d",
+                "end_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
+                "code_hash": "46ce1ef80ef40363ab95f7f71ca6425d7b7b0248d191b6c3006301793c7c252f",
                 "pattern_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
             },
             "sca_info": {
@@ -557,7 +563,7 @@ Would have sent complete blob: {
             ".txt": 1
         },
         "lockfile_scan_info": {
-            "poetry.lock": 1,
+            "poetry.lock": 3,
             "yarn.lock": 1
         },
         "parse_rate": {

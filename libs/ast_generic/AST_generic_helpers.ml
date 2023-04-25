@@ -287,22 +287,22 @@ let vardef_to_assign (ent, def) =
   let v =
     match def.vinit with
     | Some v -> v
-    | None -> L (Null (Parse_info.unsafe_fake_info "null")) |> G.e
+    | None -> L (Null (Tok.unsafe_fake_tok "null")) |> G.e
   in
-  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
   let name_or_expr = entity_name_to_expr ent.name (Some idinfo) in
   let v = Lambda def |> G.e in
-  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
 let funcbody_to_stmt = function
   | FBStmt st -> st
   | FBExpr e -> G.exprstmt e
   | FBDecl sc -> Block (sc, [], sc) |> G.s
-  | FBNothing -> Block (Parse_info.unsafe_fake_bracket []) |> G.s
+  | FBNothing -> Block (Tok.unsafe_fake_bracket []) |> G.s
 
 let has_keyword_attr kwd attrs =
   attrs
@@ -320,7 +320,9 @@ let parameter_to_catch_exn_opt p =
   | ParamRest (_, _p)
   | ParamHashSplat (_, _p) ->
       None
-  | OtherParam _ -> None
+  | ParamReceiver _
+  | OtherParam _ ->
+      None
 
 (*****************************************************************************)
 (* Abstract position and svalue for comparison *)
@@ -334,7 +336,7 @@ let abstract_for_comparison_visitor recursor =
   let hooks =
     {
       M.default_visitor with
-      M.kinfo = (fun (_k, _) i -> { i with Parse_info.token = Parse_info.Ab });
+      M.kinfo = (fun (_k, _) i -> { i with Tok.token = Tok.Ab });
       M.kidinfo =
         (fun (k, _) ii -> k { ii with AST_generic.id_svalue = ref None });
     }
@@ -386,7 +388,7 @@ let ac_matching_nf op args =
         logger#error
           "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
           (show_operator op)
-          (show_arguments (Parse_info.unsafe_fake_bracket args));
+          (show_arguments (Tok.unsafe_fake_bracket args));
         None)
   else None
 
@@ -397,7 +399,18 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
       let mk_op x y =
         Call
           ( IdSpecial (Op op, tok) |> G.e,
-            Parse_info.unsafe_fake_bracket [ Arg x; Arg y ] )
+            Tok.unsafe_fake_bracket [ Arg x; Arg y ] )
         |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)
+
+let set_e_range l r e =
+  match (Tok.loc_of_tok l, Tok.loc_of_tok r) with
+  | Ok l, Ok r -> e.e_range <- Some (l, r)
+  | Error _, _
+  | _, Error _ ->
+      (* Probably not super useful to dump the whole expression, or to log the
+       * fake tokens themselves. Perhaps this will be useful for debugging
+       * isolated examples, though. *)
+      logger#debug "set_e_range failed: missing token location";
+      ()

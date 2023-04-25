@@ -14,7 +14,6 @@
  *)
 open Common
 open Parse_js
-module PI = Parse_info
 module TH = Token_helpers_js
 module Flag = Flag_parsing
 
@@ -32,7 +31,7 @@ let parse_program filename =
       let cur = tr.Parsing_helpers.current in
       if !Flag.show_parsing_error then
         pr2 ("parse error \n = " ^ error_msg_tok cur);
-      raise (PI.Parsing_error (TH.info_of_tok cur))
+      raise (Parsing_error.Syntax_error (TH.info_of_tok cur))
 
 let any_of_string str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->

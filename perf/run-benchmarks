@@ -51,7 +51,6 @@ handler.setFormatter(
 )
 logger.addHandler(handler)
 
-FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
 PERF_PATH = "semgrep/perf"
 PERF_RULE_PATH = "semgrep.perf"
 
@@ -75,18 +74,22 @@ class SemgrepResult:
                 dict2["extra"]["metavars"] = "<masked in benchmarks>"
                 # the paths being different will change the fingerprint
                 dict2["extra"]["fingerprint"] = "<masked in benchmarks>"
+            if "dataflow_trace" in dict2["extra"]:
+                dict2["extra"]["dataflow_trace"] = "<masked in benchmarks>"
 
-        # Abbreviate paths to avoid file-system differences
-        if "path" in dict2:
-            relative_path_start = dict2["path"].find(PERF_PATH)
-            dict2["path"] = (
-                "<masked in benchmarks>/" + dict2["path"][relative_path_start:]
-            )
         if "check_id" in dict2:
             relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
             dict2["check_id"] = dict2["check_id"][relative_path_start:]
 
-        self.str = json.dumps(dict2, sort_keys=True)
+        json_str = json.dumps(dict2, sort_keys=True)
+
+        # Abbreviate paths to avoid file-system differences
+        # Do this here because path appears multiple times
+        self.str = re.sub(
+            rf'"path": "[A-Za-z/\-]*{PERF_PATH}',
+            f'"path": "<masked in benchmarks>/{PERF_PATH}',
+            json_str,
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
@@ -262,6 +265,7 @@ def run_semgrep(
             os.path.abspath(corpus.rule_dir),
         ]
     args.extend(common_args)
+    args.extend(corpus.semgrep_options)
     if variant.semgrep_extra != "":
         args.extend([variant.semgrep_extra])
     if include_time:
@@ -364,6 +368,7 @@ def prepare_benchmark_run(
                     setup_data.run_name,
                     rule_cache_dir.absolute(),
                     Path("input") / repo_name,
+                    semgrep_options=setup_data.semgrep_options,
                 )
             )
 
@@ -420,7 +425,6 @@ def run_benchmarks(
     clean: bool,
     summary_file_path: str,
     findings_file_path: str,
-    findings_snapshot_update: bool,
     called_dir: str,
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
@@ -478,10 +482,15 @@ def run_benchmarks(
                 continue
 
             std_findings = {}
+            options = sorted(
+                re.sub(r"\W+", "", option) for option in corpus.semgrep_options
+            )
             for variant in variants:
 
                 # Run variant
-                name = ".".join(["semgrep", "bench", corpus.name, variant.name])
+                name = ".".join(
+                    ["semgrep"] + options + ["bench", corpus.name, variant.name]
+                )
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 try:
@@ -559,10 +568,6 @@ def run_benchmarks(
         with chdir(called_dir):
             with open(findings_file_path, "w") as f:
                 json.dump(saved_findings, f)
-
-    if findings_snapshot_update:
-        with open(FINDINGS_SNAPSHOT_PATH, "w") as f:
-            json.dump(saved_findings, f)
 
     if plot_benchmarks:
         import matplotlib.pyplot as plt
@@ -643,11 +648,6 @@ def main() -> None:
         help="save findings to the json file given by the argument",
     )
     parser.add_argument(
-        "--snapshot-update",
-        help="update the snapshot to compare findings against",
-        action="store_true",
-    )
-    parser.add_argument(
         "--plot-benchmarks",
         help="display a graph of the benchmark results",
         action="store_true",
@@ -696,7 +696,6 @@ def main() -> None:
             clean=args.clean,
             summary_file_path=args.save_to,
             findings_file_path=args.save_findings_to,
-            findings_snapshot_update=args.snapshot_update,
             called_dir=called_dir,
         )
 

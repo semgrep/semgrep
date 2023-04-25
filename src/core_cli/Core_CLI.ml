@@ -7,6 +7,7 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
+open File.Operators
 open Runner_config
 module Flag = Flag_semgrep
 module E = Semgrep_error_code
@@ -78,14 +79,14 @@ let pattern_file = ref ""
 
 (* -rules *)
 let rule_source = ref None
-let equivalences_file = ref ""
+let equivalences_file = ref None
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
 let output_format = ref Runner_config.default.output_format
 let match_format = ref Runner_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
-let lsp = ref Runner_config.default.lsp
+let ls = ref Runner_config.default.ls
 
 (* ------------------------------------------------------------------------- *)
 (* limits *)
@@ -191,12 +192,12 @@ let dump_v_to_format (v : OCaml.v) =
   | Json _ -> J.string_of_json (json_of_v v)
 
 (* works with -lang *)
-let dump_pattern (file : Common.filename) =
+let dump_pattern (file : Fpath.t) =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  let s = Common.read_file file in
+  let s = File.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
-  E.try_with_print_exn_and_reraise file (fun () ->
+  E.try_with_print_exn_and_reraise !!file (fun () ->
       let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
@@ -204,10 +205,10 @@ let dump_pattern (file : Common.filename) =
 
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  E.try_with_print_exn_and_reraise file (fun () ->
-      let { Parse_target.ast; skipped_tokens; _ } =
-        if naming then Parse_target.parse_and_resolve_name lang file
-        else Parse_target.just_parse_with_lang lang file
+  E.try_with_print_exn_and_reraise !!file (fun () ->
+      let { Parsing_result2.ast; skipped_tokens; _ } =
+        if naming then Parse_target.parse_and_resolve_name lang !!file
+        else Parse_target.just_parse_with_lang lang !!file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)
@@ -215,7 +216,7 @@ let dump_ast ?(naming = false) lang file =
       let s = dump_v_to_format v in
       pr s;
       if skipped_tokens <> [] then (
-        pr2 (spf "WARNING: fail to fully parse %s" file);
+        pr2 (spf "WARNING: fail to fully parse %s" !!file);
         pr2
           (Common.map (fun e -> "  " ^ Dumper.dump e) skipped_tokens
           |> String.concat "\n");
@@ -223,8 +224,8 @@ let dump_ast ?(naming = false) lang file =
 
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
-  let lang = List.hd (Lang.langs_of_filename file) in
-  let ast = Parse_target.parse_program file in
+  let ast = Parse_target.parse_program !!file in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
   List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
@@ -233,8 +234,8 @@ let dump_il_all file =
 let dump_il file =
   let module G = AST_generic in
   let module V = Visitor_AST in
-  let lang = List.hd (Lang.langs_of_filename file) in
-  let ast = Parse_target.parse_program file in
+  let ast = Parse_target.parse_program !!file in
+  let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   let report_func_def_with_name ent_opt fdef =
     let name =
@@ -261,27 +262,29 @@ let dump_v1_json file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
-      E.try_with_print_exn_and_reraise file (fun () ->
-          let { Parse_target.ast; skipped_tokens; _ } =
-            Parse_target.parse_and_resolve_name lang file
+      E.try_with_print_exn_and_reraise !!file (fun () ->
+          let { Parsing_result2.ast; skipped_tokens; _ } =
+            Parse_target.parse_and_resolve_name lang !!file
           in
           let v1 = AST_generic_to_v1.program ast in
           let s = Ast_generic_v1_j.string_of_program v1 in
           pr s;
           if skipped_tokens <> [] then
-            pr2 (spf "WARNING: fail to fully parse %s" file))
-  | [] -> failwith (spf "unsupported language for %s" file)
+            pr2 (spf "WARNING: fail to fully parse %s" !!file))
+  | [] -> failwith (spf "unsupported language for %s" !!file)
 
 let generate_ast_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
-      let ast = Parse_target.parse_and_resolve_name_warn_if_partial lang file in
+      let ast =
+        Parse_target.parse_and_resolve_name_warn_if_partial lang !!file
+      in
       let v1 = AST_generic_to_v1.program ast in
       let s = Ast_generic_v1_j.string_of_program v1 in
-      let file = file ^ ".ast.json" in
-      Common.write_file ~file s;
-      pr2 (spf "saved JSON output in %s" file)
-  | [] -> failwith (spf "unsupported language for %s" file)
+      let file = !!file ^ ".ast.json" |> Fpath.v in
+      File.write_file file s;
+      pr2 (spf "saved JSON output in %s" !!file)
+  | [] -> failwith (spf "unsupported language for %s" !!file)
 
 let generate_ast_binary lang file =
   let final =
@@ -356,7 +359,7 @@ let mk_config () =
     output_format = !output_format;
     match_format = !match_format;
     mvars = !mvars;
-    lsp = !lsp;
+    ls = !ls;
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
@@ -383,17 +386,17 @@ let all_actions () =
     (* possibly useful to the user *)
     ( "-show_ast_json",
       " <file> dump on stdout the generic AST of file in JSON",
-      Arg_helpers.mk_action_1_arg dump_v1_json );
+      Arg_helpers.mk_action_1_conv Fpath.v dump_v1_json );
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
-      Arg_helpers.mk_action_1_arg generate_ast_json );
+      Arg_helpers.mk_action_1_conv Fpath.v generate_ast_json );
     ( "-generate_ast_binary",
       " <file> save in file.ast.binary the marshalled generic AST of file",
       Arg_helpers.mk_action_1_arg (fun file ->
           generate_ast_binary (Xlang.lang_of_opt_xlang_exn !lang) file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
-      Arg_helpers.mk_action_1_arg prefilter_of_rules );
+      Arg_helpers.mk_action_1_conv Fpath.v prefilter_of_rules );
     ( "-parsing_stats",
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Arg_helpers.mk_action_n_arg (fun xs ->
@@ -404,56 +407,58 @@ let all_actions () =
     ( "-dump_extensions",
       " print file extension to language mapping",
       Arg_helpers.mk_action_0_arg dump_ext_of_lang );
-    ("-dump_pattern", " <file>", Arg_helpers.mk_action_1_arg dump_pattern);
+    ( "-dump_pattern",
+      " <file>",
+      Arg_helpers.mk_action_1_conv Fpath.v dump_pattern );
     ( "-dump_ast",
       " <file>",
       fun file ->
-        Arg_helpers.mk_action_1_arg
+        Arg_helpers.mk_action_1_conv Fpath.v
           (dump_ast ~naming:false (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_named_ast",
       " <file>",
       fun file ->
-        Arg_helpers.mk_action_1_arg
+        Arg_helpers.mk_action_1_conv Fpath.v
           (dump_ast ~naming:true (Xlang.lang_of_opt_xlang_exn !lang))
           file );
-    ("-dump_il_all", " <file>", Arg_helpers.mk_action_1_arg dump_il_all);
-    ("-dump_il", " <file>", Arg_helpers.mk_action_1_arg dump_il);
-    ("-dump_rule", " <file>", Arg_helpers.mk_action_1_arg dump_rule);
+    ("-dump_il_all", " <file>", Arg_helpers.mk_action_1_conv Fpath.v dump_il_all);
+    ("-dump_il", " <file>", Arg_helpers.mk_action_1_conv Fpath.v dump_il);
+    ("-dump_rule", " <file>", Arg_helpers.mk_action_1_conv Fpath.v dump_rule);
     ( "-dump_equivalences",
       " <file> (deprecated)",
-      Arg_helpers.mk_action_1_arg dump_equivalences );
+      Arg_helpers.mk_action_1_conv Fpath.v dump_equivalences );
     ( "-dump_jsonnet_ast",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_ast );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_ast );
     ( "-dump_jsonnet_core",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_core );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_core );
     ( "-dump_jsonnet_value",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_value );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_value );
     ( "-dump_jsonnet_json",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_ojsonnet.dump_jsonnet_json );
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_json );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
-      Arg_helpers.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_tree_sitter_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
-            file) );
+            !!file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
-      Arg_helpers.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Parse_pattern.dump_tree_sitter_pattern_cst
+          Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
-            file) );
+            !!file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
-      Arg_helpers.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
+          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
     ( "-diff_pfff_tree_sitter",
       " <file>",
@@ -461,16 +466,19 @@ let all_actions () =
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
-      Arg_helpers.mk_action_2_arg Test_synthesizing.expr_at_range );
+      Arg_helpers.mk_action_2_arg (fun range file ->
+          Test_synthesizing.expr_at_range range (Fpath.v file)) );
     ( "-synthesize_patterns",
       " <l:c-l:c> <file>",
-      Arg_helpers.mk_action_2_arg Test_synthesizing.synthesize_patterns );
+      Arg_helpers.mk_action_2_arg (fun range file ->
+          Test_synthesizing.synthesize_patterns range (Fpath.v file)) );
     ( "-generate_patterns",
       " <l:c-l:c>+ <file>",
       Arg_helpers.mk_action_n_arg Test_synthesizing.generate_pattern_choices );
     ( "-locate_patched_functions",
       " <file>",
-      Arg_helpers.mk_action_1_arg Test_synthesizing.locate_patched_functions );
+      Arg_helpers.mk_action_1_conv Fpath.v
+        Test_synthesizing.locate_patched_functions );
     ( "-stat_matches",
       " <marshalled file>",
       Arg_helpers.mk_action_1_arg Experiments.stat_matches );
@@ -491,15 +499,16 @@ let all_actions () =
             xs) );
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
-      Arg_helpers.mk_action_n_arg
+      Arg_helpers.mk_action_n_conv Fpath.v
         (Check_rule.check_files mk_config Parse_rule.parse) );
     ( "-translate_rules",
       " <files or dirs>",
-      Arg_helpers.mk_action_n_arg
+      Arg_helpers.mk_action_n_conv Fpath.v
         (Translate_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
-      Arg_helpers.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse) );
+      Arg_helpers.mk_action_n_conv Fpath.v
+        (Check_rule.stat_files Parse_rule.parse) );
     ( "-test_rules",
       " <files or dirs>",
       Arg_helpers.mk_action_n_arg Test_engine.test_rules );
@@ -512,9 +521,6 @@ let all_actions () =
     ( "-postmortem",
       " <log file",
       Arg_helpers.mk_action_1_arg Statistics_report.stat );
-    ( "-test_comby",
-      " <pattern> <file>",
-      Arg_helpers.mk_action_2_arg Test_comby.test_comby );
     ( "-test_eval",
       " <JSON file>",
       Arg_helpers.mk_action_1_arg Eval_generic.test_eval );
@@ -530,7 +536,7 @@ let options actions =
       Arg.Set_string pattern_file,
       " <file> use the file content as the pattern" );
     ( "-rules",
-      Arg.String (fun s -> rule_source := Some (Rule_file s)),
+      Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
@@ -540,10 +546,10 @@ let options actions =
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> shortcut for -lang" );
     ( "-targets",
-      Arg.String (fun s -> target_source := Some (Target_file s)),
+      Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
-      Arg.Set_string equivalences_file,
+      Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
     ( "-use_parsing_cache",
@@ -651,13 +657,14 @@ let options actions =
       Arg.Set matching_explanations,
       " output intermediate matching explanations" );
     ( "-log_config_file",
-      Arg.Set_string log_config_file,
+      Arg.String (fun s -> log_config_file := Fpath.v s),
       " <file> logging configuration file" );
     ( "-log_to_file",
-      Arg.String (fun file -> log_to_file := Some file),
+      Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
-    ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
+    ("-ls", Arg.Set ls, " run Semgrep Language Server");
+    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
@@ -675,7 +682,7 @@ let options actions =
         Arg.Set Common.save_tmp_files,
         " keep temporary generated files" );
     ]
-  @ Meta_parse_info.cmdline_flags_precision ()
+  @ Meta_AST.cmdline_flags_precision () (* -full_token_info *)
   @ Arg_helpers.options_of_actions action (actions ())
   @ [
       ( "-version",
@@ -757,7 +764,13 @@ let main (sys_argv : string array) : unit =
     else config
   in
 
-  if config.lsp then LSP_client.init ();
+  (* hacks to reduce the size of engine.js
+   * coupling: if you add an init() call here, you probably need to modify
+   * also tests/Test.ml and osemgrep/cli/CLI.ml
+   *)
+  Parsing_init.init ();
+  Data_init.init ();
+  if config.ls then LS.start config;
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->
@@ -781,7 +794,7 @@ let main (sys_argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let config = { config with roots } in
+          let config = { config with roots = File.Path.of_strings roots } in
           Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)
@@ -799,7 +812,7 @@ let main (sys_argv : string array) : unit =
    can be tricky.
 *)
 let register_exception_printers () =
-  Parse_info.register_exception_printer ();
+  Parsing_error.register_exception_printer ();
   SPcre.register_exception_printer ();
   Rule.register_exception_printer ()
 

@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 open AST_jsonnet
 module C = Core_jsonnet
 
@@ -40,13 +41,14 @@ module C = Core_jsonnet
  * import yaml files (e.g., local x = import 'foo.yaml') or rules from the
  * registry (e.g., local x = import 'p/python').
  *)
-type import_callback = Common.dirname -> string -> AST_jsonnet.expr option
+type import_callback =
+  Common.filename (* a directory *) -> string -> AST_jsonnet.expr option
 
 let default_callback _ _ = None
 
 type env = {
   (* like in Python jsonnet binding, "the base is the directly of the file" *)
-  base : Common.dirname;
+  base : Common.filename; (* a directory *)
   import_callback : import_callback;
   (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec
@@ -55,7 +57,7 @@ type env = {
   within_an_object : bool;
 }
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -65,7 +67,7 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
-let fk = Parse_info.unsafe_fake_info ""
+let fk = Tok.unsafe_fake_tok ""
 let fb x = (fk, x, fk)
 let mk_str_literal (str, tk) = Str (None, DoubleQuote, (fk, [ (str, tk) ], fk))
 let mk_array exprs = A (fk, Array exprs, fk)
@@ -457,7 +459,7 @@ and desugar_import env v : C.expr =
             let final_path = Filename.concat env.base str in
             if not (Sys.file_exists final_path) then
               error tk (spf "file does not exist: %s" final_path);
-            let ast = Parse_jsonnet.parse_program final_path in
+            let ast = Parse_jsonnet.parse_program (Fpath.v final_path) in
             let env = { env with base = Filename.dirname final_path } in
             (ast, env)
         | Some ast ->
@@ -484,9 +486,13 @@ and desugar_import env v : C.expr =
 let desugar_expr_profiled env e = desugar_expr env e [@@profiling]
 
 let desugar_program ?(import_callback = default_callback) ?(use_std = true)
-    (file : Common.filename) (e : program) : C.program =
+    (file : Fpath.t) (e : program) : C.program =
   let env =
-    { within_an_object = false; base = Filename.dirname file; import_callback }
+    {
+      within_an_object = false;
+      base = Filename.dirname !!file;
+      import_callback;
+    }
   in
   (* TODO: skipped for now because std.jsonnet contains too many complicated
    * things we don't handle, and it actually does not even parse right now.

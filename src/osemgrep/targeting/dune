@@ -4,14 +4,14 @@
 ; - no dependency on full-fledged language parsing or the resulting ASTs.
 ;
 (library
+  (public_name osemgrep_targeting)
   (name osemgrep_targeting)
   (libraries
+    stdcompat
     commons
     fpath
+    globbing
+    gitignore
   )
   (preprocess (pps ppx_deriving.show))
 )
-
-(ocamllex Glob_lexer)
-(menhir (modules Glob_parser)
-        (flags --unused-tokens --explain --fixed-exception))

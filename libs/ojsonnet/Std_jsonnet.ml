@@ -1682,4 +1682,4 @@ limitations under the License.
 let get_std_jsonnet () =
   (* TODO? Could add a Parse_jsonnet_tree_sitter.parse_string at some point *)
   Common2.with_tmp_file ~str:std ~ext:"jsonnet" (fun file ->
-      Parse_jsonnet.parse_program file)
+      Parse_jsonnet.parse_program (Fpath.v file))

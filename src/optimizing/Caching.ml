@@ -202,63 +202,61 @@ let prepare_pattern any =
   let add_to_stack f = stack := f :: !stack in
 
   let visitor =
-    Visitor_AST.mk_visitor
-      {
-        Visitor_AST.default_visitor with
-        kident =
-          (fun (_k, _) (id, _tok) ->
-            if debug then printf "kident %s\n" id;
-            if Metavariable.is_metavar_name id then add_metavar id);
-        kstmt =
-          (fun (k, _) stmt ->
-            let stmt_id = (AST_utils.Node_ID.to_int stmt.s_id :> int) in
-            if debug then printf "kstmt %i\n" stmt_id;
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
 
-            (* compare the number of backreferences encountered before and after
-               visiting the rest of the pattern, so as to determine the set
-               of metavariables occurring in the rest of the pattern. *)
-            let pre_bound_metavars = !bound_metavars in
-            let pre_backref_counts = !backref_counts in
-            add_to_stack (fun () ->
-                let post_backref_counts = !backref_counts in
-                let backrefs =
-                  diff_backrefs pre_bound_metavars
-                    ~new_backref_counts:post_backref_counts
-                    ~old_backref_counts:pre_backref_counts
-                in
+      method! visit_ident _env (id, _tok) =
+        if debug then printf "kident %s\n" id;
+        if Metavariable.is_metavar_name id then add_metavar id
 
-                (*
+      method! visit_stmt env stmt =
+        let stmt_id = (AST_utils.Node_ID.to_int stmt.s_id :> int) in
+        if debug then printf "kstmt %i\n" stmt_id;
+
+        (* compare the number of backreferences encountered before and after
+           visiting the rest of the pattern, so as to determine the set
+           of metavariables occurring in the rest of the pattern. *)
+        let pre_bound_metavars = !bound_metavars in
+        let pre_backref_counts = !backref_counts in
+        add_to_stack (fun () ->
+            let post_backref_counts = !backref_counts in
+            let backrefs =
+              diff_backrefs pre_bound_metavars
+                ~new_backref_counts:post_backref_counts
+                ~old_backref_counts:pre_backref_counts
+            in
+
+            (*
            It happens that the same stmt can be visited multiple times, to
            the following assertion doesn't hold:
 
              assert (stmt.s_backrefs = None);
         *)
-                stmt.s_backrefs <- Some backrefs;
+            stmt.s_backrefs <- Some backrefs;
 
-                (* Only consult the cache if it's economical, see details earlier. *)
-                if
-                  is_ellipsis_stmt stmt
-                  && (Set_.is_empty backrefs || !Flag.max_cache)
-                then stmt.s_use_cache <- true;
+            (* Only consult the cache if it's economical, see details earlier. *)
+            if
+              is_ellipsis_stmt stmt
+              && (Set_.is_empty backrefs || !Flag.max_cache)
+            then stmt.s_use_cache <- true;
 
-                if debug then (
-                  printf "stmt %i\n" stmt_id;
-                  printf "$A backrefs before %i, after %i\n"
-                    (get_count "$A" pre_backref_counts)
-                    (get_count "$A" post_backref_counts);
-                  printf "bound metavariables:\n%a" print_names
-                    pre_bound_metavars;
-                  printf "pre backref counts:\n%a" print_name_counts
-                    pre_backref_counts;
-                  printf "post backref counts:\n%a" print_name_counts
-                    post_backref_counts;
-                  printf "backrefs:\n%a" print_names backrefs;
-                  printf "\n"));
-            (* continue scanning the current subtree. *)
-            k stmt);
-      }
+            if debug then (
+              printf "stmt %i\n" stmt_id;
+              printf "$A backrefs before %i, after %i\n"
+                (get_count "$A" pre_backref_counts)
+                (get_count "$A" post_backref_counts);
+              printf "bound metavariables:\n%a" print_names pre_bound_metavars;
+              printf "pre backref counts:\n%a" print_name_counts
+                pre_backref_counts;
+              printf "post backref counts:\n%a" print_name_counts
+                post_backref_counts;
+              printf "backrefs:\n%a" print_names backrefs;
+              printf "\n"));
+        (* continue scanning the current subtree. *)
+        super#visit_stmt env stmt
+    end
   in
-  visitor any;
+  visitor#visit_any () any;
   List.iter (fun f -> f ()) !stack;
   if debug then printf "pattern AST:\n%s\n" (AST_generic.show_any any)
 

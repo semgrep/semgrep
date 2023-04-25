@@ -43,6 +43,8 @@ class JsonFormatter(BaseFormatter):
             extra.fix_regex = rule_match.fix_regex
         if rule_match.is_ignored is not None:
             extra.is_ignored = rule_match.is_ignored
+        if rule_match.extra.get("extra_extra"):
+            extra.extra_extra = out.RawJson(rule_match.extra.get("extra_extra"))
 
         return out.CliMatch(
             check_id=out.RuleId(rule_match.rule_id),

@@ -9,10 +9,11 @@
 
 (* Holds project root, and some cached data *)
 type t
+type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
 
 (*
    Initialize the data used to filter paths.
-   The project_root path must be absolute and must exist. It is used to
+   The project_root path must exist. It is used to
    locate .gitignore and .semgrepignore files.
 
    This is an instanciation of Gitignore_filter.t specific to Semgrep.
@@ -27,6 +28,7 @@ val create :
     *)
     string list ->
   ?cli_patterns:string list ->
+  exclusion_mechanism:exclusion_mechanism ->
   project_root:Fpath.t ->
   unit ->
   t

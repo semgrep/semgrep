@@ -133,7 +133,7 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
     rules;
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
-let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
+let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let grouped_rules = group_rules_by_target_language all_rules in
   let cache = Find_target.create_cache () in
   Common.map
@@ -153,7 +153,7 @@ let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
               rules)
           all_targets
       in
-      ({ lang; targets; rules } : Runner_config.lang_job))
+      ({ lang; targets; rules } : Lang_job.t))
     grouped_rules
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
@@ -188,9 +188,9 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list)
-    (all_targets : Common.filename list) : result =
+let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
+    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
+    (all_targets : Fpath.t list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
 
   match rule_errors with
@@ -212,9 +212,9 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
         {
           Out.matches = [];
           errors = [ error ];
-          skipped_targets = None;
-          skipped_rules = None;
-          explanations = None;
+          skipped_targets = [];
+          skipped_rules = [];
+          explanations = [];
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
           rules_by_engine = [];
@@ -231,6 +231,14 @@ let invoke_semgrep_core (conf : conf) (all_rules : Rule.t list)
        * requires the xlang object to contain a single language.
        *)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
+      Logs.app (fun m ->
+          m "%a"
+            (fun ppf () ->
+              Status_report.pp_status ~num_rules:(List.length all_rules)
+                ~num_targets:(List.length all_targets) ~respect_git_ignore
+                lang_jobs ppf)
+            ());
+      (* TODO progress bar *)
       let results_by_language =
         lang_jobs
         |> Common.map (fun lang_job ->

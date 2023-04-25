@@ -15,6 +15,10 @@ module H = Cmdliner_helpers
    TOPORT? all those shell_complete() click functions?
 *)
 
+(* TODO: use parser/printer pair for file paths using Fpath.t so that
+   we don't have to convert manually from string to fpath for each
+   file option offered by the CLI. Add it to CLI_common. *)
+
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
@@ -31,10 +35,12 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_target.conf;
   (* Other configuration options *)
+  nosem : bool;
   autofix : bool;
   dryrun : bool;
   error_on_findings : bool;
   strict : bool;
+  rewrite_rule_ids : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -43,11 +49,12 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;
+  max_chars_per_line : int;
+  max_lines_per_finding : int;
   time_flag : bool;
   profile : bool;
-  rewrite_rule_ids : bool;
   (* Networking options *)
-  metrics : Metrics.config;
+  metrics : Metrics_.config;
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -66,8 +73,14 @@ let default : conf =
     (* alt: could move in a Target_manager.default *)
     targeting_conf =
       {
-        Find_target.exclude = [];
-        include_ = [];
+        (* the project root is inferred from the presence of .git, otherwise
+           falls back to the current directory. Should it be offered as
+           a command-line option? In osemgrep, a .semgrepignore at the
+           git project root will be honored unlike in legacy semgrep
+           if we're in a subfolder. *)
+        Find_target.project_root = None;
+        exclude = [];
+        include_ = None;
         baseline_commit = None;
         max_target_bytes = 1_000_000 (* 1 MB *);
         respect_git_ignore = true;
@@ -92,10 +105,12 @@ let default : conf =
     output_format = Output_format.Text;
     logging_level = Some Logs.Warning;
     force_color = false;
+    max_chars_per_line = 160;
+    max_lines_per_finding = 10;
     profile = false;
     rewrite_rule_ids = true;
     time_flag = false;
-    metrics = Metrics.Auto;
+    metrics = Metrics_.Auto;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -103,6 +118,7 @@ let default : conf =
     dump = None;
     validate = None;
     test = None;
+    nosem = true;
   }
 
 (*************************************************************************)
@@ -120,7 +136,7 @@ let default : conf =
 (* TOPORT? there's also a --disable-metrics and --enable-metrics
  * but they are marked as legacy flags, so maybe not worth porting
  *)
-let o_metrics : Metrics.config Term.t =
+let o_metrics : Metrics_.config Term.t =
   let info =
     Arg.info [ "metrics" ]
       ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
@@ -133,7 +149,7 @@ SEMGREP_SEND_METRICS environment variable value will be used. If no
 environment variable, defaults to 'auto'.
 |}
   in
-  Arg.value (Arg.opt Metrics.converter default.metrics info)
+  Arg.value (Arg.opt Metrics_.converter default.metrics info)
 
 (* alt: was in "Performance and memory options" before *)
 let o_version_check : bool Term.t =
@@ -188,17 +204,18 @@ https://docs.python.org/3/library/glob.html
 
 let o_max_target_bytes : int Term.t =
   let info =
-    Arg.info
-      [ "max-target-bytes" ]
-      (* TOPORT: should use default.max_target_bytes in message *)
+    Arg.info [ "max-target-bytes" ]
       ~doc:
-        {|Maximum size for a file to be scanned by Semgrep, e.g
+        ({|Maximum size for a file to be scanned by Semgrep, e.g
 '1.5MB'. Any input program larger than this will be ignored. A zero or
-negative value disables this filter. Defaults to 1000000 bytes.
-|}
+negative value disables this filter. Defaults to |}
+        ^ string_of_int default.targeting_conf.max_target_bytes
+        ^ {| bytes.
+|})
   in
-  (* TOPORT: support '1.5MB' and such, see bytesize.py *)
-  Arg.value (Arg.opt Arg.int default.targeting_conf.max_target_bytes info)
+  Arg.value
+    (Arg.opt Cmdliner_helpers.number_of_bytes_converter
+       default.targeting_conf.max_target_bytes info)
 
 let o_respect_git_ignore : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
@@ -323,6 +340,23 @@ let o_force_color : bool Term.t =
 a TTY; defaults to using the TTY status
 |}
 
+let o_max_chars_per_line : int Term.t =
+  let info =
+    Arg.info [ "max-chars-per-line" ]
+      ~doc:"Maximum number of characters to show per line."
+  in
+  Arg.value (Arg.opt Arg.int default.max_chars_per_line info)
+
+let o_max_lines_per_finding : int Term.t =
+  let info =
+    Arg.info
+      [ "max-lines-per-finding" ]
+      ~doc:
+        {|Maximum number of lines of code that will be shown for each match before
+trimming (set to 0 for unlimited).|}
+  in
+  Arg.value (Arg.opt Arg.int default.max_lines_per_finding info)
+
 let o_rewrite_rule_ids : bool Term.t =
   H.negatable_flag [ "rewrite-rule-ids" ] ~neg_options:[ "no-rewrite-rule-ids" ]
     ~default:default.rewrite_rule_ids
@@ -338,6 +372,13 @@ let o_time : bool Term.t =
       {|Include a timing summary with the results. If output format is json,
  provides times for each pair (rule, target).
 |}
+
+let o_nosem : bool Term.t =
+  H.negatable_flag ~default:true [ "enable-nosem" ]
+    ~neg_options:[ "disable-nosem" ]
+    ~doc:
+      {|Enables 'nosem'. Findings will not be reported on lines containing
+          a 'nosem' comment at the end. Enabled by default.|}
 
 (* ------------------------------------------------------------------ *)
 (* TOPORT "Verbosity options" (mutually exclusive) *)
@@ -564,9 +605,7 @@ let o_target_roots : string list Term.t =
       ~doc:{|Files or folders to be scanned by semgrep.|}
   in
   Arg.value
-    (Arg.pos_all Arg.string
-       (default.target_roots |> Common.map Fpath.to_string)
-       info)
+    (Arg.pos_all Arg.string (default.target_roots |> File.Path.to_strings) info)
 
 (* ------------------------------------------------------------------ *)
 (* !!NEW arguments!! not in pysemgrep *)
@@ -581,6 +620,21 @@ let o_dump_config : string option Term.t =
   let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_project_root : string option Term.t =
+  let info =
+    Arg.info [ "project-root" ]
+      ~doc:
+        {|The project root for gitignore and semgrepignore purposes is
+          detected automatically from the presence of a .git/ directory in
+          the current directory or one of its parents. If not found,
+          the current directory is used as the project root. This option
+          forces a specific directory to be the project root. This is useful
+          for testing or for restoring compatibility with older semgrep
+          implementations that only looked for a .semgrepignore file
+          in the current directory.|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -590,12 +644,18 @@ let cmdline_term : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine autofix baseline_commit config debug dryrun dump_ast dump_config
       emacs error exclude exclude_rule_ids force_color include_ json lang
-      max_memory_mb max_target_bytes metrics num_jobs optimizations pattern
-      profile quiet replacement respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate verbose version version_check vim =
-    let target_roots = target_roots |> Common.map Fpath.v in
+      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
+      metrics num_jobs nosem optimizations pattern profile project_root quiet
+      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo time_flag timeout timeout_threshold validate verbose
+      version version_check vim =
+    let include_ =
+      match include_ with
+      | [] -> None
+      | nonempty -> Some nonempty
+    in
+    let target_roots = target_roots |> File.Path.of_strings in
     let logging_level =
       match (verbose, debug, quiet) with
       | false, false, false -> Some Logs.Warning
@@ -672,7 +732,8 @@ let cmdline_term : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_target.exclude;
+        Find_target.project_root = Option.map Fpath.v project_root;
+        exclude;
         include_;
         baseline_commit;
         max_target_bytes;
@@ -784,13 +845,13 @@ let cmdline_term : conf Term.t =
     in
 
     (* sanity checks *)
-    if List.mem "auto" config && metrics =*= Metrics.Off then
+    if List.mem "auto" config && metrics =*= Metrics_.Off then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
          or run with a specific config.";
 
     (* warnings *)
-    if include_ <> [] && exclude <> [] then
+    if include_ <> None && exclude <> [] then
       Logs.warn (fun m ->
           m
             "Paths that match both --include and --exclude will be skipped by \
@@ -806,6 +867,8 @@ let cmdline_term : conf Term.t =
       dryrun;
       error_on_findings = error;
       force_color;
+      max_chars_per_line;
+      max_lines_per_finding;
       logging_level;
       metrics;
       version_check;
@@ -820,6 +883,7 @@ let cmdline_term : conf Term.t =
       dump;
       validate;
       test;
+      nosem;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -829,8 +893,9 @@ let cmdline_term : conf Term.t =
     const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_optimizations $ o_pattern $ o_profile $ o_quiet $ o_replacement
+    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
+    $ o_pattern $ o_profile $ o_project_root $ o_quiet $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
     $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
     $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold

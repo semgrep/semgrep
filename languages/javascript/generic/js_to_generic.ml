@@ -36,7 +36,7 @@ let list = Common.map
 let bool = id
 let string = id
 let error = AST_generic.error
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -100,7 +100,7 @@ let special (x, tok) =
           match args with
           | [ e ] ->
               let tvoid = G.ty_builtin ("void", tok) in
-              G.Cast (tvoid, PI.fake_info tok ":", e)
+              G.Cast (tvoid, Tok.fake_tok tok ":", e)
           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
   | Yield ->
@@ -305,7 +305,7 @@ and expr (x : expr) =
           logger#info "Weird: literal in call position";
           (* apparently there's code like (null)("fs"), no idea what that is *)
           G.Call (G.L l |> G.e, bracket (Common.map G.arg) v2)
-      | SR_NeedArgs f -> f (PI.unbracket v2)
+      | SR_NeedArgs f -> f (Tok.unbracket v2)
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
@@ -319,7 +319,7 @@ and expr (x : expr) =
       let tok = info tok in
       let e = expr e in
       let args = bracket (list (fun arg -> G.Arg (expr arg))) args in
-      G.New (tok, H.expr_to_type e, args)
+      G.New (tok, H.expr_to_type e, G.empty_id_info (), args)
   | Arr v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.Array, v1)
@@ -468,7 +468,7 @@ and type_ x =
   (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
       let l = G.L (literal l) in
-      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (l |> G.e) ])
+      G.OtherType (("LitType", Tok.unsafe_fake_tok ""), [ G.E (l |> G.e) ])
       |> G.t
   | TyQuestion (tok, t) ->
       let t = type_ t in
@@ -483,13 +483,13 @@ and type_ x =
       let params = Common.map parameter_binding params in
       let rett =
         match typ_opt with
-        | None -> G.ty_builtin ("void", PI.unsafe_fake_info "void")
+        | None -> G.ty_builtin ("void", Tok.unsafe_fake_tok "void")
         | Some t -> type_ t
       in
       G.TyFun (params, rett) |> G.t
   | TyRecordAnon (lt, properties, rt) ->
       G.TyRecordAnon
-        ((G.Class, PI.fake_info lt ""), (lt, Common.map property properties, rt))
+        ((G.Class, Tok.fake_tok lt ""), (lt, Common.map property properties, rt))
       |> G.t
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in

@@ -1,0 +1,13 @@
+<stuff
+    x1="1"
+    x2="2"
+    <!-- ERROR: match -->
+    foo="true"
+    >
+</stuff>
+<other
+    foo="false"
+    >
+</other>
+
+    

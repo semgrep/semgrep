@@ -16,7 +16,6 @@
 open Common
 open Parser_lisp
 open Ast_lisp
-module PI = Parse_info
 module PS = Parsing_stat
 
 (* we don't need a full grammar for lisp code, so we put everything,
@@ -85,16 +84,17 @@ and sexp toks =
           let xs, rest = sexps xs in
           match rest with
           | TCParen t2 :: rest -> (Sexp (t1, xs, t2), rest)
-          | _ -> raise (PI.Other_error ("unclosed parenthesis", t1)))
+          | _ -> raise (Parsing_error.Other_error ("unclosed parenthesis", t1)))
       | TOBracket t1 -> (
           let xs, rest = sexps xs in
           match rest with
           | TCBracket t2 :: rest -> (Sexp (t1, xs, t2), rest)
-          | _ -> raise (PI.Other_error ("unclosed bracket", t1)))
+          | _ -> raise (Parsing_error.Other_error ("unclosed bracket", t1)))
       | TCParen t
       | TCBracket t ->
           raise
-            (PI.Other_error ("closing bracket/paren without opening one", t))
+            (Parsing_error.Other_error
+               ("closing bracket/paren without opening one", t))
       | TQuote t ->
           let s, rest = sexp xs in
           (Special ((Quote, t), s), rest)
@@ -108,8 +108,8 @@ and sexp toks =
           let s, rest = sexp xs in
           (Special ((Comma, t), s), rest)
       (* hmmm probably unicode *)
-      | TUnknown t -> (Atom (String (PI.str_of_info t, t)), xs)
-      | EOF t -> raise (PI.Other_error ("unexpected eof", t)))
+      | TUnknown t -> (Atom (String (Tok.content_of_tok t, t)), xs)
+      | EOF t -> raise (Parsing_error.Other_error ("unexpected eof", t)))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -126,12 +126,13 @@ let parse filename =
       match sexps toks with
       | xs, [] -> Some xs
       | _, x :: _xs ->
-          raise (PI.Other_error ("trailing constructs", TH.info_of_tok x))
+          raise
+            (Parsing_error.Other_error ("trailing constructs", TH.info_of_tok x))
     with
-    | PI.Other_error (s, info) ->
+    | Parsing_error.Other_error (s, info) ->
         pr2
-          (spf "Parse error: %s, {%s} at %s" s (PI.str_of_info info)
-             (PI.string_of_info info));
+          (spf "Parse error: %s, {%s} at %s" s (Tok.content_of_tok info)
+             (Tok.stringpos_of_tok info));
         stat.PS.error_line_count <- stat.PS.total_line_count;
         None
     | exn -> Exception.catch_and_reraise exn

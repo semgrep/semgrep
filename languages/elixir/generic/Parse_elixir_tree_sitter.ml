@@ -18,7 +18,6 @@ open AST_generic
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -109,7 +108,7 @@ type block = body_or_clauses bracket
 (* Intermediate AST constructs to AST_generic *)
 (*****************************************************************************)
 
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
 let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
 let body_to_stmts es = es |> Common.map G.exprstmt
@@ -1060,7 +1059,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
       | Some (Left id) ->
           let n = H2.name_of_id id in
           let ty = TyN n |> G.t in
-          New (tpercent, ty, (l, Common.map G.arg xs, r)) |> G.e
+          New (tpercent, ty, empty_id_info (), (l, Common.map G.arg xs, r))
+          |> G.e
       | Some (Right e) -> Call (e, (l, Common.map G.arg xs, r)) |> G.e)
   | `Un_op x -> map_unary_operator env x
   | `Bin_op x -> map_binary_operator env x

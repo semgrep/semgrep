@@ -9,6 +9,15 @@ jobs:
     name: Build the OSX binaries
     runs-on: ["self-hosted", "macOS", "X64"]
     steps:
+      # Force hard cleanup of any old checkouts.
+      # This is needed when submodules move around, as they are no longer removed by the default clean: true of the checkout step below.
+      # This misses some files (like hidden files) but should take care of the issues we've been seeing.
+      # A more targeted approach we tried previously seems to have failed to clean up all issues
+      - name: Clean Checkout
+        run: |
+          rm -rf ./*
+          rm -f .gitmodules
+          rm -rf .git
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3

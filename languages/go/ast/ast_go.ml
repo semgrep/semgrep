@@ -33,23 +33,19 @@
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-(* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
- * transformation field that makes possible spatch on the code.
- *)
-type tok = Parse_info.t [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Ident, qualifier *)
 (* ------------------------------------------------------------------------- *)
 (* For functions/methods/parameters/fields/labels *)
-type ident = string wrap [@@deriving show] (* with tarzan *)
+type ident = string wrap [@@deriving show]
 
 (* For type names  (called names in ast.go). It could also be used for
  * imported entities from other module, but they are currently parsed as
@@ -57,7 +53,6 @@ type ident = string wrap [@@deriving show] (* with tarzan *)
  * that require a semantic analysis to disambiguate.
  *)
 type qualified_ident = ident list (* 1 or 2 elements *) [@@deriving show]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Type *)
@@ -300,7 +295,6 @@ and decl =
   | DTypeAlias of ident * tok (* = *) * type_
   (* this introduces a distinct type, with different method set *)
   | DTypeDef of ident * type_parameters option (* generics: *) * type_
-(* with tarzan *)
 
 and function_ = func_type * stmt
 
@@ -326,7 +320,6 @@ and import_kind =
   (* inline in current file scope all the entities of the imported module *)
   | ImportDot of tok
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Toplevel *)
@@ -344,7 +337,6 @@ type top_decl =
   (* tree-sitter-go: not used in pfff Go grammar *)
   | STop of stmt
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (* old: used to be a record with package, imports, and then decls but
  * tree-sitter-go is more flexible and so I put package and imports in
@@ -352,7 +344,6 @@ type top_decl =
  * by allowing to have a pattern with just a package declaration for example.
  *)
 type program = top_decl list [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Any *)
@@ -382,7 +373,6 @@ type any =
   | Items of item list
   | Partial of partial
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -395,8 +385,8 @@ let stmt1_with b xs =
   | [ st ] -> st
   | xs -> Block (b xs)
 
-let stmt1 tok xs = stmt1_with (Parse_info.fake_bracket tok) xs
-let unsafe_stmt1 xs = stmt1_with Parse_info.unsafe_fake_bracket xs
+let stmt1 tok xs = stmt1_with (Tok.fake_bracket tok) xs
+let unsafe_stmt1 xs = stmt1_with Tok.unsafe_fake_bracket xs
 
 let item1 xs =
   match xs with

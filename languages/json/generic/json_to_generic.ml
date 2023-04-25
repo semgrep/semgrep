@@ -14,17 +14,16 @@
  *)
 open Common
 open Ast_json
-module PI = Parse_info
 module M = Map_AST
 module G = AST_generic
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let parse_json_string json =
   try
     Some
       (Yojson.Safe.read_string
-         (Yojson.init_lexer ~buf:(Bi_outbuf.create 128) ())
+         (Yojson.init_lexer ~buf:(Buffer.create 128) ())
          (Lexing.from_string json))
   with
   | Yojson.Json_error _ -> None
@@ -77,7 +76,7 @@ let expr ?(unescape_strings = false) x =
                              else G.L (G.String (fb id)) |> G.e
                            in
                            G.Container
-                             (G.Tuple, PI.unsafe_fake_bracket [ key; e ])
+                             (G.Tuple, Tok.unsafe_fake_bracket [ key; e ])
                            |> G.e
                        | Right t -> G.Ellipsis t |> G.e)
                 in
@@ -115,4 +114,5 @@ let any x =
           G.N (G.Id (v1, G.empty_id_info ())) |> G.e
         else G.L (G.String (fb v1)) |> G.e
       in
-      G.E (G.Container (G.Tuple, PI.unsafe_fake_bracket [ key; expr v3 ]) |> G.e)
+      G.E
+        (G.Container (G.Tuple, Tok.unsafe_fake_bracket [ key; expr v3 ]) |> G.e)

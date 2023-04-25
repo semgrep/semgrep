@@ -14,7 +14,7 @@ foo.py:11:5:E:eqeq-bad:useless comparison
 foo.py:19:5:E:eqeq-four:useless comparison to 4
 foo.py:27:5:W:taint-test:unsafe use of danger
 foo.py:15:5:E:eqeq-five:useless comparison to 5
-poetry.lock:0:0:E:supply-chain1:found a dependency
+poetry.lock:1:0:E:supply-chain1:found a dependency
 
 === end of stdout - plain
 
@@ -30,24 +30,20 @@ poetry.lock:0:0:E:supply-chain1:found a dependency
   environment - running in environment git, triggering event is unknown
             
   CONNECTION
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
             
+            
   CODE RULES
   Scanning 1 file with 4 python rules.
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

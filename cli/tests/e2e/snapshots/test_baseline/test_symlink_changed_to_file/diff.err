@@ -4,8 +4,6 @@
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
   Current version has 1 finding.
 
@@ -19,14 +17,7 @@ Switching repository to baseline commit 'HEAD^'.
 │ Scan Status │
 └─────────────┘
   Scanning 0 files tracked by git with 1 Code rule:
-            
-  CODE RULES
   Nothing to scan.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

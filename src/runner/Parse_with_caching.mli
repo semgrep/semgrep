@@ -4,7 +4,7 @@ val parse_and_resolve_name :
   string (* semgrep or AST generic version *) ->
   Lang.t ->
   Common.filename ->
-  AST_generic.program * Parse_info.token_location list
+  AST_generic.program * Tok.location list
 
 (* We store the version and the original path as well as whether parsing the
  * file was generating an exn in the marshalled value on disk. That
@@ -15,9 +15,7 @@ val parse_and_resolve_name :
 type versioned_parse_result =
   string (* version *)
   * Common.filename (* original path *)
-  * ( AST_generic.program * Parse_info.token_location list,
-      Exception.t )
-    Common.either
+  * (AST_generic.program * Tok.location list, Exception.t) Common.either
 
 (* to add as a suffix to a filename *)
 val binary_suffix : string (* .ast.binary *)

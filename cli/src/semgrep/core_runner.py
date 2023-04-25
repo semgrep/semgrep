@@ -23,7 +23,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-from typing import TYPE_CHECKING
 
 from attr import asdict
 from attr import define
@@ -37,11 +36,11 @@ from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
 from rich.progress import TaskProgressColumn
+from rich.progress import TextColumn
 from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
 
-import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
@@ -63,7 +62,6 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
@@ -242,7 +240,6 @@ class StreamingSemgrepCore:
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
-
         has_started = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
@@ -257,14 +254,31 @@ class StreamingSemgrepCore:
                 # that are looking for it. Make sure `semgrep-core exited with unexpected output`
                 # and `interfile analysis` are both in the message, or talk to Emma.
                 raise SemgrepError(
-                    "semgrep-core exited with unexpected output.\n\n"
-                    "\tThis can happen because it overflowed the stack or used too much memory.\n"
-                    "\tTry changing the stack limit with `ulimit -s <limit>` or adding\n"
-                    "\t`--max-memory <memory>` to the semgrep command. For CI runs with interfile\n"
-                    "\tanalysis, the default max-memory is 5000MB. Depending on the memory\n"
-                    "\tavailable in your runner, you may need to lower it. We recommend choosing\n"
-                    "\ta limit 70% of the available memory to allow for some overhead. If you have\n"
-                    "\ttried these steps and still are seeing this error, please contact us."
+                    f"""
+                    You are seeing this because the engine was killed.
+
+                    The most common reason this happens is because it used too much memory.
+                    If your repo is large (~10k files or more), you have three options:
+                    1. Increase the amount of memory available to semgrep
+                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We
+                        recommend using 1 job if you are running out of memory.
+                    3. Scan the repo in parts (contact us for help)
+
+                    Otherwise, it is likely that semgrep is hitting the limit on only some
+                    files. In this case, you can try to set the limit on the amount of memory
+                    semgrep can use on each file with `--max-memory <memory>`. We recommend
+                    lowering this to a limit 70% of the available memory. For CI runs with
+                    interfile analysis, the default max-memory is 5000MB. Without, the default
+                    is unlimited.
+
+                    The last thing you can try if none of these work is to raise the stack
+                    limit with `ulimit -s <limit>`.
+
+                    If you have tried all these steps and still are seeing this error, please
+                    contact us.
+
+                       Error: semgrep-core exited with unexpected output
+                    """
                 )
 
             if (
@@ -399,52 +413,6 @@ class StreamingSemgrepCore:
         # Return exit code of cmd. process should already be done
         return await process.wait()
 
-    def _run_forked_analysis_in_child(self) -> None:
-        """
-        Run semgrep_analyze from within the child process.
-        """
-        # Like in the exec case, try to expand limits in the child.
-        setrlimits_preexec_fn()
-
-        # TYPE_CHECKING is always false at run time, but by doing this,
-        # mypy will know which module 'semgrep_bridge_python' refers to,
-        # and hence check the calls to it.
-        if TYPE_CHECKING:
-            import semgrep_bridge_python
-        else:
-            semgrep_bridge_python = SemgrepCore.get_bridge_module()
-
-        # Currently, we delay initializing the OCaml runtime until we
-        # are in the forked child.  Later, we may want to hoist this to
-        # the parent somewhere so multiple queries can be more
-        # efficiently performed in the context of a Snowflake UDF.
-        semgrep_bridge_python.startup()
-
-        # Invoke the semgrep_bridge_python module.
-        err = semgrep_bridge_python.semgrep_analyze(self._cmd, self._handle_read_file)
-
-        if err != None:
-            # Convey an error back to the parent.
-            print(err, file=sys.stderr)
-            sys.exit(2)
-
-        semgrep_bridge_python.shutdown()
-
-    async def _stream_fork_subprocess(self) -> int:
-        """
-        Run semgrep_bridge_python.so in a forked (but not exec'd) child
-        process, consuming its output asynchronously.
-
-        Return its exit code when it terminates.
-        """
-        process = await fork_subprocess.start_fork_subprocess(
-            lambda: self._run_forked_analysis_in_child(), limit=INPUT_BUFFER_LIMIT
-        )
-
-        await self._handle_process_outputs(process.stdout, process.stderr)
-
-        return process.wait()
-
     def execute(self) -> int:
         """
         Run semgrep-core and listen to stdout to update
@@ -456,6 +424,9 @@ class StreamingSemgrepCore:
 
         terminal = get_state().terminal
         with Progress(
+            # align progress bar to output by indenting 2 spaces
+            # (the +1 space comes from column gap)
+            TextColumn(" "),
             BarColumn(),
             TaskProgressColumn(),
             TimeElapsedColumn(),
@@ -472,10 +443,7 @@ class StreamingSemgrepCore:
                 "", total=self._total, start=False
             )
 
-            if SemgrepCore.using_bridge_module():
-                rc = asyncio.run(self._stream_fork_subprocess())
-            else:
-                rc = asyncio.run(self._stream_exec_subprocess())
+        rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
@@ -654,7 +622,7 @@ class Plan:
         for origin, count in sorted(
             origin_counts.items(), key=lambda x: x[1], reverse=True
         ):
-            origin_name = origin.replace("_", " ").title()
+            origin_name = origin.replace("_", " ").capitalize()
 
             table.add_row(origin_name, str(count))
 
@@ -662,14 +630,14 @@ class Plan:
 
     def table_by_sca_analysis(self) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
-        table.add_column("Rule Type")
+        table.add_column("Analysis")
         table.add_column("Rules", justify="right")
 
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
-            "legacy": "Presence",
-            "malicious": "Presence",
-            "upgrade-only": "Presence",
+            "legacy": "Basic",
+            "malicious": "Basic",
+            "upgrade-only": "Basic",
         }
 
         sca_analysis_counts = collections.Counter(
@@ -1067,11 +1035,12 @@ class CoreRunner:
 
                 if engine is EngineType.PRO_INTERFILE:
                     targets = target_manager.targets
-                    if len(targets) == 1 and targets[0].path.is_dir():
+                    if len(targets) == 1:
                         root = str(targets[0].path)
                     else:
-                        # TODO: This is no longer true...
-                        raise SemgrepError("deep mode needs a single target (root) dir")
+                        raise SemgrepError(
+                            "Inter-file analysis can only take a single target (for multiple files pass a directory)"
+                        )
                     cmd += ["-deep_inter_file"]
                     cmd += [
                         "-timeout_for_interfile_analysis",

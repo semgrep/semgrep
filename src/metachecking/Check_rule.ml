@@ -13,11 +13,11 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module FT = File_type
 open Rule
 module R = Rule
 module E = Semgrep_error_code
-module PI = Parse_info
 module P = Pattern_match
 module RP = Report
 module SJ = Output_from_core_j
@@ -70,7 +70,7 @@ type env = { r : Rule.t; errors : E.error list ref }
 (*****************************************************************************)
 
 let error env t s =
-  let loc = Parse_info.unsafe_token_location_of_info t in
+  let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
   let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in
@@ -160,7 +160,7 @@ let check_pattern (lang : Xlang.t) f =
   visit_new_formula
     (fun { pat; pstr = _pat_str; pid = _ } _ ->
       match (pat, lang) with
-      | Sem (semgrep_pat, _lang), L (lang, _rest) ->
+      | Sem ((lazy semgrep_pat), _lang), L (lang, _rest) ->
           Check_pattern.check lang semgrep_pat
       | Spacegrep _spacegrep_pat, LGeneric -> ()
       | Regexp _, _ -> ()
@@ -227,7 +227,7 @@ let run_checks config fparser metachecks xs =
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   let rules, more_skipped_paths =
-    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) yaml_xs
+    List.partition (fun file -> not (!!file =~ ".*\\.test\\.yaml")) yaml_xs
   in
   let _skipped_paths = more_skipped_paths @ skipped_paths in
   match rules with
@@ -239,19 +239,18 @@ let run_checks config fparser metachecks xs =
       let semgrep_found_errs = semgrep_check config metachecks rules in
       let ocaml_found_errs =
         rules
-        |> Common.map (fun file ->
-               logger#info "processing %s" file;
+        |> List.concat_map (fun file ->
+               logger#info "processing %s" !!file;
                try
                  let rs = fparser file in
-                 rs |> Common.map (fun file -> check file) |> List.flatten
+                 rs |> List.concat_map (fun file -> check file)
                with
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)
                | R.Err (R.InvalidYaml _) -> []
                | exn ->
                    let e = Exception.catch exn in
-                   [ E.exn_to_error file e ])
-        |> List.flatten
+                   [ E.exn_to_error !!file e ])
       in
       semgrep_found_errs @ ocaml_found_errs
 
@@ -290,7 +289,7 @@ let stat_files fparser xs =
   let bad = ref 0 in
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
+         logger#info "processing %s" !!file;
          let rs = fparser file in
          rs
          |> List.iter (fun r ->
@@ -299,7 +298,7 @@ let stat_files fparser xs =
                 | None ->
                     incr bad;
                     pr2
-                      (spf "PB: no regexp prefilter for rule %s:%s" file
+                      (spf "PB: no regexp prefilter for rule %s:%s" !!file
                          (fst r.id))
                 | Some (f, _f) ->
                     incr good;

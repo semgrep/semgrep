@@ -120,7 +120,6 @@ let options () =
   (*s: [[Main.options]] concatenated flags *)
   @ Flag_parsing.cmdline_flags_verbose ()
   @ Flag_parsing.cmdline_flags_debugging ()
-  @ Meta_parse_info.cmdline_flags_precision ()
   @ Flag_parsing_cpp.cmdline_flags_debugging ()
   @ Flag_parsing_php.cmdline_flags_pp ()
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()

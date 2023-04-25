@@ -85,64 +85,64 @@ let rec statement_strings stmt =
   let res = ref Set.empty in
   let top_level = ref true in
   let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kident = (fun (_k, _) (str, _tok) -> push str res);
-        V.kdir =
-          (fun (k, _) x ->
-            match x with
-            | { d = ImportFrom (_, FileName (str, _), _); _ }
-            | { d = ImportAs (_, FileName (str, _), _); _ }
-            | { d = ImportAll (_, FileName (str, _), _); _ }
-              when str <> "..."
-                   && (not (Metavariable.is_metavar_name str))
-                   && (* deprecated *) not (Pattern.is_regexp_string str) ->
-                (* Semgrep can match "foo" against "foo/bar", so we just
-                 * overapproximate taking the sub-strings, see
-                 * Generic_vs_generic.m_module_name_prefix. *)
-                Common.split {|/\|\\|} str |> List.iter (fun s -> push s res);
-                k x
-            | __else__ -> k x);
-        V.kexpr =
-          (fun (k, _) x ->
-            match x.e with
-            (* less: we could extract strings for the other literals too?
-             * atoms, chars, even int?
-             *)
-            | L (String (_, (str, _tok), _)) -> push str res
-            | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
-            | __else__ -> k x);
-        V.ksvalue =
-          (fun (_k, _) x ->
-            match x with
-            | Lit (String (_, (str, _tok), _)) ->
-                if not (Pattern.is_special_string_literal str) then push str res
-            | Lit _
-            | Cst _
-            | Sym _
-            | NotCst ->
-                (* Should NOT go into symbolic values, see "CAREFUL" note in
-                 * AST_generic.svalue. BUT, if we don't, then the Bloom filter
-                 * may skip statements that should be matched via sym-prop... *)
-                ());
-        (* The default behavior of kid_info is to not call the continutation *)
-        (* We want to recurse so that we can index processed information like constants *)
-        V.kid_info = (fun (k, _) x -> k x);
-        V.kstmt =
-          (fun (k, _) x ->
-            (* First statement visited is the current statement *)
-            if !top_level then (
-              top_level := false;
-              k x)
-            else
-              (* For any other statement, recurse to add the filter *)
-              let strs = statement_strings x in
-              push_list strs res;
-              x.s_strings <- Some strs);
-      }
+    object (_self : 'self)
+      (* This is one of the rare situations where we want to use `iter`
+       * instead of `iter_no_id_info` as the superclass. We want to recurse
+       * into id_info so that we can index processed information like
+       * constants *)
+      inherit [_] AST_generic.iter as super
+      method! visit_ident _env (str, _tok) = push str res
+
+      method! visit_directive env x =
+        match x with
+        | { d = ImportFrom (_, FileName (str, _), _); _ }
+        | { d = ImportAs (_, FileName (str, _), _); _ }
+        | { d = ImportAll (_, FileName (str, _), _); _ }
+          when str <> "..."
+               && (not (Metavariable.is_metavar_name str))
+               && (* deprecated *) not (Pattern.is_regexp_string str) ->
+            (* Semgrep can match "foo" against "foo/bar", so we just
+             * overapproximate taking the sub-strings, see
+             * Generic_vs_generic.m_module_name_prefix. *)
+            Common.split {|/\|\\|} str |> List.iter (fun s -> push s res);
+            super#visit_directive env x
+        | __else__ -> super#visit_directive env x
+
+      method! visit_expr env x =
+        match x.e with
+        (* less: we could extract strings for the other literals too?
+         * atoms, chars, even int?
+         *)
+        | L (String (_, (str, _tok), _)) -> push str res
+        | IdSpecial (_, tok) -> push (Tok.content_of_tok tok) res
+        | __else__ -> super#visit_expr env x
+
+      method! visit_svalue _env x =
+        match x with
+        | Lit (String (_, (str, _tok), _)) ->
+            if not (Pattern.is_special_string_literal str) then push str res
+        | Lit _
+        | Cst _
+        | Sym _
+        | NotCst ->
+            (* Should NOT go into symbolic values, see "CAREFUL" note in
+             * AST_generic.svalue. BUT, if we don't, then the Bloom filter
+             * may skip statements that should be matched via sym-prop... *)
+            ()
+
+      method! visit_stmt env x =
+        (* First statement visited is the current statement *)
+        if !top_level then (
+          top_level := false;
+          super#visit_stmt env x)
+        else
+          (* For any other statement, recurse to add the filter *)
+          let strs = statement_strings x in
+          push_list strs res;
+          x.s_strings <- Some strs
+    end
   in
-  visitor (S stmt);
+  visitor#visit_any () (S stmt);
   !res
 
 (*****************************************************************************)
@@ -158,14 +158,13 @@ let set_of_pattern_strings ?lang any =
 (* TODO: visit AST and set the s_bf field in statements *)
 let annotate_program ast =
   let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kstmt =
-          (fun (_k, _) x ->
-            let ids = statement_strings x in
-            x.s_strings <- Some ids);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info
+
+      method! visit_stmt _env x =
+        let ids = statement_strings x in
+        x.s_strings <- Some ids
+    end
   in
-  visitor (Ss ast)
+  visitor#visit_any () (Ss ast)
   [@@profiling]

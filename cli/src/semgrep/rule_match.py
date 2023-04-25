@@ -27,6 +27,7 @@ from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.util import get_lines
 
 if TYPE_CHECKING:
@@ -120,6 +121,24 @@ class RuleMatch:
     @property
     def end(self) -> core.Position:
         return self.match.location.end
+
+    @property
+    def product(self) -> RuleProduct:
+        return RuleProduct.sca if "sca_info" in self.extra else RuleProduct.sast
+
+    @property
+    def title(self) -> str:
+        if self.product == RuleProduct.sca:
+            cve_id = self.metadata.get("sca-vuln-database-identifier")
+            sca_info = self.extra.get("sca_info")
+            package_name = (
+                sca_info.dependency_match.found_dependency.package if sca_info else None
+            )
+
+            if cve_id and package_name:
+                return f"{package_name} - {cve_id}"
+
+        return self.rule_id
 
     def get_individual_line(self, line_number: int) -> str:
         line_array = get_lines(self.path, line_number, line_number)

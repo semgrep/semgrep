@@ -214,6 +214,7 @@ let upload_results opts results =
 
 let make_opts () =
   (* Get the args. Remove the first element since that is the binary name *)
+  (* nosemgrep *)
   let args = Sys.argv |> Array.to_list |> List.tl in
   {
     upload = List.mem "--upload" args;

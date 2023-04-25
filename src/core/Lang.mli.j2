@@ -62,7 +62,13 @@ val excluded_exts_of_lang : t -> string list
 val shebangs_of_lang : t -> string list
 
 (* See also Find_target.files_of_dirs_or_files *)
-val langs_of_filename : Common.filename -> t list
+val langs_of_filename : Fpath.t -> t list
+
+(* This should be used only in testing code. This may raise
+ * Failure "Could not infer a language from the filename".
+ * Use langs_of_filename() if you can instead.
+ *)
+val lang_of_filename_exn : Fpath.t -> t
 
 (* accept any variants *)
 val is_js : t -> bool

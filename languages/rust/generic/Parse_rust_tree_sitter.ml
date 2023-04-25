@@ -16,7 +16,6 @@ open Common
 module CST = Tree_sitter_rust.CST
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
-module PI = Parse_info
 module G = AST_generic
 
 (*****************************************************************************)
@@ -39,7 +38,7 @@ type env = mode H.env
 let token = H.token
 let str = H.str
 let sc = G.sc
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let fake_id s = (s, G.fake s)
 
 let deoptionalize l =
@@ -241,7 +240,7 @@ let map_primitive_type_token (_env : env) (x : CST.anon_choice_u8_6dad923) =
       tok
 
 let map_primitive_type_ident (env : env) (x : CST.anon_choice_u8_6dad923) :
-    string * PI.token_mutable =
+    string * Tok.t =
   str env (map_primitive_type_token env x)
 
 let map_primitive_type (env : env) (x : CST.anon_choice_u8_6dad923) : G.type_ =
@@ -304,7 +303,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
             | Some i -> Some (-i)
             | None -> None
           in
-          G.PatLiteral (G.Int (iopt, PI.combine_infos (snd neg) [ t ]))
+          G.PatLiteral (G.Int (iopt, Tok.combine_toks (snd neg) [ t ]))
       | `Float_lit tok ->
           let fopt, t = float_literal env tok in
           (* float_literal *)
@@ -313,7 +312,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
             | Some f -> Some (-.f)
             | None -> None
           in
-          G.PatLiteral (G.Float (fopt, PI.combine_infos (snd neg) [ t ])))
+          G.PatLiteral (G.Float (fopt, Tok.combine_toks (snd neg) [ t ])))
 
 let map_extern_modifier (env : env) ((v1, v2) : CST.extern_modifier) :
     G.attribute list =
@@ -1985,9 +1984,9 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
   let name =
     match name with
     | G.Id ((s, i1), info) ->
-        G.Id ((s ^ "!", PI.combine_infos i1 [ bang ]), info)
+        G.Id ((s ^ "!", Tok.combine_toks i1 [ bang ]), info)
     | G.IdQualified ({ name_last = (s, i1), topt; _ } as qualified_info) ->
-        let s, t = (s ^ "!", PI.combine_infos i1 [ bang ]) in
+        let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
         G.IdQualified { qualified_info with name_last = ((s, t), topt) }
   in
   let l, xs, r = map_token_tree env v3 in
@@ -2674,7 +2673,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let lparen = str env v1 (* "(" *) in
       let rparen = str env v2 (* ")" *) in
       let str = Common.map fst [ lparen; rparen ] |> String.concat "" in
-      G.ty_builtin (str, PI.combine_infos (snd lparen) [ snd rparen ])
+      G.ty_builtin (str, Tok.combine_toks (snd lparen) [ snd rparen ])
   | `Array_type (v1, v2, v3, v4) ->
       let lbracket = token env v1 (* "[" *) in
       let ty = map_type_ env v2 in
@@ -2806,9 +2805,8 @@ and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
       | _ -> dir)
   | None -> dir
 
-and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list)
-    (use : PI.token_mutable) (scope : G.dotted_ident option) : G.directive list
-    =
+and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list) (use : Tok.t)
+    (scope : G.dotted_ident option) : G.directive list =
   let _lbracket = token env v1 (* "{" *) in
   let directives =
     match v2 with
@@ -2944,7 +2942,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
   | `Asso_type v1 -> [ map_associated_type env v1 ]
   (* was moved in _statement instead of declaration_statement by ruin *)
   | `Let_decl (v1, v2, v3, v4, v5, v6) ->
-      let let_ = token env v1 (* "let" *) in
+      let _let_ = token env v1 (* "let" *) in
       let mutability =
         Option.map
           (fun tok ->
@@ -2976,8 +2974,7 @@ and map_declaration_statement_bis (env : env) (*_outer_attrs _visibility*) x :
       let ent =
         {
           (* Patterns are difficult to convert to expressions, so wrap it *)
-          G.name =
-            G.EDynamic (G.OtherExpr (("LetPat", let_), [ G.P pattern ]) |> G.e);
+          G.name = G.EPattern pattern;
           G.attrs;
           G.tparams = [];
         }

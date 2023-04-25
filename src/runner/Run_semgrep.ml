@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2022 r2c
+ * Copyright (C) 2020-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,7 +14,7 @@
  *)
 open Common
 open Runner_config
-module PI = Parse_info
+open File.Operators
 module PM = Pattern_match
 module E = Semgrep_error_code
 module MR = Mini_rule
@@ -57,11 +57,11 @@ let replace_named_pipe_by_regular_file path =
   if !Common.jsoo then path
     (* don't bother supporting exotic things like fds if running in JS *)
   else
-    match (Unix.stat path).st_kind with
+    match (Unix.stat !!path).st_kind with
     | Unix.S_FIFO ->
-        let data = Common.read_file path in
+        let data = File.read_file path in
         let prefix = spf "semgrep-core-" in
-        let suffix = spf "-%s" (Filename.basename path) in
+        let suffix = spf "-%s" (Fpath.basename path) in
         let tmp_path, oc =
           Filename.open_temp_file
             ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
@@ -73,7 +73,7 @@ let replace_named_pipe_by_regular_file path =
         Fun.protect
           ~finally:(fun () -> close_out_noerr oc)
           (fun () -> output_string oc data);
-        tmp_path
+        Fpath.v tmp_path
     | _ -> path
 
 let timeout_function file timeout f =
@@ -83,7 +83,7 @@ let timeout_function file timeout f =
   with
   | Some res -> res
   | None ->
-      let loc = PI.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
@@ -98,7 +98,7 @@ let update_cli_progress config =
 (*****************************************************************************)
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
+  String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
@@ -114,19 +114,18 @@ let rec print_taint_call_trace ~format ~spaces = function
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
-  if format =*= Matching_report.Normal then (
-    let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
-    pr "  * Taint comes from:";
-    print_taint_call_trace ~format ~spaces:4 source;
-    if tokens <> [] then
-      pr
-        (spf "  * These intermediate values are tainted: %s"
-           (string_of_toks tokens));
-    match sink with
-    | Pattern_match.Toks _ -> ()
-    | Call _ ->
-        pr "  * This is how taint reaches the sink:";
-        print_taint_call_trace ~format ~spaces:4 sink)
+  if format =*= Matching_report.Normal then
+    taint_trace |> Lazy.force
+    |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
+           if idx =*= 0 then pr "  * Taint may come from this source:"
+           else pr "  * Taint may also come from this source:";
+           print_taint_call_trace ~format ~spaces:4 source_trace;
+           if tokens <> [] then
+             pr
+               (spf "  * These intermediate values are tainted: %s"
+                  (string_of_toks tokens));
+           pr "  * This is how taint reaches the sink:";
+           print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
@@ -136,15 +135,15 @@ let print_match ?str config match_ ii_of_any =
       =
     match_
   in
-  let toks = tokens_matched_code |> List.filter PI.is_origintok in
+  let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   (if mvars =*= [] then
    Matching_report.print_match ?str ~format:match_format toks
   else
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
+    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
     let strings_metavars =
       mvars
@@ -152,8 +151,8 @@ let print_match ?str config match_ ii_of_any =
              match Common2.assoc_opt x env with
              | Some any ->
                  any |> ii_of_any
-                 |> List.filter PI.is_origintok
-                 |> Common.map PI.str_of_info
+                 |> List.filter Tok.is_origintok
+                 |> Common.map Tok.content_of_tok
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in
@@ -229,7 +228,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   in
   let offending_file_list =
     per_files
-    |> List.filter_map (fun (file, xs) ->
+    |> Common.map_filter (fun (file, xs) ->
            if List.length xs > max_match_per_file then Some file else None)
   in
   let offending_files = Common.hashset_of_list offending_file_list in
@@ -268,7 +267,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Parse_info.first_loc_of_file file in
+           let loc = Tok.first_loc_of_file file in
            let error =
              E.mk_error ~rule_id:(Some id) loc
                (spf
@@ -315,15 +314,24 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 let exn_to_error file (e : Exception.t) =
   match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
-      let loc = PI.unsafe_token_location_of_info tok in
+      let loc = Tok.unsafe_loc_of_tok tok in
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 
 (* Return an exception
  * - always, if there are no rules but just invalid rules
- * - when users want to fail fast, if there are valid and invalid rules
- * TODO: right now we always fail when there is one invalid rule, because
- * we don't have a fail_fast flag (we could use the flag for -strict)
+ * - TODO when users want to fail fast, if there are valid and invalid rules.
+ *   (right now we always fail when there is one invalid rule, because
+ *   we don't have a fail_fast flag (we could use the flag for -strict))
+ *
+ * update: we now parse patterns lazily in Parse_rule.ml, which means
+ * we will not get anymore an invalid_rule below for a rule containing
+ * a parse error in a pattern (we still get an invalid_rule for
+ * other kinds of errors such as the use of an invalid language).
+ * Instead, parse error exns in patterns are raised later (as we run the engine).
+ * Fortunately, now those exns are converted in errors which are detected in
+ * sanity_check_invalid_patterns() below, and then we return the same kind of error
+ * we used to before the lazy pattern optimisation.
  *)
 let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
@@ -333,19 +341,24 @@ let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
       raise (R.Err (R.InvalidRule err))
   | _, [] -> ()
 
+let sanity_check_invalid_patterns (res : RP.final_result) files =
+  match
+    res.RP.errors
+    |> List.find_opt (fun (err : E.error) ->
+           match err.typ with
+           | Out.PatternParseError _ -> true
+           | _else_ -> false)
+  with
+  | None -> (None, res, files)
+  | Some err ->
+      let e = Exception.catch (Failure "Pattern parse error") in
+      (Some e, { RP.empty_final_result with errors = [ err ] }, [])
+
 (*****************************************************************************)
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
-(* TODO? this is currently deprecated, but pad still has hope the
- * feature can be resurrected.
- *)
-let parse_equivalences equivalences_file =
-  match equivalences_file with
-  | "" -> []
-  | file -> Parse_equivalences.parse file
-  [@@profiling]
-
+(* for -e/-f *)
 let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
@@ -356,7 +369,36 @@ let parse_pattern lang_pattern str =
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
                 "no-id",
-                Parse_info.unsafe_fake_info "no loc" )))
+                Tok.unsafe_fake_tok "no loc" )))
+  [@@profiling]
+
+(* for -rules *)
+let rules_from_rule_source config =
+  let rule_source =
+    match config.rule_source with
+    | Some (Rule_file file) ->
+        (* useful when using process substitution, e.g.
+         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
+         *)
+        Some (Rule_file (replace_named_pipe_by_regular_file file))
+    | other -> other
+  in
+  match rule_source with
+  | Some (Rule_file file) ->
+      logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
+      Parse_rule.parse_and_filter_invalid_rules file
+  | Some (Rules rules) -> (rules, [])
+  | None ->
+      (* TODO: ensure that this doesn't happen *)
+      failwith "missing rules"
+
+(* TODO? this is currently deprecated, but pad still has hope the
+ * feature can be resurrected.
+ *)
+let parse_equivalences equivalences_file =
+  match equivalences_file with
+  | None -> []
+  | Some file -> Parse_equivalences.parse file
   [@@profiling]
 
 (*****************************************************************************)
@@ -408,7 +450,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "critical exn while matching ruleid %s"
                          rule.MR.id;
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Parse_info.first_loc_of_file file in
+                   let loc = Tok.first_loc_of_file file in
                    let errors =
                      RP.ErrorSet.singleton
                        (E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
@@ -425,6 +467,25 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                      (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Time_limit.Timeout _ -> assert false
+               (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
+                * for errors while parsing patterns. This exn used to be raised earlier
+                * in sanity_check_rules_and_invalid_rules(), but after
+                * the lazy parsing of patterns, those errors are raised
+                * later. Unfortunately, we can't catch and reraise here, because
+                * with -j 2, Parmap will just abort the whole thing and return
+                * a different kind of exception to the caller. Instead, we
+                * we need to convert all exns in errors (see the code further below),
+                * and only in sanity_check_invalid_patterns() we can detect if one
+                * of those errors was a PatternParseError.
+                * does-not-work:
+                * | R.Err (R.InvalidRule _) as exn when false ->
+                *   Exception.catch_and_reraise exn
+                *)
+               (* convert all other exns (e.g., a parse error in a target file,
+                * a parse error in a pattern), in an empty match result with errors,
+                * so that one error in one target file or rule does not abort the whole
+                * semgrep-core process.
+                *)
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
                    let errors = RP.ErrorSet.singleton (exn_to_error file e) in
@@ -459,13 +520,13 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
   in
   let id_pairs =
     list_of_rule_ids
-    |> List.mapi (fun i x -> (i, x))
+    |> Common.mapi (fun i x -> (i, x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
      * because we don't want to run them at this stage.
      *)
-    |> List.filter_map (fun (i, rule_id) ->
+    |> Common.map_filter (fun (i, rule_id) ->
            let* x = Hashtbl.find_opt rule_table rule_id in
            Some (i, x))
   in
@@ -530,9 +591,9 @@ let targets_of_config (config : Runner_config.t)
         files
         |> Common.map (fun file ->
                {
-                 In.path = file;
+                 In.path = Fpath.to_string file;
                  language = Xlang.to_string xlang;
-                 rule_nums = List.mapi (fun i _ -> i) rule_ids;
+                 rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
       ({ target_mappings; rule_ids }, skipped)
@@ -543,7 +604,7 @@ let targets_of_config (config : Runner_config.t)
         match target_source with
         | Targets x -> x
         | Target_file target_file ->
-            Common.read_file target_file |> In.targets_of_string
+            File.read_file target_file |> In.targets_of_string
       in
       let skipped = [] in
       (* in deep mode we actually have a single root dir passed *)
@@ -571,7 +632,7 @@ let extracted_targets_of_config (config : Runner_config.t)
         Match_extract_mode.match_result_location_adjuster )
       Hashtbl.t =
   let extractors =
-    List.filter_map
+    Common.map_filter
       (fun r ->
         match r.Rule.mode with
         | `Extract _ as e -> Some { r with mode = e }
@@ -620,7 +681,7 @@ let extracted_targets_of_config (config : Runner_config.t)
     ([], Hashtbl.create (List.length basic_targets))
 
 (*****************************************************************************)
-(* Semgrep -config *)
+(* semgrep-core -rules *)
 (*****************************************************************************)
 
 (* This is the main function used by the semgrep Python wrapper right now.
@@ -668,7 +729,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
              target.In.rule_nums
-             |> List.filter_map (fun r_num -> Hashtbl.find_opt rule_table r_num)
+             |> Common.map_filter (fun r_num ->
+                    Hashtbl.find_opt rule_table r_num)
              (* Don't run the extract rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
@@ -770,32 +832,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
-  let rule_source =
-    match config.rule_source with
-    | Some (Rule_file file) ->
-        (* useful when using process substitution, e.g.
-         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
-         *)
-        Some (Rule_file (replace_named_pipe_by_regular_file file))
-    | other -> other
-  in
   try
     let timed_rules =
-      match rule_source with
-      | Some (Rule_file file) ->
-          logger#linfo (lazy (spf "Parsing %s:\n%s" file (read_file file)));
-          let timed_rules =
-            Common.with_time (fun () ->
-                Parse_rule.parse_and_filter_invalid_rules file)
-          in
-          timed_rules
-      | Some (Rules rules) -> ((rules, []), 0.)
-      | None ->
-          (* TODO: ensure that this doesn't happen *)
-          failwith "missing rules"
+      Common.with_time (fun () -> rules_from_rule_source config)
     in
     let res, files = semgrep_with_rules config timed_rules in
-    (None, res, files)
+    sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
@@ -809,7 +851,7 @@ let semgrep_with_raw_results_and_exn_handler config =
    It should get simplified when we get rid of the Python wrapper.
    For now, we avoid code duplication.
 *)
-let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
+let semgrep_with_prepared_rules_and_targets config (x : Lang_job.t) =
   let lang_str = Xlang.to_string x.lang in
   let rule_ids (* what are these for? *) =
     Common.map
@@ -818,11 +860,11 @@ let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
         id)
       x.rules
   in
-  let rule_nums = List.mapi (fun i _ -> i) rule_ids in
+  let rule_nums = Common.mapi (fun i _ -> i) rule_ids in
   let target_mappings =
     Common.map
       (fun path : Input_to_core_t.target ->
-        { path; language = lang_str; rule_nums })
+        { path = !!path; language = lang_str; rule_nums })
       x.targets
   in
   let wrapped_targets : Input_to_core_t.targets =
@@ -849,6 +891,11 @@ let semgrep_with_rules_and_formatted_output config =
         JSON_report.match_results_of_matches_and_errors
           (Some Autofix.render_fix) (List.length files) res
       in
+      (* one-off experiment, delete it at some point (March 2023) *)
+      let res =
+        if !Flag_semgrep.raja then Raja_experiment.adjust_core_match_results res
+        else res
+      in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
@@ -872,7 +919,7 @@ let semgrep_with_rules_and_formatted_output config =
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 (*****************************************************************************)
-(* Semgrep -e/-f *)
+(* semgrep-core -e/-f *)
 (*****************************************************************************)
 
 let minirule_of_pattern lang pattern_string pattern =
@@ -924,11 +971,11 @@ let semgrep_with_one_pattern config =
   | Json _ ->
       let rule, rules_parse_time =
         Common.with_time (fun () ->
-            let fk = Parse_info.unsafe_fake_info "" in
+            let fk = Tok.unsafe_fake_tok "" in
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat
-                (Xpattern.Sem (pattern, lang))
+                (Xpattern.Sem (lazy pattern, lang))
                 (pattern_string, fk)
             in
             Rule.rule_of_xpattern xlang xpat)

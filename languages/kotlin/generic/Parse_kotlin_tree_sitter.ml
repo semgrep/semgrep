@@ -16,7 +16,6 @@
 open Common
 module CST = Tree_sitter_kotlin.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
@@ -36,8 +35,8 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
-let sc tok = PI.sc tok
+let fb = Tok.unsafe_fake_bracket
+let sc tok = Tok.sc tok
 
 let var_to_pattern (id, ptype) =
   let pat = PatId (id, empty_id_info ()) in
@@ -259,7 +258,7 @@ let multi_line_string_content (env : env) (x : CST.multi_line_string_content) =
 let uni_character_literal (env : env) ((v1, v2) : CST.uni_character_literal) =
   let v1 = token env v1 (* "\\u" *) in
   let v2 = str env v2 (* pattern [0-9a-fA-F]{4} *) in
-  (fst v2, PI.combine_infos v1 [ snd v2 ])
+  (fst v2, Tok.combine_toks v1 [ snd v2 ])
 
 let type_projection_modifier (env : env) (x : CST.type_projection_modifier) =
   let x = variance_modifier env x in
@@ -381,7 +380,7 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       in
       let v3 = token env v3 (* "'" *) in
       let toks = [ snd v2 ] @ [ v3 ] in
-      Char (fst v2, PI.combine_infos v1 toks)
+      Char (fst v2, Tok.combine_toks v1 toks)
   | `Real_lit tok -> real_literal env tok (* real_literal *)
   | `Null tok -> Null (token env tok) (* "null" *)
   | `Long_lit (v1, v2) ->
@@ -396,8 +395,8 @@ let literal_constant (env : env) (x : CST.literal_constant) =
         | Some tok -> Some (str env tok) (* "L" *)
         | None -> None
       in
-      let _str = PI.str_of_info v1 ^ fst v2 in
-      Int (iopt, PI.combine_infos v1 [ snd v2 ])
+      let _str = Tok.content_of_tok v1 ^ fst v2 in
+      Int (iopt, Tok.combine_toks v1 [ snd v2 ])
 
 let semi (env : env) x = token env x
 
@@ -1161,6 +1160,13 @@ and expression (env : env) (x : CST.expression) : expr =
       let x2 = expression env x2 in
       let x3 = token env x3 in
       G.DeepEllipsis (x1, x2, x3) |> G.e
+  | `Typed_meta (v1, v2, v3, v4, v5) ->
+      let _v1 = (* "(" *) token env v1 in
+      let v2 = simple_identifier env v2 in
+      let v3 = (* ":" *) token env v3 in
+      let v4 = type_ env v4 in
+      let _v5 = (* ")" *) token env v5 in
+      TypedMetavar (v2, v3, v4) |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in

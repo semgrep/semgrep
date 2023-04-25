@@ -25,7 +25,7 @@
  *  - Python, Ruby, Lua, Julia, Elixir
  *  - Javascript, Typescript, Vue
  *  - PHP, Hack
- *  - Java, CSharp, Kotlin
+ *  - Java, C#, Kotlin
  *  - C, C++
  *  - Go
  *  - Swift
@@ -34,23 +34,26 @@
  *  - R
  *  - Solidity
  *  - Bash, Docker
- *  - JSON, YAML, HCL, Jsonnet
- *  - TODO SQL
+ *  - JSON, XML, YAML
+ *  - Jsonnet, Terraform
+ *  - HTML
+ *  - TODO SQL, Sqlite, PostgresSQL
  *
  * See Lang.ml for the list of supported languages.
  * See IL.ml for a generic IL (Intermediate language) better suited for
- * advanced static analysis (e.g., dataflow).
+ * advanced static analysis (e.g., tainted dataflow analysis).
  *
  * rational: In the end, programming languages have a lot in Common.
  * Even though some interesting analysis are probably better done on a
  * per-language basis, many analysis are simple and require just an
  * AST and a visitor. One could duplicate those analysis for each language
  * or design an AST (this file) generic enough to factorize all those
- * analysis (e.g., unused entity). Note that we want to remain
+ * analysis. Note that we want to remain
  * as precise as possible and not lose too much information while going
  * from the specific language AST to the generic AST. We don't want
- * to be too generic as in ast_fuzzy.ml, where we have a very general
- * tree of nodes, but all the structure of the original AST is lost.
+ * to be too generic as in ast_fuzzy.ml (or Raw_tree.ml), where we have a
+ * very general tree of nodes, but all the structure of the original AST is
+ * lost.
  *
  * The generic AST tries to be as close as possible to the original code but
  * not too close. When a programming language feature is really sugar or
@@ -71,6 +74,7 @@
  *  - multiple entity imports in one declaration (e.g., from foo import {a,b})
  *    are expanded in multiple individual imports
  *    (in the example, from foo import a; from foo import b).
+ *    update: we don't expand them anymore
  *  - multiple ways to define a function are converted all to a
  *    'function_definition' (e.g., Javascript arrows are converted in that)
  *    update: but we now have a more precise function_body type
@@ -94,10 +98,10 @@
  *
  * todo:
  *  - improve things for Kotlin/Scala/Rust/C++/Java
- *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
- *  - ast_fuzzy.ml (in pfff)
+ *  - lib_parsing/ast_fuzzy.ml
+ *  - spacegrep and aliengrep of Martin with a general Pat_AST.ml
  *  - github semantic (seems dead)
  *    https://github.com/github/semantic
  *  - UAST of babelfish
@@ -169,7 +173,7 @@
  * to correspond mostly to Semgrep versions. So version below can jump from
  * "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.12.1"
+let version = "1.19.0-2"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -181,12 +185,15 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (* Token (leaf) *)
 (*****************************************************************************)
 (* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
+ * the Tok.location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
- * Tok.t is the same type as Parse_info.t but provides special equal and
- * hash functions used by the ppx derivers eq and hash.
+ *
+ * Tok.t_always_equal is the same type as Tok.t but provides special equal and
+ * hash functions that are more conveninent in Semgrep matching context.
+ * See Matching_generic.equal_ast_bound_code() and Metavariable.equal_mvalue()
+ * for more information.
  *)
-type tok = Tok.t [@@deriving show, eq, hash]
+type tok = Tok.t_always_equal [@@deriving show, eq, hash]
 
 (* a shortcut to annotate some information with position information *)
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
@@ -413,7 +420,7 @@ class virtual ['self] iter_parent =
      * contain tokens or anything else that is likely to be interesting to a
      * visitor. Subclasses can always override these with their own behavior if
      * needed. *)
-    method visit_token_location _env _ = ()
+    method visit_location _env _ = ()
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
@@ -530,8 +537,7 @@ and expr = {
   e : expr_kind;
   e_id : int;
   (* used to quickly get the range of an expression *)
-  mutable e_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
+  mutable e_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 
@@ -587,6 +593,7 @@ and expr_kind =
   (* operators and function application *)
   | Call of expr * arguments
   (* 'type_' below is usually a TyN or TyArray (or TyExpr).
+   * 'id_info' refers to the constructor.
    * Note that certain languages do not have a 'new' keyword
    * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
    * old: this is used to be an IdSpecial used in conjunction with
@@ -594,7 +601,7 @@ and expr_kind =
    * New is really important for typing (and other program analysis).
    * note: see also AnonClass which is also a New.
    *)
-  | New of tok (* 'new' (can be fake) *) * type_ * arguments
+  | New of tok (* 'new' (can be fake) *) * type_ * id_info * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -1083,8 +1090,7 @@ and stmt = {
   mutable s_strings : string Set_.t option;
       [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
-  mutable s_range :
-    (Parse_info.token_location * Parse_info.token_location) option;
+  mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
 }
 
@@ -1672,7 +1678,11 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
-  (* e.g., ParamTodo in OCaml, Reciever param in Go, SingleStar and Slash
+  (* Receiver param in Go, e.g. `func (x Foo) f() { ... }`. This is important
+   * for name resolution because Go resolves methods based on the receiver type.
+   * *)
+  | ParamReceiver of parameter_classic
+  (* e.g., ParamTodo in OCaml, SingleStar and Slash
    * in Python to delimit regular parameters from special one.
    * TODO ParamRef of tok * parameter_classic in PHP/Ruby *)
   | OtherParam of todo_kind * any list
@@ -1966,6 +1976,7 @@ and any =
   | T of type_
   | P of pattern
   | At of attribute
+  | XmlAt of xml_attribute
   | Fld of field
   | Flds of field list
   | Args of argument list
@@ -2008,7 +2019,13 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      * http://gallium.inria.fr/~fpottier/visitors/manual.pdf
      *
      * The @name annotations on types above are to disambiguate types that would
-     * otherwise be assigned a visitor method named `visit_t`. *)
+     * otherwise be assigned a visitor method named `visit_t`.
+     *
+     * To view the generated source, build, navigate to
+     * `_build/default/libs/ast_generic/`, and then run the following command:
+     *
+     * ocamlc -stop-after parsing -dsource AST_generic.pp.ml
+     * *)
     visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* Most clients should use this instead of the default `iter`. In many cases,
@@ -2029,7 +2046,7 @@ class virtual ['self] iter_no_id_info =
  * This is captured in Main.exn_to_error to pinpoint the error location.
  * alt: reuse Parse_info.Ast_builder_error exn.
  *)
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 let error tok msg = raise (Error (msg, tok))
 
@@ -2041,12 +2058,12 @@ let error tok msg = raise (Error (msg, tok))
  * to derive the tokens in those new constructs from existing constructs
  * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
  *)
-let fake s = Parse_info.unsafe_fake_info s
+let fake s = Tok.unsafe_fake_tok s
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
  * the string of a fake info
  *)
-let sc = Parse_info.unsafe_fake_info ""
+let sc = Tok.unsafe_fake_tok ""
 
 (*****************************************************************************)
 (* AST builder helpers *)
@@ -2136,8 +2153,7 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call
-    (IdSpecial spec |> e, Parse_info.unsafe_fake_bracket (es |> Common.map arg))
+  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> Common.map arg))
   |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
@@ -2146,8 +2162,8 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
   let s = xs |> Common.map fst |> String.concat "" in
   let t =
     match xs with
-    | [] -> Parse_info.fake_info lquote ""
-    | (_, t) :: ys -> Parse_info.combine_infos t (Common.map snd ys)
+    | [] -> Tok.fake_tok lquote ""
+    | (_, t) :: ys -> Tok.combine_toks t (Common.map snd ys)
   in
   (lquote, (s, t), rquote)
 
@@ -2166,7 +2182,7 @@ let interpolated (lquote, xs, rquote) =
             xs
             |> Common.map (function
                  | Common.Left3 x ->
-                     Arg (L (String (Parse_info.unsafe_fake_bracket x)) |> e)
+                     Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
                  | Common.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
@@ -2179,7 +2195,7 @@ let interpolated (lquote, xs, rquote) =
 
 (* todo? use a special construct KeyVal valid only inside Dict? *)
 let keyval k _tarrow v =
-  Container (Tuple, Parse_info.unsafe_fake_bracket [ k; v ]) |> e
+  Container (Tuple, Tok.unsafe_fake_bracket [ k; v ]) |> e
 
 let raw x = RawExpr x |> e
 
@@ -2239,13 +2255,13 @@ let emptystmt t = s (Block (t, [], t))
  * pattern_to_expr, etc.
  *)
 let stmt_to_expr st = e (StmtExpr st)
-let empty_body = Parse_info.unsafe_fake_bracket []
+let empty_body = Tok.unsafe_fake_bracket []
 
 let stmt1 xs =
   match xs with
-  | [] -> s (Block (Parse_info.unsafe_fake_bracket []))
+  | [] -> s (Block (Tok.unsafe_fake_bracket []))
   | [ st ] -> st
-  | xs -> s (Block (Parse_info.unsafe_fake_bracket xs))
+  | xs -> s (Block (Tok.unsafe_fake_bracket xs))
 
 (* ------------------------------------------------------------------------- *)
 (* Fields *)
@@ -2268,7 +2284,7 @@ let attr kwd tok = KeywordAttr (kwd, tok)
 
 let unhandled_keywordattr (s, t) =
   (* TODO? or use OtherAttribue? *)
-  NamedAttr (t, Id ((s, t), empty_id_info ()), Parse_info.unsafe_fake_bracket [])
+  NamedAttr (t, Id ((s, t), empty_id_info ()), Tok.unsafe_fake_bracket [])
 
 (* ------------------------------------------------------------------------- *)
 (* Patterns *)

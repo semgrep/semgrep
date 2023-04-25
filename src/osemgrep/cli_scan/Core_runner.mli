@@ -23,11 +23,12 @@ type result = {
    integrated into what's currently semgrep-core.
 *)
 val invoke_semgrep_core :
+  ?respect_git_ignore:bool ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
   Rule.invalid_rule_error list ->
-  Common.filename list ->
+  Fpath.t list ->
   result
 
 (* Helper used in Semgrep_scan.ml to setup logging *)

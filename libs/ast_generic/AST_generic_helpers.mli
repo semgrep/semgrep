@@ -95,7 +95,7 @@ val ac_matching_nf :
  * than crashing). *)
 
 val undo_ac_matching_nf :
-  Parse_info.t ->
+  Tok.t ->
   AST_generic.operator ->
   AST_generic.expr list ->
   AST_generic.expr option
@@ -106,3 +106,7 @@ val undo_ac_matching_nf :
  * E.g.
  *    undo_ac_matching_nf tok And [a; b; c] = Call(Op And, [Call(Op And, [a; b]); c])
  *)
+
+(* Sets the e_range on the expression based on the left and right tokens
+ * provided. No-op if either has a fake location. *)
+val set_e_range : Tok.t -> Tok.t -> AST_generic.expr -> unit

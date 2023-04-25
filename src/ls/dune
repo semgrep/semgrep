@@ -1,0 +1,23 @@
+(library
+ (public_name semgrep.ls)
+ (name semgrep_ls)
+ (wrapped false)
+ (libraries
+   yaml
+   lsp
+   lwt
+   lwt.unix
+
+   commons
+
+   semgrep.core
+   semgrep_running
+   semgrep_reporting
+ )
+ (preprocess
+  (pps
+    lwt_ppx
+    ppx_profiling
+  )
+ )
+)

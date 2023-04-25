@@ -32,6 +32,7 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
+from semgrep.console import console
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -43,6 +44,7 @@ logger = getLogger(__name__)
 
 A = TypeVar("A")
 B = TypeVar("B")
+C = TypeVar("C")
 
 Pos = Tuple[int, int]
 
@@ -93,6 +95,13 @@ def pair(p1: "Parser[A]", p2: "Parser[B]") -> "Parser[Tuple[A,B]]":
     Returns a parser which runs [p1] then [p2] and produces a pair of the results
     """
     return p1.bind(lambda a: p2.bind(lambda b: success((a, b))))
+
+
+def triple(p1: "Parser[A]", p2: "Parser[B]", p3: "Parser[C]") -> "Parser[Tuple[A,B,C]]":
+    """
+    Returns a parser which runs [p1] then [p2] then [p3] and produces a triple of the results
+    """
+    return p1.bind(lambda a: p2.bind(lambda b: p3.bind(lambda c: success((a, b, c)))))
 
 
 def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Transitivity:
@@ -149,6 +158,8 @@ def quoted(p: "Parser[A]") -> "Parser[A]":
     return string('"') >> p << string('"')
 
 
+integer = regex(r"\d+").map(int)
+any_str = regex(".*")
 word = not_any(" ")
 consume_word = word >> success(None)
 
@@ -204,7 +215,7 @@ def parse_error_to_str(e: ParseError) -> str:
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
-    preprocess: Optional[Callable[[str], str]] = None,
+    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
 ) -> Optional[A]:
     """
     Run [parser] on the text in [path]
@@ -212,11 +223,17 @@ def safe_path_parse(
     """
     if not path:
         return None
+
     text = path.read_text()
-    if preprocess:
-        text = preprocess(text)
+    text = preprocess(text)
+
     try:
         return parser.parse(text)
+    except RecursionError:
+        console.print(
+            f"Failed to parse {path} - Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
+        )
+        return None
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
@@ -225,13 +242,17 @@ def safe_path_parse(
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
+        location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
         if line < len(text_lines):
-            logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+            console.print(
+                f"Failed to parse {location} - {error_str}\n"
+                f"{line_prefix}{text.splitlines()[line]}\n"
+                f"{' ' * (col + len(line_prefix))}^"
             )
         else:
-            logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+            console.print(
+                f"Failed to parse {location} - {error_str}\n"
+                f"Internal Error - line {line + 1} is past the end of {path}?"
             )
         return None
 
@@ -264,6 +285,9 @@ class JSON:
 
     def as_list(self) -> List["JSON"]:
         return cast(List["JSON"], self.value)
+
+    def as_int(self) -> int:
+        return cast(int, self.value)
 
 
 # Utilities

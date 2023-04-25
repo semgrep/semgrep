@@ -7,6 +7,7 @@ open Common
 (* in JSON mode, we might need to display intermediate '.' in the
  * output for semgrep to track progress as well as extra targets
  * found by extract rules.
+ * TODO: not needed after osemgrep migration done
  *)
 type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
@@ -15,7 +16,7 @@ type output_format = Text | Json of bool (* dots *) [@@deriving show]
    The 'Rules' case is for an invocation that bypasses the semgrep-core
    command (osemgrep) or when for some reason the rules had to be preparsed.
 *)
-type rule_source = Rule_file of filename | Rules of Rule.t list
+type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 
 (*
    'Target_file' is for the semgrep-core CLI which gets a list of
@@ -26,18 +27,14 @@ type rule_source = Rule_file of filename | Rules of Rule.t list
    same process and we bypass the semgrep-core CLI.
 *)
 type target_source =
-  | Target_file of filename
+  | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
 
-(* All rules and targets applicable to a specific language.
-   This is passed directly by the new osemgrep implementation, not
-   from the semgrep-core command line. *)
-type lang_job = { lang : Xlang.t; targets : filename list; rules : Rule.t list }
-
+(* TODO: similar to osemgrep Scan_CLI.conf, should be merged in it *)
 type t = {
   (* Debugging/profiling/logging flags *)
-  log_config_file : filename;
-  log_to_file : filename option;
+  log_config_file : Fpath.t;
+  log_to_file : Fpath.t option;
   test : bool;
   debug : bool;
   profile : bool;
@@ -47,16 +44,16 @@ type t = {
   matching_explanations : bool;
   (* Main flags *)
   pattern_string : string;
-  pattern_file : filename;
+  pattern_file : filename; (* TODO: use Fpath.t option *)
   rule_source : rule_source option;
-  lang_job : lang_job option;
-  equivalences_file : string;
+  lang_job : Lang_job.t option;
+  equivalences_file : Fpath.t option;
   lang : Xlang.t option;
-  roots : Common.path list;
+  roots : Fpath.t list;
   output_format : output_format;
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;
-  lsp : bool;
+  ls : bool;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
   timeout : float;
@@ -65,7 +62,8 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  parsing_cache_dir : Common.dirname; (* "" means no cache *)
+  (* TODO: use Fpath.t option *)
+  parsing_cache_dir : Common.filename; (* "" means no cache *)
   filter_irrelevant_rules : bool;
   (* Flag used by the semgrep-python wrapper *)
   target_source : target_source option;
@@ -89,7 +87,7 @@ type t = {
 let default =
   {
     (* Debugging/profiling/logging flags *)
-    log_config_file = "log_config.json";
+    log_config_file = Fpath.v "log_config.json";
     log_to_file = None;
     test = false;
     debug = false;
@@ -100,16 +98,16 @@ let default =
     matching_explanations = false;
     (* Main flags *)
     pattern_string = "";
-    pattern_file = "";
+    pattern_file = "" (* invalid path! *);
     rule_source = None;
     lang_job = None;
-    equivalences_file = "";
+    equivalences_file = None;
     lang = None;
     roots = [];
     output_format = Text;
     match_format = Matching_report.Normal;
     mvars = [];
-    lsp = false;
+    ls = false;
     (* Limits *)
     (* maximum time to spend running a rule on a single file *)
     timeout = 0.;
@@ -118,7 +116,7 @@ let default =
     max_memory_mb = 0;
     max_match_per_file = 10_000;
     ncores = 1;
-    parsing_cache_dir = "";
+    parsing_cache_dir = "" (* invalid path! *);
     filter_irrelevant_rules = true;
     (* -fast by default *)
     (* "" means no cache *)

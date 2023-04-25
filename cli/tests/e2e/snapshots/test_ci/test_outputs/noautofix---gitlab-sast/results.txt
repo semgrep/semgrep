@@ -250,7 +250,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       },
       "flags": [],
-      "id": "ff8806e5-d262-f88a-eebb-c15b80d84f12",
+      "id": "6090c1ba-b6c8-853d-a43c-7119a6eb2ad0",
       "identifiers": [
         {
           "name": "Semgrep - supply-chain1",
@@ -260,9 +260,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "end_line": 0,
+        "end_line": 2,
         "file": "poetry.lock",
-        "start_line": 0
+        "start_line": 1
       },
       "message": "found a dependency",
       "scanner": {
@@ -290,24 +290,20 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   environment - running in environment git, triggering event is unknown
             
   CONNECTION
-  Fetching configuration from Semgrep Cloud Platform  
-  Reporting start of scan for org_name                               
+  Reporting start of scan for deployment_name         
+  Fetching configuration from Semgrep Cloud Platform                 
                
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
             
+            
   CODE RULES
   Scanning 1 file with 4 python rules.
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
                 
                 
 ┌──────────────┐

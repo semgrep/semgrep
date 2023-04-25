@@ -16,7 +16,6 @@ open Common
 module StrSet = Common2.StringSet
 open AST_generic
 module V = Visitor_AST
-module PI = Parse_info
 module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable
@@ -81,6 +80,7 @@ let range_of_any_opt startp_of_match_range any =
   | T _
   | P _
   | At _
+  | XmlAt _
   | Fld _
   | Flds _
   | Partial _
@@ -119,9 +119,10 @@ let metavar_string_of_any any =
      we have y = 2 but there is no source location for 2.
      Handle such cases *)
   any |> V.ii_of_any
-  |> List.filter PI.is_origintok
-  |> List.sort Parse_info.compare_pos
-  |> Common.map PI.str_of_info |> Matching_report.join_with_space_if_needed
+  |> List.filter Tok.is_origintok
+  |> List.sort Tok.compare_pos
+  |> Common.map Tok.content_of_tok
+  |> Matching_report.join_with_space_if_needed
 
 let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =
@@ -158,7 +159,7 @@ let metavars startp_of_match_range (s, mval) =
   match range_of_any_opt startp_of_match_range any with
   | None ->
       raise
-        (Parse_info.NoTokenLocation
+        (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
               (SJ.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
@@ -173,12 +174,11 @@ let metavars startp_of_match_range (s, mval) =
 (* None if pi has no location information. Fake tokens should have been filtered
  * out earlier, but in case one slipped through we handle this case. *)
 let parse_info_to_location pi =
-  PI.token_location_of_info pi
-  |> Result.to_option
+  Tok.loc_of_tok pi |> Result.to_option
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
 
-let tokens_to_locations toks = List.filter_map parse_info_to_location toks
+let tokens_to_locations toks = Common.map_filter parse_info_to_location toks
 
 let tokens_to_single_loc toks =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -187,7 +187,7 @@ let tokens_to_single_loc toks =
    * taint rule finding but it shouldn't happen in practice. *)
   let locations =
     tokens_to_locations
-      (List.filter PI.is_origintok toks |> List.sort PI.compare_pos)
+      (List.filter Tok.is_origintok toks |> List.sort Tok.compare_pos)
   in
   let* first_loc, last_loc = first_and_last locations in
   Some
@@ -198,7 +198,7 @@ let token_to_intermediate_var token =
   Some { Out.location }
 
 let tokens_to_intermediate_vars tokens =
-  List.filter_map token_to_intermediate_var tokens
+  Common.map_filter token_to_intermediate_var tokens
 
 let rec taint_call_trace = function
   | Toks toks ->
@@ -210,12 +210,26 @@ let rec taint_call_trace = function
       let* call_trace = taint_call_trace call_trace in
       Some (Out.CoreCall (location, intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace { source; tokens; sink } :
-    Out.core_match_dataflow_trace =
+let taint_trace_to_dataflow_trace traces : Out.core_match_dataflow_trace =
+  (* Here, we ignore all but the first taint trace, for source or sink.
+     This is because we added support for multiple sources/sinks in a single trace, but only
+     internally to semgrep-core. Externally, our CLI dataflow trace datatype still has
+     only one trace per finding. To fit into that type, we have to pick one arbitrarily.
+
+     This is fine to do, because we previously only emitted one finding per taint sink,
+     due to deduplication, so we shouldn't get more or less findings.
+     It's possible that this could change the dataflow trace of an existing finding though.
+  *)
+  let source_call_trace, tokens, sink_call_trace =
+    match traces with
+    | [] -> raise Common.Impossible
+    | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
+        (source_trace, tokens, sink_trace)
+  in
   {
-    Out.taint_source = taint_call_trace source;
+    Out.taint_source = taint_call_trace source_call_trace;
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
-    taint_sink = taint_call_trace sink;
+    taint_sink = taint_call_trace sink_call_trace;
   }
 
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
@@ -241,9 +255,9 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
   *)
   let file =
     if
-      (x.file <> min_loc.file || x.file <> max_loc.file)
-      && min_loc.file <> "FAKE TOKEN LOCATION"
-    then min_loc.file
+      (x.file <> min_loc.pos.file || x.file <> max_loc.pos.file)
+      && min_loc.pos.file <> "FAKE TOKEN LOCATION"
+    then min_loc.pos.file
     else x.file
   in
   {
@@ -256,6 +270,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         dataflow_trace;
         rendered_fix;
         engine_kind = convert_engine_kind x.engine_kind;
+        extra_extra = None;
       };
   }
 
@@ -267,8 +282,8 @@ let match_to_match render_fix (x : Pattern_match.t) :
      * pattern in x.code or the metavar does not contain any token
      *)
   with
-  | Parse_info.NoTokenLocation s ->
-      let loc = Parse_info.first_loc_of_file x.file in
+  | Tok.NoTokenLocation s ->
+      let loc = Tok.first_loc_of_file x.file in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
       in
@@ -282,7 +297,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
  * so we would not need those conversions
  *)
 let error_to_error err =
-  let file = err.E.loc.PI.file in
+  let file = err.E.loc.pos.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
   let rule_id = err.E.rule_id in
   let error_type = err.E.typ in
@@ -301,7 +316,7 @@ let error_to_error err =
 let rec explanation_to_explanation (exp : Matching_explanation.t) :
     Out.matching_explanation =
   let { Matching_explanation.op; matches; pos; children } = exp in
-  let tloc = PI.unsafe_token_location_of_info pos in
+  let tloc = Tok.unsafe_loc_of_tok pos in
   {
     Out.op;
     children = children |> Common.map explanation_to_explanation;
@@ -337,7 +352,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let files_with_errors =
     errs
     |> List.fold_left
-         (fun acc err -> StrSet.add err.E.loc.file acc)
+         (fun acc err -> StrSet.add err.E.loc.pos.file acc)
          StrSet.empty
   in
   let count_errors = StrSet.cardinal files_with_errors in
@@ -345,33 +360,26 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let skipped_targets, profiling =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
-        (Some skipped_targets, Some profiling)
-    | RP.Time { profiling } -> (None, Some profiling)
-    | RP.No_info -> (None, None)
+        (skipped_targets, Some profiling)
+    | RP.Time { profiling } -> ([], Some profiling)
+    | RP.No_info -> ([], None)
   in
   {
     Out.matches;
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
-      (match res.RP.skipped_rules with
-      | [] -> None
-      | xs ->
-          Some
-            (xs
-            |> Common.map (fun (kind, rule_id, tk) ->
-                   let loc = PI.unsafe_token_location_of_info tk in
-                   {
-                     Out.rule_id;
-                     details = Rule.string_of_invalid_rule_error_kind kind;
-                     position = OutH.position_of_token_location loc;
-                   })));
+      res.RP.skipped_rules
+      |> Common.map (fun (kind, rule_id, tk) ->
+             let loc = Tok.unsafe_loc_of_tok tk in
+             {
+               Out.rule_id;
+               details = Rule.string_of_invalid_rule_error_kind kind;
+               position = OutH.position_of_token_location loc;
+             });
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
-    explanations =
-      (match res.RP.explanations with
-      | [] -> None
-      | xs -> Some (xs |> Common.map explanation_to_explanation));
+    explanations = res.RP.explanations |> Common.map explanation_to_explanation;
     rules_by_engine = Common.map convert_rule res.rules_by_engine;
     engine_requested = `OSS;
   }

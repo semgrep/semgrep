@@ -1,5 +1,5 @@
 open Common
-module PI = Parse_info
+open File.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 module TH = Token_helpers_ruby
@@ -37,7 +37,7 @@ let test_tokens file =
   ()
 
 let test_parse xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ruby.find_source_files_of_dir_or_files xs
@@ -58,14 +58,14 @@ let test_parse xs =
                    Common.save_excursion Flag.exn_when_lexical_error false
                      (fun () ->
                        Common.save_excursion Flag.show_parsing_error true
-                         (fun () -> Parse_ruby.parse file)))
+                         (fun () -> Parse_ruby.parse !!file)))
              in
 
              Common.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
-               Hashtbl.add newscore file Common2.Ok
-             else Hashtbl.add newscore file (Common2.Pb s)));
+               Hashtbl.add newscore !!file Common2.Ok
+             else Hashtbl.add newscore !!file (Common2.Pb s)));
   Parsing_stat.print_parsing_stat_list !stat_list;
   Parsing_stat.print_regression_information ~ext xs newscore;
   ()

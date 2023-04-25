@@ -77,8 +77,8 @@ let get_printer lang external_printer :
 
 let original_source_of_ast source any =
   let* start, end_ = Visitor_AST.range_of_any_opt any in
-  let starti = start.Parse_info.charpos in
-  let _, _, endi = Parsing_helpers.get_token_end_info end_ in
+  let starti = start.Tok.pos.charpos in
+  let _, _, endi = Tok.end_pos_of_loc end_ in
   let len = endi - starti in
   let str = String.sub source starti len in
   Some str
@@ -126,6 +126,7 @@ let add_metavars (tbl : ast_node_table) metavars =
       | S _
       | T _
       | P _
+      | XmlAt _
       | Raw _
       | Ss _
       | Params _

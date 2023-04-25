@@ -8,12 +8,5 @@ Rules:
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
-            
-  CODE RULES
   Scanning 1 file.
-           
-           
-┌─────────┐
-│ Results │
-└─────────┘
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

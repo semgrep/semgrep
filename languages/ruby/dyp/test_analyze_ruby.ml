@@ -1,6 +1,6 @@
 open Common
+open File.Operators
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -8,7 +8,7 @@ module PS = Parsing_stat
 (*****************************************************************************)
 
 let test_parse xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = List.map Common.fullpath xs |> File.Path.of_strings in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ruby.find_source_files_of_dir_or_files xs
@@ -23,13 +23,13 @@ let test_parse xs =
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
-             let stat = Parsing_stat.default_stat file in
+             let stat = Parsing_stat.default_stat !!file in
              let () =
                Common.save_excursion Flag.error_recovery true (fun () ->
                    Common.save_excursion Flag.exn_when_lexical_error false
                      (fun () ->
                        try
-                         let ast = Parse_ruby.parse_program file in
+                         let ast = Parse_ruby.parse_program !!file in
                          let _cfg = Il_ruby_build.refactor_ast ast in
                          ()
                        with
@@ -40,8 +40,8 @@ let test_parse xs =
              Common.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
-               Hashtbl.add newscore file Common2.Ok
-             else Hashtbl.add newscore file (Common2.Pb s)));
+               Hashtbl.add newscore !!file Common2.Ok
+             else Hashtbl.add newscore !!file (Common2.Pb s)));
   flush stdout;
   flush stderr;
 

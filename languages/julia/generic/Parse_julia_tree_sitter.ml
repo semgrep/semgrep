@@ -18,7 +18,6 @@ module H = Parse_tree_sitter_helpers
 module G = AST_generic
 open AST_generic
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,8 +36,8 @@ type env = context H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
-let sc tok = PI.sc tok
+let fb = Tok.unsafe_fake_bracket
+let sc tok = Tok.sc tok
 
 let in_pattern env =
   match env.H.extra with
@@ -81,7 +80,7 @@ let map_assign_operator (env : env) (tok : CST.assign_operator) =
   (* assign_operator *)
   let tok = token env tok in
   let doit op v1 v3 = AssignOp (v1, (op, tok), v3) |> G.e in
-  match PI.str_of_info tok with
+  match Tok.content_of_tok tok with
   | "+=" -> Plus |> doit
   | "-=" -> Minus |> doit
   | "*=" -> Mult |> doit
@@ -221,7 +220,7 @@ let map_float_literal (env : env) (x : CST.float_literal) : expr =
         let s1, t1 = str env v1 in
         (* . and then more decimal, or exponent *)
         let s2, t2 = str env v2 in
-        (fix_string (s1 ^ s2), Parse_info.combine_infos t1 [ t2 ])
+        (fix_string (s1 ^ s2), Tok.combine_toks t1 [ t2 ])
     | `Tok_pat_a25c544_pat_55159f5 x ->
         (* Decimal and exponent *)
         let s, tok = str env x in
@@ -245,7 +244,7 @@ let map_prefixed_command_literal (env : env)
   let s4, t4 = (* command_end *) str env v4 in
   let cmd_id =
     ( s2 ^ String.concat "" (Common.map fst v3) ^ s4,
-      Parse_info.combine_infos t2 (Common.map snd v3 @ [ t4 ]) )
+      Tok.combine_toks t2 (Common.map snd v3 @ [ t4 ]) )
   in
   let v5 =
     match v5 with
@@ -260,7 +259,7 @@ let map_prefixed_string_literal (env : env)
   let s2, t2 = (* immediate_string_start *) str env v2 in
   let v3 = Common.map (map_anon_choice_str_content_no_interp_24ac4f9 env) v3 in
   let s4, t4 = (* string_end *) str env v4 in
-  let tok = Parse_info.combine_infos t2 (Common.map snd v3 @ [ t4 ]) in
+  let tok = Tok.combine_toks t2 (Common.map snd v3 @ [ t4 ]) in
   let s = s2 ^ String.concat "" (Common.map fst v3) ^ s4 in
   let v5 =
     match v5 with
@@ -670,12 +669,16 @@ and map_anon_choice_str_content_838a78d (env : env)
   match x with
   | `Str_content tok -> (* string_content *) Left3 (str env tok)
   | `Str_interp (v1, v2) ->
-      let _v1 = (* "$" *) token env v1 in
+      let dollar_s, dollar_t = (* "$" *) str env v1 in
       let v2 =
         match v2 with
-        | `Id tok ->
-            let id = map_identifier env tok in
-            Middle3 (N (H2.name_of_id id) |> G.e)
+        | `Id tok -> (
+            let s, t = map_identifier env tok in
+            match env.extra with
+            | Pattern ->
+                let mvar_id = (dollar_s ^ s, Tok.combine_toks dollar_t [ t ]) in
+                Left3 mvar_id
+            | Program -> Middle3 (N (H2.name_of_id (s, t)) |> G.e))
         | `Imme_paren_LPAR_choice_exp_RPAR (v1, v2, v3, v4) ->
             let _v1 = (* immediate_paren *) token env v1 in
             let v2 = (* "(" *) token env v2 in
@@ -802,7 +805,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v1 = map_expression env v1 in
       let v2 = (* bitshift_operator *) token env v2 in
       let v3 = map_expression env v3 in
-      match PI.str_of_info v2 with
+      match Tok.content_of_tok v2 with
       | "<<" -> opcall (LSL, v2) [ v1; v3 ]
       | ">>" -> opcall (ASR, v2) [ v1; v3 ]
       | ">>>" -> opcall (LSR, v2) [ v1; v3 ]
@@ -1596,7 +1599,7 @@ and map_interpolation_expression_either (env : env)
   (* Actually, we might want to inject into Left even if it's not a pattern...
    *)
   | G.N (Id ((s, tok), _)) when in_pattern env ->
-      let id = (s1 ^ s, Parse_info.combine_infos t1 [ tok ]) in
+      let id = (s1 ^ s, Tok.combine_toks t1 [ tok ]) in
       Left id
   | __else__ -> Right (OtherExpr (v1, [ G.E v2 ]) |> G.e)
 
@@ -1618,7 +1621,7 @@ and map_interpolation_parameter (env : env)
   (* When this is a pattern, this parameter is not an interpolation, but a metavariable.
    *)
   | G.N (Id ((s, tok), _)) when in_pattern env ->
-      let id = (s1 ^ s, Parse_info.combine_infos t1 [ tok ]) in
+      let id = (s1 ^ s, Tok.combine_toks t1 [ tok ]) in
       Param (param_of_id id)
   | __else__ -> OtherParam (v1, [ G.E v2 ])
 
