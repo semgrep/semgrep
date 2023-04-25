@@ -7,6 +7,7 @@ open Common
 (* in JSON mode, we might need to display intermediate '.' in the
  * output for semgrep to track progress as well as extra targets
  * found by extract rules.
+ * TODO: not needed after osemgrep migration done
  *)
 type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
@@ -29,6 +30,7 @@ type target_source =
   | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
 
+(* TODO: similar to osemgrep Scan_CLI.conf, should be merged in it *)
 type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
@@ -45,7 +47,7 @@ type t = {
   pattern_file : filename; (* TODO: use Fpath.t option *)
   rule_source : rule_source option;
   lang_job : Lang_job.t option;
-  equivalences_file : string; (* TODO: use Fpath.t option *)
+  equivalences_file : Fpath.t option;
   lang : Xlang.t option;
   roots : Fpath.t list;
   output_format : output_format;
@@ -99,7 +101,7 @@ let default =
     pattern_file = "" (* invalid path! *);
     rule_source = None;
     lang_job = None;
-    equivalences_file = "" (* invalid path! *);
+    equivalences_file = None;
     lang = None;
     roots = [];
     output_format = Text;

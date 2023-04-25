@@ -79,7 +79,7 @@ let pattern_file = ref ""
 
 (* -rules *)
 let rule_source = ref None
-let equivalences_file = ref ""
+let equivalences_file = ref None
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
@@ -310,7 +310,7 @@ let dump_ext_of_lang () =
 
 let dump_equivalences file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  let xs = Parse_equivalences.parse !!file in
+  let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
 let dump_rule file =
@@ -549,7 +549,7 @@ let options actions =
       Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
-      Arg.Set_string equivalences_file,
+      Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
     ( "-use_parsing_cache",

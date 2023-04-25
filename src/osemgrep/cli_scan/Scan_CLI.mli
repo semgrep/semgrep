@@ -15,10 +15,12 @@ type conf = {
   rule_filtering_conf : Rule_filtering.conf;
   targeting_conf : Find_target.conf;
   (* Other configuration options *)
+  nosem : bool;
   autofix : bool;
   dryrun : bool;
   error_on_findings : bool;
   strict : bool;
+  rewrite_rule_ids : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -27,11 +29,11 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;
+  (* text output config (TODO: make a separate type gathering all of them) *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
   time_flag : bool;
   profile : bool;
-  rewrite_rule_ids : bool;
   (* Networking options *)
   metrics : Metrics_.config;
   version_check : bool;
@@ -41,7 +43,6 @@ type conf = {
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
-  nosem : bool;
 }
 [@@deriving show]
 

@@ -401,8 +401,8 @@ let rules_from_rule_source config =
  *)
 let parse_equivalences equivalences_file =
   match equivalences_file with
-  | "" -> []
-  | file -> Parse_equivalences.parse file
+  | None -> []
+  | Some file -> Parse_equivalences.parse file
   [@@profiling]
 
 (*****************************************************************************)

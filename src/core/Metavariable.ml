@@ -180,7 +180,6 @@ let program_of_mvalue : mvalue -> G.program option =
       None
 
 let range_of_mvalue mval =
-  let ( let* ) = Common.( >>= ) in
   let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
   (* We must return both the range *and* the file, due to metavariable-pattern
    * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
