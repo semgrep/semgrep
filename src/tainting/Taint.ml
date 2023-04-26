@@ -151,7 +151,12 @@ let rec substitute_precondition_arg_taint ~arg_fn taint =
 
 let rec compare_precondition (ts1, f1) (ts2, f2) =
   match List.compare compare_taint ts1 ts2 with
-  | 0 -> Stdlib.compare f1 f2
+  | 0 ->
+      (* We use polymorphic compare here, because these preconditions
+         should be safe to compare, due to carrying no extraneous
+         data, and otherwise only comprising of base types.
+      *)
+      Stdlib.compare f1 f2
   | other -> other
 
 and compare_sources s1 s2 =
@@ -166,7 +171,16 @@ and compare_sources s1 s2 =
       (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.Rule.label)
       (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.Rule.label)
   with
-  | 0 -> Option.compare compare_precondition s1.precondition s2.precondition
+  | 0 ->
+      (* It's important that we include preconditions as a distinguishing factor
+         between two taints.
+
+         Otherwise, suppose that we had a taint with label A with precondition `false`
+         and one with precondition `true`. Obviously, only one actually exists. But
+         if we pick the wrong one, we might fallaciously say a taint label finding does
+         not actually occur.
+      *)
+      Option.compare compare_precondition s1.precondition s2.precondition
   | other -> other
 
 and compare_orig orig1 orig2 =
@@ -200,8 +214,7 @@ let rec _show_source { call_trace; label; precondition } =
 and _show_precondition precondition =
   match precondition with
   | None -> ""
-  | Some (ts, _) ->
-      Common.spf "[pre%s]" (String.concat ", " (Common.map _show_taint ts))
+  | Some (ts, _) -> Common.spf "[pre%d]" (List.length ts)
 
 and _show_taint taint =
   let rec depth acc = function

@@ -589,18 +589,36 @@ let rec eval_label_requires ~labels e =
       |> Common.map (eval_label_requires ~labels)
       |> List.fold_left ( || ) false
 
-let rec is_real_taint taint =
+(* This is where we actually do the solving of the "hypothetical taint".
+   To recap, to deal with taint which may or may not exist due to the
+   later value of taint variables, we need to attach a "precondition" to
+   such hypothetical taints, detailing the conditions upon which they can
+   appear.
+
+   We do this super lazily, because we can't know whether it's solvable until
+   we actually substitute for any argument taint variables that may be involved.
+   Once that substitution has been done, however, we need to solve to figure out
+   if this hypothetical taint could exist after all.
+
+   This can only happen if the precondition formula is satisfied by all of
+   the dependency taints that really do "exist", in the sense that they are known
+   to be un-hypothetical and not polymorphic, or hypothetical and their preconditions
+   are solved in the same way.
+
+   That's what this does.
+*)
+let rec taint_can_exist taint =
   match taint.T.orig with
   | Arg _ -> false
   | Src { precondition = None; _ } -> true
   | Src { precondition = Some (incoming, expr); _ } ->
-      solve_formula (incoming, expr)
+      solve_precondition (incoming, expr)
 
-and solve_formula (incoming, expr) =
-  let labels = List.filter is_real_taint incoming |> labels_of_taints in
+and solve_precondition (incoming, expr) =
+  let labels = List.filter taint_can_exist incoming |> labels_of_taints in
   eval_label_requires ~labels expr
 
-let taints_satisfy_requires taints expr = solve_formula (taints, expr)
+let taints_satisfy_requires taints expr = solve_precondition (taints, expr)
 
 (* This function is used to convert some taint thing we're holding
    to one which has been propagated to a new label.
