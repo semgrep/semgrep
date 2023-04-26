@@ -34,6 +34,8 @@ jobs:
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
 
+          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+
           dune build js --profile=release
       - uses: actions/upload-artifact@v3
         with:
