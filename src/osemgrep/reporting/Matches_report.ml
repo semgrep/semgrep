@@ -165,11 +165,14 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
           else col m.start.col + ellipsis_len (line_off > 0)
         in
         let end_color =
-          if line_number >= m.end_.line then
-            min
-              (start_color + (m.end_.col - m.start.col))
-              (String.length line - 1 - ellipsis_len true)
-          else String.length line - 1
+          max start_color
+            (if line_number >= m.end_.line then
+             min
+               (if m.start.line = m.end_.line then
+                start_color + (m.end_.col - m.start.col)
+               else col m.end_.col - ellipsis_len true)
+               (String.length line - 1 - ellipsis_len true)
+            else String.length line - 1)
         in
         let a, b, c = cut line start_color end_color in
         Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
