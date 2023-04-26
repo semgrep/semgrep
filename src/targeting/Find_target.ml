@@ -59,9 +59,6 @@ type conf = {
 }
 [@@deriving show]
 
-type baseline_handler = TODO
-type file_ignore = TODO
-
 (*
    Some rules will use 'include' (required_path_patterns) and 'exclude'
    (excluded_path_patterns) to select targets that don't have an extension
@@ -376,24 +373,25 @@ let get_targets conf scanning_roots =
   (List.flatten paths_list, List.flatten skipped_paths_list)
 
 (*************************************************************************)
-(* TODO *)
+(* Target cache *)
 (*************************************************************************)
 
 let create_cache () = Hashtbl.create 1000
 
-let match_glob_pattern ~pat path =
-  (* TODO *)
-  ignore pat;
-  ignore path;
-  true
+(* TODO!!
+   let match_glob_pattern ~pat path =
+     ignore pat;
+     ignore path;
+     true
 
-let match_a_required_path_pattern required_path_patterns path =
-  match required_path_patterns with
-  | [] -> (* <grimacing face emoji> *) true
-  | pats -> List.exists (fun pat -> match_glob_pattern ~pat path) pats
+   let match_a_required_path_pattern required_path_patterns path =
+     match required_path_patterns with
+     | [] -> (* <grimacing face emoji> *) true
+     | pats -> List.exists (fun pat -> match_glob_pattern ~pat path) pats
 
-let match_all_excluded_path_patterns excluded_path_patterns path =
-  List.for_all (fun pat -> match_glob_pattern ~pat path) excluded_path_patterns
+   let match_all_excluded_path_patterns excluded_path_patterns path =
+     List.for_all (fun pat -> match_glob_pattern ~pat path) excluded_path_patterns
+*)
 
 let match_language (xlang : Xlang.t) path =
   match xlang with
@@ -406,6 +404,7 @@ let match_language (xlang : Xlang.t) path =
   | LGeneric ->
       true
 
+(* Used by Core_runner.split_jobs_by_language *)
 let filter_target_for_lang ~cache ~lang ~required_path_patterns
     ~excluded_path_patterns path =
   let key : target_cache_key =
@@ -415,24 +414,26 @@ let filter_target_for_lang ~cache ~lang ~required_path_patterns
   | Some res -> res
   | None ->
       let res =
-        match_a_required_path_pattern required_path_patterns path
-        && match_all_excluded_path_patterns excluded_path_patterns path
-        && match_language lang path
+        (* TODO match_a_required_path_pattern required_path_patterns path && *)
+        (* TODO match_all_excluded_path_patterns excluded_path_patterns path *)
+        match_language lang path
       in
       Hashtbl.replace cache key res;
       res
 
-let filter_target_for_rule cache (rule : Rule.t) path =
-  let required_path_patterns, excluded_path_patterns =
-    match rule.paths with
-    | Some { include_; exclude } -> (include_, exclude)
-    | None -> ([], [])
-  in
-  filter_target_for_lang ~cache ~lang:rule.languages ~required_path_patterns
-    ~excluded_path_patterns path
+(* TODO? useful?
+   let filter_target_for_rule cache (rule : Rule.t) path =
+     let required_path_patterns, excluded_path_patterns =
+       match rule.paths with
+       | Some { include_; exclude } -> (include_, exclude)
+       | None -> ([], [])
+     in
+     filter_target_for_lang ~cache ~lang:rule.languages ~required_path_patterns
+       ~excluded_path_patterns path
 
-let filter_targets_for_rule cache rule files =
-  List.filter (filter_target_for_rule cache rule) files
+   let filter_targets_for_rule cache rule files =
+     List.filter (filter_target_for_rule cache rule) files
+*)
 
 (*************************************************************************)
 (* Legacy *)
