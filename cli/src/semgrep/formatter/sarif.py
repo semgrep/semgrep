@@ -261,11 +261,12 @@ class SarifFormatter(BaseFormatter):
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
         security_severity = rule.metadata.get("security-severity")
+
         if security_severity is not None:
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding - {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {
@@ -278,16 +279,33 @@ class SarifFormatter(BaseFormatter):
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding - {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {"precision": "very-high", "tags": tags},
             }
 
         rule_url = rule.metadata.get("source")
+        references = []
+
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
+            references.extend([f"[Semgrep Rule]({rule_url})"])
 
+        if "references" in rule.metadata:
+            ref = rule.metadata["references"]
+            references.extend(
+                [f"[{r}]({r})" for r in ref]
+                if isinstance(ref, list)
+                else [ref]
+            )
+        if references:
+            r = ""
+            for item in references:
+                r += "\n - {}".format(item)
+            rule_json["help"] = {}
+            rule_json["help"]["text"] = rule.message
+            rule_json["help"]["markdown"] = f"{rule.message}\n\n<b>References:</b>\n{r}"
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
@@ -329,6 +347,9 @@ class SarifFormatter(BaseFormatter):
                 if isinstance(owasp, list)
                 else [f"OWASP-{owasp}"]
             )
+        if "confidence" in rule.metadata:
+            confidence = rule.metadata["confidence"]
+            result.extend([f"{confidence} CONFIDENCE"])
         if (
             "semgrep.policy" in rule.metadata
             and "slug" in rule.metadata["semgrep.policy"]
