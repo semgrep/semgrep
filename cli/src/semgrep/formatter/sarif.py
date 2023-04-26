@@ -52,8 +52,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": source_message_text},
                         },
                     },
-                    "nestingLevel": 0,
-                }
+                },
+                "nestingLevel": 0
             }
             return taint_source_location_sarif
 
@@ -85,8 +85,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": propagation_message_text},
                         },
                     },
-                    "nestingLevel": 0,
-                }
+                },
+                "nestingLevel": 0
             }
             intermediate_var_locations.append(intermediate_vars_location_sarif)
         return intermediate_var_locations
@@ -112,8 +112,8 @@ class SarifFormatter(BaseFormatter):
                         "message": {"text": sink_message_text},
                     },
                 },
-                "nestingLevel": 1,
-            }
+            },
+            "nestingLevel": 1
         }
         return sink_location_sarif
 
