@@ -17,6 +17,16 @@ type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
 type arg_pos = string * int [@@deriving show]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
+type precondition =
+  | Label of string
+  | Bool of bool
+  | And of precondition list
+  | Or of precondition list
+  | Not of precondition
+[@@deriving show]
+
+val expr_to_precondition : AST_generic.expr -> precondition
+
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -25,7 +35,7 @@ type source = {
         this label may have changed, for instance by being propagated to
         a different label.
       *)
-  precondition : (taint list * AST_generic.expr) option;
+  precondition : (taint list * precondition) option;
 }
 [@@deriving show]
 
@@ -51,7 +61,7 @@ type taint_to_sink_item = {
 [@@deriving show]
 
 type taints_to_sink = {
-  taints_with_precondition : taint_to_sink_item list * AST_generic.expr;
+  taints_with_precondition : taint_to_sink_item list * precondition;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
@@ -119,3 +129,4 @@ val replace_precondition_arg_taint :
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string
+val _show_taint : taint -> string

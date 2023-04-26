@@ -79,6 +79,42 @@ let _show_arg { pos = s, i; offset = os } =
 (* Taint *)
 (*****************************************************************************)
 
+type precondition =
+  | Label of string
+  | Bool of bool
+  | And of precondition list
+  | Or of precondition list
+  | Not of precondition
+[@@deriving show]
+
+let rec expr_to_precondition e =
+  match e.G.e with
+  | G.L (G.Bool (v, _)) -> Bool v
+  | G.N (G.Id (id, _)) ->
+      let str, _ = id in
+      Label str
+  | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
+      Not (expr_to_precondition e1)
+  | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
+      match (op, args_to_precondition args) with
+      | G.And, xs -> And xs
+      | G.Or, xs -> Or xs
+      | __else__ ->
+          logger#error "Unexpected Boolean operator";
+          Bool false)
+  | G.ParenExpr (_, e, _) -> expr_to_precondition e
+  | ___else__ ->
+      logger#error "Unexpected `requires' expression";
+      Bool false
+
+and args_to_precondition args =
+  match args with
+  | [] -> []
+  | G.Arg e :: args' -> expr_to_precondition e :: args_to_precondition args'
+  | _ :: args' ->
+      logger#error "Unexpected argument kind";
+      Bool false :: args_to_precondition args'
+
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -88,26 +124,22 @@ type source = {
          We don't put it under `taint`, though, because Arg taints are
          supposed to be polymorphic in label.
       *)
-  precondition : (taint list * G.expr) option;
+  precondition : (taint list * precondition) option;
 }
 [@@deriving show]
 
 and orig = Src of source | Arg of arg [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-let _show_precondition precondition =
-  match precondition with
-  | None -> ""
-  | __else__ -> "[pre]"
-
 let add_precondition_to_taint ~incoming formula t =
   (* If there is no precondition attached to the taint
      being produced, then it's unconditionally existent!
   *)
+  Common.(pr2 (spf "adding precondition with %d" (List.length incoming)));
   let precondition =
     match formula with
     | None -> None
-    | Some f -> Some (incoming, f)
+    | Some f -> Some (incoming, expr_to_precondition f)
   in
   match t.orig with
   | Src src ->
@@ -130,31 +162,32 @@ let rec replace_precondition_arg_taint ~arg_fn taint =
       let new_precondition = Some (new_incoming, expr) in
       [ { taint with orig = Src { src with precondition = new_precondition } } ]
 
-let _show_source { call_trace; label; precondition } =
-  (* We want to show the actual label, not the originating label.
-     This may change, for instance, if we have ever propagated this taint to
-     a different label.
-  *)
-  let precondition_prefix = _show_precondition precondition in
-  precondition_prefix ^ _show_call_trace (fun _ -> label) call_trace
-
 let src_of_pm (pm, (x : Rule.taint_source)) =
   Src { call_trace = PM (pm, x); label = x.label; precondition = None }
 
 let taint_of_pm pm = { orig = src_of_pm pm; tokens = [] }
 
-let compare_sources s1 s2 =
+let rec compare_precondition (ts1, f1) (ts2, f2) =
+  match List.compare compare_taint ts1 ts2 with
+  | 0 -> Stdlib.compare f1 f2
+  | other -> other
+
+and compare_sources s1 s2 =
   (* Comparing metavariable environments this way is not robust, e.g.:
    * [("$A",e1);("$B",e2)] is not considered equal to [("$B",e2);("$A",e1)].
    * For our purposes, this is OK.
    *)
   let pm1, ts1 = pm_of_trace s1.call_trace
   and pm2, ts2 = pm_of_trace s2.call_trace in
-  Stdlib.compare
-    (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.Rule.label)
-    (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.Rule.label)
+  match
+    Stdlib.compare
+      (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.Rule.label)
+      (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.Rule.label)
+  with
+  | 0 -> Option.compare compare_precondition s1.precondition s2.precondition
+  | other -> other
 
-let compare_orig orig1 orig2 =
+and compare_orig orig1 orig2 =
   match (orig1, orig2) with
   | Arg { pos = s, i; _ }, Arg { pos = s', j; _ } -> (
       match String.compare s s' with
@@ -164,7 +197,7 @@ let compare_orig orig1 orig2 =
   | Arg _, Src _ -> -1
   | Src _, Arg _ -> 1
 
-let compare_taint taint1 taint2 =
+and compare_taint taint1 taint2 =
   (* THINK: Right now we disregard the trace because we just want to keep one
    * potential path. *)
   compare_orig taint1.orig taint2.orig
@@ -174,7 +207,21 @@ let _show_taint_label taint =
   | Arg { pos = s, i; _ } -> Printf.sprintf "arg(%s)#%d" s i
   | Src src -> src.label
 
-let _show_taint taint =
+let rec _show_source { call_trace; label; precondition } =
+  (* We want to show the actual label, not the originating label.
+     This may change, for instance, if we have ever propagated this taint to
+     a different label.
+  *)
+  let precondition_prefix = _show_precondition precondition in
+  precondition_prefix ^ _show_call_trace (fun _ -> label) call_trace
+
+and _show_precondition precondition =
+  match precondition with
+  | None -> ""
+  | Some (ts, _) ->
+      Common.spf "[pre%s]" (String.concat ", " (Common.map _show_taint ts))
+
+and _show_taint taint =
   let rec depth acc = function
     | PM _ -> acc
     | Call (_, _, x) -> depth (acc + 1) x
@@ -208,7 +255,7 @@ type taints_to_sink = {
      a certain number of findings suitable to how the sink was
      reached.
   *)
-  taints_with_precondition : taint_to_sink_item list * G.expr;
+  taints_with_precondition : taint_to_sink_item list * precondition;
   sink : sink;
   merged_env : Metavariable.bindings;
 }

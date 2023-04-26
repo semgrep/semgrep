@@ -445,33 +445,18 @@ let labels_of_taints taints : LabelSet.t =
 
 (* coupling: if you modify the code here, you may need to modify 'Parse_rule.parse_taint_requires' too. *)
 let rec eval_label_requires ~labels e =
-  match e.G.e with
-  | G.L (G.Bool (v, _)) -> v
-  | G.N (G.Id (id, _)) ->
-      let str, _ = id in
-      LabelSet.mem str labels
-  | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
-      not (eval_label_requires ~labels e1)
-  | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
-      match (op, eval_label_args ~labels args) with
-      | G.And, xs -> List.fold_left ( && ) true xs
-      | G.Or, xs -> List.fold_left ( || ) false xs
-      | __else__ ->
-          logger#error "Unexpected Boolean operator";
-          false)
-  | G.ParenExpr (_, e, _) -> eval_label_requires ~labels e
-  | ___else__ ->
-      logger#error "Unexpected `requires' expression";
-      false
-
-and eval_label_args ~labels args =
-  match args with
-  | [] -> []
-  | G.Arg e :: args' ->
-      eval_label_requires ~labels e :: eval_label_args ~labels args'
-  | _ :: args' ->
-      logger#error "Unexpected argument kind";
-      false :: eval_label_args ~labels args'
+  match e with
+  | T.Bool v -> v
+  | Label str -> LabelSet.mem str labels
+  | Not e -> not (eval_label_requires ~labels e)
+  | And xs ->
+      xs
+      |> Common.map (eval_label_requires ~labels)
+      |> List.fold_left ( && ) true
+  | Or xs ->
+      xs
+      |> Common.map (eval_label_requires ~labels)
+      |> List.fold_left ( || ) false
 
 let rec is_real_taint taint =
   match taint.T.orig with
@@ -548,7 +533,8 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
            Some
              (T.ToSink
                 {
-                  taints_with_precondition = ([ t ], R.get_sink_requires ts);
+                  taints_with_precondition =
+                    ([ t ], T.expr_to_precondition (R.get_sink_requires ts));
                   sink;
                   merged_env;
                 }))
@@ -563,7 +549,8 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
           T.ToSink
             {
               taints_with_precondition =
-                (Common.map fst taints_and_bindings, R.get_sink_requires ts);
+                ( Common.map fst taints_and_bindings,
+                  T.expr_to_precondition (R.get_sink_requires ts) );
               sink;
               merged_env;
             };
@@ -571,6 +558,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks env taints sinks : T.finding list =
+  Common.(pr2 (spf "into sink: %s" (Taint.show_taints taints)));
   sinks
   |> List.concat_map (fun sink ->
          (* This is where all taint findings start. If it's interproc,
@@ -614,17 +602,26 @@ let restrict_new_taint_sources_with_incoming_taints ~incoming taints =
     (fun taint ->
       let requires =
         match taint.orig with
-        | Src src -> Some (snd (T.pm_of_trace src.call_trace)).source_requires
+        | Src src -> (
+            match (snd (T.pm_of_trace src.call_trace)).source_requires with
+            | { e = G.L (Bool (true, _)); _ } -> None
+            | other -> Some other)
         | Arg _ -> None
       in
       let incoming = Taints.elements incoming in
-      T.add_precondition_to_taint ~incoming requires taint)
+      let res = T.add_precondition_to_taint ~incoming requires taint in
+      Common.(
+        pr2
+          (spf "before: %s after: %s" (T._show_taint taint) (T._show_taint res)));
+      res)
     taints
 
 let union_new_taint_sources ~new_ curr =
+  Common.(pr2 (spf "union new with %s" (Taint.show_taints new_)));
   let new_restricted =
     restrict_new_taint_sources_with_incoming_taints ~incoming:curr new_
   in
+  Common.(pr2 (spf "union new after %s" (Taint.show_taints new_restricted)));
   Taints.union new_restricted curr
 
 let find_pos_in_actual_args args_taints fparams =
@@ -826,7 +823,11 @@ let handle_taint_propagators env thing taints =
         (* Only propagate if the current set of taint labels can satisfy the
            propagator's requires precondition.
         *)
-        if eval_label_requires ~labels prop.spec.prop.propagator_requires then
+        (* TODO*)
+        if
+          eval_label_requires ~labels
+            (T.expr_to_precondition prop.spec.prop.propagator_requires)
+        then
           (* If we have an output label, change the incoming taints to be
              of the new label.
              Otherwise, keep them the same.
@@ -889,6 +890,13 @@ let find_lval_taint_sources env incoming_taints lval =
     mut_source_pms |> taints_of_matches
     |> restrict_new_taint_sources_with_incoming_taints ~incoming:incoming_taints
   in
+  (match source_pms with
+  | [] -> ()
+  | _ ->
+      Common.(
+        pr2 (spf "incoming to source is %s" (Taint.show_taints incoming_taints)));
+      Common.(
+        pr2 (spf "after source is %s" (Taint.show_taints taints_sources_reg))));
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
 
