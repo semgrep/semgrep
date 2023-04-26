@@ -47,9 +47,6 @@ val get_targets :
   Fpath.t list (* scanning roots *) ->
   Fpath.t list * Output_from_core_t.skipped_target list
 
-type baseline_handler = TODO
-type file_ignore = TODO
-
 (*
    A cache meant to avoid costly operations of determining whether a target
    is suitable over and over again.
@@ -65,21 +62,7 @@ type target_cache
 val create_cache : unit -> target_cache
 
 (*
-   For a rule, select all the applicable targets of these rules.
-   Preserve the original order.
-
-   Usage: let rule_targets = filter_targets_for_rule ~cache global_targets rule
-*)
-val filter_targets_for_rule :
-  target_cache -> Rule.t -> Fpath.t list -> Fpath.t list
-
-(*
-   Determine whether a rule is applicable to a file.
-*)
-val filter_target_for_rule : target_cache -> Rule.t -> Fpath.t -> bool
-
-(*
-   Low-level version of 'filter_target_for_rule'.
+   ??
 *)
 val filter_target_for_lang :
   cache:target_cache ->
@@ -88,6 +71,20 @@ val filter_target_for_lang :
   excluded_path_patterns:string list ->
   Fpath.t ->
   bool
+
+(* TODO?
+      For a rule, select all the applicable targets of these rules.
+      Preserve the original order.
+
+      Usage: let rule_targets = filter_targets_for_rule ~cache global_targets rule
+   val filter_targets_for_rule :
+     target_cache -> Rule.t -> Fpath.t list -> Fpath.t list
+
+   (*
+      Determine whether a rule is applicable to a file.
+   *)
+   val filter_target_for_rule : target_cache -> Rule.t -> Fpath.t -> bool
+*)
 
 (*
    [legacy implementation used in semgrep-core]

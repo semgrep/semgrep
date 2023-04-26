@@ -113,48 +113,47 @@ let merge_results
   (final_result, files)
 
 (* The same rule may appear under multiple target languages because
-   some patterns can be interpreted in multiple languages. *)
+   some patterns can be interpreted in multiple languages.
+   TODO? could use Common.group_by
+*)
 let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
   (* target language -> rules *)
   let tbl = Hashtbl.create 100 in
-  List.iter
-    (fun (rule : Rule.t) ->
-      let pattern_lang = rule.languages in
-      let target_langs = Xlang.flatten pattern_lang in
-      List.iter
-        (fun lang ->
-          let rules =
-            match Hashtbl.find_opt tbl lang with
-            | None -> []
-            | Some rules -> rules
-          in
-          Hashtbl.replace tbl lang (rule :: rules))
-        target_langs)
-    rules;
+  rules
+  |> List.iter (fun (rule : Rule.t) ->
+         let pattern_lang = rule.languages in
+         let target_langs = Xlang.flatten pattern_lang in
+         target_langs
+         |> List.iter (fun lang ->
+                let rules =
+                  match Hashtbl.find_opt tbl lang with
+                  | None -> []
+                  | Some rules -> rules
+                in
+                Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
 let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let grouped_rules = group_rules_by_target_language all_rules in
   let cache = Find_target.create_cache () in
-  Common.map
-    (fun (lang, rules) ->
-      let targets =
-        List.filter
-          (fun target ->
-            List.exists
-              (fun (rule : Rule.t) ->
-                let required_path_patterns, excluded_path_patterns =
-                  match rule.paths with
-                  | Some { include_; exclude } -> (include_, exclude)
-                  | None -> ([], [])
-                in
-                Find_target.filter_target_for_lang ~cache ~lang
-                  ~required_path_patterns ~excluded_path_patterns target)
-              rules)
-          all_targets
-      in
-      ({ lang; targets; rules } : Lang_job.t))
-    grouped_rules
+  grouped_rules
+  |> Common.map (fun (lang, rules) ->
+         let targets =
+           all_targets
+           |> List.filter (fun target ->
+                  rules
+                  |> List.exists (fun (rule : Rule.t) ->
+                         let required_path_patterns, excluded_path_patterns =
+                           match rule.paths with
+                           | Some { include_; exclude } -> (include_, exclude)
+                           | None -> ([], [])
+                         in
+                         Find_target.filter_target_for_lang ~cache ~lang
+                           ~required_path_patterns ~excluded_path_patterns
+                           target))
+         in
+
+         ({ lang; targets; rules } : Lang_job.t))
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
