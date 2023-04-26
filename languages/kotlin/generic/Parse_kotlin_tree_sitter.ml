@@ -420,7 +420,13 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
         | `Import_alias x ->
             let _t, id = import_alias env x in
             ImportAs (v1, DottedName v2, Some (id, empty_id_info ())))
-    | None -> ImportAs (v1, DottedName v2, None)
+    | None ->
+        let ident, module_name =
+          match List.rev v2 with
+          | [] -> raise Common.Impossible
+          | x :: xs -> (x, List.rev xs)
+        in
+        ImportFrom (v1, DottedName module_name, [ (ident, None) ])
   in
   let _v4 = semi env v4 (* pattern [\r\n]+ *) in
   v3 |> G.d
