@@ -7,7 +7,7 @@ on:
 jobs:
   build-semgrep-js-ocaml:
     runs-on: ubuntu-latest-16-core
-    container: returntocorp/ocaml:ubuntu-2023-04-17
+    container: returntocorp/ocaml:alpine-2023-04-17
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
@@ -31,9 +31,7 @@ jobs:
         run: |
           eval $(opam env)
 
-          # TODO: figure out why we need to do this
-          git config --global --add safe.directory $(pwd)
-
+          make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
 
           dune build js --profile=release
