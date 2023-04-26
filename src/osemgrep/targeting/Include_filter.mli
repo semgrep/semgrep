@@ -26,5 +26,5 @@ val create : project_root:Fpath.t -> string list -> t
 
 val select :
   t ->
-  Git_path.t ->
+  Ppath.t ->
   Gitignore_filter.status * Gitignore_syntax.selection_event list

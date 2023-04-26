@@ -774,7 +774,7 @@ let filename_without_leading_path prj_path s =
   else
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
 
-(* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
+(* Deprecated: use the ppath library instead! *)
 let readable ~root s =
   match root with
   | "/" -> s
@@ -1277,3 +1277,16 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 module SMap = Map.Make (String)
 
 type 'a smap = 'a SMap.t
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+
+module Operators = struct
+  let ( =~ ) = ( =~ )
+  let ( = ) = ( = )
+  let ( =|= ) = ( =|= )
+  let ( =$= ) = ( =$= )
+  let ( =:= ) = ( =:= )
+  let ( =*= ) = ( =*= )
+end

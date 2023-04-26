@@ -31,10 +31,10 @@ let create capabilities config =
 (* Once osemgrep is ready, we can just use target manager directly here *)
 let targets session =
   let config = session.config in
-  let%lwt git_repo = Git_helper.is_git_repo () in
+  let%lwt git_repo = Git_wrapper.is_git_repo () in
   let%lwt dirty_files =
     if git_repo then
-      let%lwt dirty_files = Git_helper.dirty_files () in
+      let%lwt dirty_files = Git_wrapper.dirty_files () in
       Lwt_list.map_p
         (fun file -> Lwt.return (Filename.concat session.root file))
         dirty_files

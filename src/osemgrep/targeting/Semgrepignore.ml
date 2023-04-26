@@ -88,7 +88,7 @@ let select t path =
      in an error if 'foo' doesn't exist or isn't a readable directory.
   *)
   let git_path =
-    match Git_path.make_absolute path |> Git_path.normalize with
+    match Ppath.make_absolute path |> Ppath.normalize with
     | Ok x -> x
     | Error msg -> failwith msg
   in

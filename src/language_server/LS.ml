@@ -7,6 +7,7 @@ module SR = Server_request
 module SN = Server_notification
 module CR = Client_request
 module CN = Client_notification
+module Conv = Convert_utils
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -277,7 +278,7 @@ module Server = struct
           let matches =
             Common2.filter
               (fun (m : Semgrep_output_v1_t.core_match) ->
-                List.mem (Convert_util.range_of_location m.location) ranges)
+                List.mem (Conv.range_of_location m.location) ranges)
               matches
           in
           let actions =

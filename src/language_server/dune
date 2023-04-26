@@ -6,9 +6,9 @@
    yaml
    lsp
    lwt
-   lwt.unix
 
    commons
+   git_wrapper
 
    semgrep.core
    semgrep_running
@@ -17,7 +17,7 @@
  (preprocess
   (pps
     lwt_ppx
-    ppx_profiling
+    profiling.ppx
   )
  )
 )

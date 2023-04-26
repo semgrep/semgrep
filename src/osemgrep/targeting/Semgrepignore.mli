@@ -49,7 +49,7 @@ val create :
 *)
 val select :
   t ->
-  Git_path.t ->
+  Ppath.t ->
   Gitignore_filter.status * Gitignore_syntax.selection_event list
 
 (* TODO: list project files without relying on 'git ls-files'.

@@ -3,7 +3,7 @@
 *)
 
 module S = Gitignore_syntax
-open Git_path.Ops
+open Ppath.Operators
 
 type t = {
   project_root : Fpath.t;
@@ -96,7 +96,7 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
               if is_selected sel_events then sel_events
               else loop sel_events levels file_path segments)
   in
-  loop sel_events levels Git_path.root relative_segments
+  loop sel_events levels Ppath.root relative_segments
 
 (*
    Filter a path according to gitignore rules, requiring all the parent paths
@@ -106,8 +106,8 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
    Each time we descend into a folder, we read the .gitignore files in
    that folder which add filters to the existing filters found earlier.
 *)
-let select t sel_events (full_git_path : Git_path.t) =
-  if Git_path.is_relative full_git_path then
+let select t sel_events (full_git_path : Ppath.t) =
+  if Ppath.is_relative full_git_path then
     invalid_arg
       ("Gitignore_filter.select: not an absolute path: " ^ full_git_path.string);
   let rel_segments =

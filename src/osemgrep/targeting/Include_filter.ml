@@ -2,7 +2,7 @@
    Similar to Gitignore_filter but select paths to be kept rather than ignored.
 *)
 
-open Git_path.Ops
+open Ppath.Operators
 
 type t = {
   project_root : Fpath.t;
@@ -53,7 +53,7 @@ let rec find_first func xs =
    If any of the patterns matches on any variant of the path, the
    file is selected.
 *)
-let select t (full_git_path : Git_path.t) =
+let select t (full_git_path : Ppath.t) =
   let rec scan_segments matcher parent_path segments =
     (* add a segment to the path and check if it's selected *)
     match segments with
@@ -61,7 +61,7 @@ let select t (full_git_path : Git_path.t) =
     | segment :: segments -> (
         (* check whether partial path should be gitignored *)
         let file_path = parent_path / segment in
-        if Glob_matcher.run matcher (Git_path.to_string file_path) then
+        if Glob_matcher.run matcher (Ppath.to_string file_path) then
           Some (Glob_matcher.source matcher)
         else
           match segments with
@@ -71,7 +71,7 @@ let select t (full_git_path : Git_path.t) =
           | _ :: _ ->
               (* add trailing slash to match directory-only patterns *)
               let dir_path = file_path / "" in
-              if Glob_matcher.run matcher (Git_path.to_string dir_path) then
+              if Glob_matcher.run matcher (Ppath.to_string dir_path) then
                 Some (Glob_matcher.source matcher)
               else scan_segments matcher file_path segments)
   in
@@ -82,8 +82,7 @@ let select t (full_git_path : Git_path.t) =
   in
   match
     t.glob_matchers
-    |> find_first (fun matcher ->
-           scan_segments matcher Git_path.root rel_segments)
+    |> find_first (fun matcher -> scan_segments matcher Ppath.root rel_segments)
   with
   | None ->
       (Gitignore_filter.Ignored, [ Gitignore_syntax.Selected t.no_match_loc ])

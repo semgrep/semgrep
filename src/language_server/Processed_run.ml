@@ -1,6 +1,20 @@
-open Git_helper
+(*************************************************************************)
+(* Prelude *)
+(*************************************************************************)
+(* This module postprocess semgrep run results given rules and files
+ * scanned, populating fixes, and messages. It also filters out matches
+ * depending on 'git status'.
+ *)
+
+(*************************************************************************)
+(* Types *)
+(*************************************************************************)
 
 type t = Semgrep_output_v1_t.core_match * Rule.rule
+
+(*************************************************************************)
+(* Helpers *)
+(*************************************************************************)
 
 (* This is copied from osemgrep/Nosem.ml, when porting is done we should use
    stuff from there *)
@@ -21,7 +35,7 @@ let filter_dirty_lines files matches =
   let%lwt () =
     Lwt_list.iter_s
       (fun f ->
-        let%lwt dirty_lines = dirty_lines_of_file f in
+        let%lwt dirty_lines = Git_wrapper.dirty_lines_of_file f in
         Hashtbl.add dirty_files f dirty_lines;
         Lwt.return ())
       files
@@ -99,6 +113,10 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   in
   fix
 
+(*************************************************************************)
+(* Entry point *)
+(*************************************************************************)
+
 let of_matches ?(only_git_dirty = true) matches hrules files =
   let matches, _ =
     Common.partition_either
@@ -123,7 +141,7 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
         (m, rule))
       matches
   in
-  let%lwt git_repo = is_git_repo () in
+  let%lwt git_repo = Git_wrapper.is_git_repo () in
   (* Filter dirty lines *)
   let%lwt matches =
     if only_git_dirty && git_repo then filter_dirty_lines files matches
