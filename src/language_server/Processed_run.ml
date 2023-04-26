@@ -16,20 +16,8 @@ type t = Semgrep_output_v1_t.core_match * Rule.rule
 (* Helpers *)
 (*************************************************************************)
 
-(* This is copied from osemgrep/Nosem.ml, when porting is done we should use
-   stuff from there *)
-(* Trying to include that part of osemgrep causes a dependency cycle :( *)
-
-let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
-let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let _nosem_inline_re = SPcre.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
-
-let _nosem_previous_line_re =
-  SPcre.regexp
-    ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
-    ~flags:[ `CASELESS ]
-
-(** Given a file and some matches, filter the matches out that don't reside in lines changed since last commit *)
+(** Given a file and some matches, filter the matches out that don't reside
+    in lines changed since last commit *)
 let filter_dirty_lines files matches =
   let dirty_files = Hashtbl.create 10 in
   let%lwt () =
@@ -66,13 +54,13 @@ let get_match_lines (loc : Semgrep_output_v1_t.location) =
   in
   prev_line ^ line
 
-(* Once again, this will be subsumed by osemgrep once it's ready *)
+(* TODO: Move to Nosemgrep.ml to factorize code *)
 
 (** Check if a match is ignored by a nosem comment *)
 let nosem_ignored (loc : Semgrep_output_v1_t.location) rule_id =
   let line = get_match_lines loc in
-  let matched_inline = SPcre.exec ~rex:_nosem_inline_re line in
-  let matched_prev = SPcre.exec ~rex:_nosem_previous_line_re line in
+  let matched_inline = SPcre.exec ~rex:Nosemgrep.nosem_inline_re line in
+  let matched_prev = SPcre.exec ~rex:Nosemgrep.nosem_previous_line_re line in
   let match_ok m =
     match m with
     | Ok (Some substrings) -> Pcre.get_substring substrings 1 = rule_id
@@ -88,9 +76,9 @@ let nosem_ignored (loc : Semgrep_output_v1_t.location) rule_id =
   let matched_prev = match_ok matched_prev in
   matched_inline || matched_prev
 
-(* Will be subsumed by osemgrep *)
-
-(** Replaces metavar placeholders in text with their value *)
+(** Replaces metavar placeholders in text with their value
+    TODO: Factorize with Cli_json_output.interpolate_metavars()
+*)
 let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
   Common2.fold
     (fun text ((l, v) : string * Semgrep_output_v1_t.metavar_value) ->
@@ -98,7 +86,9 @@ let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
       Str.global_replace re v.abstract_content text)
     text metavars
 
-(* Get fix from rule, then make it make sense in context *)
+(* Get fix from rule, then make it make sense in context.
+   TODO: Factorize with Cli_json_output.render_fix()
+*)
 let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   let rule_fix (r : Rule.t) =
     match r.fix with
