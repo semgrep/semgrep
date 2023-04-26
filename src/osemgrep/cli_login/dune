@@ -7,6 +7,9 @@
     cmdliner
     commons
 
+    semgrep_core_cli
+
+    osemgrep_configuring
     osemgrep_core
     osemgrep_networking
   )
