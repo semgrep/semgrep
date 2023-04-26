@@ -1,11 +1,12 @@
-(* ansii escape sequences for colored output, depending on log level *)
+(* ANSI escape sequences for colored output, depending on log level *)
 let color level =
   match level with
   | Logs.Warning -> Some "33" (*yellow*)
   | Logs.Error -> Some "31" (*red*)
   | _else -> None
 
-(* print an ansi escape sequence *)
+(* print an ANSI escape sequence - not worth to use an extra library
+   (such as ANSIterminal) for this *)
 let pp_sgr ppf style =
   Format.pp_print_as ppf 0 "\027[";
   Format.pp_print_as ppf 0 style;
