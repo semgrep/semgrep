@@ -822,7 +822,14 @@ let handle_taint_propagators env thing taints =
         (* Only propagate if the current set of taint labels can satisfy the
            propagator's requires precondition.
         *)
-        (* TODO*)
+        (* TODO(brandon): Interprocedural propagator labels
+           This is trickier than I thought. You have to augment the Arg taints
+           with preconditions as well, and allow conjunction, because when you
+           replace an Arg taint with a precondition, all the produced taints
+           inherit the precondition. There's not an easy way to express this
+           in the type right now.
+           I'll come back to this later.
+        *)
         if
           eval_label_requires ~labels
             (T.expr_to_precondition prop.spec.prop.propagator_requires)
