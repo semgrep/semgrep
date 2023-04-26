@@ -428,6 +428,72 @@ class virtual ['self] iter_parent =
     method visit_string_set_t _env _ = ()
   end
 
+(* Basically a copy paste of iter_parent above, but with different return types
+ * *)
+class virtual ['self] map_parent =
+  object (self : 'self)
+    (* Virtual methods *)
+    method virtual visit_string : 'env. 'env -> string -> string
+
+    method virtual visit_list
+        : 'env 'a 'b. ('env -> 'a -> 'b) -> 'env -> 'a list -> 'b list
+
+    method virtual visit_option
+        : 'env 'a 'b. ('env -> 'a -> 'b) -> 'env -> 'a option -> 'b option
+
+    (* Handcoded visitor methods *)
+    method visit_ident env id = self#visit_wrap self#visit_string env id
+
+    method visit_bracket
+        : 'a. ('env -> 'a -> 'a) -> 'env -> 'a bracket -> 'a bracket =
+      fun f env (left, x, right) ->
+        let left = self#visit_tok env left in
+        let x = f env x in
+        let right = self#visit_tok env right in
+        (left, x, right)
+
+    method visit_wrap : 'a. ('env -> 'a -> 'a) -> 'env -> 'a wrap -> 'a wrap =
+      fun f env (x, tok) ->
+        let x = f env x in
+        let tok = self#visit_tok env tok in
+        (x, tok)
+
+    method visit_todo_kind env kind = self#visit_wrap self#visit_string env kind
+
+    (* This is a bit fiddly. See the comment on visit_raw_tree_t in iter_parent
+     * above. *)
+    method visit_raw_tree_t f env x =
+      (* TODO Generate or handcode this in Raw_tree.ml? *)
+      Raw_tree.(
+        match x with
+        | Token wrapped -> Token (self#visit_wrap self#visit_string env wrapped)
+        | List lst -> List (self#visit_list self#visit_raw_tree env lst)
+        | Tuple lst -> Tuple (self#visit_list self#visit_raw_tree env lst)
+        | Case (str, x) ->
+            Case (self#visit_string env str, self#visit_raw_tree env x)
+        | Option x -> Option (self#visit_option self#visit_raw_tree env x)
+        | Any x -> Any (f env x))
+
+    method virtual visit_raw_tree : 'env -> 'raw_tree -> 'raw_tree
+    method visit_sc env tok = self#visit_tok env tok
+
+    method visit_dotted_ident env dotted =
+      self#visit_list self#visit_ident env dotted
+
+    method visit_module_name env =
+      function
+      | DottedName dotted -> DottedName (self#visit_dotted_ident env dotted)
+      | FileName fn -> FileName (self#visit_wrap self#visit_string env fn)
+
+    (* Stubs *)
+    method visit_location _env x = x
+    method visit_id_info_id_t _env x = x
+    method visit_resolved_name _env x = x
+    method visit_tok _env x = x
+    method visit_node_id_t _env x = x
+    method visit_string_set_t _env x = x
+  end
+
 (* Start of big mutually recursive types because of the use of 'any'
  * in OtherXxx *)
 
@@ -2026,7 +2092,8 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      *
      * ocamlc -stop-after parsing -dsource AST_generic.pp.ml
      * *)
-    visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
+    visitors { variety = "iter"; ancestors = [ "iter_parent" ] },
+    visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (* Most clients should use this instead of the default `iter`. In many cases,
  * it's not desirable to recurse into id_info since it contains resolved names
