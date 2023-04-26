@@ -332,20 +332,17 @@ let parameter_to_catch_exn_opt p =
  * does not care about position information.
  * TODO: can we remove this function now then?
  *)
-let abstract_for_comparison_visitor recursor =
-  let hooks =
-    {
-      M.default_visitor with
-      M.kinfo = (fun (_k, _) i -> { i with Tok.token = Tok.Ab });
-      M.kidinfo =
-        (fun (k, _) ii -> k { ii with AST_generic.id_svalue = ref None });
-    }
-  in
-  let vout = M.mk_visitor hooks in
-  recursor vout
+let abstract_for_comparison_visitor =
+  object
+    inherit [_] AST_generic.map_legacy as super
+    method! visit_tok _env i = { i with Tok.token = Tok.Ab }
+
+    method! visit_id_info env ii =
+      super#visit_id_info env { ii with AST_generic.id_svalue = ref None }
+  end
 
 let abstract_for_comparison_any x =
-  abstract_for_comparison_visitor (fun visitor -> visitor.M.vany x)
+  abstract_for_comparison_visitor#visit_any () x
 
 (*****************************************************************************)
 (* Associative-Commutative (AC) matching *)
