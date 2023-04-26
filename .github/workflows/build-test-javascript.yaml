@@ -31,16 +31,10 @@ jobs:
         run: |
           eval $(opam env)
 
-          # TODO: figure out why the opam install fails on ubuntu
-          #make install-deps-for-semgrep-core
-
-          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-
           # TODO: figure out why we need to do this
-          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
+          git config --global --add safe.directory $(pwd)
 
-          opam install -y --deps-only ./libs/ocaml-tree-sitter-core
-          opam install -vv -y --deps-only ./
+          make install-deps-for-semgrep-core
 
           dune build js --profile=release
       - uses: actions/upload-artifact@v3
