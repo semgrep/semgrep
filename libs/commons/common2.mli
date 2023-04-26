@@ -991,7 +991,11 @@ val nblines_file : filename -> int
 val filesize : filename -> int
 val filemtime : filename -> float
 val lfile_exists : filename -> bool
+
+(* raise Unix_error if the directory does not exist *)
 val is_directory : path -> bool
+
+(* raise Unix_error if the file does not exist *)
 val is_file : path -> bool
 val is_symlink : filename -> bool
 val is_executable : filename -> bool
