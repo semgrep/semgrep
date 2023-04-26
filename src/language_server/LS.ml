@@ -277,10 +277,12 @@ module Server = struct
           let matches =
             Common2.filter
               (fun (m : Semgrep_output_v1_t.core_match) ->
-                List.mem (Lsp_util.range_of_location m.location) ranges)
+                List.mem (Convert_util.range_of_location m.location) ranges)
               matches
           in
-          let actions = CodeActions.code_actions_of_results matches [ file ] in
+          let actions =
+            CodeActions.code_actions_of_core_matches matches [ file ]
+          in
           (to_yojson (Some actions), server)
       | CR.Shutdown -> (None, { server with state = State.Stopped })
       | CR.DebugEcho params -> (to_yojson params, server)

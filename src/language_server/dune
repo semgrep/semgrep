@@ -1,6 +1,6 @@
 (library
- (public_name semgrep.ls)
- (name semgrep_ls)
+ (public_name semgrep.language_server)
+ (name semgrep_language_server)
  (wrapped false)
  (libraries
    yaml

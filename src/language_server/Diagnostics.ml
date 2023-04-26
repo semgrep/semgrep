@@ -1,7 +1,7 @@
 open Yojson.Safe.Util
 open Lsp
 open Types
-open Lsp_util
+open Convert_util
 module In = Input_to_core_t
 
 let diagnostic_of location severity message code codeDescription =
@@ -52,7 +52,7 @@ let diagnostic_of_match ((m, r) : Processed_run.t) =
 
 let diagnostics_of_file (matches : Processed_run.t list) file =
   let matches =
-    Common2.filter
+    List.filter
       (fun ((m, _) : Processed_run.t) -> m.location.path = file)
       matches
   in

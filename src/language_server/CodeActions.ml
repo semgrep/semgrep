@@ -1,6 +1,6 @@
 open Lsp
 open Types
-open Lsp_util
+open Convert_util
 
 let code_action_of_match (m : Semgrep_output_v1_t.core_match) =
   let fix =
@@ -29,12 +29,12 @@ let code_action_of_match (m : Semgrep_output_v1_t.core_match) =
 
 let code_actions_of_file (matches : Semgrep_output_v1_t.core_match list) file =
   let matches =
-    Common2.filter
+    List.filter
       (fun (m : Semgrep_output_v1_t.core_match) ->
         m.location.path = file && m.extra.rendered_fix <> None)
       matches
   in
   Common.map code_action_of_match matches
 
-let code_actions_of_results matches files =
-  Common2.map_flatten (code_actions_of_file matches) files
+let code_actions_of_core_matches matches files =
+  List.concat_map (code_actions_of_file matches) files

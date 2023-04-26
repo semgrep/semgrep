@@ -99,7 +99,6 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
   in
   fix
 
-(** This does the postprocessing of matches the semgrep python side usually does, and also filters out matches depending on git status *)
 let of_matches ?(only_git_dirty = true) matches hrules files =
   let matches, _ =
     Common.partition_either
