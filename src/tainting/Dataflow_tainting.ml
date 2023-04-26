@@ -1243,6 +1243,9 @@ let check_function_signature env fun_exp args args_taints =
                                   in
                                   { taint with tokens }))))
         | T.ToSink { taints_with_precondition = taints, _requires; sink; _ } ->
+            (* This function simply produces the corresponding taints to the
+               given argument, within the body of the function.
+            *)
             let arg_to_taints arg =
               match
                 taints_of_sig_arg env fparams fun_exp args args_taints arg
