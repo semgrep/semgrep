@@ -79,6 +79,11 @@ let _show_arg { pos = s, i; offset = os } =
 (* Preconditions *)
 (*****************************************************************************)
 
+(* We roll our own boolean formula type here because we need to be
+   able to use polymorphic compare. Comparison on the Generic AST
+   isn't possible, and polymorphic compare would otherwise take into account
+   unimportant details like tokens.
+*)
 type precondition =
   | Label of string
   | Bool of bool
@@ -90,9 +95,7 @@ type precondition =
 let rec expr_to_precondition e =
   match e.G.e with
   | G.L (G.Bool (v, _)) -> Bool v
-  | G.N (G.Id (id, _)) ->
-      let str, _ = id in
-      Label str
+  | G.N (G.Id ((str, _), _)) -> Label str
   | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
       Not (expr_to_precondition e1)
   | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
@@ -134,6 +137,17 @@ type source = {
 
 and orig = Src of source | Arg of arg [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+
+let rec substitute_precondition_arg_taint ~arg_fn taint =
+  match taint.orig with
+  | Arg arg -> arg_fn arg
+  | Src ({ precondition = None; _ } as src) -> [ { taint with orig = Src src } ]
+  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
+      let new_incoming =
+        List.concat_map (substitute_precondition_arg_taint ~arg_fn) incoming
+      in
+      let new_precondition = Some (new_incoming, expr) in
+      [ { taint with orig = Src { src with precondition = new_precondition } } ]
 
 let rec compare_precondition (ts1, f1) (ts2, f2) =
   match List.compare compare_taint ts1 ts2 with
@@ -366,17 +380,6 @@ module Taint_set = struct
 end
 
 type taints = Taint_set.t
-
-let rec substitute_precondition_arg_taint ~arg_fn taint =
-  match taint.orig with
-  | Arg arg -> arg_fn arg
-  | Src ({ precondition = None; _ } as src) -> [ { taint with orig = Src src } ]
-  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
-      let new_incoming =
-        List.concat_map (substitute_precondition_arg_taint ~arg_fn) incoming
-      in
-      let new_precondition = Some (new_incoming, expr) in
-      [ { taint with orig = Src { src with precondition = new_precondition } } ]
 
 let src_of_pm ~incoming (pm, (x : Rule.taint_source)) =
   let incoming = Taint_set.elements incoming in

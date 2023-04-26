@@ -124,6 +124,11 @@ val taint_of_pm :
 val taints_of_pms :
   incoming:taints -> (Pattern_match.t * Rule.taint_source) list -> taints
 
+(* This function is for substituting the polymorphic taint variables within
+   a taint's "precondition".
+   This is meant to be used at the call-site of a function, when we associate
+   the actual taints substituted in for that taint variable to their use sites.
+*)
 val substitute_precondition_arg_taint :
   arg_fn:(arg -> taint list) -> taint -> taint list
 
