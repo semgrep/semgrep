@@ -281,8 +281,8 @@ let lval_is_sanitized config lval = config.is_sanitizer (any_of_lval lval)
 let lval_is_sink config lval = config.is_sink (any_of_lval lval)
 let sink_of_match x = { T.pm = x.spec_pm; rule_sink = x.spec }
 
-let taints_of_matches xs =
-  xs |> Common.map (fun x -> (x.spec_pm, x.spec)) |> T.taints_of_pms
+let taints_of_matches ~incoming xs =
+  xs |> Common.map (fun x -> (x.spec_pm, x.spec)) |> T.taints_of_pms ~incoming
 
 let report_findings env findings =
   if findings <> [] then
@@ -597,32 +597,6 @@ let check_orig_if_sink env ?filter_sinks orig taints =
    formula is satisfied. We don't know right now, however, because there may be
    argument taint involved.
 *)
-let restrict_new_taint_sources_with_incoming_taints ~incoming taints =
-  Taints.map
-    (fun taint ->
-      let requires =
-        match taint.orig with
-        | Src src -> (
-            match (snd (T.pm_of_trace src.call_trace)).source_requires with
-            | { e = G.L (Bool (true, _)); _ } -> None
-            | other -> Some other)
-        | Arg _ -> None
-      in
-      let incoming = Taints.elements incoming in
-      let res = T.add_precondition_to_taint ~incoming requires taint in
-      Common.(
-        pr2
-          (spf "before: %s after: %s" (T._show_taint taint) (T._show_taint res)));
-      res)
-    taints
-
-let union_new_taint_sources ~new_ curr =
-  Common.(pr2 (spf "union new with %s" (Taint.show_taints new_)));
-  let new_restricted =
-    restrict_new_taint_sources_with_incoming_taints ~incoming:curr new_
-  in
-  Common.(pr2 (spf "union new after %s" (Taint.show_taints new_restricted)));
-  Taints.union new_restricted curr
 
 let find_pos_in_actual_args args_taints fparams =
   let pos_args_taints, named_args_taints =
@@ -884,19 +858,10 @@ let find_lval_taint_sources env incoming_taints lval =
     partition_mutating_sources source_pms
   in
   let taints_sources_reg =
-    reg_source_pms |> taints_of_matches
-    |> restrict_new_taint_sources_with_incoming_taints ~incoming:incoming_taints
+    reg_source_pms |> taints_of_matches ~incoming:incoming_taints
   and taints_sources_mut =
-    mut_source_pms |> taints_of_matches
-    |> restrict_new_taint_sources_with_incoming_taints ~incoming:incoming_taints
+    mut_source_pms |> taints_of_matches ~incoming:incoming_taints
   in
-  (match source_pms with
-  | [] -> ()
-  | _ ->
-      Common.(
-        pr2 (spf "incoming to source is %s" (Taint.show_taints incoming_taints)));
-      Common.(
-        pr2 (spf "after source is %s" (Taint.show_taints taints_sources_reg))));
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
 
@@ -1130,11 +1095,12 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, lval_env)
   | None ->
-      let taints_sources =
-        orig_is_source env.config exp.eorig |> taints_of_matches
-      in
       let taints_exp, lval_env = check_subexpr exp in
-      let taints = taints_exp |> union_new_taint_sources ~new_:taints_sources in
+      let taints_sources =
+        orig_is_source env.config exp.eorig
+        |> taints_of_matches ~incoming:taints_exp
+      in
+      let taints = Taints.union taints_exp taints_sources in
       let taints_propagated, var_env =
         handle_taint_propagators { env with lval_env } (`Exp exp) taints
       in
@@ -1214,7 +1180,8 @@ let check_function_signature env fun_exp args args_taints =
                        let new_src = { src with call_trace } in
                        Some
                          (`Return
-                           (Taints.singleton { t with orig = Src new_src }))
+                           (Taints.singleton
+                              { orig = Src new_src; tokens = [] }))
                    | Arg arg ->
                        let* arg_taints =
                          taints_of_sig_arg env fparams fun_exp args args_taints
@@ -1244,8 +1211,12 @@ let check_function_signature env fun_exp args args_taints =
                                   in
                                   { taint with tokens }))))
         | T.ToSink { taints_with_precondition = taints, _requires; sink; _ } ->
-            let arg_fn arg =
-              taints_of_sig_arg env fparams fun_exp args args_taints arg
+            let arg_to_taints arg =
+              match
+                taints_of_sig_arg env fparams fun_exp args args_taints arg
+              with
+              | None -> []
+              | Some taints -> Taints.elements taints
             in
             let incoming_taints =
               taints
@@ -1289,15 +1260,12 @@ let check_function_signature env fun_exp args args_taints =
                          let sink_trace =
                            T.Call (eorig, taint.tokens, sink_trace)
                          in
-                         let+ arg_taints = arg_fn arg in
-                         arg_taints |> Taints.elements
+                         let arg_taints = arg_to_taints arg in
+                         arg_taints
                          |> Common.map (fun x -> { T.taint = x; sink_trace }))
               |> List.concat_map (fun { T.taint; sink_trace } ->
                      let new_taints =
-                       T.replace_precondition_arg_taint
-                         ~arg_fn:(fun arg ->
-                           let+ res = arg_fn arg in
-                           Taints.elements res)
+                       T.substitute_precondition_arg_taint ~arg_fn:arg_to_taints
                          taint
                      in
                      Common.map
@@ -1413,13 +1381,12 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       (Taints.empty, env.lval_env)
   | [] ->
-      let taint_sources =
-        orig_is_source env.config instr.iorig |> taints_of_matches
-      in
       let taints_instr, lval_env' = check_instr instr.i in
-      let taints =
-        taints_instr |> union_new_taint_sources ~new_:taint_sources
+      let taint_sources =
+        orig_is_source env.config instr.iorig
+        |> taints_of_matches ~incoming:taints_instr
       in
+      let taints = Taints.union taints_instr taint_sources in
       let taints_propagated, lval_env' =
         handle_taint_propagators
           { env with lval_env = lval_env' }

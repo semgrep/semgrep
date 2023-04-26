@@ -76,7 +76,7 @@ let _show_arg { pos = s, i; offset = os } =
   else Printf.sprintf "arg(%s)#%d" s i
 
 (*****************************************************************************)
-(* Taint *)
+(* Preconditions *)
 (*****************************************************************************)
 
 type precondition =
@@ -115,6 +115,10 @@ and args_to_precondition args =
       logger#error "Unexpected argument kind";
       Bool false :: args_to_precondition args'
 
+(*****************************************************************************)
+(* Taint *)
+(*****************************************************************************)
+
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -130,42 +134,6 @@ type source = {
 
 and orig = Src of source | Arg of arg [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
-
-let add_precondition_to_taint ~incoming formula t =
-  (* If there is no precondition attached to the taint
-     being produced, then it's unconditionally existent!
-  *)
-  Common.(pr2 (spf "adding precondition with %d" (List.length incoming)));
-  let precondition =
-    match formula with
-    | None -> None
-    | Some f -> Some (incoming, expr_to_precondition f)
-  in
-  match t.orig with
-  | Src src ->
-      let new_src =
-        match src.precondition with
-        | None -> { src with precondition }
-        | Some _ -> failwith "TODO"
-      in
-      { t with orig = Src new_src }
-  | Arg _ -> failwith "TODO"
-
-let rec replace_precondition_arg_taint ~arg_fn taint =
-  match taint.orig with
-  | Arg arg -> arg_fn arg
-  | Src ({ precondition = None; _ } as src) -> [ { taint with orig = Src src } ]
-  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
-      let new_incoming =
-        List.concat_map (replace_precondition_arg_taint ~arg_fn) incoming
-      in
-      let new_precondition = Some (new_incoming, expr) in
-      [ { taint with orig = Src { src with precondition = new_precondition } } ]
-
-let src_of_pm (pm, (x : Rule.taint_source)) =
-  Src { call_trace = PM (pm, x); label = x.label; precondition = None }
-
-let taint_of_pm pm = { orig = src_of_pm pm; tokens = [] }
 
 let rec compare_precondition (ts1, f1) (ts2, f2) =
   match List.compare compare_taint ts1 ts2 with
@@ -399,7 +367,30 @@ end
 
 type taints = Taint_set.t
 
-let taints_of_pms pms = pms |> Common.map taint_of_pm |> Taint_set.of_list
+let rec substitute_precondition_arg_taint ~arg_fn taint =
+  match taint.orig with
+  | Arg arg -> arg_fn arg
+  | Src ({ precondition = None; _ } as src) -> [ { taint with orig = Src src } ]
+  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
+      let new_incoming =
+        List.concat_map (substitute_precondition_arg_taint ~arg_fn) incoming
+      in
+      let new_precondition = Some (new_incoming, expr) in
+      [ { taint with orig = Src { src with precondition = new_precondition } } ]
+
+let src_of_pm ~incoming (pm, (x : Rule.taint_source)) =
+  let incoming = Taint_set.elements incoming in
+  let precondition =
+    match expr_to_precondition x.source_requires with
+    | Bool true -> None
+    | other -> Some (incoming, other)
+  in
+  Src { call_trace = PM (pm, x); label = x.label; precondition }
+
+let taint_of_pm ~incoming pm = { orig = src_of_pm ~incoming pm; tokens = [] }
+
+let taints_of_pms ~incoming pms =
+  pms |> Common.map (taint_of_pm ~incoming) |> Taint_set.of_list
 
 let show_taints taints =
   taints |> Taint_set.elements |> Common.map _show_taint |> String.concat ", "

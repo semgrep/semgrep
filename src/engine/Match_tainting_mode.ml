@@ -551,7 +551,6 @@ let pm_of_finding finding =
       (* TODO: We might want to report functions that let input taint
          * go into a sink (?) *)
       if
-        (* TODO: this needs to be more involved. *)
         not
           (D.taints_satisfy_requires
              (Common.map (fun t -> t.T.taint) taints)
@@ -622,7 +621,11 @@ let check_fundef lang options taint_config opt_ent fdef =
     let taints =
       source_pms
       |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
-      |> T.taints_of_pms
+      (* These sources come from the parameters to a function,
+         which are not within the normal control flow of a code.
+         We can safely say there's no incoming taints to these sources.
+      *)
+      |> T.taints_of_pms ~incoming:T.Taint_set.empty
     in
     Lval_env.add env (IL_helpers.lval_of_var var) taints
   in

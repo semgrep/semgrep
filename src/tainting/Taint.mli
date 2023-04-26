@@ -117,13 +117,14 @@ type taints = Taint_set.t
 
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
-val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
-val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 
-val add_precondition_to_taint :
-  incoming:taint list -> AST_generic.expr option -> taint -> taint
+val taint_of_pm :
+  incoming:taints -> Pattern_match.t * Rule.taint_source -> taint
 
-val replace_precondition_arg_taint :
+val taints_of_pms :
+  incoming:taints -> (Pattern_match.t * Rule.taint_source) list -> taints
+
+val substitute_precondition_arg_taint :
   arg_fn:(arg -> taint list) -> taint -> taint list
 
 val show_taints : taints -> string
