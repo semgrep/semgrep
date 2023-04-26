@@ -11,15 +11,24 @@
  *)
 
 type conf = {
+  (* osemgrep-only option (see Git_project.ml and the force_root parameter) *)
   project_root : Fpath.t option;
+  (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
-  (* [!] include_ = None is the opposite of Some [].
-     If a list of include patterns is specified, a path must match
-     at least of the patterns to be selected. *)
+  (* global include list, passed via semgrep --include
+   * [!] include_ = None is the opposite of Some [].
+   * If a list of include patterns is specified, a path must match
+   * at least of the patterns to be selected.
+   *)
   include_ : string list option;
   max_target_bytes : int;
+  (* whether or not follow what is specified in the .gitignore
+   * TODO? what about .semgrepignore?
+   *)
   respect_git_ignore : bool;
+  (* TODO: not used for now *)
   baseline_commit : string option;
+  (* TODO: not used for now *)
   scan_unknown_extensions : bool;
 }
 [@@deriving show]
