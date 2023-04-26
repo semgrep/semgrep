@@ -169,6 +169,8 @@ type filename = string [@@deriving show, eq]
    Check that the file exists and produce a valid absolute path for the file.
 *)
 val fullpath : filename -> filename
+
+(* Deprecated: use the ppath library instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 
