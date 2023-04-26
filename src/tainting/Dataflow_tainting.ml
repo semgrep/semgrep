@@ -738,10 +738,16 @@ let resolve_poly_taint_for_java_getters env lval st =
               taints
               |> Taints.map (fun taint ->
                      match taint.orig with
-                     | Arg arg ->
+                     | Arg ({ offset; _ } as arg) when not (List.mem n offset)
+                       ->
+                         (* If the offset we are trying to take is already in the
+                            list of offsets, don't append it! This is so we don't
+                            never-endingly loop the dataflow and make it think the
+                            Arg taint is never-endingly changing.
+                         *)
                          let arg' = { arg with offset = arg.offset @ [ n ] } in
                          { taint with orig = Arg arg' }
-                     | Src _ -> taint)
+                     | _ -> taint)
             in
             `Tainted taints')
     | _ :: _
