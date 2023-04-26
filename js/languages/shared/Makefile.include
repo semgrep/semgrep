@@ -68,10 +68,9 @@ package-lock.json: package.json
 node_modules/.package-lock.json: package-lock.json
 	npm ci
 
-dist/entrypoint.js: ../shared/entrypoint.js.liquid
+dist/entrypoint.js: ../shared/entrypoint.js.liquid node_modules/.package-lock.json
 	mkdir -p dist
-	npm ci
-	npx liquidjs -t @$^ -o $@ --context '{"lang": "$(SEMGREP_LANG)", "wasm": "$(WASM_NAME)"}'
+	npx liquidjs -t @$< -o $@ --context '{"lang": "$(SEMGREP_LANG)", "wasm": "$(WASM_NAME)"}'
 
 dist/index.cjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
 	mkdir -p dist
