@@ -568,7 +568,7 @@ let find_pos_in_actual_args args_taints fparams =
 
 let labels_of_taints taints : LabelSet.t =
   taints
-  |> List.filter_map (fun (t : T.taint) ->
+  |> Common.map_filter (fun (t : T.taint) ->
          match t.orig with
          | Src src -> Some src.label
          | Arg _ -> None)
