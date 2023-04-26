@@ -114,6 +114,10 @@ let get_reason_for_exclusion sel_events =
    (which could happen when a file tracked by git was deleted, in which
    case files_from_git_ls() below would still return it but Common2.is_file()
    would fail).
+
+   TODO: we could return a skipped_target if the valid is not valid, adding
+   a new Unreadable_file and Inexistent_file to semgrep_output_v1.atd
+   skip_reason type.
 *)
 let is_valid_file file =
   (* TOPORT: return self._is_valid_file_or_dir(path) and path.is_file() *)
