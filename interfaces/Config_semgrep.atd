@@ -73,17 +73,67 @@ type t = {
   (* if false, xml children are matched in any order *)
   ~xml_children_ordered <ocaml default="true"> : bool;
 
-  (* maximum number of newlines that an ellipsis can match.
-     Use 0 to contain the match within a single line. *)
+  ~generic_engine <ocaml default="`Spacegrep">: generic_engine;
+
+  (* Enable the line mode of aliengrep. This option is only
+     relevant to the 'aliengrep' generic engine.
+
+     The line mode differs from the default multiline mode in
+     these aspects:
+     - Regular ellipses ('...' or '$...FOO') don't match newlines.
+     - Long ellipses using four dots ('....' or '$....FOO') must be used
+       to match newlines.
+     - Newlines in patterns must match newlines in the target code.
+     - Double quotes and single quotes are treated as additional brace
+       pairs by default (see 'generic_braces').
+  *)
+  ~generic_line_mode <ocaml default="false">: bool;
+
+  (* The list of matching braces to be considered by the aliengrep engine.
+     The default braces in the default, multiline mode are:
+     - parentheses;
+     - square brackets;
+     - curly braces.
+
+     = ["(", ")"], ["[", "]"], ["{", "}"]
+
+     The default braces in the line mode are:
+     - all the braces valid in multline mode;
+     - double quotes;
+     - single quotes.
+
+     = ["(", ")"], ["[", "]"], ["{", "}"], ["\"", "\""], ["'", "'"]
+  *)
+  ?generic_braces: (string * string) list option;
+
+  (* This option extends the set of braces instead of
+     replacing it like 'generic_braces' does. *)
+  ~generic_extra_braces: (string * string) list;
+
+  (* Extra characters allowed in a so-called word when using the aliengrep
+     engine. A word is a sequence of characters that can be captured by
+     a metavariable. By default, a word follows the pattern [A-Za-z0-9_]+.
+     It may not be a substring of a longer word.
+     This option adds word characters. For example, the list ["-"] adds
+     a dash to the word characters, allowing '$FOO' to match 'e-mail'. *)
+  ~generic_extra_word_characters: string list;
+
+  (* Maximum number of newlines that an ellipsis can match with the spacegrep
+     engine. Use 0 to contain the match within a single line. *)
   ~generic_ellipsis_max_span <ocaml default="10">: int;
 
-  (* preprocess comments away to facilitate matching with spacegrep *)
+  (* Preprocess comments away to facilitate matching with spacegrep. *)
   ?generic_comment_style: generic_comment_style option;
 
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
    *)
 }
+
+type generic_engine = [
+  | Aliengrep <json name="aliengrep">
+  | Spacegrep <json name="spacegrep"> (* default, legacy *)
+]
 
 type generic_comment_style = [
   | C <json name="c"> (* /* ... */ *)
