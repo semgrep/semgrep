@@ -139,6 +139,11 @@ build-otarzan:
 	dune build _build/install/default/bin/otarzan
 	test -e bin || ln -s _build/install/default/bin .
 
+# Build the js_of_ocaml portion of the semgrep javascript packages
+.PHONY: build-semgrep-jsoo
+build-semgrep-jsoo:
+	dune build js --profile=release
+
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
 .PHONY: clean
