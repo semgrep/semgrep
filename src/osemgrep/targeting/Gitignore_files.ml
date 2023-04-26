@@ -14,16 +14,16 @@ let create ?(gitignore_filenames = [ ("gitignore", ".gitignore") ])
   { project_root; gitignore_filenames; cache }
 
 let anchor_of_git_path git_path =
-  Git_path.segments git_path |> Glob_pattern.of_path_segments
+  Ppath.segments git_path |> Glob_pattern.of_path_segments
 
 let load t dir_path =
   let tbl = t.cache in
-  let key = Git_path.to_string dir_path in
+  let key = Ppath.to_string dir_path in
   match Hashtbl.find_opt tbl key with
   | Some res -> res
   | None ->
       let anchor = anchor_of_git_path dir_path in
-      let path = Git_path.to_fpath t.project_root dir_path in
+      let path = Ppath.to_fpath t.project_root dir_path in
       let patterns =
         List.fold_left
           (fun acc (kind, name) ->

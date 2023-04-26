@@ -23,6 +23,8 @@
  * To enforce this rule, this module redefines '=' to just operate
  * on strings, so ocaml can statically detect when you wrongly use '='
  * on other types.
+ *
+ * See also the Operators submodule at the end of this file.
  *)
 val ( = ) : string -> string -> bool
 
@@ -460,6 +462,19 @@ val with_time : (unit -> 'a) -> 'a * float
 *)
 val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+(* if you just want to use the operators *)
+module Operators : sig
+  val ( =~ ) : string -> string -> bool
+  val ( = ) : string -> string -> bool
+  val ( =|= ) : int -> int -> bool
+  val ( =$= ) : char -> char -> bool
+  val ( =:= ) : bool -> bool -> bool
+  val ( =*= ) : 'a -> 'a -> bool
+end
 
 (*****************************************************************************)
 (* Misc *)

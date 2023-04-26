@@ -27,4 +27,4 @@ val create :
    Load the .gitignore files applicable to target files in the given
    folder.
 *)
-val load : t -> Git_path.t -> Gitignore_level.t option
+val load : t -> Ppath.t -> Gitignore_level.t option

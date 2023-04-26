@@ -48,5 +48,5 @@ val create :
 val select :
   t ->
   Gitignore_syntax.selection_event list ->
-  Git_path.t ->
+  Ppath.t ->
   status * Gitignore_syntax.selection_event list

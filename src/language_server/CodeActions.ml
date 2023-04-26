@@ -1,6 +1,6 @@
 open Lsp
 open Types
-open Convert_util
+module Conv = Convert_utils
 
 let code_action_of_match (m : Semgrep_output_v1_t.core_match) =
   let fix =
@@ -15,7 +15,9 @@ let code_action_of_match (m : Semgrep_output_v1_t.core_match) =
         [
           ( Uri.of_path m.location.path,
             [
-              TextEdit.create ~range:(range_of_location m.location) ~newText:fix;
+              TextEdit.create
+                ~range:(Conv.range_of_location m.location)
+                ~newText:fix;
             ] );
         ]
       ()

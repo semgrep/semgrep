@@ -55,28 +55,27 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       let error = ref false in
       selection
       |> List.iter (fun (path, should_be_selected) ->
-             let path = Git_path.of_string path in
+             let path = Ppath.of_string path in
              let status, selection_events =
                Common.save_excursion Glob_matcher.debug true (fun () ->
                    Semgrepignore.select filter path)
              in
-             printf "Selection events for path %s:\n" (Git_path.to_string path);
+             printf "Selection events for path %s:\n" (Ppath.to_string path);
              print_string
                (Gitignore_syntax.show_selection_events selection_events);
              if should_be_selected then (
                match status with
                | Not_ignored ->
-                   printf "[OK] %s: not ignored\n" (Git_path.to_string path)
+                   printf "[OK] %s: not ignored\n" (Ppath.to_string path)
                | Ignored ->
-                   printf "[FAIL] %s: ignored\n" (Git_path.to_string path);
+                   printf "[FAIL] %s: ignored\n" (Ppath.to_string path);
                    error := true)
              else
                match status with
                | Not_ignored ->
-                   printf "[FAIL] %s: not ignored\n" (Git_path.to_string path);
+                   printf "[FAIL] %s: not ignored\n" (Ppath.to_string path);
                    error := true
-               | Ignored ->
-                   printf "[OK] %s: ignored\n" (Git_path.to_string path));
+               | Ignored -> printf "[OK] %s: ignored\n" (Ppath.to_string path));
       assert (not !error))
 
 let tests =
@@ -219,7 +218,7 @@ let tests =
                 Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
                 Alcotest.(check string)
                   "equal" "/proj_link/a"
-                  (Git_path.to_string path_to_a));
+                  (Ppath.to_string path_to_a));
 
             printf "Test absolute target paths\n";
             assert (Fpath.is_abs test_root);
@@ -230,9 +229,7 @@ let tests =
             | Git_project, proj_root, path_to_a ->
                 printf "Obtained git project root: %s\n" !!proj_root;
                 Alcotest.(check string) "equal" !!expected_proj_root !!proj_root;
-                Alcotest.(check string)
-                  "equal" "/a"
-                  (Git_path.to_string path_to_a));
+                Alcotest.(check string) "equal" "/a" (Ppath.to_string path_to_a));
 
             printf "Test relative target paths, from inside the project\n";
             F.with_chdir
@@ -250,5 +247,5 @@ let tests =
                       "equal" !!expected_proj_root !!proj_root;
                     Alcotest.(check string)
                       "equal" "/b"
-                      (Git_path.to_string path_to_b))) );
+                      (Ppath.to_string path_to_b))) );
     ]

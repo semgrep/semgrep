@@ -113,7 +113,7 @@ let files_from_git_ls ~cwd:scan_root =
       return frozenset(tracked | untracked_unignored - deleted)
   *)
   (* tracked files *)
-  let tracked_output = Git.files_from_git_ls ~cwd:scan_root in
+  let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
   tracked_output
   |> Common.map (fun x -> Fpath.append scan_root x)
   |> List.filter is_valid_file
@@ -136,7 +136,8 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
        *)
       if conf.respect_git_ignore then (
         try files_from_git_ls ~cwd:scan_root with
-        | (Git.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn ->
+        | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
+          ->
             Logs.info (fun m ->
                 m
                   "Unable to ignore files ignored by git (%s is not a git \
@@ -243,22 +244,22 @@ let group_roots_by_project conf paths =
   let force_root =
     match conf.project_root with
     | None -> None
-    | Some proj_root -> Some (Git_project.Git_project, proj_root)
+    | Some proj_root -> Some (Project.Git_project, proj_root)
   in
   if conf.respect_git_ignore then
     paths
     |> group_by_project_root (fun path ->
            match Git_project.find_any_project_root ?force_root path with
-           | (Other_project as kind), root, git_path ->
-               ((kind, root), Git_path.to_fpath root git_path)
-           | (Git_project as kind), root, git_path ->
-               ((kind, root), Git_path.to_fpath ~root git_path))
+           | (Project.Other_project as kind), root, git_path ->
+               ((kind, root), Ppath.to_fpath root git_path)
+           | (Project.Git_project as kind), root, git_path ->
+               ((kind, root), Ppath.to_fpath ~root git_path))
   else
     (* ignore gitignore files but respect semgrepignore files *)
     paths
     |> group_by_project_root (fun path ->
            let root, git_path = Git_project.force_project_root path in
-           ((Git_project.Other_project, root), Git_path.to_fpath root git_path))
+           ((Project.Other_project, root), Ppath.to_fpath root git_path))
 
 (*************************************************************************)
 (* Entry point *)
@@ -297,9 +298,9 @@ let get_targets conf scanning_roots =
   group_roots_by_project conf scanning_roots
   |> Common.map (fun ((proj_kind, project_root), scanning_roots) ->
          let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
-           match (proj_kind : Git_project.kind) with
-           | Git_project -> Gitignore_and_semgrepignore
-           | Other_project -> Only_semgrepignore
+           match (proj_kind : Project.kind) with
+           | Project.Git_project -> Gitignore_and_semgrepignore
+           | Project.Other_project -> Only_semgrepignore
          in
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
@@ -319,9 +320,7 @@ let get_targets conf scanning_roots =
                         (* we're supposed to be working with clean paths by now *)
                         assert false
                   in
-                  let git_path =
-                    Git_path.(of_fpath rel_path |> make_absolute)
-                  in
+                  let git_path = Ppath.(of_fpath rel_path |> make_absolute) in
                   let status, selection_events =
                     Semgrepignore.select ign git_path
                   in

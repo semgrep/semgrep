@@ -1,16 +1,22 @@
 (*
-   Abstract type for a file path within a git project.
+   Abstract type for a file path within a project.
 
    This avoids issues of Unix-style vs. Windows-style paths. All
-   git paths use '/' as a separator.
+   paths use '/' as a separator.
 
-   TODO: Rename the module since we also use this type for non-git projects?
+   The name of the module imitates Fpath.ml, but use Ppath.ml for
+   Project path (instead of File path).
 *)
 
-type t = private { string : string; segments : string list }
+type t = private {
+  (* path segments within the project root *)
+  segments : string list;
+  (* internal *)
+  string : string;
+}
 
 (*
-   Return an absolute, normalized git path relative to the project root.
+   Return an absolute, normalized path relative to the project root.
    This is purely syntactic. It is recommended to work on physical paths
    as returned by 'realpath' to ensure that both paths share the longest
    common prefix.
@@ -19,7 +25,7 @@ type t = private { string : string; segments : string list }
 
    equals
 
-     Ok (Git_path.of_string "/b/c")
+     Ok (of_string "/b/c")
 *)
 val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
 
@@ -35,7 +41,8 @@ val segments : t -> string list
 (* Append a segment to a path. *)
 val append : t -> string -> t
 
-module Ops : sig
+(* Imitate File.Operators in libs/commons/ *)
+module Operators : sig
   (* Same as append *)
   val ( / ) : t -> string -> t
 end

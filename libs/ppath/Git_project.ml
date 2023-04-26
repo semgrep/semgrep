@@ -26,7 +26,7 @@ let is_git_root (path : Fpath.t) : bool =
 *)
 let find_git_project_root_abs (start_dir, start_git_segments) =
   let rec loop acc dir =
-    if is_git_root dir then Some (dir, Git_path.create ("" :: acc))
+    if is_git_root dir then Some (dir, Ppath.create ("" :: acc))
     else
       let name = Fpath.basename dir in
       let parent = Fpath.parent dir |> Fpath.rem_empty_seg in
@@ -51,11 +51,9 @@ let find_git_project_root path =
 let default_project_root = Fpath.v "."
 
 let force_project_root ?(project_root = default_project_root) path =
-  match Git_path.in_project ~root:project_root path with
+  match Ppath.in_project ~root:project_root path with
   | Ok git_path -> (project_root, git_path)
   | Error msg -> failwith msg
-
-type kind = Git_project | Other_project [@@deriving show]
 
 let find_any_project_root ?fallback_root ?force_root path =
   match force_root with
@@ -65,9 +63,10 @@ let find_any_project_root ?fallback_root ?force_root path =
   | None -> (
       let start = initial_root_candidate_of_path path in
       match find_git_project_root_abs start with
-      | Some (project_root, git_path) -> (Git_project, project_root, git_path)
+      | Some (project_root, git_path) ->
+          (Project.Git_project, project_root, git_path)
       | None ->
           let project_root, git_path =
             force_project_root ?project_root:fallback_root path
           in
-          (Other_project, project_root, git_path))
+          (Project.Other_project, project_root, git_path))

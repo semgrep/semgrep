@@ -1,15 +1,34 @@
-(*
-   Abstract type for a file path within a git project
-*)
-
 open Printf
 open File.Operators
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(*
+   Abstract type for a file path within a project
+
+   The name of the module imitates Fpath.ml, but use Ppath.ml for
+   Project path (instead of File path).
+*)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = { string : string; segments : string list }
+(*
+   Type to represent an absolute, normalized path relative to a project root.
+   This is purely syntactic. For example,
+
+     in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
+
+   will return { string = "/b/c"; segments = ["b"; "c"] }
+ *)
+type t = {
+  (* path segments within the project root *)
+  segments : string list;
+  (* original string passed to of_string *)
+  string : string;
+}
 
 (*****************************************************************************)
 (* Helpers *)
@@ -29,7 +48,7 @@ let to_string x = x.string
 
 let check_segment str =
   if String.contains str '/' then
-    invalid_arg ("Git_path.create: path segment may not contain a slash: " ^ str)
+    invalid_arg ("Ppath.create: path segment may not contain a slash: " ^ str)
 
 let unsafe_create segments = { string = String.concat "/" segments; segments }
 
@@ -53,7 +72,7 @@ let append path seg =
   let segments = append_segment path.segments seg in
   unsafe_create segments
 
-module Ops = struct
+module Operators = struct
   let ( / ) = append
 end
 
@@ -175,7 +194,7 @@ let in_project ~root path =
 (*****************************************************************************)
 
 let () =
-  Testutil.test "Git_path" (fun () ->
+  Testutil.test "Ppath" (fun () ->
       let test_str f input expected_output =
         Alcotest.(check string) "equal" expected_output (f input)
       in

@@ -1,3 +1,69 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2023 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+open Common
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Small wrapper around the 'git' command-line program.
+ *
+ * alternatives:
+ *  - use https://github.com/fxfactorial/ocaml-libgit2, but
+ *    most of the current Python code use 'git' directly
+ *    so easier for now to just imitate the Python code.
+ *    Morever we need services like 'git ls-files' and this
+ *    does not seem to be supported by libgit.
+ *  - use https://github.com/mirage/ocaml-git, which implements
+ *    git purely in OCaml, but this currently seems to support only
+ *    the "core" of git, not all the "porcelain" around such as
+ *    'git ls-files' that we need.
+ *
+ * TODO: use Bos uniformly instead of Common.cmd_to_list and Lwt_process.
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
+exception Error of string
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Use Common.cmd_to_list *)
+(*****************************************************************************)
+
+let files_from_git_ls ~cwd =
+  let cwd_s = Fpath.to_string cwd in
+  assert (Sys.is_directory cwd_s);
+  (* TODO: use Unix.chdir in forked process instead of Common.cmd_to_list
+   * and also redirect stderr to null
+   *)
+  Common.cmd_to_list (spf "cd '%s' && git ls-files" cwd_s)
+  |> File.Path.of_strings
+
+(*****************************************************************************)
+(* Use lwt_process *)
+(*****************************************************************************)
+
 (*diff unified format regex https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html#Detailed-Unified
  * The above documentation isn't great, so unified diff format is
  * @@ -start,count +end,count @@
@@ -13,6 +79,7 @@
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
 
+(* TODO: use Git_project.ml instead? *)
 let is_git_repo () =
   let cmd = ("git", [| "git"; "rev-parse"; "--is-inside-work-tree" |]) in
   (* We use Lwt_process.exec here instead of the standard library because we can do timeouts *)

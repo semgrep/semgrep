@@ -1,14 +1,14 @@
 open Yojson.Safe.Util
 open Lsp
 open Types
-open Convert_util
+module Conv = Convert_utils
 module In = Input_to_core_t
 
 let diagnostic_of location severity message code codeDescription =
   let code = `String code in
   let diagnostic =
     Diagnostic.create
-      ~range:(range_of_location location)
+      ~range:(Conv.range_of_location location)
       ~code ~severity ~source:"Semgrep" ~message
   in
   match codeDescription with
@@ -27,7 +27,7 @@ let diagnostic_of_match ((m, r) : Processed_run.t) =
     | Some message -> message
     | None -> r.message
   in
-  let severity = string_of_severity r.severity in
+  let severity = Conv.string_of_severity r.severity in
   let id = m.rule_id in
   let metadata =
     match r.Rule.metadata with
