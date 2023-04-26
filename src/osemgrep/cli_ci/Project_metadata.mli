@@ -1,4 +1,5 @@
-(** Collect information about the project from the environment. *)
+(** Collect information about the project from the environment.
+    This module is a translation of [meta.py] renamed to [Project_metadata.ml]. *)
 
 type 'e t = {
   repository : string;  (** The name of the repository. *)
@@ -58,9 +59,6 @@ module type S = sig
   val term : extension t Cmdliner.Term.t
 end
 
-module Git : S with type extension = unit
-(** Gather metadata only from local filesystem. We expect, at least, a Git
-    repository. *)
-
-module GitHub : S with type extension = unit
-(** Gather metadata from GitHub Actions. *)
+val get_url_from_sstp_url : string option -> Uri.t option
+val get_repo_name_from_repo_url : string option -> string option
+val git_check_output : Bos.Cmd.t -> string
