@@ -59,35 +59,27 @@ let transform_fix lang ast =
        * See the fix_ellipsis_metavar.py test case for an example of when this
        * can happen. *)
       let mapper =
-        Map_AST.(
-          mk_visitor
-            {
-              default_visitor with
-              (* The default visitor behavior is to create a new expr node every
-               * time, with a new e_id and e_range. Avoid this by overriding
-               * such that we take the new expr_kind and put it in the original
-               * expression. *)
-              kexpr =
-                (fun (k, _) expr -> AST_generic.{ expr with e = (k expr).e });
-              kargs =
-                (fun (k, _) args ->
-                  let args =
-                    List.stable_sort
-                      (fun a b ->
-                        match (a, b) with
-                        | ( (AST_generic.Arg _ | ArgType _ | OtherArg _),
-                            (ArgKwd _ | ArgKwdOptional _) ) ->
-                            -1
-                        | ( (ArgKwd _ | ArgKwdOptional _),
-                            (Arg _ | ArgType _ | OtherArg _) ) ->
-                            1
-                        | _else_ -> 0)
-                      args
-                  in
-                  k args);
-            })
+        object (_self : 'self)
+          inherit [_] AST_generic.map as super
+
+          method! visit_arguments env (l, args, r) =
+            let args =
+              List.stable_sort
+                (fun a b ->
+                  match (a, b) with
+                  | ( (AST_generic.Arg _ | ArgType _ | OtherArg _),
+                      (ArgKwd _ | ArgKwdOptional _) ) ->
+                      -1
+                  | ( (ArgKwd _ | ArgKwdOptional _),
+                      (Arg _ | ArgType _ | OtherArg _) ) ->
+                      1
+                  | _else_ -> 0)
+                args
+            in
+            super#visit_arguments env (l, args, r)
+        end
       in
-      mapper.Map_AST.vany ast
+      mapper#visit_any () ast
   | _else_ -> ast
 
 (* Check whether the proposed fix results in syntactically valid code *)
