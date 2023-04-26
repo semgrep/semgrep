@@ -1296,6 +1296,12 @@ let check_function_signature env fun_exp args args_taints =
                          arg_taints
                          |> Common.map (fun x -> { T.taint = x; sink_trace }))
               |> List.concat_map (fun { T.taint; sink_trace } ->
+                     (* Here, we substitute for the polymorphic taint variables that are
+                        being used in the preconditions of produced taints. Otherwise, we
+                        will not be able to solve the taint label formula accurately, taking
+                        into account the taint labels provided by the arguments.
+                        See [precondition] in Taint.ml for more information.
+                     *)
                      let new_taints =
                        T.substitute_precondition_arg_taint ~arg_fn:arg_to_taints
                          taint
