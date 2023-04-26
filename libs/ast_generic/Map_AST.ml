@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open OCaml
 open AST_generic
 module G = AST_generic
 
@@ -68,54 +67,15 @@ let default_visitor =
   }
 
 class ['self] mapper =
-  object (self : 'self)
-    inherit [_] AST_generic.map as super
+  object (_self : 'self)
+    inherit [_] AST_generic.map_legacy as super
 
     method! visit_tok env v =
-      let k x =
-        match x with
-        | { Tok.token = v_pinfo; transfo = v_transfo } ->
-            let v_pinfo =
-              (* todo? map_pinfo v_pinfo *)
-              v_pinfo
-            in
-            (* not recurse in transfo ? *)
-            {
-              Tok.token = v_pinfo;
-              (* generete a fresh field *)
-              transfo = v_transfo;
-            }
-      in
+      let k = super#visit_tok env in
       env.vin.kinfo (k, env.vout) v
 
     method! visit_id_info env v =
-      let k x =
-        match x with
-        | {
-         id_resolved = v_id_resolved;
-         id_type = v_id_type;
-         id_svalue = v3;
-         id_hidden;
-         id_info_id;
-        } ->
-            let v3 = map_of_ref (map_of_option (self#visit_svalue env)) v3 in
-            let v_id_type =
-              map_of_ref (map_of_option (self#visit_type_ env)) v_id_type
-            in
-            let v_id_resolved =
-              map_of_ref
-                (map_of_option (self#visit_resolved_name env))
-                v_id_resolved
-            in
-            let id_hidden = map_of_bool id_hidden in
-            {
-              id_resolved = v_id_resolved;
-              id_type = v_id_type;
-              id_svalue = v3;
-              id_hidden;
-              id_info_id;
-            }
-      in
+      let k = super#visit_id_info env in
       env.vin.kidinfo (k, env.vout) v
 
     method! visit_name env name =
@@ -123,29 +83,19 @@ class ['self] mapper =
       env.vin.kname (k, env.vout) name
 
     method! visit_expr env x =
-      let k x =
-        let ekind = super#visit_expr_kind env x.e in
-        (* TODO? reuse the e_id or create a new one? *)
-        G.e ekind
-      in
+      let k = super#visit_expr env in
       env.vin.kexpr (k, env.vout) x
 
     method! visit_literal env lit =
       let k = super#visit_literal env in
       env.vin.klit (k, env.vout) lit
 
-    method visit_argument_list env v =
-      let k = self#visit_list self#visit_argument env in
+    method! visit_argument_list env v =
+      let k = super#visit_argument_list env in
       env.vin.kargs (k, env.vout) v
 
-    method! visit_arguments env v =
-      self#visit_bracket self#visit_argument_list env v
-
     method! visit_stmt env x =
-      let k x =
-        let skind = self#visit_stmt_kind env x.s in
-        { x with s = skind }
-      in
+      let k = super#visit_stmt env in
       env.vin.kstmt (k, env.vout) x
   end
 
