@@ -23,7 +23,7 @@ let filter_dirty_lines files matches =
   let%lwt () =
     Lwt_list.iter_s
       (fun f ->
-        let%lwt dirty_lines = Git_wrapper.dirty_lines_of_file f in
+        let%lwt dirty_lines = Git_wrapper_lwt.dirty_lines_of_file f in
         Hashtbl.add dirty_files f dirty_lines;
         Lwt.return ())
       files
@@ -131,7 +131,7 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
         (m, rule))
       matches
   in
-  let%lwt git_repo = Git_wrapper.is_git_repo () in
+  let%lwt git_repo = Git_wrapper_lwt.is_git_repo () in
   (* Filter dirty lines *)
   let%lwt matches =
     if only_git_dirty && git_repo then filter_dirty_lines files matches

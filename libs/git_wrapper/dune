@@ -5,13 +5,10 @@
   (wrapped false)
   (libraries
      fpath
-     lwt
-     lwt.unix
 
      commons
   )
   (preprocess (pps
      ppx_deriving.show
-     lwt_ppx
 ))
 )
