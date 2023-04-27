@@ -14,7 +14,6 @@
  *)
 open AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 
 (*****************************************************************************)
 (* Prelude *)
