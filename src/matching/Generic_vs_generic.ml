@@ -2634,7 +2634,6 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_With, G.OSWS_With
   | G.OSWS_Else_in_try, G.OSWS_Else_in_try
   | G.OSWS_Iterator, G.OSWS_Iterator
-  | G.OSWS_Closure, G.OSWS_Closure
   | G.OSWS_Todo, G.OSWS_Todo ->
       return ()
   | G.OSWS_Block a, G.OSWS_Block b -> m_todo_kind a b
@@ -2642,7 +2641,6 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_Block _, _
   | G.OSWS_Else_in_try, _
   | G.OSWS_Iterator, _
-  | G.OSWS_Closure, _
   | G.OSWS_Todo, _ ->
       fail ()
 

@@ -64,6 +64,8 @@ class LSPConfig:
 
     @property
     def ci_rules(self) -> List[Rule]:
+        if len(self._workspace_folders) == 0:
+            return []
         scan_handler = ScanHandler(True)
         metadata = generate_meta_from_environment(None)
         metadata_dict = metadata.to_dict()

@@ -3,7 +3,7 @@
 
    https://git-scm.com/docs/gitignore
 
-   This is mostly the syntax supported by ../globbing/ with the addition
+   This is mostly the syntax supported by libs/globbing/ with the addition
    of negator (!) at the beginning of a line to "deselect" a file.
 *)
 
@@ -16,7 +16,7 @@ and path_selector = {
      For example, the pattern '/f*' matches the path '/foo'.
 
      The result comes with a selection event in case of a match. *)
-  matcher : Git_path.t -> selection_event option;
+  matcher : Ppath.t -> selection_event option;
 }
 
 (*

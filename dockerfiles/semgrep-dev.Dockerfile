@@ -1,5 +1,5 @@
 #
-# A container with semgrep in it, made to work from within the container.
+# A container with semgrep in it, with a few changes compared to semgrep.Dockerfile:
 # - changes the entrypoint to bash
 # - installs some basic packages
 #
@@ -21,15 +21,6 @@ RUN apk add --no-cache \
   bash \
   curl \
   jq
-
-# TODO: remove the explicit python3 install once our version of alpine has python3.11
-#
-# Install python >= 3.11 needed by pre-commit (for what operation?)
-RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main python3 && \
-  python3 --version > /tmp/python-version && \
-  grep -F 3.11 /tmp/python-version
-# Install version XXX of pre-commit needed for YYY (requires python >= 3.11):
-RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile

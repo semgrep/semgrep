@@ -15,7 +15,6 @@
 open Common
 module StrSet = Common2.StringSet
 open AST_generic
-module V = Visitor_AST
 module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable
@@ -107,7 +106,7 @@ let range_of_any_opt startp_of_match_range any =
   | Di _
   | Lbli _
   | Anys _ ->
-      let* min_loc, max_loc = V.range_of_any_opt any in
+      let* min_loc, max_loc = AST_generic_helpers.range_of_any_opt any in
       let startp, endp = OutH.position_range min_loc max_loc in
       Some (startp, endp)
 
@@ -118,7 +117,7 @@ let metavar_string_of_any any =
           x = 1; y = x + 1; ...
      we have y = 2 but there is no source location for 2.
      Handle such cases *)
-  any |> V.ii_of_any
+  any |> AST_generic_helpers.ii_of_any
   |> List.filter Tok.is_origintok
   |> List.sort Tok.compare_pos
   |> Common.map Tok.content_of_tok

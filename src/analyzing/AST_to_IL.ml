@@ -73,7 +73,7 @@ let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
-  let toks = Visitor_AST.ii_of_any gany in
+  let toks = AST_generic_helpers.ii_of_any gany in
   let opt_tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
@@ -1044,14 +1044,14 @@ and lval_of_ent env ent =
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
   | G.OtherEntity _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)

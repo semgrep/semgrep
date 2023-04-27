@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module V = Visitor_AST
 
 (*****************************************************************************)
 (* Prelude *)

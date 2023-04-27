@@ -475,10 +475,21 @@ let resolve_poly_taint_for_java_getters env lval st =
               taints
               |> Taints.map (fun taint ->
                      match taint.orig with
-                     | Arg arg ->
+                     | Arg ({ offset; _ } as arg) when not (List.mem n offset)
+                       ->
+                         (* If the offset we are trying to take is already in the
+                            list of offsets, don't append it! This is so we don't
+                            never-endingly loop the dataflow and make it think the
+                            Arg taint is never-endingly changing.
+                            For instance, this code example would previously loop,
+                            if `x` started with an `Arg` taint:
+                            while (true) { x = x.getX(); }
+                         *)
                          let arg' = { arg with offset = arg.offset @ [ n ] } in
                          { taint with orig = Arg arg' }
-                     | Src _ -> taint)
+                     | Arg _
+                     | Src _ ->
+                         taint)
             in
             `Tainted taints')
     | _ :: _
@@ -650,97 +661,102 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
 *)
 let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
     T.finding list =
-  (* We cannot check whether we satisfy the `requires` here.
-     This is because this sink may be inside of a function, meaning that
-     argument taint can reach it, which can only be instantiated at the
-     point where we call the function.
-     So we record the `requires` within the taint finding, and evaluate
-     the formula later, when we extract the PMs
-  *)
-  let { T.pm = sink_pm; rule_sink = ts } = sink in
-  let taints_and_bindings =
-    taints_with_traces
-    |> Common.map (fun ({ T.taint; _ } as item) ->
-           let bindings =
-             match taint.T.orig with
-             | T.Arg _ -> []
-             | Src source ->
-                 let src_pm, _ = T.pm_of_trace source.call_trace in
-                 src_pm.PM.env
-           in
-           let new_taint = { taint with tokens = List.rev taint.tokens } in
-           ({ item with taint = new_taint }, bindings))
-  in
-  (* If `unify_mvars` is set, then we will just do the previous behavior,
-     and emit a finding for every single source coming into the sink.
-     This will mean we don't regress on `taint_unify_mvars: true` rules.
+  match taints_with_traces with
+  | [] -> []
+  | _ :: _ -> (
+      (* We cannot check whether we satisfy the `requires` here.
+         This is because this sink may be inside of a function, meaning that
+         argument taint can reach it, which can only be instantiated at the
+         point where we call the function.
+         So we record the `requires` within the taint finding, and evaluate
+         the formula later, when we extract the PMs
+      *)
+      let { T.pm = sink_pm; rule_sink = ts } = sink in
+      let taints_and_bindings =
+        taints_with_traces
+        |> Common.map (fun ({ T.taint; _ } as item) ->
+               let bindings =
+                 match taint.T.orig with
+                 | T.Arg _ -> []
+                 | Src source ->
+                     let src_pm, _ = T.pm_of_trace source.call_trace in
+                     src_pm.PM.env
+               in
+               let new_taint = { taint with tokens = List.rev taint.tokens } in
+               ({ item with taint = new_taint }, bindings))
+      in
+      (* If `unify_mvars` is set, then we will just do the previous behavior,
+         and emit a finding for every single source coming into the sink.
+         This will mean we don't regress on `taint_unify_mvars: true` rules.
 
-     This is problematic because there may be many sources, all of which do not
-     unify with each other, but which unify with the sink.
-     If we did as below and unified them all with each other, we would sometimes
-     produce no findings when we should.
-  *)
-  (* The same will happen if our sink does not have an explicit `requires`.
+         This is problematic because there may be many sources, all of which do not
+         unify with each other, but which unify with the sink.
+         If we did as below and unified them all with each other, we would sometimes
+         produce no findings when we should.
+      *)
+      (* The same will happen if our sink does not have an explicit `requires`.
 
-     This is because our behavior in the second case will remove metavariables
-     from the finding, if they conflict in the sources.
+         This is because our behavior in the second case will remove metavariables
+         from the finding, if they conflict in the sources.
 
-     This can lead to a loss of metavariable interpolation in the finding message,
-     even for "vanilla" taint mode rules that don't use labels, for instance if
-     we had two instances of the source
+         This can lead to a loss of metavariable interpolation in the finding message,
+         even for "vanilla" taint mode rules that don't use labels, for instance if
+         we had two instances of the source
 
-     foo($X)
+         foo($X)
 
-     reaching a sink, where in both instances, `$X` is not the same. The current
-     behavior is that one of the `$X` bindings is chosen arbitrarily. We will
-     try to keep this behavior here.
-  *)
-  if env.config.unify_mvars || Option.is_none (snd ts.sink_requires) then
-    taints_and_bindings
-    |> Common.map_filter (fun (t, bindings) ->
-           let* merged_env =
-             merge_source_sink_mvars env sink_pm.PM.env bindings
-           in
-           Some
-             (T.ToSink
+         reaching a sink, where in both instances, `$X` is not the same. The current
+         behavior is that one of the `$X` bindings is chosen arbitrarily. We will
+         try to keep this behavior here.
+      *)
+      if env.config.unify_mvars || Option.is_none (snd ts.sink_requires) then
+        taints_and_bindings
+        |> Common.map_filter (fun (t, bindings) ->
+               let* merged_env =
+                 merge_source_sink_mvars env sink_pm.PM.env bindings
+               in
+               Some
+                 (T.ToSink
+                    {
+                      taints_with_precondition =
+                        ([ t ], T.expr_to_precondition (R.get_sink_requires ts));
+                      sink;
+                      merged_env;
+                    }))
+      else
+        match
+          taints_and_bindings |> Common.map snd |> merge_source_mvars
+          |> merge_source_sink_mvars env sink_pm.PM.env
+        with
+        | None -> []
+        | Some merged_env ->
+            [
+              T.ToSink
                 {
                   taints_with_precondition =
-                    ([ t ], T.expr_to_precondition (R.get_sink_requires ts));
+                    ( Common.map fst taints_and_bindings,
+                      T.expr_to_precondition (R.get_sink_requires ts) );
                   sink;
                   merged_env;
-                }))
-  else
-    match
-      taints_and_bindings |> Common.map snd |> merge_source_mvars
-      |> merge_source_sink_mvars env sink_pm.PM.env
-    with
-    | None -> []
-    | Some merged_env ->
-        [
-          T.ToSink
-            {
-              taints_with_precondition =
-                ( Common.map fst taints_and_bindings,
-                  T.expr_to_precondition (R.get_sink_requires ts) );
-              sink;
-              merged_env;
-            };
-        ]
+                };
+            ])
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks env taints sinks : T.finding list =
-  sinks
-  |> List.concat_map (fun sink ->
-         (* This is where all taint findings start. If it's interproc,
-            the call trace will be later augmented into the Call variant,
-            but it starts out here as just a PM variant.
-         *)
-         let taints_with_traces =
-           taints |> Taints.elements
-           |> Common.map (fun t ->
-                  { T.taint = t; sink_trace = T.PM (sink.T.pm, ()) })
-         in
-         findings_of_tainted_sink env taints_with_traces sink)
+  if Taints.is_empty taints then []
+  else
+    sinks
+    |> List.concat_map (fun sink ->
+           (* This is where all taint findings start. If it's interproc,
+              the call trace will be later augmented into the Call variant,
+              but it starts out here as just a PM variant.
+           *)
+           let taints_with_traces =
+             taints |> Taints.elements
+             |> Common.map (fun t ->
+                    { T.taint = t; sink_trace = T.PM (sink.T.pm, ()) })
+           in
+           findings_of_tainted_sink env taints_with_traces sink)
 
 let finding_of_tainted_return taints return_tok : T.finding =
   let taints = taints |> Taints.elements in
@@ -1209,11 +1225,13 @@ let check_function_signature env fun_exp args args_taints =
                        let call_trace =
                          T.Call (eorig, t.tokens, src.call_trace)
                        in
-                       let new_src = { src with call_trace } in
                        Some
                          (`Return
                            (Taints.singleton
-                              { orig = Src new_src; tokens = [] }))
+                              {
+                                orig = Src { src with call_trace };
+                                tokens = [];
+                              }))
                    | Arg arg ->
                        let* arg_taints =
                          taints_of_sig_arg env fparams fun_exp args args_taints
@@ -1295,8 +1313,7 @@ let check_function_signature env fun_exp args args_taints =
                          let sink_trace =
                            T.Call (eorig, taint.tokens, sink_trace)
                          in
-                         let arg_taints = arg_to_taints arg in
-                         arg_taints
+                         arg_to_taints arg
                          |> Common.map (fun x -> { T.taint = x; sink_trace }))
               |> List.concat_map (fun { T.taint; sink_trace } ->
                      (* Here, we substitute for the polymorphic taint variables that are
@@ -1304,6 +1321,10 @@ let check_function_signature env fun_exp args args_taints =
                         will not be able to solve the taint label formula accurately, taking
                         into account the taint labels provided by the arguments.
                         See [precondition] in Taint.ml for more information.
+
+                        Note that because of the previous map's Arg case, we should not replace
+                        any actual Args with this call, or we might replace an Arg that we
+                        just substituted in! See [substitute_precondition_arg_taint] for more.
                      *)
                      let new_taints =
                        T.substitute_precondition_arg_taint ~arg_fn:arg_to_taints

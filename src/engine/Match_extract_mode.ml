@@ -114,7 +114,7 @@ let count_lines_and_trailing =
 
 let offsets_of_mval extract_mvalue =
   Metavariable.mvalue_to_any extract_mvalue
-  |> Visitor_AST.range_of_any_opt
+  |> AST_generic_helpers.range_of_any_opt
   |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
          let end_len = String.length end_loc.Tok.str in
          {

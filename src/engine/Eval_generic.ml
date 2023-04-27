@@ -355,7 +355,7 @@ let text_of_binding mvar mval =
       Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in
-      match Visitor_AST.range_of_any_opt any with
+      match AST_generic_helpers.range_of_any_opt any with
       | None ->
           (* TODO: Report a warning to the user? *)
           logger#error "We lack range info for metavariable %s: %s" mvar

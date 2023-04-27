@@ -7,6 +7,7 @@
   (wrapped false)
   (libraries
     globbing
+    ppath
   )
   (preprocess (pps ppx_deriving.show))
 )

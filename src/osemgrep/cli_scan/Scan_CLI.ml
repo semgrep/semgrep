@@ -381,33 +381,6 @@ let o_nosem : bool Term.t =
           a 'nosem' comment at the end. Enabled by default.|}
 
 (* ------------------------------------------------------------------ *)
-(* TOPORT "Verbosity options" (mutually exclusive) *)
-(* ------------------------------------------------------------------ *)
-(* alt: we could use Logs_cli.level(), but by defining our own flags
- * we can give better ~doc:. We lose the --verbosity=Level though.
- *)
-let o_quiet : bool Term.t =
-  let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
-  Arg.value (Arg.flag info)
-
-let o_verbose : bool Term.t =
-  let info =
-    Arg.info [ "v"; "verbose" ]
-      ~doc:
-        {|Show more details about what rules are running, which files
-failed to parse, etc.
-|}
-  in
-  Arg.value (Arg.flag info)
-
-let o_debug : bool Term.t =
-  let info =
-    Arg.info [ "debug" ]
-      ~doc:{|All of --verbose, but with additional debugging information.|}
-  in
-  Arg.value (Arg.flag info)
-
-(* ------------------------------------------------------------------ *)
 (* TOPORT "Output formats" (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
 let o_json : bool Term.t =
@@ -642,30 +615,20 @@ let o_project_root : string option Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine autofix baseline_commit config debug dryrun dump_ast dump_config
-      emacs error exclude exclude_rule_ids force_color include_ json lang
-      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
-      metrics num_jobs nosem optimizations pattern profile project_root quiet
-      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo time_flag timeout timeout_threshold validate verbose
-      version version_check vim =
+  let combine logging_level autofix baseline_commit config dryrun dump_ast
+      dump_config emacs error exclude exclude_rule_ids force_color include_ json
+      lang max_chars_per_line max_lines_per_finding max_memory_mb
+      max_target_bytes metrics num_jobs nosem optimizations pattern profile
+      project_root replacement respect_git_ignore rewrite_rule_ids
+      scan_unknown_extensions severity show_supported_languages strict
+      target_roots test test_ignore_todo time_flag timeout timeout_threshold
+      validate version version_check vim =
     let include_ =
       match include_ with
       | [] -> None
       | nonempty -> Some nonempty
     in
     let target_roots = target_roots |> File.Path.of_strings in
-    let logging_level =
-      match (verbose, debug, quiet) with
-      | false, false, false -> Some Logs.Warning
-      | true, false, false -> Some Logs.Info
-      | false, true, false -> Some Logs.Debug
-      | false, false, true -> None
-      | _else_ ->
-          (* TOPORT: list the possibilities *)
-          Error.abort "mutually exclusive options --quiet/--verbose/--debug"
-    in
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color ~level:logging_level;
@@ -890,16 +853,16 @@ let cmdline_term : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_debug
-    $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
-    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
+    const combine $ CLI_common.logging_term $ o_autofix $ o_baseline_commit
+    $ o_config $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error
+    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json
+    $ o_lang $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
-    $ o_pattern $ o_profile $ o_project_root $ o_quiet $ o_replacement
+    $ o_pattern $ o_profile $ o_project_root $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
     $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
     $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
-    $ o_validate $ o_verbose $ o_version $ o_version_check $ o_vim)
+    $ o_validate $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
