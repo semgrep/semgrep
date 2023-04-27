@@ -66,34 +66,47 @@ let get_contents () =
   lazy
     (t :=
        try
-         let _ = File.fullpath settings in
-         let data = File.read_file settings in
-         match Yaml.of_string data with
-         | Error _ ->
-             Logs.warn (fun m ->
-                 m "Bad settings format; %s will be overriden. Contents:\n%s"
-                   (Fpath.to_string settings) data);
-             default_settings
-         | Ok value -> (
-             match of_yaml value with
-             | Error (`Msg msg) ->
-                 Logs.warn (fun m ->
-                     m
-                       "Bad settings format; %s will be overriden. Contents:\n\
-                        %s"
-                       (Fpath.to_string settings) data);
-                 Logs.info (fun m -> m "Decode error: %s" msg);
-                 default_settings
-             | Ok s -> s)
+         if
+           Sys.file_exists (Fpath.to_string settings)
+           && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
+         then
+           let data = File.read_file settings in
+           match Yaml.of_string data with
+           | Error _ ->
+               Logs.warn (fun m ->
+                   m "Bad settings format; %a will be overriden. Contents:\n%s"
+                     Fpath.pp settings data);
+               default_settings
+           | Ok value -> (
+               match of_yaml value with
+               | Error (`Msg msg) ->
+                   Logs.warn (fun m ->
+                       m
+                         "Bad settings format; %a will be overriden. Contents:\n\
+                          %s"
+                         Fpath.pp settings data);
+                   Logs.info (fun m -> m "Decode error: %s" msg);
+                   default_settings
+               | Ok s -> s)
+         else (
+           Logs.warn (fun m ->
+               m "Settings file %a does not exist or is not a regular file"
+                 Fpath.pp settings);
+           default_settings)
        with
        | Failure _ -> default_settings)
 
 let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
-  Sys.mkdir Fpath.(to_string (parent settings)) 0o755;
-  File.write_file settings str;
-  t := setting
+  try
+    Sys.mkdir Fpath.(to_string (parent settings)) 0o755;
+    File.write_file settings str;
+    t := setting
+  with
+  | Sys_error _ ->
+      Logs.warn (fun m ->
+          m "Could not write settings file at %a" Fpath.pp settings)
 
 let get () =
   Lazy.force (get_contents ());
