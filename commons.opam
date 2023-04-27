@@ -27,6 +27,8 @@ depends: [
   "ppx_deriving" {>= "5.2.1"}
   "ppx_hash" {>= "v0.14.0"}
   "parmap" {>= "1.2.4"}
+  "digestif" {>= "1.0.0"}
+  "uri"
   "odoc" {with-doc}
 ]
 build: [
