@@ -156,6 +156,9 @@ clean:
 core-clean:
 	dune clean
 	rm -f bin
+	# we still need to keep the nonempty opam files in git for
+	# 'make setup', so we should only remove the empty opam files.
+	#rm -f *.opam
 
 ###############################################################################
 # Install targets
