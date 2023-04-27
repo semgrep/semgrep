@@ -744,10 +744,16 @@ let resolve_poly_taint_for_java_getters env lval st =
                             list of offsets, don't append it! This is so we don't
                             never-endingly loop the dataflow and make it think the
                             Arg taint is never-endingly changing.
+
+                            For instance, this code example would previously loop,
+                            if `x` started with an `Arg` taint:
+                            while (true) { x = x.getX(); }
                          *)
                          let arg' = { arg with offset = arg.offset @ [ n ] } in
                          { taint with orig = Arg arg' }
-                     | _ -> taint)
+                     | Arg _
+                     | Src _ ->
+                         taint)
             in
             `Tainted taints')
     | _ :: _
