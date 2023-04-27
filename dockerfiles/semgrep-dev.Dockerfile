@@ -22,14 +22,11 @@ RUN apk add --no-cache \
   curl \
   jq
 
-# TODO: remove the explicit python3 install once our version of alpine has python3.11
-#
-# Install python >= 3.11 needed by pre-commit (for what operation?)
-RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main python3 && \
-  python3 --version > /tmp/python-version && \
-  grep -F 3.11 /tmp/python-version
-# Install version XXX of pre-commit needed for YYY (requires python >= 3.11):
-RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
+# Install pipx so that we can install python utilities into isolated virtualenvs
+RUN python3 -m pip install --no-cache-dir --user pipx==1.2.0 && python3 -m pipx ensurepath
+
+# Install pre-commit so that we can run pre-commit checks inside the dev container
+RUN /root/.local/bin/pipx install pre-commit==3.2.2
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
