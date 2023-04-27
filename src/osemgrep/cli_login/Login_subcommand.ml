@@ -70,9 +70,6 @@ let max_retries = 30 (* Give users 3 minutes to log in / open link *)
    exit code. *)
 let run (_conf : conf) : Exit_code.t =
   Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug);
-  Logs.info (fun m -> m "Semgrep version: %s" Version.version);
-  Logs.info (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
   let settings = Semgrep_settings.get () in
   match settings.Semgrep_settings.api_token with
   | None -> (
@@ -166,7 +163,7 @@ let run (_conf : conf) : Exit_code.t =
           m
             "API token already exists in %s. To login with a different token \
              logout use `semgrep logout`"
-            Semgrep_envvars.env.user_settings_file);
+            (Fpath.to_string Semgrep_envvars.env.user_settings_file));
       Exit_code.fatal
 
 (*****************************************************************************)

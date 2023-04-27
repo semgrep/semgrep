@@ -41,6 +41,7 @@ depends: [
   "ocamlgraph"
   "parmap"
   "uri"
+  "uuidm"
   "http-lwt-client"
   "terminal_size"
   "lwt"

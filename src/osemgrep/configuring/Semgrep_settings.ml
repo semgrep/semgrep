@@ -1,3 +1,4 @@
+(* TODO use ATD to specify the settings file format *)
 type t = {
   has_shown_metrics_notification : bool option;
   api_token : string option;
@@ -11,9 +12,11 @@ let default_settings =
     anonymous_user_id = Uuidm.v `V4;
   }
 
-let _t = ref default_settings
+let t = ref default_settings
 let ( let* ) = Result.bind
 
+(* ultimately we should just use ATD to automatically read the settings.yml
+   file by converting it first to json and then use ATDgen API *)
 let of_yaml = function
   | `O data ->
       let has_shown_metrics_notification =
@@ -57,11 +60,11 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
       | Some v -> [ ("api_token", `String v) ])
     @ [ ("anonymous_user_id", `String (Uuidm.to_string anonymous_user_id)) ])
 
-let settings = Fpath.v Semgrep_envvars.env.user_settings_file
+let settings = Semgrep_envvars.env.user_settings_file
 
 let get_contents () =
   lazy
-    (_t :=
+    (t :=
        try
          let _ = File.fullpath settings in
          let data = File.read_file settings in
@@ -85,13 +88,13 @@ let get_contents () =
        with
        | Failure _ -> default_settings)
 
-let save t =
-  let yaml = to_yaml t in
+let save setting =
+  let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   Sys.mkdir Fpath.(to_string (parent settings)) 0o755;
   File.write_file settings str;
-  _t := t
+  t := setting
 
 let get () =
   Lazy.force (get_contents ());
-  !_t
+  !t

@@ -47,9 +47,6 @@ let parse_argv (argv : string array) : conf =
    exit code. *)
 let run (_conf : conf) : Exit_code.t =
   Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug);
-  Logs.info (fun m -> m "Semgrep version: %s" Version.version);
-  Logs.info (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
   let settings = Semgrep_settings.get () in
   let settings = Semgrep_settings.{ settings with api_token = None } in
   Semgrep_settings.save settings;
