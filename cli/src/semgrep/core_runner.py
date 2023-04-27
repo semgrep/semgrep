@@ -443,7 +443,7 @@ class StreamingSemgrepCore:
                 "", total=self._total, start=False
             )
 
-        rc = asyncio.run(self._stream_exec_subprocess())
+            rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
