@@ -605,23 +605,21 @@ and metavariable_comparison = {
 *)
 let rewrite_metavar_comparison_strip cond =
   let visitor =
-    Map_AST.mk_visitor
-      {
-        Map_AST.default_visitor with
-        Map_AST.kexpr =
-          (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e.G.e with
-            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
-              ->
-                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
-                |> G.e
-            | _ -> e);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.map_legacy as super
+
+      method! visit_expr env e =
+        (* apply on children *)
+        let e = super#visit_expr env e in
+        match e.G.e with
+        | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s ->
+            let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+            G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
+            |> G.e
+        | _ -> e
+    end
   in
-  visitor.Map_AST.vexpr cond
+  visitor#visit_expr () cond
 
 (* TODO: Old stuff that we can't kill yet. *)
 let find_formula_old env (rule_dict : dict) : key * G.expr =
