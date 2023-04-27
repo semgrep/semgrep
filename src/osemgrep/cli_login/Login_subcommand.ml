@@ -27,7 +27,7 @@ let make_login_url () =
 let get_deployment_from_token token =
   match
     Network.get
-      ~headers:[ ("Authorization", "Bearer " ^ token) ]
+      ~headers:[ ("authorization", "Bearer " ^ token) ]
       (Uri.with_path Semgrep_envvars.env.semgrep_url
          "api/agent/deployments/current")
   with
