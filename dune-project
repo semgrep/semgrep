@@ -388,6 +388,7 @@ For more information see https://semsgrep.dev
     ocamlgraph
     parmap
     uri
+    uuidm
     http-lwt-client ; this brings lots of dependencies. This is for osemgrep.
     terminal_size
     lwt
