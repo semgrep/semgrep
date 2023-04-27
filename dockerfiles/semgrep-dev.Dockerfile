@@ -1,5 +1,5 @@
 #
-# A container with semgrep in it, made to work from within the container.
+# A container with semgrep in it, with a few changes compared to semgrep.Dockerfile:
 # - changes the entrypoint to bash
 # - installs some basic packages
 #
@@ -21,12 +21,6 @@ RUN apk add --no-cache \
   bash \
   curl \
   jq
-
-# Install pipx so that we can install python utilities into isolated virtualenvs
-RUN python3 -m pip install --no-cache-dir --user pipx==1.2.0 && python3 -m pipx ensurepath
-
-# Install pre-commit so that we can run pre-commit checks inside the dev container
-RUN /root/.local/bin/pipx install pre-commit==3.2.2
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
