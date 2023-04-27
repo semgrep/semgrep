@@ -127,9 +127,6 @@ type taints = Taint_set.t
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 
-val taint_of_pm :
-  incoming:taints -> Pattern_match.t * Rule.taint_source -> taint
-
 val taints_of_pms :
   incoming:taints -> (Pattern_match.t * Rule.taint_source) list -> taints
 
