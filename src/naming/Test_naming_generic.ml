@@ -1,7 +1,6 @@
 open Common
 open File.Operators
 module H = AST_generic_helpers
-module V = Visitor_AST
 
 let test_naming_generic ~parse_program file =
   let file = Fpath.v file in

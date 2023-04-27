@@ -233,7 +233,6 @@ let dump_il_all file =
 
 let dump_il file =
   let module G = AST_generic in
-  let module V = Visitor_AST in
   let ast = Parse_target.parse_program !!file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;

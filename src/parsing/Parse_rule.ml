@@ -85,14 +85,14 @@ type dict = {
 let yaml_error t s = raise (R.Err (R.InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
-  yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
+  yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 let error env t s = raise (R.Err (R.InvalidRule (R.InvalidOther s, env.id, t)))
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
-  error env (Visitor_AST.first_info_of_any (G.E e)) s
+  error env (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let pcre_error_to_string s exn =
   let message =
