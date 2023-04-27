@@ -4,6 +4,18 @@
 # starting from dune 2.8.2, those are actually not generated anymore
 **/.merlin
 
+# opam files are now generated from dune-project when running 'dune build':
+*.opam
+# but we keep the nonempty ones for installing the project dependencies with
+# 'opam install --deps-only ...':
+!ast_generic.opam
+!commons.opam
+!lib_parsing.opam
+!process_limits.opam
+!profiling.opam
+!semgrep.opam
+!spacegrep.opam
+
 # bisect_ppx
 **/_coverage
 **/*.coverage
