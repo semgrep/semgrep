@@ -5,5 +5,5 @@ type t = {
   anonymous_user_id : Uuidm.t;
 }
 
-val save : t -> unit
+val save : t -> bool
 val get : unit -> t

@@ -171,11 +171,16 @@ let load_rules_from_file (file : Fpath.t) : rules_and_origin =
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url url : rules_and_origin =
+let load_rules_from_url ?(ext = "yaml") url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
-    match Network.get url with
+    let headers =
+      match Semgrep_settings.((get ()).api_token) with
+      | None -> None
+      | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
+    in
+    match Network.get ?headers url with
     | Ok body -> body
     | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)
@@ -183,10 +188,80 @@ let load_rules_from_url url : rules_and_origin =
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
-  Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+  let ext, content =
+    if ext = "policy" then
+      (* project rule_config, from config_resolver.py in _make_config_request *)
+      try
+        match Yojson.Basic.from_string content with
+        | `Assoc e -> (
+            match List.assoc "rule_config" e with
+            | `String e -> ("json", e)
+            | _else -> (ext, content))
+        | _else -> (ext, content)
+      with
+      | _failure -> (ext, content)
+    else (ext, content)
+  in
+  Common2.with_tmp_file ~str:content ~ext (fun file ->
       let file = Fpath.v file in
       let res = load_rules_from_file file in
       { res with origin = None })
+
+(* from auth.py *)
+let get_deployment_id () =
+  match Semgrep_settings.((get ()).api_token) with
+  | None -> None
+  | Some token -> (
+      match
+        Network.get
+          ~headers:[ ("authorization", "Bearer " ^ token) ]
+          (Uri.with_path Semgrep_envvars.env.semgrep_url
+             "api/agent/deployments/current")
+      with
+      | Error msg ->
+          Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
+          None
+      | Ok json -> (
+          try
+            match Yojson.Basic.from_string json with
+            | `Assoc e -> (
+                match List.assoc_opt "deployment" e with
+                | Some (`Assoc e) -> (
+                    match List.assoc_opt "id" e with
+                    | Some (`Int i) -> Some i
+                    | _else -> None)
+                | _else -> None)
+            | _else -> None
+          with
+          | Yojson.Json_error msg ->
+              Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
+              None))
+
+let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
+
+let url_for_policy () =
+  match get_deployment_id () with
+  | None ->
+      Error.abort
+        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
+  | Some _deployment_id -> (
+      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
+      | None ->
+          Error.abort
+            (spf
+               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
+      | Some repo_name ->
+          Uri.(
+            add_query_params'
+              (with_path Semgrep_envvars.env.semgrep_url
+                 default_semgrep_app_config_url)
+              [
+                ("sca", "False");
+                ("dry_run", "True");
+                ("full_scan", "True");
+                ("repo_name", repo_name);
+                ("semgrep_version", Version.version);
+              ]))
 
 let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
     rules_and_origin list =
@@ -213,6 +288,7 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map load_rules_from_file
   | C.URL url -> [ load_rules_from_url url ]
+  | C.R Policy -> [ load_rules_from_url ~ext:"policy" (url_for_policy ()) ]
   | C.R rkind ->
       let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
       [ load_rules_from_url url ]

@@ -37,4 +37,4 @@ val rules_from_dashdash_config :
 
 (* low-level API *)
 val load_rules_from_file : Fpath.t -> rules_and_origin
-val load_rules_from_url : Uri.t -> rules_and_origin
+val load_rules_from_url : ?ext:string -> Uri.t -> rules_and_origin
