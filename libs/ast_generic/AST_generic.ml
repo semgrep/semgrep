@@ -1260,8 +1260,6 @@ and other_stmt_with_stmt_operator =
   | OSWS_Else_in_try
   (* C/C++/cpp *)
   | OSWS_Iterator
-  (* Closures in Swift *)
-  | OSWS_Closure
   (* e.g., Case/Default outside of switch in C/C++, StmtTodo in C++ *)
   | OSWS_Todo
 

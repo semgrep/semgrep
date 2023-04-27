@@ -820,7 +820,6 @@ and map_other_stmt_with_stmt_operator = function
   | OSWS_With -> "S_With"
   | OSWS_Else_in_try -> "S_Else_in_try"
   | OSWS_Iterator -> "S_Iterator"
-  | OSWS_Closure -> "S_Closure"
   | OSWS_Todo -> "S_Todo"
   | OSWS_Block _TODO -> "S_Todo"
 
