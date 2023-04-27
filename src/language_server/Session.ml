@@ -27,14 +27,16 @@ let create capabilities config =
     only_git_dirty = true;
   }
 
-(* This is dynamic so if the targets file is updated we don't have to restart (and reparse rules...) *)
-(* Once osemgrep is ready, we can just use target manager directly here *)
+(* This is dynamic so if the targets file is updated we don't have to restart
+ * (and reparse rules...).
+ * Once osemgrep is ready, we can just use target manager directly here
+ *)
 let targets session =
   let config = session.config in
-  let%lwt git_repo = Git_wrapper.is_git_repo () in
+  let%lwt git_repo = Git_wrapper_lwt.is_git_repo () in
   let%lwt dirty_files =
     if git_repo then
-      let%lwt dirty_files = Git_wrapper.dirty_files () in
+      let%lwt dirty_files = Git_wrapper_lwt.dirty_files () in
       Lwt_list.map_p
         (fun file -> Lwt.return (Filename.concat session.root file))
         dirty_files
@@ -94,7 +96,8 @@ let record_results session results files =
     (fun (file, results) -> Hashtbl.add session.documents file results)
     results_by_file
 
-(* Useful for when we need to reset diagnostics, such as when changing what rules we've run *)
+(* Useful for when we need to reset diagnostics, such as when changing what
+ * rules we've run *)
 let scanned_files session =
   (* We can get duplicates apparently *)
   Hashtbl.fold (fun file _ acc -> file :: acc) session.documents []
