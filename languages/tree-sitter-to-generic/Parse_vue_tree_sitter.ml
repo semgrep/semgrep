@@ -394,16 +394,15 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
       let x = fparse file in
 
       let visitor =
-        Map_AST.mk_visitor
-          {
-            Map_AST.default_visitor with
-            Map_AST.kinfo =
-              (fun (_, _) t ->
-                let base_loc = Tok.unsafe_loc_of_tok tbase in
-                Tok.adjust_tok_wrt_base base_loc t);
-          }
+        object (_self : 'self)
+          inherit [_] AST_generic.map_legacy
+
+          method! visit_tok _env t =
+            let base_loc = Tok.unsafe_loc_of_tok tbase in
+            Tok.adjust_tok_wrt_base base_loc t
+        end
       in
-      visitor.Map_AST.vprogram x)
+      visitor#visit_program () x)
 
 let parse parse_js file =
   H.wrap_parser
