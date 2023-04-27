@@ -85,7 +85,7 @@ class _LanguageData:
             spans = [span.with_context(before=1, after=1)] if span else []
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {normalized}",
-                long_msg=f"unsupported language: {normalized}. {self.show_suppported_languages_message()}",
+                long_msg=f"unsupported language: {normalized}. {self.show_suppported_languages_message()}\n\nYou may need to update your version of Semgrep, if you are on an old version that does not yet support this language.",
                 spans=spans,
             )
 
