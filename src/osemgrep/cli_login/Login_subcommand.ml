@@ -1,5 +1,3 @@
-open Cmdliner
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -10,39 +8,8 @@ open Cmdliner
 *)
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-(* no CLI parameters for now *)
-type conf = unit
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* this could be moved in a Login_CLI.ml file at some point *)
-let cmdline_term : conf Term.t =
-  let combine = () in
-  Term.(const combine)
-
-let doc = "Obtain and save credentials for semgrep.dev"
-
-let man : Manpage.block list =
-  [
-    `S Manpage.s_description;
-    `P
-      "Obtain and save credentials for semgrep.dev\n\n\
-      \    Looks for an semgrep.dev API token in the environment variable \
-       SEMGREP_APP_TOKEN.\n\
-      \    If not defined and running in a TTY, prompts interactively.\n\
-      \    Once token is found, saves it to global settings file";
-  ]
-  @ CLI_common.help_page_bottom
-
-let cmdline_info : Cmd.info = Cmd.info "semgrep login" ~doc ~man
-
-let parse_argv (argv : string array) : conf =
-  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
-  CLI_common.eval_value ~argv cmd
 
 let make_login_url () =
   let session_id = Uuidm.v `V4 in
@@ -68,8 +35,8 @@ let max_retries = 30 (* Give users 3 minutes to log in / open link *)
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (_conf : conf) : Exit_code.t =
-  Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug);
+let run (conf : Login_CLI.conf) : Exit_code.t =
+  Logs_helpers.setup_logging ~force_color:false ~level:conf.logging_level;
   let settings = Semgrep_settings.get () in
   match settings.Semgrep_settings.api_token with
   | None -> (
@@ -171,5 +138,5 @@ let run (_conf : conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (argv : string array) : Exit_code.t =
-  let conf = parse_argv argv in
+  let conf = Login_CLI.parse_argv Login_CLI.login_cmdline_info argv in
   run conf
