@@ -82,82 +82,82 @@ let run (_conf : conf) : Exit_code.t =
           Exit_code.ok
       | None
       | Some _ ->
-          (* if not auth.is_a_tty():
-             click.echo(
-                 f"Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
-                 err=True,
-             )
-             sys.exit(FATAL_EXIT_CODE)
-          *)
-          let session_id, url = make_login_url () in
-          Logs.app (fun m ->
-              m
-                "Login enables additional proprietary Semgrep Registry rules \
-                 and running custom policies from Semgrep App.");
-          Logs.app (fun m -> m "Login at: %s" (Uri.to_string url));
-          Logs.app (fun m ->
-              m
-                "@.Once you've logged in, return here and you'll be ready to \
-                 start using new Semgrep rules.");
-          let rec fetch = function
-            | 0 ->
-                Logs.err (fun m ->
-                    m
-                      "Failed to login: please check your internet connection \
-                       or contact support@r2c.dev");
-                Exit_code.fatal
-            | n -> (
-                let url =
-                  Uri.with_path Semgrep_envvars.env.semgrep_url
-                    "api/agent/tokens/requests"
-                in
-                let body =
-                  {|{"token_request_key": "|} ^ Uuidm.to_string session_id
-                  ^ {|"}|}
-                in
-                match Network.post ~body url with
-                | Ok body -> (
-                    try
-                      match Yojson.Basic.from_string body with
-                      | `Assoc e -> (
-                          match List.assoc_opt "token" e with
-                          | Some (`String token) ->
-                              let settings =
-                                Semgrep_settings.
-                                  { settings with api_token = Some token }
-                              in
-                              Semgrep_settings.save settings;
-                              (* TODO if save failed, Exit_code.fatal *)
-                              Exit_code.ok
-                          | None
-                          | Some _ ->
-                              Logs.debug (fun m ->
-                                  m "failed to decode json token %s" body);
-                              Exit_code.fatal)
-                      | _ ->
+          if not Unix.(isatty stdin) then (
+            Logs.err (fun m ->
+                m
+                  "Error: semgrep login is an interactive command: run in an \
+                   interactive terminal (or define SEMGREP_APP_TOKEN)");
+            Exit_code.fatal)
+          else
+            let session_id, url = make_login_url () in
+            Logs.app (fun m ->
+                m
+                  "Login enables additional proprietary Semgrep Registry rules \
+                   and running custom policies from Semgrep App.");
+            Logs.app (fun m -> m "Login at: %s" (Uri.to_string url));
+            Logs.app (fun m ->
+                m
+                  "@.Once you've logged in, return here and you'll be ready to \
+                   start using new Semgrep rules.");
+            let rec fetch = function
+              | 0 ->
+                  Logs.err (fun m ->
+                      m
+                        "Failed to login: please check your internet \
+                         connection or contact support@r2c.dev");
+                  Exit_code.fatal
+              | n -> (
+                  let url =
+                    Uri.with_path Semgrep_envvars.env.semgrep_url
+                      "api/agent/tokens/requests"
+                  in
+                  let body =
+                    {|{"token_request_key": "|} ^ Uuidm.to_string session_id
+                    ^ {|"}|}
+                  in
+                  match Network.post ~body url with
+                  | Ok body -> (
+                      try
+                        match Yojson.Basic.from_string body with
+                        | `Assoc e -> (
+                            match List.assoc_opt "token" e with
+                            | Some (`String token) ->
+                                let settings =
+                                  Semgrep_settings.
+                                    { settings with api_token = Some token }
+                                in
+                                Semgrep_settings.save settings;
+                                (* TODO if save failed, Exit_code.fatal *)
+                                Exit_code.ok
+                            | None
+                            | Some _ ->
+                                Logs.debug (fun m ->
+                                    m "failed to decode json token %s" body);
+                                Exit_code.fatal)
+                        | _ ->
+                            Logs.debug (fun m ->
+                                m "failed to decode json %s" body);
+                            Exit_code.fatal
+                      with
+                      | Yojson.Json_error msg ->
                           Logs.debug (fun m ->
-                              m "failed to decode json %s" body);
-                          Exit_code.fatal
-                    with
-                    | Yojson.Json_error msg ->
-                        Logs.debug (fun m ->
-                            m "failed to parse json %s: %s" msg body);
-                        Exit_code.fatal)
-                | Error (status_code, msg) ->
-                    if status_code = 404 then (
-                      Unix.sleep wait_between_retry_in_sec;
-                      fetch (n - 1))
-                    else (
-                      Logs.err (fun m ->
-                          m
-                            "Unexpected failure from %s: status code %d; \
-                             please contact support@r2c.dev if this persists"
-                            (Uri.to_string Semgrep_envvars.env.semgrep_url)
-                            status_code);
-                      Logs.info (fun m -> m "HTTP error: %s" msg);
-                      Exit_code.fatal))
-          in
-          fetch max_retries)
+                              m "failed to parse json %s: %s" msg body);
+                          Exit_code.fatal)
+                  | Error (status_code, msg) ->
+                      if status_code = 404 then (
+                        Unix.sleep wait_between_retry_in_sec;
+                        fetch (n - 1))
+                      else (
+                        Logs.err (fun m ->
+                            m
+                              "Unexpected failure from %s: status code %d; \
+                               please contact support@r2c.dev if this persists"
+                              (Uri.to_string Semgrep_envvars.env.semgrep_url)
+                              status_code);
+                        Logs.info (fun m -> m "HTTP error: %s" msg);
+                        Exit_code.fatal))
+            in
+            fetch max_retries)
   | Some _ ->
       Logs.app (fun m ->
           m
