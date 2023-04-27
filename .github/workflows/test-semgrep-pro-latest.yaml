@@ -13,7 +13,7 @@ on:
 jobs:
   test-semgrep-pro-latest:
     name: Test Semgrep Pro Engine (latest release)
-    if: github.repository_owner == 'returntocorp' # only returntocorp has the necessary credentials to access semgrep pro
+    if: github.event.pull_request.head.repo.full_name != github.repository # only returntocorp has the necessary credentials to access semgrep pro
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
