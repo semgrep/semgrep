@@ -59,8 +59,8 @@ WASM_DEP := dist/semgrep-parser.js
 WASM_NAME := semgrep-parser
 endif
 
-package.json: ../shared/package.json.liquid
-	npx liquidjs -t @$^ -o $@ --context '{"lang": "$(SEMGREP_LANG)", "wasm": "$(WASM_NAME)", "version": "$(VERSION)"}'
+package.json: ../shared/generate-package-json.sh
+	$< $(SEMGREP_LANG) $(VERSION) > $@
 
 package-lock.json: package.json
 	npm install
