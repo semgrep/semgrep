@@ -6,6 +6,6 @@ val of_matches :
   Pattern_match.t list ->
   Rule.hrules ->
   Common.filename list ->
-  (t list * Common.filename list) Lwt.t
+  t list * Common.filename list
 (** Postprocess semgrep run results given rules and files scanned, populating
     fixes, and messages. Filters out matches depending on git status. *)

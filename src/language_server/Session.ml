@@ -10,7 +10,6 @@ type t = {
   cached_rules : Runner_config.rule_source option;
   documents :
     (string, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
-  mutable next_id : int;
   only_git_dirty : bool;
 }
 
@@ -23,7 +22,6 @@ let create capabilities config =
     root = "";
     cached_rules = None;
     documents = Hashtbl.create 10;
-    next_id = 0;
     only_git_dirty = true;
   }
 
@@ -33,14 +31,12 @@ let create capabilities config =
  *)
 let targets session =
   let config = session.config in
-  let%lwt git_repo = Git_wrapper_lwt.is_git_repo () in
-  let%lwt dirty_files =
+  let git_repo = Git_wrapper.is_git_repo () in
+  let dirty_files =
     if git_repo then
-      let%lwt dirty_files = Git_wrapper_lwt.dirty_files () in
-      Lwt_list.map_p
-        (fun file -> Lwt.return (Filename.concat session.root file))
-        dirty_files
-    else Lwt.return []
+      let dirty_files = Git_wrapper.dirty_files () in
+      Common.map (Filename.concat session.root) dirty_files
+    else []
   in
   let targets =
     match config.target_source with
@@ -50,15 +46,14 @@ let targets session =
         targets
     | None -> failwith "No targets provided"
   in
-  let%lwt target_mappings =
-    Lwt_list.filter_p
+  let target_mappings =
+    List.filter
       (fun (t : Input_to_core_t.target) ->
-        ((not (session.only_git_dirty && git_repo))
+        (not (session.only_git_dirty && git_repo))
         || List.mem t.path dirty_files)
-        |> Lwt.return)
       targets.target_mappings
   in
-  Lwt.return { targets with target_mappings }
+  { targets with target_mappings }
 
 let load_rules session =
   let config = session.config in
