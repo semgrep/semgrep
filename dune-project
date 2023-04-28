@@ -98,6 +98,8 @@ a few other projects developed at r2c.
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
     (parmap (>= "1.2.4"))
+    (digestif (>= "1.0.0"))
+    uri
   )
 )
 
@@ -400,6 +402,9 @@ For more information see https://semsgrep.dev
     (js_of_ocaml-ppx (= 5.1.1))
     ctypes_stubs_js
     integers_stubs_js
+    emile
+    bos
+    (digestif (>= 1.0.0))
   )
 )
 
