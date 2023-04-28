@@ -6,6 +6,37 @@
 
 <!-- insertion point -->
 
+## [1.20.0](https://github.com/returntocorp/semgrep/releases/tag/v1.20.0) - 2023-04-28
+
+### Added
+
+- Pro: Taint: Added support for simple cases of interprocedural taint labels (pa-2708)
+- Language Server has been moved to OCaml core, with major speed improvements (pa-lsp)
+
+### Changed
+
+- Pro: `semgrep --pro` still requires a single target, but this target no longer
+  needs to be a directory, it can be an individual file too. (misc-1)
+- Partially analyzed files are no longer reported as skipped by --verbose. And if we
+  lack info about what lines have been skipped we no longer report that all lines have
+  been skipped. That was not accurate. For example, an error while evaluating a
+  `metavariable-pattern` operator in one rule may cause a finding to be missed, and
+  the file being reported as partially analyzed. However, that error did not affect
+  any other rules, and even the affected rule may be able to produce some findings. (pa-2683)
+
+### Fixed
+
+- CLI: Fixed a bug where Git projects with URLs with subgroups would not parse correctly,
+  and produce non-clickable links in Semgrep App. These are such as:
+  https://gitlab.com/example/group2/group3/test-case.git (pa-2669)
+- Taint: Fixed a bug where the new labeled propagators would sometimes not behave properly (pa-2682)
+- Swift: Made it so that taint correctly propagates into
+  the bodies of lambdas (pa-2718)
+- Pro Engine: Fixed a bug where dataflow analysis would sometimes
+  loop when analyzing interprocedural `get<name>` methods in a
+  loop. (pro-56)
+- The scan progress bar no longer gets stuck displaying 0% (zero-progress)
+
 ## [1.19.0](https://github.com/returntocorp/semgrep/releases/tag/v1.19.0) - 2023-04-21
 
 ### Added

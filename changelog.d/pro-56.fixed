@@ -1,3 +1,0 @@
-Pro Engine: Fixed a bug where dataflow analysis would sometimes
-loop when analyzing interprocedural `get<name>` methods in a
-loop.
