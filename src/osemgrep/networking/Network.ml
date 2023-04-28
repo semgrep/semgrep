@@ -14,7 +14,7 @@ let get ?headers url =
         ^ Status.to_string response.status)
   | Error (`Msg msg) -> Error ("HTTP request failed: " ^ msg)
 
-let post ~body ?(headers = [ ("Content-type", "application/json") ]) url =
+let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
   let bodyf _ acc data = Lwt.return (acc ^ data) in
   let promise =
     request ~meth:`POST ~headers ~body (Uri.to_string url) bodyf ""
