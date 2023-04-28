@@ -100,14 +100,20 @@ let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   try
-    Sys.mkdir Fpath.(to_string (parent settings)) 0o755;
-    File.write_file settings str;
+    let dir = Fpath.(to_string (parent settings)) in
+    if not (Sys.file_exists dir) then
+      Sys.mkdir dir 0o755;
+    let tmp = Fpath.(settings + "tmp") in
+    if Sys.file_exists (Fpath.to_string tmp) then
+      Sys.remove (Fpath.to_string tmp);
+    File.write_file tmp str;
+    Unix.rename (Fpath.to_string tmp) (Fpath.to_string settings);
     t := setting;
     true
   with
-  | Sys_error _ ->
+  | Sys_error e ->
       Logs.warn (fun m ->
-          m "Could not write settings file at %a" Fpath.pp settings);
+          m "Could not write settings file at %a: %s" Fpath.pp settings e);
       false
 
 let get () =
