@@ -740,7 +740,6 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ expr env e ], r))) NoOrig
-  | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml xml -> xml_expr env xml
   | G.Cast (typ, _, e) ->
       let e = expr env e in

@@ -741,13 +741,6 @@ and expr_kind =
      Revisit when symbolic propagation is more stable
   *)
   | Alias of string wrap * expr
-  (* In some rare cases, we need to keep the parenthesis around an expression
-   * otherwise in autofix semgrep could produce incorrect code. For example,
-   * in Go a cast int(3.0) requires the parenthesis.
-   * alt: change cast to take a expr bracket, but this is used only for Go.
-   * Note that this data structure is really becoming more a CST than an AST.
-   *)
-  | ParenExpr of expr bracket
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
   | Ellipsis of tok (* '...' *)

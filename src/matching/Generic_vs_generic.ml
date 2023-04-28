@@ -923,10 +923,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
-  (* TODO? should probably do some equivalence like allowing extra
-   * paren in the pattern to still match code without parens
-   *)
-  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
@@ -1053,7 +1049,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.N _, _
   | G.New _, _
   | G.IdSpecial _, _
-  | G.ParenExpr _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _
@@ -1507,7 +1502,6 @@ and type_of_expr lang e : G.type_ option * G.ident option =
       | Some _
       | None ->
           (None, Some idb))
-  | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | B.Conditional (_, e1, e2) ->
       let ( let* ) = Option.bind in
       let t1opt, id1opt = type_of_expr lang e1 in
