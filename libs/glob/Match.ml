@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Glob_pattern
+open Pattern
 
 (*****************************************************************************)
 (* Prelude *)
@@ -43,7 +43,7 @@ type loc = {
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
 
-type t = { source : loc; re : Re.re }
+type compiled_pattern = { source : loc; re : Re.re }
 
 let string_loc ?(source_name = "<pattern>") ~source_kind pat =
   { source_name; source_kind; line_number = 1; line_contents = pat }
@@ -55,7 +55,7 @@ let string_loc ?(source_name = "<pattern>") ~source_kind pat =
 let slash = Re.char '/'
 let not_slash = Re.compl [ slash ]
 
-let map_frag (frag : Glob_pattern.segment_fragment) : Re.t =
+let map_frag (frag : Pattern.segment_fragment) : Re.t =
   match frag with
   | Char c -> Re.char c
   | Char_class { complement; ranges } ->

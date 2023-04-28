@@ -6,8 +6,8 @@ open Ppath.Operators
 
 type t = {
   project_root : Fpath.t;
-  glob_matchers : Glob_matcher.t list;
-  no_match_loc : Glob_matcher.loc;
+  glob_matchers : Glob.Match.compiled_pattern list;
+  no_match_loc : Glob.Match.loc;
 }
 
 let check_nonnegated_pattern str =
@@ -22,13 +22,13 @@ let create ~project_root patterns =
       (fun pat ->
         Gitignore_syntax.parse_pattern
           ~source:
-            (Glob_matcher.string_loc ~source_name:"include pattern"
+            (Glob.Match.string_loc ~source_name:"include pattern"
                ~source_kind:(Some "include") pat)
-          ~anchor:Glob_pattern.root_pattern pat)
+          ~anchor:Glob.Pattern.root_pattern pat)
       patterns
   in
   let no_match_loc =
-    Glob_matcher.string_loc ~source_name:"include patterns"
+    Glob.Match.string_loc ~source_name:"include patterns"
       ~source_kind:(Some "include")
       (Printf.sprintf "NOT (%s)" (String.concat " OR " patterns))
   in
@@ -61,8 +61,8 @@ let select t (full_git_path : Ppath.t) =
     | segment :: segments -> (
         (* check whether partial path should be gitignored *)
         let file_path = parent_path / segment in
-        if Glob_matcher.run matcher (Ppath.to_string file_path) then
-          Some (Glob_matcher.source matcher)
+        if Glob.Match.run matcher (Ppath.to_string file_path) then
+          Some (Glob.Match.source matcher)
         else
           match segments with
           | []
@@ -71,8 +71,8 @@ let select t (full_git_path : Ppath.t) =
           | _ :: _ ->
               (* add trailing slash to match directory-only patterns *)
               let dir_path = file_path / "" in
-              if Glob_matcher.run matcher (Ppath.to_string dir_path) then
-                Some (Glob_matcher.source matcher)
+              if Glob.Match.run matcher (Ppath.to_string dir_path) then
+                Some (Glob.Match.source matcher)
               else scan_segments matcher file_path segments)
   in
   let rel_segments =

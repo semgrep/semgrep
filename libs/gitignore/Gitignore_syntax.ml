@@ -4,7 +4,7 @@
    https://git-scm.com/docs/gitignore
 *)
 
-module M = Glob_matcher
+module M = Glob.Match
 
 (*****************************************************************************)
 (* Types *)
@@ -25,9 +25,9 @@ type t = path_selector list
 
 let show_selection_event x =
   match x with
-  | Selected loc -> Printf.sprintf "ignored at %s" (Glob_matcher.show_loc loc)
+  | Selected loc -> Printf.sprintf "ignored at %s" (Glob.Match.show_loc loc)
   | Deselected loc ->
-      Printf.sprintf "de-ignored at %s" (Glob_matcher.show_loc loc)
+      Printf.sprintf "de-ignored at %s" (Glob.Match.show_loc loc)
 
 let show_selection_events xs =
   List.rev xs
@@ -59,7 +59,7 @@ let remove_negator str =
   if String.length str >= 1 && str.[0] = '!' then Some (Str.string_after str 1)
   else None
 
-let rec contains_nontrailing_slash (pat : Glob_pattern.t) =
+let rec contains_nontrailing_slash (pat : Glob.Pattern.t) =
   match pat with
   | Segment [] :: pat -> contains_nontrailing_slash pat
   | [] -> false
@@ -70,7 +70,7 @@ let rec contains_nontrailing_slash (pat : Glob_pattern.t) =
 
 (* anchored pattern = relative to the work directory only, as opposed to
    being relative to any folder in the subtree. *)
-let is_anchored_pattern (pat : Glob_pattern.t) =
+let is_anchored_pattern (pat : Glob.Pattern.t) =
   match pat with
   (* /... *)
   | Segment [] :: _ -> true
@@ -90,11 +90,11 @@ let is_anchored_pattern (pat : Glob_pattern.t) =
    However a non-anchored pattern such as '*.c' will be expanded into
    '/foo/**/*.c'.
 *)
-let parse_pattern ~source ~anchor str : M.t =
-  let pat = Glob_lexer.parse_string str in
+let parse_pattern ~source ~anchor str : M.compiled_pattern =
+  let pat = Glob.Parse.parse_string str in
   let absolute_pattern =
-    if is_anchored_pattern pat then Glob_pattern.append anchor pat
-    else Glob_pattern.append anchor (Any_subpath :: pat)
+    if is_anchored_pattern pat then Glob.Pattern.append anchor pat
+    else Glob.Pattern.append anchor (Any_subpath :: pat)
   in
   M.compile ~source absolute_pattern
 

@@ -9,13 +9,11 @@ open Printf
 (*****************************************************************************)
 
 let test pattern path matches () =
-  let pat = Glob_lexer.parse_string pattern in
+  let pat = Parse.parse_string pattern in
   let compiled_pat =
-    Glob_matcher.compile
-      ~source:(Glob_matcher.string_loc ~source_kind:None pattern)
-      pat
+    Match.compile ~source:(Match.string_loc ~source_kind:None pattern) pat
   in
-  let res = Glob_matcher.run compiled_pat path in
+  let res = Match.run compiled_pat path in
   printf
     "pattern: %s\n\
      path: %s\n\
@@ -24,8 +22,7 @@ let test pattern path matches () =
      pattern info:\n\
      %s\n\
      %s\n"
-    pattern path matches res (Glob_pattern.show pat)
-    (Glob_matcher.show compiled_pat);
+    pattern path matches res (Pattern.show pat) (Match.show compiled_pat);
   Alcotest.(check bool) "equal" matches res
 
 (*****************************************************************************)

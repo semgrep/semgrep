@@ -28,6 +28,16 @@
  *  - Thing.ml? # matches 'Thing.ml' as well as 'Thing.mli', 'Thing.mll', etc.
  *  - [a-z0-9]  # matches a single character in these ranges
  *  - /tmp/**   # all valid paths under '/tmp/'
+ *
+ * alternatives:
+ *  -  Re.Glob from the ocaml-re library for parsing the patterns.
+ *     But Re.Glob doesn't expose the AST of the glob pattern, and this prevents us
+ *     from making transformations required by gitignore such as treating
+ *     the pattern 'foo/bar' as equivalent to '/foo/bar' but not treat
+ *     'foo' as '/foo'. However, we use ocaml-re in Match.ml
+ *  - https://gitlab.com/gasche/path_glob ??
+ *  - https://opam.ocaml.org/packages/dune-glob/ ??
+ *  - https://github.com/bleepbloopsify/globlon ??
  *)
 
 (*****************************************************************************)

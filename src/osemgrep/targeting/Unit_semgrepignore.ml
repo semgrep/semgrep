@@ -57,7 +57,7 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       |> List.iter (fun (path, should_be_selected) ->
              let path = Ppath.of_string path in
              let status, selection_events =
-               Common.save_excursion Glob_matcher.debug true (fun () ->
+               Common.save_excursion Glob.Match.debug true (fun () ->
                    Semgrepignore.select filter path)
              in
              printf "Selection events for path %s:\n" (Ppath.to_string path);

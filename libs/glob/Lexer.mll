@@ -1,6 +1,6 @@
 {
-module M = Glob_pattern
-open Glob_parser
+module M = Pattern
+open Parser
 
 exception Syntax_error of string
 
@@ -10,7 +10,7 @@ let syntax_error msg =
 
 let neg = ['^' '!']
 
-rule tokens = parse
+rule token = parse
 | '/'      { SLASH }
 | "**"     { (* only special if it occupies a whole path segment. This
                 is dealt with later. *)
@@ -43,9 +43,3 @@ and char_class acc = parse
 | [^']'] as c
            { char_class (Class_char c :: acc) lexbuf }
 | eof      { syntax_error "malformed glob pattern: missing ']'" }
-
-{
-  let parse_string str =
-    let lexbuf = Lexing.from_string str in
-    Glob_parser.segments tokens lexbuf
-}

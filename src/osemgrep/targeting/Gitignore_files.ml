@@ -14,7 +14,7 @@ let create ?(gitignore_filenames = [ ("gitignore", ".gitignore") ])
   { project_root; gitignore_filenames; cache }
 
 let anchor_of_git_path git_path =
-  Ppath.segments git_path |> Glob_pattern.of_path_segments
+  Ppath.segments git_path |> Glob.Pattern.of_path_segments
 
 let load t dir_path =
   let tbl = t.cache in
