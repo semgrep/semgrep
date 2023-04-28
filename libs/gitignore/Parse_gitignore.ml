@@ -1,41 +1,8 @@
-(*
-   gitignore syntax, and syntax only.
-
-   https://git-scm.com/docs/gitignore
-*)
-
+open Gitignore
 module M = Glob.Match
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-type selection_event = Selected of M.loc | Deselected of M.loc
-
-type path_selector = {
-  loc : M.loc;
-  matcher : Ppath.t -> selection_event option;
-}
-
-type t = path_selector list
-
-(*****************************************************************************)
-(* Dumpers *)
-(*****************************************************************************)
-
-let show_selection_event x =
-  match x with
-  | Selected loc -> Printf.sprintf "ignored at %s" (Glob.Match.show_loc loc)
-  | Deselected loc ->
-      Printf.sprintf "de-ignored at %s" (Glob.Match.show_loc loc)
-
-let show_selection_events xs =
-  List.rev xs
-  |> Common.map (fun x -> show_selection_event x ^ "\n")
-  |> String.concat ""
-
-(*****************************************************************************)
-(* Parser *)
+(* Helpers *)
 (*****************************************************************************)
 
 let read_lines_from_string =
@@ -54,10 +21,6 @@ let read_lines_from_string =
 let is_ignored_line =
   let rex = SPcre.regexp "^(?:[ \t]$|#.*)$" in
   fun str -> SPcre.pmatch_noerr ~rex str
-
-let remove_negator str =
-  if String.length str >= 1 && str.[0] = '!' then Some (Str.string_after str 1)
-  else None
 
 let rec contains_nontrailing_slash (pat : Glob.Pattern.t) =
   match pat with

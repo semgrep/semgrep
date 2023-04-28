@@ -2,14 +2,13 @@
    Support for file tree filtering using the gitignore specification.
 *)
 
-module S = Gitignore_syntax
 open Ppath.Operators
 
 type t = {
   project_root : Fpath.t;
-  higher_priority_levels : Gitignore_level.t list;
+  higher_priority_levels : Gitignore.level list;
   gitignore_file_cache : Gitignore_files.t;
-  lower_priority_levels : Gitignore_level.t list;
+  lower_priority_levels : Gitignore.level list;
 }
 
 type status = Not_ignored | Ignored
@@ -24,7 +23,7 @@ let create ?gitignore_filenames ?(higher_priority_levels = [])
     lower_priority_levels;
   }
 
-let is_selected (sel_events : S.selection_event list) =
+let is_selected (sel_events : Gitignore.selection_event list) =
   match sel_events with
   | [] -> false
   | Deselected _ :: _ -> false
@@ -52,11 +51,11 @@ let rec fold_levels func sel_events levels =
    Filter a path, assuming all its parents were deselected
    (= not gitignored).
 *)
-let select_one acc levels path : S.selection_event list =
+let select_one acc levels path : Gitignore.selection_event list =
   fold_levels
-    (fun acc (level : Gitignore_level.t) ->
+    (fun acc (level : Gitignore.level) ->
       List.fold_left
-        (fun acc (path_selector : S.path_selector) ->
+        (fun acc (path_selector : Gitignore.path_selector) ->
           match path_selector.matcher path with
           | Some ((Selected _ | Deselected _) as x) -> x :: acc
           | None -> acc)

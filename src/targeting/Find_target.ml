@@ -81,7 +81,7 @@ type target_cache = (target_cache_key, bool) Hashtbl.t
 
 let get_reason_for_exclusion sel_events =
   let fallback : Resp.skip_reason = Semgrepignore_patterns_match in
-  match (sel_events : Gitignore_syntax.selection_event list) with
+  match (sel_events : Gitignore.selection_event list) with
   | Selected loc :: _ -> (
       match loc.source_kind with
       | Some str -> (
@@ -356,7 +356,7 @@ let get_targets conf scanning_roots =
                   in
                   Logs.debug (fun m ->
                       m "Ignoring path %s:\n%s" !!path
-                        (Gitignore_syntax.show_selection_events selection_events));
+                        (Gitignore.show_selection_events selection_events));
                   match status with
                   | Not_ignored -> Left path
                   | Ignored ->
