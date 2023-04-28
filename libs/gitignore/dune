@@ -1,6 +1,4 @@
 ; parse and match .gitignore files
-; TODO? Git_project.ml and Git_path.ml could be in a separate library
-; but simpler to put everything together for now
 (library
   (public_name gitignore)
   (name gitignore)
