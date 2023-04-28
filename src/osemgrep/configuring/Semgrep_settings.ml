@@ -101,8 +101,7 @@ let save setting =
   let str = Yaml.to_string_exn yaml in
   try
     let dir = Fpath.(to_string (parent settings)) in
-    if not (Sys.file_exists dir) then
-      Sys.mkdir dir 0o755;
+    if not (Sys.file_exists dir) then Sys.mkdir dir 0o755;
     let tmp = Fpath.(settings + "tmp") in
     if Sys.file_exists (Fpath.to_string tmp) then
       Sys.remove (Fpath.to_string tmp);
