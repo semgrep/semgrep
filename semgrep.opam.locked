@@ -1,0 +1,170 @@
+opam-version: "2.0"
+name: "semgrep"
+version: "1.3.0"
+synopsis:
+  "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
+description: """\
+Semgrep is like grep but for searching patterns at the AST level.
+
+For more information see https://semsgrep.dev"""
+maintainer: "Yoann Padioleau <pad@semgrep.com>"
+authors: "Yoann Padioleau <pad@semgrep.com>"
+license: "LGPL-2.1"
+homepage: "https://semgrep.dev"
+bug-reports: "https://github.com/returntocorp/semgrep/issues"
+depends: [
+  "ANSITerminal" {= "0.8.5"}
+  "alcotest" {= "1.6.0"}
+  "angstrom" {= "0.15.0"}
+  "asn1-combinators" {= "0.2.6"}
+  "astring" {= "0.8.5"}
+  "atd" {= "2.11.0"}
+  "atdgen" {= "2.11.0"}
+  "atdgen-runtime" {= "2.11.0"}
+  "base" {= "v0.14.3"}
+  "base-bigarray" {= "base"}
+  "base-bytes" {= "base"}
+  "base-threads" {= "base"}
+  "base-unix" {= "base"}
+  "base64" {= "3.5.0"}
+  "bigarray-compat" {= "1.1.0"}
+  "bigstringaf" {= "0.9.0"}
+  "biniou" {= "1.2.1"}
+  "bos" {= "0.2.1"}
+  "ca-certs" {= "0.2.3"}
+  "calendar" {= "2.04"}
+  "cmdliner" {= "1.1.1"}
+  "conf-gmp" {= "4"}
+  "conf-gmp-powm-sec" {= "3"}
+  "conf-libpcre" {= "1"}
+  "conf-pkg-config" {= "2"}
+  "cppo" {= "1.6.9"}
+  "csexp" {= "1.5.1"}
+  "cstruct" {= "6.1.1"}
+  "ctypes" {= "0.20.1"}
+  "ctypes_stubs_js" {= "0.1"}
+  "dns" {= "7.0.1"}
+  "dns-client" {= "7.0.1"}
+  "dns-client-lwt" {= "7.0.1"}
+  "domain-name" {= "0.4.0"}
+  "dune" {= "3.7.0"}
+  "dune-configurator" {= "3.7.1"}
+  "duration" {= "0.2.1"}
+  "easy-format" {= "1.3.4"}
+  "easy_logging" {= "0.8.1"}
+  "easy_logging_yojson" {= "0.8.1"}
+  "eqaf" {= "0.9"}
+  "faraday" {= "0.8.2"}
+  "faraday-lwt" {= "0.8.2"}
+  "faraday-lwt-unix" {= "0.8.2"}
+  "fmt" {= "0.9.0"}
+  "fpath" {= "0.7.3"}
+  "gen" {= "1.1"}
+  "gmap" {= "0.3.0"}
+  "grain_dypgen" {= "0.2"}
+  "h2" {= "0.10.0"}
+  "happy-eyeballs" {= "0.5.0"}
+  "happy-eyeballs-lwt" {= "0.5.0"}
+  "hkdf" {= "1.0.4"}
+  "hpack" {= "0.10.0"}
+  "http-lwt-client" {= "0.2.3"}
+  "httpaf" {= "0.7.1"}
+  "integers" {= "0.7.0"}
+  "integers_stubs_js" {= "1.0"}
+  "ipaddr" {= "5.3.1"}
+  "jane-street-headers" {= "v0.14.0"}
+  "js_of_ocaml" {= "5.1.1"}
+  "js_of_ocaml-compiler" {= "5.1.1"}
+  "js_of_ocaml-ppx" {= "5.1.1"}
+  "jsonrpc" {= "1.15.1-5.0"}
+  "jst-config" {= "v0.14.1"}
+  "logs" {= "0.7.0"}
+  "lru" {= "0.3.1"}
+  "lsp" {= "1.15.1-5.0"}
+  "lwt" {= "5.6.1"}
+  "lwt_ppx" {= "2.1.0"}
+  "macaddr" {= "5.3.1"}
+  "menhir" {= "20211128"}
+  "menhirLib" {= "20211128"}
+  "menhirSdk" {= "20211128"}
+  "metrics" {= "0.4.0"}
+  "mirage-crypto" {= "0.11.1"}
+  "mirage-crypto-ec" {= "0.11.1"}
+  "mirage-crypto-pk" {= "0.11.1"}
+  "mirage-crypto-rng" {= "0.11.1"}
+  "mirage-crypto-rng-lwt" {= "0.11.1"}
+  "mtime" {= "1.4.0"}
+  "ocaml" {= "4.14.0"}
+  "ocaml-base-compiler" {= "4.14.0"}
+  "ocaml-compiler-libs" {= "v0.12.4"}
+  "ocaml-config" {= "2"}
+  "ocaml-options-vanilla" {= "1"}
+  "ocaml-syntax-shims" {= "1.0.0"}
+  "ocamlbuild" {= "0.14.1"}
+  "ocamlfind" {= "1.9.5"}
+  "ocamlgraph" {= "2.0.0"}
+  "ocplib-endian" {= "1.2"}
+  "octavius" {= "1.2.2"}
+  "parmap" {= "1.2.4"}
+  "pbkdf" {= "1.2.0"}
+  "pcre" {= "7.5.0"}
+  "ppx_assert" {= "v0.14.0"}
+  "ppx_base" {= "v0.14.0"}
+  "ppx_cold" {= "v0.14.0"}
+  "ppx_compare" {= "v0.14.0"}
+  "ppx_derivers" {= "1.2.1"}
+  "ppx_deriving" {= "5.2.1"}
+  "ppx_deriving_yojson" {= "3.6.1"}
+  "ppx_enumerate" {= "v0.14.0"}
+  "ppx_hash" {= "v0.14.0"}
+  "ppx_here" {= "v0.14.0"}
+  "ppx_inline_test" {= "v0.14.1"}
+  "ppx_js_style" {= "v0.14.1"}
+  "ppx_optcomp" {= "v0.14.3"}
+  "ppx_sexp_conv" {= "v0.14.3"}
+  "ppx_yojson_conv_lib" {= "v0.15.0"}
+  "ppxlib" {= "0.25.1"}
+  "psq" {= "0.2.1"}
+  "ptime" {= "1.0.0"}
+  "randomconv" {= "0.1.3"}
+  "re" {= "1.10.4"}
+  "result" {= "1.5"}
+  "rresult" {= "0.7.0"}
+  "sedlex" {= "2.5"}
+  "seq" {= "base"}
+  "sexplib0" {= "v0.14.0"}
+  "stdcompat" {= "19"}
+  "stdio" {= "v0.14.0"}
+  "stdlib-shims" {= "0.3.0"}
+  "stringext" {= "1.6.0"}
+  "terminal_size" {= "0.2.0"}
+  "time_now" {= "v0.14.0"}
+  "tls" {= "0.17.0"}
+  "tls-lwt" {= "0.17.0"}
+  "topkg" {= "1.0.5"}
+  "uchar" {= "0.0.2"}
+  "uri" {= "4.2.0"}
+  "uuidm" {= "0.9.8"}
+  "uutf" {= "1.0.3"}
+  "visitors" {= "20210608"}
+  "x509" {= "0.16.2"}
+  "yaml" {= "3.1.0"}
+  "yojson" {= "2.0.2"}
+  "zarith" {= "1.12"}
+  "zarith_stubs_js" {= "v0.15.0"}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]
+dev-repo: "git+https://github.com/returntocorp/semgrep.git"

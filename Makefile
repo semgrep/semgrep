@@ -156,9 +156,10 @@ clean:
 core-clean:
 	dune clean
 	rm -f bin
-	# we still need to keep the nonempty opam files in git for
+	# We still need to keep the nonempty opam files in git for
 	# 'make setup', so we should only remove the empty opam files.
-	#rm -f *.opam
+	# This removes the gitignored opam files.
+	git clean -fX *.opam
 
 ###############################################################################
 # Install targets
@@ -242,18 +243,32 @@ core-e2etest:
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
 # Note that this target is now called from our Dockerfile, so do not
 # run 'opam update' below to not slow down things.
+#
+# Homebrew setup: requires --no-depexts.
+# See comments for target 'homebrew-setup'
+#
 install-deps-for-semgrep-core:
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
-	opam install -y --deps-only ./libs/ocaml-tree-sitter-core
-	opam install -y --deps-only ./
+	opam install -y --deps-only --locked $(OPAM_INSTALL_OPTIONS) \
+	  ./libs/ocaml-tree-sitter-core
+	opam install -y --deps-only --locked $(OPAM_INSTALL_OPTIONS) ./
 
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
 install-deps: install-deps-for-semgrep-core
+
+# Experimental: update the opam lock file(s) used by 'make setup'
+# This needs to run each time an opam dependency is added or upgraded.
+#
+.PHONY: lock
+lock: semgrep.opam.locked
+
+%.opam.locked: %.opam
+	opam lock ./$<
 
 # **************************************************
 # Platform-dependent dependencies installation
@@ -323,15 +338,8 @@ install-deps-and-build-ALPINE-semgrep-core:
 #
 .PHONY: homebrew-setup
 homebrew-setup:
-	cd libs/ocaml-tree-sitter-core \
-	&& ./configure --prefix "$$(brew --prefix tree-sitter)"
-	# We pass --no-depexts so as to disable the check for pkg-config
-	# (which is present due to brew dependencies)
-	# because this check was failing on some platform.
-	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
-	# This workaround may no longer be necessary.
-	opam install -y --deps-only --no-depexts ./libs/ocaml-tree-sitter-core
-	opam install -y --deps-only --no-depexts ./
+	$(MAKE) OPAM_INSTALL_OPTIONS="--no-depexts" \
+	  install-deps-for-semgrep-core
 
 # -------------------------------------------------
 # Arch Linux
@@ -349,13 +357,13 @@ homebrew-setup:
 setup:
 	git submodule update --init
 	opam update -y
-	make install-deps-for-semgrep-core
+	$(MAKE) install-deps-for-semgrep-core
 
 # Install development dependencies in addition to build dependencies.
 .PHONY: dev-setup
 dev-setup:
 	$(MAKE) setup
-	opam install -y --deps-only ./dev
+	opam install -y --deps-only --locked ./dev
 
 # Update and rebuild everything within the project.
 .PHONY: rebuild
