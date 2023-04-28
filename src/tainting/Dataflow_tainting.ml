@@ -459,7 +459,6 @@ let rec eval_label_requires ~labels e =
       | __else__ ->
           logger#error "Unexpected Boolean operator";
           false)
-  | G.ParenExpr (_, e, _) -> eval_label_requires ~labels e
   | ___else__ ->
       logger#error "Unexpected `requires' expression";
       false
