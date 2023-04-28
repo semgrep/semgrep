@@ -113,20 +113,8 @@ type transformation =
 and add = AddStr of string | AddNewlineAndIdent
 [@@deriving show { with_path = false }, eq]
 
-type t = {
-  (* contains among other things the position of the token through
-   * the location embedded inside the kind type.
-   *)
-  token : kind;
-  (* The transfo field as its name suggests is to allow source to source
-   * transformations via token "annotations". See the documentation for Spatch.
-   * TODO: remove now that we use AST-based autofix in Semgrep.
-   *)
-  mutable transfo : transformation; (* less: mutable comments: ...; *)
-}
-[@@deriving show { with_path = false }, eq]
-
-type t_always_equal = t [@@deriving show]
+type t = kind [@@deriving show { with_path = false }, eq]
+type t_always_equal = kind [@@deriving show]
 
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
@@ -152,28 +140,27 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 (*****************************************************************************)
 
 let is_fake tok =
-  match tok.token with
+  match tok with
   | FakeTokStr _ -> true
   | _ -> false
 
 let is_origintok ii =
-  match ii.token with
+  match ii with
   | OriginTok _ -> true
   | _ -> false
 
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (* Synthesize a fake token *)
-let unsafe_fake_tok str : t =
-  { token = FakeTokStr (str, None); transfo = NoTransfo }
+let unsafe_fake_tok str : t = FakeTokStr (str, None)
 
 (* Synthesize a "safe" fake token *)
 let fake_tok_loc next_to_loc str : t =
   (* TODO: offset seems to have no use right now (?) *)
-  { token = FakeTokStr (str, Some (next_to_loc, -1)); transfo = NoTransfo }
+  FakeTokStr (str, Some (next_to_loc, -1))
 
 let loc_of_tok (ii : t) : (location, string) Result.t =
-  match ii.token with
+  match ii with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
   | ExpandedTok (pinfo_pp, _) -> Ok pinfo_pp
@@ -225,7 +212,7 @@ let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.charpos
 let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
 
 let content_of_tok ii =
-  match ii.token with
+  match ii with
   | OriginTok x -> x.str
   | FakeTokStr (s, _) -> s
   | ExpandedTok _
@@ -254,7 +241,7 @@ let end_pos_of_loc loc =
 (* Builders *)
 (*****************************************************************************)
 
-let tok_of_loc loc = { token = OriginTok loc; transfo = NoTransfo }
+let tok_of_loc loc = OriginTok loc
 
 let tok_of_str_and_bytepos str pos =
   let loc =
@@ -279,23 +266,19 @@ let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
 let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 
 let rewrap_str s ii =
-  {
-    ii with
-    token =
-      (match ii.token with
-      | OriginTok pi -> OriginTok { pi with str = s }
-      | FakeTokStr (s, info) -> FakeTokStr (s, info)
-      | Ab -> Ab
-      | ExpandedTok _ ->
-          (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
-          failwith "rewrap_str: ExpandedTok not allowed here");
-  }
+  match ii with
+  | OriginTok pi -> OriginTok { pi with str = s }
+  | FakeTokStr (s, info) -> FakeTokStr (s, info)
+  | Ab -> Ab
+  | ExpandedTok _ ->
+      (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
+      failwith "rewrap_str: ExpandedTok not allowed here"
 
 (* less: should use Buffer and not ^ so we should not need that *)
 let tok_add_s s ii = rewrap_str (content_of_tok ii ^ s) ii
 
 let str_of_info_fake_ok ii =
-  match ii.token with
+  match ii with
   | OriginTok pinfo -> pinfo.str
   | ExpandedTok (pinfo_pp, _vloc) -> pinfo_pp.str
   | FakeTokStr (_, Some (pi, _)) -> pi.str
@@ -346,15 +329,11 @@ let adjust_loc_wrt_base base_loc loc =
   }
 
 let fix_location fix ii =
-  {
-    ii with
-    token =
-      (match ii.token with
-      | OriginTok pi -> OriginTok (fix pi)
-      | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
-      | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
-      | Ab -> Ab);
-  }
+  match ii with
+  | OriginTok pi -> OriginTok (fix pi)
+  | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
+  | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
+  | Ab -> Ab
 
 let adjust_tok_wrt_base base_loc ii =
   fix_location (adjust_loc_wrt_base base_loc) ii
@@ -450,8 +429,8 @@ let compare_pos ii1 ii2 =
     | Ab -> raise (NoTokenLocation "compare_pos: Ab")
     | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
   in
-  let pos1 = get_pos ii1.token in
-  let pos2 = get_pos ii2.token in
+  let pos1 = get_pos ii1 in
+  let pos2 = get_pos ii2 in
   match (pos1, pos2) with
   | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
   | Virt (p1, _), Real p2 ->
@@ -474,4 +453,4 @@ let compare_pos ii1 ii2 =
 let unbracket (_, x, _) = x
 
 (* used only in the Scala parser for now *)
-let abstract_tok = { token = Ab; transfo = NoTransfo }
+let abstract_tok = Ab

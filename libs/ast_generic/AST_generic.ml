@@ -2420,11 +2420,7 @@ class virtual ['self] iter_no_id_info =
 class virtual ['self] map_legacy =
   object (self : 'self)
     inherit [_] map
-
-    method! visit_tok _env v =
-      (* Make a copy, since Tok.t is mutable *)
-      let v = { v with Tok.token = v.token } in
-      v
+    method! visit_tok _env v = v
 
     method! visit_expr env x =
       let ekind = self#visit_expr_kind env x.e in

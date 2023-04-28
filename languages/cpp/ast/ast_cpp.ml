@@ -1029,17 +1029,13 @@ let make_expanded ii =
     ( { Tok.str = ""; pos = { charpos = 0; line = 0; column = 0; file = "" } },
       -1 )
   in
-  {
-    ii with
-    Tok.token =
-      Tok.ExpandedTok (get_original_token_location ii.Tok.token, no_virt_loc);
-  }
+  Tok.ExpandedTok (get_original_token_location ii, no_virt_loc)
 
 let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =
   { p_name; p_type = t; p_specs; p_val }
 
 (* used by parsing hacks *)
-let rewrap_pinfo pi ii = { ii with Tok.token = pi }
+let rewrap_pinfo pi _ii = pi
 
 (* used while migrating the use of 'string' to 'name' in check_variables *)
 let (string_of_name_tmp : name -> string) =

@@ -283,6 +283,6 @@ let (toks_of_trees : trees -> Tok.t list) =
 (*****************************************************************************)
 
 let abstract_position_trees trees =
-  let hooks = { mtok = (fun _k i -> { i with Tok.token = Tok.Ab }) } in
+  let hooks = { mtok = (fun _k _i -> Tok.Ab) } in
   let mapper = mk_mapper hooks in
   mapper trees

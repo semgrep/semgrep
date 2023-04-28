@@ -85,17 +85,14 @@ let yyback n lexbuf =
  *)
 let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
   let adjust_info (ii : Tok.t) =
-    {
-      ii with
-      token =
-        (* could assert pinfo.filename = file ? *)
-        (match ii.token with
-        | OriginTok pi -> OriginTok (Tok.complete_location filename table pi)
-        | ExpandedTok (pi, vloc) ->
-            ExpandedTok (Tok.complete_location filename table pi, vloc)
-        | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
-        | Ab -> raise Common.Impossible);
-    }
+    (* could assert pinfo.filename = file ? *)
+    Tok.(
+      match ii with
+      | OriginTok pi -> OriginTok (Tok.complete_location filename table pi)
+      | ExpandedTok (pi, vloc) ->
+          ExpandedTok (Tok.complete_location filename table pi, vloc)
+      | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
+      | Ab -> raise Common.Impossible)
   in
   let rec tokens_aux acc =
     let tok =

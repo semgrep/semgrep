@@ -229,13 +229,10 @@ let map_loc pos line col file (loc : Tok.location) =
 
 let map_taint_trace map_loc traces =
   let lift_map_loc f x =
-    let token =
-      match x.Tok.token with
-      | Tok.OriginTok loc -> Tok.OriginTok (f loc)
-      | Tok.ExpandedTok (pp_loc, v_loc) -> Tok.ExpandedTok (f pp_loc, v_loc)
-      | x -> x
-    in
-    { x with token }
+    match x with
+    | Tok.OriginTok loc -> Tok.OriginTok (f loc)
+    | Tok.ExpandedTok (pp_loc, v_loc) -> Tok.ExpandedTok (f pp_loc, v_loc)
+    | x -> x
   in
   let map_loc = lift_map_loc map_loc in
   let rec map_taint_call_trace trace =

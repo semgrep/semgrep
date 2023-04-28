@@ -67,14 +67,14 @@ let split_two_char pi =
 
 let split_two_char_info i =
   let tok =
-    match i.Tok.token with
+    match i with
     | Tok.OriginTok t -> t
     | _ -> failwith "Parse error..."
   in
 
   let lhspi, rhspi = split_two_char tok in
-  let lhs = { Tok.token = Tok.OriginTok lhspi; transfo = Tok.NoTransfo } in
-  let rhs = { Tok.token = Tok.OriginTok rhspi; transfo = Tok.NoTransfo } in
+  let lhs = Tok.OriginTok lhspi in
+  let rhs = Tok.OriginTok rhspi in
   (lhs, rhs)
 
 (*

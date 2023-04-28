@@ -335,7 +335,7 @@ let parameter_to_catch_exn_opt p =
 let abstract_for_comparison_visitor =
   object
     inherit [_] AST_generic.map_legacy as super
-    method! visit_tok _env i = { i with Tok.token = Tok.Ab }
+    method! visit_tok _env _i = Tok.Ab
 
     method! visit_id_info env ii =
       super#visit_id_info env { ii with AST_generic.id_svalue = ref None }

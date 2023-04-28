@@ -61,33 +61,8 @@ let vof_token_origin = function
       let v3 = OCaml.vof_int v3 in
       OCaml.VSum ("ExpandedTok", [ v1; v2; v3 ])
 
-let rec vof_transformation = function
-  | NoTransfo -> OCaml.VSum ("NoTransfo", [])
-  | Remove -> OCaml.VSum ("Remove", [])
-  | AddBefore v1 ->
-      let v1 = vof_add v1 in
-      OCaml.VSum ("AddBefore", [ v1 ])
-  | AddAfter v1 ->
-      let v1 = vof_add v1 in
-      OCaml.VSum ("AddAfter", [ v1 ])
-  | Replace v1 ->
-      let v1 = vof_add v1 in
-      OCaml.VSum ("Replace", [ v1 ])
-  | AddArgsBefore v1 ->
-      let v1 = OCaml.vof_list OCaml.vof_string v1 in
-      OCaml.VSum ("AddArgsBefore", [ v1 ])
-
-and vof_add = function
-  | AddStr v1 ->
-      let v1 = OCaml.vof_string v1 in
-      OCaml.VSum ("AddStr", [ v1 ])
-  | AddNewlineAndIdent -> OCaml.VSum ("AddNewlineAndIdent", [])
-
-let vof_info { token = v_token; transfo = v_transfo } =
+let vof_info v_token =
   let bnds = [] in
-  let arg = vof_transformation v_transfo in
-  let bnd = ("transfo", arg) in
-  let bnds = bnd :: bnds in
   let arg = vof_token_origin v_token in
   let bnd = ("token", arg) in
   let bnds = bnd :: bnds in
