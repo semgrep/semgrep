@@ -13,7 +13,7 @@ let test_valid_files dialect rel_path () =
   files
   |> List.iter (fun file ->
          try
-           let _ = Parse.parse ~conf:(Dialect.conf dialect) file in
+           let _ = Parse.parse ~conf:(Dialect.conf dialect) (Fpath.v file) in
            ()
          with
          | exn ->
@@ -26,7 +26,7 @@ let test_invalid_files dialect rel_path () =
   files
   |> List.iter (fun file ->
          try
-           let _ast = Parse.file ~conf:(Dialect.conf dialect) file in
+           let _ast = Parse.file ~conf:(Dialect.conf dialect) (Fpath.v file) in
            Alcotest.failf "it should have thrown a Parse_error %s" file
          with
          | Parsing_error.Syntax_error _ -> ()
