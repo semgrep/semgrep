@@ -37,7 +37,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
     ("Language", [ "Rules"; "Files" ])
     ppf
     (lang_jobs
-    |> List.map (fun Lang_job.{ lang; targets; rules } ->
+    |> Common.map (fun Lang_job.{ lang; targets; rules } ->
            (lan_label lang, List.length rules, List.length targets))
     |> List.fold_left
          (fun acc (lang, rules, targets) ->
