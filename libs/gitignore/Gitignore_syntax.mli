@@ -11,7 +11,7 @@
 type t = path_selector list
 
 and path_selector = {
-  loc : Glob_matcher.loc;
+  loc : Glob.Match.loc;
   (* The matcher tells whether a given path matches the pattern.
      For example, the pattern '/f*' matches the path '/foo'.
 
@@ -30,8 +30,8 @@ and path_selector = {
      e.g. a file deselected via '!generated/main.c'
 *)
 and selection_event =
-  | Selected of Glob_matcher.loc
-  | Deselected of Glob_matcher.loc
+  | Selected of Glob.Match.loc
+  | Deselected of Glob.Match.loc
 
 val show_selection_event : selection_event -> string
 
@@ -49,9 +49,9 @@ val show_selection_events : selection_event list -> string
    The default selection mode is Ignore.
 *)
 val from_string :
-  anchor:Glob_pattern.t -> name:string -> kind:string -> string -> t
+  anchor:Glob.Pattern.t -> name:string -> kind:string -> string -> t
 
-val from_file : anchor:Glob_pattern.t -> kind:string -> Fpath.t -> t
+val from_file : anchor:Glob.Pattern.t -> kind:string -> Fpath.t -> t
 
 (* Internals.
    Remove the leading exclamation mark from the string, returning
@@ -62,4 +62,7 @@ val remove_negator : string -> string option
 (* Lower-level function that can be used to create custom matchers that
    combine multiple patterns. *)
 val parse_pattern :
-  source:Glob_matcher.loc -> anchor:Glob_pattern.t -> string -> Glob_matcher.t
+  source:Glob.Match.loc ->
+  anchor:Glob.Pattern.t ->
+  string ->
+  Glob.Match.compiled_pattern

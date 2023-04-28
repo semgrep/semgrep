@@ -4,9 +4,9 @@
 *)
 
 (* A compiled pattern matcher. *)
-type t
+type compiled_pattern
 
-val show : t -> string
+val show : compiled_pattern -> string
 
 (* The location of a pattern, for logging and troubleshooting. *)
 type loc = {
@@ -27,7 +27,7 @@ val show_loc : loc -> string
    ocaml-re library). The source should be the original glob pattern
    before parsing. It's used only for debugging purposes.
 *)
-val compile : source:loc -> Glob_pattern.t -> t
+val compile : source:loc -> Pattern.t -> compiled_pattern
 
 (*
    Match a path against a pattern:
@@ -58,7 +58,7 @@ val compile : source:loc -> Glob_pattern.t -> t
    matching paths: foo/
    non-matching paths: foo bar/foo/ /foo/ /foo
 *)
-val run : t -> string -> bool
+val run : compiled_pattern -> string -> bool
 
 (* This is used by the unit tests and prints the activity of the
    'run' function. I'm worried that logger#debug would be too expensive
@@ -69,4 +69,4 @@ val debug : bool ref
 val string_loc :
   ?source_name:string -> source_kind:string option -> string -> loc
 
-val source : t -> loc
+val source : compiled_pattern -> loc

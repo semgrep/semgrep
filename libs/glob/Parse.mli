@@ -3,9 +3,7 @@
    POSIX standard for old-fashioned shell globbing patterns for matching
    file paths. Additionally, we support '**' as per the gitignore
    specification.
+
+   may raise Glob.Lexer.Syntax_error
 *)
-
-exception Syntax_error of string
-
-(* Parse a pattern or fail with exception 'Syntax_error' *)
-val parse_string : string -> Glob_pattern.t
+val parse_string : string -> Pattern.t

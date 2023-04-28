@@ -6,7 +6,7 @@
   (name gitignore)
   (wrapped false)
   (libraries
-    globbing
+    glob
     ppath
   )
   (preprocess (pps ppx_deriving.show))

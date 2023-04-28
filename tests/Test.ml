@@ -43,7 +43,7 @@ let any_gen_of_string str =
 *)
 let tests () = List.flatten [
   Unit_list_files.tests;
-  Unit_glob.tests;
+  Glob.Unit_glob.tests;
   Osemgrep_targeting.Unit_semgrepignore.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();

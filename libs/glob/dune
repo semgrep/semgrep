@@ -1,9 +1,7 @@
 ; Parse (and match) a glob pattern according to glob(3) and glob(7),
 ; with some gitignore extensions like '**'
 (library
-  (public_name globbing)
-  (name globbing)
-  (wrapped false)
+  (public_name glob)
   (libraries
     stdcompat
     commons
@@ -11,6 +9,6 @@
   (preprocess (pps ppx_deriving.show))
 )
 
-(ocamllex Glob_lexer)
-(menhir (modules Glob_parser)
+(ocamllex Lexer)
+(menhir (modules Parser)
         (flags --unused-tokens --explain --fixed-exception))

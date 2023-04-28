@@ -55,7 +55,7 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
   let include_filter =
     Option.map (Include_filter.create ~project_root) include_patterns
   in
-  let root_anchor = Glob_pattern.root_pattern in
+  let root_anchor = Glob.Pattern.root_pattern in
   let cli_patterns =
     List.concat_map
       (Gitignore_syntax.from_string ~name:"exclude pattern from command line"

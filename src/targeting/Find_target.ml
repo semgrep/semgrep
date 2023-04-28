@@ -414,9 +414,9 @@ let get_targets conf scanning_roots =
 let create_cache () = Hashtbl.create 1000
 
 let match_glob_pattern ~pat path =
-  let regex = Glob_lexer.parse_string pat in
-  Glob_matcher.run
-    Glob_matcher.(compile ~source:(string_loc ~source_kind:None pat) regex)
+  let regex = Glob.Parse.parse_string pat in
+  Glob.Match.run
+    Glob.Match.(compile ~source:(string_loc ~source_kind:None pat) regex)
     (Fpath.to_string path)
 
 let match_a_path_pattern path_patterns path =

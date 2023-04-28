@@ -111,7 +111,7 @@ a few other projects developed at r2c.
   (synopsis "XXX")
   (description "XXX")
 )
-(package (name globbing)
+(package (name glob)
   (synopsis "XXX")
   (description "XXX")
 )
