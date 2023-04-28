@@ -214,6 +214,7 @@ and expr =
   | TypeAssert of expr * tok (* 'as' or '<' *) * type_ (* X as T or <T> X *)
   (* this is used mostly for unsupported typescript features *)
   | ExprTodo of a_todo_category * expr list
+  | ParenExpr of tok * expr * tok
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
