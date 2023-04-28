@@ -637,7 +637,8 @@ let extracted_targets_of_config (config : Runner_config.t)
         match r.Rule.mode with
         | `Extract _ as e -> Some { r with mode = e }
         | `Search _
-        | `Taint _ ->
+        | `Taint _
+        | `Join _ ->
             None)
       all_rules
   in
@@ -737,7 +738,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     match r.R.mode with
                     | `Extract _ -> false
                     | `Search _
-                    | `Taint _ ->
+                    | `Taint _
+                    | `Join _ ->
                         true)
            in
 
@@ -831,6 +833,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     (* TODO not all_targets here, because ?? *)
     targets |> Common.map (fun x -> x.In.path) )
 
+(* Normal entrance *)
+
 let semgrep_with_raw_results_and_exn_handler config =
   try
     let timed_rules =
@@ -847,6 +851,7 @@ let semgrep_with_raw_results_and_exn_handler config =
       in
       (Some e, res, [])
 
+(* OSemgrep entrance *)
 (* This is ugly, with potentially some filtering operations being done twice.
    It should get simplified when we get rid of the Python wrapper.
    For now, we avoid code duplication.
@@ -878,6 +883,58 @@ let semgrep_with_prepared_rules_and_targets config (x : Lang_job.t) =
     }
   in
   semgrep_with_raw_results_and_exn_handler config
+
+(* Special join mode experiment entrance *)
+
+let join_rule_to_rules rule join_info table =
+  let step_to_rule i (step : R.step_info) =
+    let step_id = (spf "%s_%d" (fst rule.R.id) i, snd rule.R.id) in
+    let mode =
+      match step.R.step_formula with
+      | R.Step_taint t -> `Taint t
+      | R.Step_search s -> `Search s
+    in
+    let languages = step.R.step_languages in
+    let paths = step.R.step_paths in
+    (step_id, { rule with R.id = step_id; mode; languages; paths })
+  in
+  let ids, rules = join_info |> Common.mapi step_to_rule |> List.split in
+  Hashtbl.add table rule ids;
+  rules
+
+let join_mode_experiment_with_raw_results_and_exn_handler config =
+  if config.target_source <> None then
+    failwith "join mode experiment does not work with targets file";
+  try
+    let timed_rules =
+      Common.with_time (fun () ->
+          let rules, invalid_rules = rules_from_rule_source config in
+          let join_rules_table = Hashtbl.create 10 in
+          let rules_with_join_rules_resolved =
+            rules
+            |> List.concat_map (fun r ->
+                   match r.R.mode with
+                   | `Join join_info ->
+                       join_rule_to_rules r join_info join_rules_table
+                   | `Taint _
+                   | `Search _
+                   | `Extract _ ->
+                       [ r ])
+          in
+          (rules_with_join_rules_resolved, invalid_rules))
+    in
+    let res, files = semgrep_with_rules config timed_rules in
+    sanity_check_invalid_patterns res files
+  with
+  | exn when not !Flag_semgrep.fail_fast ->
+      let e = Exception.catch exn in
+      logger#info "Uncaught exception: %s" (Exception.to_string e);
+      let res =
+        { RP.empty_final_result with errors = [ E.exn_to_error "" e ] }
+      in
+      (Some e, res, [])
+
+(* Dispatcher *)
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in

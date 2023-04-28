@@ -1352,26 +1352,26 @@ let parse_taint_fields env rule_dict =
 (* Parsers for join mode *)
 (*****************************************************************************)
 
-let parse_step_fields env key (value : G.expr) : R.join_info =
+let parse_step_fields env key (value : G.expr) : R.step_info =
   let rd = yaml_to_dict env key value in
   let languages = take rd env parse_string_wrap_list "languages" in
   (* No id, so error at the steps key
      TODO error earlier *)
-  let languages = parse_languages ~id:key languages in
-  let paths = take_opt rd env parse_paths "paths" in
+  let step_languages = parse_languages ~id:key languages in
+  let step_paths = take_opt rd env parse_paths "paths" in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
-  let formula =
+  let step_formula =
     match (mode_opt, has_taint_key) with
     | None, false
     | Some ("search", _), false -> (
         match parse_search_fields env rd with
-        | `Search formula -> R.Search formula
+        | `Search formula -> R.Step_search formula
         | _else_ -> raise Common.Impossible)
     | _, true
     | Some ("taint", _), _ -> (
         match parse_taint_fields env rd with
-        | `Taint formula -> R.Taint formula
+        | `Taint formula -> R.Step_taint formula
         | _else_ -> raise Common.Impossible)
     | Some key, _ ->
         error_at_key env key
@@ -1379,31 +1379,10 @@ let parse_step_fields env key (value : G.expr) : R.join_info =
              "Unexpected value for mode, should be 'search' or 'taint', not %s"
              (fst key))
   in
-  { languages; paths; formula }
+  { step_languages; step_paths; step_formula }
 
 let parse_steps env key (value : G.expr) : R.join_spec =
-  let parse_step step =
-    match step with
-    | {
-     G.e =
-       G.Container
-         ( Dict,
-           ( _,
-             [
-               {
-                 e =
-                   Container
-                     ( Tuple,
-                       (_, [ { e = L (String (_, key, _)); _ }; value ], _) );
-                 _;
-               };
-             ],
-             _ ) );
-     _;
-    } ->
-        parse_step_fields env key value
-    | _else_ -> error_at_key env key ("Expected a dictionary for " ^ fst key)
-  in
+  let parse_step step = parse_step_fields env key step in
   match value.G.e with
   | G.Container (Array, (_, xs, _)) -> Common.map parse_step xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)

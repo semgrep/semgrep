@@ -260,16 +260,17 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 (* Join mode *)
 (*****************************************************************************)
 
-type mode_for_join = Search of formula | Taint of taint_spec [@@deriving show]
+type mode_for_join = Step_search of formula | Step_taint of taint_spec
+[@@deriving show]
 
-type join_info = {
-  formula : mode_for_join;
-  languages : Xlang.t;
-  paths : paths option;
+type step_info = {
+  step_formula : mode_for_join;
+  step_languages : Xlang.t;
+  step_paths : paths option;
 }
 [@@deriving show]
 
-type join_spec = join_info list [@@deriving show]
+type join_spec = step_info list [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)
