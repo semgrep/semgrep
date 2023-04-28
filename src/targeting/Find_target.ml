@@ -413,20 +413,16 @@ let get_targets conf scanning_roots =
 
 let create_cache () = Hashtbl.create 1000
 
-(* TODO!!
-   let match_glob_pattern ~pat path =
-     ignore pat;
-     ignore path;
-     true
+let match_glob_pattern ~pat path =
+  let regex = Glob_lexer.parse_string pat in
+  Glob_matcher.run
+    Glob_matcher.(compile ~source:(string_loc ~source_kind:None pat) regex)
+    (Fpath.to_string path)
 
-   let match_a_required_path_pattern required_path_patterns path =
-     match required_path_patterns with
-     | [] -> (* <grimacing face emoji> *) true
-     | pats -> List.exists (fun pat -> match_glob_pattern ~pat path) pats
-
-   let match_all_excluded_path_patterns excluded_path_patterns path =
-     List.for_all (fun pat -> match_glob_pattern ~pat path) excluded_path_patterns
-*)
+let match_a_path_pattern path_patterns path =
+  match path_patterns with
+  | [] -> (* <grimacing face emoji> *) true
+  | pats -> List.exists (fun pat -> match_glob_pattern ~pat path) pats
 
 let match_language (xlang : Xlang.t) path =
   match xlang with
@@ -443,9 +439,10 @@ let match_language (xlang : Xlang.t) path =
 let filter_target_for_lang ~cache ~lang ~required_path_patterns
     ~excluded_path_patterns path =
   let cond () =
-    (* TODO match_a_required_path_pattern required_path_patterns path && *)
-    (* TODO match_all_excluded_path_patterns excluded_path_patterns path *)
-    match_language lang path
+    match_a_path_pattern required_path_patterns path
+    && (Common.null excluded_path_patterns
+       || not (match_a_path_pattern excluded_path_patterns path))
+    && match_language lang path
   in
   (* TODO: use Common.memoize *)
   let key : target_cache_key =
