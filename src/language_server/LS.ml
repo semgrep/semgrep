@@ -7,6 +7,7 @@ module SR = Server_request
 module SN = Server_notification
 module CR = Client_request
 module CN = Client_notification
+module Out = Semgrep_output_v1_t
 module Conv = Convert_utils
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -142,6 +143,65 @@ module Server = struct
     let files = Common2.uniq files in
     Lwt.return (final_results, files)
 
+  let search_semgrep server pattern_string language =
+    (* We should use Session.targets here, but that uses the LWT monad, so once the git commands use Bos the below can become simpler *)
+    let config = server.session.config in
+    let targets =
+      match config.target_source with
+      | Some (Targets targets) -> targets
+      | Some (Target_file _) ->
+          let targets, _ = Run_semgrep.targets_of_config config [] in
+          targets
+      | None -> failwith "No targets provided"
+    in
+    let target_mappings = targets.target_mappings in
+    let target_mappings =
+      Common.map (fun t -> { t with In.rule_nums = [ 0 ] }) target_mappings
+    in
+    let target_mappings =
+      List.filter (fun t -> t.In.language = language) target_mappings
+    in
+    let lang = Lang.of_string language in
+    let pattern =
+      Parse_pattern.parse_pattern ~print_errors:false lang pattern_string
+    in
+    let rule, _ =
+      Common.with_time (fun () ->
+          let fk = Tok.unsafe_fake_tok "" in
+          let xlang = Xlang.L (lang, []) in
+          let xpat =
+            Xpattern.mk_xpat
+              (Xpattern.Sem (lazy pattern, lang))
+              (pattern_string, fk)
+          in
+          Rule.rule_of_xpattern xlang xpat)
+    in
+    let config =
+      {
+        config with
+        target_source =
+          Some
+            (Runner_config.Targets
+               { target_mappings; rule_ids = [ fst rule.id ] });
+      }
+    in
+    let config = { config with rule_source = Some (Rules [ rule ]) } in
+    let _, res, _ =
+      Run_semgrep.semgrep_with_raw_results_and_exn_handler config
+    in
+    let matches, _ =
+      Common.partition_either
+        (JSON_report.match_to_match (Some Autofix.render_fix))
+        res.matches
+    in
+    let files_found =
+      Common.map (fun (m : Out.core_match) -> m.location) matches
+    in
+    let found =
+      Common.group_by (fun (m : Out.location) -> m.path) files_found
+    in
+    found
+
   let initialize_session server root only_git_dirty =
     {
       session = { server.session with root; only_git_dirty };
@@ -266,7 +326,9 @@ module Server = struct
           let server = initialize_session server root only_git_dirty in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
-      | _ when server.state = State.Uninitialized -> (None, server)
+      | _ when server.state = State.Uninitialized ->
+          logger#info "Received request before initialization";
+          (None, server)
       | CR.CodeAction { textDocument = { uri }; context; _ } ->
           let file = Uri.to_path uri in
           let results = Hashtbl.find_opt server.session.documents file in
@@ -285,10 +347,30 @@ module Server = struct
             CodeActions.code_actions_of_core_matches matches [ file ]
           in
           (to_yojson (Some actions), server)
+      | CR.UnknownRequest { meth = "semgrep/search"; params = Some params } ->
+          let params = Structured.yojson_of_t params in
+          let pattern = params |> member "pattern" |> to_string in
+          let lang = params |> member "language" |> to_string in
+          logger#info "Searching for pattern %s w/ language %s" pattern lang;
+          let locations = search_semgrep server pattern lang in
+          let json =
+            Common.map
+              (fun (file, matches) ->
+                let uri = file |> Uri.of_path |> Uri.to_string in
+                let ranges =
+                  matches
+                  |> Common.map Conv.range_of_location
+                  |> Common.map Range.yojson_of_t
+                in
+                `Assoc [ ("uri", `String uri); ("ranges", `List ranges) ])
+              locations
+          in
+          let json = `Assoc [ ("locations", `List json) ] in
+          (Some json, server)
       | CR.Shutdown -> (None, { server with state = State.Stopped })
       | CR.DebugEcho params -> (to_yojson params, server)
       | _ ->
-          logger#warning "Unhandled request";
+          logger#warning "Unhandled request: %s" (Common2.dump request);
           (None, server)
     in
     (resp, server)

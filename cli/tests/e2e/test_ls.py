@@ -12,6 +12,7 @@ import json
 import subprocess
 import tempfile
 import time
+import uuid
 from textwrap import dedent
 
 import pytest
@@ -174,7 +175,7 @@ def send_msg(server, method, params=None, notif=False):
         msg["params"] = params
 
     if not notif:
-        msg["id"] = 1
+        msg["id"] = str(uuid.uuid4())
     server.on_std_message(msg)
 
 
@@ -277,6 +278,17 @@ def send_semgrep_scan_workspace_full(server):
 
 def send_semgrep_refresh_rules(server):
     send_msg(server, "semgrep/refreshRules", notif=True)
+
+
+def send_semgrep_search(server, language, pattern):
+    send_msg(
+        server,
+        "semgrep/search",
+        {
+            "language": language,
+            "pattern": pattern,
+        },
+    )
 
 
 def check_diagnostics(response, file, expected_ids):
@@ -459,7 +471,6 @@ def test_ls_full(
 
     # Logged out succesfully
     response = next(responses)
-    print(response)
     assert response["method"] == "window/showMessage"
 
     # More progress bars
@@ -472,3 +483,8 @@ def test_ls_full(
         ids = [d["code"] for d in response["params"]["diagnostics"]]
         assert "eqeq-five" in ids
         assert "eqeq-four" not in ids
+
+    send_semgrep_search(server, "python", "print(...)")
+    response = next(responses)
+    results = response["result"]
+    assert len(results["locations"]) == 3
