@@ -1,12 +1,19 @@
+#!/usr/bin/env bash
+set -eu
+
+LANG=$1
+VERSION=$2
+
+cat <<EOF
 {
-  "name": "@semgrep/lang-{{ lang }}",
-  "version": "{{ version }}",
-  "description": "Semgrep {{ lang }} parser",
+  "name": "@semgrep/lang-${LANG}",
+  "version": "${VERSION}",
+  "description": "Semgrep ${LANG} parser",
   "files": [
     "dist/index.cjs",
     "dist/index.mjs",
-    "dist/index.d.ts"{% if wasm %},
-    "dist/semgrep-parser.wasm"{% endif %}
+    "dist/index.d.ts",
+    "dist/semgrep-parser.wasm"
   ],
   "types": "dist/index.d.ts",
   "exports": {
@@ -29,3 +36,4 @@
     "cross-dirname": "^0.1.0"
   }
 }
+EOF
