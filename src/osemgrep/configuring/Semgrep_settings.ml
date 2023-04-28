@@ -102,11 +102,13 @@ let save setting =
   try
     Sys.mkdir Fpath.(to_string (parent settings)) 0o755;
     File.write_file settings str;
-    t := setting
+    t := setting;
+    true
   with
   | Sys_error _ ->
       Logs.warn (fun m ->
-          m "Could not write settings file at %a" Fpath.pp settings)
+          m "Could not write settings file at %a" Fpath.pp settings);
+      false
 
 let get () =
   Lazy.force (get_contents ());

@@ -1,4 +1,4 @@
-val get : Uri.t -> (string, string) result
+val get : ?headers:(string * string) list -> Uri.t -> (string, string) result
 
 val post :
   body:string ->
