@@ -93,7 +93,7 @@ let show_token_value (x : Tok.kind) : string =
 
 let show_token_value_and_location (x : Tok.t) =
   let location = Tok.stringpos_of_tok x in
-  let value = show_token_value x.token in
+  let value = show_token_value x in
   spf "%s %s" location value
 
 let string_of_exn e =

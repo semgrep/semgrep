@@ -717,7 +717,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
               };
           }
         in
-        let info = { Tok.transfo = Tok.NoTransfo; token = Tok.OriginTok loc } in
+        let info = Tok.OriginTok loc in
         (s, info)
       with
       | Not_found ->

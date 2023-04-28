@@ -65,18 +65,7 @@ type transformation =
 
 and add = AddStr of string | AddNewlineAndIdent [@@deriving show, eq]
 
-type t = {
-  (* contains among other things the position of the token through
-   * the 'location' embedded inside the kind type.
-   *)
-  token : kind;
-  (* The transfo field as its name suggests is to allow source to source
-   * transformations via token "annotations". See the documentation for Spatch.
-   * TODO: remove now that we use AST-based autofix in Semgrep.
-   *)
-  mutable transfo : transformation;
-}
-[@@deriving show, eq]
+type t = kind [@@deriving show, eq]
 
 (* To customize show() dynamically. If you set this to true, AST
  * dumper will display the full token information instead of just a '()'
@@ -90,7 +79,7 @@ val pp_full_token_info : bool ref
  * check for equality of big AST constructs (e.g., complex expressions) by not
  * caring about differences in token positions.
  *)
-type t_always_equal = t [@@deriving show, eq, hash]
+type t_always_equal = kind [@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Token builders *)

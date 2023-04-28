@@ -59,7 +59,7 @@ let commentized xs =
                  match s with
                  | s when s =~ "KERN_.*" -> None
                  | s when s =~ "__.*" -> None
-                 | _ -> Some ii.Tok.token)
+                 | _ -> Some ii)
              | Token_cpp.CppDirective
              | Token_cpp.CppAttr
              | Token_cpp.CppMacro ->
@@ -68,8 +68,8 @@ let commentized xs =
              | Token_cpp.CppPassingNormal
              | Token_cpp.CppPassingCosWouldGetError ->
                  raise Todo
-           else Some ii.Tok.token
-       | T.TAny_Action ii -> Some ii.Tok.token
+           else Some ii
+       | T.TAny_Action ii -> Some ii
        | _ -> None)
 
 let count_lines_commentized xs =

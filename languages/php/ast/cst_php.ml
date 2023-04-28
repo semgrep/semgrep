@@ -852,8 +852,7 @@ type any =
 (* Some constructors *)
 (*****************************************************************************)
 (* TODO: reuse Tok.fake_tok ? *)
-let fakeInfo ?(next_to = None) str =
-  { Tok.token = Tok.FakeTokStr (str, next_to); transfo = Tok.NoTransfo }
+let fakeInfo ?(next_to = None) str = Tok.FakeTokStr (str, next_to)
 
 (*****************************************************************************)
 (* Wrappers *)
@@ -919,7 +918,7 @@ let map_comma_list f xs =
  * information, to "abstract those line" (al) information.
  *)
 
-let al_info x = { x with Tok.token = Tok.Ab }
+let al_info _x = Tok.Ab
 
 (*****************************************************************************)
 (* Views *)
