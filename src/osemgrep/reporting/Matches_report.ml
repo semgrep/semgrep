@@ -110,7 +110,7 @@ let wrap ~indent ~width s =
   go indent width pre s []
 
 let cut s idx1 idx2 =
-  Logs.info (fun m -> m "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
+  Logs.debug (fun m -> m "cut %d (idx1 %d idx2 %d)" (String.length s) idx1 idx2);
   ( Str.first_chars s idx1,
     String.sub s idx1 (idx2 - idx1),
     Str.string_after s idx2 )
