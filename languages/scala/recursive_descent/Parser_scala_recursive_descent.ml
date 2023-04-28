@@ -1789,7 +1789,7 @@ let pattern in_ : pattern = noSeq pattern in_
  *               | Expr1
  *  Expr1      ::= if `(` Expr `)` {nl} Expr [[semi] else Expr]
  *               | ‘if’  Expr ‘then’ Expr [[semi] ‘else’ Expr]
- *               | try (`{` Block `}` | Expr) [catch `{` CaseClauses `}`] [finally Expr]
+ *               | try (`{` Block `}` | Expr) [catch (`{` CaseClauses `}` | ExprCaseClause)] [finally Expr]
  *               | while `(` Expr `)` {nl} Expr
  *               | `while` Expr `do` Expr
  *               | do Expr [semi] while `(` Expr `)`
@@ -2542,17 +2542,36 @@ and parseReturn in_ : stmt =
   (* ast: Return(x) *)
   Return (ii, x)
 
+(** {{{
+ *  ExprCaseClause ::= ‘case’ Pattern [Guard] ‘=>’ Expr
+ *  }}}
+*)
+
 and parseTry in_ : stmt =
   let itry = TH.info_of_tok in_.token in
   skipToken in_;
   let body = expr in_ in
   let handler =
     match in_.token with
-    | Kcatch ii ->
+    | Kcatch ii -> (
         nextToken in_;
-        let e = expr in_ in
-        let cases = makeMatchFromExpr e in
-        Some (ii, cases)
+        match in_.token with
+        | Kcase ab ->
+            skipToken in_;
+            let cc = caseClause ab in_ in
+            (* Technically, the body of this case should be an `expr`, and
+               not a `block`.
+
+               But that's how all case clauses behave, they can have a singular
+               expression at the end, since `expr` is subsumed under `block`.
+
+               So we will just treat them uniformly.
+            *)
+            Some (ii, CatchCases (ab, [ cc ], ab))
+        | _ ->
+            let e = expr in_ in
+            let cases = makeMatchFromExpr e in
+            Some (ii, cases))
     | _ -> None
   in
   let finalizer =
