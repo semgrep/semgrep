@@ -125,11 +125,13 @@ let dirty_files () =
     Bos.Cmd.(v "git" % "status" % "--porcelain" % "--ignore-submodules")
   in
   let lines_r = Bos.OS.Cmd.run_out cmd in
-  let lines = Bos.OS.Cmd.out_lines lines_r in
+  let lines = Bos.OS.Cmd.out_lines ~trim:false lines_r in
   let lines =
     match lines with
     | Ok (lines, (_, `Exited 0)) -> lines
     | _ -> []
   in
-  let files = Common.map (fun l -> Str.string_after l 3) lines in
+  (* out_lines splits on newlines, so we always have an extra space at the end *)
+  let files = List.filter (fun f -> not (String.trim f = "")) lines in
+  let files = Common.map (fun l -> Str.string_after l 3) files in
   files
