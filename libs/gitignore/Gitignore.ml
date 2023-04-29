@@ -48,6 +48,29 @@ type level = {
   patterns : path_selectors;
 }
 
+(*
+   A project usually contains a toplevel .gitignore, but each subdir
+   of this project can also contain a "refining" .gitignore that
+   takes precedence.
+   Here we cache all those .gitignore.
+   TODO? why we use a cache? Why not loading all those .gitiginore at once?
+*)
+type gitignores_cache = {
+  project_root : Fpath.t;
+  (* gitignore_filenames is the list of pairs (file kind, file name)
+     for gitignore files. The file kind is the conventional file kind
+     chosen be the user e.g. "semgrepignore" for ".semgrepignore" files.
+     The default is ["gitignore", ".gitignore"]. In Semgrep, we use
+     [".gitignore"; ".semgrepignore"]. The order of the file names defines
+     the order in which multiples file in the same folder are loaded,
+     as if they were concatenated. Multiple files found in the same folder
+     are treated as part of the same level, i.e. the fate of a file is unknown
+     until the patterns of all the gitignore files in the folder were scanned.
+  *)
+  gitignore_filenames : (string (* kind *) * string (* file name *)) list;
+  cache : (string, level option) Hashtbl.t;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
