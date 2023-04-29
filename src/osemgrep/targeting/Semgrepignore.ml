@@ -58,11 +58,11 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
   let root_anchor = Glob.Pattern.root_pattern in
   let cli_patterns =
     List.concat_map
-      (Gitignore_syntax.from_string ~name:"exclude pattern from command line"
+      (Parse_gitignore.from_string ~name:"exclude pattern from command line"
          ~kind:"exclude" ~anchor:root_anchor)
       cli_patterns
   in
-  let cli_level : Gitignore_level.t =
+  let cli_level : Gitignore.level =
     {
       level_kind = "command-line includes/excludes";
       source_name = "<command line>";

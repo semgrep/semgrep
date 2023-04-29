@@ -48,9 +48,7 @@ val create :
    git project and obtain valid git paths (paths relative to the project root).
 *)
 val select :
-  t ->
-  Ppath.t ->
-  Gitignore_filter.status * Gitignore_syntax.selection_event list
+  t -> Ppath.t -> Gitignore_filter.status * Gitignore.selection_event list
 
 (* TODO: list project files without relying on 'git ls-files'.
       This will allow de-excluding some files using negated patterns in

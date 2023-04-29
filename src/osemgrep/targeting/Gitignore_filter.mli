@@ -24,8 +24,8 @@ type status = Not_ignored | Ignored
 *)
 val create :
   ?gitignore_filenames:(string * string) list ->
-  ?higher_priority_levels:Gitignore_level.t list ->
-  ?lower_priority_levels:Gitignore_level.t list ->
+  ?higher_priority_levels:Gitignore.level list ->
+  ?lower_priority_levels:Gitignore.level list ->
   project_root:Fpath.t ->
   unit ->
   t
@@ -47,6 +47,6 @@ val create :
 *)
 val select :
   t ->
-  Gitignore_syntax.selection_event list ->
+  Gitignore.selection_event list ->
   Ppath.t ->
-  status * Gitignore_syntax.selection_event list
+  status * Gitignore.selection_event list

@@ -5,7 +5,7 @@
 type t = {
   project_root : Fpath.t;
   gitignore_filenames : (string (* kind *) * string (* file name *)) list;
-  cache : (string, Gitignore_level.t option) Hashtbl.t;
+  cache : (string, Gitignore.level option) Hashtbl.t;
 }
 
 let create ?(gitignore_filenames = [ ("gitignore", ".gitignore") ])
@@ -29,7 +29,7 @@ let load t dir_path =
           (fun acc (kind, name) ->
             let file_path = Fpath.add_seg path name in
             if Sys.file_exists (Fpath.to_string file_path) then
-              acc @ Gitignore_syntax.from_file ~anchor ~kind file_path
+              acc @ Parse_gitignore.from_file ~anchor ~kind file_path
             else acc)
           [] t.gitignore_filenames
       in
@@ -43,7 +43,7 @@ let load t dir_path =
                  source_name = Fpath.to_string path;
                  patterns;
                }
-                : Gitignore_level.t)
+                : Gitignore.level)
       in
       Hashtbl.add tbl key res;
       res

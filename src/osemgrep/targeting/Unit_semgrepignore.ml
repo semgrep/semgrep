@@ -61,8 +61,7 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
                    Semgrepignore.select filter path)
              in
              printf "Selection events for path %s:\n" (Ppath.to_string path);
-             print_string
-               (Gitignore_syntax.show_selection_events selection_events);
+             print_string (Gitignore.show_selection_events selection_events);
              if should_be_selected then (
                match status with
                | Not_ignored ->
