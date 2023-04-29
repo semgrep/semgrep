@@ -7,7 +7,7 @@ open Ppath.Operators
 type t = {
   project_root : Fpath.t;
   higher_priority_levels : Gitignore.level list;
-  gitignore_file_cache : Gitignore_files.t;
+  gitignore_file_cache : Gitignore.gitignores_cache;
   lower_priority_levels : Gitignore.level list;
 }
 
@@ -19,7 +19,7 @@ let create ?gitignore_filenames ?(higher_priority_levels = [])
     project_root;
     higher_priority_levels;
     gitignore_file_cache =
-      Gitignore_files.create ?gitignore_filenames ~project_root ();
+      Gitignores_cache.create ?gitignore_filenames ~project_root ();
     lower_priority_levels;
   }
 
@@ -72,7 +72,7 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
           match opt_gitignore_file_cache with
           | Some cache -> (
               (* load local gitignore file *)
-              match Gitignore_files.load cache parent_path with
+              match Gitignores_cache.load cache parent_path with
               | Some additional_level -> levels @ [ additional_level ]
               | None -> levels)
           | None -> levels

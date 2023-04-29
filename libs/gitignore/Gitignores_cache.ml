@@ -1,12 +1,7 @@
 (*
    Load and cache .gitignore (or .semgrepignore) files
 *)
-
-type t = {
-  project_root : Fpath.t;
-  gitignore_filenames : (string (* kind *) * string (* file name *)) list;
-  cache : (string, Gitignore.level option) Hashtbl.t;
-}
+open Gitignore
 
 let create ?(gitignore_filenames = [ ("gitignore", ".gitignore") ])
     ~project_root () =
