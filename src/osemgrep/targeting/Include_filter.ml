@@ -84,7 +84,7 @@ let select t (full_git_path : Ppath.t) =
     t.glob_matchers
     |> find_first (fun matcher -> scan_segments matcher Ppath.root rel_segments)
   with
-  | None -> (Gitignore_filter.Ignored, [ Gitignore.Selected t.no_match_loc ])
+  | None -> (Gitignore.Ignored, [ Gitignore.Selected t.no_match_loc ])
   | Some loc ->
       (* !! Deselected for gitignore = not ignored !! *)
-      (Gitignore_filter.Not_ignored, [ Gitignore.Deselected loc ])
+      (Gitignore.Not_ignored, [ Gitignore.Deselected loc ])
