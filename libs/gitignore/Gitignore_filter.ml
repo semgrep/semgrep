@@ -1,17 +1,8 @@
 (*
    Support for file tree filtering using the gitignore specification.
 *)
-
+open Gitignore
 open Ppath.Operators
-
-type t = {
-  project_root : Fpath.t;
-  higher_priority_levels : Gitignore.level list;
-  gitignore_file_cache : Gitignore.gitignores_cache;
-  lower_priority_levels : Gitignore.level list;
-}
-
-type status = Not_ignored | Ignored
 
 let create ?gitignore_filenames ?(higher_priority_levels = [])
     ?(lower_priority_levels = []) ~project_root () =
