@@ -12,7 +12,9 @@
    Content of a .gitignore, represented directly as matching (selecting)
    functions. A .gitignore contains a list of patterns, where
    each pattern is essentially a "path selector"
-   (gitignore implem terminology?)
+   (gitignore implem terminology?).
+
+   See also Parse_gitignore.from_file().
 *)
 type path_selectors = path_selector list
 
@@ -65,6 +67,8 @@ type level = {
    of this project can also contain a "refining" .gitignore that
    takes precedence. Here we cache all those .gitignore. The cache
    also support non-standard ignore files (e.g., .semgrepignore).
+
+   See also Gitignores_cache.create() and Gitignores_cache.load()
 *)
 type gitignores_cache = {
   project_root : Fpath.t;
@@ -89,6 +93,8 @@ type gitignores_cache = {
    as levels. The actual sources of gitignore patterns and levels
    are not specified here, allowing nonstandard sources (e.g.,
    .semgrepignore files).
+
+   See also Gitignore_filter.create() and Gitignore_filter.select().
 *)
 type filter = {
   project_root : Fpath.t;
