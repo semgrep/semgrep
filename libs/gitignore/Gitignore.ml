@@ -11,8 +11,7 @@
 (*
    Content of a .gitignore, represented directly as matching (selecting)
    functions. A .gitignore contains a list of patterns, where
-   each pattern is essentially a "path selector"
-   (gitignore implem terminology?).
+   each pattern is essentially a "path selector".
 
    See also Parse_gitignore.from_file().
 *)
@@ -88,7 +87,7 @@ type gitignores_cache = {
 }
 
 (*
-   This represents the full gitignore filtering specification, assuming
+   This represents the full gitignore filtering inputs, assuming
    the sources of gitignore patterns were already parsed and are provided
    as levels. The actual sources of gitignore patterns and levels
    are not specified here, allowing nonstandard sources (e.g.,
