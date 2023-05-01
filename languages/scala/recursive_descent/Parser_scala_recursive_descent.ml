@@ -1064,6 +1064,10 @@ let template_ = ref (fun _ -> failwith "forward ref not set")
 let defOrDcl_ = ref (fun _ _ -> failwith "forward ref not set")
 let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
+
+let indentedExprOrBlockStatSeqUntil_ =
+  ref (fun _ ~until:_ -> failwith "forward ref not set")
+
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
 let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
@@ -2435,7 +2439,7 @@ and parseIf in_ : stmt =
         fb (Tok.unsafe_fake_tok "") e
   in
   opportunisticIndent in_;
-  let thenp = expr in_ in
+  let thenp = !indentedExprOrBlockStatSeqUntil_ ~until:(Some (Kelse ab)) in_ in
   let elsep =
     match in_.token with
     | Kelse ii ->
@@ -3676,41 +3680,115 @@ let isCaseDefEnd in_ =
   | Kcase _ when nextTokNotClassOrObject in_ -> true
   | _ -> false
 
-let blockStatSeq in_ : block_stat list =
+let blockStatSeqInner in_ : top_stat option =
   let acceptStatSepOptOrEndCase in_ =
     if not (TH.isCaseDefEnd in_.token) then acceptStatSepOpt in_
   in
-  let stats = ref [] in
-  while (not (TH.isStatSeqEnd in_.token)) && not (isCaseDefEnd in_) do
-    match in_.token with
-    | Kimport _ ->
-        let x = importClause in_ in
-        stats += I x;
-        acceptStatSepOptOrEndCase in_
-    | t when TH.isDefIntro t || TH.isLocalModifier t || TH.isAnnotation t ->
-        (match in_.token with
+  match in_.token with
+  | Kimport _ ->
+      let x = importClause in_ in
+      let res = I x in
+      acceptStatSepOptOrEndCase in_;
+      Some res
+  | t when TH.isDefIntro t || TH.isLocalModifier t || TH.isAnnotation t ->
+      let res =
+        match in_.token with
         | Kimplicit ii ->
             skipToken in_;
-            let x =
-              if TH.isIdentBool in_.token then
-                E (implicitClosure (Implicit, ii) InBlock in_)
-                (* ast: Flags.IMPLICIT*)
-              else D (localDef [ (Implicit, ii) ] in_)
-            in
-            stats += x
-        | _ ->
-            let x = D (localDef [] in_) in
-            stats += x);
-        acceptStatSepOptOrEndCase in_
-    | t when TH.isExprIntro t ->
-        let x = statement InBlock in_ in
-        stats += E x;
-        acceptStatSepOptOrEndCase in_
-    | t when TH.isStatSep t -> nextToken in_
-    | _ when is_modifier in_ -> error "no modifiers allowed here" in_
-    | _ -> error "illegal start of statement" in_
+            if TH.isIdentBool in_.token then
+              E (implicitClosure (Implicit, ii) InBlock in_)
+              (* ast: Flags.IMPLICIT*)
+            else D (localDef [ (Implicit, ii) ] in_)
+        | _ -> D (localDef [] in_)
+      in
+      acceptStatSepOptOrEndCase in_;
+      Some res
+  | t when TH.isExprIntro t ->
+      let x = statement InBlock in_ in
+      acceptStatSepOptOrEndCase in_;
+      Some (E x)
+  | t when TH.isStatSep t ->
+      nextToken in_;
+      None
+  | _ when is_modifier in_ -> error "no modifiers allowed here" in_
+  | _ -> error "illegal start of statement" in_
+
+let blockStatSeq in_ : block_stat list =
+  let stats = ref [] in
+  while (not (TH.isStatSeqEnd in_.token)) && not (isCaseDefEnd in_) do
+    match blockStatSeqInner in_ with
+    | None -> ()
+    | Some x -> stats += x
   done;
   List.rev !stats
+
+(* This function is for parsing something which might be an expression,
+   or just a regular block stat seq.
+
+   This is hard to figure out because a block stat seq may itself start
+   with an expression. You have to parse one such element, and then see if
+   something suitable comes afterwards.
+
+   It's also complicated because we might have contextual information over what
+   token for sure terminates this block stat seq / expression. That's what the
+   `until` argument is for. In this case, we don't even need to see a DEDENT.
+
+   For instance, the "then" expression in an if-then-else obeys this form,
+   because the "then" might be just an expression:
+     if (true) 3 else 4
+   or it might be an indented block:
+     if (true) then
+       val x = 2
+     else 5
+   but it is not necessarily the case that there needs to be a DEDENT. We might
+   have:
+     if (true) then
+       1 else 4
+*)
+let indentedExprOrBlockStatSeqUntil ?(until = None) in_ =
+  let hit_until tok =
+    match until with
+    | Some tok' -> tok' =~= tok
+    | None -> false
+  in
+  let surround x = fb (Tok.unsafe_fake_tok "") x in
+  let exp, close_indent =
+    if Option.is_some in_.is_indented then (
+      enterIndentRegion in_;
+      (* This may be an indented block, in which case there's more stuff after
+         the expr.
+      *)
+      match blockStatSeqInner in_ with
+      | None ->
+          (* I'm not convinced this is possible, but this should happen if it
+             was like, a blockStatSeq separator. This should indicate we're
+             in the BSS case.
+          *)
+          (BlockExpr (BEBlock (blockStatSeq in_) |> surround), true)
+      | Some (E x) -> (
+          match in_.token with
+          | tok when hit_until tok ->
+              (* This must have been a fake indentation region. We're looking at
+                 just a simple expression that happens to be indented, after the if.
+                 like
+                 if
+                   3 else 4
+              *)
+              (match in_.sepRegions with
+              | DEDENT _ :: rest -> in_.sepRegions <- rest
+              | _ -> ());
+              (x, false)
+          | DEDENT _ -> (x, true)
+          | _ ->
+              (BlockExpr (BEBlock (E x :: blockStatSeq in_) |> surround), true))
+      | Some other ->
+          (BlockExpr (BEBlock (other :: blockStatSeq in_) |> surround), true))
+    else
+      (* If it's not indented, we definitely have just a normal inline expression. *)
+      (expr in_, false)
+  in
+  if close_indent then closeIndentRegion in_;
+  exp
 
 (* ------------------------------------------------------------------------- *)
 (* TemplateStat *)
@@ -4407,6 +4485,8 @@ let _ =
   defOrDcl_ := defOrDcl;
   tmplDef_ := tmplDef;
   blockStatSeq_ := blockStatSeq;
+  (indentedExprOrBlockStatSeqUntil_ :=
+     fun env ~until -> indentedExprOrBlockStatSeqUntil ~until env);
   packageOrPackageObject_ := packageOrPackageObject;
 
   exprTypeArgs_ := exprTypeArgs;

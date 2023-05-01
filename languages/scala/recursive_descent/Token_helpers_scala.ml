@@ -339,6 +339,7 @@ let isStatSep = function
 let isStatSeqEnd = function
   | RBRACE _
   | DEDENT _
+  | Kelse _
   | EOF _ ->
       true
   | _ -> false
