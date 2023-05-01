@@ -3652,6 +3652,27 @@ let localDef implicitMod in_ : definition =
          (* AST: if RBRACE | CASE defs :+ literalUnit *))
 
 (* ------------------------------------------------------------------------- *)
+(* End Marker *)
+(* ------------------------------------------------------------------------- *)
+
+(** {{{
+ *  EndMarker         ::=  ‘end’ EndMarkerTag    -- when followed by EOL
+ *  EndMarkerTag      ::=  id | ‘if’ | ‘while’ | ‘for’ | ‘match’ | ‘try’
+                        |  ‘new’ | ‘this’ | ‘given’ | ‘extension’ | ‘val’
+ *  }}}
+*)
+
+let endMarker in_ : end_marker =
+  let end_tok = TH.info_of_tok in_.token in
+  accept (ID_LOWER ("end", ab)) in_;
+  let end_kind = TH.info_of_tok in_.token in
+  (* We could dispatch on the various cases, but every single case ends up
+     with some kind of token. So let's just say that it's a single token.
+  *)
+  skipToken in_;
+  { end_tok; end_kind }
+
+(* ------------------------------------------------------------------------- *)
 (* Extension *)
 (* ------------------------------------------------------------------------- *)
 
@@ -3777,6 +3798,7 @@ let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
   *                 | Annotations [implicit] [lazy] Def
   *                 | Annotations LocalModifiers TmplDef
   *                 | Expr1
+  *                 | EndMarker
   *                 | Extension
   *                 |
   *  }}}
@@ -3795,6 +3817,9 @@ let blockStatSeqInner in_ : top_stat option =
     if not (TH.isCaseDefEnd in_.token) then acceptStatSepOpt in_
   in
   match in_.token with
+  | ID_LOWER ("end", _) ->
+      let x = endMarker in_ in
+      Some (End x)
   | ID_LOWER ("extension", _) ->
       let x = extension in_ in
       Some (Ext x)
@@ -3915,6 +3940,7 @@ let indentedExprOrBlockStatSeqUntil ?(until = None) in_ =
  *                     | Annotations Modifiers Dcl
  *                     | Expr1
  *                     | super ArgumentExprs {ArgumentExprs}
+ *                     | EndMarker
  *                     | Extension
  *                     |
  *                     | Annotations Modifiers EnumCase
@@ -3929,6 +3955,9 @@ let templateStat in_ : template_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  | ID_LOWER ("end", _) ->
+      let x = endMarker in_ in
+      Some (End x)
   | ID_LOWER ("extension", _) ->
       let x = extension in_ in
       Some (Ext x)
@@ -3953,6 +3982,7 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
  *            | package object ObjectDef
  *            | Import
  *            | Export
+ *            | EndMarker
  *            | Extension
  *            |
  *  }}}
@@ -3969,6 +3999,9 @@ let topStat in_ : top_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  | ID_LOWER ("end", _) ->
+      let x = endMarker in_ in
+      Some (End x)
   | ID_LOWER ("extension", _) ->
       let x = extension in_ in
       Some (Ext x)
@@ -4011,7 +4044,7 @@ let templateStatSeq ~isPre in_ : self_type option * block =
     if
       TH.isExprIntro in_.token
       && (not (is_modifier in_))
-      && not (in_.token =~= ID_LOWER ("extension", ab))
+      && not (TH.isTemplateIntro in_.token)
     then (
       let first = expr ~location:InTemplate in_ in
       match in_.token with
