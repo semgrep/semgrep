@@ -814,6 +814,7 @@ and map_other_stmt_operator = function
   | OS_Redo -> "Redo"
   | OS_Retry -> "Retry"
   | OS_ExprStmt2 -> "ExprStmt2"
+  | OS_Extension -> "Extension"
   | OS_Todo -> "Todo"
 
 and map_other_stmt_with_stmt_operator = function

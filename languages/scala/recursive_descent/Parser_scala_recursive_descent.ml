@@ -3640,6 +3640,104 @@ let localDef implicitMod in_ : definition =
          defs
          (* AST: if RBRACE | CASE defs :+ literalUnit *))
 
+(* ------------------------------------------------------------------------- *)
+(* Extension *)
+(* ------------------------------------------------------------------------- *)
+
+(** {{{
+ *  Extension         ::=  ‘extension’ [DefTypeParamClause] {UsingParamClause}
+ *                         ‘(’ DefParam ‘)’ {UsingParamClause} ExtMethods
+ *  ExtMethods        ::=  ExtMethod | [nl] <<< ExtMethod {semi ExtMethod} >>>
+ *  ExtMethod         ::=  {Annotation [nl]} {Modifier} ‘def’ DefDef
+ *                      |  Export
+ *  }}}
+*)
+
+let usingParamClauses ~owner in_ =
+  let caseParam = ref false in
+  let vds = ref [] in
+  while in_.token =~= LPAREN ab do
+    let x = inParens (usingParamClauseInner ~caseParam owner []) in_ in
+    vds += x;
+    caseParam := false;
+    newLineOptWhenFollowedBy (LPAREN ab) in_
+  done;
+  List.rev !vds
+
+let extMethod in_ : ext_method =
+  match in_.token with
+  | Kexport _ -> ExtExport (exportClause in_)
+  | _ ->
+      let annots = annotations ~skipNewLines:true in_ in
+      let mods = modifiers in_ in
+      (* ast: mods withAnnotations annots *)
+      ExtDef (!defOrDcl_ (mods_with_annots mods annots) in_)
+
+let extMethodsInner in_ : ext_method list =
+  let exts = ref [ extMethod in_ ] in
+  acceptStatSepOpt in_;
+  while not (TH.isStatSeqEnd in_.token) do
+    exts += extMethod in_;
+    acceptStatSepOpt in_
+  done;
+  List.rev !exts
+
+let extMethods in_ =
+  newLineOpt in_;
+  opportunisticIndent in_;
+  if Option.is_some (passedIndent in_) || in_.token =~= LBRACE ab then
+    let _, x, _ = inBracesOrIndented extMethodsInner in_ in
+    x
+  else [ extMethod in_ ]
+
+let extension in_ =
+  let ext_tok = TH.info_of_tok in_.token in
+  let owner = ("extension", ext_tok) in
+  skipToken in_;
+  let tparams = typeParamClauseOpt ("extension", ext_tok) None in_ in
+  let caseParam = ref [] in
+  let usings = ref [] in
+  let params = ref [] in
+  (* This is only slightly convoluted.
+     The reasoning is because the grammar allows a single clause (with a
+     single parameter) to be "sandwiched" in between two {UsingParamClause}s.
+
+     This means that we have an unlimited amount of `using` clauses, with a
+     `param` clause that must exist, somewhere in between.
+
+     Our way of dealing with this will be to parse them separately, and then
+     take the first `param` that we see as our canonical one. There should be
+     only one.
+  *)
+  newLineOptWhenFollowedBy (LPAREN ab) in_;
+  while in_.token =~= LPAREN ab do
+    let inner =
+      inParens
+        (fun in_ ->
+          match in_.token with
+          | ID_LOWER ("using", _) ->
+              Left (usingParamClauseInner ~caseParam owner [] in_)
+          | _ -> Right (param owner [] caseParam in_))
+        in_
+    in
+    match inner with
+    | l, Left using, r -> usings += (l, using, r)
+    | _, Right param, _ ->
+        params += param;
+        newLineOptWhenFollowedBy (LPAREN ab) in_
+  done;
+  let ext_methods = extMethods in_ in
+  {
+    ext_tok;
+    ext_tparams = tparams;
+    ext_using = !usings;
+    ext_param =
+      (match !params with
+      | param :: _ -> param
+      | _ -> failwith "should be impossible");
+    ext_methods;
+  }
+
 (*****************************************************************************)
 (* Parsing XxxStat and XxxStats  *)
 (*****************************************************************************)
@@ -3668,6 +3766,7 @@ let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
   *                 | Annotations [implicit] [lazy] Def
   *                 | Annotations LocalModifiers TmplDef
   *                 | Expr1
+  *                 | Extension
   *                 |
   *  }}}
 *)
@@ -3685,6 +3784,9 @@ let blockStatSeqInner in_ : top_stat option =
     if not (TH.isCaseDefEnd in_.token) then acceptStatSepOpt in_
   in
   match in_.token with
+  | ID_LOWER ("extension", _) ->
+      let x = extension in_ in
+      Some (Ext x)
   | Kimport _ ->
       let x = importClause in_ in
       let res = I x in
@@ -3802,6 +3904,7 @@ let indentedExprOrBlockStatSeqUntil ?(until = None) in_ =
  *                     | Annotations Modifiers Dcl
  *                     | Expr1
  *                     | super ArgumentExprs {ArgumentExprs}
+ *                     | Extension
  *                     |
  *                     | Annotations Modifiers EnumCase
  *                       ^ see "note: enum-body" and defOrDcl
@@ -3815,6 +3918,9 @@ let templateStat in_ : template_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  | ID_LOWER ("extension", _) ->
+      let x = extension in_ in
+      Some (Ext x)
   | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let x = nonLocalDefOrDcl in_ in
       Some (D x)
@@ -3836,6 +3942,7 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
  *            | package object ObjectDef
  *            | Import
  *            | Export
+ *            | Extension
  *            |
  *  }}}
 *)
@@ -3851,6 +3958,9 @@ let topStat in_ : top_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  | ID_LOWER ("extension", _) ->
+      let x = extension in_ in
+      Some (Ext x)
   (* This used to be a TmplDef, but in Scala 3, this can actually be any Def.
      Def is a superset of TmplDef anyways, so we lose nothing here.
   *)
@@ -3884,7 +3994,14 @@ let templateStatSeq ~isPre in_ : self_type option * block =
        so let's check whether it's explicitly a modifier as well.
        see NOTE: soft modifiers
     *)
-    if TH.isExprIntro in_.token && not (is_modifier in_) then (
+    (* we add this negation for "extension", because otherwise we will assume this is
+       starting an expression, and never parse an extension declaration!
+    *)
+    if
+      TH.isExprIntro in_.token
+      && (not (is_modifier in_))
+      && not (in_.token =~= ID_LOWER ("extension", ab))
+    then (
       let first = expr ~location:InTemplate in_ in
       match in_.token with
       | ARROW ii ->
@@ -4354,21 +4471,14 @@ let givenSig in_ : given_sig =
     | Some x -> x
   in
   let tparams = typeParamClauseOpt owner None in_ in
-  let caseParam = ref false in
-  let vds = ref [] in
-  while in_.token =~= LPAREN ab do
-    let x = inParens (usingParamClauseInner ~caseParam owner []) in_ in
-    vds += x;
-    caseParam := false;
-    newLineOptWhenFollowedBy (LPAREN ab) in_
-  done;
+  let using_params = usingParamClauses ~owner in_ in
   let colon_ii = TH.info_of_tok in_.token in
   accept (COLON ab) in_;
   (* TODO: make name opt *)
   {
     g_id = id_opt;
     g_tparams = tparams;
-    g_using = List.rev !vds;
+    g_using = using_params;
     g_colon = colon_ii;
   }
 

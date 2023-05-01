@@ -393,7 +393,8 @@ let isTemplateIntro = function
   | Kclass _
   | Kenum _
   | Ktrait _
-  | ID_LOWER ("given", _) ->
+  | ID_LOWER ("given", _)
+  | ID_LOWER ("extension", _) ->
       true
   (*TODO | Kcaseobject | | Kcaseclass *)
   | Kcase _ -> true
