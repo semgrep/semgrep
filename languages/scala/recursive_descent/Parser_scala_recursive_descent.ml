@@ -4044,6 +4044,11 @@ let templateStatSeq ~isPre in_ : self_type option * block =
     if
       TH.isExprIntro in_.token
       && (not (is_modifier in_))
+      (* We add this here, because there are some "soft" modifiers that can start
+         a templateIntro, such as "extension", "end", etc.
+         If we did not do this, template stats that start with those would always
+         enter this expression case, even though they denote something else.
+      *)
       && not (TH.isTemplateIntro in_.token)
     then (
       let first = expr ~location:InTemplate in_ in
