@@ -2488,6 +2488,7 @@ and parseWhile in_ : stmt =
         accept (Kdo ab) in_;
         fb (Tok.unsafe_fake_tok "") e
   in
+  opportunisticIndent in_;
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
   While (ii, cond, body)
