@@ -4228,12 +4228,12 @@ let packageOrPackageObject ipackage in_ : top_stat =
     let x = packageObjectDef ipackage in_ in
     (* ast: joinComment(x::Nil).head *)
     D x
-  else (
+  else
     let x = pkgQualId in_ in
     let body = inBracesOrColonIndented topStatSeq in_ in
     (* ast: makePackaging(x, body) *)
     let pack = (ipackage, x) in
-    Packaging (pack, body))
+    Packaging (pack, body)
 
 (* ------------------------------------------------------------------------- *)
 (* Class/trait *)
