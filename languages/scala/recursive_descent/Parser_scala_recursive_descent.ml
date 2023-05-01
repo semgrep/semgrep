@@ -155,8 +155,6 @@ type indent_status =
   | Dedent of (* line *) int * (* width *) int
   | Indent of (* same *) int * int
 
-let report in_ s = Common.(pr2 (spf "%s: %s" s ([%show: token] in_.token)))
-
 (*****************************************************************************)
 (* Logging/Dumpers  *)
 (*****************************************************************************)
@@ -3963,7 +3961,6 @@ let topStat in_ : top_stat option =
   match in_.token with
   | Kpackage ii ->
       skipToken in_;
-      report in_ "after package";
       let x = !packageOrPackageObject_ ii in_ in
       Some x
   | Kimport _ ->
@@ -4232,7 +4229,6 @@ let packageOrPackageObject ipackage in_ : top_stat =
     (* ast: joinComment(x::Nil).head *)
     D x
   else (
-    report in_ "package or package obj in id case";
     let x = pkgQualId in_ in
     let body = inBracesOrColonIndented topStatSeq in_ in
     (* ast: makePackaging(x, body) *)
