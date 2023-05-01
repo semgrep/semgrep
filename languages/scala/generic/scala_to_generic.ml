@@ -755,6 +755,9 @@ and v_block_stat x : G.item list =
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
+  | End v1 ->
+      let v1 = v_end_marker v1 in
+      [ v1 ]
   | Ext v1 -> v_extension v1
   | Package v1 ->
       let ipak, ids = v_package v1 in
@@ -912,6 +915,9 @@ and v_given_definition { gsig; gkind } =
     ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
       G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
   ]
+
+and v_end_marker { end_tok; end_kind } : G.stmt =
+  G.OtherStmt (OS_Todo, [ G.Tk end_tok; G.Tk end_kind ]) |> G.s
 
 and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
     : G.stmt list =
