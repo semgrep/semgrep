@@ -68,7 +68,7 @@ class SemgrepCoreLSServer:
 
     def start_ls(self) -> None:
         cmd = [
-            "semgrep-core",
+            str(self.config.engine_type.get_binary_path()),
             "-j",
             str(self.config.jobs),
             "-rules",

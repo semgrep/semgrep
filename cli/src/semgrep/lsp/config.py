@@ -9,6 +9,7 @@ from typing import Union
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
+from semgrep.engine import EngineType
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GitMeta
 from semgrep.metrics import MetricsState
@@ -150,6 +151,11 @@ class LSPConfig:
         trace = self._settings.get("trace")
         debug = trace.get("server") if trace else None
         return debug is not None and debug == "verbose"
+
+    @property
+    def engine_type(self) -> EngineType:
+        # Pro engine is too slow right now for editor integration
+        return EngineType.OSS
 
     # =====================
     # Config management
