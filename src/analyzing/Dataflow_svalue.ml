@@ -370,7 +370,6 @@ let rec is_symbolic_expr expr =
   | G.L _ -> true
   | G.N _ -> true
   | G.IdSpecial _ -> true
-  | G.ParenExpr (_, e, _)
   | G.Cast (_, _, e)
   | G.DotAccess (e, _, FN _) ->
       is_symbolic_expr e
