@@ -2507,12 +2507,43 @@ and parseDo in_ : stmt =
   (* ast: makeDoWhile(lname.toTermName, body, cond) *)
   DoWhile (ido, body, iwhile, cond)
 
+(* Is the following sequence the generators of a for-expression enclosed in (...)? *)
+(* As implemented in Dotty:
+   https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L857
+*)
+and followingIsEnclosedGenerators in_ =
+  let parens = ref 1 in
+  lookingAhead
+    (fun in_ ->
+      while !parens <> 0 && not (in_.token =~= EOF ab) do
+        if in_.token =~= LPAREN ab then incr parens
+        else if in_.token =~= RPAREN ab then decr parens;
+        nextToken in_
+      done;
+      if in_.token =~= LARROW ab then false
+        (* it's a pattern *)
+        (* nosemgrep *)
+      else if TH.isIdentBool in_.token then true
+        (* it's not a pattern since token cannot be an infix operator *)
+      else
+        (* followedByToken(LARROW) // `<-` comes before possible statement starts
+           In the Scala compiler, this is what it says ^
+
+           Except this function is actually like, quite complicated, and relies on
+           other functions we haven't yet ported.
+
+           So let's just not do that for now.
+        *)
+        true)
+    in_
+
 and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
     match in_.token with
-    | LPAREN _ -> inParens enumerators in_
+    | LPAREN _ when followingIsEnclosedGenerators in_ ->
+        inParens enumerators in_
     | LBRACE _ -> inBraces enumerators in_
     | _ ->
         (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
