@@ -204,6 +204,7 @@ core-uninstall:
 # Test target
 ###############################################################################
 
+# Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test
 test:
 	$(MAKE) core-test
