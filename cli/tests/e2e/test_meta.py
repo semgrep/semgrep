@@ -1,6 +1,9 @@
+import pytest
+
 from semgrep.meta import get_url_from_sstp_url
 
 
+@pytest.mark.quick
 def test_git_url_parser():
     tests = [
         # This used to cause the URL parser to crash.
