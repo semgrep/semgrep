@@ -2,6 +2,7 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(
