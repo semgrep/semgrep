@@ -17,17 +17,6 @@ type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
 type arg_pos = string * int [@@deriving show]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
-(* See Taint.ml for why this is necessary. *)
-type precondition =
-  | Label of string
-  | Bool of bool
-  | And of precondition list
-  | Or of precondition list
-  | Not of precondition
-[@@deriving show]
-
-val expr_to_precondition : AST_generic.expr -> precondition
-
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -36,7 +25,7 @@ type source = {
         this label may have changed, for instance by being propagated to
         a different label.
       *)
-  precondition : (taint list * precondition) option;
+  precondition : (taint list * Rule.precondition) option;
       (** A precondition is a Boolean formula that must hold of a list of
           taints, which may include taint variables.
           A taint with an attached precondition is a "hypothetical taint",
@@ -70,7 +59,7 @@ type taint_to_sink_item = {
 [@@deriving show]
 
 type taints_to_sink = {
-  taints_with_precondition : taint_to_sink_item list * precondition;
+  taints_with_precondition : taint_to_sink_item list * Rule.precondition;
   sink : sink;
   merged_env : Metavariable.bindings;
 }

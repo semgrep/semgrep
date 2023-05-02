@@ -76,49 +76,6 @@ let _show_arg { pos = s, i; offset = os } =
   else Printf.sprintf "arg(%s)#%d" s i
 
 (*****************************************************************************)
-(* Preconditions *)
-(*****************************************************************************)
-
-(* We roll our own boolean formula type here because we need to be
-   able to use polymorphic compare. Comparison on the Generic AST
-   isn't possible, and polymorphic compare would otherwise take into account
-   unimportant details like tokens.
-*)
-type precondition =
-  | Label of string
-  | Bool of bool
-  | And of precondition list
-  | Or of precondition list
-  | Not of precondition
-[@@deriving show]
-
-let rec expr_to_precondition e =
-  match e.G.e with
-  | G.L (G.Bool (v, _)) -> Bool v
-  | G.N (G.Id ((str, _), _)) -> Label str
-  | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
-      Not (expr_to_precondition e1)
-  | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
-      match (op, args_to_precondition args) with
-      | G.And, xs -> And xs
-      | G.Or, xs -> Or xs
-      | __else__ ->
-          logger#error "Unexpected Boolean operator";
-          Bool false)
-  | G.ParenExpr (_, e, _) -> expr_to_precondition e
-  | ___else__ ->
-      logger#error "Unexpected `requires' expression";
-      Bool false
-
-and args_to_precondition args =
-  match args with
-  | [] -> []
-  | G.Arg e :: args' -> expr_to_precondition e :: args_to_precondition args'
-  | _ :: args' ->
-      logger#error "Unexpected argument kind";
-      Bool false :: args_to_precondition args'
-
-(*****************************************************************************)
 (* Taint *)
 (*****************************************************************************)
 
@@ -131,7 +88,7 @@ type source = {
          We don't put it under `taint`, though, because Arg taints are
          supposed to be polymorphic in label.
       *)
-  precondition : (taint list * precondition) option;
+  precondition : (taint list * Rule.precondition) option;
 }
 [@@deriving show]
 
@@ -264,7 +221,7 @@ type taints_to_sink = {
      a certain number of findings suitable to how the sink was
      reached.
   *)
-  taints_with_precondition : taint_to_sink_item list * precondition;
+  taints_with_precondition : taint_to_sink_item list * Rule.precondition;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
@@ -411,8 +368,8 @@ type taints = Taint_set.t
 let src_of_pm ~incoming (pm, (x : Rule.taint_source)) =
   let incoming = Taint_set.elements incoming in
   let precondition =
-    match expr_to_precondition x.source_requires with
-    | Bool true -> None
+    match x.source_requires with
+    | Rule.PBool true -> None
     | other -> Some (incoming, other)
   in
   Src { call_trace = PM (pm, x); label = x.label; precondition }

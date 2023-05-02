@@ -1065,33 +1065,9 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
 (*****************************************************************************)
 
 let parse_taint_requires env key x =
-  let parse_error () =
-    error_at_key env key "Expected a Boolean (Python) expression over labels"
-  in
-  let rec check e =
-    match e.G.e with
-    | G.L (G.Bool (_v, _)) -> ()
-    | G.N (G.Id ((str, _), _)) when Metavariable.is_metavar_name str ->
-        error_at_key env key ("Metavariables cannot be used as labels: " ^ str)
-    | G.N (G.Id (_id, _)) -> ()
-    | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg _e1 ], _)) -> ()
-    | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
-        List.iter check_arg args;
-        match op with
-        | G.And
-        | G.Or ->
-            ()
-        | _ -> parse_error ())
-    | G.ParenExpr (_, e, _) -> check e
-    | ___else__ -> parse_error ()
-  and check_arg = function
-    | G.Arg e -> check e
-    | __else_ -> parse_error ()
-  in
   let s = parse_string env key x in
   let e = parse_python_expression env key s in
-  check e;
-  e
+  Rule.expr_to_precondition e
 
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :

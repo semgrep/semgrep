@@ -588,14 +588,14 @@ let labels_of_taints taints : LabelSet.t =
 (* coupling: if you modify the code here, you may need to modify 'Parse_rule.parse_taint_requires' too. *)
 let rec eval_label_requires ~labels e =
   match e with
-  | T.Bool v -> v
-  | Label str -> LabelSet.mem str labels
-  | Not e -> not (eval_label_requires ~labels e)
-  | And xs ->
+  | R.PBool v -> v
+  | PLabel str -> LabelSet.mem str labels
+  | PNot e -> not (eval_label_requires ~labels e)
+  | PAnd xs ->
       xs
       |> Common.map (eval_label_requires ~labels)
       |> List.fold_left ( && ) true
-  | Or xs ->
+  | POr xs ->
       xs
       |> Common.map (eval_label_requires ~labels)
       |> List.fold_left ( || ) false
@@ -718,8 +718,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
                Some
                  (T.ToSink
                     {
-                      taints_with_precondition =
-                        ([ t ], T.expr_to_precondition (R.get_sink_requires ts));
+                      taints_with_precondition = ([ t ], R.get_sink_requires ts);
                       sink;
                       merged_env;
                     }))
@@ -734,8 +733,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
               T.ToSink
                 {
                   taints_with_precondition =
-                    ( Common.map fst taints_and_bindings,
-                      T.expr_to_precondition (R.get_sink_requires ts) );
+                    (Common.map fst taints_and_bindings, R.get_sink_requires ts);
                   sink;
                   merged_env;
                 };
@@ -846,10 +844,7 @@ let handle_taint_propagators env thing taints =
            in the type right now.
            I'll come back to this later.
         *)
-        if
-          eval_label_requires ~labels
-            (T.expr_to_precondition prop.spec.prop.propagator_requires)
-        then
+        if eval_label_requires ~labels prop.spec.prop.propagator_requires then
           (* If we have an output label, change the incoming taints to be
              of the new label.
              Otherwise, keep them the same.

@@ -116,6 +116,19 @@ and metavar_analysis_kind = CondEntropy | CondReDoS
 (* Taint-specific types *)
 (*****************************************************************************)
 
+(* We roll our own boolean formula type here because we need to be
+   able to use polymorphic compare. Comparison on the Generic AST
+   is harder, and polymorphic compare would otherwise take into account
+   unimportant details like tokens.
+*)
+type precondition =
+  | PLabel of string
+  | PBool of bool
+  | PAnd of precondition list
+  | POr of precondition list
+  | PNot of precondition
+[@@deriving show]
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -133,7 +146,7 @@ and taint_source = {
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
        * labeled, and allow sinks that work for any kind of taint? *)
-  source_requires : AST_generic.expr;
+  source_requires : precondition;
       (* A Boolean expression over taint labels, using Python syntax.
        * The operators allowed are 'not', 'or', and 'and'. The expression is
        * evaluated using the `Eval_generic` machinery.
@@ -177,7 +190,7 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
-  sink_requires : tok * AST_generic.expr option;
+  sink_requires : tok * precondition option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -194,7 +207,7 @@ and taint_propagator = {
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
   to_ : MV.mvar wrap;
-  propagator_requires : AST_generic.expr;
+  propagator_requires : precondition;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * This propagator will only propagate taint if the incoming taint
        * satisfies the 'requires'.
@@ -215,13 +228,38 @@ and taint_propagator = {
 [@@deriving show]
 
 let default_source_label = "__SOURCE__"
-let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
-let default_propagator_requires tok = G.L (G.Bool (true, tok)) |> G.e
+let default_source_requires _tok = PBool true
+let default_propagator_requires _tok = PBool true
 
-let get_sink_requires { sink_requires = tok, expr; _ } =
+let get_sink_requires { sink_requires = _, expr; _ } =
   match expr with
-  | None -> G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+  | None -> PLabel default_source_label
   | Some expr -> expr
+
+let rec expr_to_precondition e =
+  match e.G.e with
+  | G.L (G.Bool (v, _)) -> PBool v
+  | G.N (G.Id ((str, _), _)) -> PLabel str
+  | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
+      PNot (expr_to_precondition e1)
+  | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
+      match (op, args_to_precondition args) with
+      | G.And, xs -> PAnd xs
+      | G.Or, xs -> POr xs
+      | __else__ ->
+          logger#error "Unexpected Boolean operator";
+          PBool false)
+  | ___else__ ->
+      logger#error "Unexpected `requires' expression";
+      PBool false
+
+and args_to_precondition args =
+  match args with
+  | [] -> []
+  | G.Arg e :: args' -> expr_to_precondition e :: args_to_precondition args'
+  | _ :: args' ->
+      logger#error "Unexpected argument kind";
+      PBool false :: args_to_precondition args'
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)
