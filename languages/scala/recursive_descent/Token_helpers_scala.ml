@@ -408,9 +408,9 @@ let isLocalModifier = function
    but contextually may act as keywords.
    When deciding if we want to parse a templateStat, we first check for
    expressions. This would incorrectly flag these soft keywords, which can
-   otherwise start a templateStat, so this function whitelists them to not 
+   otherwise start a templateStat, so this function whitelists them to not
    enter the `expr` case, in favor of parsing them as templateStat keywords.
- *)
+*)
 let isTemplateStatIntroSoftKeyword = function
   | ID_LOWER ("given", _)
   | ID_LOWER ("end", _)
