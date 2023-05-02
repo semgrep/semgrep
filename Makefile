@@ -276,10 +276,8 @@ install-deps: install-deps-for-semgrep-core
 # This needs to run each time an opam dependency is added or upgraded.
 #
 .PHONY: lock
-lock: semgrep.opam.locked
-
-%.opam.locked: %.opam
-	opam lock ./$<
+lock:
+	opam lock ./semgrep.opam
 
 # **************************************************
 # Platform-dependent dependencies installation
