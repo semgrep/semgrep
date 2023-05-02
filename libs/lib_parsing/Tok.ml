@@ -338,6 +338,8 @@ let fix_location fix ii =
 let adjust_tok_wrt_base base_loc ii =
   fix_location (adjust_loc_wrt_base base_loc) ii
 
+let fix_pos fix loc = { loc with pos = fix loc.pos }
+
 (*****************************************************************************)
 (* Adjust line x col *)
 (*****************************************************************************)
