@@ -2515,7 +2515,7 @@ and followingIsEnclosedGenerators in_ =
   let parens = ref 1 in
   lookingAhead
     (fun in_ ->
-      while !parens != 0 && not (in_.token =~= EOF ab) do
+      while !parens <> 0 && not (in_.token =~= EOF ab) do
         if in_.token =~= LPAREN ab then incr parens
         else if in_.token =~= RPAREN ab then decr parens;
         nextToken in_
