@@ -1,6 +1,7 @@
 import json
 import urllib
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -100,8 +101,21 @@ class LSPConfig:
     # Semgrep LSP settings
     # =====================
     @property
+    def extension_metrics(self) -> Dict[str, Any]:
+        extension_metrics = self._settings.get("extensionMetrics", {})
+        if isinstance(extension_metrics, dict):
+            return extension_metrics
+        elif isinstance(extension_metrics, str):
+            # for backwards compatibility, older versions of the extension may send metrics: "on" or "off"
+            return {
+                "enabled": extension_metrics == "on",
+            }
+        else:
+            return {}
+
+    @property
     def metrics_state(self) -> MetricsState:
-        choice = self._settings.get("metrics", {}).get("enabled", True)
+        choice = self.extension_metrics.get("enabled", True)
         if choice:
             return MetricsState.ON
         else:
@@ -187,7 +201,7 @@ class LSPConfig:
         metrics.add_engine_type(self.engine_type)
         metrics.add_project_url(self.project_url)
         metrics.add_token(self.token)
-        extension_metrics = self._settings.get("metrics", {})
+        extension_metrics = self.extension_metrics
         machine_id = extension_metrics.get("machineId")
         new_install = extension_metrics.get("isNewAppInstall")
         session_id = extension_metrics.get("sessionId")
