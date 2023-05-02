@@ -18,6 +18,7 @@ from typing import Callable
 from typing import cast
 from typing import Dict
 from typing import List
+from typing import NewType
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -47,6 +48,7 @@ B = TypeVar("B")
 C = TypeVar("C")
 
 Pos = Tuple[int, int]
+ParserName = NewType("ParserName", str)
 
 
 def not_any(*chars: str) -> "Parser[str]":
@@ -212,14 +214,44 @@ def parse_error_to_str(e: ParseError) -> str:
         return f"expected one of {expected_list}"
 
 
+@dataclass
+class DependencyParserError(Exception):
+    """
+    Encapsulate failure to parse file using parsy
+    """
+
+    path: Path
+    parser: ParserName
+    reason: str
+    line: Optional[int] = None
+    col: Optional[int] = None
+    text: Optional[str] = None
+
+    def to_json(self) -> Dict[str, Union[Optional[str], Optional[int]]]:
+        return {
+            "path": str(self.path),
+            "parser": self.parser,
+            "reason": self.reason,
+            "line": self.line,
+            "col": self.col,
+            "text": self.text,
+        }
+
+
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
+    parser_name: ParserName,
     preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
 ) -> Optional[A]:
     """
     Run [parser] on the text in [path]
-    If the parsing fails, produces a pretty error message
+
+    PARSER_NAME is used for error reporting to correctly identify which PARSER attempted to parse PATH
+
+    Returns None if path does not exist
+
+    Raises DependencyParserError if it fails to parse the file in PATH with PARSER
     """
     if not path:
         return None
@@ -230,10 +262,9 @@ def safe_path_parse(
     try:
         return parser.parse(text)
     except RecursionError:
-        console.print(
-            f"Failed to parse {path} - Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
-        )
-        return None
+        reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
+        console.print(f"Failed to parse {path} - {reason}")
+        raise DependencyParserError(path, parser_name, reason)
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
@@ -243,18 +274,21 @@ def safe_path_parse(
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
         location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
+
         if line < len(text_lines):
+            offending_line = text.splitlines()[line]
             console.print(
                 f"Failed to parse {location} - {error_str}\n"
-                f"{line_prefix}{text.splitlines()[line]}\n"
+                f"{line_prefix}{offending_line}\n"
                 f"{' ' * (col + len(line_prefix))}^"
             )
-        else:
-            console.print(
-                f"Failed to parse {location} - {error_str}\n"
-                f"Internal Error - line {line + 1} is past the end of {path}?"
+            raise DependencyParserError(
+                path, parser_name, error_str, line + 1, col + 1, offending_line
             )
-        return None
+        else:
+            reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+            console.print(f"Failed to parse {location} - {reason}")
+            raise DependencyParserError(path, parser_name, reason, line + 1, col + 1)
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
