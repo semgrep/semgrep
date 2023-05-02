@@ -503,6 +503,7 @@ let nextToken in_ =
    && (match in_.sepRegions with
       | []
       | RBRACE _ :: _
+      (* See "note: sepFor" below. *)
       | Kfor _ :: _
       | DEDENT _ :: _ ->
           true
@@ -2553,6 +2554,11 @@ and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
+    (* note: sepFor
+       This is so that we can emit newlines specifically within a `for`.
+       Don't blame me, blame Dotty:
+       https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Scanners.scala#L505
+    *)
     inSepRegion (Kfor ii)
       (fun () ->
         match in_.token with
