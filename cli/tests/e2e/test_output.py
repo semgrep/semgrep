@@ -124,6 +124,7 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.quick
+@pytest.mark.osempass
 def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
