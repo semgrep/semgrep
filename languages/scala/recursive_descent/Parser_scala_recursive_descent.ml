@@ -503,6 +503,7 @@ let nextToken in_ =
    && (match in_.sepRegions with
       | []
       | RBRACE _ :: _
+      | Kfor _ :: _
       | DEDENT _ :: _ ->
           true
       | _ -> false)
@@ -2552,29 +2553,32 @@ and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
-    match in_.token with
-    | LPAREN _ when followingIsEnclosedGenerators in_ ->
-        inParens enumerators in_
-    | LBRACE _ -> inBraces enumerators in_
-    | _ ->
-        (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
-           If we enter the indentation region, the end of a for expression like:
+    inSepRegion (Kfor ii)
+      (fun () ->
+        match in_.token with
+        | LPAREN _ when followingIsEnclosedGenerators in_ ->
+            inParens enumerators in_
+        | LBRACE _ -> inBraces enumerators in_
+        | _ ->
+            (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
+               If we enter the indentation region, the end of a for expression like:
 
-           for
-             _ <- 5
-           yield
+               for
+                 _ <- 5
+               yield
 
-           will cause a DEDENT to be emitted before the `yield`. This messes us
-           up when determining when to end, because if we see the future DEDENT and break,
-           then we will still be on the NEWLINE.
+               will cause a DEDENT to be emitted before the `yield`. This messes us
+               up when determining when to end, because if we see the future DEDENT and break,
+               then we will still be on the NEWLINE.
 
-           It's easiest to just not emit the DEDENT tokens at all, which is what happens
-           if we do not enter the indentation region.
+               It's easiest to just not emit the DEDENT tokens at all, which is what happens
+               if we do not enter the indentation region.
 
-           See
-           https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
-        *)
-        fb (Tok.unsafe_fake_tok "") (enumerators in_)
+               See
+               https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L2730
+            *)
+            fb (Tok.unsafe_fake_tok "") (enumerators in_))
+      in_
   in
   newLinesOpt in_;
   opportunisticIndent in_;
