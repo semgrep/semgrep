@@ -135,7 +135,6 @@ let visitor_info_of_tok f = function
   | Kmatch ii -> Kmatch (f ii)
   | Klazy ii -> Klazy (f ii)
   | Kimport ii -> Kimport (f ii)
-  | Kexport ii -> Kexport (f ii)
   | Kimplicit ii -> Kimplicit (f ii)
   | Kif ii -> Kif (f ii)
   | KforSome ii -> KforSome (f ii)
@@ -249,6 +248,17 @@ let inLastOfStat x =
 (* ------------------------------------------------------------------------- *)
 (* Used in the parser *)
 (* ------------------------------------------------------------------------- *)
+
+let isPathStart = function
+  | ID_LOWER _
+  | ID_UPPER _
+  | ID_BACKQUOTED _
+  | OP _
+  | ID_DOLLAR _
+  | Kthis _
+  | Ksuper _ ->
+      true
+  | _ -> false
 
 let isIdent = function
   | ID_LOWER ("given", _) -> None
@@ -388,13 +398,10 @@ let isLocalModifier = function
 (* Construct Intro *)
 (* ------------------------------------------------------------------------- *)
 
-let isTemplateIntro = function
-  | Kobject _
-  | Kclass _
-  | Kenum _
-  | Ktrait _
+let isTemplateStatIntroSoftKeyword = function
   | ID_LOWER ("given", _)
   | ID_LOWER ("end", _)
+  | ID_LOWER ("export", _)
   | ID_LOWER ("extension", _) ->
       true
   (*TODO | Kcaseobject | | Kcaseclass *)
@@ -435,7 +442,17 @@ let isExprIntro x =
       true
   | _ -> false
 
-let isDefIntro x = isTemplateIntro x || isDclIntro x
+let isTemplateDefIntro x =
+  match x with
+  | Kobject _
+  | Kclass _
+  | Ktrait _
+  | Kenum _
+  | ID_LOWER ("given", _) ->
+      true
+  | _ -> false
+
+let isDefIntro x = isDclIntro x || isTemplateDefIntro x
 
 let isTypeIntroToken x =
   (isLiteral x && not (isNull x))
