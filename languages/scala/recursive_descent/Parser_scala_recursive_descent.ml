@@ -4885,7 +4885,6 @@ let try_rule toks frule =
   x
 
 let parse toks =
-  Common.(pr2 (spf "toks %s" ([%show: token list] toks)));
   try try_rule toks compilationUnit with
   | Parsing_error.Syntax_error _ as err1 -> (
       let e1 = Exception.catch err1 in
