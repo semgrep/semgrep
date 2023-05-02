@@ -2,8 +2,9 @@
 #
 # Print the flag '--locked' or '--locked=locked' depending the opam version.
 #
+set -eu -o pipefail
 
-if opam --version | grep '^2\.0\.'; then
+if opam --version | grep '^2\.0\.' > /dev/null; then
   echo --locked=locked
 else
   echo --locked
