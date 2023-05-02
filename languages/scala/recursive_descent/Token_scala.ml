@@ -89,6 +89,7 @@ type token =
   | BANG of Tok.t
   | AT of Tok.t
   | ARROW of Tok.t
+  (* emitted only via lexing tricks *)
   | DEDENT of (* line *) int * (* width *) int
 [@@deriving show { with_path = false }]
 

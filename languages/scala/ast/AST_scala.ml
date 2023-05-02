@@ -355,6 +355,7 @@ and block_stat =
   | D of definition
   | I of import
   | Ex of import
+  | Ext of extension
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -466,6 +467,19 @@ and definition_kind =
   | TypeDef of type_definition
   (* class/traits/objects *)
   | Template of template_definition
+
+(*****************************************************************************)
+(* Extensions *)
+(*****************************************************************************)
+and extension = {
+  ext_tok : tok; (* extension *)
+  ext_tparams : type_parameters;
+  ext_using : bindings list;
+  ext_param : binding;
+  ext_methods : ext_method list;
+}
+
+and ext_method = ExtDef of definition | ExtExport of import
 
 (* ------------------------------------------------------------------------- *)
 (* Enums *)
