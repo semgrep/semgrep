@@ -52,6 +52,8 @@ jobs:
     name: Build and test Semgrep Docker image
     runs-on: ubuntu-latest
     steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - id: meta
@@ -65,6 +67,7 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v4
         with:
+          platforms: linux/amd64,linux/arm/v8
           outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
