@@ -16,6 +16,7 @@ from semgrep.metrics import MetricsState
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.semgrep_main import get_file_ignore
+from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
 
@@ -99,14 +100,12 @@ class LSPConfig:
     # Semgrep LSP settings
     # =====================
     @property
-    def metrics(self) -> MetricsState:
-        choice = self._settings.get("metrics", "on")
-        if choice == "on":
+    def metrics_state(self) -> MetricsState:
+        choice = self._settings.get("metrics", {}).get("enabled", True)
+        if choice:
             return MetricsState.ON
-        elif choice == "off":
-            return MetricsState.OFF
         else:
-            return MetricsState.AUTO
+            return MetricsState.OFF
 
     # =====================
     # Useful properties
@@ -180,3 +179,19 @@ class LSPConfig:
             self.rules.extend(self.ci_rules)
         elif len(self.rules) == 0:
             self.rules.extend(self.auto_rules)
+
+    def send_metrics(self) -> None:
+        state = get_state()
+        metrics = state.metrics
+        metrics.configure(self.metrics_state, None)
+        metrics.add_engine_type(self.engine_type)
+        metrics.add_project_url(self.project_url)
+        metrics.add_token(self.token)
+        extension_metrics = self._settings.get("metrics", {})
+        machine_id = extension_metrics.get("machineId")
+        new_install = extension_metrics.get("isNewAppInstall")
+        session_id = extension_metrics.get("sessionId")
+        version = extension_metrics.get("extensionVersion")
+        type = extension_metrics.get("extensionType")
+        metrics.add_extension(machine_id, new_install, session_id, version, type)
+        metrics.send()

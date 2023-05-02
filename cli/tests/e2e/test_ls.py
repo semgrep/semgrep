@@ -41,7 +41,9 @@ DEFAULT_CAPABILITIES = {
             "onlyGitDirty": True,
         },
         "trace": {"server": "verbose"},
-        "metrics": "on",
+        "metrics": {
+            "enabled": True,
+        },
     },
     "capabilities": {},
 }

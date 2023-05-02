@@ -142,6 +142,8 @@ class SemgrepCoreLSServer:
         else:
             self.config = LSPConfig(config, [])
 
+        self.config.send_metrics()
+
     def m_semgrep__login(self, id: str) -> None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
         if self.config.logged_in:
