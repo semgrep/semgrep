@@ -249,6 +249,12 @@ let inLastOfStat x =
 (* Used in the parser *)
 (* ------------------------------------------------------------------------- *)
 
+(* This function is for using a token of lookahead to check whether we should
+   enter an exportClause.
+   Since an `export` used as a keyword is always followed by an `id`, we can
+   prevent more false positives of `export` used as a keyword when it shouldn't,
+   by looking ahead a token.
+*)
 let isPathStart = function
   | ID_LOWER _
   | ID_UPPER _
@@ -398,14 +404,19 @@ let isLocalModifier = function
 (* Construct Intro *)
 (* ------------------------------------------------------------------------- *)
 
+(* Some keywords are "soft keywords", which means they are lexed as identifiers,
+   but contextually may act as keywords.
+   When deciding if we want to parse a templateStat, we first check for
+   expressions. This would incorrectly flag these soft keywords, which can
+   otherwise start a templateStat, so this function whitelists them to not 
+   enter the `expr` case, in favor of parsing them as templateStat keywords.
+ *)
 let isTemplateStatIntroSoftKeyword = function
   | ID_LOWER ("given", _)
   | ID_LOWER ("end", _)
   | ID_LOWER ("export", _)
   | ID_LOWER ("extension", _) ->
       true
-  (*TODO | Kcaseobject | | Kcaseclass *)
-  | Kcase _ -> true
   | _ -> false
 
 let isDclIntro = function
