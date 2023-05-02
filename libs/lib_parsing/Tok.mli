@@ -181,6 +181,8 @@ val tok_add_s : string -> t -> t
 val fix_location : (location -> location) -> t -> t
 (** adjust the location in a token *)
 
+val fix_pos : (Pos.t -> Pos.t) -> location -> location
+
 val adjust_tok_wrt_base : location -> t -> t
 (** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location
   * relative to [base_loc], returns the same [tok] but with an absolute

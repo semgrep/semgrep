@@ -169,7 +169,7 @@ and v_export (v1, v2) : G.directive list =
   let v2 = v_list (v_import_expr v1) v2 in
   List.flatten v2
   |> Common.map (fun x ->
-         OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
+         G.OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
          |> G.d)
 
 and v_package (v1, v2) =
@@ -515,7 +515,8 @@ and v_arguments = function
           { e = Call ({ e = N (Id (("*", tok), _)); _ }, (lb', [ e ], rb')); _ }
         :: rest ->
           let splatted_last_arg =
-            Call (G.IdSpecial (G.Spread, tok) |> G.e, (lb', [ e ], rb')) |> G.e
+            G.Call (G.IdSpecial (G.Spread, tok) |> G.e, (lb', [ e ], rb'))
+            |> G.e
           in
           (lb, List.rev rest @ [ G.Arg splatted_last_arg ], rb)
       | _ -> (lb, v1, rb))
@@ -894,7 +895,7 @@ and v_given_definition { gsig; gkind } =
           | None -> []
           | Some body ->
               let body = v_template_body body in
-              [ G.S (Block body |> G.s) ]
+              [ G.S (G.Block body |> G.s) ]
         in
         v1 @ v2
     | GivenType (ty, exp) ->
