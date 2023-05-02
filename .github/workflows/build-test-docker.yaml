@@ -74,14 +74,19 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
-      # - name: Load image
-      #   run: |
-      #     docker import --input /tmp/image.tar
-      # - name: Checkout
-      #   uses: actions/checkout@v3
-      # - name: Test Image
-      #   if: ${{ inputs.enable-tests }}
-      #   run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
+      - name: Load image
+        run: |
+          curl -L -o /tmp/regctl "https://github.com/regclient/regclient/releases/download/v0.4.8/regctl-linux-amd64"
+          chmod a+x /tmp/regctl
+          /tmp/regctl image import ocidir:///tmp/oci-image /tmp/image.tar
+          /tmp/regctl image export --name ${{ inputs.repository-name }}:latest -p linux/amd64 ocidir:///tmp/oci-image /tmp/image-amd64.tar
+          docker import --input /tmp/image-amd64.tar
+          rm -rf /tmp/oci-image
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Test Image
+        if: ${{ inputs.enable-tests }}
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
