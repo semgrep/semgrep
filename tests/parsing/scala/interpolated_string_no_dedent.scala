@@ -8,3 +8,10 @@ def foo(): String =
 
   s"""foo: $x (bar: $y)
 $z"""
+
+def foo(): String =
+  val x = 2 
+
+  s"""foo: $x (bar: $y)
+$z"""
+  val y = 3
