@@ -577,7 +577,7 @@ Would have sent complete blob: {
         "engine_requested": "OSS"
     }
 }
-  View results in Semgrep App:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
