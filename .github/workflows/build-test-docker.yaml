@@ -67,7 +67,7 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v4
         with:
-          platforms: linux/amd64,linux/arm/v8
+          platforms: linux/amd64,linux/arm64
           outputs: type=oci,dest=/tmp/image.tar
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
