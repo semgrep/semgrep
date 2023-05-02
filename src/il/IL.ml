@@ -252,6 +252,21 @@ and 'a argument = Unnamed of 'a | Named of ident * 'a
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* THINK: Types contain expressions that we want to check, but right now we don't
+ * need to duplicate the type 'type_' just for this (perhaps we could parameterize it?). *)
+type type_ = {
+  type_ : G.type_;
+  exps : exp list;
+      (* IL translation of the expressions in `type_`, we want to check them because
+       * these could be sinks! E.g. in `new E(args)` the class/constructor E could be
+       * a sink. *)
+}
+[@@deriving show { with_path = false }]
+
+(*****************************************************************************)
 (* Instruction *)
 (*****************************************************************************)
 
@@ -266,13 +281,13 @@ and instr_kind =
   | AssignAnon of lval * anonymous_entity
   | Call of lval option * exp (* less: enforce lval? *) * exp argument list
   | CallSpecial of lval option * call_special wrap * exp argument list
+  | New of lval * type_ * exp option (* constructor *) * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
 
 and call_special =
   | Eval
   (* TODO: lift up like in AST_generic *)
-  | New
   | Typeof
   | Instanceof
   | Sizeof

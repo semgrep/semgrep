@@ -233,6 +233,13 @@ let is_hcl lang =
   | Lang.Terraform -> true
   | _ -> false
 
+let mk_class_constructor_name (ty : G.type_) cons_id_info =
+  match ty with
+  | { t = TyN (G.Id (id, _)); _ }
+    when Option.is_some !(cons_id_info.G.id_resolved) ->
+      Some (G.Id (id, cons_id_info))
+  | __else__ -> None
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -570,13 +577,13 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, _TODO, args) ->
-      (* TODO: lift up New in IL like we did in AST_generic *)
-      let special = (New, tok) in
-      let arg = G.ArgType ty in
+  | G.New (tok, ty, _cons_id_info, args) ->
+      (* Fall-through case where we don't know to what variable the allocated object
+       * is being assigned to. *)
+      let lval = fresh_lval env tok in
       let args = arguments env (Tok.unbracket args) in
-      add_call env tok eorig ~void (fun res ->
-          CallSpecial (res, special, argument env arg :: args))
+      add_instr env (mk_i (New (lval, type_ env ty, None, args)) eorig);
+      mk_e (Fetch lval) NoOrig
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
       let args = arguments env (Tok.unbracket args) in
@@ -853,7 +860,7 @@ and argument env arg =
   | G.ArgKwdOptional (id, e) ->
       Named (id, expr env e)
   | G.ArgType { t = TyExpr e; _ } -> Unnamed (expr env e)
-  | _ ->
+  | __else__ ->
       let any = G.Ar arg in
       Unnamed (fixme_exp ToDo any (Related any))
 
@@ -1105,6 +1112,18 @@ and parameters _env params : name list =
        | ___else___ -> None (* TODO *))
 
 (*****************************************************************************)
+(* Type *)
+(*****************************************************************************)
+
+and type_ env (ty : G.type_) : type_ =
+  let exps =
+    match ty.t with
+    | G.TyExpr e -> [ expr env e ]
+    | __TODO__ -> []
+  in
+  { type_ = ty; exps }
+
+(*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
 
@@ -1146,6 +1165,41 @@ and stmt_aux env st =
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
       ss @ ss'
+  | G.DefStmt
+      ( { name = EN obj; _ },
+        G.VarDef
+          {
+            G.vinit =
+              Some ({ e = G.New (_tok, ty, cons_id_info, args); _ } as new_exp);
+            _;
+          } ) ->
+      (* x = new T(args) *)
+      let obj' = var_of_name obj in
+      let obj_lval = lval_of_base (Var obj') in
+      let ss, args' = args_with_pre_stmts env (Tok.unbracket args) in
+      let opt_cons =
+        let* cons = mk_class_constructor_name ty cons_id_info in
+        let cons' = var_of_name cons in
+        let cons_exp =
+          mk_e
+            (Fetch
+               {
+                 obj_lval with
+                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
+               })
+            (SameAs (N cons |> G.e))
+          (* THINK: We need this because Pro looks at the eorig, but maybe it shouldn't? *)
+        in
+        Some cons_exp
+      in
+      ss
+      @ [
+          mk_s
+            (Instr
+               (mk_i
+                  (New (obj_lval, type_ env ty, opt_cons, args'))
+                  (SameAs new_exp)));
+        ]
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in

@@ -1,3 +1,6 @@
+val is_pro_resolved_global : IL.name -> bool
+(** Test whether a name is global and has been resolved by Pro-naming. *)
+
 val exp_of_arg : IL.exp IL.argument -> IL.exp
 
 (** Lvalue/Rvalue helpers working on the IL *)
