@@ -808,17 +808,28 @@ let inBrackets f in_ =
   |> with_logging "inBrackets" (fun () ->
          inGroupers (LBRACKET ab) (RBRACKET ab) f in_)
 
+let inIndented f in_ =
+  in_
+  |> with_logging "inIndented" (fun () ->
+         enterIndentRegion in_;
+         let res = fb (Tok.unsafe_fake_tok "") (f in_) in
+         closeIndentRegion in_;
+         res)
+
 (* less: do actual error recovery? *)
 let inBracesOrNil = inBraces
 
 let inBracesOrIndented f in_ =
   match in_.token with
   | LBRACE _ -> inBraces f in_
+  | _ -> inIndented f in_
+
+let inBracesOrColonIndented f in_ =
+  match in_.token with
+  | LBRACE _ -> inBraces f in_
   | _ ->
-      enterIndentRegion in_;
-      let res = fb (Tok.unsafe_fake_tok "") (f in_) in
-      closeIndentRegion in_;
-      res
+      accept (COLON ab) in_;
+      inIndented f in_
 
 (** {{{ { `sep` part } }}}. *)
 let separatedToken sep part in_ =
@@ -4044,9 +4055,7 @@ let templateBody ~isPre in_ : template_body =
   | _ ->
       (* must be a colon *)
       accept (COLON ab) in_;
-      enterIndentRegion in_;
-      let res = fb (Tok.unsafe_fake_tok "") (templateStatSeq ~isPre in_) in
-      closeIndentRegion in_;
+      let res = inIndented (templateStatSeq ~isPre) in_ in
       res
 
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
@@ -4221,7 +4230,7 @@ let packageOrPackageObject ipackage in_ : top_stat =
     D x
   else
     let x = pkgQualId in_ in
-    let body = inBracesOrNil topStatSeq in_ in
+    let body = inBracesOrColonIndented topStatSeq in_ in
     (* ast: makePackaging(x, body) *)
     let pack = (ipackage, x) in
     Packaging (pack, body)
