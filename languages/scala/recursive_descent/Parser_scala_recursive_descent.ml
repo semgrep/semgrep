@@ -4622,7 +4622,7 @@ let enumDef attrs in_ =
   |> with_logging "enumDef" (fun () ->
          (* 'enum' *)
          let ikind = TH.info_of_tok in_.token in
-         accept (Kenum ab) in_;
+         accept (ID_LOWER ("enum", ab)) in_;
 
          let name = ident in_ in
 
@@ -4794,7 +4794,7 @@ let tmplDef attrs in_ : definition =
       | _ when TH.isIdentBool in_.token -> EnumCaseDef (attrs, enumCaseRest in_)
       (* pad: my error message *)
       | _ -> error "expecting class or object after a case" in_)
-  | Kenum _ -> enumDef attrs in_
+  | ID_LOWER ("enum", _) -> enumDef attrs in_
   (* "given" is a soft keyword *)
   | ID_LOWER ("given", _) ->
       skipToken in_;

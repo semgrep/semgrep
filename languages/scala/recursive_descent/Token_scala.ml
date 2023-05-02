@@ -66,7 +66,6 @@ type token =
   | Kclass of Tok.t
   | Kcatch of Tok.t
   | Kcase of Tok.t
-  | Kenum of Tok.t
   | Kabstract of Tok.t
   | IntegerLiteral of (int option * Tok.t)
   | ID_UPPER of (string * Tok.t)

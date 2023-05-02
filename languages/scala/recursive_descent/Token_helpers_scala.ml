@@ -129,7 +129,6 @@ let visitor_info_of_tok f = function
   | Kpackage ii -> Kpackage (f ii)
   | Koverride ii -> Koverride (f ii)
   | Kobject ii -> Kobject (f ii)
-  | Kenum ii -> Kenum (f ii)
   | Knull ii -> Knull (f ii)
   | Knew ii -> Knew (f ii)
   | Kmatch ii -> Kmatch (f ii)
@@ -412,6 +411,7 @@ let isLocalModifier = function
    enter the `expr` case, in favor of parsing them as templateStat keywords.
 *)
 let isTemplateStatIntroSoftKeyword = function
+  | ID_LOWER ("enum", _)
   | ID_LOWER ("given", _)
   | ID_LOWER ("end", _)
   | ID_LOWER ("export", _)
@@ -458,7 +458,7 @@ let isTemplateDefIntro x =
   | Kobject _
   | Kclass _
   | Ktrait _
-  | Kenum _
+  | ID_LOWER ("enum", _)
   | ID_LOWER ("given", _) ->
       true
   | _ -> false
