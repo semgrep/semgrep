@@ -252,6 +252,12 @@ and v_type_kind = function
           todo_type "TyAppliedComplex"
             (G.T v1 :: (xs |> Common.map (fun x -> G.T x))))
   | TyAnon (v1, v2) ->
+      (* We'd prefer to see type bounds in a `type_parameter`, but this
+         nonterminal needs to become a `type_` argument anyways, and we
+         don't really have a way of embedding `type_parameter` into a
+         `type`. This won't matter semantically, so let's just keep it
+         as an `OtherType`.
+      *)
       let bound1, bound2 = v_type_bounds v2 in
       let bound1 =
         match bound1 with
