@@ -56,7 +56,7 @@
 #
 # coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
-FROM returntocorp/ocaml:alpine-2023-04-17 as semgrep-core-container
+FROM returntocorp/ocaml:alpine-2023-05-02 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY . .
