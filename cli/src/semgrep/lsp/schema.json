@@ -48,14 +48,10 @@
       "default": true,
       "description": "Only scan lines changed since the last commit"
     },
-    "semgrep.metrics": {
-      "type": "string",
-      "default": "on",
-      "items": {
-        "type": "string",
-        "enum": ["auto", "on", "off"]
-      },
-      "description": "Enable or disable metrics collection. Auto will only report metrics when rules are pulled from the registry"
+    "semgrep.metrics.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable metrics collection."
     }
   }
 }
