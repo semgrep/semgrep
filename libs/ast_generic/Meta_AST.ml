@@ -1015,6 +1015,7 @@ and vof_other_stmt_operator = function
   | OS_Asm -> OCaml.VSum ("OS_Asm", [])
   | OS_Go -> OCaml.VSum ("OS_Go", [])
   | OS_Defer -> OCaml.VSum ("OS_Defer", [])
+  | OS_Extension -> OCaml.VSum ("OS_Extension", [])
   | OS_Fallthrough -> OCaml.VSum ("OS_Fallthrough", [])
 
 and vof_pattern = function

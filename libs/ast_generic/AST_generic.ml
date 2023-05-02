@@ -1348,6 +1348,8 @@ and other_stmt_operator =
   | OS_Retry
   (* OCaml *)
   | OS_ExprStmt2
+  (* Scala *)
+  | OS_Extension
   (* Other: Leave/Emit in Solidity *)
   | OS_Todo
 
@@ -1355,7 +1357,7 @@ and other_stmt_operator =
 (* Pattern *)
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
- * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
+* equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
  * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.

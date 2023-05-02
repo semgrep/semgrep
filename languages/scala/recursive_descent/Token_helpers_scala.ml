@@ -339,6 +339,17 @@ let isStatSep = function
 let isStatSeqEnd = function
   | RBRACE _
   | DEDENT _
+  (* This is here so we know how to end a blockStatSeq which is the "then"
+     expression in an if-then-else, like
+     if (true)
+       val x = 2
+       val y = 3
+     else
+       4
+     It should be safe to put this here, because there shouldn't be another reason
+     to see an `else`.
+  *)
+  | Kelse _
   | EOF _ ->
       true
   | _ -> false
@@ -382,7 +393,8 @@ let isTemplateIntro = function
   | Kclass _
   | Kenum _
   | Ktrait _
-  | ID_LOWER ("given", _) ->
+  | ID_LOWER ("given", _)
+  | ID_LOWER ("extension", _) ->
       true
   (*TODO | Kcaseobject | | Kcaseclass *)
   | Kcase _ -> true

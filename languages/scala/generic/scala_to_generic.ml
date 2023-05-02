@@ -756,6 +756,7 @@ and v_block_stat x : G.item list =
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
+  | Ext v1 -> v_extension v1
   | Package v1 ->
       let ipak, ids = v_package v1 in
       [ G.DirectiveStmt (G.Package (ipak, ids) |> G.d) |> G.s ]
@@ -912,6 +913,27 @@ and v_given_definition { gsig; gkind } =
     ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
       G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
   ]
+
+and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
+    : G.stmt list =
+  let tparams =
+    G.Anys (v_type_parameters ext_tparams |> Common.map (fun tp -> G.Tp tp))
+  in
+  let using =
+    G.Anys
+      (v_list v_bindings ext_using |> Common.map (fun params -> G.Params params))
+  in
+  let params = G.Pa (v_binding None ext_param) in
+  let methods = G.Anys (List.concat_map v_ext_method ext_methods) in
+  (* Extensions are definitions and methods that extend an existing class. It's not
+     super important for semantic analysis right now.
+  *)
+  [ G.OtherStmt (OS_Extension, [ tparams; using; params; methods ]) |> G.s ]
+
+and v_ext_method ext_method : G.any list =
+  match ext_method with
+  | ExtDef def -> v_definition def |> Common.map (fun def -> G.Def def)
+  | ExtExport import -> v_import import |> Common.map (fun dir -> G.Dir dir)
 
 and v_constr_app (ty, args) = (v_type_ ty, v_list v_arguments args)
 
