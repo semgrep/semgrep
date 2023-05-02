@@ -356,6 +356,7 @@ and block_stat =
   | I of import
   | Ex of import
   | Ext of extension
+  | End of end_marker
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -467,6 +468,11 @@ and definition_kind =
   | TypeDef of type_definition
   (* class/traits/objects *)
   | Template of template_definition
+
+(*****************************************************************************)
+(* End Marker *)
+(*****************************************************************************)
+and end_marker = { end_tok : tok; end_kind : tok }
 
 (*****************************************************************************)
 (* Extensions *)
