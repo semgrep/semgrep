@@ -251,6 +251,19 @@ and v_type_kind = function
       | _ ->
           todo_type "TyAppliedComplex"
             (G.T v1 :: (xs |> Common.map (fun x -> G.T x))))
+  | TyAnon (v1, v2) ->
+      let bound1, bound2 = v_type_bounds v2 in
+      let bound1 =
+        match bound1 with
+        | None -> []
+        | Some (_tok, ty) -> [ G.T ty ]
+      in
+      let bound2 =
+        match bound2 with
+        | None -> []
+        | Some (_tok, ty) -> [ G.T ty ]
+      in
+      G.OtherType (("?", v1), bound1 @ bound2)
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])

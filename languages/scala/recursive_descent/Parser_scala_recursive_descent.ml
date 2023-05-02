@@ -1294,6 +1294,7 @@ and tupleInfixType in_ : type_ =
  *                     |  StableId
  *                     |  Path `.` type
  *                     |  Literal
+ *                     |  `?` TypeBounds
  *                     |  `(` Types `)`
  *                     |  WildcardType
  *  }}}
@@ -1313,6 +1314,12 @@ and simpleType in_ : type_ =
              let x = literal ~isNegated:(Some ii) in_ in
              (* ast: SingletonTypeTree(x) *)
              TyLiteral x
+         (* See https://docs.scala-lang.org/scala3/reference/changed-features/wildcards.html *)
+         | OP ("?", _) ->
+             let ii = TH.info_of_tok in_.token in
+             skipToken in_;
+             let bounds = typeBounds in_ in
+             TyAnon (ii, bounds)
          | _ ->
              let start =
                match in_.token with
