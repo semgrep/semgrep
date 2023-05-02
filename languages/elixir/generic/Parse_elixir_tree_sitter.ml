@@ -859,7 +859,8 @@ and map_capture_expression (env : env) (x : CST.capture_expression) : expr =
       let v1 = (* "(" *) token env v1 in
       let v2 = map_expression env v2 in
       let v3 = (* ")" *) token env v3 in
-      ParenExpr (v1, v2, v3) |> G.e
+      AST_generic_helpers.set_e_range v1 v3 v2;
+      v2
   | `Exp x -> map_expression env x
 
 and map_catch_block (env : env) ((v1, v2, v3) : CST.catch_block) =
