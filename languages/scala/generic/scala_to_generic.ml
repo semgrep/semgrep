@@ -1092,14 +1092,18 @@ and v_binding using_opt v : G.parameter =
       | Some (PT v1) ->
           let v1 = v_type_ v1 in
           G.Param { pclassic with ptype = Some v1 }
-      | Some (PTByNameApplication (v1, v2)) ->
+      | Some (PTByNameApplication (v1, v2, v3)) -> (
           let v1 = v_tok v1 and v2 = v_type_ v2 in
-          G.Param
+          let pclassic =
             {
               pclassic with
               ptype = Some v2;
               pattrs = G.KeywordAttr (G.Lazy, v1) :: pclassic.pattrs;
             }
+          in
+          match v3 with
+          | Some ii -> G.ParamRest (ii, pclassic)
+          | _ -> G.Param pclassic)
       | Some (PTRepeatedApplication (v1, v2)) ->
           let v1 = v_type_ v1 and v2 = v_tok v2 in
           G.ParamRest (v2, { pclassic with ptype = Some v1 }))

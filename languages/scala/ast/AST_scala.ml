@@ -546,7 +546,7 @@ and parameter_classic = {
 
 and param_type =
   | PT of type_
-  | PTByNameApplication of tok (* => *) * type_
+  | PTByNameApplication of tok (* => *) * type_ * (* * *) tok option
   | PTRepeatedApplication of type_ * tok (* * *)
 
 (* ------------------------------------------------------------------------- *)

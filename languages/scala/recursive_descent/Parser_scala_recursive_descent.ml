@@ -1480,7 +1480,9 @@ and argType in_ =
 and functionArgType in_ =
   warning "functionArgType STILL? argType or paramType";
   match !paramType_ ~repeatedParameterOK:false in_ with
-  | PTByNameApplication (tok, t) -> TyByName (tok, t)
+  | PTByNameApplication (tok, t, _star_opt) ->
+      (* RepeatedType probably not allowed here either *)
+      TyByName (tok, t)
   | PT t -> t
   | PTRepeatedApplication _ -> error "RepeatedType not allowed here" in_
 
@@ -3105,7 +3107,7 @@ let modifiers in_ =
 (* ------------------------------------------------------------------------- *)
 
 (** {{{
- *  ParamType ::= Type | `=>` Type | Type `*`
+ *  ParamType ::= Type | `=>` Type ['*'] | Type `*`
  *  }}}
 *)
 let paramType ?(repeatedParameterOK = true) in_ : param_type =
@@ -3116,8 +3118,16 @@ let paramType ?(repeatedParameterOK = true) in_ : param_type =
          | ARROW ii ->
              nextToken in_;
              let t = typ in_ in
+             let star_opt =
+               match in_.token with
+               | tok when TH.isRawStar tok ->
+                   let ii = TH.info_of_tok in_.token in
+                   skipToken in_;
+                   Some ii
+               | _ -> None
+             in
              (* ast: byNameApplication *)
-             PTByNameApplication (ii, t)
+             PTByNameApplication (ii, t, star_opt)
          | _ ->
              let t = typ in_ in
              if TH.isRawStar in_.token then (
