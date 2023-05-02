@@ -1084,6 +1084,9 @@ let indentedExprOrBlockStatSeqUntil_ =
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
 let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
+let paramClauseInner_ =
+  ref (fun ~caseParam:_ ~endTok:_ _ _ -> failwith "forward ref not set")
+
 let paramType_ =
   ref (fun ?repeatedParameterOK _ ->
       ignore repeatedParameterOK;
@@ -1165,11 +1168,26 @@ let pushOpInfo _topTODO in_ : ident * type_ list bracket option =
 (* in PatternContextSensitive *)
 (* ------------------------------------------------------------------------- *)
 
+(* A TypedFunParam looks like "id ':' Type"
+   but it might actually be just a series of comma-separated types
+   so let's use two lookahead to see whether it's just an IDENT and
+   then COLON.
+*)
+let is_typed_fun_param_after_lparen in_ =
+  lookingAhead
+    (fun in_ ->
+      if TH.isIdentBool in_.token then (
+        nextToken in_;
+        in_.token =~= COLON ab)
+      else false)
+    in_
+
 (** {{{
  *  Type ::= InfixType `=>` Type
  *         | `(` [`=>` Type] `)` `=>` Type
  *         | InfixType [ExistentialClause]
  *         | InfixType `match` <<< TypeCaseClauses >>>
+ *         | FunType
  *  ExistentialClause ::= forSome `{` ExistentialDcl {semi ExistentialDcl} `}`
  *  ExistentialDcl    ::= type TypeDcl | val ValDcl
  *  }}}
@@ -1180,6 +1198,8 @@ let rec typ in_ : type_ =
          (* CHECK: placeholderTypeBoundary *)
          let t =
            match in_.token with
+           | LBRACKET _ -> funType in_
+           | LPAREN _ when is_typed_fun_param_after_lparen in_ -> funType in_
            | LPAREN _ -> tupleInfixType in_
            | _ -> infixType FirstOp in_
          in
@@ -1197,6 +1217,63 @@ let rec typ in_ : type_ =
              let _, type_case_clauses, _ = inBraces !typeCaseClauses_ in_ in
              TyMatch (t, ii, type_case_clauses)
          | _ -> t)
+
+(** {{{
+ *  FunType ::= FunTypeArgs (`=>` | `?=>') Type
+ *            | HKTypeParamClause `=>` Type
+ *
+ *  FunTypeArgs   ::=  InfixType
+ *                  |  ‘(’ [ FunArgTypes ] ‘)’
+ *                  |  FunParamClause
+ *
+ * FunParamClause ::= ‘(’ TypedFunParam {‘,’ TypedFunParam } ‘)’
+ * TypedFunParam  ::= id ‘:’ Type
+ * }}}
+*)
+
+and funType in_ : type_ =
+  let owner = ("", Tok.unsafe_fake_tok "") in
+  match in_.token with
+  | LBRACKET _ ->
+      (* I still don't know why this is necessary. *)
+      let caseParam = ref [] in
+      let _, (params, _), _ =
+        inBrackets
+          (fun in_ ->
+            !paramClauseInner_ ~caseParam ~endTok:(RBRACKET ab) owner in_)
+          in_
+      in
+      let ii = TH.info_of_tok in_.token in
+      skipToken in_;
+      let ty = typ in_ in
+      TyPoly (params, ii, ty)
+  | _ -> (
+      let type_args = funTypeArgs in_ in
+      let ii = TH.info_of_tok in_.token in
+      (* one of two kinds of arrows *)
+      skipToken in_;
+      let ty = typ in_ in
+      match type_args with
+      | Left3 ty_args -> TyDependent (ty_args, ii, ty)
+      | Middle3 tys -> TyFunction2 (tys, ii, ty)
+      | Right3 l_ty -> TyFunction1 (l_ty, ii, ty))
+
+and funTypeArgs in_ : ((ident * type_) list, type_ list bracket, type_) either3
+    =
+  match in_.token with
+  | LPAREN _ ->
+      if is_typed_fun_param_after_lparen in_ then
+        inParens (commaSeparated typedFunParam) in_ |> Tok.unbracket |> fun l ->
+        Left3 l
+      else inParens types in_ |> fun x -> Middle3 x
+  | _ -> Right3 (infixType FirstOp in_)
+
+and typedFunParam in_ : ident * type_ =
+  let id = ident in_ in
+  let _ii = TH.info_of_tok in_.token in
+  accept (COLON ab) in_;
+  let ty = typ in_ in
+  (id, ty)
 
 (** {{{
  *  InfixType ::= CompoundType {id [nl] CompoundType}
@@ -3258,12 +3335,15 @@ let param _owner implicitmod _caseParam in_ : binding =
          | _ ->
              let name = ident in_ in
              let tpt =
-               accept (COLON ab) in_;
-               if in_.token =~= ARROW ab then
-                 ( (* CHECK: if owner.isTypeName && !mods.isLocalToThis
-                    * "var/val parameters may not be call-by-name" *)
-                   (* ast: bynamemod = Flags.BYNAMEPARAM *) );
-               paramType in_
+               match in_.token with
+               | COLON _ ->
+                   accept (COLON ab) in_;
+                   if in_.token =~= ARROW ab then
+                     ( (* CHECK: if owner.isTypeName && !mods.isLocalToThis
+                          * "var/val parameters may not be call-by-name" *)
+                       (* ast: bynamemod = Flags.BYNAMEPARAM *) );
+                   Some (paramType in_)
+               | _ -> None
              in
              let default =
                match in_.token with
@@ -3279,12 +3359,7 @@ let param _owner implicitmod _caseParam in_ : binding =
              (* ast: ValDef((mods|implicitmod|bynamemod) with annots, name.toTermName, tpt, default) *)
              let p_attrs = AST.mods_with_annots mods annots in
              ParamClassic
-               {
-                 p_name = name;
-                 p_attrs;
-                 p_type = Some tpt;
-                 p_default = default;
-               })
+               { p_name = name; p_attrs; p_type = tpt; p_default = default })
 
 (* parses the part of the using param clause, inside the parens *)
 let usingParamClauseInner ~caseParam owner implicitmod in_ =
@@ -3307,6 +3382,22 @@ let usingParamClauseInner ~caseParam owner implicitmod in_ =
         (commaSeparated (param owner implicitmod !caseParam) in_, Some ii)
   | _ -> error "expected using param clause" in_
 
+let paramClauseInner ~caseParam ~endTok owner in_ : binding list * tok option =
+  if in_.token =~= endTok then ([], None)
+  else
+    let implicitmod =
+      match in_.token with
+      | Kimplicit ii ->
+          nextToken in_;
+          (* AST: Flags.IMPLICIT *)
+          [ (Implicit, ii) ]
+      | _ -> []
+    in
+    match in_.token with
+    | ID_LOWER ("using", _) ->
+        usingParamClauseInner ~caseParam owner implicitmod in_
+    | __else__ -> (commaSeparated (param owner implicitmod !caseParam) in_, None)
+
 (* CHECK: "no by-name parameter type allowed here" *)
 (* CHECK: "no * parameter type allowed here" *)
 (* AST: convert tree to parameter *)
@@ -3315,26 +3406,12 @@ let usingParamClauseInner ~caseParam owner implicitmod in_ =
 let paramClauses ~ofCaseClass owner _contextBoundBuf in_ : bindings list =
   let vds = ref [] in
   let caseParam = ref ofCaseClass in
-  let paramClause in_ : binding list * tok option =
-    if in_.token =~= RPAREN ab then ([], None)
-    else
-      let implicitmod =
-        match in_.token with
-        | Kimplicit ii ->
-            nextToken in_;
-            (* AST: Flags.IMPLICIT *)
-            [ (Implicit, ii) ]
-        | _ -> []
-      in
-      match in_.token with
-      | ID_LOWER ("using", _) ->
-          usingParamClauseInner ~caseParam owner implicitmod in_
-      | __else__ ->
-          (commaSeparated (param owner implicitmod !caseParam) in_, None)
-  in
+
   newLineOptWhenFollowedBy (LPAREN ab) in_;
   while in_.token =~= LPAREN ab do
-    let x = inParens paramClause in_ in
+    let x =
+      inParens (paramClauseInner ~caseParam ~endTok:(RPAREN ab) owner) in_
+    in
     vds += x;
     caseParam := false;
     newLineOptWhenFollowedBy (LPAREN ab) in_
@@ -4730,6 +4807,7 @@ let _ =
   paramType_ := paramType;
 
   typeCaseClauses_ := typeCaseClauses;
+  paramClauseInner_ := paramClauseInner;
   ()
 
 (** {{{

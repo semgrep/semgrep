@@ -284,6 +284,19 @@ and v_type_kind = function
         v1 |> Tok.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
+  | TyPoly (v1, _v2, v3) ->
+      let v1 = v_list (v_binding None) v1 in
+      let v3 = v_type_ v3 in
+      G.TyFun (v1, v3)
+  | TyDependent (v1, _v2, v3) ->
+      let v1 =
+        v_list
+          (fun (v1, v2) ->
+            G.Param (G.param_of_type ~pname:(Some (v_ident v1)) (v_type_ v2)))
+          v1
+      in
+      let v3 = v_type_ v3 in
+      G.TyFun (v1, v3)
   | TyTuple v1 ->
       let v1 = v_bracket (v_list v_type_) v1 in
       G.TyTuple v1
