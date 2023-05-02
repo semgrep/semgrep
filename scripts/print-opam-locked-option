@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+#
+# Print the flag '--locked' or '--locked=locked' depending the opam version.
+#
+
+if opam --version | grep '^2\.0\.'; then
+  echo --locked=locked
+else
+  echo --locked
+fi

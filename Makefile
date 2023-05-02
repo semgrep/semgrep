@@ -54,6 +54,11 @@ else
   SED = sed -i ''
 endif
 
+# In opam 2.0.7 as provided by alpine stable, we need to pass the
+# option '--locked=locked' while opam >= 2.1.0 only accepts '--locked'.
+# Remove this when all our systems use opam >= 2.1.
+OPAM_LOCKED_OPTION ?= $(shell ./scripts/print-opam-locked-option)
+
 ###############################################################################
 # Environment variables
 ###############################################################################
@@ -261,7 +266,7 @@ install-deps-for-semgrep-core:
 	# Install OCaml dependencies (globally).
 	opam install -y --deps-only $(OPAM_INSTALL_OPTIONS) \
 	  ./libs/ocaml-tree-sitter-core
-	opam install -y --deps-only --locked $(OPAM_INSTALL_OPTIONS) ./
+	opam install -y --deps-only $(OPAM_LOCKED_OPTION) $(OPAM_INSTALL_OPTIONS) ./
 
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
