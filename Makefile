@@ -208,6 +208,7 @@ core-uninstall:
 test:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
+	$(MAKE) -C cli osempass
 
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
