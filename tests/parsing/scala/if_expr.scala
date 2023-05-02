@@ -49,6 +49,10 @@ val x =
     val y = 3 
   else 3
 
+val x =
+  if true 
+  then 1 
+  else 2 
 
 
 
