@@ -2278,13 +2278,13 @@ and guard in_ : guard option =
              Some (ii, stripParens x)
          | _ -> None)
 
-and caseBlock in_ : tok * block =
+and caseRhs rhs_fn in_ : tok * block =
   let ii = TH.info_of_tok in_.token in
   accept (ARROW ab) in_;
-  let x = block in_ in
+  let x = rhs_fn in_ in
   (ii, x)
 
-and caseClause icase in_ : (pattern, block) case_clause =
+and caseClause rhs_fn icase in_ : (pattern, block) case_clause =
   let p, g =
     inSepRegion (ARROW icase)
       (fun () ->
@@ -2293,15 +2293,26 @@ and caseClause icase in_ : (pattern, block) case_clause =
         (p, g))
       in_
   in
-  let iarrow, block = caseBlock in_ in
+  let iarrow, rhs = caseRhs rhs_fn in_ in
   (* ast: makeCaseDef *)
   CC
     {
       casetoks = (icase, iarrow);
       case_left = p;
       caseguard = g;
-      case_right = block;
+      case_right = rhs;
     }
+
+(** {{{
+ *  ExprCaseClause  ::= case Pattern [Guard] `=>` Expr
+ *  }}}
+*)
+and exprCaseClause icase in_ =
+  caseClause
+    (fun in_ ->
+      let expr = expr in_ in
+      [ E expr ])
+    icase in_
 
 (** {{{
  *  CaseClauses ::= CaseClause {CaseClause}
@@ -2323,7 +2334,7 @@ and caseClauses in_ : case_clauses =
     match in_.token with
     | Kcase ii ->
         nextToken in_;
-        let x = caseClause ii in_ in
+        let x = caseClause block ii in_ in
         ts += x
     | Ellipsis ii ->
         nextToken in_;
@@ -2607,7 +2618,7 @@ and parseTry in_ : stmt =
         match in_.token with
         | Kcase ab ->
             skipToken in_;
-            let cc = caseClause ab in_ in
+            let cc = exprCaseClause ab in_ in
             (* Technically, the body of this case should be an `expr`, and
                not a `block`.
 
