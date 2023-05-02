@@ -254,7 +254,7 @@ install-deps-for-semgrep-core:
 	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
 	opam install -y --deps-only --locked $(OPAM_INSTALL_OPTIONS) \
-	  ./libs/ocaml-tree-sitter-core
+          ./libs/ocaml-tree-sitter-core
 	opam install -y --deps-only --locked $(OPAM_INSTALL_OPTIONS) ./
 
 # We could also add python dependencies at some point
