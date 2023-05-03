@@ -179,6 +179,10 @@ and type_ =
   | TyInfix of type_ * ident * type_
   | TyFunction1 of type_ * tok (* '=>' *) * type_
   | TyFunction2 of type_ list bracket * tok (* '=>' *) * type_
+  (* https://docs.scala-lang.org/scala3/reference/new-types/polymorphic-function-types.html *)
+  | TyPoly of binding list * tok (* '=>' *) * type_
+  (* https://docs.scala-lang.org/scala3/reference/new-types/dependent-function-types.html *)
+  | TyDependent of (ident * type_) list * tok (* '=>' *) * type_
   | TyTuple of type_ list bracket
   | TyRepeated of type_ * tok (* '*' *)
   | TyByName of tok (* => *) * type_
