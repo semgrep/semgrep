@@ -490,7 +490,6 @@ def main(
             file_ignore=get_file_ignore(),
         )
     except FilesNotFoundError as e:
-        raise FileNotFoundError("foo.py")
         raise SemgrepError(e)
 
     core_start_time = time.time()
