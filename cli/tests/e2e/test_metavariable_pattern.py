@@ -16,6 +16,7 @@ def test1(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osempass
 def test2(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # https://linear.app/r2c/issue/PA-2696
     snapshot.assert_match(
