@@ -93,6 +93,11 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
+  Failed to parse [bold]Pipfile.lock[/bold] at [bold]2:1[/bold] - expected one  
+  of ['"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false',     
+  'null', 'true', '{']                                                          
+  2 | invalid                                                                   
+      ^                                                                         
                 
                 
 ┌──────────────┐
