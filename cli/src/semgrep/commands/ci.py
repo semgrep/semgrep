@@ -420,7 +420,7 @@ def ci(
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
-        elif rule.metadata.get("semgrep.dev", {}).get("src", "") == "previous-scan":
+        elif rule.scan_source == RuleScanSource.previous_scan:
             prev_scan_rules.append(rule)
         else:
             if rule.is_blocking:
@@ -466,7 +466,6 @@ def ci(
 
             applicable_result_set[rule].append(match)
 
-    # temp (VIVEK)
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 
