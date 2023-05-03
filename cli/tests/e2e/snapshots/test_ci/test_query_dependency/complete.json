@@ -29,7 +29,6 @@
     "engine_requested": "OSS"
   },
   "dependencies": {
-    "Pipfile.lock": [],
     "poetry.lock": [
       {
         "package": "badlib",
@@ -56,6 +55,7 @@
         "line_number": 17
       }
     ],
+    "Pipfile.lock": [],
     "yarn.lock": [
       {
         "package": "lodash",

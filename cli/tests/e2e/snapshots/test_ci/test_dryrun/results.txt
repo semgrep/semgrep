@@ -574,8 +574,8 @@ Would have sent complete blob: {
             ".txt": 1
         },
         "lockfile_scan_info": {
-            "Pipfile.lock": 0,
             "poetry.lock": 3,
+            "Pipfile.lock": 0,
             "yarn.lock": 1
         },
         "parse_rate": {
