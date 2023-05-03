@@ -2256,39 +2256,53 @@ and interpolatedString ~inPattern in_ =
   (* ast: let interpolater = in.name.encoded,  *)
   (* ast: let partsBuf = ref [] in let exprsBuf = ref [] in *)
   let xs = ref [] in
+  let ii = TH.info_of_tok in_.token in
   nextToken in_;
-  (* T_INTERPOLATED_START(s,info) *)
-  while TH.is_stringpart in_.token do
-    (* pad: in original code, but the interpolated string can start with
-     * a non string literal like $f, so I've commented this code.
-     * let x = literal in_ in
-     * if inPattern
-     * then todo "interpolatedString: inPattern (dropAnyBraces(pattern))" in_
-     * else
-     *)
-    match in_.token with
-    (* pad: the original code  uses IDENTIFIER but Lexer_scala.mll
-     * introduces a new token for $xxx.
-     * STILL? the original code also allow 'this', but ID_DOLLAR should cover
-     * that?
-     *)
-    | ID_DOLLAR _ ->
-        let x = ident in_ in
-        (* ast: Ident(x) *)
-        xs += EncapsDollarIdent x
-    (* actually a ${, but using LBRACE allows to reuse blockExpr *)
-    | LBRACE _ ->
-        let x = expr in_ in
-        (* ast: x *)
-        xs += EncapsExpr x
-    (* pad: not in original code, but the way Lexer_scala.mll is written
-     * we can have multiple consecutive StringLiteral *)
-    | StringLiteral x ->
-        nextToken in_;
-        xs += EncapsStr x
-    | _ ->
-        error "error in interpolated string: identifier or block expected" in_
-  done;
+  (* While parsing interpolated string components, we don't want
+     to emit NEWLINEs or DEDENTs.
+
+     This helps us in cases like:
+
+     object Foo:
+       val x = s"""
+     hi there"""
+  *)
+  inSepRegion (T_INTERPOLATED_END ii)
+    (fun () ->
+      (* T_INTERPOLATED_START(s,info) *)
+      while TH.is_stringpart in_.token do
+        (* pad: in original code, but the interpolated string can start with
+         * a non string literal like $f, so I've commented this code.
+         * let x = literal in_ in
+         * if inPattern
+         * then todo "interpolatedString: inPattern (dropAnyBraces(pattern))" in_
+         * else
+         *)
+        match in_.token with
+        (* pad: the original code  uses IDENTIFIER but Lexer_scala.mll
+         * introduces a new token for $xxx.
+         * STILL? the original code also allow 'this', but ID_DOLLAR should cover
+         * that?
+         *)
+        | ID_DOLLAR _ ->
+            let x = ident in_ in
+            (* ast: Ident(x) *)
+            xs += EncapsDollarIdent x
+        (* actually a ${, but using LBRACE allows to reuse blockExpr *)
+        | LBRACE _ ->
+            let x = expr in_ in
+            (* ast: x *)
+            xs += EncapsExpr x
+        (* pad: not in original code, but the way Lexer_scala.mll is written
+         * we can have multiple consecutive StringLiteral *)
+        | StringLiteral x ->
+            nextToken in_;
+            xs += EncapsStr x
+        | _ ->
+            error "error in interpolated string: identifier or block expected"
+              in_
+      done)
+    in_;
   (* pad: not in original code *)
   let ii = TH.info_of_tok in_.token in
   accept (T_INTERPOLATED_END ab) in_;
