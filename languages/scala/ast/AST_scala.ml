@@ -356,6 +356,7 @@ and block_stat =
   | I of import
   | Ex of import
   | Ext of extension
+  | End of end_marker
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -469,6 +470,11 @@ and definition_kind =
   | Template of template_definition
 
 (*****************************************************************************)
+(* End Marker *)
+(*****************************************************************************)
+and end_marker = { end_tok : tok; end_kind : tok }
+
+(*****************************************************************************)
 (* Extensions *)
 (*****************************************************************************)
 and extension = {
@@ -540,7 +546,7 @@ and parameter_classic = {
 
 and param_type =
   | PT of type_
-  | PTByNameApplication of tok (* => *) * type_
+  | PTByNameApplication of tok (* => *) * type_ * (* * *) tok option
   | PTRepeatedApplication of type_ * tok (* * *)
 
 (* ------------------------------------------------------------------------- *)

@@ -808,17 +808,28 @@ let inBrackets f in_ =
   |> with_logging "inBrackets" (fun () ->
          inGroupers (LBRACKET ab) (RBRACKET ab) f in_)
 
+let inIndented f in_ =
+  in_
+  |> with_logging "inIndented" (fun () ->
+         enterIndentRegion in_;
+         let res = fb (Tok.unsafe_fake_tok "") (f in_) in
+         closeIndentRegion in_;
+         res)
+
 (* less: do actual error recovery? *)
 let inBracesOrNil = inBraces
 
 let inBracesOrIndented f in_ =
   match in_.token with
   | LBRACE _ -> inBraces f in_
+  | _ -> inIndented f in_
+
+let inBracesOrColonIndented f in_ =
+  match in_.token with
+  | LBRACE _ -> inBraces f in_
   | _ ->
-      enterIndentRegion in_;
-      let res = fb (Tok.unsafe_fake_tok "") (f in_) in
-      closeIndentRegion in_;
-      res
+      accept (COLON ab) in_;
+      inIndented f in_
 
 (** {{{ { `sep` part } }}}. *)
 let separatedToken sep part in_ =
@@ -1469,7 +1480,9 @@ and argType in_ =
 and functionArgType in_ =
   warning "functionArgType STILL? argType or paramType";
   match !paramType_ ~repeatedParameterOK:false in_ with
-  | PTByNameApplication (tok, t) -> TyByName (tok, t)
+  | PTByNameApplication (tok, t, _star_opt) ->
+      (* RepeatedType probably not allowed here either *)
+      TyByName (tok, t)
   | PT t -> t
   | PTRepeatedApplication _ -> error "RepeatedType not allowed here" in_
 
@@ -2265,13 +2278,13 @@ and guard in_ : guard option =
              Some (ii, stripParens x)
          | _ -> None)
 
-and caseBlock in_ : tok * block =
+and caseRhs rhs_fn in_ : tok * block =
   let ii = TH.info_of_tok in_.token in
   accept (ARROW ab) in_;
-  let x = block in_ in
+  let x = rhs_fn in_ in
   (ii, x)
 
-and caseClause icase in_ : (pattern, block) case_clause =
+and caseClause rhs_fn icase in_ : (pattern, block) case_clause =
   let p, g =
     inSepRegion (ARROW icase)
       (fun () ->
@@ -2280,15 +2293,26 @@ and caseClause icase in_ : (pattern, block) case_clause =
         (p, g))
       in_
   in
-  let iarrow, block = caseBlock in_ in
+  let iarrow, rhs = caseRhs rhs_fn in_ in
   (* ast: makeCaseDef *)
   CC
     {
       casetoks = (icase, iarrow);
       case_left = p;
       caseguard = g;
-      case_right = block;
+      case_right = rhs;
     }
+
+(** {{{
+ *  ExprCaseClause  ::= case Pattern [Guard] `=>` Expr
+ *  }}}
+*)
+and exprCaseClause icase in_ =
+  caseClause
+    (fun in_ ->
+      let expr = expr in_ in
+      [ E expr ])
+    icase in_
 
 (** {{{
  *  CaseClauses ::= CaseClause {CaseClause}
@@ -2310,7 +2334,7 @@ and caseClauses in_ : case_clauses =
     match in_.token with
     | Kcase ii ->
         nextToken in_;
-        let x = caseClause ii in_ in
+        let x = caseClause block ii in_ in
         ts += x
     | Ellipsis ii ->
         nextToken in_;
@@ -2477,6 +2501,7 @@ and parseWhile in_ : stmt =
         accept (Kdo ab) in_;
         fb (Tok.unsafe_fake_tok "") e
   in
+  opportunisticIndent in_;
   let body = expr in_ in
   (* ast: makeWhile(cond, body) *)
   While (ii, cond, body)
@@ -2493,12 +2518,43 @@ and parseDo in_ : stmt =
   (* ast: makeDoWhile(lname.toTermName, body, cond) *)
   DoWhile (ido, body, iwhile, cond)
 
+(* Is the following sequence the generators of a for-expression enclosed in (...)? *)
+(* As implemented in Dotty:
+   https://github.com/lampepfl/dotty/blob/865aa639c98e0a8771366b3ebc9580cc8b61bfeb/compiler/src/dotty/tools/dotc/parsing/Parsers.scala#L857
+*)
+and followingIsEnclosedGenerators in_ =
+  let parens = ref 1 in
+  lookingAhead
+    (fun in_ ->
+      while !parens <> 0 && not (in_.token =~= EOF ab) do
+        if in_.token =~= LPAREN ab then incr parens
+        else if in_.token =~= RPAREN ab then decr parens;
+        nextToken in_
+      done;
+      if in_.token =~= LARROW ab then false
+        (* it's a pattern *)
+        (* nosemgrep *)
+      else if TH.isIdentBool in_.token then true
+        (* it's not a pattern since token cannot be an infix operator *)
+      else
+        (* followedByToken(LARROW) // `<-` comes before possible statement starts
+           In the Scala compiler, this is what it says ^
+
+           Except this function is actually like, quite complicated, and relies on
+           other functions we haven't yet ported.
+
+           So let's just not do that for now.
+        *)
+        true)
+    in_
+
 and parseFor in_ : stmt =
   let ii = TH.info_of_tok in_.token in
   skipToken in_;
   let enums =
     match in_.token with
-    | LPAREN _ -> inParens enumerators in_
+    | LPAREN _ when followingIsEnclosedGenerators in_ ->
+        inParens enumerators in_
     | LBRACE _ -> inBraces enumerators in_
     | _ ->
         (* Deliberately not `inBracesOrIndented`, to combine the last two cases!
@@ -2562,7 +2618,7 @@ and parseTry in_ : stmt =
         match in_.token with
         | Kcase ab ->
             skipToken in_;
-            let cc = caseClause ab in_ in
+            let cc = exprCaseClause ab in_ in
             (* Technically, the body of this case should be an `expr`, and
                not a `block`.
 
@@ -3093,7 +3149,7 @@ let modifiers in_ =
 (* ------------------------------------------------------------------------- *)
 
 (** {{{
- *  ParamType ::= Type | `=>` Type | Type `*`
+ *  ParamType ::= Type | `=>` Type ['*'] | Type `*`
  *  }}}
 *)
 let paramType ?(repeatedParameterOK = true) in_ : param_type =
@@ -3104,8 +3160,16 @@ let paramType ?(repeatedParameterOK = true) in_ : param_type =
          | ARROW ii ->
              nextToken in_;
              let t = typ in_ in
+             let star_opt =
+               match in_.token with
+               | tok when TH.isRawStar tok ->
+                   let ii = TH.info_of_tok in_.token in
+                   skipToken in_;
+                   Some ii
+               | _ -> None
+             in
              (* ast: byNameApplication *)
-             PTByNameApplication (ii, t)
+             PTByNameApplication (ii, t, star_opt)
          | _ ->
              let t = typ in_ in
              if TH.isRawStar in_.token then (
@@ -3641,6 +3705,27 @@ let localDef implicitMod in_ : definition =
          (* AST: if RBRACE | CASE defs :+ literalUnit *))
 
 (* ------------------------------------------------------------------------- *)
+(* End Marker *)
+(* ------------------------------------------------------------------------- *)
+
+(** {{{
+ *  EndMarker         ::=  ‘end’ EndMarkerTag    -- when followed by EOL
+ *  EndMarkerTag      ::=  id | ‘if’ | ‘while’ | ‘for’ | ‘match’ | ‘try’
+                        |  ‘new’ | ‘this’ | ‘given’ | ‘extension’ | ‘val’
+ *  }}}
+*)
+
+let endMarker in_ : end_marker =
+  let end_tok = TH.info_of_tok in_.token in
+  accept (ID_LOWER ("end", ab)) in_;
+  let end_kind = TH.info_of_tok in_.token in
+  (* We could dispatch on the various cases, but every single case ends up
+     with some kind of token. So let's just say that it's a single token.
+  *)
+  skipToken in_;
+  { end_tok; end_kind }
+
+(* ------------------------------------------------------------------------- *)
 (* Extension *)
 (* ------------------------------------------------------------------------- *)
 
@@ -3766,6 +3851,7 @@ let statSeq ?(errorMsg = "illegal start of definition") ?(rev = false) stat in_
   *                 | Annotations [implicit] [lazy] Def
   *                 | Annotations LocalModifiers TmplDef
   *                 | Expr1
+  *                 | EndMarker
   *                 | Extension
   *                 |
   *  }}}
@@ -3784,6 +3870,9 @@ let blockStatSeqInner in_ : top_stat option =
     if not (TH.isCaseDefEnd in_.token) then acceptStatSepOpt in_
   in
   match in_.token with
+  | ID_LOWER ("end", _) ->
+      let x = endMarker in_ in
+      Some (End x)
   | ID_LOWER ("extension", _) ->
       let x = extension in_ in
       Some (Ext x)
@@ -3904,6 +3993,7 @@ let indentedExprOrBlockStatSeqUntil ?(until = None) in_ =
  *                     | Annotations Modifiers Dcl
  *                     | Expr1
  *                     | super ArgumentExprs {ArgumentExprs}
+ *                     | EndMarker
  *                     | Extension
  *                     |
  *                     | Annotations Modifiers EnumCase
@@ -3918,6 +4008,9 @@ let templateStat in_ : template_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  | ID_LOWER ("end", _) ->
+      let x = endMarker in_ in
+      Some (End x)
   | ID_LOWER ("extension", _) ->
       let x = extension in_ in
       Some (Ext x)
@@ -3942,6 +4035,7 @@ let templateStats in_ : template_stat list = statSeq templateStat in_
  *            | package object ObjectDef
  *            | Import
  *            | Export
+ *            | EndMarker
  *            | Extension
  *            |
  *  }}}
@@ -3958,6 +4052,9 @@ let topStat in_ : top_stat option =
   | Kexport _ ->
       let x = exportClause in_ in
       Some (Ex x)
+  | ID_LOWER ("end", _) ->
+      let x = endMarker in_ in
+      Some (End x)
   | ID_LOWER ("extension", _) ->
       let x = extension in_ in
       Some (Ext x)
@@ -4000,7 +4097,12 @@ let templateStatSeq ~isPre in_ : self_type option * block =
     if
       TH.isExprIntro in_.token
       && (not (is_modifier in_))
-      && not (in_.token =~= ID_LOWER ("extension", ab))
+      (* We add this here, because there are some "soft" modifiers that can start
+         a templateIntro, such as "extension", "end", etc.
+         If we did not do this, template stats that start with those would always
+         enter this expression case, even though they denote something else.
+      *)
+      && not (TH.isTemplateIntro in_.token)
     then (
       let first = expr ~location:InTemplate in_ in
       match in_.token with
@@ -4044,9 +4146,7 @@ let templateBody ~isPre in_ : template_body =
   | _ ->
       (* must be a colon *)
       accept (COLON ab) in_;
-      enterIndentRegion in_;
-      let res = fb (Tok.unsafe_fake_tok "") (templateStatSeq ~isPre in_) in
-      closeIndentRegion in_;
+      let res = inIndented (templateStatSeq ~isPre) in_ in
       res
 
 let templateBodyOpt ~parenMeansSyntaxError in_ : template_body option =
@@ -4221,7 +4321,7 @@ let packageOrPackageObject ipackage in_ : top_stat =
     D x
   else
     let x = pkgQualId in_ in
-    let body = inBracesOrNil topStatSeq in_ in
+    let body = inBracesOrColonIndented topStatSeq in_ in
     (* ast: makePackaging(x, body) *)
     let pack = (ipackage, x) in
     Packaging (pack, body)

@@ -756,6 +756,9 @@ and v_block_stat x : G.item list =
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
+  | End v1 ->
+      let v1 = v_end_marker v1 in
+      [ v1 ]
   | Ext v1 -> v_extension v1
   | Package v1 ->
       let ipak, ids = v_package v1 in
@@ -913,6 +916,9 @@ and v_given_definition { gsig; gkind } =
     ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
       G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
   ]
+
+and v_end_marker { end_tok; end_kind } : G.stmt =
+  G.OtherStmt (OS_Todo, [ G.Tk end_tok; G.Tk end_kind ]) |> G.s
 
 and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
     : G.stmt list =
@@ -1086,14 +1092,18 @@ and v_binding using_opt v : G.parameter =
       | Some (PT v1) ->
           let v1 = v_type_ v1 in
           G.Param { pclassic with ptype = Some v1 }
-      | Some (PTByNameApplication (v1, v2)) ->
+      | Some (PTByNameApplication (v1, v2, v3)) -> (
           let v1 = v_tok v1 and v2 = v_type_ v2 in
-          G.Param
+          let pclassic =
             {
               pclassic with
               ptype = Some v2;
               pattrs = G.KeywordAttr (G.Lazy, v1) :: pclassic.pattrs;
             }
+          in
+          match v3 with
+          | Some ii -> G.ParamRest (ii, pclassic)
+          | _ -> G.Param pclassic)
       | Some (PTRepeatedApplication (v1, v2)) ->
           let v1 = v_type_ v1 and v2 = v_tok v2 in
           G.ParamRest (v2, { pclassic with ptype = Some v1 }))
