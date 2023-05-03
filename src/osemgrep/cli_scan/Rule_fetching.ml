@@ -19,21 +19,22 @@ module C = Semgrep_dashdash_config
 (*****************************************************************************)
 
 (* input *)
-(* moved in a core/Rules_source.ml so it can also be used in reporting/ *)
+(* moved in core/Rules_source.ml so it can also be used in reporting/ *)
 type rules_source = Rules_source.t [@@deriving show]
 
 (* output *)
-(* python: was called ConfigFile, and called a 'config' in text output *)
+(* python: was called ConfigFile, and called a 'config' in text output.
+ * TODO? maybe we don't need this intermediate type anymore.
+ *)
 type rules_and_origin = {
   origin : origin;
-  (* TODO? put a config_id: string option? or config prefix? or
-   * compute it later based on the origin?
-   *)
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
 }
 
-(* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline? *)
+(* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline?
+ * or just put the Semgrep_dashdash_config.config_kind it comes from?
+ *)
 and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
 (*****************************************************************************)
@@ -47,6 +48,42 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
     xs |> List.concat_map (fun x -> x.errors)
   in
   (rules, errors)
+
+(* TOPORT python: paths had no commen prefix; not possible to relativize *)
+let prefix_for_fpath_opt (fpath : Fpath.t) =
+  assert (Fpath.is_file_path fpath);
+  if Fpath.is_rel fpath then
+    (* LATER: we should use Fpath.normalize first, but pysemgrep
+     * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+     * so we reproduce the same behavior, leading sometimes to some
+     * weird rule id like "rules....rules.test" when passing
+     * rules/../rules/test.yaml to --config.
+     *)
+    match List.rev (Fpath.segs fpath) with
+    | [] -> raise Impossible
+    | [ _file ] -> None
+    | _file :: dirs ->
+        let prefix =
+          dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+        in
+        Some prefix
+  else None
+
+let rules_rewrite_rule_ids ~rewrite_rule_ids (rules : rules_and_origin) :
+    rules_and_origin =
+  match rules.origin with
+  | Some fpath when rewrite_rule_ids -> (
+      match prefix_for_fpath_opt fpath with
+      | None -> rules
+      | Some prefix ->
+          {
+            rules with
+            rules =
+              rules.rules
+              |> Common.map (function { Rule.id = s, tk; _ } as r ->
+                     { r with id = (prefix ^ s, tk) });
+          })
+  | _else_ -> rules
 
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
@@ -290,16 +327,16 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
 (* Entry point *)
 (*****************************************************************************)
 
-(* python: mix of resolver_config.get_config() and resolver_config.get_rules()
- * TODO: rewrite rule_id of the rules using x.path origin?
- *)
-let rules_from_rules_source (source : rules_source) : rules_and_origin list =
-  match source with
+(* python: mix of resolver_config.get_config() and get_rules() *)
+let rules_from_rules_source ~rewrite_rule_ids (src : rules_source) :
+    rules_and_origin list =
+  match src with
   | Configs xs ->
       xs
       |> List.concat_map (fun str ->
              let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
              rules_from_dashdash_config kind)
+      |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
   | Pattern (pat, xlang, fix) ->
       let fk = Tok.unsafe_fake_tok "" in
       (* better: '-e foo -l regex' not handled in original semgrep,
@@ -312,4 +349,3 @@ let rules_from_rules_source (source : rules_source) : rules_and_origin list =
       let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
       (* TODO? transform the pattern parse error in invalid_rule_error? *)
       [ { origin = None; rules = [ rule ]; errors = [] } ]
-  [@@profiling]

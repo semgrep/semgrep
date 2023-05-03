@@ -68,7 +68,8 @@ let run (conf : conf) : Exit_code.t =
    * in Config_resolver.errors.
    *)
   let rules_and_origin =
-    Rule_fetching.rules_from_rules_source conf.rules_source
+    Rule_fetching.rules_from_rules_source ~rewrite_rule_ids:true
+      conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -105,8 +106,7 @@ let run (conf : conf) : Exit_code.t =
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results
-            ~logging_level:conf.logging_level ~rules_source:conf.rules_source
-            res
+            ~logging_level:conf.logging_level res
         in
         (* TOPORT?
                 ... run -check_rules in semgrep-core ...

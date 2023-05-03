@@ -162,7 +162,7 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
    *)
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      ~rules_source:conf.rules_source res
+      res
   in
   let cli_output =
     let keep_ignored =
