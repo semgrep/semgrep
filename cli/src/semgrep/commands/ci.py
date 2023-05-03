@@ -466,6 +466,9 @@ def ci(
 
             applicable_result_set[rule].append(match)
 
+    # temp (VIVEK)
+    logger.info("foo"*100)
+    logger.info(prev_scan_matched_by_rule)
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 

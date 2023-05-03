@@ -23,8 +23,6 @@ from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
-from semgrep.rule import Rule
-from semgrep.rule import RuleScanSource
 
 
 T = TypeVar("T")
@@ -270,14 +268,3 @@ def get_lines(
         result = list(itertools.islice(fd, start_line, end_line))
 
     return result
-
-
-def filter_prev_scan_rules(rules: List[Rule]) -> List[Rule]:
-    """
-    Filter rules from the previous scan using rule metadata.
-    """
-    return [
-        rule
-        for rule in rules
-        if rule.scan_source == RuleScanSource.previous_scan
-    ]

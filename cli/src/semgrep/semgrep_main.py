@@ -56,7 +56,6 @@ from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
-from semgrep.util import filter_prev_scan_rules
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -419,12 +418,7 @@ def main(
     else:
         shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
-    prev_scan_rules = filter_prev_scan_rules(
-        filtered_rules
-    )  # filter rules that were run in the previous scan
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
-    # NOTE: filter_exclude_rule removes rule by id. we still want rules that were run in previous scan.
-    filtered_rules = filtered_rules + prev_scan_rules
 
     output_handler.handle_semgrep_errors(config_errors)
 
