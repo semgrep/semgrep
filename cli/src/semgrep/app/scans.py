@@ -152,10 +152,10 @@ class ScanHandler:
         if self.dry_run:
             app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         else:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+            # app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
             # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
             # CLI logic in place to ignore findings that are from old rule versions
-            # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+            app_get_config_url = f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
