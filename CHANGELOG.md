@@ -6,6 +6,17 @@
 
 <!-- insertion point -->
 
+## [1.21.0](https://github.com/returntocorp/semgrep/releases/tag/v1.21.0) - 2023-05-03
+
+### Added
+
+- Scala: Most Scala 3 features can now be parsed (pa-2748)
+
+### Fixed
+
+- Fixed an issue where parentheses were incorrectly removed when autofixing JS/TS code. (gh-6233)
+- Fixed issue where the semgrep language server would crash with "No such file or directory: 'semgrep-core'" (pa-2745)
+
 ## [1.20.0](https://github.com/returntocorp/semgrep/releases/tag/v1.20.0) - 2023-04-28
 
 ### Added
