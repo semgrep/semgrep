@@ -16,7 +16,6 @@ from typing import Sequence
 from typing import TypeVar
 from typing import Union
 from urllib.parse import urlparse
-from semgrep.rule import Rule
 
 import click
 
@@ -24,6 +23,7 @@ from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
+from semgrep.rule import Rule
 
 
 T = TypeVar("T")
