@@ -221,9 +221,9 @@ def test_maven_version_comparison(version, specifier, outcome):
 # And removing some human written comments that would never appear in a real lockfile from some tests
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
-    _, errors = parse_lockfile_path_in_tmp(Path(target))
+    _, error = parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
-    assert len(errors) == 0
+    assert error is None
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent

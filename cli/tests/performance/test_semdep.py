@@ -29,10 +29,10 @@ def test_dependency_aware_timing(
     parse_lockfile_path_in_tmp, file_size, target, max_time
 ):
     start = time()
-    _, errors = parse_lockfile_path_in_tmp(
+    _, error = parse_lockfile_path_in_tmp(
         Path(f"targets/dependency_aware/perf/{file_size}/{target}")
     )
     end = time()
-    assert len(errors) == 0
+    assert error is None
     exec_time = end - start
     assert exec_time < max_time
