@@ -414,10 +414,13 @@ def ci(
     # Split up rules into respective categories:
     blocking_rules: List[Rule] = []
     nonblocking_rules: List[Rule] = []
+    prev_scan_rules: List[Rule] = []
     cai_rules: List[Rule] = []
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
+        elif rule.metadata.get("semgrep.dev", {}).get("src", "") == "previous-scan":
+            prev_scan_rules.append(rule)
         else:
             if rule.is_blocking:
                 blocking_rules.append(rule)
@@ -428,6 +431,8 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
+    prev_scan_matched_by_rule: RuleMatchMap = defaultdict(list)
+    # TODO (vivek): make this work by modifying the logic below
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
