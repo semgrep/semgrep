@@ -86,7 +86,7 @@ Would have sent POST request to create scan
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 2 Supply Chain rules:
             
             
   CODE RULES
@@ -420,6 +420,7 @@ Would have sent findings and ignores blob: {
         }
     ],
     "searched_paths": [
+        "Pipfile.lock",
         "foo.py",
         "poetry.lock",
         "yarn.lock"
@@ -555,6 +556,16 @@ Would have sent findings and ignores blob: {
 }
 Would have sent complete blob: {
     "exit_code": 1,
+    "dependency_parser_errors": [
+        {
+            "path": "Pipfile.lock",
+            "parser": "jsondoc",
+            "reason": "expected one of ['\"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']",
+            "line": 2,
+            "col": 1,
+            "text": "invalid"
+        }
+    ],
     "stats": {
         "findings": 10,
         "errors": [],
@@ -563,6 +574,7 @@ Would have sent complete blob: {
             ".txt": 1
         },
         "lockfile_scan_info": {
+            "Pipfile.lock": 0,
             "poetry.lock": 3,
             "yarn.lock": 1
         },

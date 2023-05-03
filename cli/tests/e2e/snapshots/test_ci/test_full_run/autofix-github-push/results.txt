@@ -24,7 +24,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+  Scanning 5 files tracked by git with 4 Code rules, 2 Supply Chain rules:
             
             
   CODE RULES
