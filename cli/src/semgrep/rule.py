@@ -31,6 +31,13 @@ class RuleProduct(Enum):
     sast = auto()
     sca = auto()
 
+class RuleScanSource(Enum):
+    unannotated = auto()
+    unchanged = auto()
+    new_version = auto()
+    new_rule = auto()
+    previous_scan = auto()
+
 
 class Rule:
     def __init__(
@@ -248,6 +255,23 @@ class Rule:
             if "r2c-internal-project-depends-on" in self._raw
             else RuleProduct.sast
         )
+    
+    @property
+    def scan_source(self) -> RuleScanSource:
+        src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
+        print("foo"*100)
+        print(src)
+        print(self.metadata)
+        if src == "unchanged":
+            return RuleScanSource.unchanged
+        elif src == "new-version":
+            return RuleScanSource.new_version
+        elif src == "new-rule":
+            return RuleScanSource.new_rule
+        elif src == "previous-scan":
+            return RuleScanSource.previous_scan
+        else:
+            return RuleScanSource.unannotated
 
     @property
     def formula_string(self) -> str:
