@@ -76,7 +76,8 @@ def generate_unreachable_sca_findings(
         lockfile_paths = target_manager.get_lockfiles(ecosystem)
 
         for lockfile_path in lockfile_paths:
-            deps = parse_lockfile_path(lockfile_path)
+            # Ignore errors here because we assume they are processed later
+            deps, _ = parse_lockfile_path(lockfile_path)
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
@@ -162,7 +163,8 @@ def generate_reachable_sca_findings(
                 )
                 if lockfile_path is None:
                     continue
-                deps = parse_lockfile_path(lockfile_path)
+                # Ignore errors here because we assume they are processed later
+                deps, _ = parse_lockfile_path(lockfile_path)
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
                 dependency_matches = list(
