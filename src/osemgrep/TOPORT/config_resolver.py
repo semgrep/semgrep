@@ -248,21 +248,9 @@ class Config:
         )
 
     @staticmethod
-    def _safe_relative_to(a: Path, b: Path) -> Path:
-        try:
-            return a.relative_to(b)
-        except ValueError:
-            # paths had no common prefix; not possible to relativize
-            return a
-
-    @staticmethod
     def _convert_config_id_to_prefix(config_id: str) -> str:
         at_path = Path(config_id)
-        try:
-            at_path = Config._safe_relative_to(at_path, Path.cwd())
-        except FileNotFoundError:
-            pass
-
+        ...
         prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
         if len(prefix):
             prefix += "."

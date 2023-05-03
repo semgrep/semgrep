@@ -49,41 +49,48 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
   in
   (rules, errors)
 
-(* TOPORT python: paths had no commen prefix; not possible to relativize *)
-let prefix_for_fpath_opt (fpath : Fpath.t) =
+let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   assert (Fpath.is_file_path fpath);
-  if Fpath.is_rel fpath then
-    (* LATER: we should use Fpath.normalize first, but pysemgrep
-     * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
-     * so we reproduce the same behavior, leading sometimes to some
-     * weird rule id like "rules....rules.test" when passing
-     * rules/../rules/test.yaml to --config.
-     *)
-    match List.rev (Fpath.segs fpath) with
-    | [] -> raise Impossible
-    | [ _file ] -> None
-    | _file :: dirs ->
-        let prefix =
-          dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
-        in
-        Some prefix
-  else None
+  let* rel_path =
+    if Fpath.is_rel fpath then Some fpath
+      (* python: paths had no commen prefix; not possible to relativize *)
+    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
+  in
+  (* LATER: we should use Fpath.normalize first, but pysemgrep
+   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * so we reproduce the same behavior, leading sometimes to some
+   * weird rule id like "rules....rules.test" when passing
+   * rules/../rules/test.yaml to --config.
+   *)
+  match List.rev (Fpath.segs rel_path) with
+  | [] -> raise Impossible
+  | [ _file ] -> None
+  | _file :: dirs ->
+      let prefix =
+        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+      in
+      Some prefix
 
-let rules_rewrite_rule_ids ~rewrite_rule_ids (rules : rules_and_origin) :
+let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
     rules_and_origin =
-  match rules.origin with
+  let { rules; errors; origin } = x in
+  match origin with
   | Some fpath when rewrite_rule_ids -> (
       match prefix_for_fpath_opt fpath with
-      | None -> rules
+      | None -> x
       | Some prefix ->
           {
-            rules with
+            origin;
             rules =
-              rules.rules
-              |> Common.map (function { Rule.id = s, tk; _ } as r ->
-                     { r with id = (prefix ^ s, tk) });
+              rules
+              |> Common.map (function { Rule.id = rule_id, tk; _ } as r ->
+                     { r with id = (prefix ^ rule_id, tk) });
+            errors =
+              errors
+              |> Common.map (fun (kind, rule_id, tk) ->
+                     (kind, prefix ^ rule_id, tk));
           })
-  | _else_ -> rules
+  | _else_ -> x
 
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)

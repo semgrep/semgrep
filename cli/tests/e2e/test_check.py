@@ -140,6 +140,7 @@ def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
