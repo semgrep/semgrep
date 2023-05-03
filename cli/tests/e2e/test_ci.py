@@ -127,6 +127,35 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
         )
     )
 
+    bad_lockfile = repo_base / "Pipfile.lock"
+    bad_lockfile.write_text(
+        dedent(
+            """
+            invalid
+            {
+                "_meta": {
+                    "hash": {
+                        "sha256": "7f7606f08e0544d8d012ef4d097dabdd6df6843a28793eb6551245d4b2db4242"
+                    },
+                    "pipfile-spec": 6,
+                    "requires": {
+                        "python_version": "3.8"
+                    },
+                    "sources": [
+                        {
+                            "name": "pypi",
+                            "url": "https://pypi.org/simple",
+                            "verify_ssl": true
+                        }
+                    ]
+                },
+                "default": {},
+                "develop": {}
+            }
+            """
+        )
+    )
+
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", COMMIT_MESSAGE],
