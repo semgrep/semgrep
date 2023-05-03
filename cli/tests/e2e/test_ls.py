@@ -288,9 +288,9 @@ def check_diagnostics(response, file, expected_ids):
     assert ids == expected_ids
 
 
-# TODO: this is marked as osempass, but it should not, it's because we don't
-# call osemgrep. If we were calling osemgrep correctly, we would get failures
-@pytest.mark.osempass
+# TODO: this is currently passing with osemgrep but should not. it's because we don't
+# call osemgrep. If we were calling osemgrep correctly, we would get failures.
+# Note: This also fails in the 'test osemgrep' CI job with some errors about git
 @pytest.mark.parametrize("logged_in", [True, False])
 @pytest.mark.slow()
 def test_ls_full(
