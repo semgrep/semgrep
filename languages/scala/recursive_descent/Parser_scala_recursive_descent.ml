@@ -3106,7 +3106,7 @@ let importClause in_ : import =
 *)
 let exportClause in_ : import =
   let ii = TH.info_of_tok in_.token in
-  accept (Kexport ab) in_;
+  accept (ID_LOWER ("export", ab)) in_;
   let xs = commaSeparated importExpr in_ in
   (ii, xs)
 
@@ -3865,7 +3865,7 @@ let usingParamClauses ~owner in_ =
 
 let extMethod in_ : ext_method =
   match in_.token with
-  | Kexport _ -> ExtExport (exportClause in_)
+  | ID_LOWER ("export", _) -> ExtExport (exportClause in_)
   | _ ->
       let annots = annotations ~skipNewLines:true in_ in
       let mods = modifiers in_ in
@@ -4119,7 +4119,8 @@ let templateStat in_ : template_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | Kexport _ ->
+  | ID_LOWER ("export", _)
+    when lookingAhead (fun in_ -> TH.isPathStart in_.token) in_ ->
       let x = exportClause in_ in
       Some (Ex x)
   | ID_LOWER ("end", _) ->
@@ -4163,7 +4164,8 @@ let topStat in_ : top_stat option =
   | Kimport _ ->
       let x = importClause in_ in
       Some (I x)
-  | Kexport _ ->
+  | ID_LOWER ("export", _)
+    when lookingAhead (fun in_ -> TH.isPathStart in_.token) in_ ->
       let x = exportClause in_ in
       Some (Ex x)
   | ID_LOWER ("end", _) ->
@@ -4216,7 +4218,7 @@ let templateStatSeq ~isPre in_ : self_type option * block =
          If we did not do this, template stats that start with those would always
          enter this expression case, even though they denote something else.
       *)
-      && not (TH.isTemplateIntro in_.token)
+      && not (TH.isTemplateStatIntroSoftKeyword in_.token)
     then (
       let first = expr ~location:InTemplate in_ in
       match in_.token with

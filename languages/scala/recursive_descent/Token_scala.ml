@@ -53,7 +53,6 @@ type token =
   | Kmatch of Tok.t
   | Klazy of Tok.t
   | Kimport of Tok.t
-  | Kexport of Tok.t
   | Kimplicit of Tok.t
   | Kif of Tok.t
   | KforSome of Tok.t

@@ -135,7 +135,6 @@ let visitor_info_of_tok f = function
   | Kmatch ii -> Kmatch (f ii)
   | Klazy ii -> Klazy (f ii)
   | Kimport ii -> Kimport (f ii)
-  | Kexport ii -> Kexport (f ii)
   | Kimplicit ii -> Kimplicit (f ii)
   | Kif ii -> Kif (f ii)
   | KforSome ii -> KforSome (f ii)
@@ -249,6 +248,23 @@ let inLastOfStat x =
 (* ------------------------------------------------------------------------- *)
 (* Used in the parser *)
 (* ------------------------------------------------------------------------- *)
+
+(* This function is for using a token of lookahead to check whether we should
+   enter an exportClause.
+   Since an `export` used as a keyword is always followed by an `id`, we can
+   prevent more false positives of `export` used as a keyword when it shouldn't,
+   by looking ahead a token.
+*)
+let isPathStart = function
+  | ID_LOWER _
+  | ID_UPPER _
+  | ID_BACKQUOTED _
+  | OP _
+  | ID_DOLLAR _
+  | Kthis _
+  | Ksuper _ ->
+      true
+  | _ -> false
 
 let isIdent = function
   | ID_LOWER ("given", _) -> None
@@ -388,17 +404,19 @@ let isLocalModifier = function
 (* Construct Intro *)
 (* ------------------------------------------------------------------------- *)
 
-let isTemplateIntro = function
-  | Kobject _
-  | Kclass _
-  | Kenum _
-  | Ktrait _
+(* Some keywords are "soft keywords", which means they are lexed as identifiers,
+   but contextually may act as keywords.
+   When deciding if we want to parse a templateStat, we first check for
+   expressions. This would incorrectly flag these soft keywords, which can
+   otherwise start a templateStat, so this function whitelists them to not
+   enter the `expr` case, in favor of parsing them as templateStat keywords.
+*)
+let isTemplateStatIntroSoftKeyword = function
   | ID_LOWER ("given", _)
   | ID_LOWER ("end", _)
+  | ID_LOWER ("export", _)
   | ID_LOWER ("extension", _) ->
       true
-  (*TODO | Kcaseobject | | Kcaseclass *)
-  | Kcase _ -> true
   | _ -> false
 
 let isDclIntro = function
@@ -435,7 +453,17 @@ let isExprIntro x =
       true
   | _ -> false
 
-let isDefIntro x = isTemplateIntro x || isDclIntro x
+let isTemplateDefIntro x =
+  match x with
+  | Kobject _
+  | Kclass _
+  | Ktrait _
+  | Kenum _
+  | ID_LOWER ("given", _) ->
+      true
+  | _ -> false
+
+let isDefIntro x = isDclIntro x || isTemplateDefIntro x
 
 let isTypeIntroToken x =
   (isLiteral x && not (isNull x))
