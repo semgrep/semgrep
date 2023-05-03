@@ -99,8 +99,7 @@ let substitute_precondition_arg_taint ~arg_fn taint =
   let rec aux taint =
     match taint.orig with
     | Arg arg -> arg_fn arg
-    | Src ({ precondition = None; _ } as src) ->
-        [ { taint with orig = Src src } ]
+    | Src { precondition = None; _ } -> [ taint ]
     | Src ({ precondition = Some (incoming, expr); _ } as src) ->
         let new_incoming = List.concat_map aux incoming in
         let new_precondition = Some (new_incoming, expr) in
