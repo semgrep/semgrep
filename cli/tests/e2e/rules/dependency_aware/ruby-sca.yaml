@@ -7,7 +7,7 @@ rules:
         # hilarious anecdote, please never make this version
         # a version of semgrep to be released or CI will break
         # from masking the test output
-        version: "== 1.20.0"
+        version: "== 1.19.0"
     message: oh no
     languages: [ruby]
     severity: WARNING
