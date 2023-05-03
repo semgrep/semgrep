@@ -435,144 +435,6 @@ let partition_mutating_sources sources_matches =
   |> List.partition (fun (m : R.taint_source tmatch) ->
          m.spec.source_by_side_effect && is_exact m)
 
-let propagate_taint_via_java_setter env e args all_args_taints =
-  match (e, args) with
-  | ( {
-        e =
-          Fetch
-            ({ base = Var _obj; rev_offset = [ ({ o = Dot m; _ } as offset) ] }
-            as lval);
-        _;
-      },
-      [ _ ] )
-    when env.lang =*= Lang.Java
-         && Stdcompat.String.starts_with ~prefix:"set" (fst m.IL.ident) ->
-      let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
-      let prop_lval =
-        let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
-        { lval with rev_offset = [ { offset with o } ] }
-      in
-      if not (Taints.is_empty all_args_taints) then
-        Lval_env.add env.lval_env prop_lval all_args_taints
-      else env.lval_env
-  | __else__ -> env.lval_env
-
-let resolve_poly_taint_for_java_getters env lval st =
-  (* NOTE: This is a hack and it doesn't handle all cases, but it's mean to handle
-   * the most basic ones. It does work for more than just getters. However, it
-   * needs some testing and for now it's safer to restrict it to Java and getX. *)
-  if env.lang =*= Java then
-    match lval.rev_offset with
-    | { o = Dot n; _ } :: _
-      when Stdcompat.String.starts_with ~prefix:"get" (fst n.ident) -> (
-        match st with
-        | `Sanitized
-        | `Clean
-        | `None ->
-            st
-        | `Tainted taints ->
-            let taints' =
-              taints
-              |> Taints.map (fun taint ->
-                     match taint.orig with
-                     | Arg ({ offset; _ } as arg) when not (List.mem n offset)
-                       ->
-                         (* If the offset we are trying to take is already in the
-                            list of offsets, don't append it! This is so we don't
-                            never-endingly loop the dataflow and make it think the
-                            Arg taint is never-endingly changing.
-                            For instance, this code example would previously loop,
-                            if `x` started with an `Arg` taint:
-                            while (true) { x = x.getX(); }
-                         *)
-                         let arg' = { arg with offset = arg.offset @ [ n ] } in
-                         { taint with orig = Arg arg' }
-                     | Arg _
-                     | Src _ ->
-                         taint)
-            in
-            `Tainted taints')
-    | _ :: _
-    | [] ->
-        st
-  else st
-
-(* For all our new sources, we need to know that they only hold if a certain
-   formula holds of the incoming taints to the source.
-   So here we just do the job of actually constraining the taints to have these
-   preconditions.
-   Later on, when we produce a pattern match, we will solve to see if this
-   formula is satisfied. We don't know right now, however, because there may be
-   argument taint involved.
-*)
-
-let find_pos_in_actual_args args_taints fparams =
-  let pos_args_taints, named_args_taints =
-    List.partition_map
-      (function
-        | Unnamed taints -> Left taints
-        | Named (id, taints) -> Right (id, taints))
-      args_taints
-  in
-  let named_arg_map =
-    named_args_taints
-    |> List.fold_left
-         (fun map ((s, _), taint) -> SMap.add s taint map)
-         SMap.empty
-  in
-  let name_to_taints = Hashtbl.create 10 in
-  let idx_to_taints = Hashtbl.create 10 in
-  (* We first process the named arguments, and then positional arguments.
-   *)
-  let remaining_params =
-    (* Here, we take all the named arguments and remove them from the list of parameters.
-     *)
-    List.fold_right
-      (fun param acc ->
-        match param with
-        | G.Param { pname = Some (s', _); _ } -> (
-            match SMap.find_opt s' named_arg_map with
-            | Some taints ->
-                (* If this parameter is one of our arguments, insert a mapping and then remove it
-                   from the list of remaining parameters.*)
-                Hashtbl.add name_to_taints s' taints;
-                acc
-                (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
-            | None -> param :: acc (* Same as above. *))
-        | __else__ -> param :: acc)
-      (Tok.unbracket fparams) []
-  in
-  let _ =
-    (* We then process all of the positional arguments in order of the remaining parameters.
-     *)
-    pos_args_taints
-    |> List.fold_left
-         (fun (i, remaining_params) taints ->
-           match remaining_params with
-           | [] ->
-               logger#error
-                 "More args to function than there are positional arguments in \
-                  function signature";
-               (i + 1, [])
-           | _ :: rest ->
-               Hashtbl.add idx_to_taints i taints;
-               (i + 1, rest))
-         (0, remaining_params)
-  in
-  fun (s, i) ->
-    let taint_opt =
-      match
-        (Hashtbl.find_opt name_to_taints s, Hashtbl.find_opt idx_to_taints i)
-      with
-      | Some taints, _ -> Some taints
-      | _, Some taints -> Some taints
-      | __else__ -> None
-    in
-    if Option.is_none taint_opt then
-      logger#error
-        "cannot match taint variable with function arguments (%i: %s)" i s;
-    taint_opt
-
 (*****************************************************************************)
 (* Labels *)
 (*****************************************************************************)
@@ -772,6 +634,148 @@ let check_orig_if_sink env ?filter_sinks orig taints =
   let sinks = sinks |> Common.map sink_of_match in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings
+
+(*****************************************************************************)
+(* Miscellaneous large functions *)
+(*****************************************************************************)
+
+(* For all our new sources, we need to know that they only hold if a certain
+   formula holds of the incoming taints to the source.
+   So here we just do the job of actually constraining the taints to have these
+   preconditions.
+   Later on, when we produce a pattern match, we will solve to see if this
+   formula is satisfied. We don't know right now, however, because there may be
+   argument taint involved.
+*)
+
+let find_pos_in_actual_args args_taints fparams =
+  let pos_args_taints, named_args_taints =
+    List.partition_map
+      (function
+        | Unnamed taints -> Left taints
+        | Named (id, taints) -> Right (id, taints))
+      args_taints
+  in
+  let named_arg_map =
+    named_args_taints
+    |> List.fold_left
+         (fun map ((s, _), taint) -> SMap.add s taint map)
+         SMap.empty
+  in
+  let name_to_taints = Hashtbl.create 10 in
+  let idx_to_taints = Hashtbl.create 10 in
+  (* We first process the named arguments, and then positional arguments.
+   *)
+  let remaining_params =
+    (* Here, we take all the named arguments and remove them from the list of parameters.
+     *)
+    List.fold_right
+      (fun param acc ->
+        match param with
+        | G.Param { pname = Some (s', _); _ } -> (
+            match SMap.find_opt s' named_arg_map with
+            | Some taints ->
+                (* If this parameter is one of our arguments, insert a mapping and then remove it
+                   from the list of remaining parameters.*)
+                Hashtbl.add name_to_taints s' taints;
+                acc
+                (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
+            | None -> param :: acc (* Same as above. *))
+        | __else__ -> param :: acc)
+      (Tok.unbracket fparams) []
+  in
+  let _ =
+    (* We then process all of the positional arguments in order of the remaining parameters.
+     *)
+    pos_args_taints
+    |> List.fold_left
+         (fun (i, remaining_params) taints ->
+           match remaining_params with
+           | [] ->
+               logger#error
+                 "More args to function than there are positional arguments in \
+                  function signature";
+               (i + 1, [])
+           | _ :: rest ->
+               Hashtbl.add idx_to_taints i taints;
+               (i + 1, rest))
+         (0, remaining_params)
+  in
+  fun (s, i) ->
+    let taint_opt =
+      match
+        (Hashtbl.find_opt name_to_taints s, Hashtbl.find_opt idx_to_taints i)
+      with
+      | Some taints, _ -> Some taints
+      | _, Some taints -> Some taints
+      | __else__ -> None
+    in
+    if Option.is_none taint_opt then
+      logger#error
+        "cannot match taint variable with function arguments (%i: %s)" i s;
+    taint_opt
+
+let propagate_taint_via_java_setter env e args all_args_taints =
+  match (e, args) with
+  | ( {
+        e =
+          Fetch
+            ({ base = Var _obj; rev_offset = [ ({ o = Dot m; _ } as offset) ] }
+            as lval);
+        _;
+      },
+      [ _ ] )
+    when env.lang =*= Lang.Java
+         && Stdcompat.String.starts_with ~prefix:"set" (fst m.IL.ident) ->
+      let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+      let prop_lval =
+        let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+        { lval with rev_offset = [ { offset with o } ] }
+      in
+      if not (Taints.is_empty all_args_taints) then
+        Lval_env.add env.lval_env prop_lval all_args_taints
+      else env.lval_env
+  | __else__ -> env.lval_env
+
+let resolve_poly_taint_for_java_getters env lval st =
+  (* NOTE: This is a hack and it doesn't handle all cases, but it's mean to handle
+   * the most basic ones. It does work for more than just getters. However, it
+   * needs some testing and for now it's safer to restrict it to Java and getX. *)
+  if env.lang =*= Java then
+    match lval.rev_offset with
+    | { o = Dot n; _ } :: _
+      when Stdcompat.String.starts_with ~prefix:"get" (fst n.ident) -> (
+        match st with
+        | `Sanitized
+        | `Clean
+        | `None ->
+            st
+        | `Tainted taints ->
+            let taints' =
+              taints
+              |> Taints.map (fun taint ->
+                     match taint.orig with
+                     | Arg ({ offset; _ } as arg) when not (List.mem n offset)
+                       ->
+                         (* If the offset we are trying to take is already in the
+                            list of offsets, don't append it! This is so we don't
+                            never-endingly loop the dataflow and make it think the
+                            Arg taint is never-endingly changing.
+                            For instance, this code example would previously loop,
+                            if `x` started with an `Arg` taint:
+                            while (true) { x = x.getX(); }
+                         *)
+                         let arg' = { arg with offset = arg.offset @ [ n ] } in
+                         { taint with orig = Arg arg' }
+                     | Arg _
+                     | Src _ ->
+                         taint)
+            in
+            `Tainted taints')
+    | _ :: _
+    | [] ->
+        st
+  else st
 
 (*****************************************************************************)
 (* Tainted *)
