@@ -143,10 +143,11 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--emacs", "--vim"],
 )
 def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
@@ -156,6 +157,15 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
         output_format=OutputFormat.TEXT,  # Not the real output format; just disables JSON parsing
     )
     snapshot.assert_match(stdout, "results.out")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "format",
+    ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
+)
+def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
+    test_output_format(run_semgrep_in_tmp, snapshot, format)
 
 
 @pytest.mark.kinda_slow
