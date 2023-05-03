@@ -6,3 +6,5 @@ val x = foo { export =>
     case _ => 2
   }
 }
+
+val y = enum

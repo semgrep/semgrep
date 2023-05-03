@@ -380,7 +380,6 @@ rule token = parse
         | "class"      -> Kclass t
         | "trait"      -> Ktrait t
         | "object"     -> Kobject t
-        | "enum"       -> Kenum t
         | "new"      -> Knew t
         | "super" -> Ksuper t
         | "this" -> Kthis t
