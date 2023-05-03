@@ -2467,6 +2467,12 @@ and parseIf in_ : stmt =
         cond
     | _ ->
         let e = expr in_ in
+        (* So we can parse things like
+           if true
+           then 2
+           else 3
+        *)
+        newLinesOpt in_;
         accept (ID_LOWER ("then", ab)) in_;
         newLinesOpt in_;
         fb (Tok.unsafe_fake_tok "") e
