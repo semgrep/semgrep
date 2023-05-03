@@ -846,6 +846,23 @@ let handle_taint_propagators env thing taints =
            replace an Arg taint with a precondition, all the produced taints
            inherit the precondition. There's not an easy way to express this
            in the type right now.
+
+           More concretely, the existence of labeled propagators means that
+           preconditions can be attached to arbitrary taint. This is because
+           if we have a taint that is being propagated with a `requires`, then
+           that taint now has a precondition on that `requires` being true. This
+           taint might also be an `Arg` taint, meaning that `Arg` taints can
+           have preconditions.
+
+           This is more than just a simple type-level change because when `Arg`s
+           have preconditions, what happens for substitution? Say I want to
+           replace an `Arg x` taint with [t], that is, a single taint. Well,
+           that taint `t` might itself have a precondition. That means that we
+           now have a taint which is `t`, substituted for `Arg x`, but also
+           inheriting `Arg x`'s precondition. Our type for preconditions doesn't
+           allow arbitrary conjunction of preconditions like that, so this is
+           more pervasive of a change.
+
            I'll come back to this later.
         *)
         if eval_label_requires ~labels prop.spec.prop.propagator_requires then
