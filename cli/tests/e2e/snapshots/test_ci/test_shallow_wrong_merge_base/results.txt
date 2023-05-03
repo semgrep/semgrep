@@ -33,6 +33,9 @@ Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+
+{'dev.semgrep.actions': []}
                                
                                
 ┌─────────────────────────────┐
