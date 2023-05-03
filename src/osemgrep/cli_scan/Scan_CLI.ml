@@ -654,7 +654,7 @@ let cmdline_term : conf Term.t =
       | [], (None, _, _)
         when dump_ast || dump_config <> None || validate || test || version
              || show_supported_languages ->
-          Rule_fetching.Configs []
+          Rules_source.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
           (* alt: default.rules_source *)
@@ -668,7 +668,7 @@ let cmdline_term : conf Term.t =
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
-          Rule_fetching.Pattern (pat, xlang, fix)
+          Rules_source.Pattern (pat, xlang, fix)
       | _, (Some _, None, _) ->
           (* alt: "language must be specified when a pattern is passed" *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
@@ -680,7 +680,7 @@ let cmdline_term : conf Term.t =
             "command-line replacement flag can only be used with command-line \
              pattern; when using a config file add the fix: key instead"
       (* TOPORT? handle [x], _ and rule passed inline, python: util.is_rules*)
-      | xs, (None, None, None) -> Rule_fetching.Configs xs
+      | xs, (None, None, None) -> Rules_source.Configs xs
       | _ :: _, (Some _, _, _) ->
           Error.abort "Mutually exclusive options --config/--pattern"
     in
