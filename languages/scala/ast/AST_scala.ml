@@ -175,6 +175,7 @@ and type_ =
   | TyProj of type_ * tok (* '#' *) * ident
   (* ast_orig: AppliedType *)
   | TyApplied of type_ * type_ list bracket
+  | TyAnon of tok (* '?' *) * type_bounds
   | TyInfix of type_ * ident * type_
   | TyFunction1 of type_ * tok (* '=>' *) * type_
   | TyFunction2 of type_ list bracket * tok (* '=>' *) * type_
