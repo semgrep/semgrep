@@ -264,6 +264,7 @@ def test_multiline(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_url_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
@@ -283,6 +284,7 @@ def test_auto_config(run_semgrep_in_tmp: RunSemgrep, mocker):
     assert True
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_hidden_rule__explicit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
