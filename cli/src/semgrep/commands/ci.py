@@ -40,6 +40,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
+from semgrep.rule import RuleScanSource
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -432,7 +433,6 @@ def ci(
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
     prev_scan_matched_by_rule: RuleMatchMap = defaultdict(list)
-    # TODO (vivek): make this work by modifying the logic below
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
@@ -459,6 +459,11 @@ def ci(
                 if rule.is_blocking and "sca_info" not in match.extra
                 else nonblocking_matches_by_rule
             )
+
+            # NOTE: if the rule belongs to the previous scan, should not be included in blocking/non-blocking
+            if rule.scan_source == RuleScanSource.previous_scan:
+                applicable_result_set = prev_scan_matched_by_rule
+
             applicable_result_set[rule].append(match)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())

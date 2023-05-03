@@ -24,6 +24,7 @@ from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 from semgrep.rule import Rule
+from semgrep.rule import RuleScanSource
 
 
 T = TypeVar("T")
@@ -278,5 +279,5 @@ def filter_prev_scan_rules(rules: List[Rule]) -> List[Rule]:
     return [
         rule
         for rule in rules
-        if rule.metadata.get("semgrep.dev", {}).get("src", "") == "previous-scan"
+        if rule.scan_source == RuleScanSource.previous_scan
     ]
