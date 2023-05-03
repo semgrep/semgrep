@@ -84,8 +84,8 @@ kinda-quick-tests:
 osemgrep-e2e:
 	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true $(MAKE) e2e
 
-# to be used in CI; run all the known passing-with-osemgrep tests
-# coupling: this is run in .github/workflows/tests.yml
+# Run all the known passing-with-osemgrep tests (tagged with osempass)
+# coupling: this is run in CI in .github/workflows/tests.yml
 osempass:
 	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -m 'osempass and not todo' tests/e2e
 
