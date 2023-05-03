@@ -16,6 +16,7 @@ from typing import Sequence
 from typing import TypeVar
 from typing import Union
 from urllib.parse import urlparse
+from semgrep.rule import Rule
 
 import click
 
@@ -268,3 +269,14 @@ def get_lines(
         result = list(itertools.islice(fd, start_line, end_line))
 
     return result
+
+
+def filter_prev_scan_rules(rules: List[Rule]) -> List[Rule]:
+    """
+    Filter rules from the previous scan using rule metadata.
+    """
+    return [
+        rule
+        for rule in rules
+        if rule.metadata.get("semgrep.dev", {}).get("src", "") == "previous-scan"
+    ]

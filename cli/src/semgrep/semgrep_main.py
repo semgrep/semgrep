@@ -43,6 +43,7 @@ from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.util import filter_prev_scan_rules
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
@@ -418,7 +419,10 @@ def main(
     else:
         shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
+    prev_scan_rules = filter_prev_scan_rules(filtered_rules)    # filter rules that were run in the previous scan
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
+    # NOTE: filter_exclude_rule removes rule by id. we still want rules that were run in previous scan.
+    filtered_rules = filtered_rules + prev_scan_rules
 
     output_handler.handle_semgrep_errors(config_errors)
 
