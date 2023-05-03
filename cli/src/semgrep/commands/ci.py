@@ -491,7 +491,7 @@ def ci(
             dependencies,
             engine_type,
         )
-        logger.info("  View results in Semgrep App:")
+        logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )
