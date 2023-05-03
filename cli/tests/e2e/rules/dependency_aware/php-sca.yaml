@@ -1,5 +1,5 @@
 rules:
-  - id: go-sca
+  - id: php-sca
     pattern: bad()
     r2c-internal-project-depends-on:
       depends-on-either:
