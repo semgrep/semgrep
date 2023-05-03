@@ -80,7 +80,7 @@ jobs:
           chmod a+x /tmp/regctl
           /tmp/regctl image import ocidir:///tmp/oci-image /tmp/image.tar
           /tmp/regctl image export --name ${{ inputs.repository-name }}:latest -p linux/amd64 ocidir:///tmp/oci-image /tmp/image-amd64.tar
-          docker import < /tmp/image-amd64.tar
+          docker load < /tmp/image-amd64.tar
           rm -rf /tmp/oci-image
       - name: Checkout
         uses: actions/checkout@v3
