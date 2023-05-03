@@ -8,7 +8,6 @@
    from semgrep_main.py and core_runner.py.
 *)
 
-open File.Operators
 module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -97,7 +96,7 @@ let exit_code_of_cli_errors (errors : Out.cli_error list) : Exit_code.t =
   | x :: _ -> Exit_code.of_int x.Out.code
 
 (*****************************************************************************)
-(* Scan Summary and Skipped output *)
+(* Skipped analysis *)
 (*****************************************************************************)
 
 let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
@@ -188,60 +187,28 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
+      (* step1: getting the rules *)
+
+      (* Rule_fetching.rules_and_origin record also contain errors *)
       let rules_and_origins =
         Rule_fetching.rules_from_rules_source conf.rules_source
       in
-      Logs.debug (fun m ->
-          rules_and_origins
-          |> List.iter (fun x ->
-                 m "rules = %s" (Rule_fetching.show_rules_and_origin x)));
       let rules, errors =
         Rule_fetching.partition_rules_and_errors rules_and_origins
       in
       let filtered_rules =
         Rule_filtering.filter_rules conf.rule_filtering_conf rules
       in
-      let pp_rule_sources ppf = function
-        | Rule_fetching.Pattern _ -> Format.pp_print_string ppf "pattern"
-        | Configs [ x ] -> Format.fprintf ppf "1 config %s" x
-        | Configs xs -> Format.fprintf ppf "%d configs" (List.length xs)
-      in
       Logs.info (fun m ->
-          m "running %d rules from %a"
-            (List.length filtered_rules)
-            pp_rule_sources conf.rules_source);
-      (* TODO should output whether .semgrepignore is found and used
-         (as done in semgrep_main.py get_file_ignore()) *)
-      Logs.info (fun m ->
-          m "Rules:%s" "";
-          let exp, normal =
-            List.partition
-              (fun rule -> rule.Rule.severity = Rule.Experiment)
-              filtered_rules
-          in
-          let rule_id r = fst r.Rule.id in
-          let sorted =
-            List.sort (fun r1 r2 -> String.compare (rule_id r1) (rule_id r2))
-          in
-          List.iter (fun rule -> m "- %s" (rule_id rule)) (sorted normal);
-          match exp with
-          | [] -> ()
-          | __non_empty__ ->
-              m "Experimental rules:%s" "";
-              List.iter (fun rule -> m "- %s" (rule_id rule)) (sorted exp));
+          m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
+
+      (* step2: getting the targets *)
       let targets, semgrepignored_targets =
         Find_target.get_targets conf.targeting_conf conf.target_roots
       in
       Logs.debug (fun m ->
-          m "target roots: [%s" "";
-          conf.target_roots |> List.iter (fun root -> m "  %s" !!root);
-          m "]%s" "");
-      Logs.debug (fun m ->
-          m "skipped targets: [%s" "";
-          semgrepignored_targets
-          |> List.iter (fun x ->
-                 m "  %s" (Output_from_core_t.show_skipped_target x));
-          m "]%s" "");
+          m "%a" Targets_report.pp_targets_debug
+            (conf.target_roots, semgrepignored_targets, targets));
       Logs.info (fun m ->
           semgrepignored_targets
           |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
@@ -249,17 +216,15 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                    (Output_from_core_t.show_skip_reason
                       x.Output_from_core_t.reason)
                    x.Output_from_core_t.details));
-      Logs.debug (fun m ->
-          m "selected targets: [%s" "";
-          targets
-          |> List.iter (fun file -> m "target = %s" (Fpath.to_string file));
-          m "]%s" "");
+
+      (* step3: running the engine *)
       let (res : Core_runner.result) =
         Core_runner.invoke_semgrep_core
           ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
           conf.core_runner_conf filtered_rules errors targets
       in
 
+      (* step4: report matches *)
       let errors_skipped = errors_to_skipped res.core.errors in
       let semgrepignored, included, excluded, size, other_ignored =
         analyze_skipped semgrepignored_targets
@@ -311,6 +276,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
            """
            return False
       *)
+
+      (* step5: exit with the right exit code *)
       match cli_errors with
       | [] ->
           (* final result for the shell *)

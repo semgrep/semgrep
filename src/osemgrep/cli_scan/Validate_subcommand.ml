@@ -76,8 +76,8 @@ let run (conf : conf) : Exit_code.t =
   (* Checking (3) *)
   let metacheck_errors =
     match conf.rules_source with
-    | Rule_fetching.Pattern _ -> []
-    | Rule_fetching.Configs _xs ->
+    | Rules_source.Pattern _ -> []
+    | Rules_source.Configs _xs ->
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)

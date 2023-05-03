@@ -92,7 +92,7 @@ let config_prefix_of_rules_source (src : Rule_fetching.rules_source) : string =
    * call Semgrep_dashdash_config.config_kind_of_config_str
    *)
   match src with
-  | Rule_fetching.Configs (path :: _TODO) ->
+  | Rules_source.Configs (path :: _TODO) ->
       (*  need to prefix with the dotted path of the config file *)
       let dir = Filename.dirname path in
       Str.global_replace (Str.regexp "/") "." dir ^ "."

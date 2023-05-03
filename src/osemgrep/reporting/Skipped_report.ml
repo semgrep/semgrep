@@ -32,9 +32,10 @@ let pp_skipped ppf
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list) =
+  (* not sure why but pysemgrep does not use the classic heading for skipped*)
   Fmt.pf ppf "%s@.Files skipped:@.%s@." (String.make 40 '=')
     (String.make 40 '=');
-  Fmt_helpers.pp_heading ppf "Files skipped";
+  (* nope: Fmt_helpers.pp_heading ppf "Files skipped"; *)
   (* TODO: always skipped *)
   Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
   if respect_git_ignore then (
