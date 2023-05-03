@@ -1,0 +1,26 @@
+foo.py
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 482, in main
+    target_manager = TargetManager(
+  File "<attrs generated init semgrep.target_manager.TargetManager>", line 24, in __init__
+    self.__attrs_post_init__()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/target_manager.py", line 534, in __attrs_post_init__
+    self.targets = [
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/target_manager.py", line 535, in <listcomp>
+    Target(
+  File "<attrs generated init semgrep.target_manager.Target>", line 7, in __init__
+    __attr_validator_path(self, __attr_path, self.path)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/target_manager.py", line 388, in validate_path
+    raise FilesNotFoundError(paths=tuple([value]))
+semgrep.error.FilesNotFoundError: File not found: targets/stupid-does-not-exist.p
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 907, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 493, in main
+    raise FileNotFoundError("foo.py")
+FileNotFoundError: foo.py
