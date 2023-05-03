@@ -223,8 +223,9 @@ def test_maven_version_comparison(version, specifier, outcome):
 @pytest.mark.no_semgrep_cli
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
-    parse_lockfile_path_in_tmp(Path(target))
+    _, errors = parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
+    assert len(errors) == 0
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent
