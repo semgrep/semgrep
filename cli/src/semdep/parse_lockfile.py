@@ -30,6 +30,7 @@ from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pnpm import parse_pnpm
+from semdep.parsers.composer import parse_composer_lock
 
 
 def parse_cargo(
@@ -72,6 +73,7 @@ NEW_LOCKFILE_PARSERS = {
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
+    "composer.lock": parse_composer_lock, # PHP
 }
 
 LOCKFILE_TO_MANIFEST = {
@@ -81,6 +83,7 @@ LOCKFILE_TO_MANIFEST = {
     "requirements3.txt": "requirements.in",
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
+    "composer.lock": "composer.json",
     "Gemfile.lock": None,
     "go.mod": None,
     "Cargo.lock": None,
