@@ -32,6 +32,7 @@ class RuleProduct(Enum):
     sca = auto()
 
 class RuleScanSource(Enum):
+    unannotated = auto()
     unchanged = auto()
     new_version = auto()
     new_rule = auto()
@@ -257,7 +258,10 @@ class Rule:
     
     @property
     def scan_source(self) -> RuleScanSource:
-        src: str = self.metadata.get("semgrep.dev", {}).get("src", "") == "previous-scan"
+        src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
+        print("foo"*100)
+        print(src)
+        print(self.metadata)
         if src == "unchanged":
             return RuleScanSource.unchanged
         elif src == "new-version":
@@ -267,7 +271,7 @@ class Rule:
         elif src == "previous-scan":
             return RuleScanSource.previous_scan
         else:
-            raise ValueError(f"This rule contains an unexpected scan source in the metadata: {self.id}")
+            return RuleScanSource.unannotated
 
     @property
     def formula_string(self) -> str:
