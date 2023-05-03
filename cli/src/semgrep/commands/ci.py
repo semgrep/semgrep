@@ -483,6 +483,7 @@ def ci(
     )
     if scan_handler:
         logger.info("  Uploading findings.")
+        # TODO(vivek): fix this to send previous scan findings to the app.
         scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
