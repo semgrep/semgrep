@@ -57,6 +57,8 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
@@ -85,8 +87,6 @@ jobs:
           /tmp/regctl image export --name ${{ inputs.repository-name }}:latest -p linux/amd64 ocidir:///tmp/oci-image /tmp/image-amd64.tar
           docker load < /tmp/image-amd64.tar
           rm -rf /tmp/oci-image
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Test Image
         if: ${{ inputs.enable-tests }}
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
