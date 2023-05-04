@@ -163,15 +163,15 @@
  *    of a VarDef, as done in Python for example).
  *)
 
-(* !! Modify version below each time you modify the generic AST!! There are
- * now a few places where we cache the generic AST in a marshalled binary
- * form on disk (e.g., in src/runner/Parsing_with_cache.ml) and reading back
+(* !! Modify version below each time you modify the generic AST!!
+ * There are now a few places where we cache the generic AST in a marshalled
+ * form on disk (e.g., in src/parsing/Parsing_with_cache.ml) and reading back
  * old version of this AST can lead to segfaults in OCaml.
- * Note that this number below could be independent of the versioning scheme of
+ * Note that the number below could be independent of the versioning scheme of
  * Semgrep; we don't have to update version below for each version of
- * Semgrep, just when we actually modify the generic AST. However it's convenient
- * to correspond mostly to Semgrep versions. So version below can jump from
- * "1.12.1" to "1.20.0" and that's fine.
+ * Semgrep, just when we actually modify the generic AST. However it's
+ * convenient to correspond mostly to Semgrep versions. So version below
+ * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
 let version = "1.20.0"
 

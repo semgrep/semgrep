@@ -22,7 +22,7 @@ type t = {
   (* "/src" *)
   src_directory : Fpath.t;
   (* $XDG_CONFIG_HOME/.semgrep or ~/.semgrep *)
-  user_data_folder : Fpath.t;
+  user_dot_semgrep_dir : Fpath.t;
   (* $SEMGREP_LOG_FILE or ~/.semgrep/semgrep.log  *)
   user_log_file : Fpath.t;
   (* $SEMGREP_SETTINGS_FILE ~/.semgrep/settings.yml *)

@@ -6,6 +6,7 @@
   (libraries
     cmdliner
     logs
+    bos
     commons
 
     semgrep_core_cli
