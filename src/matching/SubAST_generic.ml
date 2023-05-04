@@ -370,38 +370,26 @@ let lambdas_in_expr_memo a =
 (*****************************************************************************)
 
 let flatten_substmts_of_stmts xs =
-  (* opti: using a ref, List.iter, and Common.push instead of a mix of
-   * List.map, List.flatten and @ below speed things up
-   * (but it is still slow when called many many times)
-   *)
-  let res = ref [] in
-
   let rec aux x =
-    (* return the current statement first, and add substmts *)
-    Common.push x res;
-
-    (* this can be really slow because lambdas_in_expr() below can be called
-     * a zillion times on big files (see tests/PERF/) if we do the
-     * matching naively in m_stmts_deep.
-     *)
-    (if !go_really_deeper_stmt then
-     let es = subexprs_of_stmt x in
-     (* getting deeply nested lambdas stmts *)
-     let lambdas = es |> List.concat_map lambdas_in_expr_memo in
-     lambdas
-     |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
-     |> List.iter aux);
-
     let xs = substmts_of_stmt x in
-    match xs with
-    | [] -> ()
-    | xs -> xs |> List.iter aux
+    let extras =
+      (* this can be really slow because lambdas_in_expr() below can be called
+       * a zillion times on big files (see tests/PERF/) if we do the
+       * matching naively in m_stmts_deep.
+       *)
+      if !go_really_deeper_stmt then
+        let es = subexprs_of_stmt x in
+        (* getting deeply nested lambdas stmts *)
+        let lambdas = es |> List.concat_map lambdas_in_expr_memo in
+        lambdas |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
+      else []
+    in
+    [ x ] @ (extras |> List.concat_map aux) @ (xs |> List.concat_map aux)
   in
-  xs |> List.iter aux;
-  match !res with
+  match xs |> List.concat_map aux with
   | [] -> None
-  | _ :: _ ->
+  | res ->
       (* Return the last element of the list as a pair.
          This is used as part of the caching optimization. *)
-      Some (List.rev !res)
+      Some res
   [@@profiling]
