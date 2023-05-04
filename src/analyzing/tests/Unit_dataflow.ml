@@ -21,7 +21,7 @@ let tests parse_program =
           files |> File.Path.of_strings
           |> List.iter (fun file ->
                  let ast = parse_program !!file in
-                 let lang = List.hd (Lang.langs_of_filename file) in
+                 let lang = Lang.lang_of_filename_exn file in
                  Naming_AST.resolve lang ast;
                  match
                    Time_limit.set_timeout ~name:"cst_prop" timeout_secs

@@ -86,6 +86,8 @@ class ProjectConfig:
         # Traverse stack looking for config files
         while stack:
             cur_path = stack.pop()
+            if not cur_path.exists():
+                continue
             conf_files += [
                 f for f in cur_path.iterdir() if cls.is_project_config_file(f)
             ]

@@ -13,8 +13,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let warning s v =
   if !Flag.verbose_parsing then Common2.warning ("PARSING: " ^ s) v else v
 
-let error s tok = raise (Parse_info.Other_error (s, tok))
-let fake s = Parse_info.fake_info s
+let error s tok = raise (Parsing_error.Other_error (s, tok))
+let fake s = Tok.fake_tok s
 
 (*****************************************************************************)
 (* Parse helpers functions *)
@@ -104,10 +104,10 @@ let addQualifD qu qu2 = { qu2 with qualifD = addQualif qu qu2.qualifD }
  * and go back.
  * old: before TSized and TPrimitive, when there was a complex TBase
  * there was more checks:
- *  error "signed, unsigned valid only for char and int" (List.hd iit)
- *  error "long or short specified with floatint type" (List.hd iit)
- *  error "the only valid combination is long double" (List.hd iit)
- *  error "long, short valid only for int or float" (List.hd iit)
+ *  error "signed, unsigned valid only for char and int" (Common.hd_exn "unexpected empty list" iit)
+ *  error "long or short specified with floatint type" (Common.hd_exn "unexpected empty list" iit)
+ *  error "the only valid combination is long double" (Common.hd_exn "unexpected empty list" iit)
+ *  error "long, short valid only for int or float" (Common.hd_exn "unexpected empty list" iit)
  *
  * if do short uint i, then gcc say parse error, strange ? it is
  * not a parse error, it is just that we dont allow with typedef
@@ -127,8 +127,8 @@ let type_and_storage_from_decl
         match st with
         | Sto (Auto, ii) -> TAuto ii
         | _ ->
-            (* old: error "no type (could default to 'int')" (List.hd iit) *)
-            TPrimitive (TInt, Parse_info.unsafe_fake_info "int"))
+            (* old: error "no type (could default to 'int')" (Common.hd_exn "unexpected empty list" iit) *)
+            TPrimitive (TInt, Tok.unsafe_fake_tok "int"))
     | None, None, Some t -> t
     | sign_opt, short_long_opt, topt ->
         let sign =
@@ -204,7 +204,7 @@ let fixNameForParam (name, ftyp) =
   match name with
   | None, [], IdIdent id -> (id, ftyp)
   | _ ->
-      let ii = Lib_parsing_cpp.ii_of_any (Name name) |> List.hd in
+      let ii = Lib_parsing_cpp.info_of_any (Name name) in
       error "parameter have qualifier" ii
 
 let type_and_storage_for_funcdef_from_decl decl =
@@ -242,7 +242,7 @@ let (fixOldCDecl : type_ -> type_) =
                * and generic callbacks where specific instances do not
                * need the extra parameter (happens a lot in plan9).
                * Maybe this check is better done in a scheck for C.
-                   let info = Lib_parsing_cpp.ii_of_any (Type ty2) +> List.hd in
+                   let info = Lib_parsing_cpp.ii_of_any (Type ty2) +> Common.hd_exn "unexpected empty list" in
                    pr2 (spf "SEMANTIC: parameter name omitted (but I continue) at %s"
                          (Parse_info.string_of_info info)
                    );
@@ -254,7 +254,7 @@ let (fixOldCDecl : type_ -> type_) =
                  match param with
                  | P { p_name = None; p_type = _ty2; _ } ->
                      (* see above
-                        let info = Lib_parsing_cpp.ii_of_any (Type ty2) +> List.hd in
+                        let info = Lib_parsing_cpp.ii_of_any (Type ty2) +> Common.hd_exn "unexpected empty list" in
                         (* if majuscule, then certainly macro-parameter *)
                         pr2 (spf "SEMANTIC: parameter name omitted (but I continue) at %s"
                             (Parse_info.string_of_info info)
@@ -268,7 +268,7 @@ let (fixOldCDecl : type_ -> type_) =
    *)
   | _ ->
       (* gcc says parse error but I dont see why *)
-      let ii = Lib_parsing_cpp.ii_of_any (Type ty) |> List.hd in
+      let ii = Lib_parsing_cpp.info_of_any (Type ty) in
       error "seems this is not a function" ii
 
 (* TODO: this is ugly ... use record! *)
@@ -300,7 +300,7 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
          * something as a function when it's really not
          *)
         {
-          ft_params = Parse_info.unsafe_fake_bracket [];
+          ft_params = Tok.unsafe_fake_bracket [];
           ft_ret = ty;
           ft_specs = [];
           ft_const = None;

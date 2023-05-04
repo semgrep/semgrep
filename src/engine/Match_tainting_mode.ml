@@ -17,17 +17,16 @@ module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Report
 module T = Taint
 module Lval_env = Taint_lval_env
-module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
 module Out = Output_from_core_t
+module Labels = Set.Make (String)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -295,20 +294,18 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                 in
                 (* TODO: log a warning when we cannot obtain a taint propagator due to
                  * lacking range info. *)
-                match
-                  Parse_info.
-                    ( token_location_of_info tok_pfrom,
-                      token_location_of_info tok_pto )
-                with
+                match (Tok.loc_of_tok tok_pfrom, Tok.loc_of_tok tok_pto) with
                 | Error _, _
                 | _, Error _ ->
                     None
                 | Ok loc_pfrom, Ok loc_pto ->
                     let* mval_from_start_loc, mval_from_end_loc =
-                      Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_from)
+                      AST_generic_helpers.range_of_any_opt
+                        (MV.mvalue_to_any mval_from)
                     in
                     let* mval_to_start_loc, mval_to_end_loc =
-                      Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_to)
+                      AST_generic_helpers.range_of_any_opt
+                        (MV.mvalue_to_any mval_to)
                     in
                     let from =
                       Range.range_of_token_locations mval_from_start_loc
@@ -320,8 +317,9 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                     in
                     let id =
                       Common.spf "propagator:%d:%d:%d:%d:%d:%d"
-                        loc_pfrom.charpos loc_pto.charpos from.Range.start
-                        from.Range.end_ to_.Range.start to_.Range.end_
+                        loc_pfrom.pos.charpos loc_pto.pos.charpos
+                        from.Range.start from.Range.end_ to_.Range.start
+                        to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))
 
@@ -332,7 +330,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
 let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
-  match Visitor_AST.range_of_any_opt any with
+  match AST_generic_helpers.range_of_any_opt any with
   | None ->
       (* IL.any_of_orig will return `G.Anys []` for `NoOrig`, and there is
        * no point in issuing this warning in that case.
@@ -530,52 +528,83 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
+      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
       PM.Toks toks
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
-          call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
+          call_toks =
+            AST_generic_helpers.ii_of_any (G.E expr)
+            |> List.filter Tok.is_origintok;
           intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }
 
-let taint_trace_of_src_to_sink source tokens sink =
-  {
-    Pattern_match.source = convert_taint_call_trace source.T.call_trace;
-    tokens;
-    sink = convert_taint_call_trace sink;
-  }
-
 let pm_of_finding finding =
   match finding with
-  | T.SrcToSink { source; tokens; sink; merged_env } ->
-      (* We always report the finding on the sink that gets tainted, the call trace
-       * must be used to explain how exactly the taint gets there. At some point
-       * we experimented with reporting the match on the `sink`'s function call that
-       * leads to the actual sink. E.g.:
-       *
-       *     def f(x):
-       *       sink(x)
-       *
-       *     def g():
-       *       f(source)
-       *
-       * Here we tried reporting the match on `f(source)` as "the line to blame"
-       * for the injection bug... but most users seem to be confused about this. They
-       * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
-       *)
-      let taint_trace =
-        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
-      in
-      let sink_pm, _ = T.pm_of_trace sink in
-      Some { sink_pm with env = merged_env; taint_trace }
-  | T.SrcToReturn _
-  (* TODO: We might want to report functions that let input taint
-   * go into a sink (?) *)
-  | T.ArgToSink _
-  | T.ArgToReturn _ ->
+  | T.ArgToArg _
+  | T.ToReturn _ ->
       None
+  | ToSink
+      {
+        taints_with_precondition = taints, requires;
+        sink = { pm = sink_pm; _ };
+        merged_env;
+      } ->
+      (* TODO: We might want to report functions that let input taint
+         * go into a sink (?) *)
+      if
+        not
+          (D.taints_satisfy_requires
+             (T.Taint_set.of_list (Common.map (fun t -> t.T.taint) taints))
+             requires)
+      then None
+      else
+        (* these arg taints are not useful to us, because we are within
+           the function, not at the call-site. so we don't know what
+           the argument taints are.
+        *)
+        let source_taints, _args_taints =
+          taints
+          |> Common.partition_either
+               (fun { T.taint = { orig; tokens }; sink_trace } ->
+                 match orig with
+                 | Src src -> Left (src, tokens, sink_trace)
+                 | Arg arg -> Right arg)
+        in
+        (* The old behavior used to be that, for sinks with a `requires`, we would
+           generate a finding per every single taint source going in. Later deduplication
+           would deal with it.
+           We will instead choose to consolidate all sources into a single finding. We can
+           do some postprocessing to report only relevant sources later on, but for now we
+           will lazily (again) defer that computation to later.
+        *)
+        let traces =
+          source_taints
+          |> Common.map (fun (src, tokens, sink_trace) ->
+                 {
+                   PM.source_trace = convert_taint_call_trace src.T.call_trace;
+                   tokens;
+                   sink_trace = convert_taint_call_trace sink_trace;
+                 })
+        in
+        (* We always report the finding on the sink that gets tainted, the call trace
+            * must be used to explain how exactly the taint gets there. At some point
+            * we experimented with reporting the match on the `sink`'s function call that
+            * leads to the actual sink. E.g.:
+            *
+            *     def f(x):
+            *       sink(x)
+            *
+            *     def g():
+            *       f(source)
+            *
+            * Here we tried reporting the match on `f(source)` as "the line to blame"
+            * for the injection bug... but most users seem to be confused about this. They
+            * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+        *)
+        let taint_trace = Some (lazy traces) in
+        Some { sink_pm with env = merged_env; taint_trace }
 
 let check_fundef lang options taint_config opt_ent fdef =
   let name =
@@ -641,10 +670,11 @@ let check_fundef lang options taint_config opt_ent fdef =
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _
+        | G.ParamReceiver _
         | G.OtherParam (_, _) ->
             env)
       Lval_env.empty
-      (Parse_info.unbracket fdef.G.fparams)
+      (Tok.unbracket fdef.G.fparams)
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in

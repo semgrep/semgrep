@@ -1,0 +1,14 @@
+; Project paths
+(library
+  (public_name ppath)
+  (name ppath)
+  (wrapped false)
+  (libraries
+     fpath
+
+     commons
+  )
+  (preprocess (pps
+     ppx_deriving.show
+))
+)

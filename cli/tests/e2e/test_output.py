@@ -124,6 +124,7 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.quick
+@pytest.mark.osempass
 def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
@@ -142,10 +143,11 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--emacs", "--vim"],
 )
 def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
@@ -155,6 +157,15 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
         output_format=OutputFormat.TEXT,  # Not the real output format; just disables JSON parsing
     )
     snapshot.assert_match(stdout, "results.out")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "format",
+    ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
+)
+def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
+    test_output_format(run_semgrep_in_tmp, snapshot, format)
 
 
 @pytest.mark.kinda_slow
@@ -190,7 +201,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
                 # Mask variable debug output
-                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
+                re.compile(r"/(.*)/semgrep-core"),
                 re.compile(r"loaded 1 configs in(.*)"),
                 re.compile(r".*https://semgrep.dev(.*).*"),
                 re.compile(r"(.*Main\.Dune__exe__Main.*)"),
@@ -442,6 +453,19 @@ def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
     results, _errors = run_semgrep_on_copied_files(
         "rules/dependency_aware/monorepo_with_first_party.yaml",
         target_name="dependency_aware/monorepo",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
+    results, _errors = run_semgrep_on_copied_files(
+        "rules/dependency_aware/lodash-4.17.19.yaml",
+        target_name="dependency_aware/unreachable_multiple_copies/yarn.lock",
         output_format=OutputFormat.TEXT,
     )
     snapshot.assert_match(

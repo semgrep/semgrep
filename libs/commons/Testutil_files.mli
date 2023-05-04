@@ -11,7 +11,7 @@
    files without restrictions). During the execution of a test with
    'with_tempfiles', the file hierarchy is created in a temporary folder.
 
-   See Unit_semgrepignore.ml for sample usage.
+   See Unit_gitignore.ml for sample usage.
 *)
 
 (*
@@ -45,6 +45,12 @@ type t =
   | File of string (* name *) * string (* contents *)
   | Symlink of string (* name *) * string (* destination path *)
 
+(* if you prefer a curried syntax to build the tree *)
+
+val file : string (* filename *) -> t
+val dir : string (* name *) -> t list -> t
+val symlink : string (* name *) -> string (* dest *) -> t
+
 (*
    Sort the files in a reasonable order. Useful for comparison purposes.
 *)
@@ -71,6 +77,8 @@ val write : Fpath.t -> t list -> unit
 
 (* Recursive removal (rm -r) *)
 val remove : Fpath.t -> unit
+
+(* file type predicates *)
 val is_dir : Fpath.t -> bool
 val is_file : Fpath.t -> bool
 val is_symlink : Fpath.t -> bool
@@ -102,3 +110,12 @@ val with_tempdir : ?persist:bool -> ?chdir:bool -> (Fpath.t -> 'a) -> 'a
 *)
 val with_tempfiles :
   ?persist:bool -> ?chdir:bool -> t list -> (Fpath.t -> 'a) -> 'a
+
+(* Debugging function which can be used inside an alcotest *)
+val print_files : t list -> unit
+
+(* Similar to with_tempfiles but internally use print_files
+   and show the output of the 'tree' command for a more
+   output
+*)
+val with_tempfiles_verbose : t list -> (Fpath.t -> 'a) -> 'a

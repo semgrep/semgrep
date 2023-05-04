@@ -241,8 +241,7 @@ let set_context_tag_multi groups =
           | Not_found ->
               raise
                 (UnclosedSymbol
-                   (spf "PB with split_when at %s"
-                      (Parse_info.string_of_info ii)))
+                   (spf "PB with split_when at %s" (Tok.stringpos_of_tok ii)))
         in
         aux before;
         [ braces ]

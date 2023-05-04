@@ -20,7 +20,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
+(* Skipping code using a skip_list.txt config file.
+ *
  * It is often useful to skip certain parts of a codebase. Large codebase
  * often contains special code that can not be parsed, that contains
  * dependencies that should not exist, old code that we don't want
@@ -30,10 +31,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * dir or file, and maybe sometimes instead of skip we would like
  * to specify the opposite, what we want to keep, so maybe a simple
  *  +/- syntax would be better.
+ * update: actually gitignore supports the ! negative patterns as
+ * well as the include extra config.
  *
- * TODO: once Gitignore.ml has been made into a library independent
- * of semgrep, we should use a .codemapignore and .codegraphignore
- * instead of skip_code
+ * This module is deprecated. You should prefer the gitignore library
+ * to skip files.
  *)
 
 (*****************************************************************************)
@@ -121,20 +123,23 @@ let find_vcs_root_from_absolute_path file =
          else None)
 
 let find_skip_file_from_root root =
-  let candidates =
-    [
-      "skip_list.txt";
-      (* fbobjc specific *)
-      "Configurations/Sgrep/skip_list.txt";
-      (* www specific *)
-      "conf/codegraph/skip_list.txt";
-    ]
-    |> File.Path.of_strings
-  in
-  candidates
-  |> Common.find_some_opt (fun f ->
-         let full = Fpath.append root f in
-         if Sys.file_exists !!full then Some full else None)
+  (* TODO: figure out why this doesnt work in windows *)
+  if !Common.jsoo then None
+  else
+    let candidates =
+      [
+        "skip_list.txt";
+        (* fbobjc specific *)
+        "Configurations/Sgrep/skip_list.txt";
+        (* www specific *)
+        "conf/codegraph/skip_list.txt";
+      ]
+      |> File.Path.of_strings
+    in
+    candidates
+    |> Common.find_some_opt (fun f ->
+           let full = Fpath.append root f in
+           if Sys.file_exists !!full then Some full else None)
 
 let filter_files_if_skip_list ~root xs =
   let root =
@@ -173,7 +178,7 @@ let reorder_files_skip_errors_last skip_list root xs =
   let skip_errors, ok =
     xs
     |> List.partition (fun file ->
-           let readable = Common.readable ~root:!!root !!file |> Fpath.v in
+           let readable = File.readable ~root file in
            is_file_want_to_skip_error readable)
   in
   ok @ skip_errors

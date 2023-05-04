@@ -18,7 +18,6 @@ open File.Operators
 open Pfff_or_tree_sitter
 open Parsing_result2
 module Flag = Flag_semgrep
-module PI = Parse_info
 module E = Semgrep_error_code
 module Out = Output_from_core_t
 module OutH = Output_from_core_util
@@ -46,7 +45,7 @@ let errors_from_skipped_tokens xs =
   | [] -> Report.ErrorSet.empty
   | x :: _ ->
       let e = exn_of_loc x in
-      let err = E.exn_to_error x.PI.file e in
+      let err = E.exn_to_error x.Tok.pos.file e in
       let locs = xs |> Common.map OutH.location_of_token_location in
       Report.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
@@ -134,6 +133,6 @@ let parse_and_resolve_name_fail_if_partial lang file =
 (*****************************************************************************)
 let parse_program file =
   let file = Fpath.v file in
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let lang = Lang.lang_of_filename_exn file in
   let res = just_parse_with_lang lang !!file in
   res.ast

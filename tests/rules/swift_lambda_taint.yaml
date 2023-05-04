@@ -1,0 +1,13 @@
+rules:
+  - id: swift-lambda-taint
+    message: Taint should go into the lambda! 
+    languages:
+      - swift
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: |
+          source
+    pattern-sinks:
+      - pattern: |
+          sink(...)

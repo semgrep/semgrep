@@ -10,10 +10,8 @@
     stdcompat
     commons
     fpath
+    glob
+    gitignore
   )
   (preprocess (pps ppx_deriving.show))
 )
-
-(ocamllex Glob_lexer)
-(menhir (modules Glob_parser)
-        (flags --unused-tokens --explain --fixed-exception))

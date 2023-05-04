@@ -43,7 +43,7 @@ Files skipped:
 
    • <none>
 
-  [1m[24mSkipped by analysis failure due to parsing or internal Semgrep error[0m
+  [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
    • [36m[22m[24mtargets/bad/invalid_python.py (2 lines skipped)[0m
 
@@ -53,7 +53,7 @@ Files skipped:
 │ Scan Summary │
 └──────────────┘
 Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
+  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
 
 Ran 2 rules on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

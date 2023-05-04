@@ -44,7 +44,7 @@ open Common
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show]
@@ -175,9 +175,14 @@ and type_ =
   | TyProj of type_ * tok (* '#' *) * ident
   (* ast_orig: AppliedType *)
   | TyApplied of type_ * type_ list bracket
+  | TyAnon of tok (* '?' *) * type_bounds
   | TyInfix of type_ * ident * type_
   | TyFunction1 of type_ * tok (* '=>' *) * type_
   | TyFunction2 of type_ list bracket * tok (* '=>' *) * type_
+  (* https://docs.scala-lang.org/scala3/reference/new-types/polymorphic-function-types.html *)
+  | TyPoly of binding list * tok (* '=>' *) * type_
+  (* https://docs.scala-lang.org/scala3/reference/new-types/dependent-function-types.html *)
+  | TyDependent of (ident * type_) list * tok (* '=>' *) * type_
   | TyTuple of type_ list bracket
   | TyRepeated of type_ * tok (* '*' *)
   | TyByName of tok (* => *) * type_
@@ -269,8 +274,10 @@ and expr =
 (* only Name, or DotAccess, or Apply! (e.g., for ArrAccess) *)
 and lhs = expr
 
+(* represents: ParArgumentExprs, ArgumentExprs *)
 and arguments =
   | Args of argument list bracket
+  | ArgUsing of argument list bracket
   (* Ruby-style last argument used as a block (nice when defining your
    * own control structure) *)
   | ArgBlock of block_expr
@@ -352,6 +359,9 @@ and block = block_stat list
 and block_stat =
   | D of definition
   | I of import
+  | Ex of import
+  | Ext of extension
+  | End of end_marker
   | E of expr
   (* just at the beginning of top_stat *)
   | Package of package
@@ -384,6 +394,7 @@ and modifier_kind =
   | Override
   | Inline
   | Open
+  | Opaque
   (* pad: not in original spec *)
   | CaseClassOrObject
   (* less: rewrite as Packaging and object def like in original code? *)
@@ -391,6 +402,7 @@ and modifier_kind =
   (* just for variables/fields/class params *)
   | Val (* immutable *)
   | Var (* mutable *)
+  | EnumClass (* for enum classes *)
 
 and annotation = tok (* @ *) * type_ (* usually just a TyName*) * arguments list
 and attribute = A of annotation | M of modifier
@@ -425,6 +437,8 @@ and type_parameters = type_parameter list bracket option
 (* definition or declaration (def or dcl) *)
 and definition =
   | DefEnt of entity * definition_kind
+  | EnumCaseDef of attribute list * enum_case_definition
+  | GivenDef of given_definition
   (* note that some VarDefs are really disgused FuncDef when
    * the vbody is a BECases
    *)
@@ -459,6 +473,40 @@ and definition_kind =
   | TypeDef of type_definition
   (* class/traits/objects *)
   | Template of template_definition
+
+(*****************************************************************************)
+(* End Marker *)
+(*****************************************************************************)
+and end_marker = { end_tok : tok; end_kind : tok }
+
+(*****************************************************************************)
+(* Extensions *)
+(*****************************************************************************)
+and extension = {
+  ext_tok : tok; (* extension *)
+  ext_tparams : type_parameters;
+  ext_using : bindings list;
+  ext_param : binding;
+  ext_methods : ext_method list;
+}
+
+and ext_method = ExtDef of definition | ExtExport of import
+
+(* ------------------------------------------------------------------------- *)
+(* Enums *)
+(* ------------------------------------------------------------------------- *)
+and enum_case_definition = EnumConstr of enum_constr | EnumIds of ident list
+
+and enum_constr = {
+  eid : ident;
+  etyparams : type_parameters;
+  eparams : bindings list;
+  eattrs : attribute list;
+  eextends : constr_app list;
+}
+
+(* annotations built into type *)
+and constr_app = type_ * arguments list
 
 (* ------------------------------------------------------------------------- *)
 (* Functions/Methods *)
@@ -503,7 +551,7 @@ and parameter_classic = {
 
 and param_type =
   | PT of type_
-  | PTByNameApplication of tok (* => *) * type_
+  | PTByNameApplication of tok (* => *) * type_ * (* * *) tok option
   | PTRepeatedApplication of type_ * tok (* * *)
 
 (* ------------------------------------------------------------------------- *)
@@ -534,7 +582,30 @@ and template_body = (self_type option * block) bracket
 and self_type = ident_or_this * type_ option * tok (* '=>' *)
 
 (* Case classes/objects are handled via attributes in the entity *)
-and template_kind = Class | Trait | Object | Singleton (* via new *)
+and template_kind =
+  | Class
+  | Trait
+  | Object
+  | Singleton
+  (* via new *)
+  | Enum
+
+(* ------------------------------------------------------------------------- *)
+(* Given definitions *)
+(* ------------------------------------------------------------------------- *)
+and given_sig = {
+  g_id : ident option;
+  g_tparams : type_parameters;
+  g_using : bindings list;
+  g_colon : tok;
+}
+
+and given_kind =
+  | GivenStructural of constr_app list * template_body option
+  (* combination of both alias instance and abstract instance *)
+  | GivenType of type_ * expr option
+
+and given_definition = { gsig : given_sig option; gkind : given_kind }
 
 (* ------------------------------------------------------------------------- *)
 (* Typedef *)

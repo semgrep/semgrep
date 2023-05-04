@@ -1,5 +1,3 @@
-(*s: lib_parsing_php.ml *)
-(*s: Facebook copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2009-2011 Facebook
@@ -14,14 +12,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: Facebook copyright *)
 open Common
 open File.Operators
-module PI = Parse_info
 
-(*s: basic pfff module open and aliases *)
 (*module Ast = Cst_php*)
-(*e: basic pfff module open and aliases *)
 
 (*****************************************************************************)
 (* Wrappers *)
@@ -130,13 +124,13 @@ let ii_of_any any =
 
 let (range_of_origin_ii : Cst_php.tok list -> (int * int) option) =
  fun ii ->
-  let ii = List.filter Parse_info.is_origintok ii in
+  let ii = List.filter Tok.is_origintok ii in
   try
-    let min, max = Parse_info.min_max_ii_by_pos ii in
-    assert (PI.is_origintok max);
-    assert (PI.is_origintok min);
-    let strmax = PI.str_of_info max in
-    Some (PI.pos_of_info min, PI.pos_of_info max + String.length strmax)
+    let min, max = Tok_range.min_max_toks_by_pos ii in
+    assert (Tok.is_origintok max);
+    assert (Tok.is_origintok min);
+    let strmax = Tok.content_of_tok max in
+    Some (Tok.bytepos_of_tok min, Tok.bytepos_of_tok max + String.length strmax)
   with
   | _ -> None
 (*e: max min range *)

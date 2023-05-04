@@ -150,7 +150,10 @@ let just_parse_with_lang lang file =
         Json_to_generic.program
   | Lang.Jsonnet ->
       run file
-        [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
+        [
+          TreeSitter
+            (fun file -> Parse_jsonnet_tree_sitter.parse (Fpath.v file));
+        ]
         Jsonnet_to_generic.program
   | Lang.Lisp
   | Lang.Scheme

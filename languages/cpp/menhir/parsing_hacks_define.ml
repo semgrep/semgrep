@@ -16,7 +16,6 @@
 open Common
 open Parser_cpp
 module Flag = Flag_parsing
-module PI = Parse_info
 module TH = Token_helpers_cpp
 module Hack = Parsing_hacks_lib
 
@@ -70,21 +69,17 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_lexing
 (*****************************************************************************)
 
 let mark_end_define ii =
+  let tok_loc = Tok.unsafe_loc_of_tok ii in
   let ii' =
-    {
-      Parse_info.token =
-        Parse_info.OriginTok
-          {
-            (Parse_info.unsafe_token_location_of_info ii) with
-            Parse_info.str = "";
-            Parse_info.charpos = PI.pos_of_info ii + 1;
-          };
-      transfo = Parse_info.NoTransfo;
-    }
+    Tok.OriginTok
+      {
+        str = "";
+        pos = { tok_loc.pos with charpos = Tok.bytepos_of_tok ii + 1 };
+      }
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'
 
-let pos ii = Parse_info.string_of_info ii
+let pos ii = Tok.stringpos_of_tok ii
 
 (*****************************************************************************)
 (* Parsing hacks for #define *)
@@ -102,7 +97,7 @@ let rec define_line_1 acc xs =
   match xs with
   | [] -> List.rev acc
   | (TDefine ii as x) :: xs ->
-      let line = PI.line_of_info ii in
+      let line = Tok.line_of_tok ii in
       define_line_2 (x :: acc) line ii xs
   | TCppEscapedNewline ii :: xs ->
       pr2 (spf "WEIRD: a \\ outside a #define at %s" (pos ii));

@@ -15,7 +15,6 @@
 open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_scala
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -49,7 +48,6 @@ let tokens input_source =
   (* set to false to parse correctly arrows *)
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-  |> Parsing_hacks_scala.insert_indentation_tokens
   [@@profiling]
 
 (*****************************************************************************)
@@ -75,12 +73,13 @@ let parse filename =
     let xs = Parser_scala_recursive_descent.parse toks in
     { Parsing_result.ast = xs; tokens = toks; stat }
   with
-  | PI.Parsing_error cur when !Flag.error_recovery && not !Flag.debug_parser ->
+  | Parsing_error.Syntax_error cur
+    when !Flag.error_recovery && not !Flag.debug_parser ->
       if !Flag.show_parsing_error then (
         pr2 ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
         let filelines = Common2.cat_array filename in
         let checkpoint2 = Common.cat filename |> List.length in
-        let line_error = PI.line_of_info cur in
+        let line_error = Tok.line_of_tok cur in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }

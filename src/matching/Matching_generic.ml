@@ -19,7 +19,6 @@ module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module Env = Metavariable_capture
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -697,25 +696,28 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  match PI.token_location_of_info info with
+  match Tok.loc_of_tok info with
   | Error _ ->
       (* We have no token location to adjust (typically a fake token),
        * this happens if the string is the result of constant folding. *)
       (s, info)
   | Ok loc -> (
-      let raw_str = loc.PI.str in
+      let raw_str = loc.Tok.str in
       let re = Str.regexp_string s in
       try
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
-            loc with
-            PI.str = s;
-            charpos = loc.charpos + pos;
-            column = loc.column + pos;
+            Tok.str = s;
+            pos =
+              {
+                loc.pos with
+                charpos = loc.pos.charpos + pos;
+                column = loc.pos.column + pos;
+              };
           }
         in
-        let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+        let info = Tok.OriginTok loc in
         (s, info)
       with
       | Not_found ->

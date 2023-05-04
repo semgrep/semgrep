@@ -4,10 +4,12 @@
     commons
     process_limits
     lib_parsing
+    aliengrep
 
     commons.tests
     semgrep.analyzing.tests ; Unit_dataflow
     semgrep.core
+    semgrep.core_cli
     semgrep.printing.tests
     semgrep.fixing.tests
     semgrep.metachecking
@@ -17,6 +19,7 @@
     semgrep.synthesizing
     semgrep.reporting
     semgrep.engine
+    semgrep.language_server
     parser_python.menhir parser_python.ast_generic
     semgrep.data
 

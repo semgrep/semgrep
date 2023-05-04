@@ -36,28 +36,27 @@
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Parse_info.t [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Names  *)
 (* ------------------------------------------------------------------------- *)
 
-type ident = string wrap [@@deriving show] (* with tarzan *)
+type ident = string wrap [@@deriving show]
 
 (* a.k.a longident in the OCaml source.
  * TODO: Lident of string | LDot of t * string | Lapply of t * t
  *)
 type name = qualifier * ident
 and qualifier = ident list [@@deriving show]
-(* with tarzan *)
 
-type todo_category = string wrap [@@deriving show] (* with tarzan *)
+type todo_category = string wrap [@@deriving show]
 
 (*****************************************************************************)
 (* Types *)
@@ -80,7 +79,6 @@ type type_ =
    *)
   | TyTodo of todo_category * type_ list
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Expressions *)
@@ -236,7 +234,6 @@ and parameter =
   (* TODO: Label parameter ~xxx ?xxx *)
   | ParamTodo of todo_category
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (* ------------------------------------------------------------------------- *)
 (* Type declaration *)
@@ -279,7 +276,6 @@ and field_decl = ident * type_ * mutable_opt
 (* TODO: keyword attribute *)
 and mutable_opt = tok option (* mutable *)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (* ------------------------------------------------------------------------- *)
 (* Class (and object) *)
@@ -341,9 +337,8 @@ and item_kind =
    *)
   | ItemTodo of todo_category * item list
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
-type program = item list [@@deriving show] (* with tarzan *)
+type program = item list [@@deriving show]
 
 (*****************************************************************************)
 (* Any *)
@@ -356,7 +351,6 @@ type partial =
   (* other *)
   | PartialLetIn of tok * rec_opt * let_binding list * tok (* in *)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 type any =
   | T of type_
@@ -368,7 +362,6 @@ type any =
   | Pr of program
   | Partial of partial
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Wrappers *)

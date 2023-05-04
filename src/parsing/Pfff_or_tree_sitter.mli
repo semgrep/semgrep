@@ -33,10 +33,10 @@ val run_pattern :
 
 (* helpers used both in Parse_target.ml and Parse_target2.ml *)
 
-val exn_of_loc : Parse_info.token_location -> Exception.t
+val exn_of_loc : Tok.location -> Exception.t
 
 val loc_of_tree_sitter_error :
-  Tree_sitter_run.Tree_sitter_error.t -> Parse_info.token_location
+  Tree_sitter_run.Tree_sitter_error.t -> Tok.location
 
 (* used by Parse_jsonnet *)
 val error_of_tree_sitter_error :

@@ -1,0 +1,11 @@
+; parse and match .gitignore files
+(library
+  (public_name gitignore)
+  (name gitignore)
+  (wrapped false)
+  (libraries
+    glob
+    ppath
+  )
+  (preprocess (pps ppx_deriving.show))
+)

@@ -20,7 +20,6 @@ open Common
 open Lexing
 
 open Parser_python
-module PI = Parse_info
 module Flag = Flag_parsing_python
 
 (*****************************************************************************)
@@ -45,8 +44,8 @@ module Flag = Flag_parsing_python
 
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = Parse_info.tokinfo
-let error = Parse_info.lexical_error
+let tokinfo = Tok.tok_of_lexbuf
+let error = Parsing_error.lexical_error
 
 let unescaped s =
   let buf = Buffer.create (String.length s) in
@@ -320,7 +319,7 @@ and _token python2 state = parse
         if state.nl_ignore <= 0 then begin
           state.curr_offset <- 0;
           let s = offset state lexbuf in
-          NEWLINE (Parse_info.tok_add_s s info)
+          NEWLINE (Tok.tok_add_s s info)
         end else begin
          set_mode state STATE_UNDERSCORE_TOKEN;
          TCommentSpace info
@@ -569,7 +568,7 @@ and sq_shortstrlit state pos pre = parse
   | (([^ '\\' '\r' '\n' '\''] | escapeseq)* as s) '\''
      {
        let full_str = Lexing.lexeme lexbuf in
-       STR (unescaped s, pre, PI.tok_add_s full_str pos) }
+       STR (unescaped s, pre, Tok.tok_add_s full_str pos) }
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
@@ -578,14 +577,14 @@ and sq_longstrlit state pos pre = shortest
 | (([^ '\\'] | escapeseq)* as s) "'''"
     {
       let full_str = Lexing.lexeme lexbuf in
-      STR (unescaped s, pre, PI.tok_add_s full_str pos)
+      STR (unescaped s, pre, Tok.tok_add_s full_str pos)
     }
 
 and dq_shortstrlit state pos pre = parse
   | (([^ '\\' '\r' '\n' '\"'] | escapeseq)* as s) '"'
      {
        let full_str = Lexing.lexeme lexbuf in
-       STR (unescaped s, pre, PI.tok_add_s full_str pos) }
+       STR (unescaped s, pre, Tok.tok_add_s full_str pos) }
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
@@ -593,7 +592,7 @@ and dq_longstrlit state pos pre = shortest
   | (([^ '\\'] | escapeseq)* as s) "\"\"\""
       {
         let full_str = Lexing.lexeme lexbuf in
-        STR (unescaped s, pre, PI.tok_add_s full_str pos) }
+        STR (unescaped s, pre, Tok.tok_add_s full_str pos) }
 
 (*****************************************************************************)
 (* Rules on interpolated strings *)

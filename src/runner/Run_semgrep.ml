@@ -15,7 +15,6 @@
 open Common
 open Runner_config
 open File.Operators
-module PI = Parse_info
 module PM = Pattern_match
 module E = Semgrep_error_code
 module MR = Mini_rule
@@ -84,7 +83,7 @@ let timeout_function file timeout f =
   with
   | Some res -> res
   | None ->
-      let loc = PI.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
@@ -99,7 +98,7 @@ let update_cli_progress config =
 (*****************************************************************************)
 
 let string_of_toks toks =
-  String.concat ", " (Common.map (fun tok -> PI.str_of_info tok) toks)
+  String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
@@ -115,19 +114,18 @@ let rec print_taint_call_trace ~format ~spaces = function
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
-  if format =*= Matching_report.Normal then (
-    let (lazy { Pattern_match.source; tokens; sink }) = taint_trace in
-    pr "  * Taint comes from:";
-    print_taint_call_trace ~format ~spaces:4 source;
-    if tokens <> [] then
-      pr
-        (spf "  * These intermediate values are tainted: %s"
-           (string_of_toks tokens));
-    match sink with
-    | Pattern_match.Toks _ -> ()
-    | Call _ ->
-        pr "  * This is how taint reaches the sink:";
-        print_taint_call_trace ~format ~spaces:4 sink)
+  if format =*= Matching_report.Normal then
+    taint_trace |> Lazy.force
+    |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
+           if idx =*= 0 then pr "  * Taint may come from this source:"
+           else pr "  * Taint may also come from this source:";
+           print_taint_call_trace ~format ~spaces:4 source_trace;
+           if tokens <> [] then
+             pr
+               (spf "  * These intermediate values are tainted: %s"
+                  (string_of_toks tokens));
+           pr "  * This is how taint reaches the sink:";
+           print_taint_call_trace ~format ~spaces:4 sink_trace)
 
 let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
@@ -137,15 +135,15 @@ let print_match ?str config match_ ii_of_any =
       =
     match_
   in
-  let toks = tokens_matched_code |> List.filter PI.is_origintok in
+  let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   (if mvars =*= [] then
    Matching_report.print_match ?str ~format:match_format toks
   else
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+    let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
+    let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
 
     let strings_metavars =
       mvars
@@ -153,8 +151,8 @@ let print_match ?str config match_ ii_of_any =
              match Common2.assoc_opt x env with
              | Some any ->
                  any |> ii_of_any
-                 |> List.filter PI.is_origintok
-                 |> Common.map PI.str_of_info
+                 |> List.filter Tok.is_origintok
+                 |> Common.map Tok.content_of_tok
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in
@@ -269,7 +267,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
              pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Parse_info.first_loc_of_file file in
+           let loc = Tok.first_loc_of_file file in
            let error =
              E.mk_error ~rule_id:(Some id) loc
                (spf
@@ -316,7 +314,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 let exn_to_error file (e : Exception.t) =
   match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
-      let loc = PI.unsafe_token_location_of_info tok in
+      let loc = Tok.unsafe_loc_of_tok tok in
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 
@@ -371,7 +369,7 @@ let parse_pattern lang_pattern str =
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
                 "no-id",
-                Parse_info.unsafe_fake_info "no loc" )))
+                Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
 (* for -rules *)
@@ -399,8 +397,8 @@ let rules_from_rule_source config =
  *)
 let parse_equivalences equivalences_file =
   match equivalences_file with
-  | "" -> []
-  | file -> Parse_equivalences.parse file
+  | None -> []
+  | Some file -> Parse_equivalences.parse file
   [@@profiling]
 
 (*****************************************************************************)
@@ -452,7 +450,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "critical exn while matching ruleid %s"
                          rule.MR.id;
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
-                   let loc = Parse_info.first_loc_of_file file in
+                   let loc = Tok.first_loc_of_file file in
                    let errors =
                      RP.ErrorSet.singleton
                        (E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
@@ -544,7 +542,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
         lazy
           (Parse_with_caching.parse_and_resolve_name
              ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version
-             lang file)
+             lang (Fpath.v file))
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 
@@ -853,7 +851,7 @@ let semgrep_with_raw_results_and_exn_handler config =
    It should get simplified when we get rid of the Python wrapper.
    For now, we avoid code duplication.
 *)
-let semgrep_with_prepared_rules_and_targets config (x : lang_job) =
+let semgrep_with_prepared_rules_and_targets config (x : Lang_job.t) =
   let lang_str = Xlang.to_string x.lang in
   let rule_ids (* what are these for? *) =
     Common.map
@@ -973,7 +971,7 @@ let semgrep_with_one_pattern config =
   | Json _ ->
       let rule, rules_parse_time =
         Common.with_time (fun () ->
-            let fk = Parse_info.unsafe_fake_info "" in
+            let fk = Tok.unsafe_fake_tok "" in
             let xlang = Xlang.L (lang, []) in
             let xpat =
               Xpattern.mk_xpat

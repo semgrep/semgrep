@@ -12,6 +12,6 @@ Warning: 1 timeout error(s) in targets/spacegrep_timeout/gnu-lgplv2.txt when run
 │ Scan Summary │
 └──────────────┘
 Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
+  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
 
 Ran 1 rule on 1 file: 0 findings.

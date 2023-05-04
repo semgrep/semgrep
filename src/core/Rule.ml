@@ -177,7 +177,7 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
-  sink_requires : AST_generic.expr;
+  sink_requires : tok * AST_generic.expr option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -218,8 +218,10 @@ let default_source_label = "__SOURCE__"
 let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
 let default_propagator_requires tok = G.L (G.Bool (true, tok)) |> G.e
 
-let default_sink_requires tok =
-  G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+let get_sink_requires { sink_requires = tok, expr; _ } =
+  match expr with
+  | None -> G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+  | Some expr -> expr
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)
@@ -330,7 +332,7 @@ let last_matched_rule : rule_id option ref = ref None
 (* Those are recoverable errors; We can just skip the rules containing them.
  * TODO? put in Output_from_core.atd?
  *)
-type invalid_rule_error = invalid_rule_error_kind * rule_id * Parse_info.t
+type invalid_rule_error = invalid_rule_error_kind * rule_id * Tok.t
 
 and invalid_rule_error_kind =
   | InvalidLanguage of string (* the language string *)
@@ -350,8 +352,8 @@ and invalid_rule_error_kind =
 (* General errors *)
 type error =
   | InvalidRule of invalid_rule_error
-  | InvalidYaml of string * Parse_info.t
-  | DuplicateYamlKey of string * Parse_info.t
+  | InvalidYaml of string * Tok.t
+  | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
 
 (* can't use Error because it's used for severity *)
@@ -380,19 +382,16 @@ let string_of_invalid_rule_error_kind = function
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
-  spf "invalid rule %s, %s: %s" rule_id
-    (Parse_info.string_of_info pos)
+  spf "invalid rule %s, %s: %s" rule_id (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
   match error with
   | InvalidRule x -> string_of_invalid_rule_error x
   | InvalidYaml (msg, pos) ->
-      spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg
+      spf "invalid YAML, %s: %s" (Tok.stringpos_of_tok pos) msg
   | DuplicateYamlKey (key, pos) ->
-      spf "invalid YAML, %s: duplicate key %S"
-        (Parse_info.string_of_info pos)
-        key
+      spf "invalid YAML, %s: duplicate key %S" (Tok.stringpos_of_tok pos) key
   | UnparsableYamlException s ->
       (* TODO: what's the string s? *)
       spf "unparsable YAML: %s" s
@@ -474,7 +473,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
  * This is used when someone calls `semgrep -e print -l python`
  *)
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
-  let fk = Parse_info.unsafe_fake_info "" in
+  let fk = Tok.unsafe_fake_tok "" in
   {
     id = ("-e", fk);
     mode = `Search (P xpat);

@@ -85,7 +85,10 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install -y python3-pip jq
-            pip3 install semgrep
+            # Pip wants to let apt manage all the packages, but Semgrep isn't
+            # available there. Pass --break-system-packages to convince it to
+            # install it anyway.
+            pip3 install semgrep --break-system-packages
             # Put semgrep-core on the path. This is a little bit shady but
             # apparently the `pip show` output is meant to be machine-parseable
             # so this output should be stable:

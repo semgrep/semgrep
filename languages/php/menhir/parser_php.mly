@@ -60,7 +60,6 @@ open Common
 module Flag = Flag_parsing
 
 open Cst_php
-module PI = Parse_info
 
 let mk_param s =
   { p_type = None;
@@ -106,47 +105,49 @@ let mk_Toplevel x =
   | [] -> raise Impossible
   | [x] -> Toplevel x
   | xs -> Toplevels xs
+
+let str_of_info x = Tok.content_of_tok x
 %}
 
 (*************************************************************************)
 (* Tokens *)
 (*************************************************************************)
 
-%token <Parse_info.t> TUnknown (* unrecognized token *)
-%token <Parse_info.t> EOF
+%token <Tok.t> TUnknown (* unrecognized token *)
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The space/comment tokens *)
 (*-----------------------------------------*)
 (* coupling: Token_helpers.is_real_comment *)
-%token <Parse_info.t> TSpaces TNewline
+%token <Tok.t> TSpaces TNewline
 
 (* not mentionned in this grammar. filtered in parse_php.ml *)
-%token <Parse_info.t> T_COMMENT T_DOC_COMMENT
+%token <Tok.t> T_COMMENT T_DOC_COMMENT
 
 (* when use preprocessor and want to mark removed tokens as commented *)
-%token <Parse_info.t> TCommentPP
+%token <Tok.t> TCommentPP
 
 (*-----------------------------------------*)
 (* The normal tokens *)
 (*-----------------------------------------*)
-%token <bool * Parse_info.t> T_BOOL
-%token <int option * Parse_info.t> T_LNUMBER
-%token <float option * Parse_info.t> T_DNUMBER
-%token <string * Parse_info.t>
+%token <bool * Tok.t> T_BOOL
+%token <int option * Tok.t> T_LNUMBER
+%token <float option * Tok.t> T_DNUMBER
+%token <string * Tok.t>
  (* T_IDENT is for a regular ident and  T_VARIABLE is for a dollar ident. *)
  T_IDENT T_VARIABLE
  T_CONSTANT_ENCAPSED_STRING   T_ENCAPSED_AND_WHITESPACE  T_INLINE_HTML
  (* used only for offset of array access inside strings *)
  T_NUM_STRING
  T_STRING_VARNAME
-(*in original: %token <Parse_info.t> T_CHARACTER T_BAD_CHARACTER *)
+(*in original: %token <Tok.t> T_CHARACTER T_BAD_CHARACTER *)
 
 (*-----------------------------------------*)
 (* Keyword tokens *)
 (*-----------------------------------------*)
 
-%token <Parse_info.t>
+%token <Tok.t>
  T_IF T_ELSE T_ELSEIF T_ENDIF
  T_DO  T_WHILE   T_ENDWHILE  T_FOR     T_ENDFOR T_FOREACH T_ENDFOREACH
  T_SWITCH  T_ENDSWITCH T_CASE T_DEFAULT    T_BREAK T_CONTINUE
@@ -178,7 +179,7 @@ let mk_Toplevel x =
 (* Punctuation tokens *)
 (*-----------------------------------------*)
 
-%token <Parse_info.t>
+%token <Tok.t>
  T_OBJECT_OPERATOR "->" T_ARROW "=>" T_DOUBLE_ARROW "==>"
  T_OPEN_TAG  T_CLOSE_TAG T_OPEN_TAG_WITH_ECHO T_CLOSE_TAG_OF_ECHO
  T_START_HEREDOC    T_END_HEREDOC
@@ -219,20 +220,20 @@ let mk_Toplevel x =
 (*-----------------------------------------*)
 (* PHP language extensions: *)
 (*-----------------------------------------*)
-%token <Parse_info.t> T_YIELD T_FROM T_AWAIT
-%token <Parse_info.t> T_SUPER
+%token <Tok.t> T_YIELD T_FROM T_AWAIT
+%token <Tok.t> T_SUPER
 
 (* phpext: for hack and also for semgrep *)
-%token <Parse_info.t> T_ELLIPSIS "..."
+%token <Tok.t> T_ELLIPSIS "..."
 (* semgrep-ext: *)
-%token <Parse_info.t> LDots "<..." RDots "...>"
-%token <string * Parse_info.t> T_METAVAR
+%token <Tok.t> LDots "<..." RDots "...>"
+%token <string * Tok.t> T_METAVAR
 
 
 (* lexing hack to parse lambda params properly *)
-%token <Parse_info.t> T_LAMBDA_OPAR T_LAMBDA_CPAR
+%token <Tok.t> T_LAMBDA_OPAR T_LAMBDA_CPAR
 
-%token <Parse_info.t> T_ENUM
+%token <Tok.t> T_ENUM
 
 (*************************************************************************)
 (* Priorities *)
@@ -397,7 +398,7 @@ statement:
      additional_catch* finally_clause?
      { let try_block = ($2,$3,$4) in
        let catch_block = ($10, $11, $12) in
-       let t = List.hd $7 in (* TODO: return a list of types *)
+       let t = Common.hd_exn "unexpected empty list" $7 in (* TODO: return a list of types *)
        let catch = ($5, ($6, (t, DName $8), $9), catch_block) in
        Try($1, try_block, [catch] @ $13, o2l $14)
      }
@@ -1327,9 +1328,9 @@ exit_expr:
 ident:
  | T_IDENT { $1 }
 
- | T_ENUM      { PI.str_of_info $1, $1 }
- | T_TYPE      { PI.str_of_info $1, $1 }
- | T_SUPER     { PI.str_of_info $1, $1 }
+ | T_ENUM      { str_of_info $1, $1 }
+ | T_TYPE      { str_of_info $1, $1 }
+ | T_SUPER     { str_of_info $1, $1 }
  (* semgrep-ext: *)
  | T_METAVAR   { $1 }
 
@@ -1342,7 +1343,7 @@ ident_encaps:
 ident_in_name:
  | ident { $1 }
  (* can't use keyword_as_ident here, too many conflicts *)
- | T_INSTANCEOF { PI.str_of_info $1, $1 }
+ | T_INSTANCEOF { str_of_info $1, $1 }
 
 (* used in class definitions *)
 ident_class_name:
@@ -1360,10 +1361,10 @@ ident_method_name:
 ident_constant_name: ident_method_name { $1 }
 
 keyword_as_ident:
- | T_PARENT      { PI.str_of_info $1, $1 }
- | T_SELF        { PI.str_of_info $1, $1 }
- | T_INSTANCEOF  { PI.str_of_info $1, $1 }
- | T_ARRAY       { PI.str_of_info $1, $1 }
+ | T_PARENT      { str_of_info $1, $1 }
+ | T_SELF        { str_of_info $1, $1 }
+ | T_INSTANCEOF  { str_of_info $1, $1 }
+ | T_ARRAY       { str_of_info $1, $1 }
  | keyword_as_ident_for_field { $1 }
 
 (* This is used in 'keyword_as_ident' above, as well as in 'member_expr' via:
@@ -1372,17 +1373,17 @@ keyword_as_ident:
  * in primary_expr, hence the move in keyword_as_ident instead.
  *)
 keyword_as_ident_for_field:
- | T_ASYNC       { PI.str_of_info $1, $1 }
- | T_INCLUDE     { PI.str_of_info $1, $1 }
- | T_PUBLIC      { PI.str_of_info $1, $1 }
- | T_DEFAULT     { PI.str_of_info $1, $1 }
- | T_LIST        { PI.str_of_info $1, $1 }
- | T_LOGICAL_AND { PI.str_of_info $1, $1 }
- | T_NEW         { PI.str_of_info $1, $1 }
- | T_FROM        { PI.str_of_info $1, $1 }
- | T_GLOBAL       { PI.str_of_info $1, $1 }
- | T_AS       { PI.str_of_info $1, $1 }
- | T_FOR       { PI.str_of_info $1, $1 }
+ | T_ASYNC       { str_of_info $1, $1 }
+ | T_INCLUDE     { str_of_info $1, $1 }
+ | T_PUBLIC      { str_of_info $1, $1 }
+ | T_DEFAULT     { str_of_info $1, $1 }
+ | T_LIST        { str_of_info $1, $1 }
+ | T_LOGICAL_AND { str_of_info $1, $1 }
+ | T_NEW         { str_of_info $1, $1 }
+ | T_FROM        { str_of_info $1, $1 }
+ | T_GLOBAL       { str_of_info $1, $1 }
+ | T_AS       { str_of_info $1, $1 }
+ | T_FOR       { str_of_info $1, $1 }
 
 (*************************************************************************)
 (* Namespace *)

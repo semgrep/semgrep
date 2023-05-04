@@ -109,15 +109,15 @@ let parsing_error_tests () =
             ( Fpath.basename file,
               fun () ->
                 try
-                  let lang = List.hd (Lang.langs_of_filename file) in
+                  let lang = Lang.lang_of_filename_exn file in
                   let res = Parse_target.just_parse_with_lang lang !!file in
                   if res.skipped_tokens =*= [] then
                     Alcotest.fail
                       "it should raise a standard parsing error exn or return \
                        partial errors "
                 with
-                | Parse_info.Lexical_error _
-                | Parse_info.Parsing_error _ ->
+                | Parsing_error.Lexical_error _
+                | Parsing_error.Syntax_error _ ->
                     () )))
 
 let parsing_rules_tests () =

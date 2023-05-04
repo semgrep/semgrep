@@ -13,9 +13,7 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module PI = Parse_info
 module H = AST_generic_helpers
-module V = Visitor_AST
 
 (*****************************************************************************)
 (* Prelude *)
@@ -99,7 +97,7 @@ let subexprs_of_stmt_kind = function
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 let subexprs_of_args args =
-  args |> PI.unbracket
+  args |> Tok.unbracket
   |> Common.map_filter (function
        | Arg e
        | ArgKwd (_, e)
@@ -138,20 +136,20 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Seq xs -> xs
   | Record (_, flds, _) ->
       flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
-  | Container (_, xs) -> PI.unbracket xs
+  | Container (_, xs) -> Tok.unbracket xs
   | Comprehension (_, (_, (e, xs), _)) ->
       e
       :: (xs
          |> Common.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
-  | New (_, _t, args) -> subexprs_of_args args
+  | New (_, _t, _ii, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e :: subexprs_of_args args
   | SliceAccess (e1, e2) ->
       e1
-      :: (e2 |> PI.unbracket
+      :: (e2 |> Tok.unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
          |> List.concat_map Option.to_list)
   | Yield (_, eopt, _) -> Option.to_list eopt
@@ -162,8 +160,6 @@ let subexprs_of_expr with_symbolic_propagation e =
   | RawExpr x -> Raw_tree.anys x |> subexprs_of_any_list
   | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
-  (* TODO? or call recursively on e? *)
-  | ParenExpr (_, e, _) -> [ e ]
   | Xml { xml_attrs; xml_body; _ } ->
       Common.map_filter
         (function
@@ -220,7 +216,6 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
        *)
       e :: subexprs_of_args args
   | Cast (_, _, e)
-  | ParenExpr (_, e, _)
   | Await (_, e) ->
       [ e ]
   | Yield (_, eopt, _) -> Option.to_list eopt
@@ -233,7 +228,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
    * '$F.name' that is matching cmd = [stuff, fout.name, otherstuff].
    * They should rewrite the rule and use '... <... $F.name ...>' there.
    *)
-  | Container (_, xs) -> PI.unbracket xs
+  | Container (_, xs) -> Tok.unbracket xs
   (* TODO: ugly but in semgrep-rules/terraform/.../missing-athena...yaml
    * we look for '{ ... encryption_configuration {...} ...}' and
    * the encryption_configuration can actually be nested deeper.
@@ -255,7 +250,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | ArrayAccess (_e1, (_, _e2, _)) -> []
   | SliceAccess (_e1, _e2) -> []
   | Comprehension (_, (_, (_e, _xs), _)) -> []
-  | New (_, _t, _args) -> []
+  | New (_, _t, _ii, _args) -> []
   | OtherExpr (_, _anys) -> []
   | RawExpr _ -> []
   | Alias (_, _e1) -> []
@@ -334,7 +329,7 @@ let substmts_of_stmt st =
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> PI.unbracket |> Common.map (function F st -> st))
+            def.cbody |> Tok.unbracket |> Common.map (function F st -> st))
 
 (*****************************************************************************)
 (* Visitors  *)

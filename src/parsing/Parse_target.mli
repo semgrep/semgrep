@@ -28,5 +28,4 @@ val just_parse_with_lang_ref :
   (Lang.t -> Common.filename -> Parsing_result2.t) ref
 
 (* returns a Output_from_core.PartialParsing error *)
-val errors_from_skipped_tokens :
-  Parse_info.token_location list -> Report.ErrorSet.t
+val errors_from_skipped_tokens : Tok.location list -> Report.ErrorSet.t

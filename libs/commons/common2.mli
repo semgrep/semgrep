@@ -823,9 +823,6 @@ val realpath : filename -> filename
 val inits_of_absolute_dir : dirname -> dirname list
 val inits_of_relative_dir : dirname -> dirname list
 
-(* basic file position *)
-type filepos = { l : int; c : int }
-
 (*x: common.mli for basic types *)
 (*****************************************************************************)
 (* i18n *)
@@ -994,7 +991,11 @@ val nblines_file : filename -> int
 val filesize : filename -> int
 val filemtime : filename -> float
 val lfile_exists : filename -> bool
+
+(* raise Unix_error if the directory does not exist *)
 val is_directory : path -> bool
+
+(* raise Unix_error if the file does not exist *)
 val is_file : path -> bool
 val is_symlink : filename -> bool
 val is_executable : filename -> bool
@@ -1760,7 +1761,7 @@ val getDoubleParser :
 (*****************************************************************************)
 (* Parsers (cocci) *)
 (*****************************************************************************)
-(* now in h_program-lang/parse_info.ml *)
+(* now in lib_parsing/parse_info.ml *)
 (*x: common.mli misc *)
 (*****************************************************************************)
 (* Scope managment (cocci) *)

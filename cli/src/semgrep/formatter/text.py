@@ -553,7 +553,6 @@ def print_text_output(
     sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
     for rule_index, rule_match in enumerate(sorted_rule_matches):
         current_file = rule_match.path
-        rule_id = rule_match.rule_id
         message = rule_match.message
         fix = rule_match.fix
         if "sca_info" in rule_match.extra and (rule_match.extra["sca_info"].reachable):
@@ -574,21 +573,21 @@ def print_text_output(
             last_message = None
         # don't display the rule line if the check is empty
         if (
-            rule_id
-            and rule_id != CLI_RULE_ID
+            rule_match.rule_id
+            and rule_match.rule_id != CLI_RULE_ID
             and (last_message is None or last_message != message)
         ):
             shortlink = get_details_shortlink(rule_match)
             shortlink_text = (8 * " " + shortlink + "\n") if shortlink else ""
-            rule_id_text = click.wrap_text(
-                f"{with_color(Colors.foreground, rule_id, bold=True)}",
+            title_text = click.wrap_text(
+                f"{with_color(Colors.foreground, rule_match.title, bold=True)}",
                 width + 10,
                 5 * " ",
                 5 * " ",
                 False,
             )
             message_text = click.wrap_text(f"{message}", width, 8 * " ", 8 * " ", True)
-            console.print(f"{rule_id_text}\n{message_text}\n{shortlink_text}")
+            console.print(f"{title_text}\n{message_text}\n{shortlink_text}")
 
         last_file = current_file
         last_message = message
@@ -717,21 +716,23 @@ class TextFormatter(BaseFormatter):
                 else []
             )
 
-            oss_rules = [
+            rules_ran_within_a_file = [
                 with_color(Colors.foreground, rule.value[0].value, bold=True)
                 for rule in rules_by_engine
                 if isinstance(rule.value[1].value, out.OSS)
             ]
 
-            if (extra["engine_requested"].is_interfile) and oss_rules:
+            if (extra["engine_requested"].is_interfile) and rules_ran_within_a_file:
                 console.print(
-                    "Some rules were run as OSS rules because `interfile: true` was not specified."
+                    f"{unit_str(len(rules_ran_within_a_file), 'rule')} ran in a within-a-file fashion"
+                    + " because `interfile: true` was not specified."
                 )
                 if extra.get("verbose_errors"):
-                    console.print("These rules were:\n   " + "   \n   ".join(oss_rules))
-                else:
                     console.print(
-                        f"{unit_str(len(oss_rules), 'rule')} ran with OSS engine (--verbose to see which)"
+                        "These rules were:\n   "
+                        + "   \n   ".join(rules_ran_within_a_file)
                     )
+                else:
+                    console.print("(Use --verbose to see which ones.)")
 
         return captured_output.get()

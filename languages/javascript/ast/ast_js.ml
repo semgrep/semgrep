@@ -77,21 +77,17 @@ open Common
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
 
-(* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
- * transformation field that makes possible spatch on the code.
- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
-type a_todo_category = string wrap [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
+type a_todo_category = string wrap [@@deriving show]
 
 (* real or fake when ASI (automatic semicolon insertion) *)
-type sc = Parse_info.t [@@deriving show] (* with tarzan *)
+type sc = Tok.t [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Name *)
@@ -149,19 +145,18 @@ type special =
   (* less: should be in statement and unsugared in x+=1 or even x = x + 1 *)
   | IncrDecr of (AST_generic.incr_decr * AST_generic.prefix_postfix)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
-type a_label = string wrap [@@deriving show] (* with tarzan *)
+type a_label = string wrap [@@deriving show]
 
 (* the filename is not "resolved".
  * alt: use a reference like for resolved_name set in graph_code_js.ml and
  * module_path_js.ml? *)
-type a_filename = string wrap [@@deriving show] (* with tarzan *)
+type a_filename = string wrap [@@deriving show]
 
 (* Used for decorators and for TyName in AST_generic.type_.
  * Otherwise for regular JS dotted names are encoded with ObjAccess instead.
  *)
-type a_dotted_ident = a_ident list [@@deriving show] (* with tarzan *)
+type a_dotted_ident = a_ident list [@@deriving show]
 
 (* when doing export default Foo and import Bar, ... *)
 let default_entity = "!default!"
@@ -219,6 +214,7 @@ and expr =
   | TypeAssert of expr * tok (* 'as' or '<' *) * type_ (* X as T or <T> X *)
   (* this is used mostly for unsupported typescript features *)
   | ExprTodo of a_todo_category * expr list
+  | ParenExpr of tok * expr * tok
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -550,14 +546,14 @@ and import_specifier = a_ident * a_ident option
  *)
 (* less: can remove and below when StmtTodo disappear *)
 and a_toplevel = stmt
-(* [@@deriving show { with_path = false} ] (* with tarzan *) *)
+(* [@@deriving show { with_path = false} ] *)
 
 (*****************************************************************************)
 (* Program *)
 (*****************************************************************************)
 
 and a_program = a_toplevel list
-(* [@@deriving show { with_path = false} ] (* with tarzan *) *)
+(* [@@deriving show { with_path = false} ] *)
 
 (*****************************************************************************)
 (* Any *)
@@ -589,7 +585,6 @@ and any =
   | Partial of partial
   | Tk of tok
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -633,8 +628,8 @@ let stmt1_with b xs =
   | [ x ] -> x
   | xs -> Block (b xs)
 
-let stmt1 tok xs = stmt1_with (Parse_info.fake_bracket tok) xs
-let unsafe_stmt1 xs = stmt1_with Parse_info.unsafe_fake_bracket xs
+let stmt1 tok xs = stmt1_with (Tok.fake_bracket tok) xs
+let unsafe_stmt1 xs = stmt1_with Tok.unsafe_fake_bracket xs
 let basic_entity id = { name = id; attrs = [] }
 
 let mk_default_entity_def tok exp =
@@ -689,12 +684,12 @@ let parameter_to_pattern tok (param : parameter) : a_pattern =
       let pat =
         match p_type with
         | None -> pat
-        | Some type_ -> Cast (pat, Parse_info.fake_info tok ":", type_)
+        | Some type_ -> Cast (pat, Tok.fake_tok tok ":", type_)
       in
       let pat =
         match p_default with
         | None -> pat
-        | Some expr -> Assign (pat, Parse_info.fake_info tok "=", expr)
+        | Some expr -> Assign (pat, Tok.fake_tok tok "=", expr)
       in
       (* TODO? *)
       ignore p_attrs;
@@ -714,12 +709,11 @@ let add_decorators_to_declarations decorators declarations =
   List.map (add_decorators_to_declaration decorators) declarations
 
 (*****************************************************************************)
-(* Helpers, could also be put in lib_parsing.ml instead *)
+(* Helpers. TODO: move in Tok.ml instead *)
 (*****************************************************************************)
-module PI = Parse_info
 
 (* used both by Parsing_hacks_js and Parse_js *)
 let fakeInfoAttach info =
-  let info = PI.rewrap_str "';' (from ASI)" info in
-  let pinfo = PI.unsafe_token_location_of_info info in
-  { PI.token = PI.FakeTokStr (";", Some (pinfo, -1)); transfo = PI.NoTransfo }
+  let info = Tok.rewrap_str "';' (from ASI)" info in
+  let loc = Tok.unsafe_loc_of_tok info in
+  Tok.FakeTokStr (";", Some (loc, -1))

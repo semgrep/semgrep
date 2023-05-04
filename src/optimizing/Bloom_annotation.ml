@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module V = Visitor_AST
 module Set = Set_
 open AST_generic
 
@@ -114,7 +113,7 @@ let rec statement_strings stmt =
          * atoms, chars, even int?
          *)
         | L (String (_, (str, _tok), _)) -> push str res
-        | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
+        | IdSpecial (_, tok) -> push (Tok.content_of_tok tok) res
         | __else__ -> super#visit_expr env x
 
       method! visit_svalue _env x =

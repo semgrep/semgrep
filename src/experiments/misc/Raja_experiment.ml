@@ -1,3 +1,4 @@
+open File.Operators
 module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -22,8 +23,8 @@ let find_function_info (range_offsets : int * int)
   let start, end_ = range_offsets in
   ranges
   |> List.find_opt (fun { Function_range.range = t1, t2; _ } ->
-         let offset1 = Parse_info.pos_of_info t1 in
-         let offset2 = Parse_info.pos_of_info t2 in
+         let offset1 = Tok.bytepos_of_tok t1 in
+         let offset2 = Tok.bytepos_of_tok t2 in
          start >= offset1 && end_ <= offset2)
 
 (*****************************************************************************)
@@ -36,15 +37,15 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
   | Some x -> x
   | None ->
       let ast =
-        (* ugly: parse_program may raise the "hd" exn when we can't infer
+        (* ugly: parse_program may raise an exn when we can't infer
          * the language from the filename.
          * TODO: we should use just_parse_with_lang and get the language
          * from the languages: field in the rule corresponding to
          * the rule_id of the match. That would require to pass
          * more info to ranges_of_path() though.
          *)
-        try Parse_target.parse_program (Fpath.to_string path) with
-        | Failure "hd" -> []
+        try Parse_target.parse_program !!path with
+        | Failure _ -> []
       in
       let ranges = Function_range.ranges ast in
       Hashtbl.add cache path ranges;
@@ -70,8 +71,8 @@ let adjust_core_match_results (x : Out.core_match_results) :
                logger#info "no function info found for range: %d, %d" start end_;
                m
            | Some { Function_range.name; range = t1, t2 } ->
-               let offset1 = Parse_info.pos_of_info t1 in
-               let offset2 = Parse_info.pos_of_info t2 in
+               let offset1 = Tok.bytepos_of_tok t1 in
+               let offset2 = Tok.bytepos_of_tok t2 in
                let extra =
                  {
                    m.extra with

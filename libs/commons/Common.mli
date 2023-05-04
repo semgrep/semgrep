@@ -4,7 +4,7 @@
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second Pervasive.ml (now called Stdlib.ml).
+ * This file acts like a second Stdlib.ml (used to be called Pervasives.ml).
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
@@ -23,6 +23,8 @@
  * To enforce this rule, this module redefines '=' to just operate
  * on strings, so ocaml can statically detect when you wrongly use '='
  * on other types.
+ *
+ * See also the Operators submodule at the end of this file.
  *)
 val ( = ) : string -> string -> bool
 
@@ -143,7 +145,7 @@ val split : string (* sep regexp *) -> string -> string list
 (* Deprecated.
 
    Migration in progress: File.ml reproduces the functions below and uses
-   Fpath.t instead of string to represent file/directory paths.
+   Fpath.t instead of strings to represent file/directory paths.
 *)
 
 (* Some signatures are arguably clearer when using 'filename' instead of
@@ -161,15 +163,14 @@ type filename = string [@@deriving show, eq]
  * val equal_filename: filename -> filename -> bool
  *)
 
-(* TODO: those are not used very often, maybe we should delete them *)
-type dirname = string
-type path = string
+(* for realpath, see efuns_c library or Realpath.ml in trimmed pfff  *)
 
-(* for realpath, see efuns_c library  *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
 *)
 val fullpath : filename -> filename
+
+(* Deprecated: use the ppath library instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 
@@ -236,6 +237,7 @@ val erase_this_temp_file : filename -> unit
 (*****************************************************************************)
 (* Subprocess *)
 (*****************************************************************************)
+(* Deprecated? Use Bos instead? *)
 
 (* This allows to capture the output of an external command.
  * It is more convenient to use than Unix.open_process_in.
@@ -266,6 +268,30 @@ val map : ('a -> 'b) -> 'a list -> 'b list
     Additionally, we guarantee that the mapping function is applied from
     left to right like for [List.iter].
 *)
+
+(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the
+   first element of a list or
+   fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
+   the exception 'Failure msg' which is only a slight improvement over
+   'Common.hd_exn "unexpected empty list"'.
+
+   In general, you should prefer a match-with and not have to call a
+   function to extract the first element of a list.
+
+   Usage: Common.hd_exn "found an empty list of things" xs
+
+   If receiving an empty list is a bug, prefer the following:
+
+     match xs with
+     | [] -> assert false
+     | xs -> ...
+*)
+val hd_exn : string -> 'a list -> 'a
+
+(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great
+   improvement. The same recommendations as for 'Common.hd_exn "unexpected
+   empty list"' apply. *)
+val tl_exn : string -> 'a list -> 'a list
 
 val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
 (** Same as [List.map2] but stack-safe and slightly faster on short lists.
@@ -365,6 +391,7 @@ val optlist_to_list : 'a list option -> 'a list
  * (see https://v2.ocaml.org/manual/bindingops.html)
  * 'let*' is one such binding operator and an alias to Option.bind.
  * [bind o f] is [f v] if [o] is [Some v] and [None] if [o] is [None].
+ *
  * Here is an example of use:
  *  let* x1 = xs |> List.find_opt (fun x -> x > 1) in
  *  let* x2 = xs |> List.find_opt (fun x -> x > 2) in
@@ -423,7 +450,7 @@ val cache_computation :
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
-(* see also the profiling library and ppx_profiling [@@profiling] annot *)
+(* See also the profiling library and profiling.ppx [@@profiling] annot *)
 
 (*
    Measure how long it takes for a function to run, returning the result
@@ -437,6 +464,19 @@ val with_time : (unit -> 'a) -> 'a * float
 *)
 val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+(* if you just want to use the operators *)
+module Operators : sig
+  val ( =~ ) : string -> string -> bool
+  val ( = ) : string -> string -> bool
+  val ( =|= ) : int -> int -> bool
+  val ( =$= ) : char -> char -> bool
+  val ( =:= ) : bool -> bool -> bool
+  val ( =*= ) : 'a -> 'a -> bool
+end
 
 (*****************************************************************************)
 (* Misc *)

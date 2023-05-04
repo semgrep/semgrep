@@ -13,8 +13,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module PI = Parse_info
 open Parser_go
+module PI = Lib_ast_fuzzy
 
 (*****************************************************************************)
 (* Token Helpers *)
@@ -146,4 +146,4 @@ let info_of_tok tok =
   |> ignore;
   match !res with
   | Some x -> x
-  | None -> Parse_info.unsafe_fake_info "NOTOK"
+  | None -> Tok.unsafe_fake_tok "NOTOK"

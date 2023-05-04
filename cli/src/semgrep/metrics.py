@@ -102,6 +102,14 @@ class ErrorsSchema(TypedDict, total=False):
     errors: List[str]
 
 
+class ExtensionSchema(TypedDict, total=False):
+    machineId: Optional[str]
+    isNewAppInstall: Optional[bool]
+    sessionId: Optional[str]
+    version: Optional[str]
+    type: Optional[str]
+
+
 class ValueRequiredSchema(TypedDict):
     features: Set[str]
 
@@ -111,11 +119,6 @@ class ValueSchema(ValueRequiredSchema, total=False):
     numFindings: int
     numIgnored: int
     ruleHashesWithFindings: Dict[str, int]
-
-
-class FixRateSchema(TypedDict, total=False):
-    lowerLimits: Dict[str, int]
-    upperLimits: Dict[str, int]
 
 
 class ParseStatSchema(TypedDict, total=False):
@@ -139,9 +142,9 @@ class TopLevelSchema(TopLevelRequiredSchema, total=False):
 class PayloadSchema(TopLevelSchema):
     environment: EnvironmentSchema
     performance: PerformanceSchema
+    extension: ExtensionSchema
     errors: ErrorsSchema
     value: ValueSchema
-    fix_rate: FixRateSchema
     parse_rate: Dict[Language, ParseStatSchema]
 
 
@@ -190,8 +193,8 @@ class Metrics:
             environment=EnvironmentSchema(version=__VERSION__),
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
+            extension=ExtensionSchema(),
             value=ValueSchema(features=set()),
-            fix_rate=FixRateSchema(),
             parse_rate=dict(),
             started_at=datetime.now(),
             event_id=uuid.uuid4(),
@@ -373,14 +376,6 @@ class Metrics:
             self.add_feature("ruleset", name)
 
     @suppress_errors
-    def add_fix_rate(
-        self, lower_limits: Dict[str, int], upper_limits: Dict[str, int]
-    ) -> None:
-        logger.debug(f"Adding fix rate: {lower_limits} {upper_limits}")
-        self.payload["fix_rate"]["lowerLimits"] = lower_limits
-        self.payload["fix_rate"]["upperLimits"] = upper_limits
-
-    @suppress_errors
     def add_parse_rates(self, parse_rates: ParsingData) -> None:
         """
         Adds parse rates, grouped by language
@@ -393,6 +388,23 @@ class Metrics:
                 num_bytes=data.num_bytes,
             )
             for (lang, data) in parse_rates.get_errors_by_lang().items()
+        }
+
+    @suppress_errors
+    def add_extension(
+        self,
+        machine_id: Optional[str],
+        new_install: Optional[bool],
+        session_id: Optional[str],
+        version: Optional[str],
+        type: Optional[str],
+    ) -> None:
+        self.payload["extension"] = {
+            "machineId": machine_id,
+            "isNewAppInstall": new_install,
+            "sessionId": session_id,
+            "version": version,
+            "type": type,
         }
 
     def as_json(self) -> str:
