@@ -28,7 +28,7 @@ module H = Cmdliner_helpers
 type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
-  rules_source : Rule_fetching.rules_source;
+  rules_source : Rules_source.t;
   (* can be a list of files or directories *)
   target_roots : Fpath.t list;
   (* Rules/targets refinements *)
@@ -668,19 +668,23 @@ let cmdline_term : conf Term.t =
       | [], (None, _, _) ->
           (* alt: default.rules_source *)
           (* TOPORT: raise with Exit_code.missing_config *)
+          (* TOPORT? use instead
+             "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
           Error.abort
             "No config given. Run with `--config auto` or see \
              https://semgrep.dev/docs/running-rules/ for instructions on \
              running with a specific config"
-          (* TOPORT? use instead
-             "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
-          Rules_source.Pattern (pat, xlang, fix)
-      | _, (Some _, None, _) ->
-          (* alt: "language must be specified when a pattern is passed" *)
-          Error.abort "-e/--pattern and -l/--lang must both be specified"
+          Rules_source.Pattern (pat, Some xlang, fix)
+      | _, (Some pat, None, fix) ->
+          if
+            legacy
+            (* alt: "language must be specified when a pattern is passed" *)
+          then Error.abort "-e/--pattern and -l/--lang must both be specified"
+            (* osemgrep-only: better: can use -e without -l! *)
+          else Rules_source.Pattern (pat, None, fix)
       | _, (None, Some _, _) ->
           (* stricter: error not detected in original semgrep *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
