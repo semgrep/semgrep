@@ -21,6 +21,10 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   rewrite_rule_ids : bool;
+  time_flag : bool;
+  profile : bool;
+  (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
+  legacy : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -32,8 +36,6 @@ type conf = {
   (* text output config (TODO: make a separate type gathering all of them) *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
-  time_flag : bool;
-  profile : bool;
   (* Networking options *)
   metrics : Metrics_.config;
   version_check : bool;

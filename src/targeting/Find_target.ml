@@ -47,15 +47,25 @@ module Resp = Output_from_core_t
 (*************************************************************************)
 
 type conf = {
-  project_root : Fpath.t option;
+  (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
+  (* global include list, passed via semgrep --include
+   * [!] include_ = None is the opposite of Some [].
+   * If a list of include patterns is specified, a path must match
+   * at least of the patterns to be selected.
+   *)
   include_ : string list option;
   max_target_bytes : int;
+  (* whether or not follow what is specified in the .gitignore
+   * TODO? what about .semgrepignore?
+   *)
   respect_git_ignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   (* TODO: use *)
   scan_unknown_extensions : bool;
+  (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
+  project_root : Fpath.t option;
 }
 [@@deriving show]
 
