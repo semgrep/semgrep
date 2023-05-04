@@ -179,13 +179,13 @@ let should_match_call = function
 (*****************************************************************************)
 
 (* Getters and setters that were left abstract in the cache implementation. *)
-let cache_access : tin Caching.Cache.access =
-  {
-    get_span_field = (fun tin -> tin.stmts_match_span);
-    set_span_field = (fun tin x -> { tin with stmts_match_span = x });
-    get_mv_field = (fun tin -> tin.mv);
-    set_mv_field = (fun tin mv -> { tin with mv });
-  }
+(* let cache_access : tin Caching.Cache.access =
+   {
+     get_span_field = (fun tin -> tin.stmts_match_span);
+     set_span_field = (fun tin x -> { tin with stmts_match_span = x });
+     get_mv_field = (fun tin -> tin.mv);
+     set_mv_field = (fun tin mv -> { tin with mv });
+   } *)
 
 let stmts_may_match pattern_stmts (stmts : G.stmt list) =
   (* We could gather all the strings from the stmts
@@ -2149,12 +2149,12 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) tin
     =
   (* shares the cache with m_list__m_stmt *)
   match (tin.cache, xsa, xsb) with
-  | Some cache, a :: _, _ :: _ when a.s_use_cache ->
+  (* | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list ~access:cache_access ~cache
         ~function_id:CK.Match_deep ~list_kind:CK.Original ~less_is_ok
         ~compute:(m_stmts_deep_uncached ~inside ~less_is_ok)
-        ~pattern:xsa ~target:xsb tin
+        ~pattern:xsa ~target:xsb tin *)
   | _ -> m_stmts_deep_uncached ~inside ~less_is_ok xsa xsb tin
 
 and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
@@ -2237,12 +2237,12 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
 and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
   (* shares the cache with m_stmts_deep *)
   match (tin.cache, xsa, xsb) with
-  | Some cache, a :: _, _ :: _ when a.s_use_cache ->
+  (* | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list ~access:cache_access ~cache
         ~function_id:CK.Match_list ~list_kind ~less_is_ok:true
         ~compute:(m_list__m_stmt_uncached ?less_is_ok ~list_kind)
-        ~pattern:xsa ~target:xsb tin
+        ~pattern:xsa ~target:xsb tin *)
   | _ -> m_list__m_stmt_uncached ?less_is_ok ~list_kind xsa xsb tin
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
