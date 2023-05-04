@@ -454,13 +454,17 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
       let (paths : Out.cli_paths) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
-            let skipped = cli_skipped_targets ~skipped_targets in
+            let skipped =
+              Option.map
+                (fun x -> cli_skipped_targets ~skipped_targets:x)
+                skipped_targets
+            in
             { scanned; _comment = None; skipped }
         | _else_ ->
             {
               scanned;
               _comment = Some "<add --verbose for a list of skipped paths>";
-              skipped = [];
+              skipped = Some [];
             }
       in
       {
