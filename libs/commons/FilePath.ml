@@ -17,23 +17,29 @@
 (* Prelude *)
 (*****************************************************************************)
 
-(* This module governs a path type, which can only produce values which
+(* Real paths.
+
+   This module governs a path type, which can only produce values which
    are for normalized paths to existent files or directories.
    These paths are always canonically kept at their absolute forms, in order to
-   maintain a canonicity property. Due to the `Path` constructor being private, we
-   can enforce this invariant at the type level.
+   maintain a canonicity property. Due to the `Path` constructor being
+   private, we can enforce this invariant at the type level.
 
-   This file was originally called `Path.ml`, but this conflicts with
+   history: this file was originally called `Path.ml`, but this conflicts with
    the OCaml compiler libraries. Then it was called FPath.ml but this
    was too close to the Fpath library by Daniel Buenzli.
+
+   TODO: rename this file to Rpath.ml, so we would have Fpath.ml, Ppath.ml,
+   and finally Rpath.ml. We could also have Dpath.ml for directories
+   and that would put us closer to the nice filenames library in Scala
+   with better types paths.
 *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type path = Path of string [@@deriving show, eq]
-type t = path [@@deriving show, eq]
+type t = Path of string [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
@@ -41,6 +47,8 @@ type t = path [@@deriving show, eq]
 
 (* TODO: we should use Unix.realpath but it's available only in 4.13
  * and there is no unixcompat like we have stdcompat.
+ * alt: we could use Martin's Realpath.ml that used to be in
+ * osemgrep/src/tarteting/ (also in my ~/Dropbox/r2c/TODO-code) now.
  *)
 let of_string s = Path (Common.fullpath s)
 let to_string (Path s) = s

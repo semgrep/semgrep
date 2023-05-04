@@ -542,7 +542,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
         lazy
           (Parse_with_caching.parse_and_resolve_name
              ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version
-             lang file)
+             lang (Fpath.v file))
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 

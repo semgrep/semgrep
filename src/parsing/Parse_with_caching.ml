@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -29,12 +30,16 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *  $ time semgrep-core -use_parsing_cache ~/.semgrep/cache -l java -rules ~/eqeq.yaml ~/elasticsearch/
  *  real: 0.11s
  *
- * history: this used to be necessary because the Semgrep Python wrapper was
- * making multiple calls to semgrep-core and we didn't want to reparse again
+ * history: this used to be necessary because the pysemgrep was
+ * making multiple calls to semgrep-core and we didn't want to reparse again and
  * again the same file for each rule. After migrating the processing of
- * a whole rule to semgrep-core, this was not anymore necessary, but
- * it is now useful to speedup semgrep when running semgrep
- * multiple times on the same reposotiry.
+ * all the rules at once to semgrep-core, this was not needed anymore. However,
+ * it is now useful again to speedup semgrep when running semgrep
+ * multiple times on the same repository. This can also be useful
+ * for semgrep lsp.
+ *
+ * This file could also be under optimizing/, but that would require to add
+ * semgrep_parsing as a dependency in optimizing/dune.
  *)
 
 (*****************************************************************************)
@@ -43,7 +48,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 type versioned_parse_result =
   string
-  * Common.filename
+  * Fpath.t
   * (AST_generic.program * Tok.location list, Exception.t) Common.either
 
 (*****************************************************************************)
@@ -51,15 +56,16 @@ type versioned_parse_result =
 (*****************************************************************************)
 let filemtime file = (Unix.stat file).Unix.st_mtime
 
-let get_value_and_run_checks ?(filecheck = None) version_cur file_cache =
-  let version, file2, res = Common2.get_value file_cache in
+let get_value_and_run_checks ?(filecheck = None) version_cur
+    (file_cache : Fpath.t) =
+  let version, file2, res = Common2.get_value !!file_cache in
   if version <> version_cur then
-    failwith (spf "Version mismatch! Clean the cache file %s" file_cache);
+    failwith (spf "Version mismatch! Clean the cache file %s" !!file_cache);
   (match filecheck with
   | Some file when file <> file2 ->
       failwith
         (spf "Not the same file! Md5sum collision! Clean the cache file %s"
-           file_cache)
+           !!file_cache)
   | __else__ -> ());
   res
 
@@ -69,17 +75,20 @@ let get_value_and_run_checks ?(filecheck = None) version_cur file_cache =
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in commons/Common.ml at some point
  *)
-let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
+let cache_computation use_parsing_cache version_cur (file : Fpath.t)
+    cache_file_of_file f =
   if not use_parsing_cache then f ()
-  else if not (Sys.file_exists file) then (
-    logger#warning "cache_computation: can't find file %s " file;
+  else if not (Sys.file_exists !!file) then (
+    logger#warning "cache_computation: can't find file %s " !!file;
     logger#warning "defaulting to calling the function";
     f ())
   else
-    let file_cache = cache_file_of_file file in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
+    let file_cache = cache_file_of_file !!file in
+    if Sys.file_exists file_cache && filemtime file_cache >= filemtime !!file
+    then (
       logger#trace "using cache: %s" file_cache;
-      get_value_and_run_checks ~filecheck:(Some file) version_cur file_cache)
+      get_value_and_run_checks ~filecheck:(Some file) version_cur
+        (Fpath.v file_cache))
     else
       let res = f () in
       let final : versioned_parse_result = (version_cur, file, res) in
@@ -87,7 +96,7 @@ let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
       | Sys_error err ->
           (* We must ignore SIGXFSZ to get this exception, see
            * note "SIGXFSZ (file size limit exceeded)". *)
-          logger#error "Could not write cache file for %s (%s): %s" file
+          logger#error "Could not write cache file for %s (%s): %s" !!file
             file_cache err;
           (* Make sure we don't leave corrupt cache files behind us. *)
           if Sys.file_exists file_cache then Sys.remove file_cache);
@@ -113,11 +122,11 @@ let cache_file_of_file parsing_cache_dir suffix filename =
 (*****************************************************************************)
 
 let ast_or_exn_of_file lang file =
-  logger#trace "parsing %s" file;
+  logger#trace "parsing %s" !!file;
   try
     (* finally calling the actual function *)
     let { Parsing_result2.ast; skipped_tokens; _ } =
-      Parse_target.parse_and_resolve_name lang file
+      Parse_target.parse_and_resolve_name lang !!file
     in
     Left (ast, skipped_tokens)
     (* We stores also in the cache whether we had
@@ -129,7 +138,7 @@ let ast_or_exn_of_file lang file =
      * so we focus on just Timeout for now.
      *)
   with
-  | Match_rules.File_timeout as exn ->
+  | Time_limit.Timeout _ as exn ->
       let e = Exception.catch exn in
       Right e
 
@@ -138,13 +147,17 @@ let ast_or_exn_of_value v =
   | Left x -> x
   | Right exn -> Exception.reraise exn
 
-let binary_suffix = ".ast.binary"
+(* this was done for snowflake, and used with semgrep-core -generate_ast_binary *)
+let binary_suffix : Fpath.ext = ".ast.binary"
 
 (* coupling: with binary_suffix definition above *)
-let is_binary_ast_filename file = file =~ ".*\\.ast\\.binary$"
+let is_binary_ast_filename file =
+  (* TODO: use Fpath.ext functions *)
+  !!file =~ ".*\\.ast\\.binary$"
 
-(* for -generate_ast_binary *)
-let versioned_parse_result_of_file version lang file : versioned_parse_result =
+(* for semgrep-core -generate_ast_binary *)
+let versioned_parse_result_of_file version lang (file : Fpath.t) :
+    versioned_parse_result =
   let res = ast_or_exn_of_file lang file in
   (* coupling: see call to Common2.write_value above *)
   (version, file, res)
@@ -154,9 +167,11 @@ let versioned_parse_result_of_file version lang file : versioned_parse_result =
 (*****************************************************************************)
 
 (* A wrapper around Parse_target.parse_and_resolve_name *)
-let parse_and_resolve_name ?(parsing_cache_dir = "") version lang file =
+let parse_and_resolve_name ?(parsing_cache_dir = "") version lang
+    (file : Fpath.t) =
   if is_binary_ast_filename file then (
-    logger#info "%s is already an AST binary file, unmarshalling its value" file;
+    logger#info "%s is already an AST binary file, unmarshalling its value"
+      !!file;
     let v = get_value_and_run_checks ~filecheck:None version file in
     ast_or_exn_of_value v)
   else

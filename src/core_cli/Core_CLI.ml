@@ -289,10 +289,10 @@ let generate_ast_binary lang file =
   let final =
     Parse_with_caching.versioned_parse_result_of_file Version.version lang file
   in
-  let file = file ^ Parse_with_caching.binary_suffix in
+  let file = Fpath.add_ext Parse_with_caching.binary_suffix file in
   assert (Parse_with_caching.is_binary_ast_filename file);
-  Common2.write_value final file;
-  pr2 (spf "saved marshalled generic AST in %s" file)
+  Common2.write_value final !!file;
+  pr2 (spf "saved marshalled generic AST in %s" !!file)
 
 let dump_ext_of_lang () =
   let lang_to_exts =
@@ -391,7 +391,7 @@ let all_actions () =
       Arg_helpers.mk_action_1_conv Fpath.v generate_ast_json );
     ( "-generate_ast_binary",
       " <file> save in file.ast.binary the marshalled generic AST of file",
-      Arg_helpers.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           generate_ast_binary (Xlang.lang_of_opt_xlang_exn !lang) file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
