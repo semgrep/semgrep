@@ -1,4 +1,6 @@
-(* content of the the ~/.semgrep/settings.yml file. See also Semgrep_envvars.user_settings_file *)
+(* Content of the the ~/.semgrep/settings.yml file.
+ * See also Semgrep_envvars.user_settings_file
+ *)
 type t = {
   has_shown_metrics_notification : bool option;
   api_token : string option;

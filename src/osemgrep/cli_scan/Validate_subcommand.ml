@@ -40,10 +40,11 @@ module Out = Semgrep_output_v1_t
 (* a slice of Scan_CLI.conf *)
 type conf = {
   (* Right now we use --config to get the list of rules for validate, but
-   * target_roots could be more appropriate.
+   * positional arguments to pass after 'semgrep validate' would be more
+   * appropriate (e.g., semgrep validate foo.yaml).
    * Do we allow to --validate --config p/python ?
    *)
-  rules_source : Rule_fetching.rules_source;
+  rules_source : Rules_source.t;
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
 }

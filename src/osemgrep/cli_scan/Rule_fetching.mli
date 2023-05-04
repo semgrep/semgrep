@@ -1,7 +1,3 @@
-(* input *)
-type rules_source = Rules_source.t [@@deriving show]
-
-(* output *)
 type rules_and_origin = {
   origin : origin;
   rules : Rule.rules;
@@ -18,7 +14,7 @@ val partition_rules_and_errors :
  * file to the start of rule_ids.
  *)
 val rules_from_rules_source :
-  rewrite_rule_ids:bool -> rules_source -> rules_and_origin list
+  rewrite_rule_ids:bool -> Rules_source.t -> rules_and_origin list
 
 (* internals *)
 

@@ -20,13 +20,9 @@ module XP = Xpattern
 (* Types *)
 (*****************************************************************************)
 
-(* input *)
-(* moved in core/Rules_source.ml so it can also be used in reporting/ *)
-type rules_source = Rules_source.t [@@deriving show]
-
-(* output *)
 (* python: was called ConfigFile, and called a 'config' in text output.
- * TODO? maybe we don't need this intermediate type anymore.
+ * TODO? maybe we don't need this intermediate type anymore; just return
+ * a pair, which would remove the need for partition_rules_and_errors.
  *)
 type rules_and_origin = {
   origin : origin;
@@ -35,7 +31,8 @@ type rules_and_origin = {
 }
 
 (* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline?
- * or just put the Semgrep_dashdash_config.config_kind it comes from?
+ *  or just put the Semgrep_dashdash_config.config_kind it comes from?
+ * This type is used only for rules_rewrite_rule_ids().
  *)
 and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
@@ -63,6 +60,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
    * so we reproduce the same behavior, leading sometimes to some
    * weird rule id like "rules....rules.test" when passing
    * rules/../rules/test.yaml to --config.
+   * TODO? pass legacy flag and improve the behavior when not legacy?
    *)
   match List.rev (Fpath.segs rel_path) with
   | [] -> raise Impossible
@@ -337,7 +335,7 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
 (*****************************************************************************)
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~rewrite_rule_ids (src : rules_source) :
+let rules_from_rules_source ~rewrite_rule_ids (src : Rules_source.t) :
     rules_and_origin list =
   match src with
   | Configs xs ->
@@ -346,14 +344,13 @@ let rules_from_rules_source ~rewrite_rule_ids (src : rules_source) :
              let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
              rules_from_dashdash_config kind)
       |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
-  (* better: '-e foo -l regex' not handled in original semgrep,
-   *   got a weird 'invalid pattern clause' error.
-   * better: '-e foo -l generic' not handled in semgrep-core
+  (* better: '-e foo -l regex' was not handled in pysemgrep
+   *  (got a weird 'invalid pattern clause' error)
+   * better: '-e foo -l generic' was not handled in semgrep-core
    *)
   | Pattern (pat, xlang_opt, fix) -> (
       let fk = Tok.unsafe_fake_tok "" in
       let rules_and_origins_for_xlang xlang =
-        (* TODO? some try and abort because we can get parse errors *)
         let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
         (* force the parsing of the pattern to get the parse error if any *)
         (match xpat.XP.pat with
@@ -363,15 +360,17 @@ let rules_from_rules_source ~rewrite_rule_ids (src : rules_source) :
             ());
         let rule = Rule.rule_of_xpattern xlang xpat in
         let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
-        (* TODO? transform the pattern parse error in invalid_rule_error? *)
         { origin = None; rules = [ rule ]; errors = [] }
       in
 
       match xlang_opt with
-      | Some xlang -> [ rules_and_origins_for_xlang xlang ]
+      | Some xlang ->
+          (* TODO? capture also parse errors here? and transform the pattern
+           * parse error in invalid_rule_error to return in rules_and_origin? *)
+          [ rules_and_origins_for_xlang xlang ]
       (* osemgrep-only: better: can use -e without -l! we try all languages *)
       | None ->
-          (* We need uniq_by because Lang.assoc can contains multiple time
+          (* We need uniq_by because Lang.assoc contain multiple times the
            * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
            * Lang.assoc
            * TODO? use Xlang.assoc instead?
@@ -380,8 +379,9 @@ let rules_from_rules_source ~rewrite_rule_ids (src : rules_source) :
             Lang.assoc
             |> Common.map (fun (_k, l) -> l)
             |> Common.uniq_by ( =*= )
-            (* TODO: we currently get a segfault with Dart parser for example
-             * on parsing a pattern like ': Common.filename', so skip it for now
+            (* TODO: we currently get a segfault with the Dart parser
+             * (for example on a pattern like ': Common.filename'), so we
+             * skip Dart for now (which anyway is not really supported).
              *)
             |> Common.exclude (fun x -> x =*= Lang.Dart)
           in
