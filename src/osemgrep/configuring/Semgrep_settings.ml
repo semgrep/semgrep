@@ -1,4 +1,13 @@
-(* TODO use ATD to specify the settings file format *)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Loading and saving of the ~/.semgrep/settings.yml file *)
+
+(*****************************************************************************)
+(* Types and constants *)
+(*****************************************************************************)
+
+(* TODO: use ATD to specify the settings file format *)
 type t = {
   has_shown_metrics_notification : bool option;
   api_token : string option;
@@ -12,10 +21,17 @@ let default_settings =
     anonymous_user_id = Uuidm.v `V4;
   }
 
+(* TODO? why we need that? *)
 let t = ref default_settings
+let settings = Semgrep_envvars.env.user_settings_file
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let ( let* ) = Result.bind
 
-(* ultimately we should just use ATD to automatically read the settings.yml
+(* TODO: we should just use ATD to automatically read the settings.yml
    file by converting it first to json and then use ATDgen API *)
 let of_yaml = function
   | `O data ->
@@ -60,8 +76,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
       | Some v -> [ ("api_token", `String v) ])
     @ [ ("anonymous_user_id", `String (Uuidm.to_string anonymous_user_id)) ])
 
-let settings = Semgrep_envvars.env.user_settings_file
-
+(* TODO: why the use of lazy and t := ? *)
 let get_contents () =
   lazy
     (t :=
@@ -96,6 +111,10 @@ let get_contents () =
        with
        | Failure _ -> default_settings)
 
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
 let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
@@ -106,6 +125,7 @@ let save setting =
     if Sys.file_exists (Fpath.to_string tmp) then
       Sys.remove (Fpath.to_string tmp);
     File.write_file tmp str;
+    (* TODO: Why this tmp and rename? Why not write directly to the file? *)
     Unix.rename (Fpath.to_string tmp) (Fpath.to_string settings);
     t := setting;
     true
