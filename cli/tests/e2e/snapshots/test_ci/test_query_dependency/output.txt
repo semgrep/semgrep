@@ -7,6 +7,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of exit code
 
 === stdout - plain
+[<Rule id=eqeq-bad>, <Rule id=supply-chain1>]
+[]
+defaultdict(<class 'list'>, {<Rule id=eqeq-bad>: [RuleMatch(match=CoreMatch(rule_id=RuleId(value='eqeq-bad'), location=Location(path='foo.py', start=Position(line=4, col=5, offset=37), end=Position(line=4, col=11, offset=43)), extra=CoreMatchExtra(metavars=Metavars(value={'$X': MetavarValue(start=Position(line=4, col=5, offset=37), end=Position(line=4, col=6, offset=38), abstract_content='a', propagated_value=None)}), engine_kind=EngineKind(value=OSS()), message='useless comparison', dataflow_trace=None, rendered_fix=None, extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix=None, fix_regex=None, index=0, match_based_index=0, match_formula_string='$X == $X', is_ignored=False), RuleMatch(match=CoreMatch(rule_id=RuleId(value='eqeq-bad'), location=Location(path='foo.py', start=Position(line=5, col=5, offset=48), end=Position(line=5, col=11, offset=54)), extra=CoreMatchExtra(metavars=Metavars(value={'$X': MetavarValue(start=Position(line=5, col=5, offset=48), end=Position(line=5, col=6, offset=49), abstract_content='a', propagated_value=None)}), engine_kind=EngineKind(value=OSS()), message='useless comparison', dataflow_trace=None, rendered_fix=None, extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix=None, fix_regex=None, index=1, match_based_index=1, match_formula_string='$X == $X', is_ignored=False), RuleMatch(match=CoreMatch(rule_id=RuleId(value='eqeq-bad'), location=Location(path='foo.py', start=Position(line=7, col=5, offset=83), end=Position(line=7, col=11, offset=89)), extra=CoreMatchExtra(metavars=Metavars(value={'$X': MetavarValue(start=Position(line=7, col=5, offset=83), end=Position(line=7, col=6, offset=84), abstract_content='a', propagated_value=None)}), engine_kind=EngineKind(value=OSS()), message='useless comparison', dataflow_trace=None, rendered_fix=None, extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix=None, fix_regex=None, index=3, match_based_index=3, match_formula_string='$X == $X', is_ignored=False), RuleMatch(match=CoreMatch(rule_id=RuleId(value='eqeq-bad'), location=Location(path='foo.py', start=Position(line=11, col=5, offset=120), end=Position(line=11, col=11, offset=126)), extra=CoreMatchExtra(metavars=Metavars(value={'$X': MetavarValue(start=Position(line=11, col=5, offset=120), end=Position(line=11, col=6, offset=121), abstract_content='y', propagated_value=None)}), engine_kind=EngineKind(value=OSS()), message='useless comparison', dataflow_trace=None, rendered_fix=None, extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix=None, fix_regex=None, index=0, match_based_index=0, match_formula_string='$X == $X', is_ignored=False)]})
+defaultdict(<class 'list'>, {<Rule id=supply-chain1>: [RuleMatch(match=CoreMatch(rule_id=RuleId(value='supply-chain1'), location=Location(path='poetry.lock', start=Position(line=1, col=0, offset=0), end=Position(line=2, col=0, offset=0)), extra=CoreMatchExtra(metavars=Metavars(value={}), engine_kind=EngineKind(value=OSS()), message=None, dataflow_trace=None, rendered_fix=None, extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix=None, fix_regex=None, index=0, match_based_index=0, match_formula_string='', is_ignored=False)]})
+defaultdict(<class 'list'>, {})
+defaultdict(<class 'list'>, {})
                             
                             
 ┌──────────────────────────┐
@@ -69,6 +75,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
                 
                 
 ┌──────────────┐

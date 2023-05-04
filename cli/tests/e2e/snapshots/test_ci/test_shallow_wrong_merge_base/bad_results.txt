@@ -44,6 +44,14 @@ Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e68
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+[<Rule id=eqeq-bad>, <Rule id=eqeq-five>, <Rule id=eqeq-four>, <Rule id=taint-test>, <Rule id=supply-chain1>, <Rule id=supply-chain2>]
+[]
+barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
+defaultdict(<class 'list'>, {})
+defaultdict(<class 'list'>, {<Rule id=eqeq-five>: [RuleMatch(match=CoreMatch(rule_id=RuleId(value='eqeq-five'), location=Location(path='bar.py', start=Position(line=1, col=1, offset=0), end=Position(line=1, col=9, offset=8)), extra=CoreMatchExtra(metavars=Metavars(value={'$X': MetavarValue(start=Position(line=1, col=1, offset=0), end=Position(line=1, col=4, offset=3), abstract_content='bar', propagated_value=None)}), engine_kind=EngineKind(value=OSS()), message='useless comparison to 5', dataflow_trace=None, rendered_fix='(bar == 2)', extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix='(bar == 2)', fix_regex=None, index=0, match_based_index=0, match_formula_string='$X == 5', is_ignored=False), RuleMatch(match=CoreMatch(rule_id=RuleId(value='eqeq-five'), location=Location(path='foo.py', start=Position(line=2, col=1, offset=9), end=Position(line=2, col=9, offset=17)), extra=CoreMatchExtra(metavars=Metavars(value={'$X': MetavarValue(start=Position(line=2, col=1, offset=9), end=Position(line=2, col=4, offset=12), abstract_content='foo', propagated_value=None)}), engine_kind=EngineKind(value=OSS()), message='useless comparison to 5', dataflow_trace=None, rendered_fix='(foo == 2)', extra_extra=None)), severity=<RuleSeverity.ERROR: 'ERROR'>, fix='(foo == 2)', fix_regex=None, index=1, match_based_index=1, match_formula_string='$X == 5', is_ignored=False)]})
+defaultdict(<class 'list'>, {})
+defaultdict(<class 'list'>, {})
                                 
                                 
 ┌──────────────────────────────┐
