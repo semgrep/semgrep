@@ -84,4 +84,4 @@ jobs:
           load: true
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}@${{ steps.build-image.outputs.digest }}
+        run: ./scripts/validate-docker-build.sh ${{ inputs.repository-name }}@${{ steps.build-image.outputs.digest }}
