@@ -259,9 +259,6 @@ class Rule:
     @property
     def scan_source(self) -> RuleScanSource:
         src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
-        print("foo"*100)
-        print(src)
-        print(self.metadata)
         if src == "unchanged":
             return RuleScanSource.unchanged
         elif src == "new-version":
