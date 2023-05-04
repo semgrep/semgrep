@@ -134,7 +134,7 @@ let dispatch_output_format (output_format : Output_format.t)
                  in
                  pr (String.concat ":" parts))
   | Text ->
-      Text_output.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
+      Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
         ~color_output:conf.force_color Format.std_formatter cli_output
   | Gitlab_sast
@@ -162,7 +162,7 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
    *)
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      ~rules_source:conf.rules_source res
+      res
   in
   let cli_output =
     let keep_ignored =

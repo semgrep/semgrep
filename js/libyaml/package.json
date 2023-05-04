@@ -1,16 +1,14 @@
 {
-  "name": "libyaml-js",
-  "version": "1.0.0",
-  "description": "Javascript bindings for libyaml and ocaml-yaml",
-  "main": "libyaml.test.js",
+  "name": "@semgrep/libyaml",
+  "version": "0.0.1",
+  "description": "libyaml bindings for ocaml-yaml",
+  "main": "runtime.js",
+  "devDependencies": {
+    "jest": "^29.5.0"
+  },
   "scripts": {
-    "build": "make dist/libyaml.js && tsc",
     "test": "jest"
   },
-  "author": "Tom Petr <tom@r2c.dev>",
-  "license": "LGPL-2.1",
-  "devDependencies": {
-    "jest": "^29.5.0",
-    "typescript": "^5.0.4"
-  }
+  "author": "Semgrep, Inc.",
+  "license": "LGPL-2.1"
 }

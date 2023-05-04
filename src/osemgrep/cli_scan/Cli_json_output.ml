@@ -30,14 +30,7 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 
 (* environment to pass to the JSON cli_output generator *)
-type env = {
-  hrules : Rule.hrules;
-  (* string to prefix all rule_id with
-   * (e.g., "xxx.tests." if the --config argument
-    * was xxx/tests/osemgrep.yml)
-   *)
-  config_prefix : string;
-}
+type env = { hrules : Rule.hrules }
 
 (* LATER: use Metavariable.bindings directly ! *)
 type metavars = (string * Out.metavar_value) list
@@ -84,19 +77,64 @@ let contents_of_file (range : Out.position * Out.position) (file : filename) :
 (* Helpers *)
 (*****************************************************************************)
 
-(* TODO: probably want to use Config_resolver.rules_and_origin to
- * get the prefix
+(* Substitute the metavariables mentioned in a message to their
+ * matched content.
+ *
+ * We could either:
+ *  (1) go through all the metavars and textually substitute them in the text
+ *  (2) go through the text and find each metavariable regexp occurence
+ *    and replace them with their content
+ * python: the original code did (1) so we're doing the same for now,
+ * however (2) seems more logical to me and wasting less CPUs since
+ * you only substitute metavars that are actually mentioned in the message.
+ *
+ * TODO: expose this function so it can be used in language_server
  *)
-let config_prefix_of_rules_source (src : Rule_fetching.rules_source) : string =
-  (* TODO: what if it's a registry rule?
-   * call Semgrep_dashdash_config.config_kind_of_config_str
+let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
+    : string =
+  (* sort by metavariable length to avoid name collisions
+   * (eg. $X2 must be handled before $X)
    *)
-  match src with
-  | Rule_fetching.Configs (path :: _TODO) ->
-      (*  need to prefix with the dotted path of the config file *)
-      let dir = Filename.dirname path in
-      Str.global_replace (Str.regexp "/") "." dir ^ "."
-  | _else_ -> ""
+  let mvars =
+    metavars
+    |> List.sort (fun (a, _) (b, _) ->
+           compare (String.length b) (String.length a))
+  in
+  mvars
+  |> List.fold_left
+       (fun text (mvar, mval) ->
+         (* necessary typing to help the type check disambiguate fields,
+          * because of the use of multiple fields with the same
+          * name in semgrep_output_v1.atd *)
+         let (v : Out.metavar_value) = mval in
+         let content = lazy (contents_of_file (v.start, v.end_) file) in
+         text
+         (* first value($X), and then $X *)
+         |> Str.global_substitute
+              (Str.regexp_string (spf "value(%s)" mvar))
+              (fun _whole_str ->
+                match v.propagated_value with
+                | Some x ->
+                    x.svalue_abstract_content (* default to the matched value *)
+                | None -> Lazy.force content)
+         |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
+                Lazy.force content))
+       text
+
+(* TODO: expose this function so it can be used in language_server *)
+let render_fix (env : env) (x : Out.core_match) : string option =
+  match x with
+  | { rule_id; location; extra = { metavars; rendered_fix; _ }; _ } -> (
+      let rule =
+        try Hashtbl.find env.hrules rule_id with
+        | Not_found -> raise Impossible
+      in
+      let path = location.path in
+      (* TOPORT: debug logging which indicates the source of the fix *)
+      match (rendered_fix, rule.fix) with
+      | Some fix, _ -> Some fix
+      | None, Some fix -> Some (interpolate_metavars fix metavars path)
+      | None, None -> None)
 
 (*****************************************************************************)
 (* Core error to cli error *)
@@ -265,50 +303,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-(* Substitute the metavariables mentioned in a message to their
- * matched content.
- *
- * We could either:
- *  (1) go through all the metavars and textually substitute them in the text
- *  (2) go through the text and find each metavariable regexp occurence
- *    and replace them with their content
- * python: the original code did (1) so we're doing the same for now,
- * however (2) seems more logical to me and wasting less CPUs since
- * you only substitute metavars that are actually mentioned in the message.
- *)
-let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
-    : string =
-  (* sort by metavariable length to avoid name collisions
-   * (eg. $X2 must be handled before $X)
-   *)
-  let mvars =
-    metavars
-    |> List.sort (fun (a, _) (b, _) ->
-           compare (String.length b) (String.length a))
-  in
-  mvars
-  |> List.fold_left
-       (fun text (mvar, mval) ->
-         (* necessary typing to help the type check disambiguate fields,
-          * because of the use of multiple fields with the same
-          * name in semgrep_output_v1.atd *)
-         let (v : Out.metavar_value) = mval in
-         let content = lazy (contents_of_file (v.start, v.end_) file) in
-         text
-         (* first value($X), and then $X *)
-         |> Str.global_substitute
-              (Str.regexp_string (spf "value(%s)" mvar))
-              (fun _whole_str ->
-                match v.propagated_value with
-                | Some x ->
-                    x.svalue_abstract_content (* default to the matched value *)
-                | None -> Lazy.force content)
-         |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
-                Lazy.force content))
-       text
-
-let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
-  match x with
+let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
+  match m with
   | {
    rule_id;
    location;
@@ -316,9 +312,10 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
      {
        message;
        metavars;
-       rendered_fix;
        engine_kind;
        extra_extra;
+       (* used now in render_fix instead *)
+       rendered_fix = _;
        (* LATER *)
        dataflow_trace = _;
      };
@@ -336,15 +333,8 @@ let cli_match_of_core_match (env : env) (x : Out.core_match) : Out.cli_match =
         | Some s -> interpolate_metavars s metavars path
         | None -> ""
       in
-      let fix =
-        (* TOPORT: debug logging which indicates the source of the fix *)
-        match (rendered_fix, rule.fix) with
-        | Some fix, _ -> Some fix
-        | None, Some fix -> Some (interpolate_metavars fix metavars path)
-        | None, None -> None
-      in
-      (*  need to prefix with the dotted path of the config file *)
-      let check_id = env.config_prefix ^ rule_id in
+      let fix = render_fix env m in
+      let check_id = rule_id in
       let metavars = Some metavars in
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
@@ -434,8 +424,8 @@ let cli_skipped_targets ~(skipped_targets : Out.skipped_target list) :
 (* Entry point *)
 (*****************************************************************************)
 
-let cli_output_of_core_results ~logging_level ~rules_source
-    (res : Core_runner.result) : Out.cli_output =
+let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
+    Out.cli_output =
   match res.core with
   | {
    matches;
@@ -449,12 +439,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
    rules_by_engine = _;
    engine_requested = _;
   } ->
-      let env =
-        {
-          hrules = res.hrules;
-          config_prefix = config_prefix_of_rules_source rules_source;
-        }
-      in
+      let env = { hrules = res.hrules } in
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches

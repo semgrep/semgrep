@@ -70,10 +70,10 @@ let location x =
   | Span { left_stmts; right_stmts } ->
       let ( let* ) = Common.( >>= ) in
       let* min_loc, _ =
-        Visitor_AST.range_of_any_opt (AST_generic.Ss left_stmts)
+        AST_generic_helpers.range_of_any_opt (AST_generic.Ss left_stmts)
       in
       let* _, max_loc =
-        Visitor_AST.range_of_any_opt (AST_generic.Ss right_stmts)
+        AST_generic_helpers.range_of_any_opt (AST_generic.Ss right_stmts)
       in
       Some (min_loc, max_loc)
   [@@profiling]
@@ -95,10 +95,10 @@ let merge_and_deduplicate get_key a b =
   List.rev !acc
 
 let extract_tokens stmts =
-  Visitor_AST.ii_of_any (Ss stmts) |> List.filter Parse_info.is_origintok
+  AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
 
-let is_not_before ~min_loc tok = Parse_info.compare_pos min_loc tok <= 0
-let is_not_after ~max_loc tok = Parse_info.compare_pos tok max_loc <= 0
+let is_not_before ~min_loc tok = Tok.compare_pos min_loc tok <= 0
+let is_not_after ~max_loc tok = Tok.compare_pos tok max_loc <= 0
 
 (* Extract a deduplicated list of the original tokens *)
 let list_original_tokens x =
@@ -107,11 +107,10 @@ let list_original_tokens x =
   | Span { left_stmts; right_stmts } ->
       let left_tokens = extract_tokens left_stmts in
       let right_tokens = extract_tokens right_stmts in
-      let min_loc, _ = Visitor_AST.range_of_tokens left_tokens in
-      let _, max_loc = Visitor_AST.range_of_tokens right_tokens in
+      let min_loc, _ = AST_generic_helpers.range_of_tokens left_tokens in
+      let _, max_loc = AST_generic_helpers.range_of_tokens right_tokens in
       let left_tokens = List.filter (is_not_after ~max_loc) left_tokens in
       let right_tokens = List.filter (is_not_before ~min_loc) right_tokens in
       (* deduplicate tokens by location *)
-      merge_and_deduplicate Parse_info.token_location_of_info left_tokens
-        right_tokens
+      merge_and_deduplicate Tok.loc_of_tok left_tokens right_tokens
   [@@profiling]

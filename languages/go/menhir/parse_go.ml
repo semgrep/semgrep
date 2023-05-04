@@ -16,7 +16,6 @@
 open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_go
-module PI = Parse_info
 module Lexer = Lexer_go
 
 (*****************************************************************************)

@@ -28,7 +28,7 @@ module A = AST_jsonnet
 (*****************************************************************************)
 
 let error tk s = raise (Parsing_error.Other_error (s, tk))
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)

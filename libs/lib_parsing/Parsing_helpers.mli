@@ -1,6 +1,10 @@
+(* Parsing helpers used by the ocamllex/ocamlyacc/menhir parsers.
+ * For parsing helpers for tree-sitter, see Parse_tree_sitter_helpers.ml
+ *)
+
 (* history: we used to use /tmp files to parse Semgrep string patterns by
  * just dumping the pattern string first with Common.with_tmp_file and
- * then using the file. Even though /tmp access is fast and often
+ * then using the tmp file. Even though /tmp access is fast and often
  * cached in memory (e.g., by the Linux buffer cache), it is still
  * a bit ugly to use /tmp to parse strings and also a bit slower.
  * Enter input_source.
@@ -10,24 +14,30 @@ type input_source = Str of string | File of Fpath.t
 (* just a shortcut for Parsing_helpers.File (Fpath.v s) *)
 val file : Common.filename -> input_source
 
-(* to be used by the lexer *)
+(* To be used by the lexer.
+ * TODO: use labels instead of comments below?
+ *)
 val tokenize_all_and_adjust_pos :
   input_source ->
+  (* tokenizer, usually derived from ocamllex *)
   (Lexing.lexbuf -> 'tok) ->
-  (* tokenizer *) ((Tok.t -> Tok.t) -> 'tok -> 'tok) ->
-  (* token visitor *) ('tok -> bool) ->
-  (* is_eof *) 'tok list
+  (* token visitor (used to adjust the location of tokens) *)
+  ((Tok.t -> Tok.t) -> 'tok -> 'tok) ->
+  (* is_eof *)
+  ('tok -> bool) ->
+  'tok list
 
 (* Many parsers need to interact with the lexer, or use tricks around
  * the stream of tokens, or do some error recovery, or just need to
- * pass certain tokens (like the comments token) which requires
+ * skip certain tokens (like the comments token). All of this requires
  * to have access to this stream of remaining tokens.
- * The tokens_state type helps.
+ * Enter tokens_state.
  *)
 type 'tok tokens_state = {
   mutable rest : 'tok list;
   mutable current : 'tok;
-  (* it's passed since last "checkpoint", not passed from the beginning *)
+  (* it's passed/skipped since last "checkpoint", not passed from the
+   * beginning *)
   mutable passed : 'tok list;
 }
 
@@ -35,17 +45,19 @@ val mk_tokens_state : 'tok list -> 'tok tokens_state
 
 val mk_lexer_for_yacc :
   'tok list ->
-  ('tok -> bool) ->
   (* is_comment *)
+  ('tok -> bool) ->
+  (* token stream for error recovery *)
   'tok tokens_state
-  * ((* token stream for error recovery *)
+  * ((* the lexer to pass to the ocamlyacc parser *)
      Lexing.lexbuf -> 'tok)
-  * (* the lexer to pass to the ocamlyacc parser *)
+  * (* fake lexbuf needed by ocamlyacc API *)
     Lexing.lexbuf
-(* fake lexbuf needed by ocamlyacc API *)
 
 (* go back in the Lexing stream *)
 val yyback : int -> Lexing.lexbuf -> unit
+
+(* TODO? remove? *)
 val error_message : Common.filename -> string * int -> string
 val error_message_info : Tok.t -> string
 val print_bad : int -> int * int -> string array -> unit

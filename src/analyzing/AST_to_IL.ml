@@ -14,7 +14,6 @@
  *)
 open Common
 open IL
-module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -63,7 +62,7 @@ let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
 let locate opt_tok s =
   let opt_loc =
-    try Option.map Parse_info.string_of_info opt_tok with
+    try Option.map Tok.stringpos_of_tok opt_tok with
     | Tok.NoTokenLocation _ -> None
   in
   match opt_loc with
@@ -74,7 +73,7 @@ let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
-  let toks = Visitor_AST.ii_of_any gany in
+  let toks = AST_generic_helpers.ii_of_any gany in
   let opt_tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
@@ -105,7 +104,7 @@ let fresh_var ?(str = "_tmp") _env tok =
     (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
        we confuse ourselves! E.g. during taint-tracking we don't want to add these
        variables to the taint trace. *)
-    if Parse_info.is_fake tok then tok else Parse_info.fake_info tok str
+    if Tok.is_fake tok then tok else Tok.fake_tok tok str
   in
   let i = G.SId.mk () in
   { ident = (str, tok); sid = i; id_info = G.empty_id_info () }
@@ -463,7 +462,7 @@ and expr_aux env ?(void = false) e_gen =
       expr_lazy_op env op tok arg0 args eorig
   (* args_with_pre_stmts *)
   | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) -> (
-      let args = arguments env (PI.unbracket args) in
+      let args = arguments env (Tok.unbracket args) in
       if not void then mk_e (Operator ((op, tok), args)) eorig
       else
         (* The operation's result is not being used, so it may have side-effects.
@@ -476,9 +475,7 @@ and expr_aux env ?(void = false) e_gen =
             let obj_var, _obj_lval =
               mk_aux_var env tok (IL_helpers.exp_of_arg obj)
             in
-            let method_name =
-              fresh_var env tok ~str:(Parse_info.str_of_info tok)
-            in
+            let method_name = fresh_var env tok ~str:(Tok.content_of_tok tok) in
             let offset = { o = Dot method_name; oorig = NoOrig } in
             let method_lval = { base = Var obj_var; rev_offset = [ offset ] } in
             let method_ = { e = Fetch method_lval; eorig = related_tok tok } in
@@ -500,7 +497,7 @@ and expr_aux env ?(void = false) e_gen =
        * we dont. Anyway, for our static analysis purpose it should not matter.
        * We don't do fancy path-sensitive-evaluation-order-sensitive analysis.
        *)
-      match PI.unbracket args with
+      match Tok.unbracket args with
       | [ G.Arg e ] ->
           let lval = lval env e in
           (* TODO: This `lval` should have a new svalue ref given that we
@@ -538,7 +535,7 @@ and expr_aux env ?(void = false) e_gen =
       (* obj.concat(args) *)
       (* NOTE: Often this will be string concatenation but not necessarily! *)
       let obj_arg' = Unnamed (expr env obj) in
-      let args' = arguments env (PI.unbracket args) in
+      let args' = arguments env (Tok.unbracket args) in
       let res =
         match env.lang with
         (* Ruby's concat method is side-effectful and updates the object. *)
@@ -563,7 +560,7 @@ and expr_aux env ?(void = false) e_gen =
         args ) ->
       let lval = fresh_lval env tok in
       let special = (Eval, tok) in
-      let args = arguments env (PI.unbracket args) in
+      let args = arguments env (Tok.unbracket args) in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Fetch lval) (related_tok tok)
   | G.Call
@@ -577,12 +574,12 @@ and expr_aux env ?(void = false) e_gen =
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
       let arg = G.ArgType ty in
-      let args = arguments env (PI.unbracket args) in
+      let args = arguments env (Tok.unbracket args) in
       add_call env tok eorig ~void (fun res ->
           CallSpecial (res, special, argument env arg :: args))
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
-      let args = arguments env (PI.unbracket args) in
+      let args = arguments env (Tok.unbracket args) in
       try
         let special = call_special env spec in
         add_call env tok eorig ~void (fun res ->
@@ -743,7 +740,6 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ expr env e ], r))) NoOrig
-  | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml xml -> xml_expr env xml
   | G.Cast (typ, _, e) ->
       let e = expr env e in
@@ -811,7 +807,7 @@ and call_generic env ?(void = false) tok e args =
    * to return in expr multiple arguments and thread things around; Not
    * worth it.
    *)
-  let args = arguments env (PI.unbracket args) in
+  let args = arguments env (Tok.unbracket args) in
   add_call env tok eorig ~void (fun res -> Call (res, e, args))
 
 and call_special _env (x, tok) =
@@ -1047,14 +1043,14 @@ and lval_of_ent env ent =
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
   | G.OtherEntity _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
@@ -1103,7 +1099,7 @@ and for_var_or_expr_list env xs =
 (* Parameters *)
 (*****************************************************************************)
 and parameters _env params : name list =
-  params |> Parse_info.unbracket
+  params |> Tok.unbracket
   |> Common.map_filter (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
@@ -1156,7 +1152,7 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> PI.unbracket |> List.concat_map (stmt env)
+  | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (stmt env)
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
@@ -1285,7 +1281,7 @@ and stmt_aux env st =
       let ss, e = expr_with_pre_stmts_opt env eopt in
       ss @ [ mk_s (Return (tok, e)) ]
   | G.Assert (tok, args, _) ->
-      let ss, args = args_with_pre_stmts env (PI.unbracket args) in
+      let ss, args = args_with_pre_stmts env (Tok.unbracket args) in
       let special = (Assert, tok) in
       (* less: wrong e? would not be able to match on Assert, or
        * need add sorig:

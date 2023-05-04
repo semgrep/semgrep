@@ -20,7 +20,6 @@ module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
 module G = AST_generic
-module PI = Parse_info
 module Set = Set_
 module MV = Metavariable
 
@@ -86,14 +85,14 @@ type dict = {
 let yaml_error t s = raise (R.Err (R.InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
-  yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
+  yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 let error env t s = raise (R.Err (R.InvalidRule (R.InvalidOther s, env.id, t)))
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
-  error env (Visitor_AST.first_info_of_any (G.E e)) s
+  error env (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let pcre_error_to_string s exn =
   let message =
@@ -531,6 +530,7 @@ let parse_xpattern env (str, tok) =
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+      (* TODO: use R.Err exn instead? *)
       | Error err -> failwith err.msg)
 
 (* TODO: note that the [pattern] string and token location [t] given to us
@@ -606,23 +606,21 @@ and metavariable_comparison = {
 *)
 let rewrite_metavar_comparison_strip cond =
   let visitor =
-    Map_AST.mk_visitor
-      {
-        Map_AST.default_visitor with
-        Map_AST.kexpr =
-          (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e.G.e with
-            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
-              ->
-                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
-                |> G.e
-            | _ -> e);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.map_legacy as super
+
+      method! visit_expr env e =
+        (* apply on children *)
+        let e = super#visit_expr env e in
+        match e.G.e with
+        | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s ->
+            let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+            G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
+            |> G.e
+        | _ -> e
+    end
   in
-  visitor.Map_AST.vexpr cond
+  visitor#visit_expr () cond
 
 (* TODO: Old stuff that we can't kill yet. *)
 let find_formula_old env (rule_dict : dict) : key * G.expr =
@@ -1085,7 +1083,6 @@ let parse_taint_requires env key x =
         | G.Or ->
             ()
         | _ -> parse_error ())
-    | G.ParenExpr (_, e, _) -> check e
     | ___else__ -> parse_error ()
   and check_arg = function
     | G.Arg e -> check e
@@ -1416,7 +1413,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
         equivs_opt,
         options_opt ) =
     ( (match mode with
-      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
       | _ ->
           ( take rd env parse_string "message",
             take rd env parse_string_wrap "severity" )),
@@ -1477,7 +1474,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
             let loc = Tok.first_loc_of_file !!file in
-            yaml_error (PI.mk_info_of_loc loc)
+            yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)

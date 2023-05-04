@@ -541,6 +541,7 @@ _scan_options: List[Callable] = [
         flag_value=EngineType.OSS,
         help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
     ),
+    optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
 ]
 
 
@@ -658,7 +659,6 @@ def scan_options(func: Callable) -> Callable:
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
-@click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--dump-engine-path",
     is_flag=True,

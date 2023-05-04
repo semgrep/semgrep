@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (* G is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -254,7 +253,7 @@ let make_dotted xs =
       let base = B.N (B.Id (x, B.empty_id_info ())) |> G.e in
       List.fold_left
         (fun acc e ->
-          let tok = Parse_info.fake_info (snd x) "." in
+          let tok = Tok.fake_tok (snd x) "." in
           B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
         base xs
 
@@ -924,10 +923,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
-  (* TODO? should probably do some equivalence like allowing extra
-   * paren in the pattern to still match code without parens
-   *)
-  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
@@ -1054,7 +1049,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.N _, _
   | G.New _, _
   | G.IdSpecial _, _
-  | G.ParenExpr _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _
@@ -1273,20 +1267,20 @@ and m_wrap_m_int_opt (a1, a2) (b1, b2) =
    * a syntax OCaml int_of_string could not parse,
    * we default to a string comparison *)
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
+      let a1 = Tok.content_of_tok a2 in
       (* bugfix: not that with constant propagation, some integers don't have
        * a real token associated with them, so b2 may be a FakeTok, but
        * Parse_info.str_of_info does not raise an exn anymore on a FakeTok
        *)
-      let b1 = Parse_info.str_of_info b2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_wrap_m_string_opt (a1, a2) (b1, b2) =
   match (a1, b1) with
   | Some s1, Some s2 when String.equal s1 s2 -> return ()
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
-      let b1 = Parse_info.str_of_info b2 in
+      let a1 = Tok.content_of_tok a2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_wrap_m_float_opt (a1, a2) (b1, b2) =
@@ -1294,8 +1288,8 @@ and m_wrap_m_float_opt (a1, a2) (b1, b2) =
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
   | Some f1, Some f2 when f1 =*= f2 -> return ()
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
-      let b1 = Parse_info.str_of_info b2 in
+      let a1 = Tok.content_of_tok a2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_literal_svalue a b =
@@ -1508,7 +1502,6 @@ and type_of_expr lang e : G.type_ option * G.ident option =
       | Some _
       | None ->
           (None, Some idb))
-  | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | B.Conditional (_, e1, e2) ->
       let ( let* ) = Option.bind in
       let t1opt, id1opt = type_of_expr lang e1 in
@@ -1819,8 +1812,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
    * regular non-AC matching. *)
   if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
     match
-      ( H.ac_matching_nf aop (PI.unbracket aargs),
-        H.ac_matching_nf bop (PI.unbracket bargs) )
+      ( H.ac_matching_nf aop (Tok.unbracket aargs),
+        H.ac_matching_nf bop (Tok.unbracket bargs) )
     with
     | Some aargs_ac, Some bargs_ac ->
         if is_commutative_operator aop then
@@ -2331,8 +2324,7 @@ and m_stmt a b =
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
-      | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
-          m_expr suba subb
+      | B.ExprStmt (subb, _) when not (Tok.is_fake sc) -> m_expr suba subb
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
@@ -2636,7 +2628,6 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_With, G.OSWS_With
   | G.OSWS_Else_in_try, G.OSWS_Else_in_try
   | G.OSWS_Iterator, G.OSWS_Iterator
-  | G.OSWS_Closure, G.OSWS_Closure
   | G.OSWS_Todo, G.OSWS_Todo ->
       return ()
   | G.OSWS_Block a, G.OSWS_Block b -> m_todo_kind a b
@@ -2644,7 +2635,6 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_Block _, _
   | G.OSWS_Else_in_try, _
   | G.OSWS_Iterator, _
-  | G.OSWS_Closure, _
   | G.OSWS_Todo, _ ->
       fail ()
 

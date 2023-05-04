@@ -10,7 +10,7 @@
     stdcompat
     commons
     fpath
-    globbing
+    glob
     gitignore
   )
   (preprocess (pps ppx_deriving.show))

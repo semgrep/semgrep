@@ -15,7 +15,6 @@
 open Common
 module CST = Tree_sitter_clojure.CST
 module R = Raw_tree
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
@@ -46,7 +45,7 @@ let name (env : env) (tok : Tree_sitter_run.Token.t) =
   (* TODO: also split for '.' *)
   if s =~ "^\\(.*\\)/\\(.*\\)$" then
     let before, after = Common.matched2 s in
-    let t1, t2 = PI.split_info_at_pos (String.length before) t in
+    let t1, t2 = Tok.split_tok_at_bytepos (String.length before) t in
     let id1 = R.Token (before, t1) in
     let id2 = R.Token (after, t2) in
     R.List [ id1; id2 ]

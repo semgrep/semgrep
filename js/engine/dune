@@ -3,6 +3,7 @@
  (libraries
   js_of_ocaml
   integers_stubs_js
+  libpcre_stubs_js
   libyaml_stubs_js
   semgrep.running
   tree-sitter.run
@@ -10,8 +11,8 @@
   )
  (js_of_ocaml
   (javascript_files
-   pcre.js ; libpcre bindings
    core.js ; misc libraries
+   octs.js ; ocaml-tree-sitter plumbing
    )
   ; --no-inline was suggested here:
   ; https://discuss.ocaml.org/t/js-of-ocaml-output-performs-considerably-worse-when-built-with-profile-release-flag/8862/14

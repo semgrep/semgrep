@@ -2,7 +2,6 @@ open Common
 open File.Operators
 module Flag = Flag_parsing
 module J = JSON
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -115,7 +114,7 @@ let test_dump_ts file =
 (*****************************************************************************)
 
 let info_to_json_range info =
-  let loc = PI.unsafe_token_location_of_info info in
+  let loc = Tok.unsafe_loc_of_tok info in
   ( J.Object
       [ ("line", J.Int loc.Tok.pos.line); ("col", J.Int loc.Tok.pos.column) ],
     J.Object

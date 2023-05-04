@@ -7,7 +7,7 @@ type t = {
   multiline : bool;
   (* TODO: support UTF-8 word characters *)
   word_chars : char list;
-  braces : (char * char) list;
+  brackets : (char * char) list;
 }
 
 (* TODO: document the difference in the defaults *)

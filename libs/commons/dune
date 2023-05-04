@@ -3,17 +3,20 @@
  (wrapped false)
  (libraries
    str
+   uri
    unix
+   fpath
    yojson
    ANSITerminal
+   fmt
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
    cmdliner
-   fpath
    re
    pcre
    parmap
+   digestif.c
  )
  (preprocess
    (pps

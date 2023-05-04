@@ -118,26 +118,6 @@ let is_minified (path : Fpath.t) =
 let exclude_minified_files paths = Common.partition_result is_minified paths
 
 (****************************************************************************)
-(* Pad's Skip_code filtering *)
-(****************************************************************************)
-
-let exclude_files_in_skip_lists roots =
-  let paths, skipped_paths =
-    Skip_code.filter_files_if_skip_list ~root:roots roots
-  in
-  let skipped =
-    skipped_paths
-    |> Common.map (fun path ->
-           {
-             Resp.path = Fpath.to_string path;
-             reason = Excluded_by_config;
-             details = "excluded by 'skip list' file";
-             rule_id = None;
-           })
-  in
-  (paths, skipped)
-
-(****************************************************************************)
 (* Big file filtering *)
 (****************************************************************************)
 

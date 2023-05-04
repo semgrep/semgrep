@@ -443,7 +443,7 @@ class StreamingSemgrepCore:
                 "", total=self._total, start=False
             )
 
-        rc = asyncio.run(self._stream_exec_subprocess())
+            rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
@@ -1035,11 +1035,12 @@ class CoreRunner:
 
                 if engine is EngineType.PRO_INTERFILE:
                     targets = target_manager.targets
-                    if len(targets) == 1 and targets[0].path.is_dir():
+                    if len(targets) == 1:
                         root = str(targets[0].path)
                     else:
-                        # TODO: This is no longer true...
-                        raise SemgrepError("deep mode needs a single target (root) dir")
+                        raise SemgrepError(
+                            "Inter-file analysis can only take a single target (for multiple files pass a directory)"
+                        )
                     cmd += ["-deep_inter_file"]
                     cmd += [
                         "-timeout_for_interfile_analysis",

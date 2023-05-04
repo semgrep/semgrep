@@ -110,10 +110,6 @@ class Rule:
             return self._yaml.value["languages"].span
         return EmptySpan
 
-    def rename_id(self, new_id: str) -> None:
-        self._id = new_id
-        self._raw["id"] = new_id
-
     @property
     def full_hash(self) -> str:
         """

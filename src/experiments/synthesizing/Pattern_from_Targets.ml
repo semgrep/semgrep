@@ -118,7 +118,7 @@ let lookup env e =
   in
   look mapping
 
-let fk = Parse_info.unsafe_fake_info "fake"
+let fk = Tok.unsafe_fake_tok "fake"
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
 let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 let _bk f (lp, x, rp) = (lp, f x, rp)

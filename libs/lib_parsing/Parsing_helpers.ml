@@ -85,19 +85,14 @@ let yyback n lexbuf =
  *)
 let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
   let adjust_info (ii : Tok.t) =
-    {
-      ii with
-      token =
-        (* could assert pinfo.filename = file ? *)
-        (match ii.token with
-        | OriginTok pi ->
-            OriginTok (Tok.complete_token_location_large filename table pi)
-        | ExpandedTok (pi, vpi, off) ->
-            ExpandedTok
-              (Tok.complete_token_location_large filename table pi, vpi, off)
-        | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
-        | Ab -> raise Common.Impossible);
-    }
+    (* could assert pinfo.filename = file ? *)
+    Tok.(
+      match ii with
+      | OriginTok pi -> OriginTok (Tok.complete_location filename table pi)
+      | ExpandedTok (pi, vloc) ->
+          ExpandedTok (Tok.complete_location filename table pi, vloc)
+      | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
+      | Ab -> raise Common.Impossible)
   in
   let rec tokens_aux acc =
     let tok =
@@ -115,13 +110,13 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
   match input_source with
   | Str str ->
       let lexbuf = Lexing.from_string str in
-      let table = Tok.full_charpos_to_pos_str str in
+      let table = Pos.full_charpos_to_pos_str str in
       tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
   | File path ->
       let file = Fpath.to_string path in
       Common.with_open_infile file (fun chan ->
           let lexbuf = Lexing.from_channel chan in
-          let table = Tok.full_charpos_to_pos_large file in
+          let table = Pos.full_charpos_to_pos_large file in
           tokenize_and_adjust_pos lexbuf table file tokenizer visitor_tok is_eof)
 
 (* Hacked lex. Ocamlyacc expects a function returning one token at a time
@@ -227,8 +222,8 @@ let error_message_token_location (info : Tok.location) =
       ^ " given out of file:" ^ filename
 
 let error_message_info info =
-  let pinfo = Parse_info.unsafe_token_location_of_info info in
-  error_message_token_location pinfo
+  let loc = Tok.unsafe_loc_of_tok info in
+  error_message_token_location loc
 
 let print_bad line_error (start_line, end_line) filelines =
   pr2 ("badcount: " ^ i_to_s (end_line - start_line));

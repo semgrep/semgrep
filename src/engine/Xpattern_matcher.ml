@@ -14,7 +14,6 @@
  *)
 open Common
 module MV = Metavariable
-module PI = Parse_info
 module PM = Pattern_match
 module RP = Report
 module G = AST_generic
@@ -52,8 +51,7 @@ and match_range = Tok.location * Tok.location
 (*****************************************************************************)
 
 (* todo: same, we should not need that *)
-let info_of_token_location loc =
-  { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo }
+let info_of_token_location loc = Tok.OriginTok loc
 
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->
@@ -96,7 +94,7 @@ let hmemo = Hashtbl.create 101
 
 let line_col_of_charpos file charpos =
   let conv =
-    Common.memoized hmemo file (fun () -> Tok.full_charpos_to_pos_large file)
+    Common.memoized hmemo file (fun () -> Pos.full_charpos_to_pos_large file)
   in
   conv charpos
 
@@ -114,6 +112,6 @@ let mval_of_string str t =
     match int_of_string_opt str with
     | Some i -> G.Int (Some i, t)
     (* TODO? could try float_of_string_opt? *)
-    | None -> G.String (PI.unsafe_fake_bracket (str, t))
+    | None -> G.String (Tok.unsafe_fake_bracket (str, t))
   in
   MV.E (G.L literal |> G.e)

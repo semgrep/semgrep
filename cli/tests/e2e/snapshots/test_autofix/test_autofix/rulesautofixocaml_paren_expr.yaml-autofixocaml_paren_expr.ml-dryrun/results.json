@@ -59,9 +59,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "fix": "a_function_call (wrap ((the_argument)))",
+        "fix": "a_function_call (wrap (the_argument))",
         "fixed_lines": [
-          "let two = a_function_call (wrap ((the_argument)))"
+          "let two = a_function_call (wrap (the_argument))"
         ],
         "is_ignored": false,
         "lines": "let two = a_function_call (the_argument)",
@@ -69,16 +69,16 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "(the_argument)",
+            "abstract_content": "the_argument",
             "end": {
-              "col": 41,
+              "col": 40,
               "line": 3,
-              "offset": 80
+              "offset": 79
             },
             "start": {
-              "col": 27,
+              "col": 28,
               "line": 3,
-              "offset": 66
+              "offset": 67
             }
           }
         },
@@ -111,7 +111,7 @@
         "metadata": {},
         "metavars": {
           "$X": {
-            "abstract_content": "(another_func the_argument)",
+            "abstract_content": "another_func the_argument",
             "end": {
               "col": 56,
               "line": 5,

@@ -15,7 +15,6 @@
 open Common
 open File.Operators
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 module FT = File_type
 module Ast = Ast_cpp
@@ -56,11 +55,11 @@ let commentized xs =
            if !Flag_cpp.filter_classic_passed then
              match cppkind with
              | Token_cpp.CppOther -> (
-                 let s = PI.str_of_info ii in
+                 let s = Tok.content_of_tok ii in
                  match s with
                  | s when s =~ "KERN_.*" -> None
                  | s when s =~ "__.*" -> None
-                 | _ -> Some ii.Tok.token)
+                 | _ -> Some ii)
              | Token_cpp.CppDirective
              | Token_cpp.CppAttr
              | Token_cpp.CppMacro ->
@@ -69,8 +68,8 @@ let commentized xs =
              | Token_cpp.CppPassingNormal
              | Token_cpp.CppPassingCosWouldGetError ->
                  raise Todo
-           else Some ii.Tok.token
-       | T.TAny_Action ii -> Some ii.Tok.token
+           else Some ii
+       | T.TAny_Action ii -> Some ii
        | _ -> None)
 
 let count_lines_commentized xs =
@@ -79,7 +78,7 @@ let count_lines_commentized xs =
   commentized xs
   |> List.iter (function
        | Tok.OriginTok pinfo
-       | Tok.ExpandedTok (_, pinfo, _) ->
+       | Tok.ExpandedTok (_, (pinfo, _)) ->
            let newline = pinfo.Tok.pos.line in
            if newline <> !line then (
              line := newline;
@@ -119,7 +118,7 @@ and multi_grouped = function
   | Token_views_cpp.Angle (tok1, xs, Some tok2) ->
       Ast_fuzzy.Angle (tokext tok1, multi_grouped_list xs, tokext tok2)
   | Token_views_cpp.Tok tok -> (
-      match PI.str_of_info (tokext tok) with
+      match Tok.content_of_tok (tokext tok) with
       | "..." -> Ast_fuzzy.Dots (tokext tok)
       | s when Ast_fuzzy.is_metavar s -> Ast_fuzzy.Metavar (s, tokext tok)
       | s -> Ast_fuzzy.Tok (s, tokext tok))
@@ -135,7 +134,7 @@ and multi_grouped_list_comma xs =
         else [ Left (acc |> List.rev |> multi_grouped_list) ]
     | x :: xs -> (
         match x with
-        | Token_views_cpp.Tok tok when PI.str_of_info (tokext tok) = "," ->
+        | Token_views_cpp.Tok tok when Tok.content_of_tok (tokext tok) = "," ->
             let before = acc |> List.rev |> multi_grouped_list in
             if null before then aux [] xs
             else Left before :: Right (tokext tok) :: aux [] xs
@@ -297,7 +296,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
      * start to parse a new entity from the body of a macro, for instance
      * when parsing a define_machine() body, cf standard.h
      *)
-    let checkpoint_file = PI.file_of_info info in
+    let checkpoint_file = Tok.file_of_tok info in
 
     tr.passed <- [];
     (* for some statistics *)
@@ -362,7 +361,8 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
             |> List.filter TH.is_ident_like
           in
           let error_info =
-            ( pbline |> List.map (fun tok -> PI.str_of_info (TH.info_of_tok tok)),
+            ( pbline
+              |> List.map (fun tok -> Tok.content_of_tok (TH.info_of_tok tok)),
               line_error )
           in
           stat.PS.problematic_lines <- error_info :: stat.PS.problematic_lines;
@@ -381,7 +381,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           (* <> line_error *)
           let info = TH.info_of_tok tr.Parsing_helpers.current in
           let checkpoint2 = Tok.line_of_tok info in
-          let checkpoint2_file = PI.file_of_info info in
+          let checkpoint2_file = Tok.file_of_tok info in
 
           was_define := passed_a_define tr;
           if !was_define && !Flag_cpp.filter_define_error then ()
@@ -403,7 +403,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     (* again not sure if checkpoint2 corresponds to end of bad region *)
     let info = TH.info_of_tok tr.Parsing_helpers.current in
     let checkpoint2 = Tok.line_of_tok info in
-    let checkpoint2_file = PI.file_of_info info in
+    let checkpoint2_file = Tok.file_of_tok info in
 
     let diffline =
       if checkpoint_file = checkpoint2_file && checkpoint_file = !!file then

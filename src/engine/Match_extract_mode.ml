@@ -114,7 +114,7 @@ let count_lines_and_trailing =
 
 let offsets_of_mval extract_mvalue =
   Metavariable.mvalue_to_any extract_mvalue
-  |> Visitor_AST.range_of_any_opt
+  |> AST_generic_helpers.range_of_any_opt
   |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
          let end_len = String.length end_loc.Tok.str in
          {
@@ -167,7 +167,7 @@ let mk_extract_target dst_lang contents all_rules =
     | Xlang.LRegex -> "regex"
     | Xlang.L (x, _) -> Lang.show x
   in
-  let f : Common.dirname = Common.new_temp_file "extracted" dst_lang_str in
+  let f = Common.new_temp_file "extracted" dst_lang_str in
   Common2.write_file ~file:f contents;
   {
     In.path = f;
@@ -227,16 +227,12 @@ let map_loc pos line col file (loc : Tok.location) =
       };
   }
 
-let map_taint_trace map_loc { Pattern_match.sources; sink } =
+let map_taint_trace map_loc traces =
   let lift_map_loc f x =
-    let token =
-      match x.Tok.token with
-      | Tok.OriginTok loc -> Tok.OriginTok (f loc)
-      | Tok.ExpandedTok (pp_loc, v_loc, i) ->
-          Tok.ExpandedTok (f pp_loc, v_loc, i)
-      | x -> x
-    in
-    { x with token }
+    match x with
+    | Tok.OriginTok loc -> Tok.OriginTok (f loc)
+    | Tok.ExpandedTok (pp_loc, v_loc) -> Tok.ExpandedTok (f pp_loc, v_loc)
+    | x -> x
   in
   let map_loc = lift_map_loc map_loc in
   let rec map_taint_call_trace trace =
@@ -251,13 +247,14 @@ let map_taint_trace map_loc { Pattern_match.sources; sink } =
             call_trace = map_taint_call_trace call_trace;
           }
   in
-  {
-    Pattern_match.sources =
-      Common.map
-        (fun (ct, toks) -> (map_taint_call_trace ct, Common.map map_loc toks))
-        sources;
-    sink = map_taint_call_trace sink;
-  }
+  Common.map
+    (fun { Pattern_match.source_trace; tokens; sink_trace } ->
+      {
+        Pattern_match.source_trace = map_taint_call_trace source_trace;
+        tokens = Common.map map_loc tokens;
+        sink_trace = map_taint_call_trace sink_trace;
+      })
+    traces
 
 let map_res map_loc tmpfile file
     (mr : Report.partial_profiling Report.match_result) =

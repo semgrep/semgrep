@@ -133,7 +133,7 @@ val semgrep_with_raw_results_and_exn_handler :
 *)
 val semgrep_with_prepared_rules_and_targets :
   Runner_config.t ->
-  Runner_config.lang_job ->
+  Lang_job.t ->
   Exception.t option * Report.final_result * Common.filename list
 
 val semgrep_with_rules :
@@ -157,7 +157,7 @@ val print_match :
   ?str:string ->
   Runner_config.t ->
   Pattern_match.t ->
-  (Metavariable.mvalue -> Parse_info.t list) ->
+  (Metavariable.mvalue -> Tok.t list) ->
   unit
 
 (* This function prints a dot, which is consumed by the Python CLI to update

@@ -14,7 +14,6 @@
  *)
 open Common
 open Parser_php
-module PI = Parse_info
 module TH = Token_helpers_php
 
 (*****************************************************************************)
@@ -68,14 +67,14 @@ let split_two_char pi =
 
 let split_two_char_info i =
   let tok =
-    match i.Tok.token with
+    match i with
     | Tok.OriginTok t -> t
     | _ -> failwith "Parse error..."
   in
 
   let lhspi, rhspi = split_two_char tok in
-  let lhs = { Tok.token = Tok.OriginTok lhspi; transfo = Tok.NoTransfo } in
-  let rhs = { Tok.token = Tok.OriginTok rhspi; transfo = Tok.NoTransfo } in
+  let lhs = Tok.OriginTok lhspi in
+  let rhs = Tok.OriginTok rhspi in
   (lhs, rhs)
 
 (*
@@ -287,7 +286,7 @@ let fix_tokens xs =
           | TCBRACE _ii, _x :: xs -> xs
           | TCBRACE ii, [] ->
               failwith
-                (spf "unmatching closing brace at %s" (PI.string_of_info ii))
+                (spf "unmatching closing brace at %s" (Tok.stringpos_of_tok ii))
           | TSEMICOLON _ii, (FunctionHeader | TypeHeader) :: rest -> rest
           (* default case *)
           | _, st -> st

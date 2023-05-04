@@ -18,7 +18,6 @@ open AST_generic
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -109,7 +108,7 @@ type block = body_or_clauses bracket
 (* Intermediate AST constructs to AST_generic *)
 (*****************************************************************************)
 
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
 let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
 let body_to_stmts es = es |> Common.map G.exprstmt
@@ -860,7 +859,8 @@ and map_capture_expression (env : env) (x : CST.capture_expression) : expr =
       let v1 = (* "(" *) token env v1 in
       let v2 = map_expression env v2 in
       let v3 = (* ")" *) token env v3 in
-      ParenExpr (v1, v2, v3) |> G.e
+      AST_generic_helpers.set_e_range v1 v3 v2;
+      v2
   | `Exp x -> map_expression env x
 
 and map_catch_block (env : env) ((v1, v2, v3) : CST.catch_block) =

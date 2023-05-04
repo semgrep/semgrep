@@ -7,6 +7,7 @@ open Common
 (* in JSON mode, we might need to display intermediate '.' in the
  * output for semgrep to track progress as well as extra targets
  * found by extract rules.
+ * TODO: not needed after osemgrep migration done
  *)
 type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
@@ -29,11 +30,7 @@ type target_source =
   | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
 
-(* All rules and targets applicable to a specific language.
-   This is passed directly by the new osemgrep implementation, not
-   from the semgrep-core command line. *)
-type lang_job = { lang : Xlang.t; targets : Fpath.t list; rules : Rule.t list }
-
+(* TODO: similar to osemgrep Scan_CLI.conf, should be merged in it *)
 type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
@@ -49,14 +46,14 @@ type t = {
   pattern_string : string;
   pattern_file : filename; (* TODO: use Fpath.t option *)
   rule_source : rule_source option;
-  lang_job : lang_job option;
-  equivalences_file : string; (* TODO: use Fpath.t option *)
+  lang_job : Lang_job.t option;
+  equivalences_file : Fpath.t option;
   lang : Xlang.t option;
   roots : Fpath.t list;
   output_format : output_format;
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;
-  lsp : bool;
+  ls : bool;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
   timeout : float;
@@ -65,8 +62,8 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  (* TODO: use Fpath.t option instead of Common.dirname *)
-  parsing_cache_dir : Common.dirname; (* "" means no cache *)
+  (* TODO: use Fpath.t option *)
+  parsing_cache_dir : Common.filename; (* "" means no cache *)
   filter_irrelevant_rules : bool;
   (* Flag used by the semgrep-python wrapper *)
   target_source : target_source option;
@@ -104,13 +101,13 @@ let default =
     pattern_file = "" (* invalid path! *);
     rule_source = None;
     lang_job = None;
-    equivalences_file = "" (* invalid path! *);
+    equivalences_file = None;
     lang = None;
     roots = [];
     output_format = Text;
     match_format = Matching_report.Normal;
     mvars = [];
-    lsp = false;
+    ls = false;
     (* Limits *)
     (* maximum time to spend running a rule on a single file *)
     timeout = 0.;

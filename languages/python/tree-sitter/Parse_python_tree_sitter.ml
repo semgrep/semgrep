@@ -14,7 +14,6 @@
  *)
 
 module CST = Tree_sitter_python.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_python
 
@@ -39,7 +38,7 @@ let str = H.str
 
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let invalid () = raise (Tok.NoTokenLocation "Invalid program")
 
 (* AST builders helpers

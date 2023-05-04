@@ -23,8 +23,8 @@ let find_function_info (range_offsets : int * int)
   let start, end_ = range_offsets in
   ranges
   |> List.find_opt (fun { Function_range.range = t1, t2; _ } ->
-         let offset1 = Parse_info.pos_of_info t1 in
-         let offset2 = Parse_info.pos_of_info t2 in
+         let offset1 = Tok.bytepos_of_tok t1 in
+         let offset2 = Tok.bytepos_of_tok t2 in
          start >= offset1 && end_ <= offset2)
 
 (*****************************************************************************)
@@ -71,8 +71,8 @@ let adjust_core_match_results (x : Out.core_match_results) :
                logger#info "no function info found for range: %d, %d" start end_;
                m
            | Some { Function_range.name; range = t1, t2 } ->
-               let offset1 = Parse_info.pos_of_info t1 in
-               let offset2 = Parse_info.pos_of_info t2 in
+               let offset1 = Tok.bytepos_of_tok t1 in
+               let offset2 = Tok.bytepos_of_tok t2 in
                let extra =
                  {
                    m.extra with

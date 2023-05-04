@@ -55,7 +55,8 @@ type source = {
 }
 [@@deriving show]
 
-type sink = Rule.taint_sink call_trace [@@deriving show]
+type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
+[@@deriving show]
 
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
@@ -65,10 +66,8 @@ let trace_of_pm (pm, x) = PM (pm, x)
 
 let rec _show_call_trace show_thing = function
   | PM (pm, x) ->
-      let toks =
-        Lazy.force pm.PM.tokens |> List.filter Parse_info.is_origintok
-      in
-      let s = toks |> Common.map Parse_info.str_of_info |> String.concat " " in
+      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
+      let s = toks |> Common.map Tok.content_of_tok |> String.concat " " in
       Printf.sprintf "%s [%s]" s (show_thing x)
   | Call (_e, _, trace) ->
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
@@ -151,7 +150,17 @@ let _show_taint taint =
       Printf.sprintf "(%d,%d)#%s|%d|" r.start r.end_ label (depth 0 call_trace)
   | Arg arg_lval -> _show_arg arg_lval
 
-let _show_taints taints = Common2.string_of_list _show_taint taints
+let _show_sink { rule_sink; _ } = rule_sink.Rule.sink_id
+
+type taint_to_sink_item = { taint : taint; sink_trace : unit call_trace }
+[@@deriving show]
+
+let _show_taint_to_sink_item { taint; sink_trace } =
+  Printf.sprintf "%s@{%s}" (_show_taint taint)
+    (_show_call_trace [%show: unit] sink_trace)
+
+let _show_taints_and_traces taints =
+  Common2.string_of_list _show_taint_to_sink_item taints
 
 type taints_to_sink = {
   (* These taints were incoming to the sink, under a certain
@@ -160,7 +169,7 @@ type taints_to_sink = {
      a certain number of findings suitable to how the sink was
      reached.
   *)
-  taints_with_precondition : taint list * G.expr;
+  taints_with_precondition : taint_to_sink_item list * G.expr;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
@@ -175,12 +184,12 @@ type finding =
 type signature = finding list
 
 let _show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
-  Common.spf "%s ~~~> %s" (_show_taints taints)
-    (_show_call_trace (fun _ -> "sink") sink)
+  Common.spf "%s ~~~> %s" (_show_taints_and_traces taints) (_show_sink sink)
 
 let _show_finding = function
   | ToSink x -> _show_taints_to_sink x
-  | ToReturn (taints, _) -> Printf.sprintf "return (%s)" (_show_taints taints)
+  | ToReturn (taints, _) ->
+      Printf.sprintf "return (%s)" (Common2.string_of_list _show_taint taints)
   | ArgToArg (a1, _, a2) ->
       Printf.sprintf "%s ----> %s" (_show_arg a1) (_show_arg a2)
 
@@ -271,7 +280,27 @@ module Taint_set = struct
     set1 |> Taint_map.filter (fun k _ -> not (Taint_map.mem k set2))
 
   let singleton taint = add taint empty
-  let map f set = Taint_map.map f set
+
+  (* Because `Taint_set` is internally represented with a map, we cannot just
+     map the codomain taint, using the internal provided `map` function. We
+     want to map the keys too.
+     Unfortunately, the keys and values are different types, so it's not as
+     straightforward.
+     Fortunately, we can exploit a property of the map, which is that the
+     `orig` of the domain and codomain should be the same. So it should be fine
+     to simply map the codomain taint, and then take its `orig` as the key.
+  *)
+  let map f set =
+    let bindings = Taint_map.bindings set in
+    bindings
+    (* Here, we assume the invariant that the orig must be
+       the same in the domain and codomain.
+    *)
+    |> Common.map (fun (_, t2) ->
+           let new_taint = f t2 in
+           (new_taint.orig, new_taint))
+    |> List.to_seq |> Taint_map.of_seq
+
   let iter f set = Taint_map.iter (fun _k -> f) set
   let fold f set acc = Taint_map.fold (fun _k -> f) set acc
 

@@ -14,7 +14,7 @@
  *)
 open Common
 open AST_generic
-module V = Visitor_AST
+open Naming_utils
 module H = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -302,7 +302,7 @@ let lookup_scope_opt (s, _) env =
 
 let error tok s =
   if error_report then raise (Parsing_error.Other_error (s, tok))
-  else logger#trace "%s at %s" s (Parse_info.string_of_info tok)
+  else logger#trace "%s at %s" s (Tok.stringpos_of_tok tok)
 
 (*****************************************************************************)
 (* Typing Helpers *)
@@ -398,7 +398,7 @@ let resolved_name_kind env lang =
 
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =
-  params |> Parse_info.unbracket
+  params |> Tok.unbracket
   |> Common.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in
@@ -406,22 +406,6 @@ let params_of_parameters env params : scope =
            set_resolved env id_info resolved;
            Some (H.str_of_ident id, resolved)
        | _ -> None)
-
-(* In Angular JS, we have some "Injectable" classes, which are marked with an
-   @Injectable decorator.
-   https://angular.io/guide/dependency-injection-in-action
-   These classes may reference parameters to the constructor of the class, outside
-   of the actual code of the constructor itself.
-   So we must add them to the scope, should we find the decorator and a constructor's
-   parameters.
-   This also works for `@Component`.
-*)
-let is_js_angular_decorator s =
-  match s with
-  | "Injectable"
-  | "Component" ->
-      true
-  | _ -> false
 
 let js_get_angular_constructor_args env attrs defs =
   let is_injectable =
@@ -653,7 +637,7 @@ let resolve lang prog =
             | ___else___ -> ());
             super#visit_definition venv x
         | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
-            let s = Parse_info.str_of_info tok in
+            let s = Tok.content_of_tok tok in
             let flookup =
               match s with
               | "global" -> lookup_global_scope
@@ -750,19 +734,7 @@ let resolve lang prog =
         | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
             (* for Go *)
             let sid = SId.mk () in
-            let pkgname =
-              let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
-              if pkgbase =~ "v[0-9]+" then
-                (* e.g. google.golang.org/api/youtube/v3 *)
-                match pkgpath with
-                | [] -> pkgbase
-                | _ -> Common2.list_last pkgpath
-              else if pkgbase =~ "\\(.+\\)-go" then
-                (* e.g. github.com/dgrijalva/jwt-go *)
-                matched1 pkgbase
-              else (* default convention *)
-                pkgbase
-            in
+            let pkgname = go_package_alias s in
             let base = (pkgname, tok) in
             let canonical = dotted_to_canonical [ base ] in
             let resolved = untyped_ent (ImportedModule canonical, sid) in
@@ -873,7 +845,7 @@ let resolve lang prog =
          * See: https://golang.org/ref/spec#Short_variable_declarations *)
         | AssignOp ({ e = N (Id (id, id_info)); _ }, (Eq, tok), e2)
           when lang =*= Lang.Go
-               && Parse_info.str_of_info tok = ":="
+               && Tok.content_of_tok tok = ":="
                && is_resolvable_name_ctx env lang ->
             (* Need to visit the RHS first so that type is populated *)
             (* If we do var a = 3, then var b = a, we want to propagate the type of a *)

@@ -6,6 +6,7 @@
    fpath
 
    commons
+   git_wrapper
    semgrep.core
    semgrep.reporting ; for skipped_target ATD type
    osemgrep_targeting

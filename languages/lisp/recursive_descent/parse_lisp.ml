@@ -16,7 +16,6 @@
 open Common
 open Parser_lisp
 open Ast_lisp
-module PI = Parse_info
 module PS = Parsing_stat
 
 (* we don't need a full grammar for lisp code, so we put everything,
@@ -109,7 +108,7 @@ and sexp toks =
           let s, rest = sexp xs in
           (Special ((Comma, t), s), rest)
       (* hmmm probably unicode *)
-      | TUnknown t -> (Atom (String (PI.str_of_info t, t)), xs)
+      | TUnknown t -> (Atom (String (Tok.content_of_tok t, t)), xs)
       | EOF t -> raise (Parsing_error.Other_error ("unexpected eof", t)))
 
 (*****************************************************************************)
@@ -132,8 +131,8 @@ let parse filename =
     with
     | Parsing_error.Other_error (s, info) ->
         pr2
-          (spf "Parse error: %s, {%s} at %s" s (PI.str_of_info info)
-             (PI.string_of_info info));
+          (spf "Parse error: %s, {%s} at %s" s (Tok.content_of_tok info)
+             (Tok.stringpos_of_tok info));
         stat.PS.error_line_count <- stat.PS.total_line_count;
         None
     | exn -> Exception.catch_and_reraise exn

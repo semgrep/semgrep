@@ -168,6 +168,7 @@ def ci(
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -375,6 +376,7 @@ def ci(
             lang=None,
             configs=config,
             no_rewrite_rule_ids=(not rewrite_rule_ids),
+            dump_command_for_core=dump_command_for_core,
             jobs=jobs,
             include=include,
             exclude=exclude,
@@ -489,7 +491,7 @@ def ci(
             dependencies,
             engine_type,
         )
-        logger.info("  View results in Semgrep App:")
+        logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )

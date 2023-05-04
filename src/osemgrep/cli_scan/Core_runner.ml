@@ -1,5 +1,7 @@
+open File.Operators
 module Out = Semgrep_output_v1_t
 module RP = Report
+module Env = Semgrep_envvars
 
 (*************************************************************************)
 (* Prelude *)
@@ -51,6 +53,8 @@ type conf = {
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* osemgrep-only: *)
+  ast_caching : bool;
 }
 [@@deriving show]
 
@@ -113,52 +117,85 @@ let merge_results
   (final_result, files)
 
 (* The same rule may appear under multiple target languages because
-   some patterns can be interpreted in multiple languages. *)
+   some patterns can be interpreted in multiple languages.
+   TODO? could use Common.group_by
+*)
 let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
   (* target language -> rules *)
   let tbl = Hashtbl.create 100 in
-  List.iter
-    (fun (rule : Rule.t) ->
-      let pattern_lang = rule.languages in
-      let target_langs = Xlang.flatten pattern_lang in
-      List.iter
-        (fun lang ->
-          let rules =
-            match Hashtbl.find_opt tbl lang with
-            | None -> []
-            | Some rules -> rules
-          in
-          Hashtbl.replace tbl lang (rule :: rules))
-        target_langs)
-    rules;
+  rules
+  |> List.iter (fun (rule : Rule.t) ->
+         let pattern_lang = rule.languages in
+         let target_langs = Xlang.flatten pattern_lang in
+         target_langs
+         |> List.iter (fun lang ->
+                let rules =
+                  match Hashtbl.find_opt tbl lang with
+                  | None -> []
+                  | Some rules -> rules
+                in
+                Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
-let split_jobs_by_language all_rules all_targets : Runner_config.lang_job list =
+let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let grouped_rules = group_rules_by_target_language all_rules in
   let cache = Find_target.create_cache () in
-  Common.map
-    (fun (lang, rules) ->
-      let targets =
-        List.filter
-          (fun target ->
-            List.exists
-              (fun (rule : Rule.t) ->
-                let required_path_patterns, excluded_path_patterns =
-                  match rule.paths with
-                  | Some { include_; exclude } -> (include_, exclude)
-                  | None -> ([], [])
-                in
-                Find_target.filter_target_for_lang ~cache ~lang
-                  ~required_path_patterns ~excluded_path_patterns target)
-              rules)
-          all_targets
-      in
-      ({ lang; targets; rules } : Runner_config.lang_job))
-    grouped_rules
+  grouped_rules
+  |> Common.map_filter (fun (lang, rules) ->
+         let rules, targets =
+           match lang with
+           | Xlang.LGeneric
+           | Xlang.LRegex ->
+               let rules, targets =
+                 List.fold_left
+                   (fun (rules, targets) rule ->
+                     let required_path_patterns, excluded_path_patterns =
+                       match rule.Rule.paths with
+                       | Some { include_; exclude } -> (include_, exclude)
+                       | None -> ([], [])
+                     in
+                     let targets' =
+                       all_targets
+                       |> List.filter (fun target ->
+                              Find_target.filter_target_for_lang ~cache ~lang
+                                ~required_path_patterns ~excluded_path_patterns
+                                target)
+                     in
+                     if Common.null targets' then (rules, targets)
+                     else (rule :: rules, targets @ targets'))
+                   ([], []) rules
+               in
+               (rules, List.sort_uniq Fpath.compare targets)
+           | _else ->
+               ( rules,
+                 all_targets
+                 |> List.filter (fun target ->
+                        rules
+                        |> List.exists (fun (rule : Rule.t) ->
+                               let ( required_path_patterns,
+                                     excluded_path_patterns ) =
+                                 match rule.paths with
+                                 | Some { include_; exclude } ->
+                                     (include_, exclude)
+                                 | None -> ([], [])
+                               in
+                               Find_target.filter_target_for_lang ~cache ~lang
+                                 ~required_path_patterns ~excluded_path_patterns
+                                 target)) )
+         in
+         if Common.null rules || Common.null targets then None
+         else Some ({ lang; targets; rules } : Lang_job.t))
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
-  | { num_jobs; timeout; timeout_threshold; max_memory_mb; optimizations }
+  | {
+   num_jobs;
+   timeout;
+   timeout_threshold;
+   max_memory_mb;
+   optimizations;
+   ast_caching;
+  }
   (* TODO: time_flag = _;
   *) ->
       (* We should default to Json because we do not want the same text
@@ -170,6 +207,14 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
        *)
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
+      let parsing_cache_dir =
+        if ast_caching then
+          let dir = Env.env.user_dot_semgrep_dir / "cache" / "asts" in
+          match Bos.OS.Dir.create ~path:true dir with
+          | Ok _ -> !!dir
+          | Error (`Msg err) -> failwith err
+        else ""
+      in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -178,37 +223,9 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         filter_irrelevant_rules;
+        parsing_cache_dir;
         version = Version.version;
       }
-
-let pp_status rules targets lang_jobs respect_git_ignore ppf () =
-  Fmt_helpers.pp_heading ppf "Scan status";
-  (* TODO indentation of the body *)
-  let pp_s ppf x = if x = 1 then Fmt.string ppf "" else Fmt.string ppf "s" in
-  let rule_count = List.length rules in
-  Fmt.pf ppf "Scanning %d files%s with %d Code rule%a" (List.length targets)
-    (if respect_git_ignore then " tracked by git" else "")
-    rule_count pp_s rule_count;
-  (* TODO if sca_rules ...
-     Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
-  (* TODO pro_rule
-         if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
-         == "pro_rules"
-     if pro_rule_count:
-         summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
-  *)
-  Fmt.pf ppf ":@.@.";
-  (* TODO origin table [Origin Rules] [Community N] *)
-  Fmt_helpers.pp_table
-    ("Language", [ "Rules"; "Files" ])
-    ppf
-    (lang_jobs
-    |> List.fold_left
-         (fun acc Runner_config.{ lang; targets; rules } ->
-           (Xlang.to_string lang, [ List.length rules; List.length targets ])
-           :: acc)
-         []
-    |> List.rev)
 
 (*************************************************************************)
 (* Entry point *)
@@ -262,7 +279,10 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
       Logs.app (fun m ->
           m "%a"
-            (pp_status all_rules all_targets lang_jobs respect_git_ignore)
+            (fun ppf () ->
+              Status_report.pp_status ~num_rules:(List.length all_rules)
+                ~num_targets:(List.length all_targets) ~respect_git_ignore
+                lang_jobs ppf)
             ());
       (* TODO progress bar *)
       let results_by_language =

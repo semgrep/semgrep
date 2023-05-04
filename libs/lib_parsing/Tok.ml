@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2023 r2c
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,18 +18,26 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Information about tokens (mostly their position and origin).
+(* Information about tokens (mostly their location).
  *
  * Note that the types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens, as well as annotate tokens
- * with transformation. This is also partly because in many of the ASTs
- * and CSTs in Semgrep, including in AST_generic.ml, we store the
- * tokens in the ASTs/CSTs at the leaves, and abuse them to compute the range
- * of constructs (they are also convenient for precise error reporting).
+ * to represent "fake" and "expanded" tokens. The types used to be even
+ * more complicated to allow to annotate tokens with transformation information
+ * for Spatch in Coccinelle. However, this is not the case anymore because
+ * we use a different approach to transform code
+ * (AST-based autofix in Semgrep).
+ *
+ * We use fake tokens because in many of
+ * the ASTs/CSTs in Semgrep (including in AST_generic.ml) we store the
+ * tokens in the ASTs/CSTs at the leaves, and sometimes the actual
+ * token is optional (e.g., a virtual semicolon in Javascript). Moreover,
+ * we abuse those tokens at the leaves to compute the range of constructs.
+ * Finally those tokens are convenient for precise error reporting.
  * alt:
- *   - we could cleaner ASTs with range (general location) information at
+ *   - we could use cleaner ASTs with range (general location) information at
  *     every nodes, in which case we would not need at least the fake
  *     tokens (we might still need the ExpandedTok type construct though).
+ *   - we could also use more 'Tok.t option' instead of using fake tokens.
  *
  * Technically speaking, 't' below is not really a token, because the type does
  * not store the kind of the token (e.g., PLUS | IDENT | IF | ...), just its
@@ -41,16 +49,26 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-(* to report errors, regular position information.
- * TODO? move in a separate Loc.ml?
+(* To report errors, regular position information.
+ * Note that Loc.t is now an alias for Tok.location.
  *)
-type location = { str : string; (* the content of the "token" *) pos : Pos.t }
+type location = {
+  (* the content of the "token" *)
+  str : string;
+  (* TODO? the content of Pos.t used to be inlined in this location type.
+   * It is cleaner to factorize things in Pos.t, but this introduces
+   * an extra pointer which actually can have real performance implication
+   * in Semgrep on huge monorepos. It might be worth inlining it back
+   * (and also reduce its number of fields).
+   *)
+  pos : Pos.t;
+}
 [@@deriving show { with_path = false }, eq]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
  *)
-type origin =
+type t =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -81,8 +99,7 @@ type origin =
          * between then, even for expanded tokens. See compare_pos
          * below.
          *)
-        location
-      * int
+      (location * int)
   (* The Ab constructor is (ab)used to call '=' to compare
    * big AST portions. Indeed as we keep the token information in the AST,
    * if we have an expression in the code like "1+1" and want to test if
@@ -99,31 +116,6 @@ type origin =
   | Ab
 [@@deriving show { with_path = false }, eq]
 
-(* poor's man refactoring *)
-type transformation =
-  | NoTransfo
-  | Remove
-  | AddBefore of add
-  | AddAfter of add
-  | Replace of add
-  | AddArgsBefore of string list
-
-and add = AddStr of string | AddNewlineAndIdent
-[@@deriving show { with_path = false }, eq]
-
-type t = {
-  (* contains among other things the position of the token through
-   * the token_location embedded inside the token_origin type.
-   *)
-  token : origin;
-  (* The transfo field as its name suggests is to allow source to source
-   * transformations via token "annotations". See the documentation for Spatch.
-   * TODO: remove now that we use AST-based autofix in Semgrep.
-   *)
-  mutable transfo : transformation; (* less: mutable comments: ...; *)
-}
-[@@deriving show { with_path = false }, eq]
-
 type t_always_equal = t [@@deriving show]
 
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
@@ -132,6 +124,8 @@ type t_always_equal = t [@@deriving show]
 let equal_t_always_equal _t1 _t2 = true
 let hash_t_always_equal _t = 0
 let hash_fold_t_always_equal acc _t = acc
+
+exception NoTokenLocation of string
 
 (*****************************************************************************)
 (* Dumpers *)
@@ -147,29 +141,85 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 (* Fake tokens (safe and unsafe) *)
 (*****************************************************************************)
 
-exception NoTokenLocation of string
+let is_fake tok =
+  match tok with
+  | FakeTokStr _ -> true
+  | _ -> false
+
+let is_origintok ii =
+  match ii with
+  | OriginTok _ -> true
+  | _ -> false
 
 let fake_location = { str = ""; pos = Pos.fake_pos }
+
+(* Synthesize a fake token *)
+let unsafe_fake_tok str : t = FakeTokStr (str, None)
+
+(* Synthesize a "safe" fake token *)
+let fake_tok_loc next_to_loc str : t =
+  (* TODO: offset seems to have no use right now (?) *)
+  FakeTokStr (str, Some (next_to_loc, -1))
+
+let loc_of_tok (ii : t) : (location, string) Result.t =
+  match ii with
+  | OriginTok pinfo -> Ok pinfo
+  (* TODO ? dangerous ? *)
+  | ExpandedTok (pinfo_pp, _) -> Ok pinfo_pp
+  | FakeTokStr (_, Some (pi, _)) -> Ok pi
+  | FakeTokStr (_, None) -> Error "FakeTokStr"
+  | Ab -> Error "Ab"
+
+let fake_tok next_to_tok str : t =
+  match loc_of_tok next_to_tok with
+  | Ok loc -> fake_tok_loc loc str
+  | Error _ -> unsafe_fake_tok str
+
+(* TODO? the use of unsafe_fake_xxx is usually because the token
+ * does not exist in the original file. It's better then to generate
+ * an empty string in the FakeTokStr so that pretty printer will
+ * not generate those brackets or semicolons. Moreover
+ * we use unsafe_fake_bracket not only for () but also for [], {}, and
+ * now even for "", so better again to put an empty string in it?
+ *)
+
+let unsafe_sc = unsafe_fake_tok ";"
+let sc next_to_tok = fake_tok next_to_tok ";"
+
+let fake_bracket next_to_tok x =
+  (fake_tok next_to_tok "(", x, fake_tok next_to_tok ")")
+
+(* used to be in AST_generic.ml *)
+let unsafe_fake_bracket x = (unsafe_fake_tok "(", x, unsafe_fake_tok ")")
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
-let location_of_tok (ii : t) : (location, string) Result.t =
-  match ii.token with
-  | OriginTok pinfo -> Ok pinfo
-  (* TODO ? dangerous ? *)
-  | ExpandedTok (pinfo_pp, _pinfo_orig, _offset) -> Ok pinfo_pp
-  | FakeTokStr (_, Some (pi, _)) -> Ok pi
-  | FakeTokStr (_, None) -> Error "FakeTokStr"
-  | Ab -> Error "Ab"
+let stringpos_of_tok (x : t) : string =
+  match loc_of_tok x with
+  | Ok loc -> Pos.string_of_pos loc.pos
+  | Error msg -> spf "unknown location (%s)" msg
 
-let unsafe_location_of_tok ii =
-  match location_of_tok ii with
+let unsafe_loc_of_tok ii =
+  match loc_of_tok ii with
   | Ok pinfo -> pinfo
   | Error msg -> raise (NoTokenLocation msg)
 
-let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
+let line_of_tok ii = (unsafe_loc_of_tok ii).pos.line
+let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
+
+(* todo: return a Real | Virt position ? *)
+let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.charpos
+let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
+
+let content_of_tok ii =
+  match ii with
+  | OriginTok x -> x.str
+  | FakeTokStr (s, _) -> s
+  | ExpandedTok _
+  | Ab ->
+      raise (NoTokenLocation "content_of_tok: Expanded or Ab")
 
 (* Token locations are supposed to denote the beginning of a token.
    Suppose we are interested in instead having line, column, and charpos of
@@ -177,7 +227,7 @@ let line_of_tok ii = (unsafe_location_of_tok ii).pos.line
    This is something we can do at relatively low cost by going through and
    inspecting the contents of the token, plus the start information.
 *)
-let get_token_end_info loc =
+let end_pos_of_loc loc =
   let line, col =
     Stdcompat.String.fold_left
       (fun (line, col) c ->
@@ -190,11 +240,82 @@ let get_token_end_info loc =
   (line, col, loc.pos.charpos + String.length loc.str)
 
 (*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
+
+let tok_of_loc loc = OriginTok loc
+
+let tok_of_str_and_bytepos str pos =
+  let loc =
+    {
+      str;
+      pos =
+        {
+          charpos = pos;
+          (* info filled in a post-lexing phase, see complete_location *)
+          line = -1;
+          column = -1;
+          file = "NO FILE INFO YET";
+        };
+    }
+  in
+  tok_of_loc loc
+
+let tok_of_lexbuf lexbuf =
+  tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
+
+let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
+
+let rewrap_str s ii =
+  match ii with
+  | OriginTok pi -> OriginTok { pi with str = s }
+  | FakeTokStr (s, info) -> FakeTokStr (s, info)
+  | Ab -> Ab
+  | ExpandedTok _ ->
+      (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
+      failwith "rewrap_str: ExpandedTok not allowed here"
+
+(* less: should use Buffer and not ^ so we should not need that *)
+let tok_add_s s ii = rewrap_str (content_of_tok ii ^ s) ii
+
+let str_of_info_fake_ok ii =
+  match ii with
+  | OriginTok pinfo -> pinfo.str
+  | ExpandedTok (pinfo_pp, _vloc) -> pinfo_pp.str
+  | FakeTokStr (_, Some (pi, _)) -> pi.str
+  | FakeTokStr (s, None) -> s
+  | Ab -> raise (NoTokenLocation "Ab")
+
+let combine_toks x xs =
+  let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
+  tok_add_s str x
+
+let split_tok_at_bytepos pos ii =
+  let loc = unsafe_loc_of_tok ii in
+  let str = loc.str in
+  let loc1_str = String.sub str 0 pos in
+  let loc2_str = String.sub str pos (String.length str - pos) in
+  let loc1 = { loc with str = loc1_str } in
+  let loc2 =
+    {
+      str = loc2_str;
+      pos =
+        {
+          loc.pos with
+          charpos = loc.pos.charpos + pos;
+          column = loc.pos.column + pos;
+        };
+    }
+  in
+  (tok_of_loc loc1, tok_of_loc loc2)
+
+(*****************************************************************************)
 (* Adjusting location *)
 (*****************************************************************************)
 
-(* TODO: move to Pos.ml and use Pos.t instead *)
-let adjust_pinfo_wrt_base base_loc loc =
+(* TODO? move to Pos.ml and use Pos.t instead *)
+let adjust_loc_wrt_base base_loc loc =
   (* Note that charpos and columns are 0-based, whereas lines are 1-based. *)
   {
     loc with
@@ -209,23 +330,24 @@ let adjust_pinfo_wrt_base base_loc loc =
       };
   }
 
-let fix_token_location fix ii =
-  {
-    ii with
-    token =
-      (match ii.token with
-      | OriginTok pi -> OriginTok (fix pi)
-      | ExpandedTok (pi, vpi, off) -> ExpandedTok (fix pi, vpi, off)
-      | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
-      | Ab -> Ab);
-  }
+let fix_location fix ii =
+  match ii with
+  | OriginTok pi -> OriginTok (fix pi)
+  | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
+  | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
+  | Ab -> Ab
 
-let adjust_info_wrt_base base_loc ii =
-  fix_token_location (adjust_pinfo_wrt_base base_loc) ii
+let adjust_tok_wrt_base base_loc ii =
+  fix_location (adjust_loc_wrt_base base_loc) ii
+
+let fix_pos fix loc = { loc with pos = fix loc.pos }
 
 (*****************************************************************************)
 (* Adjust line x col *)
 (*****************************************************************************)
+
+let complete_location filename table (x : location) =
+  { x with pos = Pos.complete_position filename table x.pos }
 
 (*
 I used to have:
@@ -287,147 +409,52 @@ let distribute_info_items_toplevel a b c =
   Common.profile_code "distribute_info_items" (fun () ->
     distribute_info_items_toplevel2 a b c
   )
-
  *)
-let full_charpos_to_pos_large file =
-  let chan = open_in_bin file in
-  let size = Common2.filesize file + 2 in
 
-  (* old: let arr = Array.create size  (0,0) in *)
-  let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  Bigarray.Array1.fill arr1 0;
-  Bigarray.Array1.fill arr2 0;
+(*****************************************************************************)
+(* Compare *)
+(*****************************************************************************)
 
-  let charpos = ref 0 in
-  let line = ref 0 in
+(* not used but used to be useful in coccinelle *)
+type posrv =
+  | Real of location
+  | Virt of
+      location (* last real info before expanded tok *)
+      * int (* virtual offset *)
 
-  let full_charpos_to_pos_aux () =
-    try
-      while true do
-        let s = input_line chan in
-        incr line;
-        let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
-        let col = ref 0 in
-        for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
-          arr1.{!charpos + i} <- !line;
-          arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
-            incr line;
-            col := -1);
-          incr col
-        done;
-        charpos := !charpos + len + 1
-      done
-    with
-    | End_of_file ->
-        for
-          i = !charpos
-          to (* old: Array.length arr *)
-             Bigarray.Array1.dim arr1 - 1
-        do
-          (* old: arr.(i) <- (!line, 0); *)
-          arr1.{i} <- !line;
-          arr2.{i} <- 0
-        done;
-        ()
+let compare_pos ii1 ii2 =
+  let get_pos = function
+    | OriginTok pi -> Real pi
+    (* todo? I have this for lang_php/
+        | FakeTokStr (s, Some (pi_orig, offset)) ->
+            Virt (pi_orig, offset)
+    *)
+    | FakeTokStr _ -> raise (NoTokenLocation "compare_pos: FakeTokStr")
+    | Ab -> raise (NoTokenLocation "compare_pos: Ab")
+    | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
   in
-  full_charpos_to_pos_aux ();
-  close_in chan;
-  fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
-
-(* This is mostly a copy-paste of full_charpos_to_pos_large,
-   but using a string for a target instead of a file. *)
-let full_charpos_to_pos_str s =
-  let size = String.length s + 2 in
-
-  (* old: let arr = Array.create size  (0,0) in *)
-  let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
-  Bigarray.Array1.fill arr1 0;
-  Bigarray.Array1.fill arr2 0;
-
-  let charpos = ref 0 in
-  let line = ref 0 in
-  let str_lines = String.split_on_char '\n' s in
-
-  let full_charpos_to_pos_aux () =
-    List.iter
-      (fun s ->
-        incr line;
-        let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
-        let col = ref 0 in
-        for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
-          arr1.{!charpos + i} <- !line;
-          arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
-            incr line;
-            col := -1);
-          incr col
-        done;
-        charpos := !charpos + len + 1)
-      str_lines
-  in
-  full_charpos_to_pos_aux ();
-  fun i -> (arr1.{i}, arr2.{i})
-  [@@profiling]
-
-(* Currently, lexing.ml, in the standard OCaml libray, does not handle
- * the line number position.
- * Even if there are certain fields in the lexing structure, they are not
- * maintained by the lexing engine so the following code does not work:
- *
- *   let pos = Lexing.lexeme_end_p lexbuf in
- *   sprintf "at file %s, line %d, char %d" pos.pos_fname pos.pos_lnum
- *      (pos.pos_cnum - pos.pos_bol) in
- *
- * Hence those types and functions below to overcome the previous limitation,
- * (see especially complete_token_location_large()).
- * alt:
- *   - in each lexer you need to take care of newlines and update manually
- *     the field.
- * TODO: use Pos.t instead of Parse_info.token_location
- *)
-let complete_token_location_large filename table (x : location) =
-  {
-    x with
-    pos =
-      {
-        x.pos with
-        file = filename;
-        line = fst (table x.pos.charpos);
-        column = snd (table x.pos.charpos);
-      };
-  }
+  let pos1 = get_pos ii1 in
+  let pos2 = get_pos ii2 in
+  match (pos1, pos2) with
+  | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
+  | Virt (p1, _), Real p2 ->
+      if compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
+  | Real p1, Virt (p2, _) ->
+      if compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
+  | Virt (p1, o1), Virt (p2, o2) -> (
+      let poi1 = p1.pos.charpos in
+      let poi2 = p2.pos.charpos in
+      match compare poi1 poi2 with
+      | -1 -> -1
+      | 0 -> compare o1 o2
+      | 1 -> 1
+      | _ -> raise Impossible)
 
 (*****************************************************************************)
 (* Other helpers *)
 (*****************************************************************************)
 
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+let unbracket (_, x, _) = x
 
 (* used only in the Scala parser for now *)
-let abstract_tok = { token = Ab; transfo = NoTransfo }
+let abstract_tok = Ab

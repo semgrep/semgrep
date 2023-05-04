@@ -43,7 +43,7 @@ let any_gen_of_string str =
 *)
 let tests () = List.flatten [
   Unit_list_files.tests;
-  Unit_glob.tests;
+  Glob.Unit_glob.tests;
   Osemgrep_targeting.Unit_semgrepignore.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();
@@ -75,9 +75,8 @@ let tests () = List.flatten [
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
   Unit_engine.tests ();
   Unit_metachecking.tests ();
-
+  Unit_LS.tests;
   Aliengrep.Unit_tests.tests;
-
   (* Inline tests *)
   Testutil.get_registered_tests ();
 ]

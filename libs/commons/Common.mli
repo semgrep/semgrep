@@ -23,6 +23,8 @@
  * To enforce this rule, this module redefines '=' to just operate
  * on strings, so ocaml can statically detect when you wrongly use '='
  * on other types.
+ *
+ * See also the Operators submodule at the end of this file.
  *)
 val ( = ) : string -> string -> bool
 
@@ -143,7 +145,7 @@ val split : string (* sep regexp *) -> string -> string list
 (* Deprecated.
 
    Migration in progress: File.ml reproduces the functions below and uses
-   Fpath.t instead of string to represent file/directory paths.
+   Fpath.t instead of strings to represent file/directory paths.
 *)
 
 (* Some signatures are arguably clearer when using 'filename' instead of
@@ -161,14 +163,14 @@ type filename = string [@@deriving show, eq]
  * val equal_filename: filename -> filename -> bool
  *)
 
-(* TODO: those are not used very often, maybe we should delete them *)
-type dirname = string
+(* for realpath, see efuns_c library or Realpath.ml in trimmed pfff  *)
 
-(* for realpath, see efuns_c library  *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
 *)
 val fullpath : filename -> filename
+
+(* Deprecated: use the ppath library instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 
@@ -462,6 +464,19 @@ val with_time : (unit -> 'a) -> 'a * float
 *)
 val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+(* if you just want to use the operators *)
+module Operators : sig
+  val ( =~ ) : string -> string -> bool
+  val ( = ) : string -> string -> bool
+  val ( =|= ) : int -> int -> bool
+  val ( =$= ) : char -> char -> bool
+  val ( =:= ) : bool -> bool -> bool
+  val ( =*= ) : 'a -> 'a -> bool
+end
 
 (*****************************************************************************)
 (* Misc *)

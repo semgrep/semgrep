@@ -3,6 +3,10 @@
 
    For now, this is a thin layer on top of Common. Eventually, we want
    to get rid of the interface exposed by Common.
+
+   related libraries:
+    - Bos.OS.File, Bos.OS.Dir, Bos.OS.Path
+     (ex: https://erratique.ch/software/bos/doc/Bos/OS/Dir/index.html )
 *)
 
 module Path = struct

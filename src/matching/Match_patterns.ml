@@ -14,8 +14,6 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module V = Visitor_AST
-module PI = Parse_info
 module MR = Mini_rule
 module Eq = Equivalence
 module PM = Pattern_match
@@ -165,7 +163,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
                   let env = env.mv.full_env in
-                  match V.range_of_any_opt (any x) with
+                  match AST_generic_helpers.range_of_any_opt (any x) with
                   | None ->
                       (* TODO: Report a warning to the user? *)
                       logger#error
@@ -173,7 +171,9 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                         (show_any (any x));
                       ()
                   | Some range_loc ->
-                      let tokens = lazy (V.ii_of_any (any x)) in
+                      let tokens =
+                        lazy (AST_generic_helpers.ii_of_any (any x))
+                      in
                       let rule_id = rule_id_of_mini_rule rule in
                       let pm =
                         {
@@ -333,7 +333,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            *)
           !expr_rules
           |> List.iter (fun (pattern, _bf, rule, cache) ->
-                 match V.range_of_any_opt (E x) with
+                 match AST_generic_helpers.range_of_any_opt (E x) with
                  | None ->
                      logger#error "Skipping because we lack range info: %s"
                        (show_expr_kind x.e);
@@ -348,7 +348,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
                               let env = env.mv.full_env in
-                              let tokens = lazy (V.ii_of_any (E x)) in
+                              let tokens =
+                                lazy (AST_generic_helpers.ii_of_any (E x))
+                              in
                               let rule_id = rule_id_of_mini_rule rule in
                               let pm =
                                 {
@@ -393,7 +395,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
                             let env = env.mv.full_env in
-                            match V.range_of_any_opt (S x) with
+                            match
+                              AST_generic_helpers.range_of_any_opt (S x)
+                            with
                             | None ->
                                 (* TODO: Report a warning to the user? *)
                                 logger#error
@@ -402,7 +406,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   (show_stmt x);
                                 ()
                             | Some range_loc ->
-                                let tokens = lazy (V.ii_of_any (S x)) in
+                                let tokens =
+                                  lazy (AST_generic_helpers.ii_of_any (S x))
+                                in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =
                                   {

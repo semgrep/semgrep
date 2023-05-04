@@ -110,21 +110,21 @@
 (* Token (leaves) *)
 (*****************************************************************************)
 
-type tok = Parse_info.t [@@deriving show]
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
+type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
-type ident = string wrap [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
+type ident = string wrap [@@deriving show]
 
 (* the string contains the $ prefix *)
-type var = string wrap [@@deriving show] (* with tarzan *)
+type var = string wrap [@@deriving show]
 
 (* The keyword 'namespace' can be in a leading position. The special
  * ident 'ROOT' can also be leading.
  *)
-type qualified_ident = ident list [@@deriving show] (* with tarzan *)
-type name = qualified_ident [@@deriving show] (* with tarzan *)
+type qualified_ident = ident list [@@deriving show]
+type name = qualified_ident [@@deriving show]
 
 (*****************************************************************************)
 (* Expression *)
@@ -423,20 +423,17 @@ and class_var = {
 and method_def = func_def
 and type_def = { t_name : ident; t_kind : type_def_kind }
 and type_def_kind = Alias of hint_type [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Program *)
 (*****************************************************************************)
 
 type program = stmt list [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Any *)
 (*****************************************************************************)
 type partial = PartialIf of tok * expr [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 type any =
   | Program of program
@@ -445,14 +442,13 @@ type any =
   | Param of parameter
   | Partial of partial
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let unwrap x = fst x
-let wrap_fake s = (s, Parse_info.fake_info s)
+let wrap_fake s = (s, Tok.fake_tok s)
 
 (* TODO: replace builtin() by IdSpecial like I do in AST_generic.ml
  * builtin() is used for:

@@ -15,12 +15,16 @@ syntax_fails = [
 ]
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_passes)
 def test_rule_parser__success(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
 
 
+# TODO: Those are almost osempass, but 2 files are failing and then
+# the same rules/syntax/ files are used for test_rule_parser__failure__error_messages
+# where they all fail, so can't really split the test in 2 with an osemfail suffix
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):

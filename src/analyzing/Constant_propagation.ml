@@ -16,8 +16,6 @@
 open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -98,7 +96,7 @@ type var_stats = (var, lr_stats) Hashtbl.t
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let ( let* ) o f = Option.bind o f
 let ( let/ ) o f = Option.iter f o
 
@@ -323,7 +321,7 @@ let rec eval env x : svalue option =
       deep_constant_propagation_and_evaluate_literal x
 
 and eval_args env args =
-  args |> PI.unbracket
+  args |> Tok.unbracket
   |> Common.map (function
        | Arg e -> eval env e
        | _ -> None)
@@ -737,7 +735,7 @@ let propagate_dataflow lang ast =
   | Lang.Dockerfile ->
       (* Dockerfile has no functions. The whole file is just a single scope *)
       let xs =
-        AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
+        AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow

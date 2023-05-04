@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module V = Visitor_AST
 
 (*****************************************************************************)
 (* Prelude *)
@@ -104,8 +103,8 @@ let extract_strings_and_mvars ?lang any =
             if not (Pattern.is_special_string_literal str) then
               Common.push str strings
         | IdSpecial (Eval, t) ->
-            if Parse_info.is_origintok t then
-              Common.push (Parse_info.str_of_info t) strings
+            if Tok.is_origintok t then
+              Common.push (Tok.content_of_tok t) strings
         (* do not recurse there, the type does not have to be in the source *)
         | TypedMetavar _ -> ()
         (* for bloom_filters: do not recurse here (for ApplyEquivalence,

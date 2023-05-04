@@ -6,7 +6,6 @@ module Utils = Utils_ruby
 module Ast = Ast_ruby
 open Il_ruby_helpers
 module C = Il_ruby_helpers.Abbr
-module PI = Parse_info
 module Log = Ruby_log
 module CodePrinter = Il_ruby
 
@@ -18,7 +17,7 @@ type 'a acc = {
   super_args : (star_expr list * expr option) option;
 }
 
-let fb = PI.fake_bracket
+let fb = Tok.fake_bracket
 
 let acc_empty old =
   { q = DQueue.empty; seen = StrSet.empty; super_args = old.super_args }
@@ -229,7 +228,7 @@ let special_of_string pos x : expr =
   match x with
   | "true" -> EId True
   | "false" -> EId False
-  | "__FILE__" -> ELit (String (Parse_info.file_of_info pos))
+  | "__FILE__" -> ELit (String (Tok.file_of_tok pos))
   | "__LINE__" -> ELit (Num (spf "%d" (Tok.line_of_tok pos)))
   | _ -> raise (Invalid_argument "special_of_string")
 
@@ -1726,11 +1725,11 @@ and refactor_stmt (acc : stmt acc) (e : Ast.expr) : stmt acc =
       let body' = C.seq body_lst pos in
       acc_enqueue (C.metaclass e' body' pos) acc
   | Ast.D (Ast.BeginBlock (pos, lst)) ->
-      let body_acc = refactor_stmt_list (acc_empty acc) (PI.unbracket lst) in
+      let body_acc = refactor_stmt_list (acc_empty acc) (Tok.unbracket lst) in
       let body' = C.seq (DQueue.to_list body_acc.q) pos in
       acc_enqueue (mkstmt (Begin body') pos) acc
   | Ast.D (Ast.EndBlock (pos, lst)) ->
-      let body_acc = refactor_stmt_list (acc_empty acc) (PI.unbracket lst) in
+      let body_acc = refactor_stmt_list (acc_empty acc) (Tok.unbracket lst) in
       let body' = C.seq (DQueue.to_list body_acc.q) pos in
       acc_enqueue (mkstmt (End body') pos) acc
   | Ast.S (Ast.ExnBlock body) ->
@@ -1955,7 +1954,7 @@ and refactor_block_formal acc t pos : stmt acc * block_formal_param =
       in
       (acc, Formal_star2 s)
   | Ast.Formal_tuple f_lst ->
-      let acc, lst = refactor_block_formal_list acc (PI.unbracket f_lst) pos in
+      let acc, lst = refactor_block_formal_list acc (Tok.unbracket f_lst) pos in
       (acc, Formal_tuple lst)
   | Ast.Formal_amp _ ->
       Log.fatal (Log.of_tok pos) "refactor_block_formal: & arg?"

@@ -3,6 +3,8 @@ open File.Operators
 module E = Error
 module FT = File_type
 module C = Semgrep_dashdash_config
+module R = Rule
+module XP = Xpattern
 
 (*****************************************************************************)
 (* Prelude *)
@@ -18,29 +20,20 @@ module C = Semgrep_dashdash_config
 (* Types *)
 (*****************************************************************************)
 
-(* input *)
-type rules_source =
-  (* -e/-l/--replacement. In theory we could even parse the string to get
-   * a XPattern.t *)
-  | Pattern of string * Xlang.t * string option (* replacement *)
-  (* --config. In theory we could even parse the string to get
-   * some Semgrep_dashdash_config.config_kind list *)
-  | Configs of string list
-(* TODO? | ProjectUrl of Uri.t? or just use Configs for it? *)
-[@@deriving show]
-
-(* output *)
-(* python: was called ConfigFile, and called a 'config' in text output *)
+(* python: was called ConfigFile, and called a 'config' in text output.
+ * TODO? maybe we don't need this intermediate type anymore; just return
+ * a pair, which would remove the need for partition_rules_and_errors.
+ *)
 type rules_and_origin = {
   origin : origin;
-  (* TODO? put a config_id: string option? or config prefix? or
-   * compute it later based on the origin?
-   *)
   rules : Rule.rules;
   errors : Rule.invalid_rule_error list;
 }
 
-(* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline? *)
+(* TODO? more complex origin? Remote of Uri.t | Local of filename | Inline?
+ *  or just put the Semgrep_dashdash_config.config_kind it comes from?
+ * This type is used only for rules_rewrite_rule_ids().
+ *)
 and origin = Fpath.t option (* None for remote files *) [@@deriving show]
 
 (*****************************************************************************)
@@ -54,6 +47,50 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
     xs |> List.concat_map (fun x -> x.errors)
   in
   (rules, errors)
+
+let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
+  assert (Fpath.is_file_path fpath);
+  let* rel_path =
+    if Fpath.is_rel fpath then Some fpath
+      (* python: paths had no commen prefix; not possible to relativize *)
+    else Fpath.rem_prefix (Fpath.v (Sys.getcwd ())) fpath
+  in
+  (* LATER: we should use Fpath.normalize first, but pysemgrep
+   * doesn't as shown by tests/e2e/test_check.py::test_basic_rule__relative
+   * so we reproduce the same behavior, leading sometimes to some
+   * weird rule id like "rules....rules.test" when passing
+   * rules/../rules/test.yaml to --config.
+   * TODO? pass legacy flag and improve the behavior when not legacy?
+   *)
+  match List.rev (Fpath.segs rel_path) with
+  | [] -> raise Impossible
+  | [ _file ] -> None
+  | _file :: dirs ->
+      let prefix =
+        dirs |> List.rev |> Common.map (fun s -> s ^ ".") |> String.concat ""
+      in
+      Some prefix
+
+let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
+    rules_and_origin =
+  let { rules; errors; origin } = x in
+  match origin with
+  | Some fpath when rewrite_rule_ids -> (
+      match prefix_for_fpath_opt fpath with
+      | None -> x
+      | Some prefix ->
+          {
+            origin;
+            rules =
+              rules
+              |> Common.map (function { Rule.id = rule_id, tk; _ } as r ->
+                     { r with id = (prefix ^ rule_id, tk) });
+            errors =
+              errors
+              |> Common.map (fun (kind, rule_id, tk) ->
+                     (kind, prefix ^ rule_id, tk));
+          })
+  | _else_ -> x
 
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
@@ -171,11 +208,16 @@ let load_rules_from_file (file : Fpath.t) : rules_and_origin =
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url url : rules_and_origin =
+let load_rules_from_url ?(ext = "yaml") url : rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
-    match Network.get url with
+    let headers =
+      match Semgrep_settings.((get ()).api_token) with
+      | None -> None
+      | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
+    in
+    match Network.get ?headers url with
     | Ok body -> body
     | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)
@@ -183,10 +225,80 @@ let load_rules_from_url url : rules_and_origin =
           (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
-  Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+  let ext, content =
+    if ext = "policy" then
+      (* project rule_config, from config_resolver.py in _make_config_request *)
+      try
+        match Yojson.Basic.from_string content with
+        | `Assoc e -> (
+            match List.assoc "rule_config" e with
+            | `String e -> ("json", e)
+            | _else -> (ext, content))
+        | _else -> (ext, content)
+      with
+      | _failure -> (ext, content)
+    else (ext, content)
+  in
+  Common2.with_tmp_file ~str:content ~ext (fun file ->
       let file = Fpath.v file in
       let res = load_rules_from_file file in
       { res with origin = None })
+
+(* from auth.py *)
+let get_deployment_id () =
+  match Semgrep_settings.((get ()).api_token) with
+  | None -> None
+  | Some token -> (
+      match
+        Network.get
+          ~headers:[ ("authorization", "Bearer " ^ token) ]
+          (Uri.with_path Semgrep_envvars.env.semgrep_url
+             "api/agent/deployments/current")
+      with
+      | Error msg ->
+          Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
+          None
+      | Ok json -> (
+          try
+            match Yojson.Basic.from_string json with
+            | `Assoc e -> (
+                match List.assoc_opt "deployment" e with
+                | Some (`Assoc e) -> (
+                    match List.assoc_opt "id" e with
+                    | Some (`Int i) -> Some i
+                    | _else -> None)
+                | _else -> None)
+            | _else -> None
+          with
+          | Yojson.Json_error msg ->
+              Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
+              None))
+
+let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
+
+let url_for_policy () =
+  match get_deployment_id () with
+  | None ->
+      Error.abort
+        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
+  | Some _deployment_id -> (
+      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
+      | None ->
+          Error.abort
+            (spf
+               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
+      | Some repo_name ->
+          Uri.(
+            add_query_params'
+              (with_path Semgrep_envvars.env.semgrep_url
+                 default_semgrep_app_config_url)
+              [
+                ("sca", "False");
+                ("dry_run", "True");
+                ("full_scan", "True");
+                ("repo_name", repo_name);
+                ("semgrep_version", Version.version);
+              ]))
 
 let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
     rules_and_origin list =
@@ -213,6 +325,7 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
       |> List.filter Parse_rule.is_valid_rule_filename
       |> Common.map load_rules_from_file
   | C.URL url -> [ load_rules_from_url url ]
+  | C.R Policy -> [ load_rules_from_url ~ext:"policy" (url_for_policy ()) ]
   | C.R rkind ->
       let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
       [ load_rules_from_url url ]
@@ -221,26 +334,66 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
 (* Entry point *)
 (*****************************************************************************)
 
-(* python: mix of resolver_config.get_config() and resolver_config.get_rules()
- * TODO: rewrite rule_id of the rules using x.path origin?
- *)
-let rules_from_rules_source (source : rules_source) : rules_and_origin list =
-  match source with
+(* python: mix of resolver_config.get_config() and get_rules() *)
+let rules_from_rules_source ~rewrite_rule_ids (src : Rules_source.t) :
+    rules_and_origin list =
+  match src with
   | Configs xs ->
       xs
       |> List.concat_map (fun str ->
              let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
              rules_from_dashdash_config kind)
-  | Pattern (pat, xlang, fix) ->
-      let fk = Parse_info.unsafe_fake_info "" in
-      (* better: '-e foo -l regex' not handled in original semgrep,
-       * got a weird 'invalid pattern clause' error.
-       * better: '-e foo -l generic' not handled in semgrep-core
-       * TODO? some try and abort because we can get parse errors?
-       *)
-      let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-      let rule = Rule.rule_of_xpattern xlang xpat in
-      let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
-      (* TODO? transform the pattern parse error in invalid_rule_error? *)
-      [ { origin = None; rules = [ rule ]; errors = [] } ]
-  [@@profiling]
+      |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
+  (* better: '-e foo -l regex' was not handled in pysemgrep
+   *  (got a weird 'invalid pattern clause' error)
+   * better: '-e foo -l generic' was not handled in semgrep-core
+   *)
+  | Pattern (pat, xlang_opt, fix) -> (
+      let fk = Tok.unsafe_fake_tok "" in
+      let rules_and_origins_for_xlang xlang =
+        let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+        (* force the parsing of the pattern to get the parse error if any *)
+        (match xpat.XP.pat with
+        | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+        | XP.Spacegrep _
+        | XP.Regexp _ ->
+            ());
+        let rule = Rule.rule_of_xpattern xlang xpat in
+        let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
+        { origin = None; rules = [ rule ]; errors = [] }
+      in
+
+      match xlang_opt with
+      | Some xlang ->
+          (* TODO? capture also parse errors here? and transform the pattern
+           * parse error in invalid_rule_error to return in rules_and_origin? *)
+          [ rules_and_origins_for_xlang xlang ]
+      (* osemgrep-only: better: can use -e without -l! we try all languages *)
+      | None ->
+          (* We need uniq_by because Lang.assoc contain multiple times the
+           * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+           * Lang.assoc
+           * TODO? use Xlang.assoc instead?
+           *)
+          let all_langs =
+            Lang.assoc
+            |> Common.map (fun (_k, l) -> l)
+            |> Common.uniq_by ( =*= )
+            (* TODO: we currently get a segfault with the Dart parser
+             * (for example on a pattern like ': Common.filename'), so we
+             * skip Dart for now (which anyway is not really supported).
+             *)
+            |> Common.exclude (fun x -> x =*= Lang.Dart)
+          in
+          all_langs
+          |> Common.map_filter (fun l ->
+                 try
+                   let xlang = Xlang.of_lang l in
+                   let r = rules_and_origins_for_xlang xlang in
+                   Logs.debug (fun m ->
+                       m "language %s valid for the pattern" (Lang.show l));
+                   Some r
+                 with
+                 | R.Err _
+                 | Failure _ ->
+                     None))

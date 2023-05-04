@@ -77,17 +77,17 @@ open Common2.Infix
 (* Tokens *)
 (*****************************************************************************)
 
-type tok = Parse_info.t [@@deriving show] (* with tarzan *)
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
+type 'a wrap = 'a * tok [@@deriving show]
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
 
-type name = string wrap [@@deriving show] (* with tarzan *)
+type name = string wrap [@@deriving show]
 
 (*****************************************************************************)
 (* Types *)
@@ -181,7 +181,6 @@ and argument = Arg of expr
 
 (* really should just contain constants and Id that are #define *)
 and const_expr = expr [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Statement *)
@@ -313,9 +312,8 @@ and define_body =
 (*****************************************************************************)
 (* tree-sitter-c: used to be just DefStmt or DirStmt *)
 and toplevel = stmt [@@deriving show { with_path = false }]
-(* with tarzan *)
 
-type program = toplevel list [@@deriving show] (* with tarzan *)
+type program = toplevel list [@@deriving show]
 
 (*****************************************************************************)
 (* Any *)
@@ -328,7 +326,6 @@ type any =
   | Type of type_
   | Program of program
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)

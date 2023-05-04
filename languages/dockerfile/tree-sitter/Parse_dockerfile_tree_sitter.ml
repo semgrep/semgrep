@@ -8,7 +8,6 @@
 open! Common
 module AST = AST_dockerfile
 module CST = Tree_sitter_dockerfile.CST
-module PI = Parse_info
 open AST_dockerfile
 module H = Parse_tree_sitter_helpers
 
@@ -33,8 +32,8 @@ let token = H.token
 let str = H.str
 
 let concat_tokens first_tok other_toks : string wrap =
-  let tok = PI.combine_infos first_tok other_toks in
-  (PI.str_of_info tok, tok)
+  let tok = Tok.combine_toks first_tok other_toks in
+  (Tok.content_of_tok tok, tok)
 
 let opt_concat_tokens toks : string wrap option =
   match toks with
@@ -49,7 +48,7 @@ let unsafe_concat_tokens toks : string wrap =
       if strict then assert false
       else
         let s = "" in
-        (s, PI.unsafe_fake_info s)
+        (s, Tok.unsafe_fake_tok s)
 
 (*
    Collapse consecutive literal string fragments.
@@ -63,8 +62,8 @@ let simplify_fragments (fragments : string_fragment list) : string_fragment list
     match toks with
     | [] -> tail
     | first :: others ->
-        let tok = PI.combine_infos first others in
-        String_content (PI.str_of_info tok, tok) :: tail
+        let tok = Tok.combine_toks first others in
+        String_content (Tok.content_of_tok tok, tok) :: tail
   in
   let rec simplify acc = function
     | [] -> concat (List.rev acc) []
@@ -123,8 +122,8 @@ let remove_blank_prefix (x : string wrap) : string wrap =
   match find_nonblank s with
   | None -> x
   | Some pos ->
-      let _blanks, tok = PI.split_info_at_pos pos tok in
-      (PI.str_of_info tok, tok)
+      let _blanks, tok = Tok.split_tok_at_bytepos pos tok in
+      (Tok.content_of_tok tok, tok)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -146,8 +145,8 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
   match v2 with
   | `Var tok -> (
       let name = str env tok (* pattern [a-zA-Z][a-zA-Z0-9_]* *) in
-      let mv_tok = PI.combine_infos dollar [ snd name ] in
-      let mv_s = PI.str_of_info mv_tok in
+      let mv_tok = Tok.combine_toks dollar [ snd name ] in
+      let mv_s = Tok.content_of_tok mv_tok in
       match env.extra with
       | Pattern, _ when AST_generic.is_metavar_name mv_s ->
           Frag_semgrep_metavar (mv_s, mv_tok)
@@ -189,10 +188,10 @@ let expose_port (env : env) (x : CST.expose_port) : expose_port =
               | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
               | `SLAS_c773c8d tok -> token env tok (* "/udp" *)
             in
-            Some (PI.str_of_info tok, tok)
+            Some (Tok.content_of_tok tok, tok)
         | None -> None
       in
-      let port_num = port_tok |> PI.str_of_info in
+      let port_num = port_tok |> Tok.content_of_tok in
       Expose_port ((port_num, port_tok), protocol)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
@@ -465,7 +464,7 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
    TODO: move this function to Parse_info?
 *)
 let empty_token_after tok : tok =
-  match PI.token_location_of_info tok with
+  match Tok.loc_of_tok tok with
   | Ok loc ->
       let prev_len = String.length loc.str in
       let loc =
@@ -479,8 +478,8 @@ let empty_token_after tok : tok =
             };
         }
       in
-      PI.mk_info_of_loc loc
-  | Error _ -> PI.rewrap_str "" tok
+      Tok.tok_of_loc loc
+  | Error _ -> Tok.rewrap_str "" tok
 
 let env_pair (env : env) (x : CST.env_pair) : label_pair =
   match x with
@@ -497,7 +496,7 @@ let env_pair (env : env) (x : CST.env_pair) : label_pair =
                even if we returned an empty list of fragments. *)
             let tok = empty_token_after eq in
             let loc = (tok, tok) in
-            (loc, [ String_content (PI.str_of_info tok, tok) ])
+            (loc, [ String_content (Tok.content_of_tok tok, tok) ])
         | Some x -> string env x
       in
       let loc = (var_or_metavar_tok k, str_loc v |> snd) in
@@ -533,7 +532,7 @@ let label_pair (env : env) (x : CST.label_pair) : label_pair =
    a larger file. *)
 let shift_locations (str, tok) =
   let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
-  let column (* 0-based *) = max 0 (PI.col_of_info tok) in
+  let column (* 0-based *) = max 0 (Tok.col_of_tok tok) in
   String.make line '\n' ^ String.make column ' ' ^ str
 
 (* A plain ellipsis such as '...' (not e.g. '...;') is identified so
@@ -581,14 +580,14 @@ let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
 let comment_line (env : env)
     (((hash_tok, comment_tok), backslash_tok) : CST.comment_line) : tok =
   let tok =
-    PI.combine_infos (token env hash_tok)
+    Tok.combine_toks (token env hash_tok)
       [ token env comment_tok; token env backslash_tok ]
   in
   (* TODO: the token called backslash_tok should be a newline according
      to the grammar, not a backslash. Looks like a bug in the parser.
      We have to add the newline here to end the comment and get correct
      line locations. *)
-  PI.tok_add_s "\n" tok
+  Tok.tok_add_s "\n" tok
 
 let shell_command (env : env) (x : CST.shell_command) =
   match x with
@@ -617,7 +616,7 @@ let shell_command (env : env) (x : CST.shell_command) =
                let shell_line_cont =
                  (* we would omit this if it weren't for preserving
                     line numbers *)
-                 PI.rewrap_str "\\\n" dockerfile_line_cont
+                 Tok.rewrap_str "\\\n" dockerfile_line_cont
                in
                let comment_lines =
                  Common.map (comment_line env) comment_lines

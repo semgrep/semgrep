@@ -16,7 +16,6 @@
 open Common
 open Parser_cpp
 module Flag = Flag_parsing
-module PI = Parse_info
 module TH = Token_helpers_cpp
 module Hack = Parsing_hacks_lib
 
@@ -70,21 +69,17 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_lexing
 (*****************************************************************************)
 
 let mark_end_define ii =
-  let tok_loc = Parse_info.unsafe_token_location_of_info ii in
+  let tok_loc = Tok.unsafe_loc_of_tok ii in
   let ii' =
-    {
-      Tok.token =
-        Tok.OriginTok
-          {
-            str = "";
-            pos = { tok_loc.pos with charpos = PI.pos_of_info ii + 1 };
-          };
-      transfo = Tok.NoTransfo;
-    }
+    Tok.OriginTok
+      {
+        str = "";
+        pos = { tok_loc.pos with charpos = Tok.bytepos_of_tok ii + 1 };
+      }
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'
 
-let pos ii = Parse_info.string_of_info ii
+let pos ii = Tok.stringpos_of_tok ii
 
 (*****************************************************************************)
 (* Parsing hacks for #define *)

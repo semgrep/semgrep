@@ -144,13 +144,14 @@ let test_metavariables () =
       Capture_value ((Metavariable, "B"), "4");
     ]
 
-let test_brackets () =
+let test_ellipsis_brackets () =
   check uconf {|x...x|} {|x [x] x|} [ Num_matches 1; Match_value {|x [x] x|} ];
+  (* unexpected closing parenthesis is treated as an ordinary character *)
+  check uconf {|x...x|} {|x ([)x])x|}
+    [ Num_matches 1; Match_value {|x ([)x])x|} ];
   (* nested parentheses *)
   check uconf {|f(...)|} {|f(((x)))|}
     [ Num_matches 1; Match_value {|f(((x)))|} ];
-  (* closing on the next line shouldn't work in uniline mode *)
-  check uconf {|(...)|} "(\n)" [ Num_matches 0 ];
   (* quotes *)
   check uconf {|"..."|} {|"("")"|} [ Num_matches 1; Match_value {|"("")"|} ];
   check uconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")")|} ];
@@ -158,6 +159,19 @@ let test_brackets () =
     [ Num_matches 1; Match_value {|x "'x' x" x|} ];
   (* default multiline config doesn't treat quotes as brackets *)
   check mconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
+
+let test_explicit_brackets () =
+  check uconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ];
+  (* Since parentheses are defined as brackets, we're not allowed to reject
+     a closing parenthesis that matches the opening parenthesis. *)
+  check uconf {|(... x)|} {|()x)|} [ Num_matches 0 ];
+  check uconf {|(...)|} {|([])|} [ Num_matches 1; Match_value {|([])|} ];
+  (* The behavior of the following test cases is subject to change.
+     There's only so much we can do when braces are mismatched. *)
+  check uconf {|(...)|} {|([)|} [ Num_matches 1; Match_value {|([)|} ];
+  check uconf {|(...)|} {|(])|} [ Num_matches 1; Match_value {|(])|} ];
+  check uconf {|(...)|} {|([)]|} [ Num_matches 0 ];
+  check uconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
 let test_backreferences () =
   check uconf {|$A ... $A|} {|a, b, c, a, d|}
@@ -174,6 +188,45 @@ let test_backreferences () =
       Match_value {|x x x|};
       Capture_value ((Metavariable, "A"), "a");
       Capture_value ((Metavariable, "A"), "x");
+    ];
+  (* back-references should not end in the middle of a word *)
+  check uconf {|$A ... $A|} {|ab abc|} [ Num_matches 0 ];
+  (* word matches should not start in the middle of a word *)
+  check uconf {|$A ... $A|} {|abc bc|} [ Num_matches 0 ];
+  (* ellipsis extremities that are not words may touch words *)
+  check uconf {|$...A : $...A|} {|x+ : +x|}
+    [ Num_matches 1; Match_value {|+ : +|} ];
+  (* ellipsis extremities that are not words may touch [specific] words *)
+  check uconf {|x $...A : $...A x|} {|x+ : +x|}
+    [ Num_matches 1; Match_value {|x+ : +x|} ];
+  (* ellipsis extremities that are words may not touch words *)
+  check uconf {|$...A : $...A|} {|xy : yx|}
+    [
+      Num_matches 1;
+      (* not {|y : y|} *)
+      Match_value {| : |};
+      Capture_value ((Metavariable_ellipsis, "A"), "");
+    ];
+  (* ellipsis extremities that are words may not touch [specific] words *)
+  check uconf {|x $...A : $...A x|} {|x+ : +x|}
+    [
+      Num_matches 1;
+      Match_value {|x+ : +x|};
+      Capture_value ((Metavariable_ellipsis, "A"), "+");
+    ];
+  (* word extremities of ellipsis back-references may not touch words *)
+  check uconf {|$...A : $...A|} {|x : xx|}
+    [
+      Num_matches 1;
+      Match_value {| : |};
+      Capture_value ((Metavariable_ellipsis, "A"), "");
+    ];
+  (* nonword extremities of ellipsis back-references may touch words *)
+  check uconf {|$...A : $...A|} {|+ : ++|}
+    [
+      Num_matches 1;
+      Match_value {|+ : +|};
+      Capture_value ((Metavariable_ellipsis, "A"), "+");
     ]
 
 let test_ellipsis_metavariable () =
@@ -234,7 +287,8 @@ let tests =
     ("ellipsis", test_ellipsis);
     ("long ellipsis", test_long_ellipsis);
     ("metavariables", test_metavariables);
-    ("brackets", test_brackets);
+    ("ellipsis brackets", test_ellipsis_brackets);
+    ("explicit brackets", test_explicit_brackets);
     ("backreferences", test_backreferences);
     ("ellipsis metavariable", test_ellipsis_metavariable);
     ("skip lines", test_skip_lines);

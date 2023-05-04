@@ -9,7 +9,7 @@ type t = {
   multiline : bool;
   (* TODO: support UTF-8 word characters *)
   word_chars : char list;
-  braces : (char * char) list;
+  brackets : (char * char) list;
 }
 
 let upper =
@@ -78,14 +78,14 @@ let default_multiline_conf =
   {
     multiline = true;
     word_chars = ('_' :: upper) @ lower @ digit;
-    braces = [ ('(', ')'); ('[', ']'); ('{', '}') ];
+    brackets = [ ('(', ')'); ('[', ']'); ('{', '}') ];
   }
 
 let default_uniline_conf =
   {
     multiline = false;
     word_chars = default_multiline_conf.word_chars;
-    braces = [ ('"', '"'); ('\'', '\'') ] @ default_multiline_conf.braces;
+    brackets = [ ('"', '"'); ('\'', '\'') ] @ default_multiline_conf.brackets;
   }
 
 let config_error msg =
@@ -93,7 +93,7 @@ let config_error msg =
 
 let check conf =
   let word_chars = Set_.of_list conf.word_chars in
-  let open_chars_list, close_chars_list = List.split conf.braces in
+  let open_chars_list, close_chars_list = List.split conf.brackets in
   let open_chars = Set_.of_list open_chars_list in
   let close_chars = Set_.of_list close_chars_list in
   let brace_chars = Set_.union open_chars close_chars in

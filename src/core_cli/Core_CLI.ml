@@ -79,14 +79,14 @@ let pattern_file = ref ""
 
 (* -rules *)
 let rule_source = ref None
-let equivalences_file = ref ""
+let equivalences_file = ref None
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
 let output_format = ref Runner_config.default.output_format
 let match_format = ref Runner_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
-let lsp = ref Runner_config.default.lsp
+let ls = ref Runner_config.default.ls
 
 (* ------------------------------------------------------------------------- *)
 (* limits *)
@@ -233,7 +233,6 @@ let dump_il_all file =
 
 let dump_il file =
   let module G = AST_generic in
-  let module V = Visitor_AST in
   let ast = Parse_target.parse_program !!file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
@@ -290,10 +289,10 @@ let generate_ast_binary lang file =
   let final =
     Parse_with_caching.versioned_parse_result_of_file Version.version lang file
   in
-  let file = file ^ Parse_with_caching.binary_suffix in
+  let file = Fpath.add_ext Parse_with_caching.binary_suffix file in
   assert (Parse_with_caching.is_binary_ast_filename file);
-  Common2.write_value final file;
-  pr2 (spf "saved marshalled generic AST in %s" file)
+  Common2.write_value final !!file;
+  pr2 (spf "saved marshalled generic AST in %s" !!file)
 
 let dump_ext_of_lang () =
   let lang_to_exts =
@@ -310,7 +309,7 @@ let dump_ext_of_lang () =
 
 let dump_equivalences file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  let xs = Parse_equivalences.parse !!file in
+  let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
 let dump_rule file =
@@ -359,7 +358,7 @@ let mk_config () =
     output_format = !output_format;
     match_format = !match_format;
     mvars = !mvars;
-    lsp = !lsp;
+    ls = !ls;
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
@@ -392,7 +391,7 @@ let all_actions () =
       Arg_helpers.mk_action_1_conv Fpath.v generate_ast_json );
     ( "-generate_ast_binary",
       " <file> save in file.ast.binary the marshalled generic AST of file",
-      Arg_helpers.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           generate_ast_binary (Xlang.lang_of_opt_xlang_exn !lang) file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
@@ -549,7 +548,7 @@ let options actions =
       Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
-      Arg.Set_string equivalences_file,
+      Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
     ( "-use_parsing_cache",
@@ -663,7 +662,7 @@ let options actions =
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
-    ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
+    ("-ls", Arg.Set ls, " run Semgrep Language Server");
     ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
@@ -764,13 +763,13 @@ let main (sys_argv : string array) : unit =
     else config
   in
 
-  if config.lsp then LSP_client.init ();
   (* hacks to reduce the size of engine.js
    * coupling: if you add an init() call here, you probably need to modify
    * also tests/Test.ml and osemgrep/cli/CLI.ml
    *)
   Parsing_init.init ();
   Data_init.init ();
+  if config.ls then LS.start config;
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->

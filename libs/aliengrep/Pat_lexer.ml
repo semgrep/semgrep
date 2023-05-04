@@ -35,7 +35,7 @@ let pattern_error source_name msg =
 *)
 let compile conf =
   Conf.check conf;
-  let open_chars, close_chars = List.split conf.braces in
+  let open_chars, close_chars = List.split conf.brackets in
   let long_ellipsis_1 = {|(\.\.\.\.)|} in
   let ellipsis_2 = {|(\.\.\.)|} in
   let metavar_3 = {|\$([A-Z][A-Z0-9_]*)|} in
@@ -115,7 +115,7 @@ let read_string ?(source_name = "<pattern>") conf str =
                  | 7 ->
                      let opening_brace = char_of_string capture in
                      let expected_closing_brace =
-                       try List.assoc opening_brace conf.conf.braces with
+                       try List.assoc opening_brace conf.conf.brackets with
                        | Not_found -> assert false
                      in
                      OPEN (opening_brace, expected_closing_brace)

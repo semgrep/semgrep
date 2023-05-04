@@ -72,7 +72,7 @@ let unsafe_loc x =
   match loc x with
   | Some res -> res
   | None ->
-      let tok = Parse_info.unsafe_fake_info "" in
+      let tok = Tok.unsafe_fake_tok "" in
       (tok, tok)
 
 let anys x =

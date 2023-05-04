@@ -40,10 +40,11 @@ module Out = Semgrep_output_v1_t
 (* a slice of Scan_CLI.conf *)
 type conf = {
   (* Right now we use --config to get the list of rules for validate, but
-   * target_roots could be more appropriate.
+   * positional arguments to pass after 'semgrep validate' would be more
+   * appropriate (e.g., semgrep validate foo.yaml).
    * Do we allow to --validate --config p/python ?
    *)
-  rules_source : Rule_fetching.rules_source;
+  rules_source : Rules_source.t;
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
 }
@@ -68,7 +69,8 @@ let run (conf : conf) : Exit_code.t =
    * in Config_resolver.errors.
    *)
   let rules_and_origin =
-    Rule_fetching.rules_from_rules_source conf.rules_source
+    Rule_fetching.rules_from_rules_source ~rewrite_rule_ids:true
+      conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -76,8 +78,8 @@ let run (conf : conf) : Exit_code.t =
   (* Checking (3) *)
   let metacheck_errors =
     match conf.rules_source with
-    | Rule_fetching.Pattern _ -> []
-    | Rule_fetching.Configs _xs ->
+    | Rules_source.Pattern _ -> []
+    | Rules_source.Configs _xs ->
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)
@@ -105,8 +107,7 @@ let run (conf : conf) : Exit_code.t =
         (* TODO? sanity check errors below too? *)
         let { Out.results; errors = _; _ } =
           Cli_json_output.cli_output_of_core_results
-            ~logging_level:conf.logging_level ~rules_source:conf.rules_source
-            res
+            ~logging_level:conf.logging_level res
         in
         (* TOPORT?
                 ... run -check_rules in semgrep-core ...
