@@ -2208,7 +2208,7 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
       (* let's first try without going deep *)
-      m_list__m_stmt ~list_kind:CK.Original xsa xsb >!> fun () ->
+      m_list__m_stmt xsa xsb >!> fun () ->
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
@@ -2216,9 +2216,7 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
           else
             match SubAST_generic.flatten_substmts_of_stmts xsb with
             | None -> fail () (* was already flat *)
-            | Some (xsb, last_stmt) ->
-                m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id)
-                  xsa xsb)
+            | Some xsb -> m_list__m_stmt xsa xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
@@ -2226,7 +2224,7 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       xsb )
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
-      m_list__m_stmt ~list_kind:CK.Original xsa xsb
+      m_list__m_stmt xsa xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_stmt xa xb >>= fun () ->
@@ -2234,7 +2232,7 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       m_stmts_deep ~inside ~less_is_ok aas bbs
   | _ :: _, _ -> fail ()
 
-and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
+and m_list__m_stmt ?less_is_ok xsa xsb tin =
   (* shares the cache with m_stmts_deep *)
   match (tin.cache, xsa, xsb) with
   (* | Some cache, a :: _, _ :: _ when a.s_use_cache ->
@@ -2243,14 +2241,14 @@ and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
         ~function_id:CK.Match_list ~list_kind ~less_is_ok:true
         ~compute:(m_list__m_stmt_uncached ?less_is_ok ~list_kind)
         ~pattern:xsa ~target:xsb tin *)
-  | _ -> m_list__m_stmt_uncached ?less_is_ok ~list_kind xsa xsb tin
+  | _ -> m_list__m_stmt_uncached ?less_is_ok xsa xsb tin
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (* coupling: many of the cases below are similar to the one in
  * m_stmts_deep_uncached.
  * TODO? can we remove the duplication
  *)
-and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
+and m_list__m_stmt_uncached ?(less_is_ok = true) (xsa : G.stmt list)
     (xsb : G.stmt list) =
   logger#ldebug
     (lazy
@@ -2272,10 +2270,9 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
   | ( { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: xsa_tail,
       (xb :: xsb_tail as xsb) ) ->
       (* can match nothing *)
-      m_list__m_stmt ~list_kind xsa_tail xsb
+      m_list__m_stmt xsa_tail xsb
       >||> (* can match more *)
-      ( env_add_matched_stmt xb >>= fun () ->
-        m_list__m_stmt ~list_kind xsa xsb_tail )
+      (env_add_matched_stmt xb >>= fun () -> m_list__m_stmt xsa xsb_tail)
   (* dots: metavars: $...BODY *)
   | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
       xsb )
@@ -2292,14 +2289,14 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
                   (* when we use { $...BODY }, we don't have an implicit
                    * ... after, so we use less_is_ok:false here
                    *)
-                  m_list__m_stmt ~less_is_ok:false ~list_kind xsa rest)
+                  m_list__m_stmt ~less_is_ok:false xsa rest)
             >||> aux xs
       in
       aux candidates
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_stmt xa xb >>= fun () ->
-      env_add_matched_stmt xb >>= fun () -> m_list__m_stmt ~list_kind aas bbs
+      env_add_matched_stmt xb >>= fun () -> m_list__m_stmt aas bbs
   | _ :: _, _ -> fail ()
 
 (*****************************************************************************)
@@ -2371,7 +2368,7 @@ and m_stmt a b =
         match SubAST_generic.flatten_substmts_of_stmts bs with
         (* already flat  *)
         | None -> bs
-        | Some (xs, _) -> xs
+        | Some xs -> xs
       in
       or_list m_stmt a bs
   (* the general case *)

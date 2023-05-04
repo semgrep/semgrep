@@ -375,7 +375,6 @@ let flatten_substmts_of_stmts xs =
    * (but it is still slow when called many many times)
    *)
   let res = ref [] in
-  let changed = ref false in
 
   let rec aux x =
     (* return the current statement first, and add substmts *)
@@ -396,17 +395,13 @@ let flatten_substmts_of_stmts xs =
     let xs = substmts_of_stmt x in
     match xs with
     | [] -> ()
-    | xs ->
-        changed := true;
-        xs |> List.iter aux
+    | xs -> xs |> List.iter aux
   in
   xs |> List.iter aux;
-  if !changed then
-    match !res with
-    | [] -> None
-    | last :: _ ->
-        (* Return the last element of the list as a pair.
-           This is used as part of the caching optimization. *)
-        Some (List.rev !res, last)
-  else None
+  match !res with
+  | [] -> None
+  | _ :: _ ->
+      (* Return the last element of the list as a pair.
+         This is used as part of the caching optimization. *)
+      Some (List.rev !res)
   [@@profiling]
