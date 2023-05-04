@@ -41,6 +41,10 @@ type conf = {
   error_on_findings : bool;
   strict : bool;
   rewrite_rule_ids : bool;
+  time_flag : bool;
+  profile : bool;
+  (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
+  legacy : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -51,8 +55,6 @@ type conf = {
   force_color : bool;
   max_chars_per_line : int;
   max_lines_per_finding : int;
-  time_flag : bool;
-  profile : bool;
   (* Networking options *)
   metrics : Metrics_.config;
   version_check : bool;
@@ -102,14 +104,16 @@ let default : conf =
     dryrun = false;
     error_on_findings = false;
     strict = false;
+    profile = false;
+    time_flag = false;
+    (* ultimately should be set to true when we release osemgrep *)
+    legacy = false;
     output_format = Output_format.Text;
     logging_level = Some Logs.Warning;
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
-    profile = false;
     rewrite_rule_ids = true;
-    time_flag = false;
     metrics = Metrics_.Auto;
     version_check = true;
     (* ugly: should be separate subcommands *)
@@ -584,6 +588,11 @@ let o_target_roots : string list Term.t =
 (* !!NEW arguments!! not in pysemgrep *)
 (* ------------------------------------------------------------------ *)
 
+let o_legacy : bool Term.t =
+  H.negatable_flag [ "legacy" ] ~neg_options:[ "no-legacy" ]
+    ~default:default.legacy
+    ~doc:{|Keep the pysemgrep behaviors/limitations/errors|}
+
 (* alt: could be put in Display options, next to o_time *)
 let o_profile : bool Term.t =
   let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
@@ -615,9 +624,9 @@ let o_project_root : string option Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine logging_level autofix baseline_commit config dryrun dump_ast
-      dump_config emacs error exclude exclude_rule_ids force_color include_ json
-      lang max_chars_per_line max_lines_per_finding max_memory_mb
+  let combine autofix baseline_commit config dryrun dump_ast dump_config emacs
+      error exclude exclude_rule_ids force_color include_ json lang legacy
+      logging_level max_chars_per_line max_lines_per_finding max_memory_mb
       max_target_bytes metrics num_jobs nosem optimizations pattern profile
       project_root replacement respect_git_ignore rewrite_rule_ids
       scan_unknown_extensions severity show_supported_languages strict
@@ -840,6 +849,7 @@ let cmdline_term : conf Term.t =
       rewrite_rule_ids;
       strict;
       time_flag;
+      legacy;
       (* ugly: *)
       version;
       show_supported_languages;
@@ -853,16 +863,17 @@ let cmdline_term : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ CLI_common.logging_term $ o_autofix $ o_baseline_commit
-    $ o_config $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error
-    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json
-    $ o_lang $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
-    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
-    $ o_pattern $ o_profile $ o_project_root $ o_replacement
-    $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_scan_unknown_extensions
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold
-    $ o_validate $ o_version $ o_version_check $ o_vim)
+    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_dryrun
+    $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
+    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
+    $ o_legacy $ CLI_common.logging_term $ o_max_chars_per_line
+    $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
+    $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ o_profile
+    $ o_project_root $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
+    $ o_vim)
 
 let doc = "run semgrep rules on files"
 
