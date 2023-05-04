@@ -71,6 +71,7 @@ jobs:
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
       - uses: depot/build-push-action@v1
+        id: build-image
         with:
           project: fhmxj6w9z8
           context: .
@@ -83,4 +84,4 @@ jobs:
           load: true
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ inputs.repository-name }}:latest
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}@${{ steps.build-image.outputs.digest }}
