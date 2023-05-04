@@ -99,6 +99,8 @@ let default : conf =
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
+        (* like legacy, should maybe be set to false when we release osemgrep*)
+        ast_caching = true;
       };
     autofix = false;
     dryrun = false;
@@ -617,6 +619,11 @@ let o_project_root : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_ast_caching : bool Term.t =
+  H.negatable_flag [ "ast-caching" ] ~neg_options:[ "no-ast-caching" ]
+    ~default:default.core_runner_conf.ast_caching
+    ~doc:{|Store in ~/.semgrep/cache/asts/ the parsed ASTs to speedup things.|}
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -624,14 +631,14 @@ let o_project_root : string option Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine autofix baseline_commit config dryrun dump_ast dump_config emacs
-      error exclude exclude_rule_ids force_color include_ json lang legacy
-      logging_level max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations pattern profile
-      project_root replacement respect_git_ignore rewrite_rule_ids
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate version version_check vim =
+  let combine ast_caching autofix baseline_commit config dryrun dump_ast
+      dump_config emacs error exclude exclude_rule_ids force_color include_ json
+      lang legacy logging_level max_chars_per_line max_lines_per_finding
+      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
+      pattern profile project_root replacement respect_git_ignore
+      rewrite_rule_ids scan_unknown_extensions severity show_supported_languages
+      strict target_roots test test_ignore_todo time_flag timeout
+      timeout_threshold validate version version_check vim =
     let include_ =
       match include_ with
       | [] -> None
@@ -704,6 +711,7 @@ let cmdline_term : conf Term.t =
         timeout;
         timeout_threshold;
         max_memory_mb;
+        ast_caching;
       }
     in
     let targeting_conf =
@@ -867,8 +875,8 @@ let cmdline_term : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_autofix $ o_baseline_commit $ o_config $ o_dryrun
-    $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
+    const combine $ o_ast_caching $ o_autofix $ o_baseline_commit $ o_config
+    $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
     $ o_legacy $ CLI_common.logging_term $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
