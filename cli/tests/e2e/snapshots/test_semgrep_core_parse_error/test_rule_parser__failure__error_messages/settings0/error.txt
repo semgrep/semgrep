@@ -9,4 +9,64 @@ Rules:
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
+'str' object has no attribute 'to_json'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 906, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 506, in main
+    (rule_matches_by_rule, semgrep_errors, output_extra, dependencies) = run_rules(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 221, in run_rules
+    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1193, in invoke_semgrep
+    ) = self._run_rules_direct_to_semgrep_core(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1154, in _run_rules_direct_to_semgrep_core
+    raise e
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1149, in _run_rules_direct_to_semgrep_core
+    return self._run_rules_direct_to_semgrep_core_helper(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1077, in _run_rules_direct_to_semgrep_core_helper
+    output_json = self._extract_core_output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 771, in _extract_core_output
+    raise core_error_to_semgrep_error(errors[0])
+semgrep.error.SemgrepCoreError: Pattern parse error in rule rules.broken-rule:
+ Invalid pattern for Java:
+--- pattern ---
+@$HTTP_METHOD
+public $RET $FUNC(..., @Auth $REQ, ...) { ... }
+
+--- end pattern ---
+Pattern error: Parsing.Parse_error
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 938, in scan
+    output_handler.output({}, all_targets=set(), filtered_rules=[])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 372, in output
+    output = self._build_output()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 500, in _build_output
+    return self.formatter.output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/base.py", line 29, in output
+    return self.format(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/json.py", line 79, in format
+    return json.dumps(output.to_json(), sort_keys=True, default=to_json)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 3324, in to_json
+    res['paths'] = (lambda x: x.to_json())(self.paths)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 3324, in <lambda>
+    res['paths'] = (lambda x: x.to_json())(self.paths)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 3058, in to_json
+    res['skipped'] = _atd_write_list((lambda x: x.to_json()))(self.skipped)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 180, in write_list
+    return [write_elt(elt) for elt in elts]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 180, in <listcomp>
+    return [write_elt(elt) for elt in elts]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 3058, in <lambda>
+    res['skipped'] = _atd_write_list((lambda x: x.to_json()))(self.skipped)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 3022, in to_json
+    res['reason'] = (lambda x: x.to_json())(self.reason)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 3022, in <lambda>
+    res['reason'] = (lambda x: x.to_json())(self.reason)
+AttributeError: 'str' object has no attribute 'to_json'
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
