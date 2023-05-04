@@ -232,10 +232,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       in
       let res =
         let skipped_targets =
-          semgrepignored_targets @ errors_skipped @ res.core.skipped_targets
+          semgrepignored_targets @ errors_skipped
+          @ Option.value ~default:[] res.core.skipped_targets
         in
         (* Add the targets that were semgrepignored or errorneous *)
-        let core = { res.core with skipped_targets } in
+        let core = { res.core with skipped_targets = Some skipped_targets } in
         { res with core }
       in
 
