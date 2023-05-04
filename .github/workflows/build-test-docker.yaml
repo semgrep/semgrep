@@ -15,10 +15,12 @@ on:
         required: true
         type: string
         description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        default: returntocorp/semgrep
       file:
         required: true
         type: string
         description: Dockerfile to build
+        default: Dockerfile
       enable-tests:
         required: true
         type: boolean
