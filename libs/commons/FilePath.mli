@@ -7,7 +7,7 @@
 
    This means that a `path_special` can only be constructed via
    `Path.of_string` (below), but it can be freely destructed via
-   pattern-matching without needing to call `Path.to_string`.  This
+   pattern-matching without needing to call `Path.to_string`. This
    ensures that all values of the type `path_special` must go through
    `of_string`, and in particular, ensures that they all must be
    validated by `Unix.realpath`.
@@ -18,8 +18,7 @@
    yet exist. See some examples of this in
    `Unit_commons.test_path_conversion()`.
 *)
-type path = private Path of string [@@deriving show, eq]
-type t = path [@@deriving show, eq]
+type t = private Path of string [@@deriving show, eq]
 
 val of_string : string -> t
 val to_string : t -> string
