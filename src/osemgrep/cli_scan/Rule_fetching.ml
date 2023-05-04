@@ -3,6 +3,8 @@ open File.Operators
 module E = Error
 module FT = File_type
 module C = Semgrep_dashdash_config
+module R = Rule
+module XP = Xpattern
 
 (*****************************************************************************)
 (* Prelude *)
@@ -344,15 +346,54 @@ let rules_from_rules_source ~rewrite_rule_ids (src : rules_source) :
              let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
              rules_from_dashdash_config kind)
       |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
-  | Pattern (pat, xlang, fix) ->
+  (* better: '-e foo -l regex' not handled in original semgrep,
+   *   got a weird 'invalid pattern clause' error.
+   * better: '-e foo -l generic' not handled in semgrep-core
+   *)
+  | Pattern (pat, xlang_opt, fix) -> (
       let fk = Tok.unsafe_fake_tok "" in
-      (* better: '-e foo -l regex' not handled in original semgrep,
-       * got a weird 'invalid pattern clause' error.
-       * better: '-e foo -l generic' not handled in semgrep-core
-       * TODO? some try and abort because we can get parse errors?
-       *)
-      let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
-      let rule = Rule.rule_of_xpattern xlang xpat in
-      let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
-      (* TODO? transform the pattern parse error in invalid_rule_error? *)
-      [ { origin = None; rules = [ rule ]; errors = [] } ]
+      let rules_and_origins_for_xlang xlang =
+        (* TODO? some try and abort because we can get parse errors *)
+        let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
+        (* force the parsing of the pattern to get the parse error if any *)
+        (match xpat.XP.pat with
+        | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
+        | XP.Spacegrep _
+        | XP.Regexp _ ->
+            ());
+        let rule = Rule.rule_of_xpattern xlang xpat in
+        let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
+        (* TODO? transform the pattern parse error in invalid_rule_error? *)
+        { origin = None; rules = [ rule ]; errors = [] }
+      in
+
+      match xlang_opt with
+      | Some xlang -> [ rules_and_origins_for_xlang xlang ]
+      (* osemgrep-only: better: can use -e without -l! we try all languages *)
+      | None ->
+          (* We need uniq_by because Lang.assoc can contains multiple time
+           * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+           * Lang.assoc
+           * TODO? use Xlang.assoc instead?
+           *)
+          let all_langs =
+            Lang.assoc
+            |> Common.map (fun (_k, l) -> l)
+            |> Common.uniq_by ( =*= )
+            (* TODO: we currently get a segfault with Dart parser for example
+             * on parsing a pattern like ': Common.filename', so skip it for now
+             *)
+            |> Common.exclude (fun x -> x =*= Lang.Dart)
+          in
+          all_langs
+          |> Common.map_filter (fun l ->
+                 try
+                   let xlang = Xlang.of_lang l in
+                   let r = rules_and_origins_for_xlang xlang in
+                   Logs.debug (fun m ->
+                       m "language %s valid for the pattern" (Lang.show l));
+                   Some r
+                 with
+                 | R.Err _
+                 | Failure _ ->
+                     None))

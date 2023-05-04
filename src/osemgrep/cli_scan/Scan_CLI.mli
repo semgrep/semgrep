@@ -8,7 +8,7 @@
 type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
-  rules_source : Rule_fetching.rules_source;
+  rules_source : Rules_source.t;
   (* can be a list of files or directories *)
   target_roots : Fpath.t list;
   (* Rules/targets refinements *)
