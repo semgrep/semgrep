@@ -44,6 +44,10 @@ Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e68
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+[<Rule id=eqeq-bad>, <Rule id=eqeq-five>, <Rule id=eqeq-four>, <Rule id=taint-test>, <Rule id=supply-chain1>, <Rule id=supply-chain2>]
+[]
+barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
                                 
                                 
 ┌──────────────────────────────┐

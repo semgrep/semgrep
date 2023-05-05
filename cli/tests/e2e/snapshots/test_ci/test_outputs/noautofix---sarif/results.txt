@@ -7,6 +7,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of exit code
 
 === stdout - plain
+[<Rule id=eqeq-bad>, <Rule id=eqeq-five>, <Rule id=eqeq-four>, <Rule id=taint-test>, <Rule id=supply-chain1>, <Rule id=supply-chain2>]
+[]
 {
   "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
@@ -432,16 +434,16 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison"
+                "text": "useless comparison to 4"
               },
-              "id": "eqeq-bad",
-              "name": "eqeq-bad",
+              "id": "eqeq-four",
+              "name": "eqeq-four",
               "properties": {
                 "precision": "very-high",
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison"
+                "text": "useless comparison to 4"
               }
             },
             {
@@ -459,23 +461,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               },
               "shortDescription": {
                 "text": "useless comparison to 5"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "error"
-              },
-              "fullDescription": {
-                "text": "useless comparison to 4"
-              },
-              "id": "eqeq-four",
-              "name": "eqeq-four",
-              "properties": {
-                "precision": "very-high",
-                "tags": []
-              },
-              "shortDescription": {
-                "text": "useless comparison to 4"
               }
             },
             {
@@ -511,15 +496,33 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "shortDescription": {
                 "text": "unsafe use of danger"
               }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "useless comparison"
+              },
+              "id": "eqeq-bad",
+              "name": "eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "useless comparison"
+              }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }
   ],
   "version": "2.1.0"
 }
+
 === end of stdout - plain
 
 === stderr - plain
@@ -548,6 +551,8 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
                 
                 
 ┌──────────────┐

@@ -7,6 +7,8 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
 === end of exit code
 
 === stdout - plain
+[<Rule id=eqeq-bad>, <Rule id=eqeq-five>, <Rule id=eqeq-four>, <Rule id=taint-test>, <Rule id=supply-chain1>, <Rule id=supply-chain2>]
+[]
                             
                             
 ┌──────────────────────────┐
@@ -93,6 +95,8 @@ JENKINS_URL="some_url" SEMGREP_REPO_URL="https://random.url.org/some/path" SEMGR
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
+foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar
                 
                 
 ┌──────────────┐
