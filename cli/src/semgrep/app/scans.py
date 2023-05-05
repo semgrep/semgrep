@@ -152,10 +152,9 @@ class ScanHandler:
         if self.dry_run:
             app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         else:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-            # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
-            # CLI logic in place to ignore findings that are from old rule versions
-            # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+            app_get_config_url = (
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
+            )
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
@@ -238,6 +237,7 @@ class ScanHandler:
     def report_findings(
         self,
         matches_by_rule: RuleMatchMap,
+        prev_scan_matches_by_rule: RuleMatchMap,
         errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
@@ -258,6 +258,11 @@ class ScanHandler:
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
+            for match in matches_of_rule
+        ]
+        prev_scan_matches = [
+            match
+            for matches_of_rule in prev_scan_matches_by_rule.values()
             for match in matches_of_rule
         ]
         # we want date stamps assigned by the app to be assigned such that the
@@ -285,6 +290,10 @@ class ScanHandler:
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
+        prev_scan_findings = [
+            match.to_app_finding_format(commit_date).to_json()
+            for match in prev_scan_matches
+        ]
         token = (
             # GitHub (cloud)
             os.getenv("GITHUB_TOKEN")
@@ -298,6 +307,7 @@ class ScanHandler:
             # send a backup token in case the app is not available
             "token": token,
             "findings": findings,
+            "prev_scan_findings": prev_scan_findings,
             "searched_paths": [str(t) for t in sorted(targets)],
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "rule_ids": rule_ids,
