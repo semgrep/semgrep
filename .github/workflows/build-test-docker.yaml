@@ -78,4 +78,4 @@ jobs:
         if: ${{ inputs.enable-tests }}
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.metadata.image.name }}
+        run: docker image ls && ./scripts/validate-docker-build.sh ${{ fromJSON(steps.build-image.outputs.metadata).image.name }}
