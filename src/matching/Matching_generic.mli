@@ -46,7 +46,6 @@ val ( >!> ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 val return : unit -> tin -> tout
 val fail : unit -> tin -> tout
 val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
-val or_seq : 'a matcher -> 'a -> 'a Seq.t -> tin -> tout
 
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
