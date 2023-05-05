@@ -31,6 +31,7 @@ class RuleProduct(Enum):
     sast = auto()
     sca = auto()
 
+
 class RuleScanSource(Enum):
     unannotated = auto()
     unchanged = auto()
@@ -255,7 +256,7 @@ class Rule:
             if "r2c-internal-project-depends-on" in self._raw
             else RuleProduct.sast
         )
-    
+
     @property
     def scan_source(self) -> RuleScanSource:
         src: str = self.metadata.get("semgrep.dev", {}).get("src", "")

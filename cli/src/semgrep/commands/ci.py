@@ -488,9 +488,13 @@ def ci(
     )
     if scan_handler:
         logger.info("  Uploading findings.")
-        # TODO(vivek): fix this to send previous scan findings to the app.
         scan_handler.report_findings(
-            {**blocking_matches_by_rule, **nonblocking_matches_by_rule, **cai_matches_by_rule},
+            {
+                **blocking_matches_by_rule,
+                **nonblocking_matches_by_rule,
+                **cai_matches_by_rule,
+            },
+            prev_scan_matches_by_rule,
             semgrep_errors,
             filtered_rules,
             output_extra.all_targets,
@@ -501,7 +505,6 @@ def ci(
             metadata.commit_datetime,
             dependencies,
             engine_type,
-            prev_scan_matches_by_rule,
         )
         logger.info("  View results in Semgrep App:")
         logger.info(

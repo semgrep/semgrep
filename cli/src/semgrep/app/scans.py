@@ -155,7 +155,9 @@ class ScanHandler:
             # app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
             # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
             # CLI logic in place to ignore findings that are from old rule versions
-            app_get_config_url = f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
+            app_get_config_url = (
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
+            )
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
@@ -238,6 +240,7 @@ class ScanHandler:
     def report_findings(
         self,
         matches_by_rule: RuleMatchMap,
+        prev_scan_matches_by_rule: RuleMatchMap,
         errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
@@ -248,7 +251,6 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[FoundDependency]],
         engine_requested: "EngineType",
-        prev_scan_matches_by_rule: Optional[RuleMatchMap] = None,
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -292,7 +294,8 @@ class ScanHandler:
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
         prev_scan_findings = [
-            match.to_app_finding_format(commit_date).to_json() for match in prev_scan_matches
+            match.to_app_finding_format(commit_date).to_json()
+            for match in prev_scan_matches
         ]
         token = (
             # GitHub (cloud)
