@@ -75,7 +75,7 @@ let emit_extra tok k = fun state lexbuf ->
 
 (* helper for transitioning between states *)
 let beg_choose want yes no = fun state lexbuf ->
-  if state.S.state == want
+  if phys_equal state.S.state want
   then yes state lexbuf
   else no state lexbuf
 

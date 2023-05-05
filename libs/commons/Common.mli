@@ -466,8 +466,30 @@ val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
 
 (*****************************************************************************)
+(* Disable physical equality/inequality operators *)
+(*****************************************************************************)
+
+(*
+   Disable the use of (==) since some people confuse it with structural
+   equality. We do this here since we're disabling in with semgrep anyway
+   and it's quicker if the compiler can report it.
+*)
+
+(* Physical (shallow) equality, normally available as (==) *)
+val phys_equal : 'a -> 'a -> bool
+
+(* Physical (shallow) inequality, normally available as (!=) *)
+val phys_not_equal : 'a -> 'a -> bool
+
+type hidden_by_your_nanny
+
+val ( == ) : hidden_by_your_nanny
+val ( != ) : hidden_by_your_nanny
+
+(*****************************************************************************)
 (* Operators *)
 (*****************************************************************************)
+
 (* if you just want to use the operators *)
 module Operators : sig
   val ( =~ ) : string -> string -> bool
@@ -476,6 +498,8 @@ module Operators : sig
   val ( =$= ) : char -> char -> bool
   val ( =:= ) : bool -> bool -> bool
   val ( =*= ) : 'a -> 'a -> bool
+  val ( == ) : hidden_by_your_nanny
+  val ( != ) : hidden_by_your_nanny
 end
 
 (*****************************************************************************)
