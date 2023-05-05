@@ -432,7 +432,7 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
-    prev_scan_matched_by_rule: RuleMatchMap = defaultdict(list)
+    prev_scan_matches_by_rule: RuleMatchMap = defaultdict(list)
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
@@ -462,7 +462,7 @@ def ci(
 
             # NOTE: if the rule belongs to the previous scan, should not be included in blocking/non-blocking
             if rule.scan_source == RuleScanSource.previous_scan:
-                applicable_result_set = prev_scan_matched_by_rule
+                applicable_result_set = prev_scan_matches_by_rule
 
             applicable_result_set[rule].append(match)
 
@@ -490,7 +490,7 @@ def ci(
         logger.info("  Uploading findings.")
         # TODO(vivek): fix this to send previous scan findings to the app.
         scan_handler.report_findings(
-            filtered_matches_by_rule,
+            {**blocking_matches_by_rule, **nonblocking_matches_by_rule, **cai_matches_by_rule},
             semgrep_errors,
             filtered_rules,
             output_extra.all_targets,
@@ -501,6 +501,7 @@ def ci(
             metadata.commit_datetime,
             dependencies,
             engine_type,
+            prev_scan_matches_by_rule,
         )
         logger.info("  View results in Semgrep App:")
         logger.info(

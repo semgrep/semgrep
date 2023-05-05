@@ -248,6 +248,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[FoundDependency]],
         engine_requested: "EngineType",
+        prev_scan_matches_by_rule: Optional[RuleMatchMap] = None,
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -258,6 +259,11 @@ class ScanHandler:
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
+            for match in matches_of_rule
+        ]
+        prev_scan_matches = [
+            match
+            for matches_of_rule in prev_scan_matches_by_rule.values()
             for match in matches_of_rule
         ]
         # we want date stamps assigned by the app to be assigned such that the
@@ -285,6 +291,9 @@ class ScanHandler:
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
+        prev_scan_findings = [
+            match.to_app_finding_format(commit_date).to_json() for match in prev_scan_matches
+        ]
         token = (
             # GitHub (cloud)
             os.getenv("GITHUB_TOKEN")
@@ -298,6 +307,7 @@ class ScanHandler:
             # send a backup token in case the app is not available
             "token": token,
             "findings": findings,
+            "prev_scan_findings": prev_scan_findings,
             "searched_paths": [str(t) for t in sorted(targets)],
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "rule_ids": rule_ids,
