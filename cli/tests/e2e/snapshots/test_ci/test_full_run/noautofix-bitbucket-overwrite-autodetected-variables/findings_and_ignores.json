@@ -312,6 +312,7 @@
       }
     }
   ],
+  "prev_scan_findings": [],
   "searched_paths": [
     "foo.py",
     "poetry.lock",
