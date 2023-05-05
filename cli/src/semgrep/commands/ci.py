@@ -27,6 +27,7 @@ from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import OutputFormat
+from semgrep.constants import RuleScanSource
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -40,7 +41,6 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
-from semgrep.rule import RuleScanSource
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -432,12 +432,23 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
-    prev_scan_matches_by_rule: RuleMatchMap = defaultdict(list)
+
+    # Remove the prev scan matches by the rules that are in the current scan
+    # Done before the next loop to avoid interfering with ignore logic
+    removed_prev_scan_matches = {
+        rule: [
+            match
+            for match in matches
+            if match.scan_source != RuleScanSource.previous_scan
+        ]
+        for rule, matches in filtered_matches_by_rule.items()
+        if rule.scan_source != RuleScanSource.previous_scan
+    }
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
     keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
-    for rule, matches in filtered_matches_by_rule.items():
+    for rule, matches in removed_prev_scan_matches.items():
         # Filter out any matches that are triaged as ignored on the app
         if scan_handler:
             matches = [
@@ -460,10 +471,6 @@ def ci(
                 else nonblocking_matches_by_rule
             )
 
-            # NOTE: if the rule belongs to the previous scan, should not be included in blocking/non-blocking
-            if rule.scan_source == RuleScanSource.previous_scan:
-                applicable_result_set = prev_scan_matches_by_rule
-
             applicable_result_set[rule].append(match)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
@@ -474,7 +481,7 @@ def ci(
         all_targets=output_extra.all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
-        filtered_rules=filtered_rules,
+        filtered_rules=[*blocking_rules, *nonblocking_rules, *cai_rules],
         profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
@@ -489,12 +496,7 @@ def ci(
     if scan_handler:
         logger.info("  Uploading findings.")
         scan_handler.report_findings(
-            {
-                **blocking_matches_by_rule,
-                **nonblocking_matches_by_rule,
-                **cai_matches_by_rule,
-            },
-            prev_scan_matches_by_rule,
+            filtered_matches_by_rule,
             semgrep_errors,
             filtered_rules,
             output_extra.all_targets,

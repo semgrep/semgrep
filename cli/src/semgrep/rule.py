@@ -13,6 +13,7 @@ from typing import Set
 from typing import Union
 
 import semgrep.output_from_core as core
+from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -30,14 +31,6 @@ from semgrep.semgrep_types import SEARCH_MODE
 class RuleProduct(Enum):
     sast = auto()
     sca = auto()
-
-
-class RuleScanSource(Enum):
-    unannotated = auto()
-    unchanged = auto()
-    new_version = auto()
-    new_rule = auto()
-    previous_scan = auto()
 
 
 class Rule:
