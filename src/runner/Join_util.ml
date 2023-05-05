@@ -58,6 +58,39 @@ let extract_join_rules config parsed_rules =
   let join_map = JoinRuleMap.of_seq (Hashtbl.to_seq join_rules_table) in
   (join_map, (rules_with_join_rules_resolved, invalid_rules))
 
+let get_final_match_of_matches join_rule_map matches_by_step =
+  let rule, final_step =
+    match
+      List.find_map
+        (fun step ->
+          let rule, n = JoinRuleMap.find step.step_id join_rule_map in
+          if Int.equal n (List.length matches_by_step - 1) then Some (rule, step)
+          else None)
+        matches_by_step
+    with
+    | Some x -> x
+    | None ->
+        failwith
+          (spf "Could not find final step for join rule, expected it to be %d"
+             (List.length matches_by_step))
+  in
+  (rule, final_step)
+
+(* Consider a rule with three steps, where step 1 binds $A and $B,
+   step 2 binds $B and $C, and step 3 binds $A, $B, and $C. When
+   processing step 2, we need to intersect the values of $C, but
+   add all bindings for $A and $C. *)
+let intersect_mvar_maps prev_map cur_map =
+  MvarMap.merge
+    (fun _mvar prev_mvals cur_mvals ->
+      match (prev_mvals, cur_mvals) with
+      | Some prev_mvals, Some cur_mvals ->
+          Some (MvarSet.inter prev_mvals cur_mvals)
+      | Some prev_mvals, None -> Some prev_mvals
+      | None, Some cur_mvals -> Some cur_mvals
+      | None, None -> None)
+    prev_map cur_map
+
 let unify_results join_rule_map res =
   let rule_for_step_id id =
     match JoinRuleMap.find_opt id join_rule_map with
@@ -98,7 +131,6 @@ let unify_results join_rule_map res =
        code's laid out if we decide to support other conditions for OSS *)
     let intersect_mvars mvar_bindings
         ({ step_id = _; matches } : matches_by_step) =
-      pr2 "Step:\n";
       let mvars_by_steps = matches |> List.concat_map (fun m -> m.P.env) in
       let mvar_bindings_for_step =
         List.fold_left
@@ -111,44 +143,15 @@ let unify_results join_rule_map res =
               mvar_bindings_acc)
           MvarMap.empty mvars_by_steps
       in
-      MvarMap.mapi
-        (fun mvar mvals ->
-          match MvarMap.find_opt mvar mvar_bindings_for_step with
-          | Some mvals_for_step -> MvarSet.inter mvals mvals_for_step
-          | None -> mvals)
-        mvar_bindings
+      intersect_mvar_maps mvar_bindings mvar_bindings_for_step
     in
     let mvar_bindings =
       List.fold_left intersect_mvars MvarMap.empty matches_by_step
     in
-    (* Print mvar_bindings *)
-    MvarMap.iter
-      (fun mvar mvals ->
-        Printf.printf "mvar: %s\n" mvar;
-        MvarSet.iter
-          (fun mval ->
-            Printf.printf "mval: %s\n" (Metavariable.show_mvalue mval))
-          mvals)
-      mvar_bindings;
-    (* Filter the matches for the final step *)
-    (* Find the final step of the rule because that's the only one we return matches for *)
+    (* Filter the matches for the final step because that's the only one we return matches for *)
     let rule, final_step =
-      match
-        List.find_map
-          (fun step ->
-            let rule, n = JoinRuleMap.find step.step_id join_rule_map in
-            if Int.equal n (List.length matches_by_step - 1) then
-              Some (rule, step)
-            else None)
-          matches_by_step
-      with
-      | Some x -> x
-      | None ->
-          failwith
-            (spf "Could not find final step for join rule, expected it to be %d"
-               (List.length matches_by_step))
+      get_final_match_of_matches join_rule_map matches_by_step
     in
-    (* Filter the matches for the final step *)
     let matches_for_join_rule =
       List.filter
         (fun m ->
