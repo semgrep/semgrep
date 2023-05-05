@@ -9,7 +9,14 @@ external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
    For example, the Python parser handles all of the Python Langs *)
 let parser_lang_overrides =
   Common.hash_of_list
-    [ ("python2", "python"); ("python3", "python"); ("py", "python") ]
+    [
+      ("python2", "python");
+      ("python3", "python");
+      ("py", "python");
+      ("xml", "html");
+      ("scheme", "lisp");
+      ("clojure", "lisp");
+    ]
 
 let _ =
   Common.jsoo := true;
@@ -30,12 +37,24 @@ let _ =
 
        method deleteFile filename = Sys.remove (Js.to_string filename)
 
-       method setParsePattern (func : bool -> Lang.t -> string -> 'a) =
-         Parse_pattern.parse_pattern_ref := func
+       method setParsePattern
+           (func : bool -> Js.js_string Js.t -> Js.js_string Js.t -> 'a) =
+         Parse_pattern.parse_pattern_ref :=
+           fun print_error lang target ->
+             func print_error
+               (lang |> Lang.to_lowercase_alnum |> String.lowercase_ascii
+              |> Js.string)
+               (Js.string target)
 
        method setJustParseWithLang
-           (func : Lang.t -> string -> Parsing_result2.t) =
-         Parse_target.just_parse_with_lang_ref := func
+           (func : Js.js_string Js.t -> Js.js_string Js.t -> Parsing_result2.t)
+           =
+         Parse_target.just_parse_with_lang_ref :=
+           fun lang pattern ->
+             func
+               (lang |> Lang.to_lowercase_alnum |> String.lowercase_ascii
+              |> Js.string)
+               (Js.string pattern)
 
        method isValidLang lang =
          match Lang.of_string_opt (Js.to_string lang) with

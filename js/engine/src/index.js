@@ -54,7 +54,7 @@ export const EngineFactory = async (wasmUri) => {
     lookupParserName,
     addParser: (parser) => {
       parser.setMountpoints(getMountpoints());
-      parser.getLangs().forEach((lang) => {
+      parser.getLangKeys().forEach((lang) => {
         languages.set(lang, parser);
       });
     },
