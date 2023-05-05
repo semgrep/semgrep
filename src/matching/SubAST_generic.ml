@@ -29,12 +29,12 @@ let go_really_deeper_stmt = ref true
 (*****************************************************************************)
 
 let subexprs_of_any_list xs =
-  xs |> List.to_seq
-  |> Seq.fold_left
+  xs
+  |> List.fold_left
        (fun x -> function
-         | E e -> Seq.cons e x
+         | E e -> e :: x
          | _ -> x)
-       Seq.empty
+       []
 
 (* used for really deep statement matching *)
 
@@ -48,36 +48,36 @@ let subexprs_of_stmt_kind = function
   | Continue (_, LDynamic e, _)
   | Break (_, LDynamic e, _)
   | Throw (_, e, _) ->
-      List.to_seq [ e ]
+      [ e ]
   | While (_, cond, _)
   | If (_, cond, _, _) ->
-      List.to_seq [ H.cond_to_expr cond ]
+      [ H.cond_to_expr cond ]
   (* opt *)
   | Switch (_, condopt, _) -> (
       match condopt with
-      | None -> Seq.empty
-      | Some cond -> List.to_seq [ H.cond_to_expr cond ])
-  | Return (_, eopt, _) -> Option.to_seq eopt
+      | None -> []
+      | Some cond -> [ H.cond_to_expr cond ])
+  | Return (_, eopt, _) -> Option.to_list eopt
   (* n *)
   | For (_, MultiForEach es, _) ->
-      es |> List.to_seq
-      |> Seq.concat_map (function
-           | FE (_, _, e) -> List.to_seq [ e ]
-           | FECond ((_, _, e1), _, e2) -> List.to_seq [ e1; e2 ]
-           | FEllipsis _ -> Seq.empty)
+      es
+      |> Common.map_filter (function
+           | FE (_, _, e) -> Some [ e ]
+           | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
+           | FEllipsis _ -> None)
+      |> List.concat
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
-      Seq.append
-        (xs |> List.to_seq
-        |> Seq.filter_map (function
-             | ForInitExpr e -> Some e
-             | ForInitVar (_, vdef) -> vdef.vinit))
-        (Seq.append (Option.to_seq eopt1) (Option.to_seq eopt2))
+      (xs
+      |> Common.map_filter (function
+           | ForInitExpr e -> Some e
+           | ForInitVar (_, vdef) -> vdef.vinit))
+      @ Option.to_list eopt1 @ Option.to_list eopt2
   | Assert (_, (_, args, _), _) ->
-      args |> List.to_seq
-      |> Seq.filter_map (function
+      args
+      |> Common.map_filter (function
            | Arg e -> Some e
            | _ -> None)
-  | For (_, ForIn (_, es), _) -> es |> List.to_seq
+  | For (_, ForIn (_, es), _) -> es
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
   | OtherStmtWithStmt (_, xs, _) -> subexprs_of_any_list xs
   (* 0 *)
@@ -92,13 +92,13 @@ let subexprs_of_stmt_kind = function
   | DisjStmt _
   | DefStmt _
   | WithUsingResource _ ->
-      Seq.empty
+      []
 
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 let subexprs_of_args args =
-  args |> Tok.unbracket |> List.to_seq
-  |> Seq.filter_map (function
+  args |> Tok.unbracket
+  |> Common.map_filter (function
        | Arg e
        | ArgKwd (_, e)
        | ArgKwdOptional (_, e) ->
@@ -112,13 +112,13 @@ let subexprs_of_expr with_symbolic_propagation e =
   match e.e with
   | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
     when with_symbolic_propagation ->
-      List.to_seq [ e1 ]
+      [ e1 ]
   | L _
   | N _
   | IdSpecial _
   | Ellipsis _
   | TypedMetavar _ ->
-      Seq.empty
+      []
   | DotAccess (e, _, _)
   | Await (_, e)
   | Cast (_, _, e)
@@ -126,61 +126,60 @@ let subexprs_of_expr with_symbolic_propagation e =
   | DeRef (_, e)
   | DeepEllipsis (_, e, _)
   | DotAccessEllipsis (e, _) ->
-      List.to_seq [ e ]
+      [ e ]
   | Assign (e1, _, e2)
   | AssignOp (e1, _, e2)
   | ArrayAccess (e1, (_, e2, _))
   (* not sure we always want to return 'e1' here *) ->
-      List.to_seq [ e1; e2 ]
-  | Conditional (e1, e2, e3) -> List.to_seq [ e1; e2; e3 ]
-  | Seq xs -> xs |> List.to_seq
+      [ e1; e2 ]
+  | Conditional (e1, e2, e3) -> [ e1; e2; e3 ]
+  | Seq xs -> xs
   | Record (_, flds, _) ->
-      flds |> List.to_seq
-      |> Seq.concat_map (function F st -> subexprs_of_stmt st)
-  | Container (_, xs) -> Tok.unbracket xs |> List.to_seq
+      flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
+  | Container (_, xs) -> Tok.unbracket xs
   | Comprehension (_, (_, (e, xs), _)) ->
-      Seq.cons e
-        (xs |> List.to_seq
-        |> Seq.map (function
-             | CompFor (_, _pat, _, e) -> e
-             | CompIf (_, e) -> e))
+      e
+      :: (xs
+         |> Common.map (function
+              | CompFor (_, _pat, _, e) -> e
+              | CompIf (_, e) -> e))
   | New (_, _t, _ii, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
-      Seq.cons e (subexprs_of_args args)
+      e :: subexprs_of_args args
   | SliceAccess (e1, e2) ->
-      Seq.cons e1
-        (e2 |> Tok.unbracket
-        |> (fun (a, b, c) -> [ a; b; c ])
-        |> List.to_seq
-        |> Seq.concat_map Option.to_seq)
-  | Yield (_, eopt, _) -> Option.to_seq eopt
+      e1
+      :: (e2 |> Tok.unbracket
+         |> (fun (a, b, c) -> [ a; b; c ])
+         |> List.concat_map Option.to_list)
+  | Yield (_, eopt, _) -> Option.to_list eopt
   | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
   | RawExpr x -> Raw_tree.anys x |> subexprs_of_any_list
-  | Alias (_, e1) -> List.to_seq [ e1 ]
+  | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   | Xml { xml_attrs; xml_body; _ } ->
-      Seq.append
-        (xml_attrs |> List.to_seq
-        |> Seq.filter_map (function
-             | XmlAttr (_, _, e)
-             | XmlAttrExpr (_, e, _) ->
-                 Some e
-             | _ -> None))
-        (xml_body |> List.to_seq
-        |> Seq.filter_map (function
-             | XmlExpr (_, Some e, _) -> Some e
-             | XmlXml xml -> Some (Xml xml |> AST_generic.e)
-             | _ -> None))
-  | RegexpTemplate ((_l, e, _r), _opt) -> List.to_seq [ e ]
+      Common.map_filter
+        (function
+          | XmlAttr (_, _, e)
+          | XmlAttrExpr (_, e, _) ->
+              Some e
+          | _ -> None)
+        xml_attrs
+      @ Common.map_filter
+          (function
+            | XmlExpr (_, Some e, _) -> Some e
+            | XmlXml xml -> Some (Xml xml |> AST_generic.e)
+            | _ -> None)
+          xml_body
+  | RegexpTemplate ((_l, e, _r), _opt) -> [ e ]
   (* currently skipped over but could recurse *)
   | Constructor _
   | AnonClass _
   | LetPattern _ ->
-      Seq.empty
+      []
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
 
@@ -200,11 +199,11 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   match e.e with
   | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
     when with_symbolic_propagation ->
-      List.to_seq [ e1 ]
+      [ e1 ]
   (* cases where we extract a subexpr *)
   | Assign (_e1, _, e2)
   | AssignOp (_e1, _, e2) ->
-      List.to_seq [ e2 ]
+      [ e2 ]
   (* TODO? special case for Bash and Dockerfile to prevent
    * 'RUN b' to also match 'RUN a && b' (but still allowing
    *  'RUN a' to match 'RUN a && b'?)
@@ -215,53 +214,52 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
        * bar().then(stuff) which is parsed as (bar().then)(stuff)
        * and we need to go in left part.
        *)
-      Seq.cons e (subexprs_of_args args)
+      e :: subexprs_of_args args
   | Cast (_, _, e)
   | Await (_, e) ->
-      List.to_seq [ e ]
-  | Yield (_, eopt, _) -> Option.to_seq eopt
+      [ e ]
+  | Yield (_, eopt, _) -> Option.to_list eopt
   | StmtExpr st -> subexprs_of_stmt st
   (* TODO: ugly, but we have pattern like 'db.find(...)' that we
    * also want to match code like 'db.find().then(stuff).
    *)
-  | DotAccess (e, _, _) -> List.to_seq [ e ]
+  | DotAccess (e, _, _) -> [ e ]
   (* TODO: ugly but in semgrep-rules/python/.../flush.yaml there is
    * '$F.name' that is matching cmd = [stuff, fout.name, otherstuff].
    * They should rewrite the rule and use '... <... $F.name ...>' there.
    *)
-  | Container (_, xs) -> Tok.unbracket xs |> List.to_seq
+  | Container (_, xs) -> Tok.unbracket xs
   (* TODO: ugly but in semgrep-rules/terraform/.../missing-athena...yaml
    * we look for '{ ... encryption_configuration {...} ...}' and
    * the encryption_configuration can actually be nested deeper.
    * They should rewrite the rule.
    *)
   | Record (_, flds, _) ->
-      flds |> List.to_seq
-      |> Seq.concat_map (function F st -> subexprs_of_stmt st)
+      flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
   (* cases where we should not extract a subexpr *)
   | L _
   | N _
   | IdSpecial _
   | Ellipsis _ ->
-      Seq.empty
+      []
   | Ref (_, _e)
   | DeRef (_, _e) ->
-      Seq.empty
-  | Conditional (_e1, _e2, _e3) -> Seq.empty
-  | Seq _xs -> Seq.empty
-  | ArrayAccess (_e1, (_, _e2, _)) -> Seq.empty
-  | SliceAccess (_e1, _e2) -> Seq.empty
-  | Comprehension (_, (_, (_e, _xs), _)) -> Seq.empty
-  | New (_, _t, _ii, _args) -> Seq.empty
-  | OtherExpr (_, _anys) -> Seq.empty
-  | RawExpr _ -> Seq.empty
-  | Alias (_, _e1) -> Seq.empty
-  | Xml _xmlbody -> Seq.empty
-  | Constructor _ -> Seq.empty
-  | RegexpTemplate _ -> Seq.empty
-  | AnonClass _def -> Seq.empty
-  | Lambda _def -> Seq.empty
-  | LetPattern _ -> Seq.empty
+      []
+  | Conditional (_e1, _e2, _e3) -> []
+  | Seq _xs -> []
+  | ArrayAccess (_e1, (_, _e2, _)) -> []
+  | SliceAccess (_e1, _e2) -> []
+  | Comprehension (_, (_, (_e, _xs), _)) -> []
+  | New (_, _t, _ii, _args) -> []
+  | OtherExpr (_, _anys) -> []
+  | RawExpr _ -> []
+  | Alias (_, _e1) -> []
+  | Xml _xmlbody -> []
+  | Constructor _ -> []
+  | RegexpTemplate _ -> []
+  | AnonClass _def -> []
+  | Lambda _def -> []
+  | LetPattern _ -> []
   | TypedMetavar _
   | DeepEllipsis _
   | DotAccessEllipsis _
@@ -365,7 +363,7 @@ let lambdas_in_expr e =
 let hmemo = Hashtbl.create 101
 
 let lambdas_in_expr_memo a =
-  Common.memoized hmemo a (fun () -> lambdas_in_expr a |> List.to_seq)
+  Common.memoized hmemo a (fun () -> lambdas_in_expr a)
   [@@profiling]
 
 (*****************************************************************************)
@@ -383,8 +381,9 @@ let flatten_substmts_of_stmts xs =
       if !go_really_deeper_stmt then
         let es = subexprs_of_stmt x in
         (* getting deeply nested lambdas stmts *)
-        let lambdas = es |> Seq.concat_map lambdas_in_expr_memo in
-        lambdas |> Seq.map (fun def -> H.funcbody_to_stmt def.fbody)
+        let lambdas = es |> List.concat_map lambdas_in_expr_memo in
+        lambdas |> List.to_seq
+        |> Seq.map (fun def -> H.funcbody_to_stmt def.fbody)
       else Seq.empty
     in
     Seq.cons x

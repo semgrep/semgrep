@@ -319,7 +319,7 @@ let m_module_name a b =
  * we could probably refactor this code to not need so many arguments.
  *)
 let m_deep (deep_fun : G.expr Matching_generic.matcher)
-    (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr Seq.t)
+    (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
     (a : G.expr) (b : 't) =
   if_config
     (fun x -> not x.go_deeper_expr)
@@ -336,9 +336,9 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
       >||>
       (* less: could use a fold *)
       let rec aux xs =
-        match Seq.uncons xs with
-        | None -> fail ()
-        | Some (x, xs) -> deep_fun a x >||> aux xs
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> deep_fun a x >||> aux xs
       in
       b |> sub_fun |> aux)
 
