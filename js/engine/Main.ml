@@ -5,6 +5,12 @@ open Js_of_ocaml
    (see companion setter in Semgrep_js_shared.ml) *)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
 
+(* Overrides are required because we don't have a 1:1 correspondence between Lang.t and parsers
+   For example, the Python parser handles all of the Python Langs *)
+let parser_lang_overrides =
+  Common.hash_of_list
+    [ ("python2", "python"); ("python3", "python"); ("py", "python") ]
+
 let _ =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
@@ -31,13 +37,24 @@ let _ =
            (func : Lang.t -> string -> Parsing_result2.t) =
          Parse_target.just_parse_with_lang_ref := func
 
-       method isValidLang (lang : Js.js_string Js.t) : bool =
+       method isValidLang lang =
          match Lang.of_string_opt (Js.to_string lang) with
          | Some _ -> true
          | None -> false
 
-       method lookupLang (lang : Js.js_string Js.t) : Lang.t =
-         Lang.of_string (Js.to_string lang)
+       method lookupParserName lang_js_str =
+         let lang_str = Js.to_string lang_js_str in
+         match Hashtbl.find_opt parser_lang_overrides lang_str with
+         | Some parser -> Js.some (Js.string parser)
+         | None -> (
+             match Lang.of_string_opt lang_str with
+             | Some lang ->
+                 Js.some
+                   (Js.string
+                      (String.lowercase_ascii (Lang.to_lowercase_alnum lang)))
+             | None -> Js.null)
+
+       method lookupLang lang = Lang.of_string (Js.to_string lang)
 
        method execute (language : Js.js_string Js.t)
            (rule_file : Js.js_string Js.t) (source_file : Js.js_string Js.t)
