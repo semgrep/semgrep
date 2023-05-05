@@ -56,12 +56,7 @@ let _ =
               |> Js.string)
                (Js.string pattern)
 
-       method isValidLang lang =
-         match Lang.of_string_opt (Js.to_string lang) with
-         | Some _ -> true
-         | None -> false
-
-       method lookupParserName lang_js_str =
+       method getParserForLang lang_js_str =
          let lang_str = Js.to_string lang_js_str in
          match Hashtbl.find_opt parser_lang_overrides lang_str with
          | Some parser -> Js.some (Js.string parser)
@@ -72,8 +67,6 @@ let _ =
                    (Js.string
                       (String.lowercase_ascii (Lang.to_lowercase_alnum lang)))
              | None -> Js.null)
-
-       method lookupLang lang = Lang.of_string (Js.to_string lang)
 
        method execute (language : Js.js_string Js.t)
            (rule_file : Js.js_string Js.t) (source_file : Js.js_string Js.t)

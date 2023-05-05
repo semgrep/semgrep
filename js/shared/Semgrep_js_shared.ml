@@ -11,7 +11,7 @@ external set_jsoo_mount_point : 'any Js.js_array -> unit
 external set_parser_wasm_module : 'any -> unit = "set_parser_wasm_module"
 
 let make_js_module (langs : Lang.t list) parse_target parse_pattern =
-  let lang_keys =
+  let lang_names =
     Array.of_list
       (Common.map
          (fun x ->
@@ -21,8 +21,7 @@ let make_js_module (langs : Lang.t list) parse_target parse_pattern =
   Js.export "createParser" (fun wasm_module ->
       set_parser_wasm_module wasm_module;
       object%js
-        method getLangs = Js.array (Array.of_list langs)
-        method getLangKeys = Js.array lang_keys
+        method getLangs = Js.array lang_names
         method setMountpoints = set_jsoo_mount_point
 
         method parseTarget lang file =

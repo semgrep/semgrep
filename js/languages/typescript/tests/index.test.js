@@ -4,9 +4,9 @@ const parserPromise = ParserFactory();
 
 const EXPECTED_LANGS = ["js", "ts"];
 
-test("getLangKeys", async () => {
+test("getLangs", async () => {
   const parser = await parserPromise;
-  expect(parser.getLangKeys()).toEqual(EXPECTED_LANGS);
+  expect(parser.getLangs()).toEqual(EXPECTED_LANGS);
 });
 
 test("it successfully parses a pattern", async () => {

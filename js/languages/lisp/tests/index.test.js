@@ -5,9 +5,9 @@ const parserPromise = ParserFactory();
 const LANG = "lisp";
 const EXPECTED_LANGS = [LANG, "scheme", "clojure"];
 
-test("getLangKeys", async () => {
+test("getLangs", async () => {
   const parser = await parserPromise;
-  expect(parser.getLangKeys()).toEqual(EXPECTED_LANGS);
+  expect(parser.getLangs()).toEqual(EXPECTED_LANGS);
 });
 
 test("it parses a pattern", async () => {
