@@ -11,6 +11,7 @@
 
    parser_regexp
    spacegrep
+   aliengrep
 
    semgrep_core
    semgrep_fixing

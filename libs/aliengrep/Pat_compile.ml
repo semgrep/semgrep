@@ -13,14 +13,14 @@ open Printf
 type metavariable_kind =
   | Metavariable
   | Metavariable_ellipsis (* regular or long *)
-[@@deriving show]
+[@@deriving show, eq]
 
 (* metavariable kind, bare name *)
-type metavariable = metavariable_kind * string [@@deriving show]
+type metavariable = metavariable_kind * string [@@deriving show, eq]
 
 type t = {
   pcre_pattern : string; [@printer fun fmt -> Format.fprintf fmt "{|%s|}"]
-  pcre : Pcre.regexp; [@opaque]
+  pcre : Pcre.regexp; [@opaque] [@equal fun _ _ -> true]
   (*
      List of the PCRE capturing groups that we care about for extracting
      metavariable values.
@@ -59,7 +59,7 @@ Pcre.extract_all ~rex {|xx ab ab xx|};;
   *)
   metavariable_groups : (int * metavariable) list;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (*
    Parameters used to create patterns for a given definition of whitespace.

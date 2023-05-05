@@ -302,6 +302,7 @@ and xpat_step1 pat =
   | XP.Regexp re -> Some (Regexp re)
   (* todo? *)
   | XP.Spacegrep _ -> None
+  | XP.Aliengrep _ -> None
 
 and metavarcond_step1 x =
   match x with

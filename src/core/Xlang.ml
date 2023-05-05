@@ -11,8 +11,9 @@ type t =
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
   | LRegex
-  (* for spacegrep *)
-  | LGeneric
+  (* generic mode uses either spacegrep or aliengrep *)
+  | LSpacegrep
+  | LAliengrep
 [@@deriving show, eq, hash]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
@@ -23,13 +24,16 @@ let to_lang_exn (x : t) : Lang.t =
   match x with
   | L (lang, _) -> lang
   | LRegex -> failwith (Lang.unsupported_language_message "regex")
-  | LGeneric -> failwith (Lang.unsupported_language_message "generic")
+  | LSpacegrep
+  | LAliengrep ->
+      failwith (Lang.unsupported_language_message "generic")
 
 let to_langs (x : t) : Lang.t list =
   match x with
   | L (lang, langs) -> lang :: langs
   | LRegex
-  | LGeneric ->
+  | LSpacegrep
+  | LAliengrep ->
       []
 
 let lang_of_opt_xlang_exn (x : t option) : Lang.t =
@@ -40,11 +44,16 @@ let lang_of_opt_xlang_exn (x : t option) : Lang.t =
 let flatten x =
   match x with
   | L (lang, langs) -> Common.map (fun x -> L (x, [])) (lang :: langs)
-  | (LRegex | LGeneric) as x -> [ x ]
+  | (LRegex | LSpacegrep | LAliengrep) as x -> [ x ]
 
 let assoc : (string * t) list =
   Common.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
-  @ [ ("regex", LRegex); ("none", LRegex); ("generic", LGeneric) ]
+  @ [
+      ("regex", LRegex);
+      ("none", LRegex);
+      ("spacegrep", LSpacegrep);
+      ("aliengrep", LAliengrep);
+    ]
 
 let map = Common.hash_of_list assoc
 let keys = Common2.hkeys map
@@ -62,7 +71,8 @@ let of_string ?id:(id_opt = None) s =
   | "none"
   | "regex" ->
       LRegex
-  | "generic" -> LGeneric
+  | "spacegrep" -> LSpacegrep
+  | "aliengrep" -> LAliengrep
   | __else__ -> (
       match Lang.of_string_opt s with
       | None -> (
@@ -77,10 +87,12 @@ let of_string ?id:(id_opt = None) s =
 let to_string = function
   | L (l, _) -> Lang.to_string l
   | LRegex -> "regex"
-  | LGeneric -> "generic"
+  | LSpacegrep -> "spacegrep"
+  | LAliengrep -> "aliengrep"
 
 let is_proprietary = function
   | L (lang, _) -> Lang.is_proprietary lang
   | LRegex
-  | LGeneric ->
+  | LSpacegrep
+  | LAliengrep ->
       false

@@ -10,8 +10,9 @@ type t =
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
   | LRegex
-  (* for spacegrep *)
-  | LGeneric
+  (* generic mode uses either spacegrep or aliengrep *)
+  | LSpacegrep
+  | LAliengrep
 [@@deriving show, eq, hash]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)

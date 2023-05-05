@@ -52,6 +52,8 @@ let use_ojsonnet = true
 (* Types *)
 (*****************************************************************************)
 
+type key = string R.wrap
+
 type env = {
   (* id of the current rule (needed by some exns) *)
   id : Rule.rule_id;
@@ -63,9 +65,11 @@ type env = {
    * (this will allow us to later report errors in playground basic mode)
    *)
   path : string list;
+  (* for producing decent error messages when checking the validity
+     of the options section that was parsed as a whole from JSON *)
+  options_key : key option;
+  options : Config_semgrep_t.t option;
 }
-
-type key = string R.wrap
 
 (* Parsing generic dictionaries creates a mutable Hashtbl and consumes the
  * fields as they are processed.
@@ -90,6 +94,11 @@ let yaml_error_at_expr (e : G.expr) s =
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 let error env t s = raise (R.Err (R.InvalidRule (R.InvalidOther s, env.id, t)))
 let error_at_key env (key : key) s = error env (snd key) s
+
+let error_at_opt_key env (opt_key : key option) s =
+  match opt_key with
+  | Some key -> error_at_key env key s
+  | None -> failwith (spf "Internal error (no location provided): %s" s)
 
 let error_at_expr env (e : G.expr) s =
   error env (AST_generic_helpers.first_info_of_any (G.E e)) s
@@ -374,10 +383,16 @@ let parse_language ~id ((s, t) as _lang) : Lang.t =
   | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
   | Some l -> l
 
-let parse_languages ~id langs : Xlang.t =
+let parse_languages ~id (options : Config_semgrep_t.t) langs : Xlang.t =
   match langs with
   | [ (("none" | "regex"), _t) ] -> LRegex
-  | [ ("generic", _t) ] -> LGeneric
+  | [ ("generic", _t) ] -> (
+      (* The generic mode now uses one of two possible engines.
+         For now, we keep the name "generic" for both and use an option
+         to choose one engine or the other. *)
+      match options.generic_engine with
+      | `Spacegrep -> LSpacegrep
+      | `Aliengrep -> LAliengrep)
   | xs -> (
       let languages = xs |> Common.map (parse_language ~id:(fst id)) in
       match languages with
@@ -485,18 +500,80 @@ let parse_paths env key value =
   in
   { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
+(*****************************************************************************)
+(* Check the validity of the Aliengrep options *)
+(*****************************************************************************)
+
+(* Aliengrep word characters must be single-byte characters for now. *)
+let word_chars_of_strings env xs =
+  xs
+  |> Common.map (function
+       | "" -> error_at_opt_key env env.options_key "Empty opening brace"
+       | x when String.length x =|= 1 (* = *) -> x.[0]
+       | long ->
+           error_at_opt_key env env.options_key
+             (spf "Multibyte word characters aren't supported: %S" long))
+
+(* Aliengrep brace pairs are specified as strings because ATD doesn't have
+   a char type and because they could multibyte UTF-8-encoded characters.
+   For now, aliengrep only supports single-byte characters. *)
+let brace_pairs_of_string_pairs env xs =
+  xs
+  |> Common.map (fun (open_, close) ->
+         let opening_char =
+           match open_ with
+           | "" -> error_at_opt_key env env.options_key "Empty opening brace"
+           | x -> x.[0]
+         in
+         let closing_char =
+           match close with
+           | "" -> error_at_opt_key env env.options_key "Empty closing brace"
+           | x -> x.[0]
+         in
+         if String.length open_ > 1 then
+           error_at_opt_key env env.options_key
+             (spf "Multibyte opening braces aren't supported: %S" open_);
+         if String.length close > 1 then
+           error_at_opt_key env env.options_key
+             (spf "Multibyte closing braces aren't supported: %S" close);
+         (opening_char, closing_char))
+
+let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
+  let options = env.options in
+  let default = Aliengrep.Conf.default_multiline_conf in
+  let multiline = not options.generic_line_mode in
+  let word_chars =
+    default.word_chars
+    @ word_chars_of_strings env options.generic_extra_word_characters
+  in
+  let brackets =
+    let base_set =
+      match options.generic_braces with
+      | None -> default.brackets
+      | Some string_pairs -> brace_pairs_of_string_pairs env string_pairs
+    in
+    let extra_braces =
+      brace_pairs_of_string_pairs env options.generic_extra_braces
+    in
+    base_set @ extra_braces
+  in
+  { multiline; word_chars; brackets }
+
 let parse_options env (key : key) value =
   let s = J.string_of_json (generic_to_json env key value) in
-  Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
-    (fun _src_loc field_name ->
-      (* for forward compatibility, better to not raise an exn and just
-       * ignore the new fields.
-       * TODO: we should use a warning/logging infra to report
-       * this in the JSON to the semgrep wrapper and user.
-       *)
-      (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
-      pr2 (spf "WARNING: unknown option: %s" field_name))
-    (fun () -> Config_semgrep_j.t_of_string s)
+  let options =
+    Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
+      (fun _src_loc field_name ->
+        (* for forward compatibility, better to not raise an exn and just
+         * ignore the new fields.
+         * TODO: we should use a warning/logging infra to report
+         * this in the JSON to the semgrep wrapper and user.
+         *)
+        (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
+        pr2 (spf "WARNING: unknown option: %s" field_name))
+      (fun () -> Config_semgrep_j.t_of_string s)
+  in
+  (options, Some key)
 
 (*****************************************************************************)
 (* Parser for xpattern *)
@@ -526,11 +603,15 @@ let parse_xpattern env (str, tok) =
       XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
   | Xlang.LRegex ->
       XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
-  | Xlang.LGeneric -> (
+  | Xlang.LSpacegrep -> (
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
       | Error err -> failwith err.msg)
+  | Xlang.LAliengrep ->
+      let conf = aliengrep_conf_of_options env in
+      let pat = Aliengrep.Pat_compile.from_string conf str in
+      XP.mk_xpat (XP.Aliengrep pat) (str, tok)
 
 (* TODO: note that the [pattern] string and token location [t] given to us
  * by the YAML parser do not correspond exactly to the content
@@ -819,6 +900,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
                 languages = xlang;
                 in_metavariable_pattern = env.in_metavariable_pattern;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
+                options_key = None;
+                options = None;
               }
             in
             (env', Some xlang)
@@ -1393,13 +1476,23 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     ( take_no_env rd parse_string_wrap_no_env "id",
       take_no_env rd parse_string_wrap_list_no_env "languages" )
   in
-  let languages = parse_languages ~id languages in
+  let options_opt, options_key =
+    match take_opt rd env parse_options "options" with
+    | None -> (None, None)
+    | Some (options, options_key) -> (Some options, Some options_key)
+  in
+  let options =
+    Option.value options_opt ~default:Config_semgrep.default_config
+  in
+  let languages = parse_languages ~id options languages in
   let env =
     {
       id = fst id;
       languages;
       in_metavariable_pattern = false;
       path = [ string_of_int i; "rules" ];
+      options_key;
+      options;
     }
   in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
@@ -1409,8 +1502,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
         fix_opt,
         fix_regex_opt,
         paths_opt,
-        equivs_opt,
-        options_opt ) =
+        equivs_opt ) =
     ( (match mode with
       | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
       | _ ->
@@ -1420,8 +1512,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
       take_opt rd env parse_string "fix",
       take_opt rd env parse_fix_regex "fix-regex",
       take_opt rd env parse_paths "paths",
-      take_opt rd env parse_equivalences "equivalences",
-      take_opt rd env parse_options "options" )
+      take_opt rd env parse_equivalences "equivalences" )
   in
   report_unparsed_fields rd;
   {

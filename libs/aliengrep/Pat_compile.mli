@@ -5,17 +5,17 @@
 type metavariable_kind =
   | Metavariable
   | Metavariable_ellipsis (* regular or long *)
-[@@deriving show]
+[@@deriving show, eq]
 
 (* metavariable kind, bare name *)
-type metavariable = metavariable_kind * string [@@deriving show]
+type metavariable = metavariable_kind * string [@@deriving show, eq]
 
 type t = private {
   pcre_pattern : string;
   pcre : Pcre.regexp; [@opaque]
   metavariable_groups : (int * metavariable) list;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (*
    Convert a pattern AST into a PCRE pattern and the array of metavariables
