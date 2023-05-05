@@ -428,10 +428,6 @@ def ci(
             else:
                 nonblocking_rules.append(rule)
 
-    # TEMP (vivek)
-    logger.info("foo"*100)
-    print(filtered_rules)
-    print(prev_scan_rules)
     # Split up matches into respective categories
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
@@ -469,8 +465,6 @@ def ci(
                 applicable_result_set = prev_scan_matched_by_rule
 
             applicable_result_set[rule].append(match)
-
-    logger.info("bar"*100)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
