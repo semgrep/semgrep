@@ -205,6 +205,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
+  | Lang.Cairo ->
+      Tree_sitter_cairo.Parse.file file
+      |> dump_and_print_errors Tree_sitter_cairo.Boilerplate.dump_tree
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->
