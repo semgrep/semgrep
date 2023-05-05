@@ -74,14 +74,11 @@ jobs:
         id: build-image
         with:
           project: fhmxj6w9z8
-          context: .
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
           load: true
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ inputs.repository-name }}@${{ steps.build-image.outputs.digest }}
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.metadata.image.name }}
