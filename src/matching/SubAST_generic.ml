@@ -284,35 +284,35 @@ let substmts_of_stmt st =
   | Throw _
   | Assert _
   | OtherStmt _ ->
-      []
+      Seq.empty
   (* 1 *)
   | While (_, _, st)
   | DoWhile (_, st, _)
   | For (_, _, st)
   | Label (_, st)
   | OtherStmtWithStmt (_, _, st) ->
-      [ st ]
+      Seq.cons st Seq.empty
   (* 2 *)
-  | If (_, _, st1, st2) -> st1 :: Option.to_list st2
-  | WithUsingResource (_, st1, st2) -> st1 @ [ st2 ]
+  | If (_, _, st1, st2) -> Seq.cons st1 (Option.to_seq st2)
+  | WithUsingResource (_, st1, st2) -> st1 @ [ st2 ] |> List.to_seq
   (* n *)
-  | Block (_, xs, _) -> xs
+  | Block (_, xs, _) -> List.to_seq xs
   | Switch (_, _, xs) ->
-      xs
-      |> List.concat_map (function
-           | CasesAndBody (_, st) -> [ st ]
-           | CaseEllipsis _ -> [])
-  | Try (_, st, xs, opt) -> (
-      [ st ]
-      @ (xs |> Common.map Common2.thd3)
-      @
-      match opt with
-      | None -> []
-      | Some (_, st) -> [ st ])
+      xs |> List.to_seq
+      |> Seq.filter_map (function
+           | CasesAndBody (_, st) -> Some st
+           | CaseEllipsis _ -> None)
+  | Try (_, st, xs, opt) ->
+      Seq.cons st
+        (Seq.append
+           (xs |> List.to_seq |> Seq.map Common2.thd3)
+           (match opt with
+           | None -> Seq.empty
+           | Some (_, st) -> List.to_seq [ st ]))
   | DisjStmt _ -> raise Common.Impossible
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (
-      if not !go_really_deeper_stmt then []
+      if not !go_really_deeper_stmt then Seq.empty
       else
         match def with
         | VarDef _
@@ -325,11 +325,12 @@ let substmts_of_stmt st =
         (* recurse? *)
         | ModuleDef _
         | OtherDef _ ->
-            []
+            Seq.empty
         (* this will add lots of substatements *)
-        | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
+        | FuncDef def -> List.to_seq [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> Tok.unbracket |> Common.map (function F st -> st))
+            def.cbody |> Tok.unbracket |> List.to_seq
+            |> Seq.map (function F st -> st))
 
 (*****************************************************************************)
 (* Visitors  *)
@@ -381,15 +382,17 @@ let flatten_substmts_of_stmts xs =
         let es = subexprs_of_stmt x in
         (* getting deeply nested lambdas stmts *)
         let lambdas = es |> List.concat_map lambdas_in_expr_memo in
-        lambdas |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
-      else []
+        lambdas |> List.to_seq
+        |> Seq.map (fun def -> H.funcbody_to_stmt def.fbody)
+      else Seq.empty
     in
-    [ x ] @ (extras |> List.concat_map aux) @ (xs |> List.concat_map aux)
+    Seq.cons x
+      (Seq.append (extras |> Seq.concat_map aux) (xs |> Seq.concat_map aux))
   in
-  match xs |> List.concat_map aux with
-  | [] -> None
-  | res ->
-      (* Return the last element of the list as a pair.
-         This is used as part of the caching optimization. *)
-      Some res
+  let res = xs |> List.to_seq |> Seq.concat_map aux in
+  if Seq.is_empty res then None
+  else
+    (* Return the last element of the list as a pair.
+       This is used as part of the caching optimization. *)
+    Some res
   [@@profiling]

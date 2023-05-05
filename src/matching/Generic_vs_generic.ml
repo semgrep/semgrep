@@ -2216,7 +2216,7 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
           else
             match SubAST_generic.flatten_substmts_of_stmts xsb with
             | None -> fail () (* was already flat *)
-            | Some xsb -> m_list__m_stmt xsa xsb)
+            | Some xsb -> m_list__m_stmt_seq xsa xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
@@ -2299,6 +2299,74 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) (xsa : G.stmt list)
       env_add_matched_stmt xb >>= fun () -> m_list__m_stmt aas bbs
   | _ :: _, _ -> fail ()
 
+and m_list__m_stmt_seq ?(less_is_ok = true) (xsa : G.stmt list)
+    (xsb : G.stmt Seq.t) =
+  (* logger#ldebug
+     (lazy
+       (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
+          (List.length xsb))); *)
+  match (xsa, Seq.uncons xsb) with
+  | [], None -> return ()
+  (* less-is-ok:
+   * it's ok to have statements after in the concrete code as long as we
+   * matched all the statements in the pattern (there is an implicit
+   * '...' at the end, in addition to implicit '...' at the beginning
+   * handled by kstmts calling the pattern for each subsequences).
+   * TODO: sgrep_generic though then display the whole sequence as a match
+   * instead of just the relevant part.
+   *)
+  | [], Some _ -> if less_is_ok then return () else fail ()
+  (* dots: '...', can also match no statement *)
+  | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], None -> return ()
+  | ( { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: xsa_tail,
+      Some (xb, (xsb_tail as xsb)) ) ->
+      (* can match nothing *)
+      m_list__m_stmt_seq xsa_tail xsb
+      >||> (* can match more *)
+      (env_add_matched_stmt xb >>= fun () -> m_list__m_stmt_seq xsa xsb_tail)
+  (* dots: metavars: $...BODY *)
+  | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
+      __xsb )
+    when MV.is_metavar_ellipsis s ->
+      let rec inits_and_rest_of_seq seq =
+        match Seq.uncons seq with
+        | None -> failwith "inits_1 requires a non-empty list"
+        | Some (e, seq') when Seq.is_empty seq' ->
+            Seq.cons (List.to_seq [ e ], Seq.empty) Seq.empty
+        | Some (e, seq') ->
+            Seq.cons
+              (List.to_seq [ e ], seq')
+              (Seq.map
+                 (fun (l, rest) -> (Seq.cons e l, rest))
+                 (inits_and_rest_of_seq seq'))
+      in
+      let inits_and_rest_of_seq_empty_ok seq =
+        match Seq.uncons seq with
+        | None -> List.to_seq [ (Seq.empty, Seq.empty) ]
+        | Some _ -> Seq.cons (Seq.empty, seq) (inits_and_rest_of_seq seq)
+      in
+      (* can match 0 or more arguments *)
+      let candidates = inits_and_rest_of_seq_empty_ok xsb in
+      let rec aux xs =
+        match Seq.uncons xs with
+        | None -> fail ()
+        | Some ((inits, rest), xs) ->
+            envf (s, tok) (MV.Ss (List.of_seq inits))
+            >>= (fun () ->
+                  (* less: env_add_matched_stmt ?? *)
+                  (* when we use { $...BODY }, we don't have an implicit
+                   * ... after, so we use less_is_ok:false here
+                   *)
+                  m_list__m_stmt_seq ~less_is_ok:false xsa rest)
+            >||> aux xs
+      in
+      aux candidates
+  (* the general case *)
+  | xa :: aas, Some (xb, bbs) ->
+      m_stmt xa xb >>= fun () ->
+      env_add_matched_stmt xb >>= fun () -> m_list__m_stmt_seq aas bbs
+  | _ :: _, _ -> fail ()
+
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
@@ -2367,10 +2435,10 @@ and m_stmt a b =
       let bs =
         match SubAST_generic.flatten_substmts_of_stmts bs with
         (* already flat  *)
-        | None -> bs
+        | None -> List.to_seq bs
         | Some xs -> xs
       in
-      or_list m_stmt a bs
+      or_seq m_stmt a bs
   (* the general case *)
   (* ... will now allow a subset of stmts (less_is_ok = false here) *)
   | G.Block a1, B.Block b1 ->
