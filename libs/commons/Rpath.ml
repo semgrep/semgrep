@@ -1,6 +1,6 @@
 (* Brandon Wu
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -16,7 +16,6 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-
 (* Real paths.
 
    This module governs a path type, which can only produce values which
@@ -27,12 +26,12 @@
 
    history: this file was originally called `Path.ml`, but this conflicts with
    the OCaml compiler libraries. Then it was called FPath.ml but this
-   was too close to the Fpath library by Daniel Buenzli.
-
-   TODO: rename this file to Rpath.ml, so we would have Fpath.ml, Ppath.ml,
-   and finally Rpath.ml. We could also have Dpath.ml for directories
-   and that would put us closer to the nice filenames library in Scala
-   with better types paths.
+   was too close to the Fpath library by Daniel Buenzli. Then it was
+   called FilePath.ml, but ultimately got renamed to Rpath.ml, so we would
+   have Fpath.ml, Ppath.ml,and finally Rpath.ml. We could also have Dpath.ml
+   for directories and that would put us closer to the nice filenames library
+   in Scala with better types paths:
+   https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
 *)
 
 (*****************************************************************************)
@@ -47,10 +46,9 @@ type t = Path of string [@@deriving show, eq]
 
 (* TODO: we should use Unix.realpath but it's available only in 4.13
  * and there is no unixcompat like we have stdcompat.
- * alt: we could use Martin's Realpath.ml that used to be in
- * osemgrep/src/tarteting/ (also in my ~/Dropbox/r2c/TODO-code) now.
+ * alt: use Common.fullpath, but not as good as Unix.realpath
  *)
-let of_string s = Path (Common.fullpath s)
+let of_string s = Path (Realpath.realpath_str s)
 let to_string (Path s) = s
 let canonical s = to_string (of_string s)
 let ( / ) (Path s1) s2 = of_string (Filename.concat s1 s2)
