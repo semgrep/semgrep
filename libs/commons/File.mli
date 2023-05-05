@@ -68,7 +68,7 @@ module Operators : sig
   *)
 end
 
-(* For realpath, use Unix.realpath in OCaml >= 4.13 *)
+(* For realpath, use Unix.realpath in OCaml >= 4.13, or Rpath.mli *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
 *)
