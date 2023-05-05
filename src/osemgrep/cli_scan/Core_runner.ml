@@ -326,3 +326,4 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
           | None -> ())
       *)
       { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+  [@@profiling]

@@ -93,7 +93,7 @@ let tokens parsing_mode input_source =
 (* Main entry point *)
 (*****************************************************************************)
 
-let rec parse_basic ?(parsing_mode = Python) filename =
+let rec parse ?(parsing_mode = Python) filename =
   let stat = Parsing_stat.default_stat filename in
 
   (* this can throw Parse_info.Lexical_error *)
@@ -143,7 +143,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
         (* note that we cant use tokens as the tokens are actually different
          * in Python2 mode, but we could optimize things a bit and just
          * transform those tokens here *)
-        parse_basic ~parsing_mode:Python2 filename
+        parse ~parsing_mode:Python2 filename
       else
         let cur = tr.Parsing_helpers.current in
         if not !Flag.error_recovery then
@@ -158,10 +158,7 @@ let rec parse_basic ?(parsing_mode = Python) filename =
           Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         { Parsing_result.ast = []; tokens = toks; stat }
-
-let parse ?parsing_mode a =
-  Profiling.profile_code "Parse_python.parse" (fun () ->
-      parse_basic ?parsing_mode a)
+  [@@profiling]
 
 let parse_program ?parsing_mode file =
   let res = parse ?parsing_mode file in

@@ -397,3 +397,4 @@ let rules_from_rules_source ~rewrite_rule_ids (src : Rules_source.t) :
                  | R.Err _
                  | Failure _ ->
                      None))
+  [@@profiling]
