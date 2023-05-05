@@ -40,6 +40,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
+from semgrep.rule import RuleScanSource
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -414,10 +415,13 @@ def ci(
     # Split up rules into respective categories:
     blocking_rules: List[Rule] = []
     nonblocking_rules: List[Rule] = []
+    prev_scan_rules: List[Rule] = []
     cai_rules: List[Rule] = []
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
+        elif rule.scan_source == RuleScanSource.previous_scan:
+            prev_scan_rules.append(rule)
         else:
             if rule.is_blocking:
                 blocking_rules.append(rule)
@@ -428,6 +432,7 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
+    prev_scan_matches_by_rule: RuleMatchMap = defaultdict(list)
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
@@ -454,6 +459,11 @@ def ci(
                 if rule.is_blocking and "sca_info" not in match.extra
                 else nonblocking_matches_by_rule
             )
+
+            # NOTE: if the rule belongs to the previous scan, should not be included in blocking/non-blocking
+            if rule.scan_source == RuleScanSource.previous_scan:
+                applicable_result_set = prev_scan_matches_by_rule
+
             applicable_result_set[rule].append(match)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
@@ -478,8 +488,9 @@ def ci(
     )
     if scan_handler:
         logger.info("  Uploading findings.")
+        # TODO(vivek): fix this to send previous scan findings to the app.
         scan_handler.report_findings(
-            filtered_matches_by_rule,
+            {**blocking_matches_by_rule, **nonblocking_matches_by_rule, **cai_matches_by_rule},
             semgrep_errors,
             filtered_rules,
             output_extra.all_targets,
@@ -490,6 +501,7 @@ def ci(
             metadata.commit_datetime,
             dependencies,
             engine_type,
+            prev_scan_matches_by_rule,
         )
         logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
