@@ -471,10 +471,6 @@ def ci(
             applicable_result_set[rule].append(match)
 
     logger.info("bar"*100)
-    print(blocking_matches_by_rule)
-    print(nonblocking_matches_by_rule)
-    print(cai_matches_by_rule)
-    print(prev_scan_matched_by_rule)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
