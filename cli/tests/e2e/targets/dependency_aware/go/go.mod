@@ -1,3 +1,4 @@
+// comment
 module github.com/foo
 
 go 1.18
@@ -34,6 +35,7 @@ require (
 )
 
 require (
+	// comment
 	github.com/riandyrn/otelchi v0.5.0
 	go.opentelemetry.io/otel v1.11.1
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.1
@@ -44,6 +46,7 @@ require (
 )
 
 replace (
+		// my comment
     github.com/riandyrn/otelchi v0.5.0 => github.com/riandyrn/otelchi v0.5.1
    	go.opentelemetry.io/otel v1.11.1 => go.opentelemetry.io/otel v1.11.2
 )
