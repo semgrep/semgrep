@@ -16,54 +16,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "targets/dependency_aware/go/sca.go"
     ]
   },
-  "results": [
-    {
-      "check_id": "rules.dependency_aware.go-sca",
-      "end": {
-        "col": 14,
-        "line": 2,
-        "offset": 24
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "\treturn bad()",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "gomod",
-              "package": "github.com/cheekybits/genny",
-              "semver_range": "== 99.99.99"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "gomod",
-              "line_number": 15,
-              "package": "github.com/cheekybits/genny",
-              "resolved_url": "github.com/cheekybits/genny",
-              "transitivity": "direct",
-              "version": "99.99.99"
-            },
-            "lockfile": "targets/dependency_aware/go/go.mod"
-          },
-          "reachability_rule": true,
-          "reachable": true,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/go/sca.go",
-      "start": {
-        "col": 9,
-        "line": 2,
-        "offset": 19
-      }
-    }
-  ],
+  "results": [],
   "version": "0.42"
 }
 === end of stdout - plain
@@ -82,12 +35,16 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                     
   SUPPLY CHAIN RULES
   Scanning 1 file.
+  Failed to parse [bold]targets/dependency_aware/go/go.mod[/bold] at            
+  [bold]2:1[/bold] - expected one of ['\n', ' *//([^\\n]*)', 'EOF']             
+  2 | module github.com/foo                                                     
+      ^                                                                         
                 
                 
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
 
-Ran 1 rule on 2 files: 1 finding.
+Ran 1 rule on 2 files: 0 findings.
 
 === end of stderr - plain
