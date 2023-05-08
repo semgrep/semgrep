@@ -266,7 +266,7 @@ class SarifFormatter(BaseFormatter):
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": f"Semgrep Finding - {rule.id}"},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {
@@ -290,19 +290,17 @@ class SarifFormatter(BaseFormatter):
 
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
-            references.extend([f"[Semgrep Rule]({rule_url})"])
+            references.append([f"[Semgrep Rule]({rule_url})"])
 
-        if "references" in rule.metadata:
+        if rule.metadata.get("references"):
             ref = rule.metadata["references"]
             references.extend(
                 [f"[{r}]({r})" for r in ref]
                 if isinstance(ref, list)
-                else [ref]
+                else [f"[{ref}]({ref})"]
             )
         if references:
-            r = ""
-            for item in references:
-                r += "\n - {}".format(item)
+            r = "".join([f" - {references_markdown}\n" for references_markdown in references])
             rule_json["help"] = {}
             rule_json["help"]["text"] = rule.message
             rule_json["help"]["markdown"] = f"{rule.message}\n\n<b>References:</b>\n{r}"
