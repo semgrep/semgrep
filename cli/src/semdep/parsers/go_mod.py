@@ -64,7 +64,7 @@ directive = alt(
 )
 
 go_mod = (
-    (comment.optional() >> string("\n").many())
+    (comment.optional() >> string("\n")).many()
     >> directive.sep_by((comment.optional() >> string("\n")).at_least(1))
     << (comment.optional() >> string("\n")).many()
 )
