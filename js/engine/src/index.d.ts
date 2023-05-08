@@ -6,7 +6,7 @@ export interface Parser {
   parsePattern: (printErrors: boolean, lang: string, pattern: string) => any;
 }
 export interface Engine {
-  getParserForLang: (name: string) => string | null;
+  lookupLang: (name: string) => string | null;
   addParser: (parser: Parser) => void;
   hasParser: (lang: string) => boolean;
   execute: (

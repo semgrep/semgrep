@@ -5,18 +5,8 @@ open Js_of_ocaml
    (see companion setter in Semgrep_js_shared.ml) *)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
 
-(* Overrides are required because we don't have a 1:1 correspondence between Lang.t and parsers
-   For example, the Python parser handles all of the Python Langs *)
-let parser_lang_overrides =
-  Common.hash_of_list
-    [
-      ("python2", "python");
-      ("python3", "python");
-      ("py", "python");
-      ("xml", "html");
-      ("scheme", "lisp");
-      ("clojure", "lisp");
-    ]
+type jbool = bool Js.t
+type jstring = Js.js_string Js.t
 
 let _ =
   Common.jsoo := true;
@@ -29,48 +19,42 @@ let _ =
   *)
   Js.export_all
     (object%js
+       (*
+          The following methods are used internally by js/engine/src/index.js.
+        *)
        method getMountpoints = get_jsoo_mount_point ()
        method setLibYamlWasmModule = Libyaml_stubs_js.set_libyaml_wasm_module
 
+       method setParsePattern (func : jbool -> jstring -> jstring -> 'a) =
+         Parse_pattern.parse_pattern_ref :=
+           fun print_error lang pattern ->
+             func (Js.bool print_error)
+               (Js.string (Lang.to_lowercase_alnum lang))
+               (Js.string pattern)
+
+       method setJustParseWithLang
+           (func : jstring -> jstring -> Parsing_result2.t) =
+         Parse_target.just_parse_with_lang_ref :=
+           fun lang filename ->
+             func
+               (Js.string (Lang.to_lowercase_alnum lang))
+               (Js.string filename)
+
+       (*
+          The following methods are part of the engine's public API.
+          Refer to js/engine/src/index.d.ts for more information.
+        *)
        method writeFile filename content =
          Common.write_file (Js.to_string filename) (Js.to_string content)
 
        method deleteFile filename = Sys.remove (Js.to_string filename)
 
-       method setParsePattern
-           (func : bool -> Js.js_string Js.t -> Js.js_string Js.t -> 'a) =
-         Parse_pattern.parse_pattern_ref :=
-           fun print_error lang target ->
-             func print_error
-               (lang |> Lang.to_lowercase_alnum |> String.lowercase_ascii
-              |> Js.string)
-               (Js.string target)
+       method lookupLang lang_str =
+         match Lang.of_string_opt (Js.to_string lang_str) with
+         | Some lang -> Js.some (Js.string (Lang.to_lowercase_alnum lang))
+         | None -> Js.null
 
-       method setJustParseWithLang
-           (func : Js.js_string Js.t -> Js.js_string Js.t -> Parsing_result2.t)
-           =
-         Parse_target.just_parse_with_lang_ref :=
-           fun lang pattern ->
-             func
-               (lang |> Lang.to_lowercase_alnum |> String.lowercase_ascii
-              |> Js.string)
-               (Js.string pattern)
-
-       method getParserForLang lang_js_str =
-         let lang_str = Js.to_string lang_js_str in
-         match Hashtbl.find_opt parser_lang_overrides lang_str with
-         | Some parser -> Js.some (Js.string parser)
-         | None -> (
-             match Lang.of_string_opt lang_str with
-             | Some lang ->
-                 Js.some
-                   (Js.string
-                      (String.lowercase_ascii (Lang.to_lowercase_alnum lang)))
-             | None -> Js.null)
-
-       method execute (language : Js.js_string Js.t)
-           (rule_file : Js.js_string Js.t) (source_file : Js.js_string Js.t)
-           : string =
+       method execute language rule_file source_file : string =
          let config : Runner_config.t =
            {
              Runner_config.default with

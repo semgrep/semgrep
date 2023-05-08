@@ -20,7 +20,7 @@ export const EngineFactory = async (wasmUri) => {
     setParsePattern,
     setJustParseWithLang,
     execute,
-    getParserForLang,
+    lookupLang,
     writeFile,
     deleteFile,
   } = require("../../../_build/default/js/engine/Main.bc");
@@ -49,7 +49,7 @@ export const EngineFactory = async (wasmUri) => {
   setJustParseWithLang(parseFile);
 
   return {
-    getParserForLang,
+    lookupLang,
     addParser: (parser) => {
       parser.setMountpoints(getMountpoints());
       parser.getLangs().forEach((lang) => {
