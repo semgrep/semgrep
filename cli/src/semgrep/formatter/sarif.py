@@ -52,7 +52,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": source_message_text},
                         },
                     },
-                }
+                },
+                "nestingLevel": 0
             }
             return taint_source_location_sarif
 
@@ -84,7 +85,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": propagation_message_text},
                         },
                     },
-                }
+                },
+                "nestingLevel": 0
             }
             intermediate_var_locations.append(intermediate_vars_location_sarif)
         return intermediate_var_locations
@@ -110,7 +112,8 @@ class SarifFormatter(BaseFormatter):
                         "message": {"text": sink_message_text},
                     },
                 },
-            }
+            },
+            "nestingLevel": 1
         }
         return sink_location_sarif
 
@@ -258,11 +261,12 @@ class SarifFormatter(BaseFormatter):
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
         security_severity = rule.metadata.get("security-severity")
+
         if security_severity is not None:
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {
@@ -275,16 +279,31 @@ class SarifFormatter(BaseFormatter):
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding - {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {"precision": "very-high", "tags": tags},
             }
 
         rule_url = rule.metadata.get("source")
+        references = []
+
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
+            references.append(f"[Semgrep Rule]({rule_url})")
 
+        if rule.metadata.get("references"):
+            ref = rule.metadata["references"]
+            references.extend(
+                [f"[{r}]({r})" for r in ref]
+                if isinstance(ref, list)
+                else [f"[{ref}]({ref})"]
+            )
+        if references:
+            r = "".join([f" - {references_markdown}\n" for references_markdown in references])
+            rule_json["help"] = {}
+            rule_json["help"]["text"] = rule.message
+            rule_json["help"]["markdown"] = f"{rule.message}\n\n<b>References:</b>\n{r}"
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
@@ -326,6 +345,9 @@ class SarifFormatter(BaseFormatter):
                 if isinstance(owasp, list)
                 else [f"OWASP-{owasp}"]
             )
+        if "confidence" in rule.metadata:
+            confidence = rule.metadata["confidence"]
+            result.extend([f"{confidence} CONFIDENCE"])
         if (
             "semgrep.policy" in rule.metadata
             and "slug" in rule.metadata["semgrep.policy"]
