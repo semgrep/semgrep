@@ -255,14 +255,15 @@ and 'a argument = Unnamed of 'a | Named of ident * 'a
 (* Types *)
 (*****************************************************************************)
 
-(* THINK: Types contain expressions that we want to check, but right now we don't
- * need to duplicate the type 'type_' just for this (perhaps we could parameterize it?). *)
+(* THINK: Types contain expressions that we want to check (see e.g. 'TyExpr'), but
+ * right now we don't need/want to duplicate the type 'type_' just for this
+ * (perhaps we could parameterize it?). *)
 type type_ = {
   type_ : G.type_;
   exps : exp list;
       (* IL translation of the expressions in `type_`, we want to check them because
-       * these could be sinks! E.g. in `new E(args)` the class/constructor E could be
-       * a sink. *)
+       * these could be sinks! E.g. in PHP you can have `new $cons(args)` and the
+       * constructor $cons could be a sink. See 'tests/rules/misc_php_new_taint.php'. *)
 }
 [@@deriving show { with_path = false }]
 

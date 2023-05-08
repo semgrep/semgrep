@@ -578,8 +578,10 @@ and expr_aux env ?(void = false) e_gen =
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
   | G.New (tok, ty, _cons_id_info, args) ->
-      (* Fall-through case where we don't know to what variable the allocated object
-       * is being assigned to. *)
+      (* HACK: Fall-through case where we don't know to what variable the allocated
+       * object is being assigned to. See HACK(new), we expect to intercept `New`
+       * already in 'stmt_aux'.
+       *)
       let lval = fresh_lval env tok in
       let args = arguments env (Tok.unbracket args) in
       add_instr env (mk_i (New (lval, type_ env ty, None, args)) eorig);
@@ -1174,6 +1176,8 @@ and stmt_aux env st =
             _;
           } ) ->
       (* x = new T(args) *)
+      (* HACK(new): Because of field-sensitivity hacks, we need to know to which
+       * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in
       let obj_lval = lval_of_base (Var obj') in
       let ss, args' = args_with_pre_stmts env (Tok.unbracket args) in
@@ -1188,7 +1192,8 @@ and stmt_aux env st =
                  rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
                })
             (SameAs (N cons |> G.e))
-          (* THINK: We need this because Pro looks at the eorig, but maybe it shouldn't? *)
+          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+           * looks at the eorig, but maybe it shouldn't? *)
         in
         Some cons_exp
       in

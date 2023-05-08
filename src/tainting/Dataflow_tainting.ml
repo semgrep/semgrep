@@ -914,6 +914,11 @@ let rec check_tainted_lval env ?(fix_poly_field = false) (lval : IL.lval) :
   report_findings { env with lval_env } findings;
   (taints, lval_env)
 
+(* With 'fix_poly_field', given an l-value 'x.a', if 'x' has polymorphic taint
+ * (hence the taint comes from formal argument), and we have no info for 'x.a',
+ * then we'll add the offset '.a' to that taint. This is a field-sensitive HACK
+ * for which there could be unexpected side-effects, so to be on the safe side
+ * we only enable it when analyzing the taint signature of a function. *)
 and check_tainted_lval_aux env ~fix_poly_field (lval : IL.lval) :
     Taints.t
     (* `Sanitized means that the lval matched a sanitizer "right now", whereas
@@ -1160,7 +1165,8 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * In the simplest case this just obtains the actual argument:
  * E.g. `lval_of_sig_arg f [x;y;z] [a;b;c] (x,0) = a`
  *
- * But 'sig_arg' may also specify an offset.
+ * The 'sig_arg' may refer to `this` and also have an offset:
+ * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
   let* base_lval, obj =
@@ -1212,7 +1218,15 @@ let check_function_signature env fun_exp args args_taints =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch f; eorig = SameAs eorig } ->
       let* fparams, fun_sig = hook env.config eorig in
-      let process_sig : T.finding -> _ list = function
+      let process_sig :
+          T.finding ->
+          [ `Return of Taints.t
+          | (* ^ Taints flowing through the function's output *)
+            `UpdateEnv of
+            lval * Taints.t
+            (* ^ Taints flowing through function's arguments (or the callee object) by side-effect *)
+          ]
+          list = function
         | T.ToReturn (taints, _return_tok) ->
             taints
             |> Common.map_filter (fun t ->
@@ -1310,15 +1324,24 @@ let check_function_signature env fun_exp args args_taints =
             |> report_findings env;
             []
         | T.ToArg (taints, dst_arg) ->
+            (* Taints 'taints' go into an argument of the call, by side-effect.
+             * Right now this is mainly used to track taint going into specific
+             * fields of the callee object, like `this.x = "tainted"`. *)
+            let+ dst_lval, dst_obj =
+              (* 'dst_lval' is the actual argument/l-value that corresponds
+                 * to the formal argument 'dst_arg'. *)
+              lval_of_sig_arg fun_exp fparams args dst_arg
+            in
             taints
             |> List.concat_map (fun t ->
-                   let+ dst_lval, dst_obj =
-                     lval_of_sig_arg fun_exp fparams args dst_arg
-                   in
                    let+ dst_taints =
                      match t.T.orig with
                      | Src _ -> Some (Taints.singleton t)
                      | Arg src_arg ->
+                         (* Taint is flowing from one argument to another argument
+                          * (or possibly the callee object). Given the formal poly
+                          * taint 'src_arg', we compute the actual taint in the
+                          * context of this function call. *)
                          taints_of_sig_arg env fparams fun_exp args args_taints
                            src_arg
                          |> Option.map
@@ -1346,7 +1369,7 @@ let check_function_signature env fun_exp args args_taints =
   | Some _, _ ->
       None
 
-let check_function_callee env e =
+let check_function_call_callee env e =
   match e with
   | {
    e =
@@ -1358,14 +1381,18 @@ let check_function_callee env e =
    * For Java `getX` methods for which we have no definition available
    * (or could not be resolved) we just assume that they are getter methods
    * and we use `fix_poly_field` to add the `.getX` offset in case `_obj`
-   * were a parameter. *)
+   * were a parameter (e.g. `this`) and had polymorphic taint. *)
     when env.lang =*= Lang.Java
          && (not (LV.is_pro_resolved_global method_))
          && Stdcompat.String.starts_with ~prefix:"get" (fst method_.ident) ->
       check_tainted_lval env ~fix_poly_field:true e_lval
   | __else__ -> check_tainted_expr env e
 
-let check_function_arguments env args =
+(* Check the actual arguments of a function call. This also handles left-to-right
+ * taint propagation by chaining the 'lval_env's returned when checking the arguments.
+ * For example, given `foo(x.a)` we'll check whether `x.a` is tainted or whether the
+ * argument is a sink. *)
+let check_function_call_arguments env args =
   let args_taints, (lval_env, all_taints) =
     args
     |> List.fold_left_map
@@ -1386,9 +1413,6 @@ let check_function_arguments env args =
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-(* TODO: This should return a new var_env rather than just taint, it
- * makes more sense given that an instruction may have side-effects.
- * It Also makes simpler to handle sanitization by side-effect. *)
 let check_tainted_instr env instr : Taints.t * Lval_env.t =
   let check_expr env = check_tainted_expr env in
   let check_instr = function
@@ -1396,10 +1420,10 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
     | AssignAnon _ -> (Taints.empty, env.lval_env) (* TODO *)
     | Call (_, e, args) ->
         let args_taints, all_args_taints, lval_env =
-          check_function_arguments env args
+          check_function_call_arguments env args
         in
         let e_taints, lval_env =
-          check_function_callee { env with lval_env } e
+          check_function_call_callee { env with lval_env } e
         in
         (* After we introduced Top_sinks, we need to explicitly support sinks like
          * `sink(...)` by considering that all of the parameters are sinks. To make
@@ -1436,7 +1460,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
     | New (_lval, _ty, Some constructor, args) -> (
         (* 'New' with reference to constructor, although it doesn't mean it has been resolved. *)
         let args_taints, all_args_taints, lval_env =
-          check_function_arguments env args
+          check_function_call_arguments env args
         in
         match
           check_function_signature { env with lval_env } constructor args
@@ -1588,9 +1612,11 @@ let transfer :
                  * See [Taint_lval_env] for details. *)
                 match x.i with
                 | New _ ->
-                    (* Pro:`x = new T(args)` is interpreted as `x.T(args)` where `T` is the
-                     * constructor. But `x.T` does not return any taint, taint is propagated
-                     * to `x` by side-effect. If clean `x` here, then we would that taint.
+                    (* Pro/HACK: `x = new T(args)` is interpreted as `x.T(args)` where `T`
+                     * is the constructor. But `x.T` does not return any taint, taint is
+                     * propagated to `x` by side-effect, and in a field-sensitivity way.
+                     * If we clean `x` here, then we would be removing that taint.
+                     *
                      * TODO: `new T(args)` should return an "object taint signature". *)
                     lval_env'
                 | _ -> Lval_env.clean lval_env' lval)
