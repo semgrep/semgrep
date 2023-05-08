@@ -279,7 +279,7 @@ class SarifFormatter(BaseFormatter):
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": f"Semgrep Finding - {rule.id}"},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {"precision": "very-high", "tags": tags},
