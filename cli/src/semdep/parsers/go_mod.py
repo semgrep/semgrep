@@ -48,7 +48,7 @@ def make_directive(
     return pair(dir, multi_spec(spec))
 
 
-dep_spec = (regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.result(None))
+dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.result(None)
 
 specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
     "module": consume_line,
