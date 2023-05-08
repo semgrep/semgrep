@@ -91,7 +91,7 @@ let run (conf : conf) : Exit_code.t =
         in
         let metarules_and_origin =
           Rule_fetching.rules_from_dashdash_config
-            (Semgrep_dashdash_config.config_kind_of_config_str metarules_pack)
+            (Semgrep_dashdash_config.parse_config_string metarules_pack)
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin
