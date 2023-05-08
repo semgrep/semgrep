@@ -157,6 +157,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
   Metrics_.configure conf.metrics;
+  let settings = Semgrep_settings.load () in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -191,7 +192,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
       (* Rule_fetching.rules_and_origin record also contain errors *)
       let rules_and_origins =
-        Rule_fetching.rules_from_rules_source
+        Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
           ~rewrite_rule_ids:conf.rewrite_rule_ids conf.rules_source
       in
       let rules, errors =

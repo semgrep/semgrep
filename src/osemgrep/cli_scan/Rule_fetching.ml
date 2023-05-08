@@ -209,12 +209,13 @@ let load_rules_from_file (file : Fpath.t) : rules_and_origin =
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url ?(ext = "yaml") url : rules_and_origin =
+let load_rules_from_url ?(token_opt = None) ?(ext = "yaml") url :
+    rules_and_origin =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
     let headers =
-      match Semgrep_settings.((get ()).api_token) with
+      match token_opt with
       | None -> None
       | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
     in
@@ -245,8 +246,8 @@ let load_rules_from_url ?(ext = "yaml") url : rules_and_origin =
       let res = load_rules_from_file file in
       { res with origin = None })
 
-let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
-    rules_and_origin list =
+let rules_from_dashdash_config ~token_opt
+    (kind : Semgrep_dashdash_config.config_kind) : rules_and_origin list =
   match kind with
   | C.File file -> [ load_rules_from_file file ]
   | C.Dir dir ->
@@ -274,7 +275,10 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
       let url = Network_registry.url_of_registry_config_kind rkind in
       [ load_rules_from_url url ]
   | C.A Policy ->
-      [ load_rules_from_url ~ext:"policy" (Network_app.url_for_policy ()) ]
+      [
+        load_rules_from_url ~token_opt ~ext:"policy"
+          (Network_app.url_for_policy ~token_opt);
+      ]
   | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
 
 (*****************************************************************************)
@@ -282,14 +286,14 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
 (*****************************************************************************)
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~rewrite_rule_ids (src : Rules_source.t) :
-    rules_and_origin list =
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids (src : Rules_source.t)
+    : rules_and_origin list =
   match src with
   | Configs xs ->
       xs
       |> List.concat_map (fun str ->
              let kind = Semgrep_dashdash_config.parse_config_string str in
-             rules_from_dashdash_config kind)
+             rules_from_dashdash_config ~token_opt kind)
       |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)

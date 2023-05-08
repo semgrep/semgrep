@@ -1,7 +1,5 @@
 (* internally rely on api_token in ~/.settings and SEMGREP_REPO_NAME *)
-val url_for_policy : unit -> Uri.t
+val url_for_policy : token_opt:Auth.token option -> Uri.t
 
-(* auth *)
-
-(* ?? *)
-val get_deployment_from_token : string -> string option
+(* *)
+val get_deployment_from_token : token:Auth.token -> string option
