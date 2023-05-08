@@ -290,7 +290,7 @@ class SarifFormatter(BaseFormatter):
 
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
-            references.append([f"[Semgrep Rule]({rule_url})"])
+            references.append(f"[Semgrep Rule]({rule_url})")
 
         if rule.metadata.get("references"):
             ref = rule.metadata["references"]
