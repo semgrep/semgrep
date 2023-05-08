@@ -48,7 +48,7 @@ def make_directive(
     return pair(dir, multi_spec(spec))
 
 
-dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2))
+dep_spec = (regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.result(None))
 
 specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
     "module": consume_line,
@@ -64,7 +64,8 @@ directive = alt(
 )
 
 go_mod = (
-    directive.sep_by((comment.optional() >> string("\n")).at_least(1))
+    (comment.optional() >> string("\n").many())
+    >> directive.sep_by((comment.optional() >> string("\n")).at_least(1))
     << (comment.optional() >> string("\n")).many()
 )
 
