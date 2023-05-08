@@ -24,6 +24,7 @@ module Config = Config_semgrep_t
 module MG = Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
+let profile_mini_rules = ref false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -50,7 +51,10 @@ let set_last_matched_rule rule f =
   (* note that if this raise an exn, last_matched_rule will not be
    * reset to None and that's what we want!
    *)
-  let res = f () in
+  let res =
+    if !profile_mini_rules then Profiling.profile_code ("rule:" ^ rule.MR.id) f
+    else f ()
+  in
   last_matched_rule := None;
   res
 
@@ -59,83 +63,71 @@ let set_last_matched_rule rule f =
 (*****************************************************************************)
 
 let match_e_e rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_expr_root a b env))
+  set_last_matched_rule rule (fun () -> GG.m_expr_root a b env)
   [@@profiling]
 
 let match_st_st rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
+  set_last_matched_rule rule (fun () -> GG.m_stmt a b env)
   [@@profiling]
 
 let match_sts_sts rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () ->
-          (* When matching statements, we need not only to report whether
-           * there is match, but also the actual statements that were matched.
-           * Indeed, even if we want the implicit '...' at the end of
-           * a sequence of statements pattern (AST_generic.Ss) to match all
-           * the rest, we don't want to report the whole Ss as a match but just
-           * the actually matched subset.
-           *
-           * TODO? do we need to generate unique key? we don't want
-           * nested calls to m_stmts_deep to pollute our metavar? We need
-           * to pass the key to m_stmts_deep?
-           *)
-          let env =
-            match b with
-            | [] -> env
-            | stmt :: _ -> MG.extend_stmts_match_span stmt env
-          in
-          GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env))
+  set_last_matched_rule rule (fun () ->
+      (* When matching statements, we need not only to report whether
+       * there is match, but also the actual statements that were matched.
+       * Indeed, even if we want the implicit '...' at the end of
+       * a sequence of statements pattern (AST_generic.Ss) to match all
+       * the rest, we don't want to report the whole Ss as a match but just
+       * the actually matched subset.
+       *
+       * TODO? do we need to generate unique key? we don't want
+       * nested calls to m_stmts_deep to pollute our metavar? We need
+       * to pass the key to m_stmts_deep?
+       *)
+      let env =
+        match b with
+        | [] -> env
+        | stmt :: _ -> MG.extend_stmts_match_span stmt env
+      in
+      GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
   [@@profiling]
 
 (* for unit testing *)
 let match_any_any pattern e env = GG.m_any pattern e env
 
 let match_t_t rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_type_ a b env))
+  set_last_matched_rule rule (fun () -> GG.m_type_ a b env)
   [@@profiling]
 
 let match_p_p rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_pattern a b env))
+  set_last_matched_rule rule (fun () -> GG.m_pattern a b env)
   [@@profiling]
 
 let match_partial_partial rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_partial a b env))
+  set_last_matched_rule rule (fun () -> GG.m_partial a b env)
   [@@profiling]
 
 let match_at_at rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_attribute a b env))
+  set_last_matched_rule rule (fun () -> GG.m_attribute a b env)
   [@@profiling]
 
 let match_fld_fld rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_field a b env))
+  set_last_matched_rule rule (fun () -> GG.m_field a b env)
   [@@profiling]
 
 let match_flds_flds rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_fields a b env))
+  set_last_matched_rule rule (fun () -> GG.m_fields a b env)
   [@@profiling]
 
 let match_name_name rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_name a b env))
+  set_last_matched_rule rule (fun () -> GG.m_name a b env)
   [@@profiling]
 
 let match_xml_attribute_xml_attribute rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env))
+  set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env)
   [@@profiling]
 
 let match_raw_raw rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
+  set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env)
   [@@profiling]
 
 (*****************************************************************************)
