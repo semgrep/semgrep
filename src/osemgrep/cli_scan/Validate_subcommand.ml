@@ -63,8 +63,8 @@ let metarules_pack = "p/semgrep-rule-lints"
 (*****************************************************************************)
 
 let run (conf : conf) : Exit_code.t =
-  (* Do we need to load the settings in a validate context? *)
-  let token_opt = None in
+  let settings = Semgrep_settings.load () in
+  let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
    * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
