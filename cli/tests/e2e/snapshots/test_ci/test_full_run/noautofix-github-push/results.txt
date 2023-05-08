@@ -35,7 +35,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
                             
                             
 ┌──────────────────────────┐
-│ 6 Blocking Code Findings │
+│ 4 Blocking Code Findings │
 └──────────────────────────┘
            
     foo.py 
@@ -49,16 +49,6 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four                 
-          useless comparison to 4
-                                 
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test             
-          unsafe use of danger
-                              
-           27┆ sink(d2)
                                     
                                     
 ┌──────────────────────────────────┐
@@ -71,11 +61,11 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
                             
             1┆ [[package]]
             2┆ name = "badlib"
-                               
-                               
-┌─────────────────────────────┐
-│ 1 Non-blocking Code Finding │
-└─────────────────────────────┘
+                                
+                                
+┌──────────────────────────────┐
+│ 2 Non-blocking Code Findings │
+└──────────────────────────────┘
            
     foo.py 
        eqeq-five                 
@@ -83,11 +73,14 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="push" GITHUB_REPOSITORY="proj
                                  
            ▶▶┆ Autofix ▶ (x == 2)
            15┆ x == 5
+            ⋮┆----------------------------------------
+       taint-test             
+          unsafe use of danger
+                              
+           27┆ sink(d2)
                             
   BLOCKING CODE RULES FIRED:
     eqeq-bad
-    eqeq-four
-    taint-test
 
                 
                 
@@ -98,7 +91,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 7 findings (4 blocking) from 6 rules.
   Uploading findings.
   View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
