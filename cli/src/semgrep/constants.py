@@ -61,6 +61,14 @@ class RuleSeverity(Enum):
         raise ValueError(f"invalid rule severity value: {value}")
 
 
+class RuleScanSource(Enum):
+    unannotated = auto()
+    unchanged = auto()
+    new_version = auto()
+    new_rule = auto()
+    previous_scan = auto()
+
+
 RULE_ID_RE_STR = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"
 
 # Inline 'noqa' implementation modified from flake8:
