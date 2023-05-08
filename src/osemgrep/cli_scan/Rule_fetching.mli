@@ -17,6 +17,7 @@ val partition_rules_and_errors :
 val rules_from_rules_source :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
+  registry_caching:bool ->
   Rules_source.t ->
   rules_and_origin list
 
@@ -28,11 +29,12 @@ val rules_from_rules_source :
  *)
 val rules_from_dashdash_config :
   token_opt:Auth.token option ->
+  registry_caching:bool ->
   Semgrep_dashdash_config.config_kind ->
   rules_and_origin list
 
 (* low-level API *)
-val load_rules_from_file : Fpath.t -> rules_and_origin
+val load_rules_from_file : registry_caching:bool -> Fpath.t -> rules_and_origin
 
 val load_rules_from_url :
   ?token_opt:Auth.token option -> ?ext:string -> Uri.t -> rules_and_origin

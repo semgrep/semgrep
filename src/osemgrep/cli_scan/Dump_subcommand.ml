@@ -95,7 +95,8 @@ let run (conf : conf) : Exit_code.t =
   | Config config_str ->
       let kind = Semgrep_dashdash_config.parse_config_string config_str in
       let rules_and_origins =
-        Rule_fetching.rules_from_dashdash_config ~token_opt kind
+        Rule_fetching.rules_from_dashdash_config ~token_opt
+          ~registry_caching:false kind
       in
       rules_and_origins
       |> List.iter (fun x ->

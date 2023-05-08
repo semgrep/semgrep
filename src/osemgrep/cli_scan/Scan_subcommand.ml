@@ -193,7 +193,8 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* Rule_fetching.rules_and_origin record also contain errors *)
       let rules_and_origins =
         Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
-          ~rewrite_rule_ids:conf.rewrite_rule_ids conf.rules_source
+          ~rewrite_rule_ids:conf.rewrite_rule_ids
+          ~registry_caching:conf.registry_caching conf.rules_source
       in
       let rules, errors =
         Rule_fetching.partition_rules_and_errors rules_and_origins
