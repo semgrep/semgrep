@@ -419,6 +419,7 @@ Would have sent findings and ignores blob: {
             }
         }
     ],
+    "prev_scan_findings": [],
     "searched_paths": [
         "foo.py",
         "poetry.lock",
