@@ -122,7 +122,7 @@ let to_lowercase_alnum = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.id | lower }}"
 {% endfor %}
 
-(* must match [a-z][a-z0-9]* *)
+(* must match [A-Z][a-z0-9]* *)
 let to_capitalized_alnum = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.id }}"
 {% endfor %}
