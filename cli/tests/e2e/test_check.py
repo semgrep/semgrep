@@ -273,6 +273,7 @@ def test_url_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_auto_config(run_semgrep_in_tmp: RunSemgrep, mocker):
     # --config auto will change over time, so lets just make sure this doesn't error out

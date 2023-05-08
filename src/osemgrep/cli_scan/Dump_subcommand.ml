@@ -24,7 +24,7 @@ type conf = { target : target_kind; json : bool }
 and target_kind =
   | Pattern of string * Lang.t
   | File of Fpath.t * Lang.t
-  | Config of Semgrep_dashdash_config.config_str
+  | Config of Semgrep_dashdash_config.config_string
 [@@deriving show]
 
 (*****************************************************************************)
@@ -90,7 +90,7 @@ let run (conf : conf) : Exit_code.t =
       Logs.app (fun m -> m "%s" s);
       Exit_code.ok
   | Config config_str ->
-      let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
+      let kind = Semgrep_dashdash_config.parse_config_string config_str in
       let rules_and_origins = Rule_fetching.rules_from_dashdash_config kind in
       rules_and_origins
       |> List.iter (fun x ->
