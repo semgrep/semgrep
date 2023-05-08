@@ -10,7 +10,7 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
                             
                             
 ┌──────────────────────────┐
-│ 6 Blocking Code Findings │
+│ 5 Blocking Code Findings │
 └──────────────────────────┘
            
     foo.py 
@@ -24,11 +24,6 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-            ⋮┆----------------------------------------
-       eqeq-four                 
-          useless comparison to 4
-                                 
-           19┆ baz == 4
             ⋮┆----------------------------------------
        taint-test             
           unsafe use of danger
@@ -61,7 +56,6 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
                             
   BLOCKING CODE RULES FIRED:
     eqeq-bad
-    eqeq-four
     taint-test
 
 
@@ -102,7 +96,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 7 findings (5 blocking) from 6 rules.
   Uploading findings.
   View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
