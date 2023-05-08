@@ -182,7 +182,7 @@ let find_typehint toks =
         | TCBRACE _ ->
             ([], []) (* absolutely will not be in a typehint *)
         | TCOLON _ ->
-            if depth == 0 then (List.rev (x :: acc), xs)
+            if depth =|= 0 then (List.rev (x :: acc), xs)
             else aux xs (x :: acc) depth
         | _ -> aux xs (x :: acc) depth)
   in
