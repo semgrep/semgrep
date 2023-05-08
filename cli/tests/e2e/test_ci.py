@@ -246,7 +246,7 @@ def automocks(mocker):
           pattern-sinks:
             - pattern: sink($X)
           metadata:
-            dev.semgrep.actions: []
+            dev.semgrep.actions: ["block"]
             semgrep.dev:
                 rule:
                     rule_id: "abcf"
