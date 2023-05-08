@@ -171,48 +171,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
-      "check_id": "eqeq-four",
-      "end": {
-        "col": 13,
-        "line": 19,
-        "offset": 227
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    baz == 4",
-        "message": "useless comparison to 4",
-        "metadata": {
-          "dev.semgrep.actions": [
-            "block"
-          ]
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "baz",
-            "end": {
-              "col": 8,
-              "line": 19,
-              "offset": 222
-            },
-            "start": {
-              "col": 5,
-              "line": 19,
-              "offset": 219
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 19,
-        "offset": 219
-      }
-    },
-    {
       "check_id": "taint-test",
       "end": {
         "col": 13,
@@ -283,7 +241,20 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "is_ignored": false,
         "lines": "    sink(d2)",
         "message": "unsafe use of danger",
-        "metadata": {},
+        "metadata": {
+          "dev.semgrep.actions": [
+            "block"
+          ],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abcf",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version1"
+            },
+            "src": "new-rule"
+          }
+        },
         "metavars": {
           "$X": {
             "abstract_content": "d2",
@@ -336,7 +307,16 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "lines": "    x == 5",
         "message": "useless comparison to 5",
         "metadata": {
-          "dev.semgrep.actions": []
+          "dev.semgrep.actions": [],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abcd",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version1"
+            },
+            "src": "unchanged"
+          }
         },
         "metavars": {
           "$X": {
@@ -452,7 +432,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 7 findings (5 blocking) from 6 rules.
   Uploading findings.
   View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
