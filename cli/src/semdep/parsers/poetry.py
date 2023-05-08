@@ -85,6 +85,16 @@ poetry_dep = mark_line(
     string("[[package]]\n") >> key_value.sep_by(string("\n")).map(lambda x: dict(x))
 )
 
+# Poetry Source which we ignore
+# Example:
+# [[tool.poetry.source]]
+# name = "semgrep"
+# url = "https://artifact.semgrep.com/"
+# secondary = False
+poetry_source_extra = (
+    string("[[") >> upto("]") << string("]]\n") >> key_value.sep_by(string("\n"))
+).map(lambda _: None)
+
 # Extra data from a dependency, which we just treat as standalone data and ignore
 # Example:
 # [package.extras]
@@ -120,7 +130,7 @@ manifest_deps = string("[tool.poetry.dependencies]\n") >> key_value.map(
 ).sep_by(string("\n"))
 
 # A whole pyproject.toml file. We only about parsing the manifest_deps
-manifest = (manifest_deps | poetry_dep_extra).sep_by(
+manifest = (manifest_deps | poetry_dep_extra | poetry_source_extra).sep_by(
     string("\n").times(min=1, max=float("inf"))
 ).map(lambda xs: {y for x in xs if x for y in x}) << string("\n").optional()
 
