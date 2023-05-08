@@ -1,6 +1,14 @@
 const { EngineFactory } = require("../dist/index");
 
-test("it loads the engine", async () => {
-  const engine = await EngineFactory("./dist/semgrep-engine.wasm");
-  expect(engine.lookupLang("python")).toBe(24);
+const enginePromise = EngineFactory("./dist/semgrep-engine.wasm");
+
+describe("lookupParserName", () => {
+  test("handles base case", async () => {
+    const engine = await enginePromise;
+    expect(engine.lookupLang("java")).toEqual("java");
+  });
+  test("handles invalid languages", async () => {
+    const engine = await enginePromise;
+    expect(engine.lookupLang("fake-language")).toBeNull();
+  });
 });

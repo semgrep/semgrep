@@ -1,15 +1,14 @@
 export type Mountpoint = object;
-export type Lang = number;
 export interface Parser {
-  getLangs: () => Lang[];
+  getLangs: () => string[];
   setMountpoints: (mountpoints: Mountpoint[]) => void;
-  parseTarget: (lang: Lang, filename: string) => any;
-  parsePattern: (printErrors: boolean, lang: Lang, pattern: string) => any;
+  parseTarget: (lang: string, filename: string) => any;
+  parsePattern: (printErrors: boolean, lang: string, pattern: string) => any;
 }
 export interface Engine {
-  lookupLang: (name: string) => Lang;
+  lookupLang: (name: string) => string | null;
   addParser: (parser: Parser) => void;
-  hasParser: (lang: Lang) => boolean;
+  hasParser: (lang: string) => boolean;
   execute: (
     language: string,
     rulesFilename: string,
