@@ -91,7 +91,9 @@ let run (conf : conf) : Exit_code.t =
       Exit_code.ok
   | Config config_str ->
       let kind = Semgrep_dashdash_config.parse_config_string config_str in
-      let rules_and_origins = Rule_fetching.rules_from_dashdash_config kind in
+      let rules_and_origins =
+        Rule_fetching.rules_from_dashdash_config ~token_opt:None kind
+      in
       rules_and_origins
       |> List.iter (fun x ->
              Logs.app (fun m -> m "%s" (Rule_fetching.show_rules_and_origin x)));

@@ -13,8 +13,8 @@ open Common
 (*****************************************************************************)
 
 (* from auth.py *)
-let get_deployment_id () =
-  match Semgrep_settings.((get ()).api_token) with
+let get_deployment_id ~token_opt =
+  match token_opt with
   | None -> None
   | Some token -> (
       match
@@ -43,7 +43,7 @@ let get_deployment_id () =
               None))
 
 (* from auth.py *)
-let get_deployment_from_token token =
+let get_deployment_from_token ~token =
   match
     Http_helpers.get
       ~headers:[ ("authorization", "Bearer " ^ token) ]
@@ -71,8 +71,8 @@ let get_deployment_from_token token =
 
 let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 
-let url_for_policy () =
-  match get_deployment_id () with
+let url_for_policy ~token_opt =
+  match get_deployment_id ~token_opt with
   | None ->
       Error.abort
         (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")

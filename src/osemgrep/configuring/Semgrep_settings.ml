@@ -21,8 +21,6 @@ let default_settings =
     anonymous_user_id = Uuidm.v `V4;
   }
 
-(* TODO? why we need that? *)
-let t = ref default_settings
 let settings = Semgrep_envvars.env.user_settings_file
 
 (*****************************************************************************)
@@ -76,44 +74,39 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
       | Some v -> [ ("api_token", `String v) ])
     @ [ ("anonymous_user_id", `String (Uuidm.to_string anonymous_user_id)) ])
 
-(* TODO: why the use of lazy and t := ? *)
-let get_contents () =
-  lazy
-    (t :=
-       try
-         if
-           Sys.file_exists (Fpath.to_string settings)
-           && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
-         then
-           let data = File.read_file settings in
-           match Yaml.of_string data with
-           | Error _ ->
-               Logs.warn (fun m ->
-                   m "Bad settings format; %a will be overriden. Contents:\n%s"
-                     Fpath.pp settings data);
-               default_settings
-           | Ok value -> (
-               match of_yaml value with
-               | Error (`Msg msg) ->
-                   Logs.warn (fun m ->
-                       m
-                         "Bad settings format; %a will be overriden. Contents:\n\
-                          %s"
-                         Fpath.pp settings data);
-                   Logs.info (fun m -> m "Decode error: %s" msg);
-                   default_settings
-               | Ok s -> s)
-         else (
-           Logs.warn (fun m ->
-               m "Settings file %a does not exist or is not a regular file"
-                 Fpath.pp settings);
-           default_settings)
-       with
-       | Failure _ -> default_settings)
-
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
+
+let load () =
+  try
+    if
+      Sys.file_exists (Fpath.to_string settings)
+      && Unix.(stat (Fpath.to_string settings)).st_kind = Unix.S_REG
+    then
+      let data = File.read_file settings in
+      match Yaml.of_string data with
+      | Error _ ->
+          Logs.warn (fun m ->
+              m "Bad settings format; %a will be overriden. Contents:\n%s"
+                Fpath.pp settings data);
+          default_settings
+      | Ok value -> (
+          match of_yaml value with
+          | Error (`Msg msg) ->
+              Logs.warn (fun m ->
+                  m "Bad settings format; %a will be overriden. Contents:\n%s"
+                    Fpath.pp settings data);
+              Logs.info (fun m -> m "Decode error: %s" msg);
+              default_settings
+          | Ok s -> s)
+    else (
+      Logs.warn (fun m ->
+          m "Settings file %a does not exist or is not a regular file" Fpath.pp
+            settings);
+      default_settings)
+  with
+  | Failure _ -> default_settings
 
 let save setting =
   let yaml = to_yaml setting in
@@ -127,14 +120,9 @@ let save setting =
     File.write_file tmp str;
     (* TODO: Why this tmp and rename? Why not write directly to the file? *)
     Unix.rename (Fpath.to_string tmp) (Fpath.to_string settings);
-    t := setting;
     true
   with
   | Sys_error e ->
       Logs.warn (fun m ->
           m "Could not write settings file at %a: %s" Fpath.pp settings e);
       false
-
-let get () =
-  Lazy.force (get_contents ());
-  !t
