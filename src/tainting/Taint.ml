@@ -178,7 +178,7 @@ type taints_to_sink = {
 type finding =
   | ToSink of taints_to_sink
   | ToReturn of taint list * G.tok
-  | ArgToArg of arg * tainted_tokens * arg (* TODO: CleanArg ? *)
+  | ToArg of taint list * arg (* TODO: CleanArg ? *)
 [@@deriving show]
 
 type signature = finding list
@@ -190,8 +190,10 @@ let _show_finding = function
   | ToSink x -> _show_taints_to_sink x
   | ToReturn (taints, _) ->
       Printf.sprintf "return (%s)" (Common2.string_of_list _show_taint taints)
-  | ArgToArg (a1, _, a2) ->
-      Printf.sprintf "%s ----> %s" (_show_arg a1) (_show_arg a2)
+  | ToArg (taints, a2) ->
+      Printf.sprintf "%s ----> %s"
+        (Common2.string_of_list _show_taint taints)
+        (_show_arg a2)
 
 (*****************************************************************************)
 (* Taint sets *)

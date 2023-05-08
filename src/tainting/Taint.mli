@@ -67,7 +67,7 @@ type finding =
   | ToReturn of taint list * AST_generic.tok
       (** Taint sources or potentially-tainted arguments
           would reach a `return` statement. *)
-  | ArgToArg of arg * tainted_tokens * arg
+  | ToArg of taint list * arg
 [@@deriving show]
 
 type signature = finding list
