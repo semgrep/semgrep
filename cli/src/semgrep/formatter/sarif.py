@@ -301,9 +301,10 @@ class SarifFormatter(BaseFormatter):
             )
         if references:
             r = "".join([f" - {references_markdown}\n" for references_markdown in references])
-            rule_json["help"] = {}
-            rule_json["help"]["text"] = rule.message
-            rule_json["help"]["markdown"] = f"{rule.message}\n\n<b>References:</b>\n{r}"
+            rule_json["help"] = {
+                "text": rule.message, 
+                "markdown": f"{rule.message}\n\n<b>References:</b>\n{r}"
+                }
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
