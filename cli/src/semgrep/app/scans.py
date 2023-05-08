@@ -18,6 +18,7 @@ import requests
 from boltons.iterutils import partition
 
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
+from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -152,10 +153,9 @@ class ScanHandler:
         if self.dry_run:
             app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         else:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-            # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
-            # CLI logic in place to ignore findings that are from old rule versions
-            # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+            app_get_config_url = (
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
+            )
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
@@ -253,17 +253,26 @@ class ScanHandler:
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
-        all_ids = [r.id for r in rules]
+        # partitions rules into those that were scanned in the previous scan
+        # we don't use it or send them to the app for now as findings include the metadata
+        _, curr_scan_rules = partition(
+            rules, lambda r: r.scan_source == RuleScanSource.previous_scan
+        )
+        all_ids = [r.id for r in curr_scan_rules]
         cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
             for match in matches_of_rule
         ]
+        prev_scan_matches, curr_scan_matches = partition(
+            all_matches, lambda m: m.scan_source == RuleScanSource.previous_scan
+        )
+
         # we want date stamps assigned by the app to be assigned such that the
         # current sort by relevant_since results in findings within a given scan
         # appear in an intuitive order.  this requires reversed ordering here.
-        all_matches.reverse()
+        curr_scan_matches.reverse()
         sort_order = {  # used only to order rules by severity
             "EXPERIMENT": 0,
             "INVENTORY": 1,
@@ -273,17 +282,21 @@ class ScanHandler:
         }
         # NB: sorted guarantees stable sort, so within a given severity level
         # issues remain sorted as before
-        all_matches = sorted(
-            all_matches, key=lambda match: sort_order[match.severity.value]
+        curr_scan_matches = sorted(
+            curr_scan_matches, key=lambda match: sort_order[match.severity.value]
         )
         new_ignored, new_matches = partition(
-            all_matches, lambda match: bool(match.is_ignored)
+            curr_scan_matches, lambda match: bool(match.is_ignored)
         )
         findings = [
             match.to_app_finding_format(commit_date).to_json() for match in new_matches
         ]
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
+        ]
+        prev_scan_findings = [
+            match.to_app_finding_format(commit_date).to_json()
+            for match in prev_scan_matches
         ]
         token = (
             # GitHub (cloud)
@@ -298,6 +311,7 @@ class ScanHandler:
             # send a backup token in case the app is not available
             "token": token,
             "findings": findings,
+            "prev_scan_findings": prev_scan_findings,
             "searched_paths": [str(t) for t in sorted(targets)],
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "rule_ids": rule_ids,
@@ -317,7 +331,10 @@ class ScanHandler:
 
         complete = {
             "exit_code": 1
-            if any(match.is_blocking and not match.is_ignored for match in all_matches)
+            if any(
+                match.is_blocking and not match.is_ignored
+                for match in curr_scan_matches
+            )
             else 0,
             "stats": {
                 "findings": len(new_matches),
