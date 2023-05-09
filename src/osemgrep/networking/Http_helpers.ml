@@ -13,6 +13,7 @@ let get ?headers url =
         ("HTTP request failed, server response "
         ^ Status.to_string response.status)
   | Error (`Msg msg) -> Error ("HTTP request failed: " ^ msg)
+  [@@profiling]
 
 let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
   let bodyf _ acc data = Lwt.return (acc ^ data) in
@@ -29,3 +30,4 @@ let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
           "HTTP request failed, server response "
           ^ Status.to_string response.status )
   | Error (`Msg msg) -> Error (-1, "HTTP request failed: " ^ msg)
+  [@@profiling]

@@ -104,18 +104,21 @@ let cache_computation use_parsing_cache version_cur (file : Fpath.t)
   [@@profiling]
 
 let cache_file_of_file parsing_cache_dir suffix filename =
-  let dir = parsing_cache_dir in
-  (if not (Sys.file_exists dir) then
-   try
-     Unix.mkdir dir 0o700
-     (* bugfix: Despite the check above, we may race with another thread to
-      * create the directory, leading to a crash if this exception is unhandled.
-      * *)
-   with
-   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-  (* hopefully there will be no collision *)
-  let md5 = Digest.string filename in
-  Filename.concat dir (spf "%s%s" (Digest.to_hex md5) suffix)
+  match parsing_cache_dir with
+  | None -> raise Impossible
+  | Some dir ->
+      (if not (Sys.file_exists !!dir) then
+       try
+         Unix.mkdir !!dir 0o700
+         (* bugfix: Despite the check above, we may race with another thread to
+          * create the directory, leading to a crash if this exception is
+          * unhandled.
+          *)
+       with
+       | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+      (* hopefully there will be no collision *)
+      let md5 = Digest.string filename in
+      Filename.concat !!dir (spf "%s%s" (Digest.to_hex md5) suffix)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -167,7 +170,7 @@ let versioned_parse_result_of_file version lang (file : Fpath.t) :
 (*****************************************************************************)
 
 (* A wrapper around Parse_target.parse_and_resolve_name *)
-let parse_and_resolve_name ?(parsing_cache_dir = "") version lang
+let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
     (file : Fpath.t) =
   if is_binary_ast_filename file then (
     logger#info "%s is already an AST binary file, unmarshalling its value"
@@ -176,7 +179,9 @@ let parse_and_resolve_name ?(parsing_cache_dir = "") version lang
     ast_or_exn_of_value v)
   else
     let v =
-      cache_computation (parsing_cache_dir <> "") version file
+      cache_computation
+        (parsing_cache_dir <> None)
+        version file
         (fun file ->
           (* we may use different parsers for the same file (e.g., in Python3 or
            * Python2 mode), so put the lang as part of the cache "dependency".

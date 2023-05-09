@@ -211,9 +211,9 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         if ast_caching then
           let dir = Env.env.user_dot_semgrep_dir / "cache" / "asts" in
           match Bos.OS.Dir.create ~path:true dir with
-          | Ok _ -> !!dir
+          | Ok _ -> Some dir
           | Error (`Msg err) -> failwith err
-        else ""
+        else None
       in
       {
         Runner_config.default with

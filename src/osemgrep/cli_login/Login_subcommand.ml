@@ -25,7 +25,7 @@ let make_login_url () =
 
 (* from login.py *)
 let save_token ~echo_token settings token =
-  if Network_app.get_deployment_from_token token <> None then
+  if Semgrep_App.get_deployment_from_token token <> None then
     let settings = Semgrep_settings.{ settings with api_token = Some token } in
     if Semgrep_settings.save settings then (
       Logs.app (fun m ->
