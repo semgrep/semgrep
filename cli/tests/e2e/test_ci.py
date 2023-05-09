@@ -217,12 +217,12 @@ def automocks(mocker):
             dev.semgrep.actions: ["block"]
             semgrep.dev:
                 rule:
-                    rule_id: "abce"
-                    version_id: "version2"
+                    rule_id: abce
+                    version_id: version2
                     url: "https://semgrep.dev/r/python.eqeq-five"
                     shortlink: "https://sg.run/abcd"
                 src: new-version
-        - id: eqeq-four
+        - id: abceversion1
           pattern: $X == 4
           message: "useless comparison to 4 (old version)"
           languages: [python]
@@ -231,10 +231,11 @@ def automocks(mocker):
             dev.semgrep.actions: []
             semgrep.dev:
                 rule:
-                    rule_id: "abce"
-                    version_id: "version1"
+                    rule_id: abce
+                    version_id: version1
                     url: "https://semgrep.dev/r/python.eqeq-five"
                     shortlink: "https://sg.run/abcd"
+                    rule_name: eqeq-four
                 src: previous-scan
         - id: taint-test
           message: "unsafe use of danger"
@@ -249,8 +250,8 @@ def automocks(mocker):
             dev.semgrep.actions: ["block"]
             semgrep.dev:
                 rule:
-                    rule_id: "abcf"
-                    version_id: "version1"
+                    rule_id: abcf
+                    version_id: version1
                     url: "https://semgrep.dev/r/python.eqeq-five"
                     shortlink: "https://sg.run/abcd"
                 src: new-rule
