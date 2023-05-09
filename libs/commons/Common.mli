@@ -437,9 +437,6 @@ val partition_result :
 
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 
-val cache_computation :
-  ?use_cache:bool -> filename -> string (* extension *) -> (unit -> 'a) -> 'a
-
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
