@@ -23,6 +23,7 @@ type matches_by_step = { step_id : string; matches : P.t list }
 [@@deriving show]
 
 let join_rule_to_rules rule join_info table =
+  let n = List.length join_info in
   let step_to_rule i (step : R.step_info) =
     let step_id = (spf "%s__step_%d" (fst rule.R.id) i, snd rule.R.id) in
     let mode =
@@ -32,7 +33,8 @@ let join_rule_to_rules rule join_info table =
     in
     let languages = step.R.step_languages in
     let paths = step.R.step_paths in
-    Hashtbl.add table (fst step_id) (rule, i);
+    (* TODO a bit redundant to have n in each entry but it's simpler *)
+    Hashtbl.add table (fst step_id) (rule, i, n);
     { rule with R.id = step_id; mode; languages; paths }
   in
   join_info |> mapi step_to_rule
@@ -59,22 +61,11 @@ let extract_join_rules config parsed_rules =
   (join_map, (rules_with_join_rules_resolved, invalid_rules))
 
 let get_final_match_of_matches join_rule_map matches_by_step =
-  let rule, final_step =
-    match
-      List.find_map
-        (fun step ->
-          let rule, n = JoinRuleMap.find step.step_id join_rule_map in
-          if Int.equal n (List.length matches_by_step - 1) then Some (rule, step)
-          else None)
-        matches_by_step
-    with
-    | Some x -> x
-    | None ->
-        failwith
-          (spf "Could not find final step for join rule, expected it to be %d"
-             (List.length matches_by_step))
-  in
-  (rule, final_step)
+  List.find_map
+    (fun step ->
+      let rule, i, n = JoinRuleMap.find step.step_id join_rule_map in
+      if Int.equal i (n - 1) then Some (rule, step) else None)
+    matches_by_step
 
 (* Consider a rule with three steps, where step 1 binds $A and $B,
    step 2 binds $B and $C, and step 3 binds $A, $B, and $C. When
@@ -106,7 +97,7 @@ let print_updated_matches config print_match has_join_steps matches =
 let unify_results config print_match join_rule_map res =
   let rule_for_step_id id =
     match JoinRuleMap.find_opt id join_rule_map with
-    | Some (rule, _n) -> Some (fst rule.R.id)
+    | Some (rule, _i, _n) -> Some (fst rule.R.id)
     | None -> None
   in
   (* TODO this currently just fixes the matches, but we probably also want to adjust
@@ -161,32 +152,32 @@ let unify_results config print_match join_rule_map res =
       List.fold_left intersect_mvars MvarMap.empty matches_by_step
     in
     (* Filter the matches for the final step because that's the only one we return matches for *)
-    let rule, final_step =
-      get_final_match_of_matches join_rule_map matches_by_step
-    in
-    let matches_for_join_rule =
-      List.filter
-        (fun m ->
-          List.for_all
-            (fun (mvar, mval) ->
-              match MvarMap.find_opt mvar mvar_bindings with
-              | Some mvals -> MvarSet.mem mval mvals
-              | None -> true)
-            m.P.env)
-        final_step.matches
-    in
-    Common.map
-      (fun m ->
-        let { P.rule_id; _ } = m in
-        let rule_id =
-          {
-            rule_id with
-            id = fst rule.R.id;
-            languages = Xlang.to_langs rule.R.languages;
-          }
+    match get_final_match_of_matches join_rule_map matches_by_step with
+    | Some (rule, final_step) ->
+        let matches_for_join_rule =
+          List.filter
+            (fun m ->
+              List.for_all
+                (fun (mvar, mval) ->
+                  match MvarMap.find_opt mvar mvar_bindings with
+                  | Some mvals -> MvarSet.mem mval mvals
+                  | None -> true)
+                m.P.env)
+            final_step.matches
         in
-        { m with P.rule_id })
-      matches_for_join_rule
+        Common.map
+          (fun m ->
+            let { P.rule_id; _ } = m in
+            let rule_id =
+              {
+                rule_id with
+                id = fst rule.R.id;
+                languages = Xlang.to_langs rule.R.languages;
+              }
+            in
+            { m with P.rule_id })
+          matches_for_join_rule
+    | None -> []
   in
   let join_matches =
     List.concat_map process_steps_for_rule matches_by_join_rules
