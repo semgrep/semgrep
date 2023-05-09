@@ -1210,16 +1210,45 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
   Some (lval, obj)
 
 (* What is the taint denoted by 'sig_arg' ? *)
-let taints_of_sig_arg env fparams fun_exp args_exps args_taints
+let rec taints_of_sig_arg env fparams fun_exp args_exps args_taints
     (sig_arg : T.arg) =
-  match sig_arg.offset with
-  | [] when snd sig_arg.pos >= 0 (* not `this`/`self` *) ->
-      find_pos_in_actual_args args_taints fparams sig_arg.pos
-  | __else__ ->
-      (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
-      let* lval, _obj = lval_of_sig_arg fun_exp fparams args_exps sig_arg in
-      let arg_taints = check_tainted_lval env lval |> fst in
-      Some arg_taints
+  let arg_fn = taints_of_sig_arg env fparams fun_exp args_exps args_taints in
+  let* taints =
+    match sig_arg.offset with
+    | [] when snd sig_arg.pos >= 0 (* not `this`/`self` *) ->
+        find_pos_in_actual_args args_taints fparams sig_arg.pos
+    | __else__ ->
+        (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
+        let* lval, _obj = lval_of_sig_arg fun_exp fparams args_exps sig_arg in
+        let arg_taints = check_tainted_lval env lval |> fst in
+        Some arg_taints
+  in
+  (* Here, we substitute for the polymorphic taint variables that are
+     being used in the preconditions of produced taints. Otherwise, we
+     will not be able to solve the taint label formula accurately, taking
+     into account the taint labels provided by the arguments.
+     See [precondition] in Taint.ml for more information.
+
+     Note that because of the previous map's Arg case, we should not replace
+     any actual Args with this call, or we might replace an Arg that we
+     just substituted in! Hence, we use [map_preconditions] to only touch
+     the preconditions of the produced taints.
+  *)
+  Some
+    (taints
+    |> Taints.map (fun t ->
+           T.map_preconditions
+             (fun taints ->
+               List.concat_map
+                 (fun t ->
+                   match t.T.orig with
+                   | Arg arg -> (
+                       match arg_fn arg with
+                       | None -> []
+                       | Some taints -> Taints.elements taints)
+                   | _ -> [ t ])
+                 taints)
+             t))
 
 (* This function is consuming the taint signature of a function to determine
    a few things:
@@ -1331,24 +1360,6 @@ let check_function_signature env fun_exp args args_taints =
                          in
                          arg_to_taints arg
                          |> Common.map (fun x -> { T.taint = x; sink_trace }))
-              |> List.concat_map (fun { T.taint; sink_trace } ->
-                     (* Here, we substitute for the polymorphic taint variables that are
-                        being used in the preconditions of produced taints. Otherwise, we
-                        will not be able to solve the taint label formula accurately, taking
-                        into account the taint labels provided by the arguments.
-                        See [precondition] in Taint.ml for more information.
-
-                        Note that because of the previous map's Arg case, we should not replace
-                        any actual Args with this call, or we might replace an Arg that we
-                        just substituted in! See [substitute_precondition_arg_taint] for more.
-                     *)
-                     let new_taints =
-                       T.substitute_precondition_arg_taint ~arg_fn:arg_to_taints
-                         taint
-                     in
-                     Common.map
-                       (fun t -> { T.taint = t; sink_trace })
-                       new_taints)
             in
             findings_of_tainted_sink env incoming_taints sink
             |> report_findings env;

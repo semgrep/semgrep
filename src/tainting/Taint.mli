@@ -124,9 +124,7 @@ val taints_of_pms :
    This is meant to be used at the call-site of a function, when we associate
    the actual taints substituted in for that taint variable to their use sites.
 *)
-val substitute_precondition_arg_taint :
-  arg_fn:(arg -> taint list) -> taint -> taint list
-
+val map_preconditions : (taint list -> taint list) -> taint -> taint
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string
