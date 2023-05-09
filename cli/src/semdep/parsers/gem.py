@@ -71,7 +71,7 @@ gemfile = (
 def parse_gemfile(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps_opt = safe_path_parse(lockfile_path, gemfile, ParserName("gemfile.lock"))
+    deps_opt = safe_path_parse(lockfile_path, gemfile, ParserName.gemfile_lock)
     if not deps_opt:
         return []
     deps, manifest_deps = deps_opt

@@ -44,7 +44,7 @@ go_sum = dep.sep_by(string("\n")) << (string("\n") | string("\r")).optional()
 def parse_go_sum(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, go_sum, ParserName("go.sum"))
+    deps = safe_path_parse(lockfile_path, go_sum, ParserName.go_sum)
     if not deps:
         return []
     output = []

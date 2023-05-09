@@ -96,7 +96,7 @@ all_dependency_data = (
 
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    ret = safe_path_parse(lockfile_path, all_dependency_data, ParserName("pnpm-lock"))
+    ret = safe_path_parse(lockfile_path, all_dependency_data, ParserName.pnpm_lock)
     if not ret:
         return []
     direct_deps, all_deps = ret

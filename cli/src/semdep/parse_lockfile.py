@@ -150,7 +150,7 @@ def parse_lockfile_path(
             console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
-                DependencyParserError(lockfile_path, ParserName(lockfile_name), str(e)),
+                DependencyParserError(lockfile_path, ParserName.cargo, str(e)),
             )
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")

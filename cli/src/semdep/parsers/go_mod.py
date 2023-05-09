@@ -73,7 +73,7 @@ go_mod = (
 def parse_go_mod(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    specs = safe_path_parse(lockfile_path, go_mod, ParserName("go.mod"))
+    specs = safe_path_parse(lockfile_path, go_mod, ParserName.go_mod)
     if not specs:
         return []
     exclude = set()

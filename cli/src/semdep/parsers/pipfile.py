@@ -44,7 +44,7 @@ manifest = (
 def parse_pipfile(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName("jsondoc"))
+    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName.jsondoc)
     if not lockfile_json_opt:
         return []
 
@@ -52,7 +52,7 @@ def parse_pipfile(
     manifest_deps = safe_path_parse(
         manifest_path,
         manifest,
-        ParserName("pipfile"),
+        ParserName.pipfile,
         preprocess=preprocessors.CommentRemover(),
     )
 

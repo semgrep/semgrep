@@ -64,7 +64,7 @@ pom_tree = (
 
 
 def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    deps = safe_path_parse(tree_path, pom_tree, ParserName("pomtree"))
+    deps = safe_path_parse(tree_path, pom_tree, ParserName.pomtree)
     if not deps:
         return []
     output = []

@@ -77,10 +77,10 @@ gradle = (
 def parse_gradle(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, gradle, ParserName("gradle.lockfile"))
+    deps = safe_path_parse(lockfile_path, gradle, ParserName.gradle_lockfile)
     if not deps:
         return []
-    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName("build.gradle"))
+    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.gradle_build)
     output = []
     for line_number, (package, version) in deps:
         output.append(

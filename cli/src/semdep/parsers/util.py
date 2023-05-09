@@ -12,13 +12,14 @@ causing no runtime errors.
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from enum import auto
+from enum import Enum
 from pathlib import Path
 from re import escape
 from typing import Callable
 from typing import cast
 from typing import Dict
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -48,7 +49,24 @@ B = TypeVar("B")
 C = TypeVar("C")
 
 Pos = Tuple[int, int]
-ParserName = NewType("ParserName", str)
+
+
+class ParserName(Enum):
+    gemfile_lock = auto()
+    go_mod = auto()
+    go_sum = auto()
+    gradle_lockfile = auto()
+    gradle_build = auto()
+    jsondoc = auto()
+    pipfile = auto()
+    pnpm_lock = auto()
+    poetry_lock = auto()
+    pyproject_toml = auto()
+    requirements = auto()
+    yarn_1 = auto()
+    yarn_2 = auto()
+    pomtree = auto()
+    cargo = auto()
 
 
 def not_any(*chars: str) -> "Parser[str]":
@@ -230,7 +248,7 @@ class DependencyParserError(Exception):
     def to_json(self) -> Dict[str, Union[Optional[str], Optional[int]]]:
         return {
             "path": str(self.path),
-            "parser": self.parser,
+            "parser": self.parser.name,
             "reason": self.reason,
             "line": self.line,
             "col": self.col,

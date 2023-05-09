@@ -129,12 +129,10 @@ manifest = (manifest_deps | poetry_dep_extra).sep_by(
 def parse_poetry(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, poetry, ParserName("poetry.lock"))
+    deps = safe_path_parse(lockfile_path, poetry, ParserName.poetry_lock)
     if not deps:
         return []
-    manifest_deps = safe_path_parse(
-        manifest_path, manifest, ParserName("pyproject.toml")
-    )
+    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.pyproject_toml)
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
     sanitized_manifest_deps = (
