@@ -13,7 +13,20 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "05a6d6793a6242a49ff83113ef4a83b3",
-      "metadata": {},
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcf",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "new-rule"
+        }
+      },
       "is_blocking": true,
       "match_based_id": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0",
       "hashes": {
@@ -144,7 +157,16 @@
       "metadata": {
         "dev.semgrep.actions": [
           "block"
-        ]
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "version_id": "version2",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "new-version"
+        }
       },
       "is_blocking": true,
       "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
@@ -168,7 +190,16 @@
       "commit_date": "sanitized",
       "syntactic_id": "8646a2dfc020913606969dcfe84e53c0",
       "metadata": {
-        "dev.semgrep.actions": []
+        "dev.semgrep.actions": [],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcd",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "unchanged"
+        }
       },
       "is_blocking": false,
       "match_based_id": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
@@ -312,6 +343,7 @@
       }
     }
   ],
+  "prev_scan_findings": [],
   "searched_paths": [
     "foo.py",
     "poetry.lock",
@@ -343,7 +375,16 @@
       "metadata": {
         "dev.semgrep.actions": [
           "block"
-        ]
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "version_id": "version2",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "new-version"
+        }
       },
       "is_blocking": true,
       "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0",
@@ -367,7 +408,16 @@
       "commit_date": "sanitized",
       "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
       "metadata": {
-        "dev.semgrep.actions": []
+        "dev.semgrep.actions": [],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcd",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "unchanged"
+        }
       },
       "is_blocking": false,
       "match_based_id": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0",
