@@ -77,6 +77,10 @@ class SemgrepCoreLSServer:
             self.target_file.name,
             "-max_memory",
             str(self.config.max_memory),
+            "-timeout",
+            str(self.config.timeout),
+            "-timeout_threshold",
+            str(self.config.timeout_threshold),
             "-fast",
             "-ls",
         ]
