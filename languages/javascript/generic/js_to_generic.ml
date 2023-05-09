@@ -223,60 +223,65 @@ and literal x : G.literal =
       G.Regexp (v1, v2)
 
 and expr (x : expr) =
-  (match x with
+  match x with
   | ObjAccessEllipsis (v1, v2) ->
       let v1 = expr v1 in
-      G.DotAccessEllipsis (v1, v2)
+      G.DotAccessEllipsis (v1, v2) |> G.e
   (* not sure this is actually a valid JS/TS construct *)
   | Cast (v1, v2, v3) ->
       let v1 = expr v1 in
       let v3 = type_ v3 in
-      G.Cast (v3, v2, v1)
+      G.Cast (v3, v2, v1) |> G.e
   (* converting to Cast as it's mostly the same *)
   | TypeAssert (v1, v2, v3) ->
       let v1 = expr v1 in
       let v3 = type_ v3 in
-      G.Cast (v3, v2, v1)
+      G.Cast (v3, v2, v1) |> G.e
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr (v1, v2 |> Common.map (fun e -> G.E e))
-  | L x -> G.L (literal x)
+      G.OtherExpr (v1, v2 |> Common.map (fun e -> G.E e)) |> G.e
+  | ParenExpr (l, e, r) ->
+      let e = expr e in
+      H.set_e_range l r e;
+      e
+  | L x -> G.L (literal x) |> G.e
   | Id v1 ->
       let v1 = name v1 in
-      G.N (G.Id (v1, G.empty_id_info ()))
-  | IdSpecial v1 -> (
-      let x = special v1 in
-      match x with
-      | SR_Special v -> G.IdSpecial v
-      | SR_NeedArgs _ ->
-          error (snd v1) "Impossible: should have been matched in Call first"
-      | SR_Literal l -> G.L l
-      | SR_Other categ -> G.OtherExpr (categ, [])
-      | SR_Expr e -> e)
+      G.N (G.Id (v1, G.empty_id_info ())) |> G.e
+  | IdSpecial v1 ->
+      (let x = special v1 in
+       match x with
+       | SR_Special v -> G.IdSpecial v
+       | SR_NeedArgs _ ->
+           error (snd v1) "Impossible: should have been matched in Call first"
+       | SR_Literal l -> G.L l
+       | SR_Other categ -> G.OtherExpr (categ, [])
+       | SR_Expr e -> e)
+      |> G.e
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       let tok = info tok in
-      G.Assign (v1, tok, v2)
+      G.Assign (v1, tok, v2) |> G.e
   | ArrAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
-      G.ArrayAccess (v1, v2)
+      G.ArrayAccess (v1, v2) |> G.e
   | Obj v1 ->
       let flds = obj_ v1 in
-      G.Record flds
+      G.Record flds |> G.e
   | Ellipsis v1 ->
       let v1 = info v1 in
-      G.Ellipsis v1
+      G.Ellipsis v1 |> G.e
   | DeepEllipsis v1 ->
       let v1 = bracket expr v1 in
-      G.DeepEllipsis v1
+      G.DeepEllipsis v1 |> G.e
   | TypedMetavar (v1, tok, v2) ->
       let v1 = name v1 and v2 = type_ v2 in
       let tok = info tok in
-      G.TypedMetavar (v1, tok, v2)
+      G.TypedMetavar (v1, tok, v2) |> G.e
   | Class (v1, _v2TODO) ->
       let def, _more_attrsTODOEMPTY = class_ v1 in
-      G.AnonClass def
-  | ObjAccess (v1, t, v2) -> (
+      G.AnonClass def |> G.e
+  | ObjAccess (v1, t, v2) ->
       let e = expr v1 in
       let t, v1 =
         match t with
@@ -288,17 +293,18 @@ and expr (x : expr) =
               |> G.e )
       in
       let v2 = property_name v2 in
-      match v2 with
+      (match v2 with
       | Left n -> G.DotAccess (v1, t, G.FN (G.Id (n, G.empty_id_info ())))
       | Right e -> G.DotAccess (v1, t, G.FDynamic e))
+      |> G.e
   | Fun (v1, _v2TODO) ->
       let def, _more_attrs = fun_ v1 in
       (* todo? assert more_attrs = []? *)
-      G.Lambda def
-  | Apply (IdSpecial v1, v2) -> (
+      G.Lambda def |> G.e
+  | Apply (IdSpecial v1, v2) ->
       let x = special v1 in
       let v2 = bracket (list expr) v2 in
-      match x with
+      (match x with
       | SR_Special v ->
           G.Call (G.IdSpecial v |> G.e, bracket (Common.map G.arg) v2)
       | SR_Literal l ->
@@ -312,24 +318,24 @@ and expr (x : expr) =
             ( G.OtherExpr (categ, []) |> G.e,
               bracket (Common.map (fun e -> G.Arg e)) v2 )
       | SR_Expr e -> G.Call (e |> G.e, bracket (Common.map G.arg) v2))
+      |> G.e
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
-      G.Call (v1, bracket (Common.map (fun e -> G.Arg e)) v2)
+      G.Call (v1, bracket (Common.map (fun e -> G.Arg e)) v2) |> G.e
   | New (tok, e, args) ->
       let tok = info tok in
       let e = expr e in
       let args = bracket (list (fun arg -> G.Arg (expr arg))) args in
-      G.New (tok, H.expr_to_type e, G.empty_id_info (), args)
+      G.New (tok, H.expr_to_type e, G.empty_id_info (), args) |> G.e
   | Arr v1 ->
       let v1 = bracket (list expr) v1 in
-      G.Container (G.Array, v1)
+      G.Container (G.Array, v1) |> G.e
   | Conditional (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
-      G.Conditional (v1, v2, v3)
+      G.Conditional (v1, v2, v3) |> G.e
   | Xml v1 ->
       let v1 = xml v1 in
-      G.Xml v1)
-  |> G.e
+      G.Xml v1 |> G.e
 
 and stmt x =
   match x with

@@ -80,7 +80,7 @@ let filter_new_mvars_by_range range mvars =
 *)
 let get_persistent_bindings revert_loc r nested_matches =
   let reverting_visitor =
-    Map_AST.fix_token_locations_visitor#visit_any revert_loc
+    AST_generic_helpers.fix_token_locations_any revert_loc
   in
   nested_matches
   |> Common.map (fun nested_match ->
@@ -207,7 +207,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
                       let mast' =
-                        Map_AST.fix_token_locations_visitor#visit_program
+                        AST_generic_helpers.fix_token_locations_program
                           (fix_loc file) mast
                       in
                       let xtarget =

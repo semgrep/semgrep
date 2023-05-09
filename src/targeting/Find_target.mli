@@ -11,8 +11,6 @@
  *)
 
 type conf = {
-  (* osemgrep-only option (see Git_project.ml and the force_root parameter) *)
-  project_root : Fpath.t option;
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
   (* global include list, passed via semgrep --include
@@ -30,6 +28,8 @@ type conf = {
   baseline_commit : string option;
   (* TODO: not used for now *)
   scan_unknown_extensions : bool;
+  (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
+  project_root : Fpath.t option;
 }
 [@@deriving show]
 

@@ -1,5 +1,7 @@
+open File.Operators
 module Out = Semgrep_output_v1_t
 module RP = Report
+module Env = Semgrep_envvars
 
 (*************************************************************************)
 (* Prelude *)
@@ -51,6 +53,8 @@ type conf = {
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* osemgrep-only: *)
+  ast_caching : bool;
 }
 [@@deriving show]
 
@@ -137,27 +141,61 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let grouped_rules = group_rules_by_target_language all_rules in
   let cache = Find_target.create_cache () in
   grouped_rules
-  |> Common.map (fun (lang, rules) ->
-         let targets =
-           all_targets
-           |> List.filter (fun target ->
-                  rules
-                  |> List.exists (fun (rule : Rule.t) ->
-                         let required_path_patterns, excluded_path_patterns =
-                           match rule.paths with
-                           | Some { include_; exclude } -> (include_, exclude)
-                           | None -> ([], [])
-                         in
-                         Find_target.filter_target_for_lang ~cache ~lang
-                           ~required_path_patterns ~excluded_path_patterns
-                           target))
+  |> Common.map_filter (fun (lang, rules) ->
+         let rules, targets =
+           match lang with
+           | Xlang.LGeneric
+           | Xlang.LRegex ->
+               let rules, targets =
+                 List.fold_left
+                   (fun (rules, targets) rule ->
+                     let required_path_patterns, excluded_path_patterns =
+                       match rule.Rule.paths with
+                       | Some { include_; exclude } -> (include_, exclude)
+                       | None -> ([], [])
+                     in
+                     let targets' =
+                       all_targets
+                       |> List.filter (fun target ->
+                              Find_target.filter_target_for_lang ~cache ~lang
+                                ~required_path_patterns ~excluded_path_patterns
+                                target)
+                     in
+                     if Common.null targets' then (rules, targets)
+                     else (rule :: rules, targets @ targets'))
+                   ([], []) rules
+               in
+               (rules, List.sort_uniq Fpath.compare targets)
+           | _else ->
+               ( rules,
+                 all_targets
+                 |> List.filter (fun target ->
+                        rules
+                        |> List.exists (fun (rule : Rule.t) ->
+                               let ( required_path_patterns,
+                                     excluded_path_patterns ) =
+                                 match rule.paths with
+                                 | Some { include_; exclude } ->
+                                     (include_, exclude)
+                                 | None -> ([], [])
+                               in
+                               Find_target.filter_target_for_lang ~cache ~lang
+                                 ~required_path_patterns ~excluded_path_patterns
+                                 target)) )
          in
-
-         ({ lang; targets; rules } : Lang_job.t))
+         if Common.null rules || Common.null targets then None
+         else Some ({ lang; targets; rules } : Lang_job.t))
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
-  | { num_jobs; timeout; timeout_threshold; max_memory_mb; optimizations }
+  | {
+   num_jobs;
+   timeout;
+   timeout_threshold;
+   max_memory_mb;
+   optimizations;
+   ast_caching;
+  }
   (* TODO: time_flag = _;
   *) ->
       (* We should default to Json because we do not want the same text
@@ -169,6 +207,14 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
        *)
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
+      let parsing_cache_dir =
+        if ast_caching then
+          let dir = Env.env.user_dot_semgrep_dir / "cache" / "asts" in
+          match Bos.OS.Dir.create ~path:true dir with
+          | Ok _ -> Some dir
+          | Error (`Msg err) -> failwith err
+        else None
+      in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -177,6 +223,7 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         filter_irrelevant_rules;
+        parsing_cache_dir;
         version = Version.version;
       }
 
@@ -279,3 +326,4 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
           | None -> ())
       *)
       { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+  [@@profiling]

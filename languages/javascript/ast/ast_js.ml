@@ -214,6 +214,7 @@ and expr =
   | TypeAssert of expr * tok (* 'as' or '<' *) * type_ (* X as T or <T> X *)
   (* this is used mostly for unsupported typescript features *)
   | ExprTodo of a_todo_category * expr list
+  | ParenExpr of tok * expr * tok
   (* sgrep-ext: *)
   | Ellipsis of tok
   | DeepEllipsis of expr bracket
@@ -715,4 +716,4 @@ let add_decorators_to_declarations decorators declarations =
 let fakeInfoAttach info =
   let info = Tok.rewrap_str "';' (from ASI)" info in
   let loc = Tok.unsafe_loc_of_tok info in
-  { Tok.token = Tok.FakeTokStr (";", Some (loc, -1)); transfo = Tok.NoTransfo }
+  Tok.FakeTokStr (";", Some (loc, -1))

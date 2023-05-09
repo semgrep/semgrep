@@ -18,7 +18,6 @@ module G = AST_generic
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module MV = Metavariable
-module M = Map_AST
 module Eq = Equivalence
 module Env = Metavariable_capture
 

@@ -530,6 +530,7 @@ let parse_xpattern env (str, tok) =
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+      (* TODO: use R.Err exn instead? *)
       | Error err -> failwith err.msg)
 
 (* TODO: note that the [pattern] string and token location [t] given to us

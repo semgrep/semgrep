@@ -5,6 +5,8 @@ type conf = {
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* osemgrep-only: *)
+  ast_caching : bool;
 }
 [@@deriving show]
 

@@ -38,6 +38,7 @@ let lang_has_no_dollar_ids =
     | Bash
     | Dockerfile
     | Rust
+    | Cairo
     | Scala
     | Solidity ->
         false)

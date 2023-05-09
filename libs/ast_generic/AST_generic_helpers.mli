@@ -117,3 +117,9 @@ val info_of_any : AST_generic.any -> Tok.t
 val first_info_of_any : AST_generic.any -> Tok.t
 val range_of_tokens : Tok.t list -> Tok_range.t
 val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
+
+val fix_token_locations_any :
+  (Tok.location -> Tok.location) -> AST_generic.any -> AST_generic.any
+
+val fix_token_locations_program :
+  (Tok.location -> Tok.location) -> AST_generic.program -> AST_generic.program

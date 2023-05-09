@@ -54,7 +54,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   let rec v_info x =
     let k x =
       match x with
-      | { Tok.token = _v_pinfox; transfo = _v_transfo } ->
+      | _ ->
           (*
     let arg = Parse_info.v_pinfo v_pinfox in
     let arg = v_unit v_comments in

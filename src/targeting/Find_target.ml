@@ -47,15 +47,25 @@ module Resp = Output_from_core_t
 (*************************************************************************)
 
 type conf = {
-  project_root : Fpath.t option;
+  (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
+  (* global include list, passed via semgrep --include
+   * [!] include_ = None is the opposite of Some [].
+   * If a list of include patterns is specified, a path must match
+   * at least of the patterns to be selected.
+   *)
   include_ : string list option;
   max_target_bytes : int;
+  (* whether or not follow what is specified in the .gitignore
+   * TODO? what about .semgrepignore?
+   *)
   respect_git_ignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   (* TODO: use *)
   scan_unknown_extensions : bool;
+  (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
+  project_root : Fpath.t option;
 }
 [@@deriving show]
 
@@ -81,7 +91,7 @@ type target_cache = (target_cache_key, bool) Hashtbl.t
 
 let get_reason_for_exclusion sel_events =
   let fallback : Resp.skip_reason = Semgrepignore_patterns_match in
-  match (sel_events : Gitignore_syntax.selection_event list) with
+  match (sel_events : Gitignore.selection_event list) with
   | Selected loc :: _ -> (
       match loc.source_kind with
       | Some str -> (
@@ -150,6 +160,7 @@ let files_from_git_ls ~cwd:scan_root =
   tracked_output
   |> Common.map (fun x -> scan_root // x)
   |> List.filter is_valid_file
+  [@@profiling]
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
@@ -191,6 +202,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   | S_BLK
   | S_SOCK ->
       []
+  [@@profiling]
 
 (*************************************************************************)
 (* Dedup *)
@@ -255,6 +267,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
       skipped
   in
   (sorted_paths, sorted_skipped)
+  [@@profiling]
 
 (*************************************************************************)
 (* Grouping *)
@@ -356,7 +369,7 @@ let get_targets conf scanning_roots =
                   in
                   Logs.debug (fun m ->
                       m "Ignoring path %s:\n%s" !!path
-                        (Gitignore_syntax.show_selection_events selection_events));
+                        (Gitignore.show_selection_events selection_events));
                   match status with
                   | Not_ignored -> Left path
                   | Ignored ->
@@ -406,6 +419,7 @@ let get_targets conf scanning_roots =
   List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
+  [@@profiling]
 
 (*************************************************************************)
 (* Target cache *)
@@ -413,20 +427,16 @@ let get_targets conf scanning_roots =
 
 let create_cache () = Hashtbl.create 1000
 
-(* TODO!!
-   let match_glob_pattern ~pat path =
-     ignore pat;
-     ignore path;
-     true
+let match_glob_pattern ~pat path =
+  let regex = Glob.Parse.parse_string pat in
+  Glob.Match.run
+    Glob.Match.(compile ~source:(string_loc ~source_kind:None pat) regex)
+    (Fpath.to_string path)
 
-   let match_a_required_path_pattern required_path_patterns path =
-     match required_path_patterns with
-     | [] -> (* <grimacing face emoji> *) true
-     | pats -> List.exists (fun pat -> match_glob_pattern ~pat path) pats
-
-   let match_all_excluded_path_patterns excluded_path_patterns path =
-     List.for_all (fun pat -> match_glob_pattern ~pat path) excluded_path_patterns
-*)
+let match_a_path_pattern path_patterns path =
+  match path_patterns with
+  | [] -> (* <grimacing face emoji> *) true
+  | pats -> List.exists (fun pat -> match_glob_pattern ~pat path) pats
 
 let match_language (xlang : Xlang.t) path =
   match xlang with
@@ -443,9 +453,10 @@ let match_language (xlang : Xlang.t) path =
 let filter_target_for_lang ~cache ~lang ~required_path_patterns
     ~excluded_path_patterns path =
   let cond () =
-    (* TODO match_a_required_path_pattern required_path_patterns path && *)
-    (* TODO match_all_excluded_path_patterns excluded_path_patterns path *)
-    match_language lang path
+    match_a_path_pattern required_path_patterns path
+    && (Common.null excluded_path_patterns
+       || not (match_a_path_pattern excluded_path_patterns path))
+    && match_language lang path
   in
   (* TODO: use Common.memoize *)
   let key : target_cache_key =

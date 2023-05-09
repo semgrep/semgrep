@@ -3,7 +3,9 @@ type node = entity_name * Entity_code.entity_kind
 and entity_name = string
 
 type nodeinfo = {
-  (* the filename embedded inside token_location can be a readable path *)
+  (* the filename embedded inside location can be a readable path.
+   * TODO: use an actual Pos.t? otherwise rename to loc.
+   *)
   pos : Tok.location;
   props : Entity_code.property list;
   typ : string option;

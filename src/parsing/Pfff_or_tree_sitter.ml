@@ -65,7 +65,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   }
 
 let exn_of_loc loc =
-  let info = { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo } in
+  let info = Tok.OriginTok loc in
   Parsing_error.Syntax_error info |> Exception.trace
 
 (* used by Parse_jsonnet *)

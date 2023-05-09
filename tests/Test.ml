@@ -43,7 +43,7 @@ let any_gen_of_string str =
 *)
 let tests () = List.flatten [
   Unit_list_files.tests;
-  Unit_glob.tests;
+  Glob.Unit_glob.tests;
   Osemgrep_targeting.Unit_semgrepignore.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();
@@ -55,7 +55,7 @@ let tests () = List.flatten [
   Unit_memory_limit.tests;
   Unit_SPcre.tests;
   Unit_regexp_engine.tests;
-  Unit_FPath.tests;
+  Unit_Rpath.tests;
   Unit_immutable_buffer.tests;
   Unit_ugly_print_AST.tests;
   Unit_autofix_printer.tests;

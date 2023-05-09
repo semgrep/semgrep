@@ -1,1 +1,1 @@
-PCRE_EXPORTED_METHODS := _pcre_version,_pcre_config,_pcre_compile,_pcre_study,_pcre_fullinfo
+PCRE_EXPORTED_METHODS := _pcre_version,_pcre_config,_pcre_compile,_pcre_study,_pcre_fullinfo,_pcre_exec

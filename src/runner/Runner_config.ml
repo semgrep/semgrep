@@ -1,5 +1,3 @@
-open Common
-
 (*
    Type definitions, mostly.
 *)
@@ -7,7 +5,7 @@ open Common
 (* in JSON mode, we might need to display intermediate '.' in the
  * output for semgrep to track progress as well as extra targets
  * found by extract rules.
- * TODO: not needed after osemgrep migration done
+ * LATER: osemgrep: not needed after osemgrep migration done
  *)
 type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
@@ -43,8 +41,8 @@ type t = {
   profile_start : float;
   matching_explanations : bool;
   (* Main flags *)
-  pattern_string : string;
-  pattern_file : filename; (* TODO: use Fpath.t option *)
+  pattern_string : string option;
+  pattern_file : Fpath.t option;
   rule_source : rule_source option;
   lang_job : Lang_job.t option;
   equivalences_file : Fpath.t option;
@@ -62,8 +60,7 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  (* TODO: use Fpath.t option *)
-  parsing_cache_dir : Common.filename; (* "" means no cache *)
+  parsing_cache_dir : Fpath.t option;
   filter_irrelevant_rules : bool;
   (* Flag used by the semgrep-python wrapper *)
   target_source : target_source option;
@@ -97,8 +94,8 @@ let default =
     profile_start = 0.;
     matching_explanations = false;
     (* Main flags *)
-    pattern_string = "";
-    pattern_file = "" (* invalid path! *);
+    pattern_string = None;
+    pattern_file = None;
     rule_source = None;
     lang_job = None;
     equivalences_file = None;
@@ -116,10 +113,9 @@ let default =
     max_memory_mb = 0;
     max_match_per_file = 10_000;
     ncores = 1;
-    parsing_cache_dir = "" (* invalid path! *);
+    parsing_cache_dir = None;
+    (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
-    (* -fast by default *)
-    (* "" means no cache *)
     (* Flag used by the semgrep-python wrapper *)
     target_source = None;
     (* Common.ml action for the -dump_xxx *)

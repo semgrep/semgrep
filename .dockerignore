@@ -6,15 +6,9 @@
 
 # opam files are now generated from dune-project when running 'dune build':
 *.opam
-# but we keep the nonempty ones for installing the project dependencies with
-# 'opam install --deps-only ...':
-!ast_generic.opam
-!commons.opam
-!lib_parsing.opam
-!process_limits.opam
-!profiling.opam
+# but we keep the one used for installing the project dependencies with
+# 'opam install --deps-only .':
 !semgrep.opam
-!spacegrep.opam
 
 # bisect_ppx
 **/_coverage

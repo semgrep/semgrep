@@ -3,6 +3,7 @@
  (wrapped false)
  (libraries
    str
+   uri
    unix
    fpath
    yojson
@@ -15,6 +16,7 @@
    re
    pcre
    parmap
+   digestif.c
  )
  (preprocess
    (pps

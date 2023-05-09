@@ -370,7 +370,6 @@ let rec is_symbolic_expr expr =
   | G.L _ -> true
   | G.N _ -> true
   | G.IdSpecial _ -> true
-  | G.ParenExpr (_, e, _)
   | G.Cast (_, _, e)
   | G.DotAccess (e, _, FN _) ->
       is_symbolic_expr e
@@ -514,6 +513,8 @@ let transfer :
                * call itself as a symbolic expression. *)
               let ccall = sym_prop instr.iorig in
               update_env_with inp' var ccall
+        | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
+            update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial
             (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
             let args = Common.map IL_helpers.exp_of_arg args in

@@ -24,7 +24,7 @@ type conf = { target : target_kind; json : bool }
 and target_kind =
   | Pattern of string * Lang.t
   | File of Fpath.t * Lang.t
-  | Config of Semgrep_dashdash_config.config_str
+  | Config of Semgrep_dashdash_config.config_string
 [@@deriving show]
 
 (*****************************************************************************)
@@ -67,6 +67,9 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (*****************************************************************************)
 
 let run (conf : conf) : Exit_code.t =
+  let settings = Semgrep_settings.load () in
+  let token_opt = settings.api_token in
+
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
@@ -90,8 +93,11 @@ let run (conf : conf) : Exit_code.t =
       Logs.app (fun m -> m "%s" s);
       Exit_code.ok
   | Config config_str ->
-      let kind = Semgrep_dashdash_config.config_kind_of_config_str config_str in
-      let rules_and_origins = Rule_fetching.rules_from_dashdash_config kind in
+      let kind = Semgrep_dashdash_config.parse_config_string config_str in
+      let rules_and_origins =
+        Rule_fetching.rules_from_dashdash_config ~token_opt
+          ~registry_caching:false kind
+      in
       rules_and_origins
       |> List.iter (fun x ->
              Logs.app (fun m -> m "%s" (Rule_fetching.show_rules_and_origin x)));
