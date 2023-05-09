@@ -1357,9 +1357,9 @@ and interpolation (env : env) (x : CST.interpolation) =
       let v3 = token env v3 (* "}" *) in
       Right3 (v1, Some v2, v3)
   | `DOLLAR_simple_id (v1, v2) ->
-      let _v1 = token env v1 (* "$" *) in
+      let v1 = token env v1 (* "$" *) in
       let v2 = simple_identifier env v2 in
-      Middle3 (N (Id (v2, empty_id_info ())) |> G.e)
+      Right3 (v1, Some (N (Id (v2, empty_id_info ())) |> G.e), v1)
 
 and jump_expression (env : env) (x : CST.jump_expression) =
   match x with
