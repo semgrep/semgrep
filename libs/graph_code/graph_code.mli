@@ -3,8 +3,10 @@ type node = entity_name * Entity_code.entity_kind
 and entity_name = string
 
 type nodeinfo = {
-  (* the filename embedded inside token_location can be a readable path *)
-  pos : Parse_info.token_location;
+  (* the filename embedded inside location can be a readable path.
+   * TODO: use an actual Pos.t? otherwise rename to loc.
+   *)
+  pos : Tok.location;
   props : Entity_code.property list;
   typ : string option;
 }
@@ -25,11 +27,11 @@ val string_of_error : error -> string
 type statistics = {
   parse_errors : Common.filename list ref;
   (* could be Parse_info.token_location*)
-  lookup_fail : (Parse_info.t * node) list ref;
-  method_calls : (Parse_info.t * resolved) list ref;
-  field_access : (Parse_info.t * resolved) list ref;
-  unresolved_class_access : Parse_info.t list ref;
-  unresolved_calls : Parse_info.t list ref;
+  lookup_fail : (Tok.t * node) list ref;
+  method_calls : (Tok.t * resolved) list ref;
+  field_access : (Tok.t * resolved) list ref;
+  unresolved_class_access : Tok.t list ref;
+  unresolved_calls : Tok.t list ref;
 }
 
 and resolved = bool
@@ -70,13 +72,16 @@ val remove_edge : node * node -> edge -> t -> unit
 
 (* graph construction helpers *)
 val create_initial_hierarchy : t -> unit
-val create_intermediate_directories_if_not_present : t -> Common.dirname -> unit
+
+val create_intermediate_directories_if_not_present :
+  t -> Common.filename (* a dir *) -> unit
+
 val remove_empty_nodes : t -> node list -> unit
 
 (* useful for bytecode <-> source file heuristic matching *)
 val basename_to_readable_disambiguator :
   Common.filename list ->
-  root:Common.dirname ->
+  root:Common.filename (* a dir *) ->
   string (* basename *) ->
   Common.filename list
 

@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module V = Visitor_AST
 
 (*****************************************************************************)
 (* Prelude *)
@@ -33,7 +32,6 @@ module V = Visitor_AST
  * This module is currently used by:
  *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
- *  - the bloom filter pattern extractor of Nathan and Emma
  *  - the Semgrep.ml engine to skip entire files!
  *
  * TODO:
@@ -49,10 +47,6 @@ let _error s = failwith s
 (*****************************************************************************)
 (* Extractions *)
 (*****************************************************************************)
-
-(* TODO(iago): This is partly redundant with Bloom_annotation.statement_strings,
- * it might be more maintainable if we had a single visitor that worked for both
- * statements and patterns. *)
 
 let extract_strings_and_mvars ?lang any =
   let strings = ref [] in
@@ -104,12 +98,13 @@ let extract_strings_and_mvars ?lang any =
             if not (Pattern.is_special_string_literal str) then
               Common.push str strings
         | IdSpecial (Eval, t) ->
-            if Parse_info.is_origintok t then
-              Common.push (Parse_info.str_of_info t) strings
+            if Tok.is_origintok t then
+              Common.push (Tok.content_of_tok t) strings
         (* do not recurse there, the type does not have to be in the source *)
         | TypedMetavar _ -> ()
         (* for bloom_filters: do not recurse here (for ApplyEquivalence,
-         * this would be an error) *)
+         * this would be an error)
+         * THINK: bloom filter was removed, something to re-consider here? *)
         | DisjExpr _ -> ()
         | _ -> super#visit_expr env x
     end

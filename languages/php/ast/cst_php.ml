@@ -70,11 +70,7 @@ open Common
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-(* Contains among other things the position of the token through
- * the Parse_info.parse_info embedded inside it, as well as the
- * transformation field that makes possible spatch.
- *)
-type tok = Parse_info.t
+type tok = Tok.t
 
 (* shortcuts to annotate some information with token/position information *)
 and 'a wrap = 'a * tok
@@ -88,7 +84,6 @@ and 'a comma_list = ('a, tok (* the comma *)) Common.either list
 and 'a comma_list_dots =
   ('a, tok (* ... in parameters *), tok (* the comma *)) Common.either3 list
 [@@deriving show]
-(* with tarzan *)
 
 (* ------------------------------------------------------------------------- *)
 (* Ident/Name/LongName   *)
@@ -125,7 +120,6 @@ and qualified_ident_element =
   | QI of ident (* the ident can be 'namespace' *)
   | QITok of tok (* '\' *)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 type name =
   | XName of qualified_ident
@@ -138,7 +132,6 @@ type name =
   (* php 5.3 late static binding (no idea why it's useful ...) *)
   | LateStatic of tok
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Types *)
@@ -823,14 +816,12 @@ and toplevel =
 and namespace_use_rule = qualified_ident * alias option
 and alias = tok (* as *) * ident
 and program = toplevel list [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Any *)
 (*****************************************************************************)
 
 type partial = PartialIf of tok * expr [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 type any =
   | Expr of expr
@@ -856,16 +847,13 @@ type any =
   | Ident2 of ident
   | Hint2 of hint_type
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Some constructors *)
 (*****************************************************************************)
-let fakeInfo ?(next_to = None) str =
-  {
-    Parse_info.token = Parse_info.FakeTokStr (str, next_to);
-    transfo = Parse_info.NoTransfo;
-  }
+(* TODO: reuse Tok.fake_tok ? *)
+let fakeInfo ?(next_to = None) str = Tok.FakeTokStr (str, next_to)
+
 (*****************************************************************************)
 (* Wrappers *)
 (*****************************************************************************)
@@ -930,7 +918,7 @@ let map_comma_list f xs =
  * information, to "abstract those line" (al) information.
  *)
 
-let al_info x = { x with Parse_info.token = Parse_info.Ab }
+let al_info _x = Tok.Ab
 
 (*****************************************************************************)
 (* Views *)
@@ -981,7 +969,7 @@ let str_of_name x =
   | Self tok
   | Parent tok
   | LateStatic tok ->
-      Parse_info.str_of_info tok
+      Tok.content_of_tok tok
   | XName qu -> raise (TodoNamespace (info_of_qualified_ident qu))
 
 let str_of_name_namespace x =
@@ -989,7 +977,7 @@ let str_of_name_namespace x =
   | Self tok
   | Parent tok
   | LateStatic tok ->
-      Parse_info.str_of_info tok
+      Tok.content_of_tok tok
   | XName xs ->
       xs
       |> List.map (function

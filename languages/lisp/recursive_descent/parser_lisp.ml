@@ -12,30 +12,29 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
 type token =
-  | TComment of Ast_lisp.info
-  | TCommentSpace of Ast_lisp.info
-  | TCommentNewline of Ast_lisp.info
-  | TNumber of (string * Ast_lisp.info)
-  | TIdent of (string * Ast_lisp.info)
-  | TString of (string * Ast_lisp.info)
-  | TOParen of Ast_lisp.info
-  | TCParen of Ast_lisp.info
-  | TOBracket of Ast_lisp.info
-  | TCBracket of Ast_lisp.info
-  | TQuote of Ast_lisp.info
+  | TComment of Tok.t
+  | TCommentSpace of Tok.t
+  | TCommentNewline of Tok.t
+  | TNumber of (string * Tok.t)
+  | TIdent of (string * Tok.t)
+  | TString of (string * Tok.t)
+  | TOParen of Tok.t
+  | TCParen of Tok.t
+  | TOBracket of Tok.t
+  | TCBracket of Tok.t
+  | TQuote of Tok.t
   (* anti-quote expressions tokens, as in `(foo ,v ,@xs) *)
-  | TBackQuote of Ast_lisp.info
-  | TComma of Ast_lisp.info
-  | TAt of Ast_lisp.info
-  | TUnknown of Ast_lisp.info
-  | EOF of Ast_lisp.info
+  | TBackQuote of Tok.t
+  | TComma of Tok.t
+  | TAt of Tok.t
+  | TUnknown of Tok.t
+  | EOF of Tok.t
 
 (*****************************************************************************)
 (* Token Helpers *)
@@ -87,4 +86,4 @@ let info_of_tok tok =
   |> ignore;
   Common2.some !res
 
-let str_of_tok x = PI.str_of_info (info_of_tok x)
+let str_of_tok x = Tok.content_of_tok (info_of_tok x)

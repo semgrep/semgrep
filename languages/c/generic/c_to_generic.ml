@@ -15,7 +15,6 @@
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 open Ast_cpp
 open Ast_c
 
@@ -40,13 +39,13 @@ let either f g x =
   | Right x -> Right (g x)
 
 let string = id
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = PI.unsafe_fake_bracket
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
+let fb = Tok.unsafe_fake_bracket
 
 let opt_to_ident opt =
   match opt with
-  | None -> ("FakeNAME", Parse_info.unsafe_fake_info "FakeNAME")
+  | None -> ("FakeNAME", Tok.unsafe_fake_tok "FakeNAME")
   | Some n -> n
 
 (*****************************************************************************)
@@ -274,7 +273,12 @@ and expr e =
       G.Record v1 |> G.e
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.New (unsafe_fake "new", v1, fb ([ v2 ] |> Common.map G.arg)) |> G.e
+      G.New
+        ( unsafe_fake "new",
+          v1,
+          G.empty_id_info (),
+          fb ([ v2 ] |> Common.map G.arg) )
+      |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
@@ -410,7 +414,7 @@ and struct_def { s_name; s_kind; s_flds } =
       (entity, G.TypeDef { G.tbody = G.AndType fields })
   | Union ->
       let ctors =
-        v3 |> PI.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
+        v3 |> Tok.unbracket |> Common.map (fun (n, t) -> G.OrUnion (n, t))
       in
       (entity, G.TypeDef { G.tbody = G.OrType ctors })
 

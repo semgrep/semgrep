@@ -53,7 +53,7 @@ let rec print_indent indent { op; children; matches; pos } =
   let s =
     spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
       (Out.show_matching_operation op)
-      (Parse_info.pos_of_info pos)
+      (Tok.bytepos_of_tok pos)
       (matches |> Common.map match_to_charpos_range |> Common.join " ")
   in
   pr s;

@@ -92,7 +92,7 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* We apply a different mapping whether we're parsing a pattern or target
    program. *)
@@ -122,7 +122,7 @@ let stmt_or_expr_loc = function
 let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
   | several ->
-      let loc = Loc.of_list stmt_or_expr_loc several in
+      let loc = Tok_range.of_list stmt_or_expr_loc several in
       let stmts = Common.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
@@ -200,7 +200,7 @@ let call loc name exprs =
   G.Call (name loc, bracket loc (Common.map (fun e -> G.Arg e) exprs)) |> G.e
 
 let todo_tokens ((start, end_) : loc) =
-  let wrap tok = (Parse_info.str_of_info tok, tok) in
+  let wrap tok = (Tok.content_of_tok tok, tok) in
   if start =*= end_ then [ G.TodoK (wrap start) ]
   else [ G.TodoK (wrap start); G.TodoK (wrap end_) ]
 

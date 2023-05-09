@@ -12,7 +12,6 @@
 (***********************************************************************)
 open Common
 open Ast_ml
-module PI = Parse_info
 
 (*************************************************************************)
 (* Prelude *)
@@ -56,7 +55,7 @@ let optlist_to_list = function
 
 let seq1 = function
   | [x] -> x
-  | xs -> Sequence (Parse_info.unsafe_fake_bracket xs)
+  | xs -> Sequence (Tok.unsafe_fake_bracket xs)
 
 let topseqexpr v1 = mki (TopExpr (seq1 v1))
 
@@ -66,30 +65,30 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
 (*************************************************************************)
 
 (* unrecognized token, will generate parse error *)
-%token <Parse_info.t> TUnknown
-%token <Parse_info.t> EOF
+%token <Tok.t> TUnknown
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The space/comment tokens *)
 (*-----------------------------------------*)
 
 (* coupling: Token_helpers.is_real_comment *)
-%token <Parse_info.t> TCommentSpace TCommentNewline   TComment
-%token <Parse_info.t> TCommentMisc
+%token <Tok.t> TCommentSpace TCommentNewline   TComment
+%token <Tok.t> TCommentMisc
 
 (*-----------------------------------------*)
 (* The normal tokens *)
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <int option * Parse_info.t> TInt
-%token <float option * Parse_info.t> TFloat
-%token <string * Parse_info.t> TChar TString
-%token <string * Parse_info.t> TLowerIdent TUpperIdent
-%token <string * Parse_info.t> TLabelUse TLabelDecl TOptLabelUse TOptLabelDecl
+%token <int option * Tok.t> TInt
+%token <float option * Tok.t> TFloat
+%token <string * Tok.t> TChar TString
+%token <string * Tok.t> TLowerIdent TUpperIdent
+%token <string * Tok.t> TLabelUse TLabelDecl TOptLabelUse TOptLabelDecl
 
 (* keywords tokens *)
-%token <Parse_info.t>
+%token <Tok.t>
  Tfun Tfunction Trec Ttype Tof Tif Tthen Telse
  Tmatch Twith Twhen
  Tlet Tin Tas
@@ -105,7 +104,7 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
  Tor Tmod Tlor Tlsl Tlsr Tlxor Tasr Tland
 
 (* syntax *)
-%token <Parse_info.t>
+%token <Tok.t>
  TOParen "(" TCParen ")" TOBrace "{" TCBrace "}" TOBracket "[" TCBracket "]"
  TOBracketPipe "[|" TPipeCBracket "|]"  TOBracketLess "[<" TGreaterCBracket ">]"
  TOBraceLess "{<" TGreaterCBrace ">}"
@@ -122,21 +121,21 @@ let topseqexpr v1 = mki (TopExpr (seq1 v1))
  TMinusDot TPlusDot
 
 (* operators *)
-%token <Parse_info.t> TPlus "+" TMinus "-" TLess "<" TGreater ">"
-%token <string * Parse_info.t> TPrefixOperator TInfixOperator
-%token <string * Parse_info.t> LETOP ANDOP (* monadic let, since 4.08 *)
+%token <Tok.t> TPlus "+" TMinus "-" TLess "<" TGreater ">"
+%token <string * Tok.t> TPrefixOperator TInfixOperator
+%token <string * Tok.t> LETOP ANDOP (* monadic let, since 4.08 *)
 
 (* attributes *)
-%token <Parse_info.t> TBracketAt "[@" TBracketAtAt "[@@" TBracketAtAtAt "[@@@"
-%token <Parse_info.t> TBracketPercent "[%" TBracketPercentPercent "[%%"
+%token <Tok.t> TBracketAt "[@" TBracketAtAt "[@@" TBracketAtAtAt "[@@@"
+%token <Tok.t> TBracketPercent "[%" TBracketPercentPercent "[%%"
 
 (*-----------------------------------------*)
 (* extra tokens: *)
 (*-----------------------------------------*)
-%token <Parse_info.t> TSharpDirective
+%token <Tok.t> TSharpDirective
 
 (* sgrep-ext: *)
-%token <Parse_info.t> TDots "..." LDots "<..." RDots "...>"
+%token <Tok.t> TDots "..." LDots "<..." RDots "...>"
 
 (*************************************************************************)
 (* Priorities *)
@@ -759,7 +758,7 @@ pattern:
        | Right _lit -> failwith "Impossible, literal with pattern argument"
      }
  (* the fake will be replace by real parens in simple_pattern last case *)
- | pattern_comma_list       %prec below_COMMA     { PatTuple (PI.unsafe_fake_bracket $1) }
+ | pattern_comma_list       %prec below_COMMA     { PatTuple (Tok.unsafe_fake_bracket $1) }
  | pattern "::" pattern                           { PatConsInfix ($1, $2, $3) }
 
  | pattern Tas val_ident                          { PatAs ($1, $3) }

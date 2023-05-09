@@ -43,7 +43,7 @@ let any_gen_of_string str =
 *)
 let tests () = List.flatten [
   Unit_list_files.tests;
-  Osemgrep_targeting.Unit_glob.tests;
+  Glob.Unit_glob.tests;
   Osemgrep_targeting.Unit_semgrepignore.tests;
   Unit_parsing.tests ();
   Unit_reporting.tests ();
@@ -55,7 +55,7 @@ let tests () = List.flatten [
   Unit_memory_limit.tests;
   Unit_SPcre.tests;
   Unit_regexp_engine.tests;
-  Unit_FPath.tests;
+  Unit_Rpath.tests;
   Unit_immutable_buffer.tests;
   Unit_ugly_print_AST.tests;
   Unit_autofix_printer.tests;
@@ -75,7 +75,8 @@ let tests () = List.flatten [
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
   Unit_engine.tests ();
   Unit_metachecking.tests ();
-
+  Unit_LS.tests;
+  Aliengrep.Unit_tests.tests;
   (* Inline tests *)
   Testutil.get_registered_tests ();
 ]
@@ -99,6 +100,8 @@ let tests_with_delayed_error () =
 let main () =
   Parsing_init.init ();
   Data_init.init();
+  Core_CLI.register_exception_printers ();
+  Logs_helpers.setup_logging ~force_color:false ~level:(Some Logs.Debug);
   let alcotest_tests = Testutil.to_alcotest (tests_with_delayed_error ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 

@@ -15,7 +15,6 @@
 open Common
 module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
-module PI = Parse_info
 module G = AST_generic
 module H2 = AST_generic_helpers
 
@@ -36,7 +35,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -210,7 +209,7 @@ let rec map_expression_list (env : env)
 and map_expression_tuple (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.expr =
   let v1 = map_expression_list env (v1, v2) in
-  G.Container (G.Tuple, PI.unsafe_fake_bracket v1) |> G.e
+  G.Container (G.Tuple, Tok.unsafe_fake_bracket v1) |> G.e
 
 and map_anon_arguments (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.argument list =
@@ -365,7 +364,7 @@ and map_do_block (env : env) (v1, v2, v3, v4) : G.stmt =
 and map_else_ (env : env) ((v1, v2, v3) : CST.else_) : G.stmt =
   let _v1 = token env v1 (* "else" *) in
   let stmt_list = map_statements_and_return env (v2, v3) in
-  G.Block (PI.unsafe_fake_bracket stmt_list) |> G.s
+  G.Block (Tok.unsafe_fake_bracket stmt_list) |> G.s
 
 (* and map_elseif (env : env) ((v1, v2, v3, v4, v5) : CST.elseif) =
  *   let v1 = token env v1 (\* "elseif" *\) in
@@ -632,7 +631,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let _v3 = token env v3 (* "then" *) in
       let stmt_list =
         G.Block
-          (PI.unsafe_fake_bracket (map_statements_and_return env (v4, v5)))
+          (Tok.unsafe_fake_bracket (map_statements_and_return env (v4, v5)))
         |> G.s
       in
       let elseifs =
@@ -643,7 +642,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
             let _v3 = token env v3 (* "then" *) in
             let stmt_list =
               G.Block
-                (PI.unsafe_fake_bracket
+                (Tok.unsafe_fake_bracket
                    (map_statements_and_return env (v4, v5)))
               |> G.s
             in
@@ -695,7 +694,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       let _v3 = token env v3 (* "::" *) in
       (* ??? *)
-      [ G.Label (v2, G.Block (PI.unsafe_fake_bracket []) |> G.s) |> G.s ]
+      [ G.Label (v2, G.Block (Tok.unsafe_fake_bracket []) |> G.s) |> G.s ]
   | `Empty_stmt _tok -> [] (* ";" *)
   | `Func_stmt (v1, v2, v3) ->
       let name = map_function_name env v2 in

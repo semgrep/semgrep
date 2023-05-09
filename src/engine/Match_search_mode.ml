@@ -18,7 +18,6 @@ module XP = Xpattern
 module MR = Mini_rule
 module PM = Pattern_match
 module G = AST_generic
-module PI = Parse_info
 module MV = Metavariable
 module RP = Report
 module RM = Range_with_metavars
@@ -143,7 +142,7 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Adapters *)
@@ -362,7 +361,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       fm_mvals
       |> Common.map_filter (fun (focus_mvar, mval) ->
              let* range_loc =
-               Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval)
+               AST_generic_helpers.range_of_any_opt (MV.mvalue_to_any mval)
              in
              Some (focus_mvar, mval, range_loc))
     in
@@ -548,7 +547,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, re_str, const_prop) ->
-             let fk = PI.unsafe_fake_info "" in
+             let fk = Tok.unsafe_fake_tok "" in
              let fki = AST_generic.empty_id_info () in
              let e =
                (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
@@ -778,7 +777,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                      if_explanations env
                        (Common.map fst ranges_with_bindings)
                        []
-                       (Out.Filter (PI.str_of_info tok), tok)
+                       (Out.Filter (Tok.content_of_tok tok), tok)
                    in
                    (ranges_with_bindings, expl :: acc_expls))
                  (Common.map (fun x -> (x, [])) ranges, [])

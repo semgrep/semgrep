@@ -11,6 +11,6 @@
 type t = {
   ast : AST_generic.program;
   (* partial errors tree-sitter was able to recover from *)
-  skipped_tokens : Parse_info.token_location list;
+  skipped_tokens : Tok.location list;
   stat : Parsing_stat.t;
 }

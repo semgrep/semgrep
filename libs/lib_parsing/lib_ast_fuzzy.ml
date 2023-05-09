@@ -14,7 +14,6 @@
  *)
 open Common
 open Ast_fuzzy
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,20 +26,43 @@ module PI = Parse_info
 (* Types *)
 (*****************************************************************************)
 
-type 'tok hooks = {
-  kind : 'tok -> Parse_info.token_kind;
-  tokf : 'tok -> Parse_info.t;
-}
+type token_kind =
+  (* for the fuzzy parser and sgrep/spatch fuzzy AST *)
+  | LPar
+  | RPar
+  | LBrace
+  | RBrace
+  | LBracket
+  | RBracket
+  | LAngle
+  | RAngle
+  (* for the unparser helpers in spatch, and to filter
+   * irrelevant tokens in the fuzzy parser
+   *)
+  | Esthet of esthet
+  (* mostly for the lexer helpers, and for fuzzy parser *)
+  (* less: want to factorize all those TH.is_eof to use that?
+   * but extra cost? same for TH.is_comment?
+   * todo: could maybe get rid of that now that we don't really use
+   * berkeley DB and prefer Prolog, and so we don't need a sentinel
+   * ast elements to associate the comments with it
+   *)
+  | Eof
+  | Other
 
-exception Unclosed of string * Parse_info.t (* starting point *)
+and esthet = Comment | Newline | Space
+
+type 'tok hooks = { kind : 'tok -> token_kind; tokf : 'tok -> Tok.t }
+
+exception Unclosed of string * Tok.t (* starting point *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let char_of_token_kind = function
-  | PI.RAngle -> '>'
-  | PI.RBracket -> ']'
-  | PI.RBrace -> '}'
+  | RAngle -> '>'
+  | RBracket -> ']'
+  | RBrace -> '}'
   | _ -> raise Impossible
 
 (*****************************************************************************)
@@ -62,28 +84,28 @@ let mk_trees h xs =
     |> Common.exclude (fun t ->
            let kind = h.kind t in
            match kind with
-           | PI.Esthet _
-           | PI.Eof ->
+           | Esthet _
+           | Eof ->
                true
            | _ -> false)
   in
 
   let rec consume x xs =
     match x with
-    | tok when h.kind tok =*= PI.LBrace ->
-        let body, closing, rest = look_close PI.RBrace x [] xs in
+    | tok when h.kind tok =*= LBrace ->
+        let body, closing, rest = look_close RBrace x [] xs in
         (Ast_fuzzy.Braces (h.tokf x, body, h.tokf closing), rest)
-    | tok when h.kind tok =*= PI.LBracket ->
-        let body, closing, rest = look_close PI.RBracket x [] xs in
+    | tok when h.kind tok =*= LBracket ->
+        let body, closing, rest = look_close RBracket x [] xs in
         (Ast_fuzzy.Bracket (h.tokf x, body, h.tokf closing), rest)
-    | tok when h.kind tok =*= PI.LAngle ->
-        let body, closing, rest = look_close PI.RAngle x [] xs in
+    | tok when h.kind tok =*= LAngle ->
+        let body, closing, rest = look_close RAngle x [] xs in
         (Ast_fuzzy.Angle (h.tokf x, body, h.tokf closing), rest)
-    | tok when h.kind tok =*= PI.LPar ->
+    | tok when h.kind tok =*= LPar ->
         let body, closing, rest = look_close_paren x [] xs in
         let body' = split_comma body in
         (Ast_fuzzy.Parens (h.tokf x, body', h.tokf closing), rest)
-    | tok -> (Ast_fuzzy.Tok (PI.str_of_info (h.tokf tok), h.tokf x), xs)
+    | tok -> (Ast_fuzzy.Tok (Tok.content_of_tok (h.tokf tok), h.tokf x), xs)
     (*
     (match Ast.str_of_info (tokext tok) with
     | "..." -> Ast_fuzzy.Dots (tokext tok)
@@ -109,13 +131,13 @@ let mk_trees h xs =
         | _ ->
             let x', xs' = consume x xs in
             look_close close_kind tok_start (x' :: accbody) xs')
-  (* todo? diff with look_close PI.RPar ? *)
+  (* todo? diff with look_close RPar ? *)
   and look_close_paren tok_start accbody xs =
     match xs with
     | [] -> raise (Unclosed ("look_close_paren", h.tokf tok_start))
     | x :: xs -> (
         match x with
-        | tok when h.kind tok =*= PI.RPar -> (List.rev accbody, x, xs)
+        | tok when h.kind tok =*= RPar -> (List.rev accbody, x, xs)
         | _ ->
             let x', xs' = consume x xs in
             look_close_paren tok_start (x' :: accbody) xs')
@@ -246,7 +268,7 @@ let (mk_mapper : map_visitor -> trees -> trees) =
 (* Extractor *)
 (*****************************************************************************)
 
-let (toks_of_trees : trees -> Parse_info.t list) =
+let (toks_of_trees : trees -> Tok.t list) =
  fun trees ->
   let globals = ref [] in
   let hooks =
@@ -261,8 +283,6 @@ let (toks_of_trees : trees -> Parse_info.t list) =
 (*****************************************************************************)
 
 let abstract_position_trees trees =
-  let hooks =
-    { mtok = (fun _k i -> { i with Parse_info.token = Parse_info.Ab }) }
-  in
+  let hooks = { mtok = (fun _k _i -> Tok.Ab) } in
   let mapper = mk_mapper hooks in
   mapper trees

@@ -22,8 +22,6 @@ open Common
 open Ast_cpp
 open Parser_cpp_mly_helper
 
-module PI = Parse_info
-
 (*************************************************************************)
 (* Prelude *)
 (*************************************************************************)
@@ -49,58 +47,58 @@ module PI = Parse_info
  *)
 
 (* unrecognized token (use for error recovery during lexing) *)
-%token <Parse_info.t> TUnknown
+%token <Tok.t> TUnknown
 
-%token <Parse_info.t> EOF
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The space/comment tokens *)
 (*-----------------------------------------*)
 (* coupling: Token_helpers.is_real_comment and other related functions.
  * disappear in parse_cpp.ml via TH.is_comment in lexer_function *)
-%token <Parse_info.t> TCommentSpace TCommentNewline TComment
+%token <Tok.t> TCommentSpace TCommentNewline TComment
 
 (* fresh_token: cppext: appears after parsing_hack_pp and disappear *)
-%token <(Token_cpp.cppcommentkind * Parse_info.t)> TComment_Pp
+%token <(Token_cpp.cppcommentkind * Tok.t)> TComment_Pp
 (* fresh_token: c++ext: appears after parsing_hack_pp and disappear *)
-%token <(Token_cpp.cpluspluscommentkind * Parse_info.t)> TComment_Cpp
+%token <(Token_cpp.cpluspluscommentkind * Tok.t)> TComment_Cpp
 
 (*-----------------------------------------*)
 (* The C tokens *)
 (*-----------------------------------------*)
-%token <int option * Parse_info.t>   TInt
-%token <float option * Parse_info.t> TFloat
-%token <string * Parse_info.t>       TChar TString
+%token <int option * Tok.t>   TInt
+%token <float option * Tok.t> TFloat
+%token <string * Tok.t>       TChar TString
 
-%token <string * Parse_info.t> TIdent
+%token <string * Tok.t> TIdent
 (* fresh_token: appear after some fix_tokens in parsing_hack.ml *)
-%token <string * Parse_info.t> TIdent_Typedef
+%token <string * Tok.t> TIdent_Typedef
 
 (* coupling: some tokens like TOPar and TCPar are used as synchronisation
  * point in parsing_hack.ml. So if you define a special token like
  * TOParDefine and TCParEOL, then you must take care to also modify
  * token_helpers.ml
  *)
-%token <Parse_info.t> TOPar "(" TCPar ")"
-%token <Parse_info.t> TOBrace "{" TCBrace "}"
-%token <Parse_info.t> TOCro "[" TCCro "]"
+%token <Tok.t> TOPar "(" TCPar ")"
+%token <Tok.t> TOBrace "{" TCBrace "}"
+%token <Tok.t> TOCro "[" TCCro "]"
 
-%token <Parse_info.t> TDot TPtrOp     TInc TDec
-%token <Parse_info.t> TComma "," TPtVirg ";"
-%token <Ast_cpp.arithOp * Parse_info.t> TAssign
-%token <Parse_info.t> TEq "=" TWhy "?"  TTilde TBang TCol ":" TEllipsis "..."
-%token <Parse_info.t>
+%token <Tok.t> TDot TPtrOp     TInc TDec
+%token <Tok.t> TComma "," TPtVirg ";"
+%token <Ast_cpp.arithOp * Tok.t> TAssign
+%token <Tok.t> TEq "=" TWhy "?"  TTilde TBang TCol ":" TEllipsis "..."
+%token <Tok.t>
   TOrLog TAndLog "&&" TOr TXor TAnd "&"  TEqEq TNotEq TInfEq TSupEq
   TShl TShr
   TPlus TMinus TMul "*" TDiv TMod
 
 (* sgrep-ext: *)
-%token <Parse_info.t> LDots "<..." RDots "...>"
+%token <Tok.t> LDots "<..." RDots "...>"
 
 (*c++ext: see also TInf2 and TSup2 *)
-%token <Parse_info.t> TInf TSup
+%token <Tok.t> TInf TSup
 
-%token <Parse_info.t>
+%token <Tok.t>
   Tchar Tshort Tint Tdouble Tfloat Tlong Tunsigned Tsigned Tvoid
   Tauto Tregister Textern Tstatic
   Ttypedef
@@ -111,61 +109,61 @@ module PI = Parse_info
   Tsizeof
 
 (* C99 *)
-%token <Parse_info.t> Trestrict
+%token <Tok.t> Trestrict
 
 (*-----------------------------------------*)
 (* gccext: extra tokens *)
 (*-----------------------------------------*)
-%token <Parse_info.t> Tasm Ttypeof
+%token <Tok.t> Tasm Ttypeof
 (* less: disappear in parsing_hacks_pp, not present in AST for now *)
-%token <Parse_info.t> Tattribute
+%token <Tok.t> Tattribute
 (* also c++ext: *)
-%token <Parse_info.t> Tinline
+%token <Tok.t> Tinline
 
 (*-----------------------------------------*)
 (* cppext: extra tokens *)
 (*-----------------------------------------*)
 
 (* cppext: #define  *)
-%token <Parse_info.t> TDefine
-%token <(string * Parse_info.t)> TDefParamVariadic
+%token <Tok.t> TDefine
+%token <(string * Tok.t)> TDefParamVariadic
 (* transformed in TCommentSpace and disappear in parsing_hack.ml *)
-%token <Parse_info.t> TCppEscapedNewline
+%token <Tok.t> TCppEscapedNewline
 (* fresh_token: appear after fix_tokens_define in parsing_hack_define.ml *)
-%token <(string * Parse_info.t)> TIdent_Define
-%token <Parse_info.t> TOPar_Define
-%token <Parse_info.t> TCommentNewline_DefineEndOfMacro
-%token <Parse_info.t> TOBrace_DefineInit
+%token <(string * Tok.t)> TIdent_Define
+%token <Tok.t> TOPar_Define
+%token <Tok.t> TCommentNewline_DefineEndOfMacro
+%token <Tok.t> TOBrace_DefineInit
 
 (* cppext: #include  *)
-%token <(string * string * Parse_info.t)> TInclude
+%token <(string * string * Tok.t)> TInclude
 
 (* cppext: #ifdef *)
 (* coupling: Token_helpers.is_cpp_instruction *)
-%token <Parse_info.t>          TIfdef TIfdefelse TIfdefelif TEndif
-%token <(bool * Parse_info.t)> TIfdefBool TIfdefMisc TIfdefVersion
+%token <Tok.t>          TIfdef TIfdefelse TIfdefelif TEndif
+%token <(bool * Tok.t)> TIfdefBool TIfdefMisc TIfdefVersion
 
 (* cppext: other *)
-%token <string * Parse_info.t> TUndef
-%token <Parse_info.t> TCppDirectiveOther
+%token <string * Tok.t> TUndef
+%token <Tok.t> TCppDirectiveOther
 
 (* cppext: special macros *)
 (* fresh_token: appear after fix_tokens in parsing_hacks_pp.ml *)
-%token <Parse_info.t>            TIdent_MacroStmt
-%token <Parse_info.t>            TIdent_MacroString
-%token <string * Parse_info.t> TIdent_MacroIterator
-%token <string * Parse_info.t> TIdent_MacroDecl
-%token <Parse_info.t>            Tconst_MacroDeclConst
+%token <Tok.t>            TIdent_MacroStmt
+%token <Tok.t>            TIdent_MacroString
+%token <string * Tok.t> TIdent_MacroIterator
+%token <string * Tok.t> TIdent_MacroDecl
+%token <Tok.t>            Tconst_MacroDeclConst
 
 (* fresh_token: appear after parsing_hack_pp.ml, alt to TIdent_MacroTop *)
-%token <Parse_info.t> TCPar_EOL
+%token <Tok.t> TCPar_EOL
 (* fresh_token: appear after parsing_hack_pp.ml *)
-%token <Parse_info.t> TAny_Action
+%token <Tok.t> TAny_Action
 
 (*-----------------------------------------*)
 (* c++ext: extra tokens *)
 (*-----------------------------------------*)
-%token <Parse_info.t>
+%token <Tok.t>
    Tclass Tthis
    Tnew Tdelete
    Ttemplate Ttypeid Ttypename
@@ -178,53 +176,53 @@ module PI = Parse_info
    Twchar_t
    Tconst_cast Tdynamic_cast Tstatic_cast Treinterpret_cast
    Texplicit Tmutable
-%token <Parse_info.t> TPtrOpStar TDotStar
+%token <Tok.t> TPtrOpStar TDotStar
 
-%token <Parse_info.t> Tnull
+%token <Tok.t> Tnull
 
-%token <Parse_info.t> TColCol "::"
+%token <Tok.t> TColCol "::"
 
 (* fresh_token: for constructed object, in parsing_hacks_cpp.ml *)
-%token <Parse_info.t> TOPar_CplusplusInit
+%token <Tok.t> TOPar_CplusplusInit
 (* fresh_token: for template *)
-%token <Parse_info.t> TInf_Template TSup_Template
+%token <Tok.t> TInf_Template TSup_Template
 (* fresh_token: for new[] delete[] *)
-%token <Parse_info.t> TOCro_new TCCro_new
+%token <Tok.t> TOCro_new TCCro_new
 (* fresh_token: for pure virtual method. TODO add stuff in parsing_hack *)
-%token <Parse_info.t> TInt_ZeroVirtual
+%token <Tok.t> TInt_ZeroVirtual
 (* fresh_token: why can't use TypedefIdent? conflict? *)
-%token <string * Parse_info.t> TIdent_ClassnameInQualifier
+%token <string * Tok.t> TIdent_ClassnameInQualifier
 (* fresh_token: appears after solved if next token is a typedef *)
-%token <string * Parse_info.t> TIdent_ClassnameInQualifier_BeforeTypedef
+%token <string * Tok.t> TIdent_ClassnameInQualifier_BeforeTypedef
 (* fresh_token: just before <> *)
-%token <string * Parse_info.t> TIdent_Templatename
+%token <string * Tok.t> TIdent_Templatename
 (* for templatename as qualifier, before a '::' TODO write heuristic! *)
-%token <string * Parse_info.t> TIdent_TemplatenameInQualifier
+%token <string * Tok.t> TIdent_TemplatenameInQualifier
 (* fresh_token: appears after solved if next token is a typedef *)
-%token <string * Parse_info.t> TIdent_TemplatenameInQualifier_BeforeTypedef
+%token <string * Tok.t> TIdent_TemplatenameInQualifier_BeforeTypedef
 (* fresh_token: for methods with same name as classname *)
-%token <string * Parse_info.t> TIdent_Constructor
+%token <string * Tok.t> TIdent_Constructor
 (* for cast_constructor, before a '(', unused for now *)
-%token <string * Parse_info.t> TIdent_TypedefConstr
+%token <string * Tok.t> TIdent_TypedefConstr
 (* fresh_token: for constructed (basic) objects *)
-%token <Parse_info.t>
+%token <Tok.t>
   Tchar_Constr Tint_Constr Tfloat_Constr Tdouble_Constr Twchar_t_Constr
   Tshort_Constr Tlong_Constr Tbool_Constr
   Tsigned_Constr Tunsigned_Constr
 (* fresh_token: appears after solved if next token is a typedef *)
-%token <Parse_info.t> TColCol_BeforeTypedef
+%token <Tok.t> TColCol_BeforeTypedef
 
 (*-----------------------------------------*)
 (* c++0x: extra tokens *)
 (*-----------------------------------------*)
-%token <Parse_info.t>
+%token <Tok.t>
    Tnullptr
    Tconstexpr
    Tthread_local
    Tdecltype
 
 (* fresh_token: for new[] delete[] *)
-%token <Parse_info.t> TOCro_Lambda
+%token <Tok.t> TOCro_Lambda
 
 (*************************************************************************)
 (* Priorities *)
@@ -387,15 +385,15 @@ operator_kind:
  (* ->*  -> *)
  | TPtrOpStar { PtrOpOp PtrStarOp, $1 } | TPtrOp { PtrOpOp PtrOp,     $1 }
  (* () [] (double tokens) *)
- | "(" ")" { AccessOp ParenOp, PI.combine_infos $1 [$2] }
- | "[" "]" { AccessOp ArrayOp, PI.combine_infos $1 [$2] }
+ | "(" ")" { AccessOp ParenOp, Tok.combine_toks $1 [$2] }
+ | "[" "]" { AccessOp ArrayOp, Tok.combine_toks $1 [$2] }
  (* new delete *)
  | Tnew    { AllocOp NewOp,    $1 } | Tdelete { AllocOp DeleteOp, $1 }
  (*new[] delete[] (tripple tokens) *)
  | Tnew    TOCro_new TCCro_new
-    { AllocOp NewArrayOp,  PI.combine_infos $1 [$2;$3] }
+    { AllocOp NewArrayOp,  Tok.combine_toks $1 [$2;$3] }
  | Tdelete TOCro_new TCCro_new
-    { AllocOp DeleteArrayOp, PI.combine_infos $1 [$2;$3] }
+    { AllocOp DeleteArrayOp, Tok.combine_toks $1 [$2;$3] }
 
 
 qualified_id:

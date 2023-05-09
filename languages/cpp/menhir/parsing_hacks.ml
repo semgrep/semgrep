@@ -19,7 +19,6 @@ module Flag_cpp = Flag_parsing_cpp
 module TH = Token_helpers_cpp
 module TV = Token_views_cpp
 module T = Parser_cpp
-module PI = Parse_info
 module F = Ast_fuzzy
 
 (*****************************************************************************)
@@ -81,7 +80,7 @@ let filter_comment_stuff xs =
 
 (* to do at the very very end *)
 let insert_virtual_positions l =
-  let strlen x = String.length (Parse_info.str_of_info x) in
+  let strlen x = String.length (Tok.content_of_tok x) in
   let rec loop acc prev offset = function
     (* Tail-recursive to prevent stack overflows. *)
     | [] -> List.rev acc
@@ -93,30 +92,28 @@ let insert_virtual_positions l =
               | ii -> Ast_cpp.rewrap_pinfo pi ii)
             x
         in
-        match ii.Parse_info.token with
-        | Parse_info.OriginTok _pi ->
-            let prev = Parse_info.unsafe_token_location_of_info ii in
+        match ii with
+        | Tok.OriginTok _pi ->
+            let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
-        | Parse_info.ExpandedTok (pi, _, _) ->
+        | Tok.ExpandedTok (pi, _) ->
+            let acc' = inject (Tok.ExpandedTok (pi, (prev, offset))) :: acc in
+            loop acc' prev (offset + strlen ii) xs
+        | Tok.FakeTokStr (s, _) ->
             let acc' =
-              inject (Parse_info.ExpandedTok (pi, prev, offset)) :: acc
+              inject (Tok.FakeTokStr (s, Some (prev, offset))) :: acc
             in
             loop acc' prev (offset + strlen ii) xs
-        | Parse_info.FakeTokStr (s, _) ->
-            let acc' =
-              inject (Parse_info.FakeTokStr (s, Some (prev, offset))) :: acc
-            in
-            loop acc' prev (offset + strlen ii) xs
-        | Parse_info.Ab -> failwith "abstract not expected")
+        | Tok.Ab -> failwith "abstract not expected")
   in
   let rec skip_fake acc = function
     (* Tail-recursive to prevent stack overflows. *)
     | [] -> List.rev acc
     | x :: xs -> (
         let ii = TH.info_of_tok x in
-        match ii.Parse_info.token with
-        | Parse_info.OriginTok _pi ->
-            let prev = Parse_info.unsafe_token_location_of_info ii in
+        match ii with
+        | Tok.OriginTok _pi ->
+            let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
         | _ -> skip_fake (x :: acc) xs)
   in
@@ -130,7 +127,7 @@ let fix_tokens_for_language lang xs =
   |> Common.map (fun tok ->
          if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
            let ii = TH.info_of_tok tok in
-           T.TIdent (PI.str_of_info ii, ii)
+           T.TIdent (Tok.content_of_tok ii, ii)
          else tok)
 
 (*****************************************************************************)
@@ -182,7 +179,7 @@ let fix_tokens_fuzzy toks =
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if !Flag.error_recovery then toks
-      else raise (Parse_info.Lexical_error (msg, info))
+      else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* Fix tokens *)

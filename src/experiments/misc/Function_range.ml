@@ -9,7 +9,7 @@ open AST_generic
 (* Types *)
 (*****************************************************************************)
 
-type function_info = { name : string; range : Loc.t } [@@deriving show]
+type function_info = { name : string; range : Tok_range.t } [@@deriving show]
 type ranges = function_info list [@@deriving show]
 
 (*****************************************************************************)
@@ -24,8 +24,8 @@ let ranges (prog : AST_generic.program) : ranges =
       method! visit_definition env def =
         match def with
         | { name = EN (Id ((s, _), _idinfo)); _ }, FuncDef _ ->
-            let ii = Visitor_AST.ii_of_any (Def def) in
-            let range = Visitor_AST.range_of_tokens ii in
+            let ii = AST_generic_helpers.ii_of_any (Def def) in
+            let range = AST_generic_helpers.range_of_tokens ii in
             Common.push { name = s; range } env
         | _else_ -> ()
     end

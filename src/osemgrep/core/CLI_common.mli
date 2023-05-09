@@ -8,6 +8,9 @@ val help_page_bottom : Cmdliner.Manpage.block list
 (* small wrapper around Cmdliner.Cmd.eval_value *)
 val eval_value : argv:string array -> 'a Cmdliner.Cmd.t -> 'a
 
+(* handles logging arguments (--quiet/--verbose/--debug) *)
+val logging_term : Logs.level option Cmdliner.Term.t
+
 (* TODO: parser+printer for file path so we can write things like:
 
         Arg.value (Arg.opt (Arg.some CLI_common.fpath) None info)

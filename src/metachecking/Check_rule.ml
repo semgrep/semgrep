@@ -18,12 +18,10 @@ module FT = File_type
 open Rule
 module R = Rule
 module E = Semgrep_error_code
-module PI = Parse_info
 module P = Pattern_match
 module RP = Report
 module SJ = Output_from_core_j
 module Set = Set_
-module V = Visitor_AST
 module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -71,7 +69,7 @@ type env = { r : Rule.t; errors : E.error list ref }
 (*****************************************************************************)
 
 let error env t s =
-  let loc = Parse_info.unsafe_token_location_of_info t in
+  let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
   let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in

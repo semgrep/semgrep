@@ -6,6 +6,21 @@
 *)
 
 (*
+  val show : Pcre.error -> string
+*)
+type error = Pcre.error =
+  | Partial
+  | BadPartial
+  | BadPattern of string * int
+  | BadUTF8
+  | BadUTF8Offset
+  | MatchLimit
+  | RecursionLimit
+  | WorkspaceSize
+  | InternalError of string
+[@@deriving show]
+
+(*
    To be used instead of Pcre.regexp. Refer to the Pcre documentation
    for usage.
    https://mmottl.github.io/pcre-ocaml/api/pcre/Pcre/index.html#val-regexp
@@ -115,6 +130,17 @@ val split :
   ?callout:Pcre.callout ->
   string ->
   (string list, Pcre.error) result
+
+(* See notes about 'pmatch'. *)
+val full_split :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?max:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  (Pcre.split_result list, Pcre.error) result
 
 (* Return 'on_error' in case of a PCRE error. The error is logged. *)
 val split_noerr :

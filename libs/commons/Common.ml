@@ -315,6 +315,16 @@ let map2 f l1 l2 = fast_map2 1000 f l1 l2
 (* Other list functions *)
 (*****************************************************************************)
 
+let hd_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | head :: _ -> head
+
+let tl_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | _ :: tail -> tail
+
 let mapi f l = map2 f (List.init (List.length l) Fun.id) l
 
 (* Tail-recursive to prevent stack overflows. *)
@@ -496,24 +506,6 @@ let exn_to_s exn = Printexc.to_string exn
 (* Test *)
 (*****************************************************************************)
 (* See Testutil *)
-
-(*****************************************************************************)
-(* Persistence *)
-(*****************************************************************************)
-
-let get_value filename =
-  let chan = open_in_bin filename in
-  let x = input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
-
-let write_value valu filename =
-  let chan = open_out_bin filename in
-  output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
 
 (*****************************************************************************)
 (* Composition/Control *)
@@ -749,15 +741,6 @@ let null_string s = s = ""
 type filename = string (* TODO could check that exist :) type sux *)
 [@@deriving show, eq]
 
-(* with sexp *)
-type dirname = string
-
-(* TODO could check that exist :) type sux *)
-(* with sexp *)
-
-(* file or dir *)
-type path = string
-
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
   | s -> s
@@ -773,7 +756,7 @@ let filename_without_leading_path prj_path s =
   else
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
 
-(* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
+(* Deprecated: use the ppath library instead! *)
 let readable ~root s =
   match root with
   | "/" -> s
@@ -943,10 +926,6 @@ let write_file ~file s =
 
 (* could be in control section too *)
 
-let filemtime file =
-  if !jsoo then failwith "JSOO: Common.filemtime"
-  else (Unix.stat file).Unix.st_mtime
-
 (*
 Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
 on all platforms.
@@ -999,26 +978,6 @@ let fullpath file =
   match base with
   | None -> here
   | Some x -> Filename.concat here x
-
-(* Why a use_cache argument ? because sometimes want disable it but dont
- * want put the cache_computation funcall in comment, so just easier to
- * pass this extra option.
- *)
-let cache_computation ?(use_cache = true) file ext_cache f =
-  if not use_cache then f ()
-  else if not (Sys.file_exists file) then (
-    logger#error "WARNING: cache_computation: can't find %s" file;
-    logger#error "defaulting to calling the function";
-    f ())
-  else
-    let file_cache = file ^ ext_cache in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
-      logger#info "using cache: %s" file_cache;
-      get_value file_cache)
-    else
-      let res = f () in
-      write_value res file_cache;
-      res
 
 (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
 let (with_open_outfile :
@@ -1276,3 +1235,16 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 module SMap = Map.Make (String)
 
 type 'a smap = 'a SMap.t
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+
+module Operators = struct
+  let ( =~ ) = ( =~ )
+  let ( = ) = ( = )
+  let ( =|= ) = ( =|= )
+  let ( =$= ) = ( =$= )
+  let ( =:= ) = ( =:= )
+  let ( =*= ) = ( =*= )
+end

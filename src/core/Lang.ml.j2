@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -107,12 +107,23 @@ let langs_of_filename filename =
   | FT.PL (FT.Web FT.Html) -> [ Html ]
   | _ -> []
 
+let lang_of_filename_exn filename =
+  match langs_of_filename filename with
+  | x :: _ -> x
+  | [] -> failwith ("Could not infer a language from the filename: " ^
+                      Fpath.to_string filename)
+
 let to_string = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.name }}"
 {% endfor %}
 
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function
+{% for item in langs %}  | {{ item.id }} -> "{{ item.id | lower }}"
+{% endfor %}
+
+(* must match [A-Z][a-z0-9]* *)
+let to_capitalized_alnum = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.id }}"
 {% endfor %}
 

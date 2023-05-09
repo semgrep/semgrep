@@ -108,7 +108,7 @@ type edge =
   | Use
 
 type nodeinfo = {
-  pos : Parse_info.token_location;
+  pos : Tok.location;
   props : E.property list;
   (* would be better to have a more structured form than string at some point *)
   typ : string option;
@@ -151,11 +151,11 @@ exception Error of error
 type statistics = {
   parse_errors : Common.filename list ref;
   (* could be Parse_info.token_location*)
-  lookup_fail : (Parse_info.t * node) list ref;
-  method_calls : (Parse_info.t * resolved) list ref;
-  field_access : (Parse_info.t * resolved) list ref;
-  unresolved_class_access : Parse_info.t list ref;
-  unresolved_calls : Parse_info.t list ref;
+  lookup_fail : (Tok.t * node) list ref;
+  method_calls : (Tok.t * resolved) list ref;
+  field_access : (Tok.t * resolved) list ref;
+  unresolved_class_access : Tok.t list ref;
+  unresolved_calls : Tok.t list ref;
 }
 
 and resolved = bool
@@ -360,7 +360,7 @@ let edgeinfo_opt (n1, n2) e g =
 let file_of_node n g =
   try
     let info = nodeinfo n g in
-    info.pos.Parse_info.file
+    info.pos.Tok.pos.Pos.file
   with
   | Not_found -> (
       match n with

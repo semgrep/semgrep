@@ -23,7 +23,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-from typing import TYPE_CHECKING
 
 from attr import asdict
 from attr import define
@@ -42,7 +41,6 @@ from rich.progress import TimeElapsedColumn
 from rich.table import Table
 from ruamel.yaml import YAML
 
-import semgrep.fork_subprocess as fork_subprocess
 import semgrep.output_from_core as core
 from semgrep.app import auth
 from semgrep.config_resolver import Config
@@ -64,7 +62,6 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
@@ -416,52 +413,6 @@ class StreamingSemgrepCore:
         # Return exit code of cmd. process should already be done
         return await process.wait()
 
-    def _run_forked_analysis_in_child(self) -> None:
-        """
-        Run semgrep_analyze from within the child process.
-        """
-        # Like in the exec case, try to expand limits in the child.
-        setrlimits_preexec_fn()
-
-        # TYPE_CHECKING is always false at run time, but by doing this,
-        # mypy will know which module 'semgrep_bridge_python' refers to,
-        # and hence check the calls to it.
-        if TYPE_CHECKING:
-            import semgrep_bridge_python
-        else:
-            semgrep_bridge_python = SemgrepCore.get_bridge_module()
-
-        # Currently, we delay initializing the OCaml runtime until we
-        # are in the forked child.  Later, we may want to hoist this to
-        # the parent somewhere so multiple queries can be more
-        # efficiently performed in the context of a Snowflake UDF.
-        semgrep_bridge_python.startup()
-
-        # Invoke the semgrep_bridge_python module.
-        err = semgrep_bridge_python.semgrep_analyze(self._cmd, self._handle_read_file)
-
-        if err != None:
-            # Convey an error back to the parent.
-            print(err, file=sys.stderr)
-            sys.exit(2)
-
-        semgrep_bridge_python.shutdown()
-
-    async def _stream_fork_subprocess(self) -> int:
-        """
-        Run semgrep_bridge_python.so in a forked (but not exec'd) child
-        process, consuming its output asynchronously.
-
-        Return its exit code when it terminates.
-        """
-        process = await fork_subprocess.start_fork_subprocess(
-            lambda: self._run_forked_analysis_in_child(), limit=INPUT_BUFFER_LIMIT
-        )
-
-        await self._handle_process_outputs(process.stdout, process.stderr)
-
-        return process.wait()
-
     def execute(self) -> int:
         """
         Run semgrep-core and listen to stdout to update
@@ -492,10 +443,7 @@ class StreamingSemgrepCore:
                 "", total=self._total, start=False
             )
 
-            if SemgrepCore.using_bridge_module():
-                rc = asyncio.run(self._stream_fork_subprocess())
-            else:
-                rc = asyncio.run(self._stream_exec_subprocess())
+            rc = asyncio.run(self._stream_exec_subprocess())
 
         open_and_ignore("/tmp/core-runner-semgrep-END")
         return rc
@@ -1087,11 +1035,12 @@ class CoreRunner:
 
                 if engine is EngineType.PRO_INTERFILE:
                     targets = target_manager.targets
-                    if len(targets) == 1 and targets[0].path.is_dir():
+                    if len(targets) == 1:
                         root = str(targets[0].path)
                     else:
-                        # TODO: This is no longer true...
-                        raise SemgrepError("deep mode needs a single target (root) dir")
+                        raise SemgrepError(
+                            "Inter-file analysis can only take a single target (for multiple files pass a directory)"
+                        )
                     cmd += ["-deep_inter_file"]
                     cmd += [
                         "-timeout_for_interfile_analysis",

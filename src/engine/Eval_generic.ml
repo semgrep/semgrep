@@ -282,6 +282,10 @@ and eval_op op values code =
   | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
   | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
   | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
+  | G.Pow, [ Int i1; Int i2 ] -> Int (Common2.power i1 i2)
+  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** float_of_int i2)
+  | G.Pow, [ Int i1; Float i2 ] -> Float (float_of_int i1 ** i2)
+  | G.Pow, [ Float i1; Float i2 ] -> Float (i1 ** i2)
   | G.BitNot, [ Int i1 ] -> Int (Int.lognot i1)
   | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int.logand i1 i2)
   | G.BitOr, [ Int i1; Int i2 ] -> Int (Int.logor i1 i2)
@@ -351,14 +355,14 @@ let text_of_binding mvar mval =
       Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in
-      match Visitor_AST.range_of_any_opt any with
+      match AST_generic_helpers.range_of_any_opt any with
       | None ->
           (* TODO: Report a warning to the user? *)
           logger#error "We lack range info for metavariable %s: %s" mvar
             (G.show_any any);
           None
       | Some (min, max) ->
-          let file = min.Parse_info.file in
+          let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))
 

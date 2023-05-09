@@ -239,7 +239,6 @@ def main(
     pattern: Optional[str],
     lang: Optional[str],
     configs: Sequence[str],
-    no_rewrite_rule_ids: bool = False,
     jobs: int = 1,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,

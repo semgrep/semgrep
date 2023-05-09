@@ -1,27 +1,11 @@
 """
 Utility for identifying the URL of the current git project
 """
-import re
-from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-
-import ruamel.yaml
-from attr import asdict
-from attr import define
-from attr import field
-
 from semgrep.git import get_git_root_path
 from semgrep.util import git_check_output
 from semgrep.util import manually_search_file
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__name__)
 
 CONFIG_FILE_PATTERN = re.compile(r"^\.semgrepconfig(\.yml|\.yaml)?$")
-
 
 def get_project_url() -> Optional[str]:
     """

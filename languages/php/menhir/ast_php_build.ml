@@ -15,7 +15,6 @@
 open Common
 open Cst_php
 module A = Ast_php
-module PI = Parse_info
 module G = AST_generic
 
 (*****************************************************************************)
@@ -31,16 +30,16 @@ module G = AST_generic
 type _env = unit
 
 let empty_env () = ()
-let error tok s = raise (Parse_info.Ast_builder_error (s, tok))
+let error tok s = raise (Parsing_error.Ast_builder_error (s, tok))
 
 (* old: opti: to get www from 380MB to 190MB marshalled, but not worth it
  *  if !store_position then Some tok else None
  *)
 let wrap tok = tok
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = PI.fake_bracket
-let unsafe_fb = PI.unsafe_fake_bracket
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
+let fb = Tok.fake_bracket
+let unsafe_fb = Tok.unsafe_fake_bracket
 
 let stmt1_with b xs =
   match xs with
@@ -710,7 +709,7 @@ and short_lambda_def env def =
     f_return_type = None;
     f_body =
       (match def.sl_body with
-      | SLExpr e -> A.Expr (expr env e, PI.sc sl_tok)
+      | SLExpr e -> A.Expr (expr env e, Tok.sc sl_tok)
       | SLBody (lb, body, rb) ->
           Block (lb, List.fold_right (stmt_and_def env) body [], rb));
     f_kind = (A.ShortLambda, sl_tok);

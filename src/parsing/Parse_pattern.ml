@@ -39,7 +39,7 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   | G.Pr xs -> normalize_any lang (G.Ss xs)
   | G.Ss [ x ] -> normalize_any lang (G.S x)
   | G.S { G.s = G.ExprStmt (e, sc); _ }
-    when Parse_info.is_fake sc || Parse_info.str_of_info sc = "" ->
+    when Tok.is_fake sc || Tok.content_of_tok sc = "" ->
       normalize_any lang (G.E e)
   (* TODO: generalizing to other languages generate many regressions *)
   | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
@@ -75,7 +75,4 @@ let parse_pattern ?(print_errors = false) lang str =
   Caching.prepare_pattern any;
   Check_pattern.check lang any;
   any
-
-let parse_pattern ?print_errors a b =
-  Profiling.profile_code "Parse_pattern.parse_pattern" (fun () ->
-      parse_pattern ?print_errors a b)
+  [@@profiling]

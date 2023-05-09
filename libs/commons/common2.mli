@@ -373,30 +373,6 @@ val save_excursion_and_disable : bool ref -> (unit -> 'b) -> 'b
 val save_excursion_and_enable : bool ref -> (unit -> 'b) -> 'b
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 val cache_in_ref : 'a option ref -> (unit -> 'a) -> 'a
-
-(* take file from which computation is done, an extension, and the function
- * and will compute the function only once and then save result in
- * file ^ extension
- *)
-val cache_computation :
-  ?verbose:bool ->
-  ?use_cache:bool ->
-  filename ->
-  string (* extension *) ->
-  (unit -> 'a) ->
-  'a
-
-(* a more robust version where the client describes the dependencies of the
- * computation so it will relaunch the computation in 'f' if needed.
- *)
-val cache_computation_robust :
-  filename ->
-  string (* extension for marshalled object *) ->
-  filename list * 'x ->
-  string (* extension for marshalled dependencies *) ->
-  (unit -> 'a) ->
-  'a
-
 val oncef : ('a -> unit) -> 'a -> unit
 val once : bool ref -> (unit -> unit) -> unit
 val before_leaving : ('a -> unit) -> 'a -> 'a
@@ -823,9 +799,6 @@ val realpath : filename -> filename
 val inits_of_absolute_dir : dirname -> dirname list
 val inits_of_relative_dir : dirname -> dirname list
 
-(* basic file position *)
-type filepos = { l : int; c : int }
-
 (*x: common.mli for basic types *)
 (*****************************************************************************)
 (* i18n *)
@@ -994,7 +967,11 @@ val nblines_file : filename -> int
 val filesize : filename -> int
 val filemtime : filename -> float
 val lfile_exists : filename -> bool
+
+(* raise Unix_error if the directory does not exist *)
 val is_directory : path -> bool
+
+(* raise Unix_error if the file does not exist *)
 val is_file : path -> bool
 val is_symlink : filename -> bool
 val is_executable : filename -> bool
@@ -1760,7 +1737,7 @@ val getDoubleParser :
 (*****************************************************************************)
 (* Parsers (cocci) *)
 (*****************************************************************************)
-(* now in h_program-lang/parse_info.ml *)
+(* now in lib_parsing/parse_info.ml *)
 (*x: common.mli misc *)
 (*****************************************************************************)
 (* Scope managment (cocci) *)

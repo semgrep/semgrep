@@ -293,6 +293,17 @@ def mock_autofix(request, mocker):
             "GITHUB_REF": BRANCH_NAME,
             "GITHUB_SERVER_URL": "https://github.com",
         },
+        {  # Github full scan with SEMGREP env vars set
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "push",
+            "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "SEMGREP_JOB_URL": "customjoburl.com",
+            "GITHUB_ACTOR": "some_test_username",
+            "SEMGREP_PR_ID": "312",  # should make the event_name `pull_request`
+            "SEMGREP_PR_TITLE": "PR_TITLE",
+            "SEMGREP_BRANCH": BRANCH_NAME,
+        },
         {  # github but different server url - full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -330,6 +341,23 @@ def mock_autofix(request, mocker):
             "CI_MERGE_REQUEST_IID": "unused-iid-test-placeholder",
             "CI_MERGE_REQUEST_DIFF_BASE_SHA": "unused-commit-test-placeholder",
             "CI_MERGE_REQUEST_TITLE": "unused-merge-request-title-test-placeholder",
+        },
+        {  # Gitlab PR but with SEMGREP env vars set
+            "CI": "true",
+            "GITLAB_CI": "true",
+            "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "CI_PIPELINE_SOURCE": "merge_request_event",  # or push
+            "CI_MERGE_REQUEST_TARGET_BRANCH_NAME": MAIN_BRANCH_NAME,
+            # Sent in metadata but no actual functionality change
+            "CI_MERGE_REQUEST_PROJECT_URL": "https://some.project.url.test.placeholder",
+            "CI_JOB_TOKEN": "some-token-test-placeholder",
+            "CI_COMMIT_REF_NAME": BRANCH_NAME,
+            "SEMGREP_COMMIT": "unused-commit-test-placeholder",
+            "SEMGREP_REPO_URL": "https://example.com/gitlab-org/gitlab-foss",
+            "SEMGREP_JOB_URL": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
+            "SEMGREP_PR_ID": "unused-iid-test-placeholder",
+            "CI_MERGE_REQUEST_DIFF_BASE_SHA": "unused-commit-test-placeholder",
+            "SEMGREP_PR_TITLE": "unused-merge-request-title-test-placeholder",
         },
         {  # Gitlab
             "CI": "true",
@@ -525,9 +553,11 @@ def mock_autofix(request, mocker):
     ids=[
         "local",
         "github-push",
+        "github-push-special-env-vars",
         "github-enterprise",
         "github-pr",
         "gitlab",
+        "gitlab-special-env-vars",
         "gitlab-push",
         "circleci",
         "circleci-overwrite-autodetected-variables",
@@ -679,20 +709,6 @@ def test_full_run(
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
-bridge_module_import_line_re = re.compile(
-    r"^Bridge module imported: .*\n", re.MULTILINE
-)
-
-
-def drop_bridge_module_import_line(text: str) -> str:
-    """
-    Remove from 'text' any line that is indicating that the bridge
-    module was loaded.  The test should work either with the bridge or
-    the executable, but the line is present only in the former case.
-    """
-    return bridge_module_import_line_re.sub("", text)
-
-
 # TODO: flaky test on Linux
 # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests
 # def test_github_ci_bad_base_sha(
@@ -813,8 +829,7 @@ def drop_bridge_module_import_line(text: str) -> str:
 #            mask=[
 #                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
 #                # Mask variable debug output
-#                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
-#                drop_bridge_module_import_line,
+#                re.compile(r"/(.*)/semgrep-core"),
 #                re.compile(r"loaded 1 configs in(.*)"),
 #                re.compile(r".*https://semgrep.dev(.*).*"),
 #                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
@@ -1113,6 +1128,8 @@ def test_fail_auth_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osempass
 def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
@@ -1219,6 +1236,8 @@ def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_c
     mock_request_post.assert_not_called()
 
 
+# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osempass
 def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
@@ -1251,6 +1270,8 @@ def test_fail_finish_scan_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osempass
 def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1

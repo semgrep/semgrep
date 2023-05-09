@@ -50,7 +50,7 @@ val taint_config_of_rule :
   per_file_formula_cache:formula_cache ->
   Match_env.xconfig ->
   Common.filename ->
-  AST_generic.program * Parse_info.token_location list ->
+  AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
   (Dataflow_tainting.var option ->
   Taint.finding list ->

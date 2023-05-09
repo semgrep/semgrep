@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module CST = Tree_sitter_hcl.CST
 module H = Parse_tree_sitter_helpers
 open AST_terraform
@@ -39,7 +38,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* for list/dict comprehensions *)
 let pattern_of_ids ids =
@@ -128,7 +127,7 @@ let map_template_literal (env : env) (xs : CST.template_literal) :
       let str =
         concat_chunks x_str x_pos.Loc.end_.row x_pos.Loc.end_.column xs
       in
-      let tok = PI.rewrap_str str (token env x) in
+      let tok = Tok.rewrap_str str (token env x) in
       Some (str, tok)
 
 let map_identifier (env : env) (x : CST.identifier) : ident =
@@ -535,7 +534,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
         | None -> []
       in
       let v4 = (* heredoc_identifier *) token env v4 in
-      let t1 = PI.combine_infos v1 [ v2 ] in
+      let t1 = Tok.combine_toks v1 [ v2 ] in
       G.interpolated (t1, v3, v4)
 
 and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =

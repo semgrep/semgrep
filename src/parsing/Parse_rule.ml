@@ -20,7 +20,6 @@ module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
 module G = AST_generic
-module PI = Parse_info
 module Set = Set_
 module MV = Metavariable
 
@@ -86,14 +85,14 @@ type dict = {
 let yaml_error t s = raise (R.Err (R.InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
-  yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
+  yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 let error env t s = raise (R.Err (R.InvalidRule (R.InvalidOther s, env.id, t)))
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
-  error env (Visitor_AST.first_info_of_any (G.E e)) s
+  error env (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let pcre_error_to_string s exn =
   let message =
@@ -531,6 +530,7 @@ let parse_xpattern env (str, tok) =
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+      (* TODO: use R.Err exn instead? *)
       | Error err -> failwith err.msg)
 
 (* TODO: note that the [pattern] string and token location [t] given to us
@@ -606,23 +606,21 @@ and metavariable_comparison = {
 *)
 let rewrite_metavar_comparison_strip cond =
   let visitor =
-    Map_AST.mk_visitor
-      {
-        Map_AST.default_visitor with
-        Map_AST.kexpr =
-          (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e.G.e with
-            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
-              ->
-                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
-                |> G.e
-            | _ -> e);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.map_legacy as super
+
+      method! visit_expr env e =
+        (* apply on children *)
+        let e = super#visit_expr env e in
+        match e.G.e with
+        | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s ->
+            let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+            G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
+            |> G.e
+        | _ -> e
+    end
   in
-  visitor.Map_AST.vexpr cond
+  visitor#visit_expr () cond
 
 (* TODO: Old stuff that we can't kill yet. *)
 let find_formula_old env (rule_dict : dict) : key * G.expr =
@@ -1085,7 +1083,6 @@ let parse_taint_requires env key x =
         | G.Or ->
             ()
         | _ -> parse_error ())
-    | G.ParenExpr (_, e, _) -> check e
     | ___else__ -> parse_error ()
   and check_arg = function
     | G.Arg e -> check e
@@ -1200,11 +1197,9 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
   let sink_id = String.concat ":" env.path in
-  let default_sink_requires = R.default_sink_requires (snd key) in
   let parse_from_dict dict f =
     let sink_requires =
-      take_opt dict env parse_taint_requires "requires"
-      |> Option.value ~default:default_sink_requires
+      (snd key, take_opt dict env parse_taint_requires "requires")
     in
     let sink_formula = f env dict in
     { R.sink_id; sink_formula; sink_requires }
@@ -1216,7 +1211,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let sink_formula = R.P (parse_xpattern env value) in
-        { sink_id; sink_formula; sink_requires = default_sink_requires }
+        { sink_id; sink_formula; sink_requires = (snd key, None) }
     | Right dict -> parse_from_dict dict parse_formula_from_dict
 
 let parse_taint_pattern env key (value : G.expr) =
@@ -1418,7 +1413,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
         equivs_opt,
         options_opt ) =
     ( (match mode with
-      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | `Extract _ -> ("", ("INFO", Tok.unsafe_fake_tok ""))
       | _ ->
           ( take rd env parse_string "message",
             take rd env parse_string_wrap "severity" )),
@@ -1478,8 +1473,8 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
          *)
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
         | _ ->
-            let loc = PI.first_loc_of_file !!file in
-            yaml_error (PI.mk_info_of_loc loc)
+            let loc = Tok.first_loc_of_file !!file in
+            yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
@@ -1507,7 +1502,7 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
 let parse_yaml_rule_file file =
   let str = Common.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
-  | Parse_info.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
+  | Parsing_error.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
 
 let parse_file ?error_recovery file =
   let ast =
@@ -1540,14 +1535,14 @@ let parse_file ?error_recovery file =
           (Parse_json.parse_program !!file)
     | FT.Config FT.Jsonnet ->
         if use_ojsonnet then
-          let ast = Parse_jsonnet.parse_program !!file in
+          let ast = Parse_jsonnet.parse_program file in
           (* Note that here we do not support registry-aware import;
            * those are defined in osemgrep/.../Rule_fetching.ml where
            * we use Network.get functions. Thus, semgrep-core -dump_rule
            * will not work with registry-aware import either.
            * Use osemgrep --dump-config instead.
            *)
-          let core = Desugar_jsonnet.desugar_program !!file ast in
+          let core = Desugar_jsonnet.desugar_program file ast in
           let value_ = Eval_jsonnet.eval_program core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else

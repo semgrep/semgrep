@@ -102,13 +102,6 @@ copy-core-for-cli:
 	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/osemgrep
 	cp _build/install/default/bin/osemgrep cli/src/semgrep/bin/
-	# Libraries
-	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	cp _build/install/default/bin/semgrep_bridge_core.so \
-	  cli/src/semgrep/bin/
-	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	cp _build/install/default/bin/semgrep_bridge_python.so \
-	  cli/src/semgrep/bin/
 
 # Same as copy-core-for-cli but faster. This is suitable for local testing
 # of semgrep.
@@ -125,13 +118,6 @@ symlink-core-for-cli:
 	rm -f cli/src/semgrep/bin/osemgrep
 	ln -s ../../../../bin/osemgrep \
 	  cli/src/semgrep/bin/osemgrep
-	# Libraries
-	rm -f cli/src/semgrep/bin/semgrep_bridge_core.so
-	ln -s ../../../../bin/semgrep_bridge_core.so \
-	  cli/src/semgrep/bin/semgrep_bridge_core.so
-	rm -f cli/src/semgrep/bin/semgrep_bridge_python.so
-	ln -s ../../../../bin/semgrep_bridge_python.so \
-	  cli/src/semgrep/bin/semgrep_bridge_python.so
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
@@ -153,6 +139,11 @@ build-otarzan:
 	dune build _build/install/default/bin/otarzan
 	test -e bin || ln -s _build/install/default/bin .
 
+# Build the js_of_ocaml portion of the semgrep javascript packages
+.PHONY: build-semgrep-jsoo
+build-semgrep-jsoo:
+	dune build js --profile=release
+
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
 .PHONY: clean
@@ -165,6 +156,10 @@ clean:
 core-clean:
 	dune clean
 	rm -f bin
+	# We still need to keep the nonempty opam files in git for
+	# 'make setup', so we should only remove the empty opam files.
+	# This removes the gitignored opam files.
+	git clean -fX *.opam
 
 ###############################################################################
 # Install targets
@@ -210,10 +205,12 @@ core-uninstall:
 # Test target
 ###############################################################################
 
+# Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test
 test:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
+	$(MAKE) -C cli osempass
 
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
@@ -280,6 +277,10 @@ ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
 PIPENV='pipenv==2022.6.7'
+#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
+# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
+# so I pinned an older version
+VIRTENV='virtualenv==20.21.0'
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -296,7 +297,7 @@ PIPENV='pipenv==2022.6.7'
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
 install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS)
-	pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
+	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
 
 #TODO: deprecate scripts/install-alpine-xxx in favor of that
 install-deps-and-build-ALPINE-semgrep-core:

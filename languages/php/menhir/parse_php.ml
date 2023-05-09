@@ -17,7 +17,6 @@ module Ast = Cst_php
 module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
 module TH = Token_helpers_php
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -39,7 +38,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens2 ?(init_state = Lexer_php.INITIAL) input_source =
+let tokens ?(init_state = Lexer_php.INITIAL) input_source =
   Lexer_php.reset ();
   Lexer_php._mode_stack := [ init_state ];
 
@@ -71,9 +70,7 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) input_source =
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-
-let tokens ?init_state a =
-  Profiling.profile_code "Parse_php.tokens" (fun () -> tokens2 ?init_state a)
+  [@@profiling]
 
 let is_comment v =
   TH.is_comment v
@@ -88,7 +85,7 @@ let is_comment v =
 (* Main entry point *)
 (*****************************************************************************)
 
-let parse2 ?(pp = !Flag_php.pp_default) filename =
+let parse ?(pp = !Flag_php.pp_default) filename =
   let orig_filename = filename in
   let filename =
     (* note that now that pfff support XHP constructs directly,
@@ -175,7 +172,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
-        raise (PI.Parsing_error (TH.info_of_tok cur));
+        raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
         pr2 ("parse error\n = " ^ error_msg_tok cur);
@@ -192,9 +189,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
         tokens = info_item;
         stat;
       }
-
-let parse ?pp a =
-  Profiling.profile_code "Parse_php.parse" (fun () -> parse2 ?pp a)
+  [@@profiling]
 
 let parse_program ?pp file =
   let res = parse ?pp file in

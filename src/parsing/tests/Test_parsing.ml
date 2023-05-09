@@ -14,7 +14,6 @@
  *)
 open Common
 open File.Operators
-module PI = Parse_info
 module PS = Parsing_stat
 module G = AST_generic
 module J = JSON
@@ -206,6 +205,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
+  | Lang.Cairo ->
+      Tree_sitter_cairo.Parse.file file
+      |> dump_and_print_errors Tree_sitter_cairo.Boilerplate.dump_tree
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->
@@ -339,7 +341,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
-                (Lang.to_lowercase_alnum lang)
+                (Lang.to_capitalized_alnum lang)
                 file);
            let stat =
              try
@@ -399,7 +401,7 @@ let parse_project ~verbose lang name files_or_dirs =
   in
   pr2
     (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
-       (Lang.to_lowercase_alnum lang)
+       (Lang.to_capitalized_alnum lang)
        name);
   (name, stat_list)
 
@@ -491,7 +493,11 @@ let aggregate_project_stats lang
       acc project_stats
   in
   let global = update_parsing_rate acc in
-  { language = Lang.to_lowercase_alnum lang; global; projects = project_stats }
+  {
+    language = Lang.to_capitalized_alnum lang;
+    global;
+    projects = project_stats;
+  }
 
 let print_json lang results =
   let project_stats = aggregate_file_stats results in

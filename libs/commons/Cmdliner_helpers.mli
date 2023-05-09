@@ -9,3 +9,14 @@ val negatable_flag :
   doc:string ->
   string list ->
   bool Cmdliner.Term.t
+
+(* Parse command-line arguments representing a number of bytes, such as
+ * '5 mb' or '3.2GiB'
+ *)
+val number_of_bytes_converter : int Cmdliner.Arg.conv
+
+val uri : Uri.t Cmdliner.Arg.conv
+(** A simple [Uri.t] cmdliner's converter. *)
+
+val sha1 : Digestif.SHA1.t Cmdliner.Arg.conv
+(** A simple [Digestif.SHA1.t] cmdliner's converter. *)

@@ -168,6 +168,7 @@ def ci(
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -274,7 +275,7 @@ def ci(
     )
 
     console.print(Title("Scan Environment", order=2))
-    console.print(debugging_table)
+    console.print(debugging_table, markup=True)
 
     fix_head_if_github_action(metadata)
 
@@ -339,9 +340,13 @@ def ci(
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
         if engine_type.check_if_installed():
             console.print(
-                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
+                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]",
+                markup=True,
             )
-            console.print(f"Installed at [bold]{engine_type.get_binary_path()}[/bold]")
+            console.print(
+                f"Installed at [bold]{engine_type.get_binary_path()}[/bold]",
+                markup=True,
+            )
         else:
             run_install_semgrep_pro()
 
@@ -371,6 +376,7 @@ def ci(
             lang=None,
             configs=config,
             no_rewrite_rule_ids=(not rewrite_rule_ids),
+            dump_command_for_core=dump_command_for_core,
             jobs=jobs,
             include=include,
             exclude=exclude,
@@ -485,7 +491,7 @@ def ci(
             dependencies,
             engine_type,
         )
-        logger.info("  View results in Semgrep App:")
+        logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )

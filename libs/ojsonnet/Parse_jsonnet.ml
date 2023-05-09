@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,17 +36,20 @@ module PI = Parse_info
 let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
   {
-    PI.str = err.substring;
-    charpos = 0;
-    (* fake *)
-    line = start.row + 1;
-    column = start.column;
-    file = err.file.name;
+    Tok.str = err.substring;
+    pos =
+      {
+        charpos = 0;
+        (* fake *)
+        line = start.row + 1;
+        column = start.column;
+        file = err.file.name;
+      };
   }
 
 let exn_of_loc loc =
-  let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
-  PI.Parsing_error info |> Exception.trace
+  let info = Tok.OriginTok loc in
+  Parsing_error.Syntax_error info |> Exception.trace
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let loc = loc_of_tree_sitter_error err in
@@ -57,7 +59,7 @@ let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_program (file : Common.filename) : AST_jsonnet.program =
+let parse_program (file : Fpath.t) : AST_jsonnet.program =
   let res = Parse_jsonnet_tree_sitter.parse file in
   (* similar to Parse_target.run_parser and the TreeSitter case *)
   match (res.program, res.errors) with

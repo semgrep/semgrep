@@ -16,7 +16,6 @@
 open Common
 module TH = Token_helpers_cpp
 module TV = Token_views_cpp
-module PI = Parse_info
 open Parser_cpp
 open Token_views_cpp
 open Parsing_hacks_lib
@@ -40,8 +39,9 @@ open Parsing_hacks_lib
 (*****************************************************************************)
 
 let no_space_between i1 i2 =
-  PI.line_of_info i1 =|= PI.line_of_info i2
-  && PI.col_of_info i1 + String.length (PI.str_of_info i1) =|= PI.col_of_info i2
+  Tok.line_of_tok i1 =|= Tok.line_of_tok i2
+  && Tok.col_of_tok i1 + String.length (Tok.content_of_tok i1)
+     =|= Tok.col_of_tok i2
 
 (*****************************************************************************)
 (* Template inference *)

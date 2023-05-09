@@ -16,7 +16,6 @@
 open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_python
-module PI = Parse_info
 module PS = Parsing_stat
 module Lexer = Lexer_python
 module T = Parser_python
@@ -83,8 +82,8 @@ let tokens parsing_mode input_source =
      * It's better to generate proper parsing error exn.
      *)
     | Failure s ->
-        Parse_info.lexical_error s lexbuf;
-        T.EOF (Parse_info.tokinfo lexbuf)
+        Parsing_error.lexical_error s lexbuf;
+        T.EOF (Tok.tok_of_lexbuf lexbuf)
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
@@ -94,7 +93,7 @@ let tokens parsing_mode input_source =
 (* Main entry point *)
 (*****************************************************************************)
 
-let rec parse_basic ?(parsing_mode = Python) filename =
+let rec parse ?(parsing_mode = Python) filename =
   let stat = Parsing_stat.default_stat filename in
 
   (* this can throw Parse_info.Lexical_error *)
@@ -144,25 +143,22 @@ let rec parse_basic ?(parsing_mode = Python) filename =
         (* note that we cant use tokens as the tokens are actually different
          * in Python2 mode, but we could optimize things a bit and just
          * transform those tokens here *)
-        parse_basic ~parsing_mode:Python2 filename
+        parse ~parsing_mode:Python2 filename
       else
         let cur = tr.Parsing_helpers.current in
         if not !Flag.error_recovery then
-          raise (PI.Parsing_error (TH.info_of_tok cur));
+          raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
         if !Flag.show_parsing_error then (
           pr2 ("parse error \n = " ^ error_msg_tok cur);
 
           let filelines = Common2.cat_array filename in
           let checkpoint2 = Common.cat filename |> List.length in
-          let line_error = PI.line_of_info (TH.info_of_tok cur) in
+          let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
           Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
         stat.PS.error_line_count <- stat.PS.total_line_count;
         { Parsing_result.ast = []; tokens = toks; stat }
-
-let parse ?parsing_mode a =
-  Profiling.profile_code "Parse_python.parse" (fun () ->
-      parse_basic ?parsing_mode a)
+  [@@profiling]
 
 let parse_program ?parsing_mode file =
   let res = parse ?parsing_mode file in

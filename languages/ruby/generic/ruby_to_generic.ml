@@ -16,7 +16,6 @@ open Common
 open Ast_ruby
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -40,9 +39,9 @@ let option = Option.map
 let list = Common.map
 let bool = id
 let string = id
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = PI.unsafe_fake_bracket
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
+let fb = Tok.unsafe_fake_bracket
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
 (*****************************************************************************)
@@ -63,7 +62,7 @@ let concatenate_string_wraps xs =
   let strings, toks = List.split xs in
   match toks with
   | [] -> None
-  | x :: xs -> Some (String.concat "" strings, PI.combine_infos x xs)
+  | x :: xs -> Some (String.concat "" strings, Tok.combine_toks x xs)
 
 let concatenate_literal_fragments xs =
   let rec concat acc = function
@@ -89,7 +88,7 @@ let rec expr e =
   | Array (l, xs, r) ->
       let xs = args_to_exprs xs in
       G.Container (G.Array, (l, list expr xs, r))
-  | Tuple xs -> G.Container (G.Tuple, PI.unsafe_fake_bracket (list expr xs))
+  | Tuple xs -> G.Container (G.Tuple, Tok.unsafe_fake_bracket (list expr xs))
   | Unary (op, e) ->
       let e = expr e in
       unary op e
@@ -243,7 +242,7 @@ and formal_param = function
       G.Param p
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
-      let pat = G.PatTuple (PI.unsafe_fake_bracket xs) in
+      let pat = G.PatTuple (Tok.unsafe_fake_bracket xs) in
       G.ParamPattern pat
   | ParamEllipsis tok -> G.ParamEllipsis tok
 
@@ -251,11 +250,11 @@ and formal_param_pattern = function
   | Formal_id id -> G.PatId (id, G.empty_id_info ())
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
-      G.PatTuple (PI.unsafe_fake_bracket xs)
+      G.PatTuple (Tok.unsafe_fake_bracket xs)
   | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
     | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
       let x = formal_param x in
-      G.OtherPat (("ParamPattern", PI.unsafe_fake_info ""), [ G.Pa x ])
+      G.OtherPat (("ParamPattern", Tok.unsafe_fake_tok ""), [ G.Pa x ])
 
 and scope_resolution x : G.name =
   match x with
@@ -315,10 +314,10 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   | MethodId v -> Left (variable v)
   | MethodIdAssign (id, teq, id_kind) ->
       let s, t = variable (id, id_kind) in
-      Left (s ^ "=", PI.combine_infos t [ teq ])
+      Left (s ^ "=", Tok.combine_toks t [ teq ])
   | MethodUOperator (_, t)
   | MethodOperator (_, t) ->
-      Left (PI.str_of_info t, t)
+      Left (Tok.content_of_tok t, t)
   | MethodSpecialCall (l, (), _r) ->
       let special = ident ("call", l) in
       Left special
@@ -329,11 +328,11 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
       | AtomFromString (l, xs, r) -> (
           match xs with
           | [ StrChars (s, t2) ] ->
-              let t = PI.combine_infos l [ t2; r ] in
+              let t = Tok.combine_toks l [ t2; r ] in
               Left (s, t)
           | _ -> Right (interpolated_string (l, xs, r) |> G.e)))
   (* sgrep-ext: this should be covered in the caller *)
-  | MethodEllipsis t -> raise (Parse_info.Parsing_error t)
+  | MethodEllipsis t -> raise (Parsing_error.Syntax_error t)
 
 and interpolated_string (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
@@ -433,7 +432,7 @@ and atom tcolon x =
   | AtomFromString (l, xs, r) -> (
       match xs with
       | [ StrChars (s, t2) ] ->
-          let t = PI.combine_infos l [ t2; r ] in
+          let t = Tok.combine_toks l [ t2; r ] in
           G.L (G.Atom (tcolon, (s, t)))
       | _ -> interpolated_string (l, xs, r))
 
@@ -449,7 +448,7 @@ and literal x =
       G.L (G.Float (f, tok x))
   | Complex x -> G.L (G.Imag (wrap string x))
   | Rational ((s, t1), t2) ->
-      let t = PI.combine_infos t1 [ t2 ] in
+      let t = Tok.combine_toks t1 [ t2 ] in
       G.L (G.Ratio (s, t))
   | Char x -> G.L (G.Char (wrap string x))
   | Nil t -> G.L (G.Null (tok t))
@@ -608,7 +607,7 @@ and exprs_to_label_ident = function
       G.LDynamic x
   | xs ->
       let xs = list expr xs in
-      G.LDynamic (G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e)
+      G.LDynamic (G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e)
 
 and args_to_eopt xs = xs |> args_to_exprs |> exprs_to_eopt
 
@@ -617,7 +616,7 @@ and exprs_to_eopt = function
   | [ x ] -> Some (expr x)
   | xs ->
       let xs = list expr xs in
-      Some (G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e)
+      Some (G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e)
 
 and pattern pat =
   let e = expr pat in

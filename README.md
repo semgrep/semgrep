@@ -4,7 +4,7 @@
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="images/semgrep-logo-light.svg">
       <source media="(prefers-color-scheme: dark)" srcset="images/semgrep-logo-dark.svg">
-      <img src="images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/>
+      <img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-logo-light.svg" height="100" alt="Semgrep logo"/>
     </picture>
   </a>
 </p>
@@ -48,11 +48,11 @@ Semgrep is a fast, open-source, static analysis engine for finding bugs, detecti
 
 Semgrep supports 30+ languages.
 
-| Category     | Languages                                                                                                                                                             |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA           | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX                                                                 |
-| Beta         | Kotlin · Rust                                                                                                                                                         |
-| Experimental | Bash · C · C++ · Clojure · Dart · Dockerfile · Elixir · HTML · Jsonnet · Lisp · Lua · OCaml · R · Scheme · Solidity · Swift · YAML · XML · Generic (ERB, Jinja, etc.) |
+| Category     | Languages                                                                                                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GA           | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX                                                                         |
+| Beta         | Kotlin · Rust                                                                                                                                                                 |
+| Experimental | Bash · C · C++ · Clojure · Dart · Dockerfile · Elixir · HTML · Julia · Jsonnet · Lisp · Lua · OCaml · R · Scheme · Solidity · Swift · YAML · XML · Generic (ERB, Jinja, etc.) |
 
 ### Getting started 🚀
 
@@ -98,7 +98,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
 
-2.  If there are any issues, please ask us at our Slack channel <a href="https://go.semgrep.dev/slack" target="_blank"> https://go.semgrep.dev/slack</a>
+2.  If there are any issues, please ask in the Smegrep Slack group <a href="https://go.semgrep.dev/slack" target="_blank"> https://go.semgrep.dev/slack</a>
 
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
@@ -119,7 +119,7 @@ and:
 
 Join hundreds of thousands of other developers and security engineers already using Semgrep at companies like GitLab, Dropbox, Slack, Figma, Shopify, HashiCorp, Snowflake, and Trail of Bits.
 
-Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
+Semgrep is developed and commercially supported by [Semgrep, Inc., a software security company](https://semgrep.dev).
 
 ### Semgrep Rules
 
@@ -128,7 +128,7 @@ Semgrep rules look like the code you already write; no abstract syntax trees, re
 Run it online in Semgrep’s Playground by [clicking here](https://semgrep.dev/s/ievans:print-to-logger).
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"  target="_blank"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-example-rules-editor.jpg" width="582" alt="Semgrep rule example for finding Python print() statements" /></a>
 </p>
 
 #### Examples
@@ -171,7 +171,7 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 - [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
 - [Contributing](https://semgrep.dev/docs/contributing/contributing/)
 - [Build instructions for developers](INSTALL.md)
-- [Ask questions in the r2c Community Slack](https://go.semgrep.dev/slack)
+- [Ask questions in the Semgrep community Slack](https://go.semgrep.dev/slack)
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [Semgrep YouTube channel](https://www.youtube.com/c/semgrep)
 - [License (LGPL-2.1)](LICENSE)
