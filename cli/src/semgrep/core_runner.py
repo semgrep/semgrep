@@ -972,6 +972,14 @@ class CoreRunner:
         )
 
         with exit_stack:
+            # VIVEK (temp) - test the patch
+            for rule in rules:
+                if not (rule.is_curr_scan):
+                    curr_meta = rule.metadata.get("semgrep.dev", {}).get("rule", {})
+                    curr_meta["rule_name"] = rule.id
+                    rule.metadata["semgrep.dev"]["rule"] = curr_meta
+                    rule._id = f'{curr_meta["rule_id"]},{curr_meta["version_id"]}'
+            # VIVEK (temp) - test the patch
             plan = self.plan_core_run(rules, target_manager, all_targets)
             plan.record_metrics()
 
