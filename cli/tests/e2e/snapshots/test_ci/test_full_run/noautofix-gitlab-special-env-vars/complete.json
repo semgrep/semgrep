@@ -1,7 +1,7 @@
 {
   "exit_code": 1,
   "stats": {
-    "findings": 9,
+    "findings": 8,
     "errors": [],
     "total_time": 0.5,
     "unsupported_exts": {},
