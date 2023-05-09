@@ -10,6 +10,8 @@ from typing import Union
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
+from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
+from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.engine import EngineType
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GitMeta
@@ -59,7 +61,15 @@ class LSPConfig:
 
     @property
     def max_target_bytes(self) -> int:
-        return self._settings["scan"].get("maxTargetBytes", 0)
+        return self._settings["scan"].get("maxTargetBytes", DEFAULT_MAX_TARGET_SIZE)
+
+    @property
+    def timeout(self) -> int:
+        return self._settings["scan"].get("timeout", DEFAULT_TIMEOUT)
+
+    @property
+    def timeout_threshold(self) -> int:
+        return self._settings["scan"].get("timeoutThreshold", 3)
 
     @property
     def project_url(self) -> Union[str, None]:

@@ -51,7 +51,7 @@ USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
 # at the root of the git project to be taken into account when testing,
 # which is a new behavior in osemgrep.
 # The --legacy is to try to get the same behaviors/limitations/errors of pysemgrep
-OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", ".", "--legacy", "--no-ast-caching"]
+OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", ".", "--legacy"]
 
 # The semgrep command suitable to run semgrep as a separate process.
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or

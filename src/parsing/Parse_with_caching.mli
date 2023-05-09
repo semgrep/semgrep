@@ -1,6 +1,6 @@
 (* main entry point *)
 val parse_and_resolve_name :
-  ?parsing_cache_dir:string (* "" means no parsing cache *) ->
+  ?parsing_cache_dir:Fpath.t option ->
   string (* semgrep or AST generic version *) ->
   Lang.t ->
   Fpath.t ->

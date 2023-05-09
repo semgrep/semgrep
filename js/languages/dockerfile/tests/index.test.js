@@ -7,17 +7,21 @@ const parserPromise = (async () => {
   return ParserFactory();
 })();
 
-test("it has a lang value", async () => {
+const LANG = "dockerfile";
+const EXPECTED_LANGS = [LANG];
+
+test("getLangs", async () => {
   const parser = await parserPromise;
-  expect(parser.getLangs()).toEqual([7]);
+  expect(parser.getLangs()).toEqual(EXPECTED_LANGS);
 });
 
 test("it parses a pattern", async () => {
   const parser = await parserPromise;
-  parser.parsePattern(false, "COPY $X $Y");
+  const pattern = parser.parsePattern(false, LANG, "COPY $X $Y");
+  expect(typeof pattern).toEqual("object");
 });
 
 test("it parses a file", async () => {
   const parser = await parserPromise;
-  parser.parseTarget("tests/Dockerfile");
+  parser.parseTarget(LANG, "tests/Dockerfile");
 });

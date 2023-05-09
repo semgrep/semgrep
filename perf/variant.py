@@ -24,7 +24,6 @@ SEMGREP_VARIANTS = [
     # removing optimisations
     SemgrepVariant("no-cache", "-no_opt_cache"),
     SemgrepVariant("max-cache", "-opt_max_cache"),
-    SemgrepVariant("no-bloom", "-no_bloom_filter"),
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
     SemgrepVariant("no-filter-irrelevant-rules", "-no_filter_irrelevant_rules"),
 ]

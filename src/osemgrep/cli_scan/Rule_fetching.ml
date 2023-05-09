@@ -1,6 +1,7 @@
 open Common
 open File.Operators
 module E = Error
+module Env = Semgrep_envvars
 module FT = File_type
 module C = Semgrep_dashdash_config
 module R = Rule
@@ -14,6 +15,10 @@ module XP = Xpattern
 
    TODO:
     - lots of stuff ...
+
+   osemgrep-only:
+    - can pass -e without -l (try all possible languages)
+    - use a registry cache to speedup things
  *)
 
 (*****************************************************************************)
@@ -34,7 +39,7 @@ type rules_and_origin = {
  *  or just put the Semgrep_dashdash_config.config_kind it comes from?
  * This type is used only for rules_rewrite_rule_ids().
  *)
-and origin = Fpath.t option (* None for remote files *) [@@deriving show]
+and origin = Fpath.t option (* None for remote config *) [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -47,6 +52,29 @@ let partition_rules_and_errors (xs : rules_and_origin list) :
     xs |> List.concat_map (fun x -> x.errors)
   in
   (rules, errors)
+
+let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
+  (* TOPORT? _nice_semgrep_url() *)
+  Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
+  let content =
+    let headers =
+      match token_opt with
+      | None -> None
+      | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
+    in
+    match Http_helpers.get ?headers url with
+    | Ok body -> body
+    | Error msg ->
+        (* was raise Semgrep_error, but equivalent to abort now *)
+        Error.abort
+          (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
+  in
+  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
+  content
+
+(*****************************************************************************)
+(* Rewrite rule ids *)
+(*****************************************************************************)
 
 let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   assert (Fpath.is_file_path fpath);
@@ -93,6 +121,81 @@ let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
   | _else_ -> x
 
 (*****************************************************************************)
+(* Registry caching *)
+(*****************************************************************************)
+
+(* We currently use a 24h cache for rules accessed from the registry. This
+ * speedups things quite a lot for users without a great Internet connection.
+ * In any case, the registry is rarely modified so users do not need to have
+ * access to the very latest registry. Lagging 24 hours behind is fine
+ * (and you can still use --no-registry-caching if really you want the latest).
+ * This is similar to the network version_check that we also cache for 24
+ * hours.
+ * alt: We could also fetch in parallel the rules from the registry and
+ * start the engine with the possibly old rules, and as we go check if
+ * the rules changed and rerun the engine if needed. This is more complicated
+ * though and would maybe require to switch to OCaml 5.0. Not worth it for now.
+ *)
+type cache_registry_value = float (* timestamp *) * Uri.t * string (* content *)
+
+let cache_file_of_url (cache_dir : Fpath.t) (url : Uri.t) : Fpath.t =
+  (* Better to obfuscate the cache files, like in Unison, to discourage
+   * people to play with it. Also simple way to escape special chars
+   * in a URL.
+   *)
+  let md5 = Digest.string (Uri.to_string url) in
+  (* TODO: this also assumes yaml registry content. We need an
+   * extension because Parse_rule.parse_file behaves differently depending
+   * on the extension.
+   *)
+  cache_dir // Fpath.(v (Digest.to_hex md5) + "yaml")
+
+(* We cache rules from the registry at the string content level.
+ * alt: we could cache directly the parsed rules, but Rule.t now contains
+ * closures (we now parse patterns lazily) which complicates things
+ * (the Marshall module does not like functional values).
+ * Anyway parsing a rule is now fast; what takes time is downloading
+ * the rules from the network, which we optimize here.
+ *)
+let fetch_content_from_registry_url ~registry_caching url =
+  let f () = fetch_content_from_url url in
+  if not registry_caching then f ()
+  else
+    let cache_dir =
+      let dir = Env.env.user_dot_semgrep_dir / "cache" / "registry" in
+      match Bos.OS.Dir.create ~path:true dir with
+      | Ok _ -> dir
+      | Error (`Msg err) -> failwith err
+    in
+    let cache_file = cache_file_of_url cache_dir url in
+
+    let compute_and_save_in_cache () =
+      let res = f () in
+      let (v : cache_registry_value) = (Unix.time (), url, res) in
+      Logs.debug (fun m ->
+          m "saving %s content in %s" (Uri.to_string url) !!cache_file);
+      Common2.write_value v !!cache_file;
+      res
+    in
+    if Sys.file_exists !!cache_file then
+      let (v : cache_registry_value) = Common2.get_value !!cache_file in
+      let time2, url2, content = v in
+      if
+        Uri.equal url url2 && Unix.time () -. time2 <= 3600. *. 24.
+        (* 24h hours caching *)
+      then (
+        Logs.debug (fun m ->
+            m "using the cache file %s for %s" !!cache_file (Uri.to_string url));
+        content)
+      else (
+        Logs.debug (fun m ->
+            m "invalid cache %s for %s (or too old)" !!cache_file
+              (Uri.to_string url));
+
+        compute_and_save_in_cache ())
+    else compute_and_save_in_cache ()
+
+(*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
 (*****************************************************************************)
 
@@ -109,7 +212,7 @@ let parse_yaml_for_jsonnet (file : Common.filename) : AST_jsonnet.program =
    *)
   AST_generic_to_jsonnet.program gen
 
-let import_callback base str =
+let import_callback ~registry_caching base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
       (* On the fly conversion from yaml to jsonnet. We can do
@@ -120,16 +223,12 @@ let import_callback base str =
   | s ->
       let url_opt =
         try
-          let kind = Semgrep_dashdash_config.config_kind_of_config_str s in
+          let kind = Semgrep_dashdash_config.parse_config_string s in
           match kind with
+          | C.A _ -> failwith "TODO: app_config in jsonnet not handled"
           | C.R rkind ->
-              let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
+              let url = Semgrep_Registry.url_of_registry_config_kind rkind in
               Some url
-          (* TODO: this assumes every URLs are for yaml, but maybe we could
-           * also import URLs to jsonnet files or gist! or look at the
-           * header mimetype when downloading the URL to decide how to
-           * convert it further?
-           *)
           | C.URL url -> Some url
           (* TODO? allow to import any config_str? even a directory?
            * factorize with rules_from_dashdash_config?
@@ -142,25 +241,20 @@ let import_callback base str =
       in
       url_opt
       |> Option.map (fun url ->
-             (* TODO? factorize with load_rules_from_url? but here we
+             (* similar to load_rules_from_url() but here we
               * must return some AST_jsonnet, not rules (yet).
-              *)
-             Logs.debug (fun m ->
-                 m "trying to download from %s" (Uri.to_string url));
-             (* TODO: ask for JSON in headers which improves performance
+              *
+              * TODO: ask for JSON in headers which improves performance
               * because Yaml rule parsing is slower than Json rule parsing.
               *)
              let content =
-               match Network.get url with
-               | Ok body -> body
-               | Error msg ->
-                   (* was raise Semgrep_error, but equivalent to abort now *)
-                   Error.abort
-                     (spf "Failed to download config from %s: %s"
-                        (Uri.to_string url) msg)
+               fetch_content_from_registry_url ~registry_caching url
              in
-             Logs.debug (fun m ->
-                 m "finished downloading from %s" (Uri.to_string url));
+             (* TODO: this assumes every URLs are for yaml, but maybe we could
+              * also import URLs to jsonnet files or gist! or look at the
+              * header mimetype when downloading the URL to decide how to
+              * convert it further?
+              *)
              Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
@@ -168,8 +262,11 @@ let import_callback base str =
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
+ * We also pass a ~registry_caching so our registry-aware jsonnet is also
+ * registry-cache aware.
  *)
-let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
+let parse_rule ~registry_caching (file : Fpath.t) :
+    Rule.rules * Rule.invalid_rule_error list =
   match FT.file_type_of_file file with
   | FT.Config FT.Jsonnet ->
       Logs.warn (fun m ->
@@ -178,7 +275,11 @@ let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
              internal use only. The syntax may change or be removed at any \
              point.");
       let ast = Parse_jsonnet.parse_program file in
-      let core = Desugar_jsonnet.desugar_program ~import_callback file ast in
+      let core =
+        Desugar_jsonnet.desugar_program
+          ~import_callback:(import_callback ~registry_caching)
+          file ast
+      in
       let value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)
@@ -189,17 +290,19 @@ let parse_rule (file : Fpath.t) : Rule.rules * Rule.invalid_rule_error list =
 (* Loading rules *)
 (*****************************************************************************)
 
-(* Note that we don't sanity check Parse_rule.is_valid_rule_filename,
+(* Note that we don't sanity check Parse_rule.is_valid_rule_filename(),
  * so if you explicitely pass a file that does not have the right
  * extension, we will still process it
  * (could be useful for .jsonnet, which is not recognized yet as a
  *  Parse_rule.is_valid_rule_filename, but we still need ojsonnet to
  *  be done).
+ * We pass a ~registry_caching parameter here because the rule file can
+ * be a jsonnet file importing rules from the registry.
  *)
-let load_rules_from_file (file : Fpath.t) : rules_and_origin =
+let load_rules_from_file ~registry_caching (file : Fpath.t) : rules_and_origin =
   Logs.debug (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then (
-    let rules, errors = parse_rule file in
+    let rules, errors = parse_rule ~registry_caching file in
     Logs.debug (fun m -> m "Done loading local config from %s" !!file);
     { origin = Some file; rules; errors })
   else
@@ -208,23 +311,8 @@ let load_rules_from_file (file : Fpath.t) : rules_and_origin =
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
-let load_rules_from_url ?(ext = "yaml") url : rules_and_origin =
-  (* TOPORT? _nice_semgrep_url() *)
-  Logs.debug (fun m -> m "trying to download from %s" (Uri.to_string url));
-  let content =
-    let headers =
-      match Semgrep_settings.((get ()).api_token) with
-      | None -> None
-      | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
-    in
-    match Network.get ?headers url with
-    | Ok body -> body
-    | Error msg ->
-        (* was raise Semgrep_error, but equivalent to abort now *)
-        Error.abort
-          (spf "Failed to download config from %s: %s" (Uri.to_string url) msg)
-  in
-  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
+let load_rules_from_url ?token_opt ?(ext = "yaml") url : rules_and_origin =
+  let content = fetch_content_from_url ?token_opt url in
   let ext, content =
     if ext = "policy" then
       (* project rule_config, from config_resolver.py in _make_config_request *)
@@ -241,69 +329,13 @@ let load_rules_from_url ?(ext = "yaml") url : rules_and_origin =
   in
   Common2.with_tmp_file ~str:content ~ext (fun file ->
       let file = Fpath.v file in
-      let res = load_rules_from_file file in
+      let res = load_rules_from_file ~registry_caching:false file in
       { res with origin = None })
 
-(* from auth.py *)
-let get_deployment_id () =
-  match Semgrep_settings.((get ()).api_token) with
-  | None -> None
-  | Some token -> (
-      match
-        Network.get
-          ~headers:[ ("authorization", "Bearer " ^ token) ]
-          (Uri.with_path Semgrep_envvars.env.semgrep_url
-             "api/agent/deployments/current")
-      with
-      | Error msg ->
-          Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
-          None
-      | Ok json -> (
-          try
-            match Yojson.Basic.from_string json with
-            | `Assoc e -> (
-                match List.assoc_opt "deployment" e with
-                | Some (`Assoc e) -> (
-                    match List.assoc_opt "id" e with
-                    | Some (`Int i) -> Some i
-                    | _else -> None)
-                | _else -> None)
-            | _else -> None
-          with
-          | Yojson.Json_error msg ->
-              Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
-              None))
-
-let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
-
-let url_for_policy () =
-  match get_deployment_id () with
-  | None ->
-      Error.abort
-        (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
-  | Some _deployment_id -> (
-      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
-      | None ->
-          Error.abort
-            (spf
-               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
-      | Some repo_name ->
-          Uri.(
-            add_query_params'
-              (with_path Semgrep_envvars.env.semgrep_url
-                 default_semgrep_app_config_url)
-              [
-                ("sca", "False");
-                ("dry_run", "True");
-                ("full_scan", "True");
-                ("repo_name", repo_name);
-                ("semgrep_version", Version.version);
-              ]))
-
-let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
+let rules_from_dashdash_config ~token_opt ~registry_caching kind :
     rules_and_origin list =
   match kind with
-  | C.File file -> [ load_rules_from_file file ]
+  | C.File file -> [ load_rules_from_file ~registry_caching file ]
   | C.Dir dir ->
       List_files.list dir
       (* TOPORT:
@@ -323,26 +355,36 @@ let rules_from_dashdash_config (kind : Semgrep_dashdash_config.config_kind) :
          )
       *)
       |> List.filter Parse_rule.is_valid_rule_filename
-      |> Common.map load_rules_from_file
+      |> Common.map (load_rules_from_file ~registry_caching)
   | C.URL url -> [ load_rules_from_url url ]
-  | C.R Policy -> [ load_rules_from_url ~ext:"policy" (url_for_policy ()) ]
   | C.R rkind ->
-      let url = Semgrep_dashdash_config.url_of_registry_kind rkind in
-      [ load_rules_from_url url ]
+      let url = Semgrep_Registry.url_of_registry_config_kind rkind in
+      let content = fetch_content_from_registry_url ~registry_caching url in
+      (* TODO: this also assumes every registry URL is for yaml *)
+      Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
+          let file = Fpath.v file in
+          let res = load_rules_from_file ~registry_caching file in
+          [ { res with origin = None } ])
+  | C.A Policy ->
+      [
+        load_rules_from_url ~token_opt ~ext:"policy"
+          (Semgrep_App.url_for_policy ~token_opt);
+      ]
+  | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source ~rewrite_rule_ids (src : Rules_source.t) :
-    rules_and_origin list =
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
+    (src : Rules_source.t) : rules_and_origin list =
   match src with
   | Configs xs ->
       xs
       |> List.concat_map (fun str ->
-             let kind = Semgrep_dashdash_config.config_kind_of_config_str str in
-             rules_from_dashdash_config kind)
+             let kind = Semgrep_dashdash_config.parse_config_string str in
+             rules_from_dashdash_config ~token_opt ~registry_caching kind)
       |> Common.map (rules_rewrite_rule_ids ~rewrite_rule_ids)
   (* better: '-e foo -l regex' was not handled in pysemgrep
    *  (got a weird 'invalid pattern clause' error)
@@ -397,3 +439,4 @@ let rules_from_rules_source ~rewrite_rule_ids (src : Rules_source.t) :
                  | R.Err _
                  | Failure _ ->
                      None))
+  [@@profiling]

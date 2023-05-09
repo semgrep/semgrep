@@ -5,7 +5,7 @@ open Cmdliner
 (* Prelude *)
 (*****************************************************************************)
 (*
-   'semgrep login' command-line arguments processing.
+   'semgrep login/logout' command-line arguments processing.
 *)
 
 (*****************************************************************************)

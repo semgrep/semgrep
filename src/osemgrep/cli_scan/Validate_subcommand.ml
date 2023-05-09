@@ -63,14 +63,16 @@ let metarules_pack = "p/semgrep-rule-lints"
 (*****************************************************************************)
 
 let run (conf : conf) : Exit_code.t =
+  let settings = Semgrep_settings.load () in
+  let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
    * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
    * in Config_resolver.errors.
    *)
   let rules_and_origin =
-    Rule_fetching.rules_from_rules_source ~rewrite_rule_ids:true
-      conf.rules_source
+    Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
+      ~registry_caching:false conf.rules_source
   in
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origin
@@ -90,8 +92,9 @@ let run (conf : conf) : Exit_code.t =
                  x.Rule_fetching.origin)
         in
         let metarules_and_origin =
-          Rule_fetching.rules_from_dashdash_config
-            (Semgrep_dashdash_config.config_kind_of_config_str metarules_pack)
+          Rule_fetching.rules_from_dashdash_config ~token_opt
+            ~registry_caching:false
+            (Semgrep_dashdash_config.parse_config_string metarules_pack)
         in
         let metarules, metaerrors =
           Rule_fetching.partition_rules_and_errors metarules_and_origin

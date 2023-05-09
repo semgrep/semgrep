@@ -42,7 +42,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "gomod",
-              "line_number": 15,
+              "line_number": 17,
               "package": "github.com/cheekybits/genny",
               "resolved_url": "github.com/cheekybits/genny",
               "transitivity": "direct",

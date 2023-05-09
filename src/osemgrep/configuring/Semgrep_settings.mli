@@ -3,9 +3,12 @@
  *)
 type t = {
   has_shown_metrics_notification : bool option;
-  api_token : string option;
+  api_token : Auth.token option;
   anonymous_user_id : Uuidm.t;
 }
 
+(* loading the ~/.semgrep/settings.yml in memory *)
+val load : unit -> t
+
+(* returns whether the save was successful *)
 val save : t -> bool
-val get : unit -> t

@@ -38,6 +38,7 @@ type conf = {
   max_lines_per_finding : int;
   (* Networking options *)
   metrics : Metrics_.config;
+  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;

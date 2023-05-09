@@ -72,10 +72,10 @@ let matching_explanations = ref Runner_config.default.matching_explanations
 (* ------------------------------------------------------------------------- *)
 
 (* -e *)
-let pattern_string = ref ""
+let pattern_string = ref None
 
 (* -f *)
-let pattern_file = ref ""
+let pattern_file = ref None
 
 (* -rules *)
 let rule_source = ref None
@@ -530,9 +530,11 @@ let all_actions () =
 
 let options actions =
   [
-    ("-e", Arg.Set_string pattern_string, " <str> use the string as the pattern");
+    ( "-e",
+      Arg.String (fun s -> pattern_string := Some s),
+      " <str> use the string as the pattern" );
     ( "-f",
-      Arg.Set_string pattern_file,
+      Arg.String (fun s -> pattern_file := Some (Fpath.v s)),
       " <file> use the file content as the pattern" );
     ( "-rules",
       Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
@@ -552,7 +554,7 @@ let options actions =
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
     ( "-use_parsing_cache",
-      Arg.Set_string use_parsing_cache,
+      Arg.String (fun s -> use_parsing_cache := Some (Fpath.v s)),
       " <dir> store and use the parsed generic ASTs in dir" );
     ( "-opt_cache",
       Arg.Set Flag.with_opt_cache,
@@ -620,13 +622,6 @@ let options actions =
     ( "-fast",
       Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
-    ( "-bloom_filter",
-      Arg.Set Flag.use_bloom_filter,
-      " use a bloom filter to only attempt matches when strings in the pattern \
-       are in the target" );
-    ( "-no_bloom_filter",
-      Arg.Clear Flag.use_bloom_filter,
-      " do not use bloom filter" );
     ( "-tree_sitter_only",
       Arg.Set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );

@@ -175,7 +175,7 @@ let should_match_call = function
       false
 
 (*****************************************************************************)
-(* Optimisations (caching, bloom filter) *)
+(* Optimisations (caching) *)
 (*****************************************************************************)
 
 (* Getters and setters that were left abstract in the cache implementation. *)
@@ -186,31 +186,6 @@ let cache_access : tin Caching.Cache.access =
     get_mv_field = (fun tin -> tin.mv);
     set_mv_field = (fun tin mv -> { tin with mv });
   }
-
-let stmts_may_match pattern_stmts (stmts : G.stmt list) =
-  (* We could gather all the strings from the stmts
-     and perform one intersection, but this is quite slow.
-     By iterating over each stmt, we can shortcircuit *)
-  if not !Flag.use_bloom_filter then true
-  else
-    let pattern_strs =
-      Bloom_annotation.set_of_pattern_strings (Ss pattern_stmts)
-    in
-    let pats_in_stmt pats (stmt : AST_generic.stmt) =
-      match stmt.s_strings with
-      | None -> true
-      | Some strs -> Set_.subset pats strs
-    in
-    let rec patterns_in_any_stmt pats stmts acc =
-      match stmts with
-      | [] -> acc
-      | stmt :: rest -> (
-          match acc with
-          | false -> patterns_in_any_stmt pats rest (pats_in_stmt pats stmt)
-          | true -> acc)
-    in
-    patterns_in_any_stmt pattern_strs stmts true
-  [@@profiling]
 
 (*****************************************************************************)
 (* Name *)
@@ -2212,13 +2187,11 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
-          (if not (stmts_may_match xsa xsb) then fail ()
-          else
-            match SubAST_generic.flatten_substmts_of_stmts xsb with
-            | None -> fail () (* was already flat *)
-            | Some (xsb, last_stmt) ->
-                m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id)
-                  xsa xsb)
+          (match SubAST_generic.flatten_substmts_of_stmts xsb with
+          | None -> fail () (* was already flat *)
+          | Some (xsb, last_stmt) ->
+              m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
+                xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _

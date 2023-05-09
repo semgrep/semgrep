@@ -57,6 +57,7 @@ type conf = {
   max_lines_per_finding : int;
   (* Networking options *)
   metrics : Metrics_.config;
+  registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
   (* Ugly: should be in separate subcommands *)
   version : bool;
@@ -117,6 +118,8 @@ let default : conf =
     max_lines_per_finding = 10;
     rewrite_rule_ids = true;
     metrics = Metrics_.Auto;
+    (* like legacy, should maybe be set to false when we release osemgrep*)
+    registry_caching = true;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -624,6 +627,12 @@ let o_ast_caching : bool Term.t =
     ~default:default.core_runner_conf.ast_caching
     ~doc:{|Store in ~/.semgrep/cache/asts/ the parsed ASTs to speedup things.|}
 
+(* TODO: add also an --offline flag? what about metrics? *)
+let o_registry_caching : bool Term.t =
+  H.negatable_flag [ "registry-caching" ] ~neg_options:[ "no-registry-caching" ]
+    ~default:default.registry_caching
+    ~doc:{|Cache for 24 hours in ~/.semgrep/cache rules from the registry.|}
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -635,19 +644,27 @@ let cmdline_term : conf Term.t =
       dump_config emacs error exclude exclude_rule_ids force_color include_ json
       lang legacy logging_level max_chars_per_line max_lines_per_finding
       max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
-      pattern profile project_root replacement respect_git_ignore
-      rewrite_rule_ids scan_unknown_extensions severity show_supported_languages
-      strict target_roots test test_ignore_todo time_flag timeout
-      timeout_threshold validate version version_check vim =
+      pattern profile project_root registry_caching replacement
+      respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
+      show_supported_languages strict target_roots test test_ignore_todo
+      time_flag timeout timeout_threshold validate version version_check vim =
+    (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
+     * correctly *)
+    Logs_helpers.setup_logging ~force_color ~level:logging_level;
+
+    let registry_caching, ast_caching =
+      if legacy then (
+        Logs.debug (fun m ->
+            m "disabling registry and AST caching in legacy mode");
+        (false, false))
+      else (registry_caching, ast_caching)
+    in
     let include_ =
       match include_ with
       | [] -> None
       | nonempty -> Some nonempty
     in
     let target_roots = target_roots |> File.Path.of_strings in
-    (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
-     * correctly *)
-    Logs_helpers.setup_logging ~force_color ~level:logging_level;
 
     let output_format =
       match (json, emacs, vim) with
@@ -855,6 +872,7 @@ let cmdline_term : conf Term.t =
       max_lines_per_finding;
       logging_level;
       metrics;
+      registry_caching;
       version_check;
       output_format;
       profile;
@@ -881,11 +899,11 @@ let cmdline_term : conf Term.t =
     $ o_legacy $ CLI_common.logging_term $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
     $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ o_profile
-    $ o_project_root $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
-    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
-    $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
-    $ o_vim)
+    $ o_project_root $ o_registry_caching $ o_replacement $ o_respect_git_ignore
+    $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate
+    $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 
