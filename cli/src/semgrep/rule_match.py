@@ -24,6 +24,7 @@ import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
+from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
@@ -290,6 +291,13 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
+        if self.is_prev_scan:
+            # PATCH: get the rule_id from metadata if the finding is from previous scan
+            return (
+                match_formula_str,
+                path,
+                self.metadata.get("semgrep.dev", {}).get("rule", {}).get("rule_name"),
+            )
         return (match_formula_str, path, self.rule_id)
 
     # This will supercede syntactic id, as currently that will change even if
@@ -512,6 +520,24 @@ class RuleMatch:
         if "sca_info" in self.extra:
             ret.sca_info = self.extra["sca_info"]
         return ret
+
+    @property
+    def scan_source(self) -> RuleScanSource:
+        src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
+        if src == "unchanged":
+            return RuleScanSource.unchanged
+        elif src == "new-version":
+            return RuleScanSource.new_version
+        elif src == "new-rule":
+            return RuleScanSource.new_rule
+        elif src == "previous-scan":
+            return RuleScanSource.previous_scan
+        else:
+            return RuleScanSource.unannotated
+
+    @property
+    def is_prev_scan(self) -> bool:
+        return self.scan_source == RuleScanSource.previous_scan
 
     def __hash__(self) -> int:
         """
