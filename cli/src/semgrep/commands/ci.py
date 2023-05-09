@@ -27,7 +27,6 @@ from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import OutputFormat
-from semgrep.constants import RuleScanSource
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -420,7 +419,7 @@ def ci(
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
-        elif rule.scan_source == RuleScanSource.previous_scan:
+        elif not rule.is_curr_scan:
             prev_scan_rules.append(rule)
         else:
             if rule.is_blocking:
@@ -436,13 +435,9 @@ def ci(
     # Remove the prev scan matches by the rules that are in the current scan
     # Done before the next loop to avoid interfering with ignore logic
     removed_prev_scan_matches = {
-        rule: [
-            match
-            for match in matches
-            if match.scan_source != RuleScanSource.previous_scan
-        ]
+        rule: [match for match in matches if match.is_curr_scan]
         for rule, matches in filtered_matches_by_rule.items()
-        if rule.scan_source != RuleScanSource.previous_scan
+        if rule.is_curr_scan
     }
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
@@ -470,7 +465,6 @@ def ci(
                 if rule.is_blocking and "sca_info" not in match.extra
                 else nonblocking_matches_by_rule
             )
-
             applicable_result_set[rule].append(match)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())

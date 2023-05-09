@@ -18,7 +18,6 @@ import requests
 from boltons.iterutils import partition
 
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
-from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -255,9 +254,7 @@ class ScanHandler:
         state = get_state()
         # partitions rules into those that were scanned in the previous scan
         # we don't use it or send them to the app for now as findings include the metadata
-        _, curr_scan_rules = partition(
-            rules, lambda r: r.scan_source == RuleScanSource.previous_scan
-        )
+        curr_scan_rules, _ = partition(rules, lambda r: r.is_curr_scan)
         all_ids = [r.id for r in curr_scan_rules]
         cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
         all_matches = [
@@ -265,8 +262,8 @@ class ScanHandler:
             for matches_of_rule in matches_by_rule.values()
             for match in matches_of_rule
         ]
-        prev_scan_matches, curr_scan_matches = partition(
-            all_matches, lambda m: m.scan_source == RuleScanSource.previous_scan
+        curr_scan_matches, prev_scan_matches = partition(
+            all_matches, lambda m: m.is_curr_scan
         )
 
         # we want date stamps assigned by the app to be assigned such that the

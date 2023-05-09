@@ -291,6 +291,13 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
+        if not self.is_curr_scan:
+            # PATCH: get the rule_id from metadata if the finding is from previous scan
+            return (
+                match_formula_str,
+                path,
+                self.metadata.get("semgrep.dev", {}).get("rule", {}).get("rule_name"),
+            )
         return (match_formula_str, path, self.rule_id)
 
     # This will supercede syntactic id, as currently that will change even if
@@ -527,6 +534,10 @@ class RuleMatch:
             return RuleScanSource.previous_scan
         else:
             return RuleScanSource.unannotated
+
+    @property
+    def is_curr_scan(self) -> bool:
+        return self.scan_source != RuleScanSource.previous_scan
 
     def __hash__(self) -> int:
         """

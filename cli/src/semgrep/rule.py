@@ -265,6 +265,10 @@ class Rule:
             return RuleScanSource.unannotated
 
     @property
+    def is_curr_scan(self) -> bool:
+        return self.scan_source != RuleScanSource.previous_scan
+
+    @property
     def formula_string(self) -> str:
         """
         Used to calculate a pattern based ID, works through DFS of all
