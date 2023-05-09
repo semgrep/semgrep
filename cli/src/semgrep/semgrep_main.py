@@ -177,7 +177,11 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if rule.product == RuleProduct.sast],
+        [
+            rule
+            for rule in rules
+            if rule.product == RuleProduct.sast and rule.is_curr_scan
+        ],
         target_manager,
     )
     sca_plan = CoreRunner.plan_core_run(
@@ -419,6 +423,15 @@ def main(
         shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
+
+    # VIVEK (temp) - test the patch (this should ideally happen at the backend to avoid inconsistencies)
+    for rule in filtered_rules:
+        if not (rule.is_curr_scan):
+            curr_meta = rule.metadata.get("semgrep.dev", {}).get("rule", {})
+            curr_meta["rule_name"] = rule.id
+            rule.metadata["semgrep.dev"]["rule"] = curr_meta
+            rule._id = f'{curr_meta["rule_id"]},{curr_meta["version_id"]}'
+    # VIVEK (temp) - test the patch
 
     output_handler.handle_semgrep_errors(config_errors)
 
