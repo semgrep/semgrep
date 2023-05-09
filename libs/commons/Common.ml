@@ -508,24 +508,6 @@ let exn_to_s exn = Printexc.to_string exn
 (* See Testutil *)
 
 (*****************************************************************************)
-(* Persistence *)
-(*****************************************************************************)
-
-let get_value filename =
-  let chan = open_in_bin filename in
-  let x = input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
-
-let write_value valu filename =
-  let chan = open_out_bin filename in
-  output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
-
-(*****************************************************************************)
 (* Composition/Control *)
 (*****************************************************************************)
 
@@ -944,10 +926,6 @@ let write_file ~file s =
 
 (* could be in control section too *)
 
-let filemtime file =
-  if !jsoo then failwith "JSOO: Common.filemtime"
-  else (Unix.stat file).Unix.st_mtime
-
 (*
 Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
 on all platforms.
@@ -1000,26 +978,6 @@ let fullpath file =
   match base with
   | None -> here
   | Some x -> Filename.concat here x
-
-(* Why a use_cache argument ? because sometimes want disable it but dont
- * want put the cache_computation funcall in comment, so just easier to
- * pass this extra option.
- *)
-let cache_computation ?(use_cache = true) file ext_cache f =
-  if not use_cache then f ()
-  else if not (Sys.file_exists file) then (
-    logger#error "WARNING: cache_computation: can't find %s" file;
-    logger#error "defaulting to calling the function";
-    f ())
-  else
-    let file_cache = file ^ ext_cache in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
-      logger#info "using cache: %s" file_cache;
-      get_value file_cache)
-    else
-      let res = f () in
-      write_value res file_cache;
-      res
 
 (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
 let (with_open_outfile :
