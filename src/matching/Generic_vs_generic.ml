@@ -340,12 +340,8 @@ let m_with_symbolic_propagation ~is_root f b tin =
            * we do, we shouldn't crash. This simple check will not protect
            * against complicated paths through which a symbol could resolve to
            * itself, but if it directly resolves to itself, we can easily catch
-           * it.
-           *
-           * Yes, Semgrep, I want physical equality.
-           *
-           * nosemgrep *)
-          if b1 == b then (
+           * it. *)
+          if phys_equal b1 b then (
             logger#error
               "Aborting symbolic propagation: Circular reference encountered \
                (\"%s\")"

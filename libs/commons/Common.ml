@@ -1237,14 +1237,28 @@ module SMap = Map.Make (String)
 type 'a smap = 'a SMap.t
 
 (*****************************************************************************)
+(* Disable physical equality/inequality operators *)
+(*****************************************************************************)
+
+let phys_equal = Stdlib.( == )
+let phys_not_equal = Stdlib.( != )
+
+type hidden_by_your_nanny = unit
+
+let ( == ) : hidden_by_your_nanny = ()
+let ( != ) : hidden_by_your_nanny = ()
+
+(*****************************************************************************)
 (* Operators *)
 (*****************************************************************************)
 
 module Operators = struct
   let ( =~ ) = ( =~ )
-  let ( = ) = ( = )
+  let ( = ) = ( = ) (* already shadowed *)
   let ( =|= ) = ( =|= )
   let ( =$= ) = ( =$= )
   let ( =:= ) = ( =:= )
   let ( =*= ) = ( =*= )
+  let ( == ) = ( == ) (* already shadowed *)
+  let ( != ) = ( != ) (* already shadowed *)
 end
