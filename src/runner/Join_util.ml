@@ -11,7 +11,7 @@ module MvarMap = Map.Make (String)
 module MvarSet = Set.Make (struct
   type t = Metavariable.mvalue
 
-  let compare a b = if M.equal_mvalue a b then 0 else compare a b
+  let compare a b = if M.Structural.equal_mvalue a b then 0 else compare a b
 end)
 
 (* Functions for Join Mode
@@ -91,9 +91,9 @@ let intersect_mvar_maps prev_map cur_map =
       | None, None -> None)
     prev_map cur_map
 
-let print_updated_matches config print_match matches =
+let print_updated_matches config print_match has_join_steps matches =
   if config.output_format =*= Text then
-    if matches <> [] then
+    if has_join_steps then
       pr
         "\n\n\
          ---------------------------------------------------\n\n\
@@ -196,5 +196,6 @@ let unify_results config print_match join_rule_map res =
     |> List.concat_map (fun { step_id = _; matches } -> matches)
   in
   let matches = join_matches @ normal_matches in
-  matches |> print_updated_matches config print_match;
+  matches
+  |> print_updated_matches config print_match (matches_by_join_rules <> []);
   { res with matches }
