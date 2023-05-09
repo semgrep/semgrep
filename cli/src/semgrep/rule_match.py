@@ -198,6 +198,16 @@ class RuleMatch:
 
         Used for deduplication in the CLI before writing output.
         """
+        if self.is_prev_scan:
+            # TODO(vivek) - add a NOTE here
+            return (
+                self.annotated_rule_name,
+                str(self.path),
+                self.start.offset,
+                self.end.offset,
+                self.message,
+                None,
+            )
         return (
             self.rule_id,
             str(self.path),
@@ -223,6 +233,14 @@ class RuleMatch:
             path = self.path.relative_to(Path.cwd())
         except (ValueError, FileNotFoundError):
             path = self.path
+        if self.is_prev_scan:
+            # TODO(vivek) - add a NOTE here
+            return (
+                self.annotated_rule_name,
+                str(path),
+                self.syntactic_context,
+                self.index,
+            )
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
     def get_path_changed_ci_unique_key(self, rename_dict: Dict[str, Path]) -> Tuple:
@@ -292,11 +310,11 @@ class RuleMatch:
                     metavar, metavars[metavar]["abstract_content"]
                 )
         if self.is_prev_scan:
-            # PATCH: get the rule_id from metadata if the finding is from previous scan
+            # TODO(vivek) - add a note here
             return (
                 match_formula_str,
                 path,
-                self.metadata.get("semgrep.dev", {}).get("rule", {}).get("rule_name"),
+                self.annotated_rule_name,
             )
         return (match_formula_str, path, self.rule_id)
 
@@ -538,6 +556,10 @@ class RuleMatch:
     @property
     def is_prev_scan(self) -> bool:
         return self.scan_source == RuleScanSource.previous_scan
+
+    @property
+    def annotated_rule_name(self) -> str:
+        return self.metadata.get("semgrep.dev", {}).get("rule", {}).get("rule_name")
 
     def __hash__(self) -> int:
         """
