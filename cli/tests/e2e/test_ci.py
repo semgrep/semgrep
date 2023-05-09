@@ -713,6 +713,16 @@ def test_lockfile_parse_failure_reporting(
     git_tmp_path_with_commit, run_semgrep: RunSemgrep, snapshot
 ):
     repo_base, base_commit, _ = git_tmp_path_with_commit
+    subprocess.run(
+        ["git", "config", "user.email", AUTHOR_EMAIL],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", AUTHOR_NAME],
+        check=True,
+        capture_output=True,
+    )
 
     bad_lockfile = repo_base / "Pipfile.lock"
     bad_lockfile.write_text(
