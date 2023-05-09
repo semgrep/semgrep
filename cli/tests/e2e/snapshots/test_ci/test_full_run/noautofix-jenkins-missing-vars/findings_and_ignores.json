@@ -313,7 +313,6 @@
     }
   ],
   "searched_paths": [
-    "Pipfile.lock",
     "foo.py",
     "poetry.lock",
     "yarn.lock"

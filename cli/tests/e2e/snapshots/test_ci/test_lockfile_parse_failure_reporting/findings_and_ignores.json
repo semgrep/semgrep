@@ -177,10 +177,7 @@
         "end_line_hash": "27937fb6c73e88412e7e39647557d4c03fda0ea04b91cecb3852355f387d03c8",
         "code_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052",
         "pattern_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052"
-      },
-      "fixed_lines": [
-        "    (x == 2)"
-      ]
+      }
     },
     {
       "check_id": "eqeq-bad",
@@ -316,6 +313,7 @@
     }
   ],
   "searched_paths": [
+    "Pipfile.lock",
     "foo.py",
     "poetry.lock",
     "yarn.lock"
@@ -379,10 +377,7 @@
         "end_line_hash": "889792ca5269732e125f6abb0d0245a7dcb83862e34d797a5ee890a4a7a5eae7",
         "code_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850",
         "pattern_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850"
-      },
-      "fixed_lines": [
-        "    (y == 2)  # nosemgrep"
-      ]
+      }
     },
     {
       "check_id": "eqeq-bad",

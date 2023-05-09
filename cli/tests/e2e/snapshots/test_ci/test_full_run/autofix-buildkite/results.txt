@@ -86,7 +86,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
             
             
   CODE RULES
