@@ -419,7 +419,7 @@ def ci(
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
-        elif not rule.is_curr_scan:
+        elif rule.is_prev_scan:
             prev_scan_rules.append(rule)
         else:
             if rule.is_blocking:
@@ -435,9 +435,9 @@ def ci(
     # Remove the prev scan matches by the rules that are in the current scan
     # Done before the next loop to avoid interfering with ignore logic
     removed_prev_scan_matches = {
-        rule: [match for match in matches if match.is_curr_scan]
+        rule: [match for match in matches if (not match.is_prev_scan)]
         for rule, matches in filtered_matches_by_rule.items()
-        if rule.is_curr_scan
+        if (not rule.is_prev_scan)
     }
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply

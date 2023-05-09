@@ -180,7 +180,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
         [
             rule
             for rule in rules
-            if rule.product == RuleProduct.sast and rule.is_curr_scan
+            if rule.product == RuleProduct.sast and (not rule.is_prev_scan)
         ],
         target_manager,
     )

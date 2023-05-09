@@ -254,7 +254,7 @@ class ScanHandler:
         state = get_state()
         # partitions rules into those that were scanned in the previous scan
         # we don't use it or send them to the app for now as findings include the metadata
-        curr_scan_rules, _ = partition(rules, lambda r: r.is_curr_scan)
+        curr_scan_rules, _ = partition(rules, lambda r: (not r.is_prev_scan))
         all_ids = [r.id for r in curr_scan_rules]
         cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
         all_matches = [
@@ -263,7 +263,7 @@ class ScanHandler:
             for match in matches_of_rule
         ]
         curr_scan_matches, prev_scan_matches = partition(
-            all_matches, lambda m: m.is_curr_scan
+            all_matches, lambda m: (not m.is_prev_scan)
         )
 
         # we want date stamps assigned by the app to be assigned such that the
