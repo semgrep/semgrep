@@ -598,7 +598,9 @@ def print_text_output(
         )
         autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
         if fix is not None:
-            console.print(f"{autofix_tag} {fix if fix else with_color(Colors.red, 'delete')}")
+            console.print(
+                f"{autofix_tag} {fix if fix else with_color(Colors.red, 'delete')}"
+            )
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
             console.print(
