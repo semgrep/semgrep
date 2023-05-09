@@ -124,6 +124,18 @@ let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
 (* Registry caching *)
 (*****************************************************************************)
 
+(* We currently use a 24h cache for rules accessed from the registry. This
+ * speedups things quite a lot for users without a great Internet connection.
+ * In any case, the registry is rarely modified so users do not need to have
+ * access to the very latest registry. Lagging 24 hours behind is fine
+ * (and you can still use --no-registry-caching if really you want the latest).
+ * This is similar to the network version_check that we also cache for 24
+ * hours.
+ * alt: We could also fetch in parallel the rules from the registry and
+ * start the engine with the possibly old rules, and as we go check if
+ * the rules changed and rerun the engine if needed. This is more complicated
+ * though and would maybe require to switch to OCaml 5.0. Not worth it for now.
+ *)
 type cache_registry_value = float (* timestamp *) * Uri.t * string (* content *)
 
 let cache_file_of_url (cache_dir : Fpath.t) (url : Uri.t) : Fpath.t =
@@ -215,7 +227,7 @@ let import_callback ~registry_caching base str =
           match kind with
           | C.A _ -> failwith "TODO: app_config in jsonnet not handled"
           | C.R rkind ->
-              let url = Network_registry.url_of_registry_config_kind rkind in
+              let url = Semgrep_Registry.url_of_registry_config_kind rkind in
               Some url
           | C.URL url -> Some url
           (* TODO? allow to import any config_str? even a directory?
@@ -250,7 +262,7 @@ let import_callback ~registry_caching base str =
 
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
- * We also pass a ~registry_caching so the registry-aware jsonnet is also
+ * We also pass a ~registry_caching so our registry-aware jsonnet is also
  * registry-cache aware.
  *)
 let parse_rule ~registry_caching (file : Fpath.t) :
@@ -346,7 +358,7 @@ let rules_from_dashdash_config ~token_opt ~registry_caching kind :
       |> Common.map (load_rules_from_file ~registry_caching)
   | C.URL url -> [ load_rules_from_url url ]
   | C.R rkind ->
-      let url = Network_registry.url_of_registry_config_kind rkind in
+      let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let content = fetch_content_from_registry_url ~registry_caching url in
       (* TODO: this also assumes every registry URL is for yaml *)
       Common2.with_tmp_file ~str:content ~ext:"yaml" (fun file ->
@@ -356,7 +368,7 @@ let rules_from_dashdash_config ~token_opt ~registry_caching kind :
   | C.A Policy ->
       [
         load_rules_from_url ~token_opt ~ext:"policy"
-          (Network_app.url_for_policy ~token_opt);
+          (Semgrep_App.url_for_policy ~token_opt);
       ]
   | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
 
