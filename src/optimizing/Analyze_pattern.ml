@@ -32,7 +32,6 @@ open AST_generic
  * This module is currently used by:
  *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
- *  - the bloom filter pattern extractor of Nathan and Emma
  *  - the Semgrep.ml engine to skip entire files!
  *
  * TODO:
@@ -48,10 +47,6 @@ let _error s = failwith s
 (*****************************************************************************)
 (* Extractions *)
 (*****************************************************************************)
-
-(* TODO(iago): This is partly redundant with Bloom_annotation.statement_strings,
- * it might be more maintainable if we had a single visitor that worked for both
- * statements and patterns. *)
 
 let extract_strings_and_mvars ?lang any =
   let strings = ref [] in
@@ -108,7 +103,8 @@ let extract_strings_and_mvars ?lang any =
         (* do not recurse there, the type does not have to be in the source *)
         | TypedMetavar _ -> ()
         (* for bloom_filters: do not recurse here (for ApplyEquivalence,
-         * this would be an error) *)
+         * this would be an error)
+         * THINK: bloom filter was removed, something to re-consider here? *)
         | DisjExpr _ -> ()
         | _ -> super#visit_expr env x
     end

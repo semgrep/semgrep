@@ -622,13 +622,6 @@ let options actions =
     ( "-fast",
       Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
-    ( "-bloom_filter",
-      Arg.Set Flag.use_bloom_filter,
-      " use a bloom filter to only attempt matches when strings in the pattern \
-       are in the target" );
-    ( "-no_bloom_filter",
-      Arg.Clear Flag.use_bloom_filter,
-      " do not use bloom filter" );
     ( "-tree_sitter_only",
       Arg.Set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );
