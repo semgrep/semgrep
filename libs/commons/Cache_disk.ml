@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 open Common
+open File.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -21,6 +22,38 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Caching computation (e.g., parsed ASTs, network data, big result) on disk.
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* this record is marshalled on disk *)
+type ('v, 'x) cached_value_on_disk = {
+  (* Extra data useful for checking the cache (e.g., a version).
+   * This is useful because the Marshall module is not type-safe;
+   * if the OCaml data structures change between the moment the
+   * value was cached and the moment it was retrieved, you can
+   * get a segmentation fault after when starting to use the value.
+   *)
+  extra : 'x;
+  (* the actual cached value *)
+  value : 'v;
+}
+
+(* alt:  use a functor, but meh *)
+type ('input, 'value, 'extra) cache_methods = {
+  (* the containing directory will *not* be automatically created if
+   * not existing already *)
+  cache_file_for_input : 'input -> Fpath.t;
+  (* add some extra information with the value to enable certain checks
+   * when getting back the value from the cache (e.g., versioning, timestamp).
+   *)
+  cache_extra_for_input : 'input -> 'extra;
+  (* returns true if everything is fine and the cached value is valid *)
+  check_extra : 'extra -> bool;
+  (* for debugging purpose, to add the input in the logs *)
+  input_to_string : 'input -> string;
+}
 
 (*****************************************************************************)
 (* Helpers *)
@@ -48,9 +81,48 @@ let filemtime file =
 (* Entry points *)
 (*****************************************************************************)
 
-(* Why a use_cache argument ? because sometimes want disable it but dont
- * want put the cache_computation funcall in comment, so just easier to
- * pass this extra option.
+(* flexible cache *)
+let (cache :
+      ('input -> 'value) ->
+      ('input, 'value, 'extra) cache_methods ->
+      'input ->
+      'value) =
+ fun compute_value methods input ->
+  let cache_file = methods.cache_file_for_input input in
+  let compute_and_save_in_cache () =
+    let value = compute_value input in
+    let extra = methods.cache_extra_for_input input in
+    let (v : ('value, 'extra) cached_value_on_disk) = { extra; value } in
+    Logs.debug (fun m ->
+        m "saving %s content in %s" (methods.input_to_string input) !!cache_file);
+    write_value v !!cache_file;
+    value
+  in
+  if Sys.file_exists !!cache_file then
+    let (v : ('value, 'extra) cached_value_on_disk) =
+      Common2.get_value !!cache_file
+    in
+    let { extra; value } = v in
+    if methods.check_extra extra then (
+      Logs.debug (fun m ->
+          m "using the cache file %s for %s" !!cache_file
+            (methods.input_to_string input));
+      value)
+    else (
+      Logs.debug (fun m ->
+          m "invalid cache %s for %s (or too old)" !!cache_file
+            (methods.input_to_string input));
+
+      compute_and_save_in_cache ())
+  else compute_and_save_in_cache ()
+
+(*****************************************************************************)
+(* Deprecated *)
+(*****************************************************************************)
+
+(* Why a [use_cache] parameter? because sometimes we want disable it but we
+ * don't want to put the cache_computation funcall in comment, so it's
+ * just easier to pass this extra option.
  *)
 let cache_computation ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
