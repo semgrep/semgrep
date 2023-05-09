@@ -17,6 +17,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "",
         "is_ignored": false,
         "lines": "from typing import Dict",
         "message": "found one",
@@ -55,6 +56,7 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
+        "fix": "",
         "is_ignored": false,
         "lines": "from typing import List",
         "message": "found one",
