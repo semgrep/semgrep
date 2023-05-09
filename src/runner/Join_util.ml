@@ -91,7 +91,19 @@ let intersect_mvar_maps prev_map cur_map =
       | None, None -> None)
     prev_map cur_map
 
-let unify_results join_rule_map res =
+let print_updated_matches config print_match matches =
+  if config.output_format =*= Text then
+    if matches <> [] then
+      pr
+        "\n\n\
+         ---------------------------------------------------\n\n\
+         The previous matches include matches for join steps. Here are the \
+         final matches:\n";
+  List.iter
+    (fun match_ -> print_match config match_ Metavariable.ii_of_mval)
+    matches
+
+let unify_results config print_match join_rule_map res =
   let rule_for_step_id id =
     match JoinRuleMap.find_opt id join_rule_map with
     | Some (rule, _n) -> Some (fst rule.R.id)
@@ -176,11 +188,13 @@ let unify_results join_rule_map res =
         { m with P.rule_id })
       matches_for_join_rule
   in
-  let join_matches = Common.map process_steps_for_rule matches_by_join_rules in
+  let join_matches =
+    List.concat_map process_steps_for_rule matches_by_join_rules
+  in
   let normal_matches =
     matches_by_normal_rules |> List.concat
     |> List.concat_map (fun { step_id = _; matches } -> matches)
   in
-  let res = { res with matches = List.concat join_matches @ normal_matches } in
-  pr2 (RP.show_final_result res);
-  res
+  let matches = join_matches @ normal_matches in
+  matches |> print_updated_matches config print_match;
+  { res with matches }

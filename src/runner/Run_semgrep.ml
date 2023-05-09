@@ -841,7 +841,7 @@ let semgrep_with_raw_results_and_exn_handler config =
           Join_util.extract_join_rules config rules)
     in
     let res, files = semgrep_with_rules config (rules, time) in
-    let res = Join_util.unify_results join_rules_map res in
+    let res = Join_util.unify_results config print_match join_rules_map res in
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
