@@ -781,6 +781,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                }
              else matches
            in
+           (* So we can display matches incrementally in osemgrep!
+            * Note that this is run in a child process of Parmap, so
+            * the hook should not rely on shared memory.
+            *)
+           config.file_match_results_hook
+           |> Option.iter (fun hook -> hook (Fpath.v file) matches);
 
            update_cli_progress config;
 
