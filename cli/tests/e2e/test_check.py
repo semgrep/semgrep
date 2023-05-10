@@ -67,6 +67,7 @@ def test_basic_jsonnet_rule(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osempass
 def test_deduplication(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Check that semgrep runs a rule only once even when different in the metadata
