@@ -2,8 +2,8 @@ const { EngineFactory } = require("../dist/index.cjs");
 
 const enginePromise = EngineFactory("./dist/semgrep-engine.wasm");
 
-describe("lookupParserName", () => {
-  test("handles base case", async () => {
+describe("engine", () => {
+  test("handles valid language", async () => {
     const engine = await enginePromise;
     expect(engine.lookupLang("java")).toEqual("java");
   });
@@ -22,6 +22,9 @@ describe("lookupParserName", () => {
       `${__dirname}/test-rule-python.json`,
       `${__dirname}/../../languages/python/tests/test.py`
     );
+    expect(engine.isMissingLanguages()).toBe(true);
     expect(engine.getMissingLanguages()).toEqual(["python"]);
+    engine.clearMissingLanguages();
+    expect(engine.isMissingLanguages()).toBe(false);
   });
 });
