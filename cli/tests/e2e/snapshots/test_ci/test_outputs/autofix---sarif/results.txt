@@ -495,7 +495,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison"
+                "text": "Semgrep Finding: eqeq-bad"
               }
             },
             {
@@ -512,7 +512,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison to 5"
+                "text": "Semgrep Finding: eqeq-five"
               }
             },
             {
@@ -529,7 +529,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison to 4"
+                "text": "Semgrep Finding: eqeq-four"
               }
             },
             {
@@ -546,7 +546,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "tags": []
               },
               "shortDescription": {
-                "text": "found a dependency"
+                "text": "Semgrep Finding: supply-chain1"
               }
             },
             {
@@ -563,7 +563,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
                 "tags": []
               },
               "shortDescription": {
-                "text": "unsafe use of danger"
+                "text": "Semgrep Finding: taint-test"
               }
             }
           ],
