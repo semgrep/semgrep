@@ -69,7 +69,9 @@ export const EngineFactory = async (wasmUri) => {
       });
     },
     hasParser: (lang) => languages.has(lang),
+    isMissingLanguages: () => missingLanguages.size > 0,
     getMissingLanguages: () => Array.from(missingLanguages),
+    clearMissingLanguages: () => missingLanguages.clear(),
     execute,
     writeFile,
     deleteFile,

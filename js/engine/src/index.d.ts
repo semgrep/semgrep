@@ -16,5 +16,8 @@ export interface Engine {
   ) => string;
   writeFile: (filename: string, content: string) => void;
   deleteFile: (filename: string) => void;
+  isMissingLanguages: () => boolean;
+  getMissingLanguages: () => string[];
+  clearMissingLanguages: () => void;
 }
 export declare const EngineFactory: (wasmUri?: string) => Promise<Engine>;
