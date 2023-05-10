@@ -51,3 +51,9 @@ rules:
     severity: ERROR
     metadata:
       source: "https://semgrep.dev/foo/bar/js"
+      references: 
+        - https://pkg.go.dev/path#Clean
+        - http://technosophos.com/2016/03/31/go-quickly-cleaning-filepaths.html
+        - https://labs.detectify.com/2021/12/15/zero-day-path-traversal-grafana
+        - https://dzx.cz/2021/04/02/go_path_traversal
+        - https://pkg.go.dev/github.com/cyphar/filepath-securejoin#section-readme
