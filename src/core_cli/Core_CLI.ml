@@ -287,9 +287,9 @@ let generate_ast_json file =
 
 let generate_ast_binary lang file =
   let final =
-    Parse_with_caching.versioned_parse_result_of_file Version.version lang file
+    Parse_with_caching.ast_cached_value_of_file Version.version lang file
   in
-  let file = Fpath.add_ext Parse_with_caching.binary_suffix file in
+  let file = Fpath.(file + Parse_with_caching.binary_suffix) in
   assert (Parse_with_caching.is_binary_ast_filename file);
   Common2.write_value final !!file;
   pr2 (spf "saved marshalled generic AST in %s" !!file)

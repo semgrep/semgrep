@@ -22,21 +22,20 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Cache parsed generic ASTs between runs to speedup things.
  *
- * On some big repositories (e.g., Java elasticsearch), the speedup can be
- * very important (e.g., 10x).
- * Indeed:
+ * On some big repositories (e.g., elasticsearch), the speedup can be
+ * very important (e.g., 10x). Indeed:
  *  $ time semgrep-core -l java -rules ~/eqeq.yaml ~/elasticsearch/
  *  real: 1m22s
  *  $ time semgrep-core -use_parsing_cache ~/.semgrep/cache -l java -rules ~/eqeq.yaml ~/elasticsearch/
  *  real: 0.11s
  *
- * history: this used to be necessary because the pysemgrep was
- * making multiple calls to semgrep-core and we didn't want to reparse again and
- * again the same file for each rule. After migrating the processing of
- * all the rules at once to semgrep-core, this was not needed anymore. However,
+ * history: the cache used to be necessary because pysemgrep was
+ * making multiple calls to semgrep-core and we didn't want to reparse again
+ * the same file for each rule. After migrating the processing of all
+ * the rules at once to semgrep-core, this was not needed anymore. However,
  * it is now useful again to speedup semgrep when running semgrep
  * multiple times on the same repository. This can also be useful
- * for semgrep lsp.
+ * for semgrep LSP.
  *
  * This file could also be under optimizing/, but that would require to add
  * semgrep_parsing as a dependency in optimizing/dune.
@@ -46,85 +45,26 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 
-type versioned_parse_result =
-  string
-  * Fpath.t
-  * (AST_generic.program * Tok.location list, Exception.t) Common.either
-
-(*****************************************************************************)
-(* Generic helpers *)
-(*****************************************************************************)
-let filemtime file = (Unix.stat file).Unix.st_mtime
-
-let get_value_and_run_checks ?(filecheck = None) version_cur
-    (file_cache : Fpath.t) =
-  let version, file2, res = Common2.get_value !!file_cache in
-  if version <> version_cur then
-    failwith (spf "Version mismatch! Clean the cache file %s" !!file_cache);
-  (match filecheck with
-  | Some file when file <> file2 ->
-      failwith
-        (spf "Not the same file! Md5sum collision! Clean the cache file %s"
-           !!file_cache)
-  | __else__ -> ());
-  res
-
-(* The function below is mostly a copy-paste of Common.cache_computation.
- * This function is slightly more flexible because we can put the cache file
- * anywhere thanks to the argument 'cache_file_of_file'.
- * We also try to be a bit more type-safe by using the version tag above.
- * TODO: merge in commons/Common.ml at some point
+(* We store the parsed AST and the skipped tokens in the cache. If parsing
+ * was resulting in an exception, we store the exn instead.
+ * The extra data is to double check the cached AST correspond
+ * to the file, to check it has the right AST_generic.version, and
+ * to check if the cache is stale.
+ * alt: we could add Lang.t in it, but instead it is part of the input
+ * and used to generate the cache file.
  *)
-let cache_computation use_parsing_cache version_cur (file : Fpath.t)
-    cache_file_of_file f =
-  if not use_parsing_cache then f ()
-  else if not (Sys.file_exists !!file) then (
-    logger#warning "cache_computation: can't find file %s " !!file;
-    logger#warning "defaulting to calling the function";
-    f ())
-  else
-    let file_cache = cache_file_of_file !!file in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime !!file
-    then (
-      logger#trace "using cache: %s" file_cache;
-      get_value_and_run_checks ~filecheck:(Some file) version_cur
-        (Fpath.v file_cache))
-    else
-      let res = f () in
-      let final : versioned_parse_result = (version_cur, file, res) in
-      (try Common2.write_value final file_cache with
-      | Sys_error err ->
-          (* We must ignore SIGXFSZ to get this exception, see
-           * note "SIGXFSZ (file size limit exceeded)". *)
-          logger#error "Could not write cache file for %s (%s): %s" !!file
-            file_cache err;
-          (* Make sure we don't leave corrupt cache files behind us. *)
-          if Sys.file_exists file_cache then Sys.remove file_cache);
-      res
-  [@@profiling]
-
-let cache_file_of_file parsing_cache_dir suffix filename =
-  match parsing_cache_dir with
-  | None -> raise Impossible
-  | Some dir ->
-      (if not (Sys.file_exists !!dir) then
-       try
-         Unix.mkdir !!dir 0o700
-         (* bugfix: Despite the check above, we may race with another thread to
-          * create the directory, leading to a crash if this exception is
-          * unhandled.
-          *)
-       with
-       | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-      (* hopefully there will be no collision *)
-      let md5 = Digest.string filename in
-      Filename.concat !!dir (spf "%s%s" (Digest.to_hex md5) suffix)
+type ast_cached_value =
+  ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
+    string (* AST_generic.version *)
+    * Fpath.t (* original file *)
+    * float (* mtime of the original file *) )
+  Cache_disk.cached_value_on_disk
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let ast_or_exn_of_file lang file =
+let ast_or_exn_of_file (lang, file) =
   logger#trace "parsing %s" !!file;
   try
     (* finally calling the actual function *)
@@ -132,25 +72,25 @@ let ast_or_exn_of_file lang file =
       Parse_target.parse_and_resolve_name lang !!file
     in
     Left (ast, skipped_tokens)
-    (* We stores also in the cache whether we had
-     * an exception on this file, especially Timeout. We store the exn
-     * in the cache, and below we reraise it after we got it back
-     * from the cache.
-     * TODO: right now we just capture Timeout, but we should capture
-     * any exn. But doing so introduced some weird regressions in CI
-     * so we focus on just Timeout for now.
-     *)
   with
+  (* We store also in the cache whether we had an exception on this file,
+   * especially Timeout. This avoids trying to parse the same file
+   * again and again (which actually timeout, so this saves lots of time).
+   * Then, at the end of parse_and_resolve_name() we
+   * reraise the exn if we got it from the cache.
+   * TODO: right now we just capture Timeout, but we should capture
+   * any exn. But doing so introduced some weird regressions in CI
+   * so we focus on just Timeout for now.
+   *)
   | Time_limit.Timeout _ as exn ->
       let e = Exception.catch exn in
       Right e
 
-let ast_or_exn_of_value v =
-  match v with
-  | Left x -> x
-  | Right exn -> Exception.reraise exn
+(* Cache_disk methods reused in a few places *)
+let cache_extra_for_input version (_lang, file) =
+  (version, file, File.filemtime file)
 
-(* this was done for snowflake, and used with semgrep-core -generate_ast_binary *)
+(* this is used for semgrep-core -generate_ast_binary done for Snowflake *)
 let binary_suffix : Fpath.ext = ".ast.binary"
 
 (* coupling: with binary_suffix definition above *)
@@ -159,11 +99,10 @@ let is_binary_ast_filename file =
   !!file =~ ".*\\.ast\\.binary$"
 
 (* for semgrep-core -generate_ast_binary *)
-let versioned_parse_result_of_file version lang (file : Fpath.t) :
-    versioned_parse_result =
-  let res = ast_or_exn_of_file lang file in
-  (* coupling: see call to Common2.write_value above *)
-  (version, file, res)
+let ast_cached_value_of_file version lang (file : Fpath.t) : ast_cached_value =
+  let value = ast_or_exn_of_file (lang, file) in
+  let extra = cache_extra_for_input version (lang, file) in
+  { Cache_disk.extra; value }
 
 (*****************************************************************************)
 (* Entry point *)
@@ -175,24 +114,66 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
   if is_binary_ast_filename file then (
     logger#info "%s is already an AST binary file, unmarshalling its value"
       !!file;
-    let v = get_value_and_run_checks ~filecheck:None version file in
-    ast_or_exn_of_value v)
+    let (v : ast_cached_value) = Common2.get_value !!file in
+    let { Cache_disk.value = either; extra = version2, _file2, _mtime2 } = v in
+    (* coupling: similar to check_extra() method below, but we're not
+     * checking it's the same file here
+     *)
+    if version <> version2 then
+      failwith (spf "Version mismatch! Clean the cache file %s" !!file);
+    match either with
+    | Left v -> v
+    | Right exn -> Exception.reraise exn)
   else
-    let v =
-      cache_computation
-        (parsing_cache_dir <> None)
-        version file
-        (fun file ->
-          (* we may use different parsers for the same file (e.g., in Python3 or
-           * Python2 mode), so put the lang as part of the cache "dependency".
-           * We also add version here so bumping the version will not
-           * try to use the old cache file (which should generate an exception).
-           *)
-          let full_filename =
-            spf "%s__%s__%s" file (Lang.to_string lang) version
-          in
-
-          cache_file_of_file parsing_cache_dir binary_suffix full_filename)
-        (fun () -> ast_or_exn_of_file lang file)
-    in
-    ast_or_exn_of_value v
+    match parsing_cache_dir with
+    | None ->
+        (* simply calling the wrapped function *)
+        let { Parsing_result2.ast; skipped_tokens; _ } =
+          Parse_target.parse_and_resolve_name lang !!file
+        in
+        (ast, skipped_tokens)
+    | Some parsing_cache_dir -> (
+        let cache_methods =
+          {
+            Cache_disk.cache_file_for_input =
+              (fun (lang, file) ->
+                (* we may use different parsers for the same file
+                 * (e.g., in Python3 or Python2 mode), so we put the lang as part
+                 * of the cache "dependency".
+                 * We also add version here so bumping the version will not
+                 * try to use the old cache file.
+                 * TODO? do we need version here since anyway we would generate an
+                 * exception when reading the cache and regenerate it.
+                 *)
+                let str =
+                  spf "%s__%s__%s" !!file (Lang.to_string lang) version
+                in
+                (* Better to obfuscate the cache files, like in Unison, to
+                 * discourage people to play with it. Also simple way to escape
+                 * special chars in a file path.
+                 * hopefully there will be no collision
+                 *)
+                let md5 = Digest.string str in
+                (* TODO: create parsing_cache_dir in Cache_disk.ml, factorize *)
+                parsing_cache_dir // Fpath.(v md5 + binary_suffix));
+            cache_extra_for_input = cache_extra_for_input version;
+            check_extra =
+              (fun (version2, file2, mtime2) ->
+                (* TODO: better logging for the different reason the cache is
+                 * invalid?
+                 * - "Version mismatch! Clean the cache file"
+                 * - "Not the same file! Md5sum collision! Clean the cache file"
+                 *)
+                version = version2 && Fpath.equal file file2
+                && File.filemtime file =*= mtime2);
+            input_to_string =
+              (fun (lang, file) ->
+                spf "Lang = %s, target = %s" (Lang.show lang) !!file);
+          }
+        in
+        let either =
+          Cache_disk.cache ast_or_exn_of_file cache_methods (lang, file)
+        in
+        match either with
+        | Left x -> x
+        | Right exn -> Exception.reraise exn)
