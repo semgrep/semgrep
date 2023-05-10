@@ -149,7 +149,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                      in
                      (ast, skipped_tokens)
                  | LRegex
-                 | LGeneric ->
+                 | LSpacegrep
+                 | LAliengrep ->
                      assert false)
              in
              let xtarget =
@@ -219,7 +220,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                                 in
                                 (ast, skipped_tokens)
                             | LRegex
-                            | LGeneric ->
+                            | LSpacegrep
+                            | LAliengrep ->
                                 assert false)
                         in
                         let xtarget =

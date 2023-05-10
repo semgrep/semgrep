@@ -599,8 +599,8 @@ let regexp_prefilter_of_rule (r : R.rule) =
       with
       (* TODO: see tests/rules/tainted-filename.yaml *)
       | CNF_exploded ->
-          logger#error "CNF size exploded on rule id %s" rule_id;
+          logger#error "CNF size exploded on rule id %s" (rule_id :> string);
           None
       | Stack_overflow ->
-          logger#error "Stack overflow on rule id %s" rule_id;
+          logger#error "Stack overflow on rule id %s" (rule_id :> string);
           None)

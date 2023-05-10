@@ -32,7 +32,7 @@
 (*****************************************************************************)
 
 type rule = {
-  id : string;
+  id : Rule.ID.t;
   pattern : Pattern.t;
   inside : bool;
   (* originates from pattern-inside or pattern-not-inside *)

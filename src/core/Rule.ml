@@ -253,7 +253,24 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 (* The rule *)
 (*****************************************************************************)
 
-type rule_id = string [@@deriving show]
+(*
+   A rule ID is a string. This creates a dedicated type to clarify interfaces
+   and error messages. The coercion operator can be used as an alternative
+   to 'to_string x': '(x :> string)' to obtain a plain string.
+*)
+module ID : sig
+  type t = private string [@@deriving show, eq]
+
+  val to_string : t -> string
+  val of_string : string -> t
+end = struct
+  type t = string [@@deriving show, eq]
+
+  let to_string x = x
+  let of_string x = x
+end
+
+type rule_id = ID.t [@@deriving show, eq]
 
 type 'mode rule_info = {
   (* MANDATORY fields *)
@@ -382,7 +399,9 @@ let string_of_invalid_rule_error_kind = function
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
-  spf "invalid rule %s, %s: %s" rule_id (Tok.stringpos_of_tok pos)
+  spf "invalid rule %s, %s: %s"
+    (rule_id :> string)
+    (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
@@ -475,7 +494,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   {
-    id = ("-e", fk);
+    id = (ID.of_string "-e", fk);
     mode = `Search (P xpat);
     (* alt: could put xpat.pstr for the message *)
     message = "";

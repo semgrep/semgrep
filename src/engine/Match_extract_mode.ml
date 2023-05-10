@@ -150,9 +150,13 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
                  match (xlang, r_lang) with
                  | Xlang.L (l, _), Xlang.L (rl, rls) ->
                      List.exists (fun x -> Lang.equal l x) (rl :: rls)
-                 | Xlang.LGeneric, Xlang.LGeneric -> true
+                 | Xlang.LSpacegrep, Xlang.LSpacegrep -> true
+                 | Xlang.LAliengrep, Xlang.LAliengrep -> true
                  | Xlang.LRegex, Xlang.LRegex -> true
-                 | (Xlang.L _ | Xlang.LGeneric | Xlang.LRegex), _ -> false)
+                 | ( ( Xlang.L _ | Xlang.LSpacegrep | Xlang.LAliengrep
+                     | Xlang.LRegex ),
+                     _ ) ->
+                     false)
           |> Common.map fst
         in
         Hashtbl.add rules_for_lang_tbl xlang rule_ids_for_lang;
@@ -163,7 +167,8 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
 let mk_extract_target dst_lang contents all_rules =
   let dst_lang_str =
     match dst_lang with
-    | Xlang.LGeneric -> "generic"
+    | Xlang.LSpacegrep -> "spacegrep"
+    | Xlang.LAliengrep -> "aliengrep"
     | Xlang.LRegex -> "regex"
     | Xlang.L (x, _) -> Lang.show x
   in
@@ -194,18 +199,19 @@ let convert_from_json_array_to_string json =
 (* Error reporting *)
 (*****************************************************************************)
 
-let report_unbound_mvar ruleid mvar m =
+let report_unbound_mvar (ruleid : Rule.rule_id) mvar m =
   let { Range.start; end_ } = Pattern_match.range m in
   logger#warning
     "The extract metavariable for rule %s (%s) wasn't bound in a match; \
      skipping extraction for this match [match was at bytes %d-%d]"
-    ruleid mvar start end_
+    (ruleid :> string)
+    mvar start end_
 
 let report_no_source_range erule =
   logger#error
     "In rule %s the extract metavariable (%s) did not have a corresponding \
      source range"
-    (fst erule.Rule.id)
+    (fst erule.Rule.id :> string)
     (let (`Extract { Rule.extract; _ }) = erule.mode in
      extract)
 
@@ -366,7 +372,8 @@ let extract_and_concat erule_table xtarget rule_ids matches =
                   "Extract rule %s extracted the following from %s at bytes \
                    %d-%d\n\
                    %s"
-                  (fst r.Rule.id) xtarget.file start_pos end_pos contents;
+                  (fst r.Rule.id :> string)
+                  xtarget.file start_pos end_pos contents;
                 (contents, map_loc start_pos start_line start_col xtarget.file))
          (* Combine the extracted snippets *)
          |> List.fold_left
@@ -434,7 +441,8 @@ let extract_and_concat erule_table xtarget rule_ids matches =
          logger#trace
            "Extract rule %s combined matches from %s resulting in the following:\n\
             %s"
-           (fst r.Rule.id) xtarget.file contents;
+           (fst r.Rule.id :> string)
+           xtarget.file contents;
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
          let target = mk_extract_target dst_lang contents rule_ids in
@@ -479,7 +487,8 @@ let extract_as_separate erule_table xtarget rule_ids matches =
              logger#trace
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"
-               m.rule_id.id m.file start_extract_pos end_extract_pos contents;
+               (m.rule_id.id :> string)
+               m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
              let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
              let target = mk_extract_target dst_lang contents rule_ids in

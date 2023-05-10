@@ -48,8 +48,7 @@ val supported_xlangs : string
 
 (*
    Convert from a string or raise an exception with an error message.
-   TODO: explain the 'id' option
 *)
-val of_string : ?id:string option -> string -> t
+val of_string : ?rule_id:string -> string -> t
 val to_string : t -> string
 val is_proprietary : t -> bool

@@ -432,7 +432,8 @@ let match_language (xlang : Xlang.t) path =
         (fun lang -> Guess_lang.inspect_file_p lang path)
         (lang :: langs)
   | LRegex
-  | LGeneric ->
+  | LSpacegrep
+  | LAliengrep ->
       true
 
 (* Used by Core_runner.split_jobs_by_language *)

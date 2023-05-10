@@ -66,7 +66,7 @@ let unsupported_xlang_message (xlang_s : string) =
       xlang_s supported_xlangs
 
 (* coupling: Parse_mini_rule.parse_languages *)
-let of_string ?id:(id_opt = None) s =
+let of_string ?rule_id:id_opt s =
   match s with
   | "none"
   | "regex" ->

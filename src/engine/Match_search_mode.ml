@@ -133,7 +133,7 @@ let group_matches_per_pattern_id (xs : Pattern_match.t list) :
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun m ->
-         let id = int_of_string m.PM.rule_id.id in
+         let id = int_of_string (m.PM.rule_id.id :> string) in
          Hashtbl.add h id m);
   h
 
@@ -163,7 +163,7 @@ let (mini_rule_of_pattern :
       MR.t) =
  fun xlang rule (pattern, inside, id, pstr) ->
   {
-    MR.id = string_of_int id;
+    MR.id = Rule.ID.of_string (string_of_int id);
     pattern;
     inside;
     (* parts that are not really needed I think in this context, since
@@ -175,7 +175,8 @@ let (mini_rule_of_pattern :
       (match xlang with
       | L (x, xs) -> x :: xs
       | LRegex
-      | LGeneric ->
+      | LSpacegrep
+      | LAliengrep ->
           raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
@@ -638,7 +639,9 @@ and get_nested_formula_matches env formula range =
              spf
                "When parsing a snippet as %s for metavariable-pattern in rule \
                 '%s', %s"
-               lang rule err.msg
+               lang
+               (rule :> string)
+               err.msg
            in
            { err with msg })
   in
@@ -884,7 +887,7 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
       |> before_return (fun v ->
              v
              |> List.iter (fun (m : Pattern_match.t) ->
-                    let str = spf "with rule %s" rule_id in
+                    let str = spf "with rule %s" (rule_id :> string) in
                     hook str m));
     errors;
   }

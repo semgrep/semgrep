@@ -39,10 +39,10 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
   let rule_id = m.rule_id in
   let languages = Xlang.to_langs r.Rule.languages in
   (* adjust the rule id *)
-  let rule_id =
+  let rule_id : Pattern_match.rule_id =
     {
       rule_id with
-      Pattern_match.id = fst r.Rule.id;
+      id = fst r.Rule.id;
       fix = r.Rule.fix;
       languages;
       message =

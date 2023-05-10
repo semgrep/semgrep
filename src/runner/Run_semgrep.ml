@@ -263,8 +263,9 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let (id, pat), cnt = biggest_offending_rule in
            logger#info
-             "most offending rule: id = %s, matches = %d, pattern = %s" id cnt
-             pat;
+             "most offending rule: id = %s, matches = %d, pattern = %s"
+             (id :> string)
+             cnt pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
@@ -278,18 +279,20 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> Common.map (fun ((rule_id, _pat), n) ->
+             |> Common.map (fun (((rule_id : Rule.rule_id), _pat), n) ->
                     let details =
                       spf
                         "found %i matches for rule %s, which exceeds the \
                          maximum of %i matches."
-                        n rule_id max_match_per_file
+                        n
+                        (rule_id :> string)
+                        max_match_per_file
                     in
                     {
                       Output_from_core_t.path = file;
                       reason = Too_many_matches;
                       details;
-                      rule_id = Some rule_id;
+                      rule_id = Some (rule_id :> string);
                     })
            in
            (error, skipped))
@@ -368,7 +371,7 @@ let parse_pattern lang_pattern str =
            (R.InvalidRule
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-                "no-id",
+                Rule.ID.of_string "no-id",
                 Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
@@ -416,7 +419,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                  let get_context () =
                    match !Rule.last_matched_rule with
                    | None -> file
-                   | Some rule_id -> spf "%s on %s" rule_id file
+                   | Some rule_id -> spf "%s on %s" (rule_id :> string) file
                  in
                  Memory_limit.run_with_memory_limit ~get_context
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -448,7 +451,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    | None -> ()
                    | Some rule ->
                        logger#info "critical exn while matching ruleid %s"
-                         rule.MR.id;
+                         (rule.MR.id :> string);
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Tok.first_loc_of_file file in
                    let errors =
@@ -502,25 +505,26 @@ let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
   rules
   |> List.filter (fun r ->
          match (xlang, r.R.languages) with
-         | Xlang.LRegex, Xlang.LRegex
-         | Xlang.LGeneric, Xlang.LGeneric ->
+         | LRegex, LRegex
+         | LSpacegrep, LSpacegrep
+         | LAliengrep, LAliengrep ->
              true
-         | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
-         | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
+         | L (x, _empty), L (y, ys) -> List.mem x (y :: ys)
+         | (LRegex | LSpacegrep | LAliengrep | L _), _ -> false)
 
 (* Creates a table mapping rule id indicies to rules. In the case that a rule
  * id is present and there is no correpsonding rule, that rule is simply
  * omitted from the final table.
  * TODO: This is needed because?
  *)
-let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
+let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
     (int, Rule.t) Hashtbl.t =
   let rule_table =
     rules |> Common.map (fun r -> (fst r.R.id, r)) |> Common.hash_of_list
   in
   let id_pairs =
     list_of_rule_ids
-    |> Common.mapi (fun i x -> (i, x))
+    |> Common.mapi (fun i x -> (i, Rule.ID.of_string x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
@@ -579,7 +583,8 @@ let targets_of_config (config : Runner_config.t)
       let lang_opt =
         match xlang with
         | Xlang.LRegex
-        | Xlang.LGeneric ->
+        | Xlang.LSpacegrep
+        | Xlang.LAliengrep ->
             None (* we will get all the files *)
         | Xlang.L (lang, []) -> Some lang
         (* config.lang comes from Xlang.of_string which returns just a lang *)
@@ -596,7 +601,7 @@ let targets_of_config (config : Runner_config.t)
                  rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
-      ({ target_mappings; rule_ids }, skipped)
+      ({ target_mappings; rule_ids = (rule_ids :> string list) }, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | Some target_source, roots, lang_opt ->
@@ -868,7 +873,7 @@ let semgrep_with_prepared_rules_and_targets config (x : Lang_job.t) =
       x.targets
   in
   let wrapped_targets : Input_to_core_t.targets =
-    { target_mappings; rule_ids }
+    { target_mappings; rule_ids = (rule_ids :> string list) }
   in
   let config =
     {
@@ -924,7 +929,7 @@ let semgrep_with_rules_and_formatted_output config =
 
 let minirule_of_pattern lang pattern_string pattern =
   {
-    MR.id = "-e/-f";
+    MR.id = Rule.ID.of_string "-e/-f";
     pattern_string;
     pattern;
     inside = false;

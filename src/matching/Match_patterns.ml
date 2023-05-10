@@ -59,17 +59,21 @@ let set_last_matched_rule rule f =
 (*****************************************************************************)
 
 let match_e_e rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_expr_root a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_expr_root a b env))
   [@@profiling]
 
 let match_st_st rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
   [@@profiling]
 
 let match_sts_sts rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () ->
       set_last_matched_rule rule (fun () ->
           (* When matching statements, we need not only to report whether
            * there is match, but also the actual statements that were matched.
@@ -94,48 +98,57 @@ let match_sts_sts rule a b env =
 let match_any_any pattern e env = GG.m_any pattern e env
 
 let match_t_t rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_type_ a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_type_ a b env))
   [@@profiling]
 
 let match_p_p rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_pattern a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_pattern a b env))
   [@@profiling]
 
 let match_partial_partial rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_partial a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_partial a b env))
   [@@profiling]
 
 let match_at_at rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_attribute a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_attribute a b env))
   [@@profiling]
 
 let match_fld_fld rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_field a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_field a b env))
   [@@profiling]
 
 let match_flds_flds rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_fields a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_fields a b env))
   [@@profiling]
 
 let match_name_name rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_name a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_name a b env))
   [@@profiling]
 
 let match_xml_attribute_xml_attribute rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env))
   [@@profiling]
 
 let match_raw_raw rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
+  Profiling.profile_code
+    ("rule:" ^ (rule.MR.id :> string))
+    (fun () -> set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
   [@@profiling]
 
 (*****************************************************************************)
@@ -143,13 +156,13 @@ let match_raw_raw rule a b env =
 (*****************************************************************************)
 
 let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
- fun mr ->
+ fun (mr : Mini_rule.t) ->
   {
-    PM.id = mr.Mini_rule.id;
-    message = mr.Mini_rule.message;
-    pattern_string = mr.Mini_rule.pattern_string;
-    fix = mr.Mini_rule.fix;
-    languages = mr.Mini_rule.languages;
+    PM.id = mr.id;
+    message = mr.message;
+    pattern_string = mr.pattern_string;
+    fix = mr.fix;
+    languages = mr.languages;
   }
 
 let match_rules_and_recurse lang config (file, hook, matches) rules matcher k

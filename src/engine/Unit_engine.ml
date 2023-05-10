@@ -283,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = "unit testing";
+      MR.id = Rule.ID.of_string "unit testing";
       pattern;
       inside = false;
       message = "";
@@ -349,7 +349,9 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
                    match_pattern ~lang
                      ~hook:(fun { Pattern_match.range_loc; _ } ->
                        let start_loc, _end_loc = range_loc in
-                       E.error "test pattern" start_loc "" Out.SemgrepMatchFound)
+                       E.error
+                         (Rule.ID.of_string "test pattern")
+                         start_loc "" Out.SemgrepMatchFound)
                      ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with
@@ -482,14 +484,16 @@ let test_irrelevant_rule rule_file target_file =
          match Analyze_rule.regexp_prefilter_of_rule rule with
          | None ->
              Alcotest.fail
-               (spf "Rule %s: no regex prefilter formula" (fst rule.id))
+               (spf "Rule %s: no regex prefilter formula"
+                  (fst rule.id :> string))
          | Some (f, func) ->
              let content = File.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id) s))
+                    (fst rule.id :> string)
+                    s))
 
 let test_irrelevant_rule_file target_file =
   ( Fpath.basename target_file,

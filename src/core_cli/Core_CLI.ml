@@ -327,7 +327,10 @@ let prefilter_of_rules file =
              Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
            in
            let id = r.Rule.id |> fst in
-           { Semgrep_prefilter_t.rule_id = id; filter = pre_atd_opt })
+           {
+             Semgrep_prefilter_t.rule_id = (id :> string);
+             filter = pre_atd_opt;
+           })
   in
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s

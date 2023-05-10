@@ -28,7 +28,8 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt.pf ppf ":@.@.";
   (* TODO origin table [Origin Rules] [Community N] *)
   let lan_label = function
-    | Xlang.LGeneric
+    | Xlang.LSpacegrep
+    | Xlang.LAliengrep
     | Xlang.LRegex ->
         "<multilang>"
     | lang -> Xlang.to_string lang
