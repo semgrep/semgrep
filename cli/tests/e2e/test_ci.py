@@ -799,7 +799,7 @@ def test_lockfile_parse_failure_reporting(
     complete_json = post_calls[2].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     complete_json["stats"]["lockfile_scan_info"] = {}
-    assert len(complete_json["dependency_parser_error"]) > 0
+    assert len(complete_json["dependency_parser_errors"]) > 0
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
