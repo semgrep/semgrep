@@ -199,7 +199,12 @@ class RuleMatch:
         Used for deduplication in the CLI before writing output.
         """
         if self.is_prev_scan:
-            # TODO(vivek) - add a NOTE here
+            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
+            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
+            # As check_id is used for cli_unique_key, this patch fetches the check ID from metadata for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
+            # This fallback prevents breaking current scan results if an issue arises.
             return (
                 self.annotated_rule_name,
                 str(self.path),
@@ -234,7 +239,12 @@ class RuleMatch:
         except (ValueError, FileNotFoundError):
             path = self.path
         if self.is_prev_scan:
-            # TODO(vivek) - add a NOTE here
+            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
+            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
+            # As check_id is used for ci_unique_key, this patch fetches the check ID from metadata for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
+            # This fallback prevents breaking current scan results if an issue arises.
             return (
                 self.annotated_rule_name,
                 str(path),
@@ -310,7 +320,12 @@ class RuleMatch:
                     metavar, metavars[metavar]["abstract_content"]
                 )
         if self.is_prev_scan:
-            # TODO(vivek) - add a note here
+            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
+            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
+            # As check_id is used for match_based_id, this patch fetches the check ID from metadata for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
+            # This fallback prevents breaking current scan results if an issue arises.
             return (
                 match_formula_str,
                 path,
