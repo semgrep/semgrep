@@ -91,7 +91,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "AWS Account ID detected"
+                "text": "Semgrep Finding: rules.detected-aws-account-id"
               }
             }
           ],
