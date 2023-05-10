@@ -1,4 +1,7 @@
-(* main entry point *)
+(* Main entry point. Mostly a wrapper around
+ * Parse_target.parse_and_resolve_name() but caching the parsed AST
+ * in parsing_cache_dir if it is defined.
+ *)
 val parse_and_resolve_name :
   ?parsing_cache_dir:Fpath.t option ->
   string (* semgrep or AST generic version *) ->
@@ -12,18 +15,20 @@ val parse_and_resolve_name :
  * the version is the same than the current program, otherwise
  * we could get some segfaults (unmarshalling is not type-safe in OCaml)).
  *)
-type versioned_parse_result =
-  string (* AST_generic.version *)
-  * Fpath.t (* original path *)
-  * (AST_generic.program * Tok.location list, Exception.t) Common.either
+type ast_cached_value =
+  ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
+    string (* AST_generic.version *)
+    * Fpath.t (* original file *)
+    * float (* mtime of the original file *) )
+  Cache_disk.cached_value_on_disk
 
 (* to add as a suffix to a filename *)
 val binary_suffix : Fpath.ext (* .ast.binary *)
 val is_binary_ast_filename : Fpath.t -> bool
 
 (* used by semgrep-core -generate_ast_binary *)
-val versioned_parse_result_of_file :
+val ast_cached_value_of_file :
   string (* semgrep or AST generic version *) ->
   Lang.t ->
   Fpath.t ->
-  versioned_parse_result
+  ast_cached_value

@@ -14,7 +14,7 @@ type ('v, 'x) cached_value_on_disk = {
 }
 
 type ('input, 'value, 'extra) cache_methods = {
-  (* the containing directory will *not* be automatically created *)
+  (* the containing directory will be automatically created if needed *)
   cache_file_for_input : 'input -> Fpath.t;
   (* add some extra information with the value to enable certain checks
    * when getting back the value from the cache (e.g., version check).

@@ -133,6 +133,7 @@ val erase_this_temp_file : Fpath.t -> unit
 (*****************************************************************************)
 val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> int
+val filemtime : Fpath.t -> float
 
 (* [lines_of_file (start_line, end_line) file] returns
  * the list of lines from start_line to end_line included.
