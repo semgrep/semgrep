@@ -199,6 +199,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let rules, errors =
         Rule_fetching.partition_rules_and_errors rules_and_origins
       in
+      (* TODO: we should probably warn the user about rules using the same id *)
       let rules =
         Common.uniq_by
           (fun r1 r2 -> String.equal (fst r1.Rule.id) (fst r2.Rule.id))
