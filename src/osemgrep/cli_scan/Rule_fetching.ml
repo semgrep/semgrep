@@ -124,7 +124,14 @@ let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
 (* Registry caching *)
 (*****************************************************************************)
 
-(* We currently use a 24h cache for rules accessed from the registry. This
+(* We cache rules from the registry at the string content level.
+ * alt: we could cache directly the parsed rules, but Rule.t now contains
+ * closures (we now parse patterns lazily) which complicates things
+ * (the Marshall module does not like functional values).
+ * Anyway parsing a rule is now fast; what takes time is downloading
+ * the rules from the network, which we optimize here.
+ *
+ * We also use a 24h cache for rules accessed from the registry. This
  * speedups things quite a lot for users without a great Internet connection.
  * In any case, the registry is rarely modified so users do not need to have
  * access to the very latest registry. Lagging 24 hours behind is fine
@@ -136,30 +143,13 @@ let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
  * the rules changed and rerun the engine if needed. This is more complicated
  * though and would maybe require to switch to OCaml 5.0. Not worth it for now.
  *)
-type cache_registry_value = float (* timestamp *) * Uri.t * string (* content *)
+type _registry_cached_value =
+  ( string (* the YAML rules, as an unparsed string *),
+    float (* timestamp *) * Uri.t )
+  Cache_disk.cached_value_on_disk
 
-let cache_file_of_url (cache_dir : Fpath.t) (url : Uri.t) : Fpath.t =
-  (* Better to obfuscate the cache files, like in Unison, to discourage
-   * people to play with it. Also simple way to escape special chars
-   * in a URL.
-   *)
-  let md5 = Digest.string (Uri.to_string url) in
-  (* TODO: this also assumes yaml registry content. We need an
-   * extension because Parse_rule.parse_file behaves differently depending
-   * on the extension.
-   *)
-  cache_dir // Fpath.(v (Digest.to_hex md5) + "yaml")
-
-(* We cache rules from the registry at the string content level.
- * alt: we could cache directly the parsed rules, but Rule.t now contains
- * closures (we now parse patterns lazily) which complicates things
- * (the Marshall module does not like functional values).
- * Anyway parsing a rule is now fast; what takes time is downloading
- * the rules from the network, which we optimize here.
- *)
 let fetch_content_from_registry_url ~registry_caching url =
-  let f () = fetch_content_from_url url in
-  if not registry_caching then f ()
+  if not registry_caching then fetch_content_from_url url
   else
     let cache_dir =
       let dir = Env.env.user_dot_semgrep_dir / "cache" / "registry" in
@@ -167,33 +157,29 @@ let fetch_content_from_registry_url ~registry_caching url =
       | Ok _ -> dir
       | Error (`Msg err) -> failwith err
     in
-    let cache_file = cache_file_of_url cache_dir url in
-
-    let compute_and_save_in_cache () =
-      let res = f () in
-      let (v : cache_registry_value) = (Unix.time (), url, res) in
-      Logs.debug (fun m ->
-          m "saving %s content in %s" (Uri.to_string url) !!cache_file);
-      Common2.write_value v !!cache_file;
-      res
+    let cache_methods =
+      {
+        Cache_disk.cache_file_for_input =
+          (fun url ->
+            (* Better to obfuscate the cache files, like in Unison, to discourage
+             * people to play with it. Also simple way to escape special chars
+             * in a URL.
+             *)
+            let md5 = Digest.string (Uri.to_string url) in
+            (* TODO: this also assumes yaml registry content. We need an
+             * extension because Parse_rule.parse_file behaves differently
+             * depending on the extension.
+             *)
+            cache_dir // Fpath.(v (Digest.to_hex md5) + "yaml"));
+        cache_extra_for_input = (fun url -> (Unix.time (), url));
+        check_extra =
+          (fun (time2, url2) ->
+            (* 24h hours caching *)
+            Uri.equal url url2 && Unix.time () -. time2 <= 3600. *. 24.);
+        input_to_string = Uri.to_string;
+      }
     in
-    if Sys.file_exists !!cache_file then
-      let (v : cache_registry_value) = Common2.get_value !!cache_file in
-      let time2, url2, content = v in
-      if
-        Uri.equal url url2 && Unix.time () -. time2 <= 3600. *. 24.
-        (* 24h hours caching *)
-      then (
-        Logs.debug (fun m ->
-            m "using the cache file %s for %s" !!cache_file (Uri.to_string url));
-        content)
-      else (
-        Logs.debug (fun m ->
-            m "invalid cache %s for %s (or too old)" !!cache_file
-              (Uri.to_string url));
-
-        compute_and_save_in_cache ())
-    else compute_and_save_in_cache ()
+    Cache_disk.cache fetch_content_from_url cache_methods url
 
 (*****************************************************************************)
 (* Registry and yaml aware jsonnet *)
