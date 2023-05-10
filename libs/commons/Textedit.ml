@@ -53,9 +53,25 @@ let remove_overlapping_edits edits =
   f [] [] edits
 
 let apply_edit_to_text text { start; end_; replacement_text; _ } =
-  let before = Str.first_chars text start in
+  let before = Str.string_before text start in
   let after = Str.string_after text end_ in
-  before ^ replacement_text ^ after
+  let starts_with_newline =
+    String.length before == 0
+    || String.get before (String.length before - 1) == '\n'
+  in
+  let ends_with_newline =
+    String.length after == 0 || String.get after 0 == '\n'
+  in
+  let is_empty_replacement = String.length replacement_text == 0 in
+  (* To align the autofix logic with the Python CLI, remove the newline
+     character when replacing an entire line with an empty string.*)
+  if starts_with_newline && ends_with_newline && is_empty_replacement then
+    if String.length before > 0 then
+      String.sub before 0 (String.length before - 1) ^ replacement_text ^ after
+    else if String.length after > 0 then
+      before ^ replacement_text ^ String.sub after 1 (String.length after - 1)
+    else before ^ replacement_text ^ after
+  else before ^ replacement_text ^ after
 
 let apply_edits_to_text text edits =
   let edits = List.sort (fun e1 e2 -> e1.start - e2.start) edits in
