@@ -20,7 +20,7 @@ describe("lookupParserName", () => {
     engine.execute(
       "python",
       `${__dirname}/test-rule-python.json`,
-      `${__dirname}/test.py`
+      `${__dirname}/../../languages/python/tests/test.py`
     );
     expect(engine.getMissingLanguages()).toEqual(["python"]);
   });
