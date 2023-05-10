@@ -294,6 +294,7 @@ class SarifFormatter(BaseFormatter):
 
         if rule.metadata.get("references"):
             ref = rule.metadata["references"]
+            # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
             references.extend(
                 [f"[{r}]({r})" for r in ref]
                 if isinstance(ref, list)
@@ -346,7 +347,7 @@ class SarifFormatter(BaseFormatter):
                 if isinstance(owasp, list)
                 else [f"OWASP-{owasp}"]
             )
-        if "confidence" in rule.metadata:
+        if rule.metadata.get("confidence"):
             confidence = rule.metadata["confidence"]
             result.extend([f"{confidence} CONFIDENCE"])
         if (
