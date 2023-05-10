@@ -316,7 +316,9 @@ let rules_from_rules_source (source : rules_source) : rules_and_origin list =
        *)
       let xpat = Parse_rule.parse_xpattern xlang (pat, fk) in
       let rule = Rule.rule_of_xpattern xlang xpat in
-      let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
+      let rule =
+        { rule with id = (Rule.ID.of_string Constants.cli_rule_id, fk); fix }
+      in
       (* TODO? transform the pattern parse error in invalid_rule_error? *)
       [ { origin = None; rules = [ rule ]; errors = [] } ]
   [@@profiling]

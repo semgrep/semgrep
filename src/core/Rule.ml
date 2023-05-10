@@ -263,11 +263,13 @@ module ID : sig
 
   val to_string : t -> string
   val of_string : string -> t
+  val compare : t -> t -> int
 end = struct
   type t = string [@@deriving show, eq]
 
   let to_string x = x
   let of_string x = x
+  let compare = String.compare
 end
 
 type rule_id = ID.t [@@deriving show, eq]

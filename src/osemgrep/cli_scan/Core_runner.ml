@@ -140,7 +140,8 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   |> Common.map_filter (fun (lang, rules) ->
          let rules, targets =
            match lang with
-           | Xlang.LGeneric
+           | Xlang.LSpacegrep
+           | Xlang.LAliengrep
            | Xlang.LRegex ->
                let rules, targets =
                  List.fold_left
