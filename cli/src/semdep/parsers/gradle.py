@@ -16,6 +16,7 @@ from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import consume_word
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -76,10 +77,10 @@ gradle = (
 def parse_gradle(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, gradle)
+    deps = safe_path_parse(lockfile_path, gradle, ParserName.gradle_lockfile)
     if not deps:
         return []
-    manifest_deps = safe_path_parse(manifest_path, manifest)
+    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.gradle_build)
     output = []
     for line_number, (package, version) in deps:
         output.append(

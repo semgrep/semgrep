@@ -15,6 +15,7 @@ from semdep.external.parsy import whitespace
 from semdep.parsers import preprocessors
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -104,11 +105,14 @@ def parse_requirements(
     deps = safe_path_parse(
         lockfile_path,
         requirements,
+        ParserName.requirements,
         preprocess=preprocessors.CommentRemover(),
     )
     if deps is None:
         return []
-    manifest_deps = get_manifest_deps(safe_path_parse(manifest_path, requirements))
+    manifest_deps = get_manifest_deps(
+        safe_path_parse(manifest_path, requirements, ParserName.requirements)
+    )
     output = []
     for line_number, (package, constraints) in deps:
         # A package with no pinned version, skip it

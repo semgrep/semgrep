@@ -555,6 +555,7 @@ Would have sent findings and ignores blob: {
 }
 Would have sent complete blob: {
     "exit_code": 1,
+    "dependency_parser_errors": [],
     "stats": {
         "findings": 10,
         "errors": [],

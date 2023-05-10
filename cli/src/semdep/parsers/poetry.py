@@ -14,6 +14,7 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -138,10 +139,10 @@ manifest = (manifest_deps | poetry_dep_extra | poetry_source_extra).sep_by(
 def parse_poetry(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, poetry)
+    deps = safe_path_parse(lockfile_path, poetry, ParserName.poetry_lock)
     if not deps:
         return []
-    manifest_deps = safe_path_parse(manifest_path, manifest)
+    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.pyproject_toml)
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
     sanitized_manifest_deps = (
