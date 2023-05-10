@@ -3033,54 +3033,6 @@ let unixname () =
   let entry = Unix.getpwuid uid in
   entry.Unix.pw_name
 
-(* could be in control section too *)
-
-(* Why a use_cache argument ? because sometimes want disable it but dont
- * want put the cache_computation funcall in comment, so just easier to
- * pass this extra option.
- *)
-(* TODO: put back [@@profiling] *)
-let cache_computation ?(verbose = false) ?(use_cache = true) file ext_cache f =
-  if not use_cache then f ()
-  else if not (Sys.file_exists file) then (
-    pr2 ("WARNING: cache_computation: can't find file " ^ file);
-    pr2 "defaulting to calling the function";
-    f ())
-  else
-    let file_cache = file ^ ext_cache in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
-      if verbose then pr2 ("using cache: " ^ file_cache);
-      get_value file_cache)
-    else
-      let res = f () in
-      write_value res file_cache;
-      res
-
-(* TODO: put back [@@profiling] *)
-let cache_computation_robust file ext_cache
-    (need_no_changed_files, need_no_changed_variables) ext_depend f =
-  if not (Sys.file_exists file) then failwith ("can't find: " ^ file);
-
-  let file_cache = file ^ ext_cache in
-  let dependencies_cache = file ^ ext_depend in
-
-  let dependencies =
-    (* could do md5sum too *)
-    ( file :: need_no_changed_files |> List.map (fun f -> (f, filemtime f)),
-      need_no_changed_variables )
-  in
-
-  if
-    Sys.file_exists dependencies_cache
-    && get_value dependencies_cache =*= dependencies
-  then get_value file_cache
-  else (
-    pr2 ("cache computation recompute " ^ file);
-    let res = f () in
-    write_value dependencies dependencies_cache;
-    write_value res file_cache;
-    res)
-
 (* dont forget that cmd_to_list call bash and so pattern may contain
  * '*' symbols that will be expanded, so can do  glob "*.c"
  *)

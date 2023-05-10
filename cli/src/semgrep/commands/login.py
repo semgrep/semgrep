@@ -60,7 +60,7 @@ def login() -> NoReturn:
 
     session_id, url = make_login_url()
     click.echo(
-        "Login enables additional proprietary Semgrep Registry rules and running custom policies from Semgrep App."
+        "Login enables additional proprietary Semgrep Registry rules and running custom policies from Semgrep Cloud Platform."
     )
     click.echo(f"Login at: {url}")
     click.echo(

@@ -163,15 +163,15 @@
  *    of a VarDef, as done in Python for example).
  *)
 
-(* !! Modify version below each time you modify the generic AST!! There are
- * now a few places where we cache the generic AST in a marshalled binary
- * form on disk (e.g., in src/runner/Parsing_with_cache.ml) and reading back
+(* !! Modify version below each time you modify the generic AST!!
+ * There are now a few places where we cache the generic AST in a marshalled
+ * form on disk (e.g., in src/parsing/Parsing_with_cache.ml) and reading back
  * old version of this AST can lead to segfaults in OCaml.
- * Note that this number below could be independent of the versioning scheme of
+ * Note that the number below could be independent of the versioning scheme of
  * Semgrep; we don't have to update version below for each version of
- * Semgrep, just when we actually modify the generic AST. However it's convenient
- * to correspond mostly to Semgrep versions. So version below can jump from
- * "1.12.1" to "1.20.0" and that's fine.
+ * Semgrep, just when we actually modify the generic AST. However it's
+ * convenient to correspond mostly to Semgrep versions. So version below
+ * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
 let version = "1.20.0"
 
@@ -1108,6 +1108,15 @@ and argument =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+(* NOTE: We used to have a Bloom filter optimization that annotated statements
+ * with the strings occurring in it, for which we had a `s_strings` mutable
+ * field here. We disabled this optimization in 0.116.0 after realizing that it
+ * (no longer?) had a meaningful effect on performance. (And because it hadtricky
+ * interactions with const-prop and sym-prop, see #4670, and PA-1920 / PR #6179.)
+ * Finally, Bloom-filter's code was removed in 1.22.0, and paradoxically, that
+ * made Semgrep noticeably faster (an average of 1.35x on a set of 9 repos) on
+ * our stress-test-monorepo benchmark. *)
 and stmt = {
   s : stmt_kind;
       [@equal AST_utils.equal_stmt_field_s equal_stmt_kind] [@hash.ignore]
@@ -1145,9 +1154,6 @@ and stmt = {
      This field is set on pattern ASTs only, in a pass right after parsing
      and before matching.
   *)
-  (* used in semgrep to skip some AST matching *)
-  mutable s_strings : string Set_.t option;
-      [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
   mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
@@ -2131,7 +2137,6 @@ let s skind =
     s_id = AST_utils.Node_ID.mk ();
     s_use_cache = false;
     s_backrefs = None;
-    s_strings = None;
     s_range = None;
   }
 

@@ -7,10 +7,34 @@ default:
 	$(MAKE) test
 	$(MAKE) qa
 
+###############################################################################
+# Build (and clean)
+###############################################################################
+
 # Generate code. Needed at least when the interface changes.
 .PHONY: build
 build:
 	$(MAKE) check
+
+.PHONY: check
+check:
+	pre-commit run -a mypy
+	$(MAKE) check-markers
+
+# Check that all the test_* functions are categorized by duration.
+.PHONY: check-markers
+check-markers:
+	./tests/check-markers tests
+
+.PHONY: clean
+clean:
+	rm -rf build/ semgrep.egg-info/ .eggs/
+	rm -rf .pytest_cache/ .benchmarks/
+	rm -f cli/src/semgrep/bin/semgrep-core
+
+###############################################################################
+# Tests
+###############################################################################
 
 # Typecheck and run all basic tests from quickest to slowest.
 .PHONY: test
@@ -33,29 +57,6 @@ e2e:
 qa:
 	$(PYTEST) -n auto -v tests/qa
 
-# Run the end-to-end tests using osemgrep instead of the Python CLI.
-# See tests/semgrep_runner.py for the use of the environment variables below.
-# To run individual tests, export PYTEST_OSEMGREP=... export PYTEST_USE_OSEMGREP=true
-# and run 'pytest tests/e2e/test_output.py' in a shell for example.
-.PHONY: osemgrep-e2e
-osemgrep-e2e:
-	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true $(MAKE) e2e
-
-# Run the quality assurance tests using osemgrep instead of the Python CLI.
-.PHONY: osemgrep-qa
-osemgrep-qa:
-	PYTEST_USE_OSEMGREP=true $(MAKE) qa
-
-.PHONY: check
-check:
-	pre-commit run -a mypy
-	$(MAKE) check-markers
-
-# Check that all the test_* functions are categorized by duration.
-.PHONY: check-markers
-check-markers:
-	./tests/check-markers tests
-
 # Run only the tests marked as quick (@pytest.mark.quick)
 # We have also 'kinda_slow' and 'slow'. See 'tox.ini', section 'pytest'.
 #
@@ -71,6 +72,36 @@ kinda-quick-tests:
 	$(MAKE) quick-tests
 	$(PYTEST) -n auto -m kinda_slow tests
 
+###############################################################################
+# Osemgrep tests
+###############################################################################
+
+# Run the end-to-end tests using osemgrep instead of the Python CLI.
+# See tests/semgrep_runner.py for the use of the environment variables below.
+# To run individual tests, export PYTEST_OSEMGREP=... export PYTEST_USE_OSEMGREP=true
+# and run 'pytest tests/e2e/test_output.py' in a shell for example.
+.PHONY: osemgrep-e2e
+osemgrep-e2e:
+	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true $(MAKE) e2e
+
+# Run all the known passing-with-osemgrep tests (tagged with osempass)
+# coupling: this is run in CI in .github/workflows/tests.yml
+osempass:
+	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -m 'osempass and not todo' tests/e2e
+
+# to be used to discover tests that we should add the osempass pytest mark
+osempass-check-if-new-osempass:
+	PYTEST_OSEMGREP=$(PWD)/src/semgrep/bin/osemgrep PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -v --no-summary -m 'not no_semgrep_cli and not todo and not osempass' tests/e2e
+
+# Run the quality assurance tests using osemgrep instead of the Python CLI.
+.PHONY: osemgrep-qa
+osemgrep-qa:
+	PYTEST_USE_OSEMGREP=true $(MAKE) qa
+
+###############################################################################
+# Dev targets
+###############################################################################
+
 .PHONY:
 regenerate-tests:
 	pipenv run pytest -n auto \
@@ -79,9 +110,3 @@ regenerate-tests:
 .PHONY: setup
 setup:
 	pipenv install --dev
-
-.PHONY: clean
-clean:
-	rm -rf build/ semgrep.egg-info/ .eggs/
-	rm -rf .pytest_cache/ .benchmarks/
-	rm -f cli/src/semgrep/bin/semgrep-core

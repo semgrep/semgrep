@@ -200,7 +200,7 @@ let check_equal_length (targets : 'a list list) : bool =
   | _ ->
       let lengths = Common.map List.length targets in
       let hdlen = Common.hd_exn "unexpected empty list" lengths in
-      List.for_all (( == ) hdlen) lengths
+      List.for_all (phys_equal hdlen) lengths
 
 (*****************************************************************************)
 (* Pattern generation *)

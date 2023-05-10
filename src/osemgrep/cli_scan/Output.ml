@@ -162,7 +162,7 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
    *)
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      ~rules_source:conf.rules_source res
+      res
   in
   let cli_output =
     let keep_ignored =
@@ -177,3 +177,4 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;
   cli_output.errors
+  [@@profiling]

@@ -251,6 +251,25 @@ and v_type_kind = function
       | _ ->
           todo_type "TyAppliedComplex"
             (G.T v1 :: (xs |> Common.map (fun x -> G.T x))))
+  | TyAnon (v1, v2) ->
+      (* We'd prefer to see type bounds in a `type_parameter`, but this
+         nonterminal needs to become a `type_` argument anyways, and we
+         don't really have a way of embedding `type_parameter` into a
+         `type`. This won't matter semantically, so let's just keep it
+         as an `OtherType`.
+      *)
+      let bound1, bound2 = v_type_bounds v2 in
+      let bound1 =
+        match bound1 with
+        | None -> []
+        | Some (_tok, ty) -> [ G.T ty ]
+      in
+      let bound2 =
+        match bound2 with
+        | None -> []
+        | Some (_tok, ty) -> [ G.T ty ]
+      in
+      G.OtherType (("?", v1), bound1 @ bound2)
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])
@@ -265,6 +284,19 @@ and v_type_kind = function
         v1 |> Tok.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
+  | TyPoly (v1, _v2, v3) ->
+      let v1 = v_list (v_binding None) v1 in
+      let v3 = v_type_ v3 in
+      G.TyFun (v1, v3)
+  | TyDependent (v1, _v2, v3) ->
+      let v1 =
+        v_list
+          (fun (v1, v2) ->
+            G.Param (G.param_of_type ~pname:(Some (v_ident v1)) (v_type_ v2)))
+          v1
+      in
+      let v3 = v_type_ v3 in
+      G.TyFun (v1, v3)
   | TyTuple v1 ->
       let v1 = v_bracket (v_list v_type_) v1 in
       G.TyTuple v1

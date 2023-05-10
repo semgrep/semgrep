@@ -373,30 +373,6 @@ val save_excursion_and_disable : bool ref -> (unit -> 'b) -> 'b
 val save_excursion_and_enable : bool ref -> (unit -> 'b) -> 'b
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 val cache_in_ref : 'a option ref -> (unit -> 'a) -> 'a
-
-(* take file from which computation is done, an extension, and the function
- * and will compute the function only once and then save result in
- * file ^ extension
- *)
-val cache_computation :
-  ?verbose:bool ->
-  ?use_cache:bool ->
-  filename ->
-  string (* extension *) ->
-  (unit -> 'a) ->
-  'a
-
-(* a more robust version where the client describes the dependencies of the
- * computation so it will relaunch the computation in 'f' if needed.
- *)
-val cache_computation_robust :
-  filename ->
-  string (* extension for marshalled object *) ->
-  filename list * 'x ->
-  string (* extension for marshalled dependencies *) ->
-  (unit -> 'a) ->
-  'a
-
 val oncef : ('a -> unit) -> 'a -> unit
 val once : bool ref -> (unit -> unit) -> unit
 val before_leaving : ('a -> unit) -> 'a -> 'a

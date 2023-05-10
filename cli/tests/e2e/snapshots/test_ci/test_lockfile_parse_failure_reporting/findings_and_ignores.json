@@ -27,6 +27,7 @@
           "src": "new-rule"
         }
       },
+      "metadata": {},
       "is_blocking": true,
       "match_based_id": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0",
       "hashes": {

@@ -33,6 +33,16 @@ val to_string : t -> string
 val to_lowercase_alnum : t -> string
 
 (*
+   Convert to the most standard and unambiguous representation of the
+   language name of form [A-Z][a-z0-9]*
+   e.g. 'Python3' or 'Csharp'.
+
+   This is meant to be URL-friendly, filesystem-friendly, and generally
+   programmer-friendly. Furthermore, it matches the type name.
+*)
+val to_capitalized_alnum : t -> string
+
+(*
    Return a list of extensions for a language such that a file with that
    extension can reasonably be expected to be in that language.
 
