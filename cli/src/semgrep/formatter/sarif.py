@@ -53,7 +53,7 @@ class SarifFormatter(BaseFormatter):
                         },
                     },
                 },
-                "nestingLevel": 0
+                "nestingLevel": 0,
             }
             return taint_source_location_sarif
 
@@ -86,7 +86,7 @@ class SarifFormatter(BaseFormatter):
                         },
                     },
                 },
-                "nestingLevel": 0
+                "nestingLevel": 0,
             }
             intermediate_var_locations.append(intermediate_vars_location_sarif)
         return intermediate_var_locations
@@ -113,7 +113,7 @@ class SarifFormatter(BaseFormatter):
                     },
                 },
             },
-            "nestingLevel": 1
+            "nestingLevel": 1,
         }
         return sink_location_sarif
 
@@ -301,11 +301,13 @@ class SarifFormatter(BaseFormatter):
                 else [f"[{ref}]({ref})"]
             )
         if references:
-            r = "".join([f" - {references_markdown}\n" for references_markdown in references])
+            r = "".join(
+                [f" - {references_markdown}\n" for references_markdown in references]
+            )
             rule_json["help"] = {
-                "text": rule.message, 
-                "markdown": f"{rule.message}\n\n<b>References:</b>\n{r}"
-                }
+                "text": rule.message,
+                "markdown": f"{rule.message}\n\n<b>References:</b>\n{r}",
+            }
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
