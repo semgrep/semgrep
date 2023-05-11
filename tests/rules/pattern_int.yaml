@@ -1,6 +1,6 @@
 rules:
 - id: test
   languages: [python]
-  pattern: 1
+  pattern: "1"
   message: Test
   severity: ERROR
