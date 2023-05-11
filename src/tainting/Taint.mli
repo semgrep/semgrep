@@ -1,3 +1,5 @@
+module LabelSet : Set.S with type elt = string
+
 type tainted_tokens = AST_generic.tok list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. *)
@@ -115,6 +117,12 @@ type taints = Taint_set.t
 
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
+(* val labels_of_taints : taint list -> LabelSet.t *)
+
+val solve_precondition :
+  ?ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
+
+val taints_satisfy_requires : taint list -> Rule.precondition -> bool
 
 val taints_of_pms :
   incoming:taints -> (Pattern_match.t * Rule.taint_source) list -> taints

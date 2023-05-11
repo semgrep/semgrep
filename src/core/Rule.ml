@@ -116,10 +116,8 @@ and metavar_analysis_kind = CondEntropy | CondReDoS
 (* Taint-specific types *)
 (*****************************************************************************)
 
-(* We roll our own boolean formula type here because we need to be
-   able to use polymorphic compare. Comparison on the Generic AST
-   is harder, and polymorphic compare would otherwise take into account
-   unimportant details like tokens.
+(* We roll our own Boolean formula type here for convenience, it is simpler to
+   * inspect and manipulate, and we can safely use polymorphic 'compare' on it.
 *)
 type precondition =
   | PLabel of string
@@ -147,9 +145,8 @@ and taint_source = {
        * Alt: We could have an optional label instead, allow taint that is not
        * labeled, and allow sinks that work for any kind of taint? *)
   source_requires : precondition;
-      (* A Boolean expression over taint labels, using Python syntax.
-       * The operators allowed are 'not', 'or', and 'and'. The expression is
-       * evaluated using the `Eval_generic` machinery.
+      (* A Boolean expression over taint labels, using Python syntax
+       * (see Parse_rule). The operators allowed are 'not', 'or', and 'and'.
        *
        * The expression that is being checked as a source must satisfy this
        * in order to the label to be produced. Note that with 'requires' a
@@ -235,31 +232,6 @@ let get_sink_requires { sink_requires = _, expr; _ } =
   match expr with
   | None -> PLabel default_source_label
   | Some expr -> expr
-
-let rec expr_to_precondition e =
-  match e.G.e with
-  | G.L (G.Bool (v, _)) -> PBool v
-  | G.N (G.Id ((str, _), _)) -> PLabel str
-  | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
-      PNot (expr_to_precondition e1)
-  | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
-      match (op, args_to_precondition args) with
-      | G.And, xs -> PAnd xs
-      | G.Or, xs -> POr xs
-      | __else__ ->
-          logger#error "Unexpected Boolean operator";
-          PBool false)
-  | ___else__ ->
-      logger#error "Unexpected `requires' expression";
-      PBool false
-
-and args_to_precondition args =
-  match args with
-  | [] -> []
-  | G.Arg e :: args' -> expr_to_precondition e :: args_to_precondition args'
-  | _ :: args' ->
-      logger#error "Unexpected argument kind";
-      PBool false :: args_to_precondition args'
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)

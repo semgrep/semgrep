@@ -56,7 +56,6 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-module LabelSet = Set.Make (String)
 module SMap = Map.Make (String)
 
 (*****************************************************************************)
@@ -452,60 +451,6 @@ let partition_mutating_sources sources_matches =
 (* Labels *)
 (*****************************************************************************)
 
-let labels_of_taints taints : LabelSet.t =
-  taints
-  |> Common.map_filter (fun (t : T.taint) ->
-         match t.orig with
-         | Src src -> Some src.label
-         | Arg _ -> None)
-  |> LabelSet.of_list
-
-(* coupling: if you modify the code here, you may need to modify 'Parse_rule.parse_taint_requires' too. *)
-let rec eval_label_requires ~labels e =
-  match e with
-  | R.PBool v -> v
-  | PLabel str -> LabelSet.mem str labels
-  | PNot e -> not (eval_label_requires ~labels e)
-  | PAnd xs ->
-      xs
-      |> Common.map (eval_label_requires ~labels)
-      |> List.fold_left ( && ) true
-  | POr xs ->
-      xs
-      |> Common.map (eval_label_requires ~labels)
-      |> List.fold_left ( || ) false
-
-(* This is where we actually do the solving of the "hypothetical taint".
-   To recap, to deal with taint which may or may not exist due to the
-   later value of taint variables, we need to attach a "precondition" to
-   such hypothetical taints, detailing the conditions upon which they can
-   appear.
-
-   We do this super lazily, because we can't know whether it's solvable until
-   we actually substitute for any argument taint variables that may be involved.
-   Once that substitution has been done, however, we need to solve to figure out
-   if this hypothetical taint could exist after all.
-
-   This can only happen if the precondition formula is satisfied by all of
-   the dependency taints that really do "exist", in the sense that they are known
-   to be un-hypothetical and not polymorphic, or hypothetical and their preconditions
-   are solved in the same way.
-
-   That's what this does.
-*)
-let rec taint_can_exist taint =
-  match taint.T.orig with
-  | Arg _ -> false
-  | Src { precondition = None; _ } -> true
-  | Src { precondition = Some (incoming, expr); _ } ->
-      solve_precondition (incoming, expr)
-
-and solve_precondition (incoming, expr) =
-  let labels = List.filter taint_can_exist incoming |> labels_of_taints in
-  eval_label_requires ~labels expr
-
-let taints_satisfy_requires taints expr = solve_precondition (taints, expr)
-
 (* This function is used to convert some taint thing we're holding
    to one which has been propagated to a new label.
    See [handle_taint_propagators] for more.
@@ -839,8 +784,6 @@ let handle_taint_propagators env thing taints =
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.spec.kind =*= `From) propagators
   in
-  (* These are all the labels flowing in to the current thing we're looking at. *)
-  let labels = labels_of_taints (Taints.elements taints) in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
@@ -874,22 +817,27 @@ let handle_taint_propagators env thing taints =
 
            I'll come back to this later.
         *)
-        if eval_label_requires ~labels prop.spec.prop.propagator_requires then
-          (* If we have an output label, change the incoming taints to be
-             of the new label.
-             Otherwise, keep them the same.
-          *)
-          let new_taints =
-            match prop.spec.prop.propagator_label with
-            | None -> taints
-            | Some label ->
-                Taints.map
-                  (propagate_taint_to_label
-                     prop.spec.prop.propagator_replace_labels label)
-                  taints
-          in
-          Lval_env.propagate_to prop.spec.var new_taints lval_env
-        else lval_env)
+        match
+          T.solve_precondition ~taints prop.spec.prop.propagator_requires
+        with
+        | Some true ->
+            (* If we have an output label, change the incoming taints to be
+               of the new label.
+               Otherwise, keep them the same.
+            *)
+            let new_taints =
+              match prop.spec.prop.propagator_label with
+              | None -> taints
+              | Some label ->
+                  Taints.map
+                    (propagate_taint_to_label
+                       prop.spec.prop.propagator_replace_labels label)
+                    taints
+            in
+            Lval_env.propagate_to prop.spec.var new_taints lval_env
+        | Some false
+        | None ->
+            lval_env)
       lval_env propagate_froms
   in
   let taints_propagated, lval_env =

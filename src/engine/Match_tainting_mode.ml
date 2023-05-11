@@ -555,7 +555,7 @@ let pm_of_finding finding =
          * go into a sink (?) *)
       if
         not
-          (D.taints_satisfy_requires
+          (T.taints_satisfy_requires
              (Common.map (fun t -> t.T.taint) taints)
              requires)
       then None

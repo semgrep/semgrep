@@ -1065,10 +1065,37 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
 (* Parsers for taint *)
 (*****************************************************************************)
 
+let requires_expr_to_precondition env key e =
+  let invalid_requires () =
+    error_at_key env key
+      "Invalid `requires' expression, it must be a Python Boolean expression \
+       over labels (any valid Python identifier) using operators `not', `or' \
+       and `and'."
+  in
+  let rec expr_to_precondition e =
+    match e.G.e with
+    | G.L (G.Bool (v, _)) -> R.PBool v
+    | G.N (G.Id ((str, _), _)) -> R.PLabel str
+    | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
+        PNot (expr_to_precondition e1)
+    | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
+        match (op, args_to_precondition args) with
+        | G.And, xs -> R.PAnd xs
+        | G.Or, xs -> R.POr xs
+        | __else__ -> invalid_requires ())
+    | __else__ -> invalid_requires ()
+  and args_to_precondition args =
+    match args with
+    | [] -> []
+    | G.Arg e :: args' -> expr_to_precondition e :: args_to_precondition args'
+    | _ :: _args' -> invalid_requires ()
+  in
+  expr_to_precondition e
+
 let parse_taint_requires env key x =
   let s = parse_string env key x in
   let e = parse_python_expression env key s in
-  Rule.expr_to_precondition e
+  requires_expr_to_precondition env key e
 
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
