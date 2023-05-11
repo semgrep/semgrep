@@ -546,7 +546,7 @@ let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
     Option.value env.options ~default:Config_semgrep.default_config
   in
   let default = Aliengrep.Conf.default_multiline_conf in
-  let multiline = not options.generic_line_mode in
+  let multiline = options.generic_multiline in
   let word_chars =
     default.word_chars
     @ word_chars_of_strings env options.generic_extra_word_characters

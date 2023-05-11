@@ -1,20 +1,34 @@
 (* Semgrep matching engine configuration.
- *
- * The goal of this module is to gather in one place all the possible
- * ways to configure the semgrep matching engine. We now let
- * the user enable/disable certain features on a per-rule (could do even
- * per-pattern basis?). For example, constant propagation may be too powerful
- * sometimes and prevent people to find certain code.
- * Those features are called 'options' in the rule.
- *
- * Note that each option in this file will change the matching results;
- * for non-functional settings such as optimizations (e.g., using a
- * cache) use instead Flag_semgrep.ml
- *
- * We're using atdgen to specify the list of configuaration options
- * because atdgen generates automatically the boilerplate to read
- * the configuration options from a rule file.
- *)
+
+   The goal of this module is to gather in one place all the possible
+   ways to configure the semgrep matching engine. We now let
+   the user enable/disable certain features on a per-rule (could do even
+   per-pattern basis?). For example, constant propagation may be too powerful
+   sometimes and prevent people to find certain code.
+   Those features are called 'options' in the rule.
+
+   Note that each option in this file will change the matching results;
+   for non-functional settings such as optimizations (e.g., using a
+   cache) use instead Flag_semgrep.ml
+
+   We're using atdgen to specify the list of configuaration options
+   because atdgen generates automatically the boilerplate to read
+   the configuration options from a rule file.
+
+   TODO: before this can work with Python, all the custom default field values
+         must be specified for Python as well. The same must be done
+         for any target language that we want to support.
+         A better way would be to modify atd to handle this better.
+         Ideas for improvements include:
+         - make 'atdpy --no-implicit-defaults' treat '~field: bool'
+           as '?field: bool option' unless a default value is set for
+           Python with an annotation like '<python default="True">'.
+         - make atd understand a syntax for default values that can be
+           used to specify defaults in all target languages.
+           A default value would be set with '<field default="true">'
+           and this would be translated into 'True' for Python and whatever
+           means "true" in other languages.
+*)
 
 (* !!Do not rename the fields because they can be referenced in rules!! *)
 type t = {
@@ -75,7 +89,7 @@ type t = {
 
   ~generic_engine <ocaml default="`Spacegrep">: generic_engine;
 
-  (* Enable the line mode of aliengrep. This option is only
+  (* Enable/disable multiline mode in aliengrep. This option is only
      relevant to the 'aliengrep' generic engine.
 
      The line mode differs from the default multiline mode in
@@ -87,7 +101,9 @@ type t = {
      - Double quotes and single quotes are treated as additional brace
        pairs by default (see 'generic_braces').
   *)
-  ~generic_line_mode <ocaml default="false">: bool;
+  ~generic_multiline
+    <ocaml default="true">
+    <python default="True">: bool;
 
   (* The list of matching braces to be considered by the aliengrep engine.
      The default braces in the default, multiline mode are:
