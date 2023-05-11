@@ -366,6 +366,7 @@ let mk_config () =
     ncores = !ncores;
     parsing_cache_dir = !use_parsing_cache;
     target_source = !target_source;
+    file_match_results_hook = None;
     action = !action;
     version = Version.version;
     roots = [] (* This will be set later in main () *);

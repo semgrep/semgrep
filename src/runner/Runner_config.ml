@@ -1,9 +1,5 @@
-(*
-   Type definitions, mostly.
-*)
-
 (* in JSON mode, we might need to display intermediate '.' in the
- * output for semgrep to track progress as well as extra targets
+ * output for pysemgrep to track progress as well as extra targets
  * found by extract rules.
  * LATER: osemgrep: not needed after osemgrep migration done
  *)
@@ -11,8 +7,8 @@ type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
 (*
    'Rule_file' is for the semgrep-core CLI.
-   The 'Rules' case is for an invocation that bypasses the semgrep-core
-   command (osemgrep) or when for some reason the rules had to be preparsed.
+   'Rules' is for osemgrep or when for some reason the rules had to be
+    preparsed.
 *)
 type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 
@@ -28,7 +24,7 @@ type target_source =
   | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
 
-(* TODO: similar to osemgrep Scan_CLI.conf, should be merged in it *)
+(* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)
 type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
@@ -62,7 +58,13 @@ type t = {
   ncores : int;
   parsing_cache_dir : Fpath.t option;
   filter_irrelevant_rules : bool;
-  (* Flag used by the semgrep-python wrapper *)
+  (* Hook to display match results incrementally, after a file has been fully
+   * processed. Note that this hook run in a child process of Parmap
+   * in Run_semgrep, so the hook should not rely on shared memory!
+   *)
+  file_match_results_hook :
+    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option;
+  (* Flag used by pysemgrep *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
   action : string;
@@ -116,6 +118,7 @@ let default =
     parsing_cache_dir = None;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
+    file_match_results_hook = None;
     (* Flag used by the semgrep-python wrapper *)
     target_source = None;
     (* Common.ml action for the -dump_xxx *)
