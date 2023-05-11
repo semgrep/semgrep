@@ -351,7 +351,7 @@ class SarifFormatter(BaseFormatter):
             )
         if rule.metadata.get("confidence"):
             confidence = rule.metadata["confidence"]
-            result.extend([f"{confidence} CONFIDENCE"])
+            result.append(f"{confidence} CONFIDENCE")
         if (
             "semgrep.policy" in rule.metadata
             and "slug" in rule.metadata["semgrep.policy"]
