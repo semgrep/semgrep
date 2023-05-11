@@ -89,4 +89,4 @@ let parse_config_string config_str =
         (E.Semgrep_error
            ( spf "unable to find a config; path `%s` does not exist%s" str
                addendum,
-             None ))
+             Some Exit_code.missing_config ))

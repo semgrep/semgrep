@@ -34,7 +34,12 @@ def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 @pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_regex_with_bad_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    run_semgrep_in_tmp("rules/badlanguage.yaml", assert_exit_code=7)
+    run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=7)
+
+@pytest.mark.osempass
+@pytest.mark.kinda_slow
+def test_nonexisting_faile(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    run_semgrep_in_tmp("rules/does_not_exist.yaml", assert_exit_code=7)
 
 
 @pytest.mark.osempass
