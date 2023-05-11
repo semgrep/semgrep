@@ -100,11 +100,10 @@ let exit_code_of_cli_errors (errors : Out.cli_error list) : Exit_code.t =
 (* Incremental display *)
 (*****************************************************************************)
 
-(* Note that this is run in parallel in Parmap at the end of processing
- * a file.
- * TODO: Using Format.std_formatter in parallel is not good; the output
- * is interwinded. Need to find a way to synchronize them. At least
- * it works with osemgrep -j 1
+(* Note that this hook is run in parallel in Parmap at the end of processing
+ * a file. Using Format.std_formatter in parallel requires some synchronization
+ * to avoid having the output of multiple child processes interwinded, hence
+ * the use of Unix.lockf below.
  *)
 let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (_file : Fpath.t) (match_results : RP.partial_profiling RP.match_result) :
@@ -135,11 +134,14 @@ let file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
            let to_ignore, _errs = Nosemgrep.rule_match_nosem ~strict:false m in
            to_ignore)
   in
-  if cli_matches <> [] then
+  if cli_matches <> [] then (
+    Unix.lockf Unix.stdout Unix.F_LOCK 0;
     (* coupling: similar to Output.dispatch_output_format for Text *)
     Matches_report.pp_text_outputs ~max_chars_per_line:conf.max_chars_per_line
       ~max_lines_per_finding:conf.max_lines_per_finding
-      ~color_output:conf.force_color Format.std_formatter cli_matches
+      ~color_output:conf.force_color Format.std_formatter cli_matches;
+    (* TODO? use finalize? *)
+    Unix.lockf Unix.stdout Unix.F_ULOCK 0)
 
 (*****************************************************************************)
 (* Skipped analysis *)
