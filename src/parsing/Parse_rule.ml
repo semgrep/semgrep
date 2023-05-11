@@ -174,9 +174,6 @@ let read_string_wrap e =
   | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
       Some (value, t)
-  | G.L (Float (Some n, t)) ->
-      if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
-      else Some (string_of_float n, t)
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
 
