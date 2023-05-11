@@ -213,6 +213,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       msg
     in
     let print =
+      cur.check_id <> "-"
+      &&
       match last_message with
       | None -> true
       | Some m -> m <> cur.extra.message
