@@ -180,12 +180,14 @@ let program_of_mvalue : mvalue -> G.program option =
       None
 
 let range_of_mvalue mval =
-  let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
+  let* tok_start, tok_end =
+    AST_generic_helpers.range_of_any_opt (mvalue_to_any mval)
+  in
   (* We must return both the range *and* the file, due to metavariable-pattern
    * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
   Some (tok_start.pos.file, Range.range_of_token_locations tok_start tok_end)
 
-let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
+let ii_of_mval x = x |> mvalue_to_any |> AST_generic_helpers.ii_of_any
 let str_of_mval x = show_mvalue x
 
 (* note that the mvalue acts as the value of the metavar and also

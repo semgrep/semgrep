@@ -68,7 +68,7 @@ class SemgrepCoreLSServer:
 
     def start_ls(self) -> None:
         cmd = [
-            "semgrep-core",
+            str(self.config.engine_type.get_binary_path()),
             "-j",
             str(self.config.jobs),
             "-rules",
@@ -77,6 +77,10 @@ class SemgrepCoreLSServer:
             self.target_file.name,
             "-max_memory",
             str(self.config.max_memory),
+            "-timeout",
+            str(self.config.timeout),
+            "-timeout_threshold",
+            str(self.config.timeout_threshold),
             "-fast",
             "-ls",
         ]
@@ -142,12 +146,7 @@ class SemgrepCoreLSServer:
         else:
             self.config = LSPConfig(config, [])
 
-        get_state()
-        if not self.config.logged_in:
-            self.notify_show_message(
-                3,
-                "Login to enable additional proprietary Semgrep Registry rules and running custom policies from Semgrep App",
-            )
+        self.config.send_metrics()
 
     def m_semgrep__login(self, id: str) -> None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
@@ -237,6 +236,11 @@ class SemgrepCoreLSServer:
         if method == "semgrep/refreshRules":
             self.update_rules_file()
             self.update_targets_file()
+
+        if method == "semgrep/loginStatus":
+            response = {"id": id, "result": {"loggedIn": self.config.logged_in}}
+            self.on_core_message(response)
+            return
 
         self.core_writer.write(msg)
 

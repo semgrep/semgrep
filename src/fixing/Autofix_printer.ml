@@ -76,7 +76,7 @@ let get_printer lang external_printer :
   | __else__ -> Error (spf "No printer available for %s" (Lang.to_string lang))
 
 let original_source_of_ast source any =
-  let* start, end_ = Visitor_AST.range_of_any_opt any in
+  let* start, end_ = AST_generic_helpers.range_of_any_opt any in
   let starti = start.Tok.pos.charpos in
   let _, _, endi = Tok.end_pos_of_loc end_ in
   let len = endi - starti in

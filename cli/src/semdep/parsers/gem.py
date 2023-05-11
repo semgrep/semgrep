@@ -11,6 +11,7 @@ from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -70,7 +71,7 @@ gemfile = (
 def parse_gemfile(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps_opt = safe_path_parse(lockfile_path, gemfile)
+    deps_opt = safe_path_parse(lockfile_path, gemfile, ParserName.gemfile_lock)
     if not deps_opt:
         return []
     deps, manifest_deps = deps_opt

@@ -53,7 +53,6 @@ type token =
   | Kmatch of Tok.t
   | Klazy of Tok.t
   | Kimport of Tok.t
-  | Kexport of Tok.t
   | Kimplicit of Tok.t
   | Kif of Tok.t
   | KforSome of Tok.t
@@ -67,7 +66,6 @@ type token =
   | Kclass of Tok.t
   | Kcatch of Tok.t
   | Kcase of Tok.t
-  | Kenum of Tok.t
   | Kabstract of Tok.t
   | IntegerLiteral of (int option * Tok.t)
   | ID_UPPER of (string * Tok.t)
@@ -89,6 +87,7 @@ type token =
   | BANG of Tok.t
   | AT of Tok.t
   | ARROW of Tok.t
+  (* emitted only via lexing tricks *)
   | DEDENT of (* line *) int * (* width *) int
 [@@deriving show { with_path = false }]
 

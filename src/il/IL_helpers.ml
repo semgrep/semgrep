@@ -33,7 +33,9 @@ let rexps_of_instr x =
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
   | Call (_, e1, args) -> e1 :: Common.map exp_of_arg args
-  | CallSpecial (_, _, args) -> Common.map exp_of_arg args
+  | New (_, _, _, args)
+  | CallSpecial (_, _, args) ->
+      Common.map exp_of_arg args
   | FixmeInstr _ -> []
 
 (* opti: could use a set *)
@@ -81,6 +83,13 @@ let rlvals_of_instr x =
 (* Public *)
 (*****************************************************************************)
 
+let is_pro_resolved_global name =
+  match !(name.id_info.id_resolved) with
+  | Some (GlobalName _, _sid) -> true
+  | Some _
+  | None ->
+      false
+
 let lval_of_var var = { IL.base = Var var; rev_offset = [] }
 
 let is_dots_offset offset =
@@ -95,6 +104,7 @@ let lval_of_instr_opt x =
   | Assign (lval, _)
   | AssignAnon (lval, _)
   | Call (Some lval, _, _)
+  | New (lval, _, _, _)
   | CallSpecial (Some lval, _, _) ->
       Some lval
   | Call _

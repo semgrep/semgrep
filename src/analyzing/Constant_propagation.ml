@@ -16,7 +16,6 @@
 open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

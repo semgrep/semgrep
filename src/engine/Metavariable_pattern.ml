@@ -79,7 +79,9 @@ let filter_new_mvars_by_range range mvars =
    tokens with the correct information.
 *)
 let get_persistent_bindings revert_loc r nested_matches =
-  let reverting_visitor = Map_AST.mk_fix_token_locations revert_loc in
+  let reverting_visitor =
+    AST_generic_helpers.fix_token_locations_any revert_loc
+  in
   nested_matches
   |> Common.map (fun nested_match ->
          (* The bindings in this match were produced from a target whose location
@@ -89,7 +91,7 @@ let get_persistent_bindings revert_loc r nested_matches =
            nested_match.RM.mvars
            |> Common.map_filter (fun (mvar, mval) ->
                   match
-                    mval |> MV.mvalue_to_any |> reverting_visitor.Map_AST.vany
+                    mval |> MV.mvalue_to_any |> reverting_visitor
                     |> MV.mvalue_of_any
                   with
                   | None ->
@@ -138,7 +140,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           (* We don't want having to re-parse `content', but then we
            * need to fix the token locations in `mast`. *)
           let mast_start_loc =
-            mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
+            mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens |> fst
             |> Tok.unsafe_loc_of_tok
           in
           let fix_loc file loc =
@@ -204,10 +206,10 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   let content = Range.content_at_range mval_file mval_range in
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
-                      let fixing_visitor =
-                        Map_AST.mk_fix_token_locations (fix_loc file)
+                      let mast' =
+                        AST_generic_helpers.fix_token_locations_program
+                          (fix_loc file) mast
                       in
-                      let mast' = fixing_visitor.Map_AST.vprogram mast in
                       let xtarget =
                         {
                           env.xtarget with

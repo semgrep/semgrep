@@ -17,7 +17,6 @@ module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
@@ -301,10 +300,12 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                     None
                 | Ok loc_pfrom, Ok loc_pto ->
                     let* mval_from_start_loc, mval_from_end_loc =
-                      Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_from)
+                      AST_generic_helpers.range_of_any_opt
+                        (MV.mvalue_to_any mval_from)
                     in
                     let* mval_to_start_loc, mval_to_end_loc =
-                      Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_to)
+                      AST_generic_helpers.range_of_any_opt
+                        (MV.mvalue_to_any mval_to)
                     in
                     let from =
                       Range.range_of_token_locations mval_from_start_loc
@@ -329,7 +330,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
 let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
-  match Visitor_AST.range_of_any_opt any with
+  match AST_generic_helpers.range_of_any_opt any with
   | None ->
       (* IL.any_of_orig will return `G.Anys []` for `NoOrig`, and there is
        * no point in issuing this warning in that case.
@@ -532,14 +533,16 @@ let rec convert_taint_call_trace = function
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
-          call_toks = V.ii_of_any (G.E expr) |> List.filter Tok.is_origintok;
+          call_toks =
+            AST_generic_helpers.ii_of_any (G.E expr)
+            |> List.filter Tok.is_origintok;
           intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }
 
 let pm_of_finding finding =
   match finding with
-  | T.ArgToArg _
+  | T.ToArg _
   | T.ToReturn _ ->
       None
   | ToSink

@@ -40,22 +40,28 @@
     },
     "semgrep.scan.maxTargetBytes": {
       "type": "integer",
-      "default": 0,
+      "default": 1000000,
       "description": "Maximum size of target in bytes to scan."
+    },
+    "semgrep.scan.timeout": {
+      "type": "integer",
+      "default": 30,
+      "description": "Maximum time to scan in seconds."
+    },
+    "semgrep.scan.timeoutThreshold": {
+      "type": "integer",
+      "default": 3,
+      "description": "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 3."
     },
     "semgrep.scan.onlyGitDirty": {
       "type": "boolean",
       "default": true,
       "description": "Only scan lines changed since the last commit"
     },
-    "semgrep.metrics": {
-      "type": "string",
-      "default": "on",
-      "items": {
-        "type": "string",
-        "enum": ["auto", "on", "off"]
-      },
-      "description": "Enable or disable metrics collection. Auto will only report metrics when rules are pulled from the registry"
+    "semgrep.metrics.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable metrics collection."
     }
   }
 }

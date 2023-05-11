@@ -3,6 +3,50 @@
 *)
 open Cmdliner
 
+(*************************************************************************)
+(* Command-line flags *)
+(*************************************************************************)
+
+(* ------------------------------------------------------------------ *)
+(* "Verbosity options" (mutually exclusive) *)
+(* ------------------------------------------------------------------ *)
+(* alt: we could use Logs_cli.level(), but by defining our own flags
+ * we can give better ~doc:. We lose the --verbosity=Level though.
+ *)
+let o_quiet : bool Term.t =
+  let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
+  Arg.value (Arg.flag info)
+
+let o_verbose : bool Term.t =
+  let info =
+    Arg.info [ "v"; "verbose" ]
+      ~doc:
+        {|Show more details about what rules are running, which files
+failed to parse, etc.
+|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_debug : bool Term.t =
+  let info =
+    Arg.info [ "debug" ]
+      ~doc:{|All of --verbose, but with additional debugging information.|}
+  in
+  Arg.value (Arg.flag info)
+
+let logging_term : Logs.level option Term.t =
+  let combine debug quiet verbose =
+    match (verbose, debug, quiet) with
+    | false, false, false -> Some Logs.Warning
+    | true, false, false -> Some Logs.Info
+    | false, true, false -> Some Logs.Debug
+    | false, false, true -> None
+    | _else_ ->
+        (* TOPORT: list the possibilities *)
+        Error.abort "mutually exclusive options --quiet/--verbose/--debug"
+  in
+  Term.(const combine $ o_debug $ o_quiet $ o_verbose)
+
 let help_page_bottom =
   [
     `S Manpage.s_authors;

@@ -249,10 +249,10 @@ let top_func () =
     | Cast (t, (l, e, r)) ->
         let t = type_ t and e = expr e in
         (* for semgrep and autofix to get the right range by including
-         * 'r' in the AST.
+         * 'r' in the range.
          * alt: change G.Cast to take a bracket
          *)
-        let e = G.ParenExpr (l, e, r) |> G.e in
+        AST_generic_helpers.set_e_range l r e;
         G.Cast (t, l, e)
     | Deref (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
@@ -311,7 +311,7 @@ let top_func () =
     | ParenType v1 ->
         let v1 = type_ v1 in
         error
-          (Visitor_AST.info_of_any (G.T v1))
+          (AST_generic_helpers.info_of_any (G.T v1))
           ("ParenType should disappear" ^ Dumper.dump v1))
     |> G.e
   and literal = function

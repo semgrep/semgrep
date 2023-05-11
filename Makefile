@@ -139,6 +139,11 @@ build-otarzan:
 	dune build _build/install/default/bin/otarzan
 	test -e bin || ln -s _build/install/default/bin .
 
+# Build the js_of_ocaml portion of the semgrep javascript packages
+.PHONY: build-semgrep-jsoo
+build-semgrep-jsoo:
+	dune build js --profile=release
+
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
 .PHONY: clean
@@ -151,6 +156,10 @@ clean:
 core-clean:
 	dune clean
 	rm -f bin
+	# We still need to keep the nonempty opam files in git for
+	# 'make setup', so we should only remove the empty opam files.
+	# This removes the gitignored opam files.
+	git clean -fX *.opam
 
 ###############################################################################
 # Install targets
@@ -196,10 +205,12 @@ core-uninstall:
 # Test target
 ###############################################################################
 
+# Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test
 test:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
+	$(MAKE) -C cli osempass
 
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because

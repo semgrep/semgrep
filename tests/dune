@@ -19,7 +19,7 @@
     semgrep.synthesizing
     semgrep.reporting
     semgrep.engine
-    semgrep.ls
+    semgrep.language_server
     parser_python.menhir parser_python.ast_generic
     semgrep.data
 

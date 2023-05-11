@@ -5,5 +5,7 @@
 [94m[22m[24m  | [0m               [31m[22m[24m^^^^^^^^^^[0m
 [94m[22m[24m8 | [0m    severity: WARNING
 
-[31m[22m[24munsupported language: intercal. supported languages are: apex, bash, c, c#, c++, clojure, cpp, csharp, dart, docker, dockerfile, elixir, ex, generic, go, golang, hack, hcl, html, java, javascript, js, json, jsonnet, julia, kotlin, kt, lisp, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, scheme, sh, sol, solidity, swift, terraform, tf, ts, typescript, vue, xml, yaml[0m
+[31m[22m[24munsupported language: intercal. supported languages are: apex, bash, c, c#, c++, cairo, clojure, cpp, csharp, dart, docker, dockerfile, elixir, ex, generic, go, golang, hack, hcl, html, java, javascript, js, json, jsonnet, julia, kotlin, kt, lisp, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, scheme, sh, sol, solidity, swift, terraform, tf, ts, typescript, vue, xml, yaml
+
+You may need to update your version of Semgrep, if you are on an old version that does not yet support this language.[0m
 

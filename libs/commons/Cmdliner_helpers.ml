@@ -1,6 +1,20 @@
 open Common
 open Cmdliner
 
+let uri =
+  let parser str = Ok (Uri.of_string str) in
+  let pp = Fmt.(using Uri.to_string string) in
+  Arg.conv ~docv:"<URL>" (parser, pp)
+
+let sha1 =
+  let parser str =
+    match Digestif.SHA1.of_hex_opt str with
+    | Some sha1 -> Ok sha1
+    | None -> Error (`Msg (Fmt.str "Invalid SHA1 value: %S" str))
+  in
+  let pp = Digestif.SHA1.pp in
+  Arg.conv ~docv:"<SHA1>" (parser, pp)
+
 (* Turn "a" into "-a" and "abc" into "--abc" *)
 let add_option_dashes option_names =
   Common.map

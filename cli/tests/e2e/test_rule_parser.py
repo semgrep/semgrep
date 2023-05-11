@@ -15,12 +15,14 @@ syntax_fails = [
 ]
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_passes)
 def test_rule_parser__success(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):

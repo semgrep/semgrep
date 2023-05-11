@@ -72,10 +72,10 @@ let matching_explanations = ref Runner_config.default.matching_explanations
 (* ------------------------------------------------------------------------- *)
 
 (* -e *)
-let pattern_string = ref ""
+let pattern_string = ref None
 
 (* -f *)
-let pattern_file = ref ""
+let pattern_file = ref None
 
 (* -rules *)
 let rule_source = ref None
@@ -233,7 +233,6 @@ let dump_il_all file =
 
 let dump_il file =
   let module G = AST_generic in
-  let module V = Visitor_AST in
   let ast = Parse_target.parse_program !!file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
@@ -288,12 +287,12 @@ let generate_ast_json file =
 
 let generate_ast_binary lang file =
   let final =
-    Parse_with_caching.versioned_parse_result_of_file Version.version lang file
+    Parse_with_caching.ast_cached_value_of_file Version.version lang file
   in
-  let file = file ^ Parse_with_caching.binary_suffix in
+  let file = Fpath.(file + Parse_with_caching.binary_suffix) in
   assert (Parse_with_caching.is_binary_ast_filename file);
-  Common2.write_value final file;
-  pr2 (spf "saved marshalled generic AST in %s" file)
+  Common2.write_value final !!file;
+  pr2 (spf "saved marshalled generic AST in %s" !!file)
 
 let dump_ext_of_lang () =
   let lang_to_exts =
@@ -367,6 +366,7 @@ let mk_config () =
     ncores = !ncores;
     parsing_cache_dir = !use_parsing_cache;
     target_source = !target_source;
+    file_match_results_hook = None;
     action = !action;
     version = Version.version;
     roots = [] (* This will be set later in main () *);
@@ -392,7 +392,7 @@ let all_actions () =
       Arg_helpers.mk_action_1_conv Fpath.v generate_ast_json );
     ( "-generate_ast_binary",
       " <file> save in file.ast.binary the marshalled generic AST of file",
-      Arg_helpers.mk_action_1_arg (fun file ->
+      Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
           generate_ast_binary (Xlang.lang_of_opt_xlang_exn !lang) file) );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
@@ -531,9 +531,11 @@ let all_actions () =
 
 let options actions =
   [
-    ("-e", Arg.Set_string pattern_string, " <str> use the string as the pattern");
+    ( "-e",
+      Arg.String (fun s -> pattern_string := Some s),
+      " <str> use the string as the pattern" );
     ( "-f",
-      Arg.Set_string pattern_file,
+      Arg.String (fun s -> pattern_file := Some (Fpath.v s)),
       " <file> use the file content as the pattern" );
     ( "-rules",
       Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
@@ -553,7 +555,7 @@ let options actions =
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
     ( "-use_parsing_cache",
-      Arg.Set_string use_parsing_cache,
+      Arg.String (fun s -> use_parsing_cache := Some (Fpath.v s)),
       " <dir> store and use the parsed generic ASTs in dir" );
     ( "-opt_cache",
       Arg.Set Flag.with_opt_cache,
@@ -621,13 +623,6 @@ let options actions =
     ( "-fast",
       Arg.Set filter_irrelevant_rules,
       " filter rules not containing any strings in target file" );
-    ( "-bloom_filter",
-      Arg.Set Flag.use_bloom_filter,
-      " use a bloom filter to only attempt matches when strings in the pattern \
-       are in the target" );
-    ( "-no_bloom_filter",
-      Arg.Clear Flag.use_bloom_filter,
-      " do not use bloom filter" );
     ( "-tree_sitter_only",
       Arg.Set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );

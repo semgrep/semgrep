@@ -163,17 +163,17 @@
  *    of a VarDef, as done in Python for example).
  *)
 
-(* !! Modify version below each time you modify the generic AST!! There are
- * now a few places where we cache the generic AST in a marshalled binary
- * form on disk (e.g., in src/runner/Parsing_with_cache.ml) and reading back
+(* !! Modify version below each time you modify the generic AST!!
+ * There are now a few places where we cache the generic AST in a marshalled
+ * form on disk (e.g., in src/parsing/Parsing_with_cache.ml) and reading back
  * old version of this AST can lead to segfaults in OCaml.
- * Note that this number below could be independent of the versioning scheme of
+ * Note that the number below could be independent of the versioning scheme of
  * Semgrep; we don't have to update version below for each version of
- * Semgrep, just when we actually modify the generic AST. However it's convenient
- * to correspond mostly to Semgrep versions. So version below can jump from
- * "1.12.1" to "1.20.0" and that's fine.
+ * Semgrep, just when we actually modify the generic AST. However it's
+ * convenient to correspond mostly to Semgrep versions. So version below
+ * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.19.0-2"
+let version = "1.20.0"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -428,6 +428,72 @@ class virtual ['self] iter_parent =
     method visit_string_set_t _env _ = ()
   end
 
+(* Basically a copy paste of iter_parent above, but with different return types
+ * *)
+class virtual ['self] map_parent =
+  object (self : 'self)
+    (* Virtual methods *)
+    method virtual visit_string : 'env. 'env -> string -> string
+
+    method virtual visit_list
+        : 'env 'a 'b. ('env -> 'a -> 'b) -> 'env -> 'a list -> 'b list
+
+    method virtual visit_option
+        : 'env 'a 'b. ('env -> 'a -> 'b) -> 'env -> 'a option -> 'b option
+
+    (* Handcoded visitor methods *)
+    method visit_ident env id = self#visit_wrap self#visit_string env id
+
+    method visit_bracket
+        : 'a. ('env -> 'a -> 'a) -> 'env -> 'a bracket -> 'a bracket =
+      fun f env (left, x, right) ->
+        let left = self#visit_tok env left in
+        let x = f env x in
+        let right = self#visit_tok env right in
+        (left, x, right)
+
+    method visit_wrap : 'a. ('env -> 'a -> 'a) -> 'env -> 'a wrap -> 'a wrap =
+      fun f env (x, tok) ->
+        let x = f env x in
+        let tok = self#visit_tok env tok in
+        (x, tok)
+
+    method visit_todo_kind env kind = self#visit_wrap self#visit_string env kind
+
+    (* This is a bit fiddly. See the comment on visit_raw_tree_t in iter_parent
+     * above. *)
+    method visit_raw_tree_t f env x =
+      (* TODO Generate or handcode this in Raw_tree.ml? *)
+      Raw_tree.(
+        match x with
+        | Token wrapped -> Token (self#visit_wrap self#visit_string env wrapped)
+        | List lst -> List (self#visit_list self#visit_raw_tree env lst)
+        | Tuple lst -> Tuple (self#visit_list self#visit_raw_tree env lst)
+        | Case (str, x) ->
+            Case (self#visit_string env str, self#visit_raw_tree env x)
+        | Option x -> Option (self#visit_option self#visit_raw_tree env x)
+        | Any x -> Any (f env x))
+
+    method virtual visit_raw_tree : 'env -> 'raw_tree -> 'raw_tree
+    method visit_sc env tok = self#visit_tok env tok
+
+    method visit_dotted_ident env dotted =
+      self#visit_list self#visit_ident env dotted
+
+    method visit_module_name env =
+      function
+      | DottedName dotted -> DottedName (self#visit_dotted_ident env dotted)
+      | FileName fn -> FileName (self#visit_wrap self#visit_string env fn)
+
+    (* Stubs *)
+    method visit_location _env x = x
+    method visit_id_info_id_t _env x = x
+    method visit_resolved_name _env x = x
+    method visit_tok _env x = x
+    method visit_node_id_t _env x = x
+    method visit_string_set_t _env x = x
+  end
+
 (* Start of big mutually recursive types because of the use of 'any'
  * in OtherXxx *)
 
@@ -675,13 +741,6 @@ and expr_kind =
      Revisit when symbolic propagation is more stable
   *)
   | Alias of string wrap * expr
-  (* In some rare cases, we need to keep the parenthesis around an expression
-   * otherwise in autofix semgrep could produce incorrect code. For example,
-   * in Go a cast int(3.0) requires the parenthesis.
-   * alt: change cast to take a expr bracket, but this is used only for Go.
-   * Note that this data structure is really becoming more a CST than an AST.
-   *)
-  | ParenExpr of expr bracket
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
   | Ellipsis of tok (* '...' *)
@@ -1049,6 +1108,15 @@ and argument =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+(* NOTE: We used to have a Bloom filter optimization that annotated statements
+ * with the strings occurring in it, for which we had a `s_strings` mutable
+ * field here. We disabled this optimization in 0.116.0 after realizing that it
+ * (no longer?) had a meaningful effect on performance. (And because it hadtricky
+ * interactions with const-prop and sym-prop, see #4670, and PA-1920 / PR #6179.)
+ * Finally, Bloom-filter's code was removed in 1.22.0, and paradoxically, that
+ * made Semgrep noticeably faster (an average of 1.35x on a set of 9 repos) on
+ * our stress-test-monorepo benchmark. *)
 and stmt = {
   s : stmt_kind;
       [@equal AST_utils.equal_stmt_field_s equal_stmt_kind] [@hash.ignore]
@@ -1086,9 +1154,6 @@ and stmt = {
      This field is set on pattern ASTs only, in a pass right after parsing
      and before matching.
   *)
-  (* used in semgrep to skip some AST matching *)
-  mutable s_strings : string Set_.t option;
-      [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
   mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
@@ -1260,8 +1325,6 @@ and other_stmt_with_stmt_operator =
   | OSWS_Else_in_try
   (* C/C++/cpp *)
   | OSWS_Iterator
-  (* Closures in Swift *)
-  | OSWS_Closure
   (* e.g., Case/Default outside of switch in C/C++, StmtTodo in C++ *)
   | OSWS_Todo
 
@@ -1291,6 +1354,8 @@ and other_stmt_operator =
   | OS_Retry
   (* OCaml *)
   | OS_ExprStmt2
+  (* Scala *)
+  | OS_Extension
   (* Other: Leave/Emit in Solidity *)
   | OS_Todo
 
@@ -1298,7 +1363,7 @@ and other_stmt_operator =
 (* Pattern *)
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
- * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
+* equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
  * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.
@@ -2026,17 +2091,8 @@ and raw_tree = (any Raw_tree.t[@name "raw_tree_t"])
      *
      * ocamlc -stop-after parsing -dsource AST_generic.pp.ml
      * *)
-    visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
-
-(* Most clients should use this instead of the default `iter`. In many cases,
- * it's not desirable to recurse into id_info since it contains resolved names
- * and svalues which often contain nodes that are already present elsewhere in
- * the AST. This matches the default behavior of the old mk_visitor. *)
-class virtual ['self] iter_no_id_info =
-  object (_self : 'self)
-    inherit ['self] iter
-    method! visit_id_info _env _info = ()
-  end
+    visitors { variety = "iter"; ancestors = [ "iter_parent" ] },
+    visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (*****************************************************************************)
 (* Error *)
@@ -2081,7 +2137,6 @@ let s skind =
     s_id = AST_utils.Node_ID.mk ();
     s_use_cache = false;
     s_backrefs = None;
-    s_strings = None;
     s_range = None;
   }
 
@@ -2338,3 +2393,47 @@ let is_metavar_name s = Common.( =~ ) s "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
 (* coupling: Metavariable.is_metavar_ellipsis *)
 let is_metavar_ellipsis s =
   Common.( =~ ) s "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
+
+(*****************************************************************************)
+(* Custom visitors *)
+(*****************************************************************************)
+
+(* Most clients should use this instead of the default `iter`. In many cases,
+ * it's not desirable to recurse into id_info since it contains resolved names
+ * and svalues which often contain nodes that are already present elsewhere in
+ * the AST. This matches the default behavior of the old mk_visitor. *)
+class virtual ['self] iter_no_id_info =
+  object (_self : 'self)
+    inherit ['self] iter
+    method! visit_id_info _env _info = ()
+  end
+
+(* This is based on the legacy behavior of Map_AST.mk_visitor (look through the
+ * commit history if you want to take a trip down memory lane). It was a bunch
+ * of hardcoded boilerplate, which hid this nonstandard behavior.
+ *
+ * If you are adding a new callsite, you should consider whether the nonstandard
+ * behavior here makes sense for your use case. Think about using the
+ * autogenerated AST_generic.map directly. *)
+class virtual ['self] map_legacy =
+  object (self : 'self)
+    inherit [_] map
+    method! visit_tok _env v = v
+
+    method! visit_expr env x =
+      let ekind = self#visit_expr_kind env x.e in
+      (* TODO? reuse the e_id or create a new one? *)
+      e ekind
+
+    (* For convenience, so clients don't need to override visit_arguments and
+     * deal with the bracket type. *)
+    method visit_argument_list env v = self#visit_list self#visit_argument env v
+
+    (* Override to call visit_argument_list *)
+    method! visit_arguments env v =
+      self#visit_bracket self#visit_argument_list env v
+
+    method! visit_stmt env x =
+      let skind = self#visit_stmt_kind env x.s in
+      { x with s = skind }
+  end

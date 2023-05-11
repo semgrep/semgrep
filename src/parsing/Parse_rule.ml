@@ -85,14 +85,14 @@ type dict = {
 let yaml_error t s = raise (R.Err (R.InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
-  yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
+  yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 let error env t s = raise (R.Err (R.InvalidRule (R.InvalidOther s, env.id, t)))
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
-  error env (Visitor_AST.first_info_of_any (G.E e)) s
+  error env (AST_generic_helpers.first_info_of_any (G.E e)) s
 
 let pcre_error_to_string s exn =
   let message =
@@ -174,9 +174,6 @@ let read_string_wrap e =
   | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
       Some (value, t)
-  | G.L (Float (Some n, t)) ->
-      if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
-      else Some (string_of_float n, t)
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
 
@@ -483,6 +480,12 @@ let parse_paths env key value =
     ( take_opt paths_dict env parse_string_list "include",
       take_opt paths_dict env parse_string_list "exclude" )
   in
+  (* alt: we could use report_unparsed_fields(), but better to raise an error for now
+     to be compatible with pysemgrep *)
+  if Hashtbl.length paths_dict.h > 0 then
+    error_at_key env key
+      "Additional properties are not allowed (only 'include' and 'exclude' are \
+       supported)";
   { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
 let parse_options env (key : key) value =
@@ -530,6 +533,7 @@ let parse_xpattern env (str, tok) =
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
+      (* TODO: use R.Err exn instead? *)
       | Error err -> failwith err.msg)
 
 (* TODO: note that the [pattern] string and token location [t] given to us
@@ -605,23 +609,21 @@ and metavariable_comparison = {
 *)
 let rewrite_metavar_comparison_strip cond =
   let visitor =
-    Map_AST.mk_visitor
-      {
-        Map_AST.default_visitor with
-        Map_AST.kexpr =
-          (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e.G.e with
-            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
-              ->
-                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
-                |> G.e
-            | _ -> e);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.map_legacy as super
+
+      method! visit_expr env e =
+        (* apply on children *)
+        let e = super#visit_expr env e in
+        match e.G.e with
+        | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s ->
+            let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+            G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
+            |> G.e
+        | _ -> e
+    end
   in
-  visitor.Map_AST.vexpr cond
+  visitor#visit_expr () cond
 
 (* TODO: Old stuff that we can't kill yet. *)
 let find_formula_old env (rule_dict : dict) : key * G.expr =
@@ -1084,7 +1086,6 @@ let parse_taint_requires env key x =
         | G.Or ->
             ()
         | _ -> parse_error ())
-    | G.ParenExpr (_, e, _) -> check e
     | ___else__ -> parse_error ()
   and check_arg = function
     | G.Arg e -> check e

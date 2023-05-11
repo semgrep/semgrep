@@ -138,9 +138,8 @@ val semgrep_with_prepared_rules_and_targets :
 
 val semgrep_with_rules :
   Runner_config.t ->
-  (Rule.mode Rule.rule_info Common.stack * Rule.invalid_rule_error Common.stack)
-  * float ->
-  Report.final_result * Common.filename Common.stack
+  (Rule.t list * Rule.invalid_rule_error list) * float ->
+  Report.final_result * Common.filename list
 
 (* utilities functions used in tests or semgrep-core variants *)
 

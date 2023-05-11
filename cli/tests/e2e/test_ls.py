@@ -41,7 +41,9 @@ DEFAULT_CAPABILITIES = {
             "onlyGitDirty": True,
         },
         "trace": {"server": "verbose"},
-        "metrics": "on",
+        "metrics": {
+            "enabled": True,
+        },
     },
     "capabilities": {},
 }
@@ -286,6 +288,9 @@ def check_diagnostics(response, file, expected_ids):
     assert ids == expected_ids
 
 
+# TODO: this is currently passing with osemgrep but should not. it's because we don't
+# call osemgrep. If we were calling osemgrep correctly, we would get failures.
+# Note: This also fails in the 'test osemgrep' CI job with some errors about git
 @pytest.mark.parametrize("logged_in", [True, False])
 @pytest.mark.slow()
 def test_ls_full(
@@ -310,11 +315,6 @@ def test_ls_full(
 
     # initialize
     send_initialize(server, [root])
-
-    if not logged_in:
-        response = next(responses)
-        # login prompt
-        assert response["method"] == "window/showMessage"
 
     response = next(responses)
     assert "capabilities" in response["result"]

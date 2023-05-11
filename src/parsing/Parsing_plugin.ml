@@ -32,7 +32,9 @@ let make lang =
     match !parsers with
     | None ->
         let msg =
-          spf "Missing Semgrep extension needed for parsing %s target."
+          spf
+            "Missing Semgrep extension needed for parsing %s target. Try \
+             adding `--pro` to your command."
             (Lang.to_string lang)
         in
         raise (Missing_plugin msg)
@@ -42,7 +44,9 @@ let make lang =
     match !parsers with
     | None ->
         let msg =
-          spf "Missing Semgrep extension needed for parsing %s pattern."
+          spf
+            "Missing Semgrep extension needed for parsing %s pattern. Try \
+             adding `--pro` to your command."
             (Lang.to_string lang)
         in
         raise (Missing_plugin msg)

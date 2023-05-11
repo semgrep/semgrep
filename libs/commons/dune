@@ -5,17 +5,21 @@
    str
    unix
    fpath
+   uri
    yojson
-   ANSITerminal
    fmt
+   ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
    cmdliner
+   bos
    re
    pcre
    parmap
+   digestif.c
  )
+ ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
    (pps
      ppx_deriving.show

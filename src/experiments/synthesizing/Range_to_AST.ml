@@ -15,7 +15,6 @@
 
 open Common
 module G = AST_generic
-module V = Visitor_AST
 open Range (* for the $..$ range operators *)
 
 (*****************************************************************************)
@@ -29,7 +28,7 @@ open Range (* for the $..$ range operators *)
 (*****************************************************************************)
 
 (* Returns range of tokens in AST. *)
-let range_of_ast ast = Range.range_of_tokens (V.ii_of_any ast)
+let range_of_ast ast = Range.range_of_tokens (AST_generic_helpers.ii_of_any ast)
 let any_to_str ast = OCaml.string_of_v (Meta_AST.vof_any ast)
 
 (*****************************************************************************)

@@ -2,17 +2,22 @@ const { ParserFactory } = require("../dist/index.cjs");
 
 const parserPromise = ParserFactory();
 
-test("it has a lang value", async () => {
+const LANG = "html";
+const EXPECTED_LANGS = [LANG, "xml"];
+
+test("getLangs", async () => {
   const parser = await parserPromise;
-  expect(parser.getLangs()).toEqual([11, 35]);
+  expect(parser.getLangs()).toEqual(EXPECTED_LANGS);
 });
 
 test("it parses a pattern", async () => {
   const parser = await parserPromise;
-  parser.parsePattern(false, "<body>$X</body>");
+  const pattern = parser.parsePattern(false, LANG, "<body>$X</body>");
+  expect(typeof pattern).toEqual("object");
 });
 
 test("it parses a file", async () => {
   const parser = await parserPromise;
-  parser.parseTarget("tests/test.html");
+  const target = parser.parseTarget(LANG, "tests/test.html");
+  expect(typeof target).toEqual("object");
 });
