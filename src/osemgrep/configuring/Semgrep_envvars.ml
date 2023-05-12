@@ -55,7 +55,7 @@ type t = {
   version_check_cache_path : Fpath.t;
   git_command_timeout : int;
   src_directory : Fpath.t;
-  user_data_folder : Fpath.t;
+  user_dot_semgrep_dir : Fpath.t;
   user_log_file : Fpath.t;
   user_settings_file : Fpath.t;
   in_docker : bool;
@@ -69,7 +69,7 @@ type t = {
 
 (* less: make it Lazy? *)
 let env : t =
-  let user_data_folder =
+  let user_dot_semgrep_dir =
     let parent_dir =
       match Sys.getenv_opt "XDG_CONFIG_HOME" with
       | Some x when Sys.is_directory x -> Fpath.v x
@@ -98,12 +98,12 @@ let env : t =
         (Fpath.v (Sys.getcwd ()) / ".cache" / "semgrep_version");
     git_command_timeout = env_or int_of_string "SEMGREP_GIT_COMMAND_TIMEOUT" 300;
     src_directory = env_or Fpath.v "SEMGREP_SRC_DIRECTORY" (Fpath.v "/src");
-    user_data_folder;
+    user_dot_semgrep_dir;
     user_log_file =
-      env_or Fpath.v "SEMGREP_LOG_FILE" (user_data_folder / "semgrep.log");
+      env_or Fpath.v "SEMGREP_LOG_FILE" (user_dot_semgrep_dir / "semgrep.log");
     user_settings_file =
       env_or Fpath.v "SEMGREP_SETTINGS_FILE"
-        (user_data_folder / settings_filename);
+        (user_dot_semgrep_dir / settings_filename);
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";
     in_agent = in_env "SEMGREP_AGENT";

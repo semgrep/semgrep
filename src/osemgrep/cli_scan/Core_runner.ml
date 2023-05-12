@@ -1,5 +1,7 @@
+open File.Operators
 module Out = Semgrep_output_v1_t
 module RP = Report
+module Env = Semgrep_envvars
 
 (*************************************************************************)
 (* Prelude *)
@@ -51,6 +53,8 @@ type conf = {
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* osemgrep-only: *)
+  ast_caching : bool;
 }
 [@@deriving show]
 
@@ -185,7 +189,14 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
-  | { num_jobs; timeout; timeout_threshold; max_memory_mb; optimizations }
+  | {
+   num_jobs;
+   timeout;
+   timeout_threshold;
+   max_memory_mb;
+   optimizations;
+   ast_caching;
+  }
   (* TODO: time_flag = _;
   *) ->
       (* We should default to Json because we do not want the same text
@@ -197,6 +208,14 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
        *)
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
+      let parsing_cache_dir =
+        if ast_caching then
+          let dir = Env.env.user_dot_semgrep_dir / "cache" / "asts" in
+          match Bos.OS.Dir.create ~path:true dir with
+          | Ok _ -> Some dir
+          | Error (`Msg err) -> failwith err
+        else None
+      in
       {
         Runner_config.default with
         ncores = num_jobs;
@@ -205,6 +224,7 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         timeout_threshold;
         max_memory_mb;
         filter_irrelevant_rules;
+        parsing_cache_dir;
         version = Version.version;
       }
 
@@ -215,10 +235,12 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
-    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
-    (all_targets : Fpath.t list) : result =
+let invoke_semgrep_core ?(respect_git_ignore = true)
+    ?(file_match_results_hook = None) (conf : conf) (all_rules : Rule.t list)
+    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
+    result =
   let config : Runner_config.t = runner_config_of_conf conf in
+  let config = { config with file_match_results_hook } in
 
   match rule_errors with
   (* with semgrep-python, semgrep-core is passed all the rules unparsed,
@@ -281,8 +303,7 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
       let _exnTODO = None in
       (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
       (* LATER: we want to avoid this intermediate data structure but
-       * for now that's what semgrep-python used to get so simpler to
-       * return it.
+       * for now that's what pysemgrep used to get so simpler to return it.
        *)
       let match_results =
         JSON_report.match_results_of_matches_and_errors
@@ -307,3 +328,4 @@ let invoke_semgrep_core ?(respect_git_ignore = true) (conf : conf)
           | None -> ())
       *)
       { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+  [@@profiling]

@@ -49946,7 +49946,7 @@ GEM
     json (2.3.0)
     method_source (1.0.0)
     minitest (5.15.0)
-    parallel (1.21.0)
+    parallel (1.19.0)
     parser (3.1.0.0)
       ast (~> 2.4.1)
     power_assert (2.0.1)

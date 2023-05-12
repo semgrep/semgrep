@@ -113,6 +113,9 @@ val i_to_s : int -> string
 val s_to_i : string -> int
 val null_string : string -> bool
 
+(* Shortcut for Printf.sprintf *)
+val spf : ('a, unit, string) format -> 'a
+
 (* Perl-like regexp pattern matching. We need the many matchedxxx()
  * because OCaml does not support polytypic functions (same problem
  * with zip1/zip2/etc.).
@@ -134,15 +137,14 @@ val matched6 : string -> string * string * string * string * string * string
 val matched7 :
   string -> string * string * string * string * string * string * string
 
-(* Shortcut for Printf.sprintf *)
-val spf : ('a, unit, string) format -> 'a
+(* join/split strings *)
 val join : string (* sep *) -> string list -> string
 val split : string (* sep regexp *) -> string -> string list
 
 (*****************************************************************************)
 (* Real file paths - deprecated, use File.mli *)
 (*****************************************************************************)
-(* Deprecated.
+(* Deprecated!
 
    Migration in progress: File.ml reproduces the functions below and uses
    Fpath.t instead of strings to represent file/directory paths.
@@ -154,23 +156,14 @@ val split : string (* sep regexp *) -> string -> string list
  * Path module: https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
  *)
 type filename = string [@@deriving show, eq]
-(* the deriving above will define those functions below, which
- * are needed if one use 'deriving eq, show' on other types
- * using internally 'filename'
- * (e.g., 'type foo = Foo of filename [@@deriving show]')
- *
- * val pp_filename: Format.formatter -> filename -> unit
- * val equal_filename: filename -> filename -> bool
- *)
-
-(* for realpath, see efuns_c library or Realpath.ml in trimmed pfff  *)
 
 (*
    Check that the file exists and produce a valid absolute path for the file.
+   Deprecated: use the Rpath module instead!
 *)
 val fullpath : filename -> filename
 
-(* Deprecated: use the ppath library instead! *)
+(* Deprecated: use the Ppath module instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 
@@ -444,9 +437,6 @@ val partition_result :
 
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 
-val cache_computation :
-  ?use_cache:bool -> filename -> string (* extension *) -> (unit -> 'a) -> 'a
-
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
@@ -466,8 +456,30 @@ val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
 
 (*****************************************************************************)
+(* Disable physical equality/inequality operators *)
+(*****************************************************************************)
+
+(*
+   Disable the use of (==) since some people confuse it with structural
+   equality. We do this here since we're disabling in with semgrep anyway
+   and it's quicker if the compiler can report it.
+*)
+
+(* Physical (shallow) equality, normally available as (==) *)
+val phys_equal : 'a -> 'a -> bool
+
+(* Physical (shallow) inequality, normally available as (!=) *)
+val phys_not_equal : 'a -> 'a -> bool
+
+type hidden_by_your_nanny
+
+val ( == ) : hidden_by_your_nanny
+val ( != ) : hidden_by_your_nanny
+
+(*****************************************************************************)
 (* Operators *)
 (*****************************************************************************)
+
 (* if you just want to use the operators *)
 module Operators : sig
   val ( =~ ) : string -> string -> bool
@@ -476,6 +488,8 @@ module Operators : sig
   val ( =$= ) : char -> char -> bool
   val ( =:= ) : bool -> bool -> bool
   val ( =*= ) : 'a -> 'a -> bool
+  val ( == ) : hidden_by_your_nanny
+  val ( != ) : hidden_by_your_nanny
 end
 
 (*****************************************************************************)

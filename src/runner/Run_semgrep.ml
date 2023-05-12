@@ -546,7 +546,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
         lazy
           (Parse_with_caching.parse_and_resolve_name
              ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version
-             lang file)
+             lang (Fpath.v file))
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 
@@ -786,6 +786,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                }
              else matches
            in
+           (* So we can display matches incrementally in osemgrep!
+            * Note that this is run in a child process of Parmap, so
+            * the hook should not rely on shared memory.
+            *)
+           config.file_match_results_hook
+           |> Option.iter (fun hook -> hook (Fpath.v file) matches);
 
            update_cli_progress config;
 
@@ -944,17 +950,16 @@ let minirule_of_pattern lang pattern_string pattern =
  *)
 let pattern_of_config lang config =
   match (config.pattern_file, config.pattern_string) with
-  | "", "" -> failwith "I need a pattern; use -f or -e"
-  | s1, s2 when s1 <> "" && s2 <> "" ->
+  | None, None -> failwith "I need a pattern; use -f or -e"
+  | Some _s1, Some _s2 ->
       failwith "I need just one pattern; use -f OR -e (not both)"
-  | file, _ when file <> "" ->
-      let s = Common.read_file file in
+  | Some file, None ->
+      let s = File.read_file file in
       (parse_pattern lang s, s)
   (* this is for Emma, who often confuses -e with -f :) *)
-  | _, s when s =~ ".*\\.sgrep$" ->
+  | None, Some s when s =~ ".*\\.sgrep$" ->
       failwith "you probably want -f with a .sgrep file, not -e"
-  | _, s when s <> "" -> (parse_pattern lang s, s)
-  | _ -> raise Impossible
+  | None, Some s -> (parse_pattern lang s, s)
 
 (* simpler code path compared to semgrep_with_rules *)
 (* FIXME: don't use a different processing logic depending on the output

@@ -4,6 +4,11 @@ open IL
 let string_of_name name =
   Common.spf "%s:%s" (fst name.ident) (AST_generic.SId.show name.sid)
 
+let string_of_type (ty : IL.type_) =
+  match ty.type_.t with
+  | TyN (Id (id, _)) -> fst id
+  | __else__ -> "<TYPE>"
+
 let string_of_base base =
   match base with
   | Var x -> string_of_name x
@@ -70,6 +75,9 @@ let short_string_of_node_kind nkind =
             | Some lval -> string_of_lval lval ^ " = "
           in
           lval_str ^ string_of_exp exp ^ "(" ^ string_of_arguments args ^ ")"
+      | New (lval, ty, _cons, args) ->
+          Common.spf "%s = new %s(%s)" (string_of_lval lval) (string_of_type ty)
+            (string_of_arguments args)
       | CallSpecial (lval_opt, (call_special, _tok), args) ->
           let lval_str =
             match lval_opt with

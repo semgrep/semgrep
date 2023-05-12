@@ -409,6 +409,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
         (Lang.Csharp, "csharp", ".cs");
         (Lang.Lua, "lua", ".lua");
         (Lang.Rust, "rust", ".rs");
+        (Lang.Cairo, "cairo", ".cairo");
         (Lang.Yaml, "yaml", ".yaml");
         (Lang.Scala, "scala", ".scala");
         (Lang.Swift, "swift", ".swift");

@@ -47,15 +47,25 @@ module Resp = Output_from_core_t
 (*************************************************************************)
 
 type conf = {
-  project_root : Fpath.t option;
+  (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
+  (* global include list, passed via semgrep --include
+   * [!] include_ = None is the opposite of Some [].
+   * If a list of include patterns is specified, a path must match
+   * at least of the patterns to be selected.
+   *)
   include_ : string list option;
   max_target_bytes : int;
+  (* whether or not follow what is specified in the .gitignore
+   * TODO? what about .semgrepignore?
+   *)
   respect_git_ignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
   baseline_commit : string option;
   (* TODO: use *)
   scan_unknown_extensions : bool;
+  (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
+  project_root : Fpath.t option;
 }
 [@@deriving show]
 
@@ -150,6 +160,7 @@ let files_from_git_ls ~cwd:scan_root =
   tracked_output
   |> Common.map (fun x -> scan_root // x)
   |> List.filter is_valid_file
+  [@@profiling]
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
@@ -191,6 +202,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   | S_BLK
   | S_SOCK ->
       []
+  [@@profiling]
 
 (*************************************************************************)
 (* Dedup *)
@@ -255,6 +267,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
       skipped
   in
   (sorted_paths, sorted_skipped)
+  [@@profiling]
 
 (*************************************************************************)
 (* Grouping *)
@@ -406,6 +419,7 @@ let get_targets conf scanning_roots =
   List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
+  [@@profiling]
 
 (*************************************************************************)
 (* Target cache *)

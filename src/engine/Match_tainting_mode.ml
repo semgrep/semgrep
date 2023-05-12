@@ -548,7 +548,7 @@ let rec convert_taint_call_trace = function
 
 let pm_of_finding finding =
   match finding with
-  | T.ArgToArg _
+  | T.ToArg _
   | T.ToReturn _ ->
       None
   | ToSink

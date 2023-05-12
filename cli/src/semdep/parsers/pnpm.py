@@ -11,6 +11,7 @@ from semdep.external.parsy import string
 from semdep.external.parsy import string_from
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -95,7 +96,7 @@ all_dependency_data = (
 
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    ret = safe_path_parse(lockfile_path, all_dependency_data)
+    ret = safe_path_parse(lockfile_path, all_dependency_data, ParserName.pnpm_lock)
     if not ret:
         return []
     direct_deps, all_deps = ret

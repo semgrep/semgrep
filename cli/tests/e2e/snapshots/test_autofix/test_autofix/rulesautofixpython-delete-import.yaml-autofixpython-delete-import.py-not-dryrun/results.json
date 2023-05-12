@@ -1,0 +1,90 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/autofix/python-delete-import.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.python-typing-osemgrep",
+      "end": {
+        "col": 24,
+        "line": 2,
+        "offset": 34
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "",
+        "is_ignored": false,
+        "lines": "from typing import Dict",
+        "message": "found one",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "Dict",
+            "end": {
+              "col": 24,
+              "line": 2,
+              "offset": 34
+            },
+            "start": {
+              "col": 20,
+              "line": 2,
+              "offset": 30
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/python-delete-import.py",
+      "start": {
+        "col": 1,
+        "line": 2,
+        "offset": 11
+      }
+    },
+    {
+      "check_id": "rules.autofix.python-typing-osemgrep",
+      "end": {
+        "col": 24,
+        "line": 3,
+        "offset": 58
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "",
+        "is_ignored": false,
+        "lines": "from typing import List",
+        "message": "found one",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "List",
+            "end": {
+              "col": 24,
+              "line": 3,
+              "offset": 58
+            },
+            "start": {
+              "col": 20,
+              "line": 3,
+              "offset": 54
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/autofix/python-delete-import.py",
+      "start": {
+        "col": 1,
+        "line": 3,
+        "offset": 35
+      }
+    }
+  ],
+  "version": "0.42"
+}
