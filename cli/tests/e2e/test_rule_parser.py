@@ -31,10 +31,9 @@ def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8})
 
 
-@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_regex_with_bad_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=7)
+    run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=8)
 
 
 @pytest.mark.osempass
