@@ -428,10 +428,16 @@ let get_targets conf scanning_roots =
 let create_cache () = Hashtbl.create 1000
 
 let match_glob_pattern ~pat path =
+  (* if pattern uses a * and no /, use filename  *)
   let regex = Glob.Parse.parse_string pat in
+  let path =
+    if String.contains pat '*' && not (String.contains pat '/') then
+      Fpath.filename path
+    else Fpath.to_string path
+  in
   Glob.Match.run
     Glob.Match.(compile ~source:(string_loc ~source_kind:None pat) regex)
-    (Fpath.to_string path)
+    path
 
 let match_a_path_pattern path_patterns path =
   match path_patterns with
