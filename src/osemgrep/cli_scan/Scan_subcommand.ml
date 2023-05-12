@@ -253,102 +253,104 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           (fun r1 r2 -> String.equal (fst r1.Rule.id) (fst r2.Rule.id))
           rules
       in
-      let filtered_rules =
-        Rule_filtering.filter_rules conf.rule_filtering_conf rules
-      in
-      Logs.info (fun m ->
-          m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
-
-      (* step2: getting the targets *)
-      let targets, semgrepignored_targets =
-        Find_target.get_targets conf.targeting_conf conf.target_roots
-      in
-      Logs.debug (fun m ->
-          m "%a" Targets_report.pp_targets_debug
-            (conf.target_roots, semgrepignored_targets, targets));
-      Logs.info (fun m ->
-          semgrepignored_targets
-          |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
-                 m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
-                   (Output_from_core_t.show_skip_reason
-                      x.Output_from_core_t.reason)
-                   x.Output_from_core_t.details));
-
-      (* step3: running the engine *)
-      let output_format, file_match_results_hook =
-        match conf with
-        | { output_format = Output_format.Text; legacy = false; _ } ->
-            ( Output_format.TextIncremental,
-              Some (file_match_results_hook conf filtered_rules) )
-        | { output_format; _ } -> (output_format, None)
-      in
-      let (res : Core_runner.result) =
-        Core_runner.invoke_semgrep_core
-          ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
-          ~file_match_results_hook conf.core_runner_conf filtered_rules errors
-          targets
-      in
-
-      (* step4: report matches *)
-      let errors_skipped = errors_to_skipped res.core.errors in
-      let semgrepignored, included, excluded, size, other_ignored =
-        analyze_skipped semgrepignored_targets
-      in
-      let res =
-        let skipped_targets =
-          semgrepignored_targets @ errors_skipped @ res.core.skipped_targets
+      if Common.null rules then Exit_code.missing_config
+      else
+        let filtered_rules =
+          Rule_filtering.filter_rules conf.rule_filtering_conf rules
         in
-        (* Add the targets that were semgrepignored or errorneous *)
-        let core = { res.core with skipped_targets } in
-        { res with core }
-      in
+        Logs.info (fun m ->
+            m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
-      (* outputting the result! in JSON/Text/... depending on conf *)
-      let cli_errors = Output.output_result { conf with output_format } res in
+        (* step2: getting the targets *)
+        let targets, semgrepignored_targets =
+          Find_target.get_targets conf.targeting_conf conf.target_roots
+        in
+        Logs.debug (fun m ->
+            m "%a" Targets_report.pp_targets_debug
+              (conf.target_roots, semgrepignored_targets, targets));
+        Logs.info (fun m ->
+            semgrepignored_targets
+            |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
+                   m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
+                     (Output_from_core_t.show_skip_reason
+                        x.Output_from_core_t.reason)
+                     x.Output_from_core_t.details));
 
-      Logs.info (fun m ->
-          m "%a" Skipped_report.pp_skipped
-            ( conf.targeting_conf.respect_git_ignore,
-              conf.legacy,
-              conf.targeting_conf.max_target_bytes,
-              semgrepignored,
-              included,
-              excluded,
-              size,
-              other_ignored,
-              errors_skipped ));
-      Logs.app (fun m ->
-          m "%a" Summary_report.pp_summary
-            ( conf.targeting_conf.respect_git_ignore,
-              conf.targeting_conf.max_target_bytes,
-              semgrepignored,
-              included,
-              excluded,
-              size,
-              other_ignored,
-              errors_skipped ));
-      Logs.app (fun m ->
-          m "Ran %d rules on %d files: %d findings@."
-            (List.length filtered_rules)
-            (List.length targets)
-            (List.length res.core.matches));
+        (* step3: running the engine *)
+        let output_format, file_match_results_hook =
+          match conf with
+          | { output_format = Output_format.Text; legacy = false; _ } ->
+              ( Output_format.TextIncremental,
+                Some (file_match_results_hook conf filtered_rules) )
+          | { output_format; _ } -> (output_format, None)
+        in
+        let (res : Core_runner.result) =
+          Core_runner.invoke_semgrep_core
+            ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+            ~file_match_results_hook conf.core_runner_conf filtered_rules errors
+            targets
+        in
 
-      (* TOPORT? was in formater/base.py
-         def keep_ignores(self) -> bool:
-           """
-           Return True if ignored findings should be passed to this formatter;
-           False otherwise.
-           Ignored findings can still be distinguished using their _is_ignore property.
-           """
-           return False
-      *)
+        (* step4: report matches *)
+        let errors_skipped = errors_to_skipped res.core.errors in
+        let semgrepignored, included, excluded, size, other_ignored =
+          analyze_skipped semgrepignored_targets
+        in
+        let res =
+          let skipped_targets =
+            semgrepignored_targets @ errors_skipped @ res.core.skipped_targets
+          in
+          (* Add the targets that were semgrepignored or errorneous *)
+          let core = { res.core with skipped_targets } in
+          { res with core }
+        in
 
-      (* step5: exit with the right exit code *)
-      match cli_errors with
-      | [] ->
-          (* final result for the shell *)
-          exit_code_of_errors ~strict:conf.strict res.core.errors
-      | errors -> exit_code_of_cli_errors errors)
+        (* outputting the result! in JSON/Text/... depending on conf *)
+        let cli_errors = Output.output_result { conf with output_format } res in
+
+        Logs.info (fun m ->
+            m "%a" Skipped_report.pp_skipped
+              ( conf.targeting_conf.respect_git_ignore,
+                conf.legacy,
+                conf.targeting_conf.max_target_bytes,
+                semgrepignored,
+                included,
+                excluded,
+                size,
+                other_ignored,
+                errors_skipped ));
+        Logs.app (fun m ->
+            m "%a" Summary_report.pp_summary
+              ( conf.targeting_conf.respect_git_ignore,
+                conf.targeting_conf.max_target_bytes,
+                semgrepignored,
+                included,
+                excluded,
+                size,
+                other_ignored,
+                errors_skipped ));
+        Logs.app (fun m ->
+            m "Ran %d rules on %d files: %d findings@."
+              (List.length filtered_rules)
+              (List.length targets)
+              (List.length res.core.matches));
+
+        (* TOPORT? was in formater/base.py
+           def keep_ignores(self) -> bool:
+             """
+             Return True if ignored findings should be passed to this formatter;
+             False otherwise.
+             Ignored findings can still be distinguished using their _is_ignore property.
+             """
+             return False
+        *)
+
+        (* step5: exit with the right exit code *)
+        match cli_errors with
+        | [] ->
+            (* final result for the shell *)
+            exit_code_of_errors ~strict:conf.strict res.core.errors
+        | errors -> exit_code_of_cli_errors errors)
 
 (*****************************************************************************)
 (* Entry point *)
