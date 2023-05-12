@@ -1476,7 +1476,10 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
             let loc = Tok.first_loc_of_file !!file in
             yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
-    | _ -> (Tok.(tok_of_loc (first_loc_of_file !!file)), [])
+    | [] ->
+        (* an empty rules file returns an empty list of rules *)
+        (Tok.(tok_of_loc (first_loc_of_file !!file)), [])
+    | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in
   let xs =
