@@ -86,7 +86,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 
 ### Performance
 
-Performance data enable understanding of which rules and types of files are slow in the aggregate so r2c can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
+Performance data enable understanding of which rules and types of files are slow in the aggregate so Semgrep, Inc can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
 
 - Runtime duration
 - Total number of rules
@@ -122,7 +122,7 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 
 ### Pseudoanonymization
 
-Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the r2c backend.
+Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the Semgrep, Inc backend.
 
 "Pseudoanonymized" means the data are transformed using a deterministic cryptographically secure hash. When the input data are unknown, this hash is expensive to reverse. However, when input data are known, a reverse dictionary of identifiers to hashes can be built. Hence, data are anonymous only when the source values are unknown.
 
@@ -133,15 +133,15 @@ We use a deterministic hash to:
 
 Using a deterministic hash, however, implies:
 
-- An entity that independently knows the value of an input datum AND who has access to r2c's metrics data could access metrics for that known datum
+- An entity that independently knows the value of an input datum AND who has access to Semgrep, Inc's metrics data could access metrics for that known datum
 
-r2c will:
+Semgrep, Inc will:
 
 - Treat collected metrics data as secret, using application-security best practices, including (but not limited to)
   - Encryption during transit and rest
   - Strict access control to data-storage systems
   - Application-security-policy requirements for third parties (e.g. cloud-service providers; see "data sharing" below)
-- Only correlate hashed data to input data when these inputs are already known to r2c (e.g. publicly available project URLs for open-source projects, or projects that log in to the Semgrep Registry)
+- Only correlate hashed data to input data when these inputs are already known to Semgrep, Inc (e.g. publicly available project URLs for open-source projects, or projects that log in to the Semgrep Registry)
 
 ## Description of metrics fields
 
@@ -318,7 +318,7 @@ data is sent to power your dashboard, notification, and finding management featu
 These data are ONLY sent when using `semgrep ci` in an App-connected mode
 and are not sent when not logged in.
 
-Two types of data are sent to r2c servers for this logged-in use case: scan data and findings data.
+Two types of data are sent to Semgrep, Inc servers for this logged-in use case: scan data and findings data.
 
 **Scan data** provide information on the environment and performance of Semgrep.
 They power dashboards, identify anomalies with the product, and are needed for billing.
