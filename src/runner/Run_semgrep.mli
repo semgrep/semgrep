@@ -101,7 +101,15 @@ val semgrep_with_one_pattern : Runner_config.t -> unit
 
 val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
 (** [semgrep_with_rules_and_formatted_output config] calls
-    [semgrep_with_raw_results_and_exn_handler] and
+    [semgrep_with_raw_results_and_exn_handler] and then
+    [output_semgrep_results] on the results
+*)
+
+val output_semgrep_results :
+  Exception.t option * Report.final_result * Common.filename list ->
+  Runner_config.t ->
+  unit
+(** [output_semgrep_results] takes the results of a semgrep run and
     format the results on stdout either in a JSON or Textual format
     (depending on the value in config.output_format)
 
