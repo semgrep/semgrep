@@ -422,11 +422,10 @@ def ci(
             cai_rules.append(rule)
         elif rule.is_prev_scan:
             prev_scan_rules.append(rule)
+        elif rule.is_blocking:
+            blocking_rules.append(rule)
         else:
-            if rule.is_blocking:
-                blocking_rules.append(rule)
-            else:
-                nonblocking_rules.append(rule)
+            nonblocking_rules.append(rule)
 
     # Split up matches into respective categories
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
