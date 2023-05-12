@@ -501,7 +501,7 @@ let parse_paths env key value =
   (* alt: we could use report_unparsed_fields(), but better to raise an error for now
      to be compatible with pysemgrep *)
   if Hashtbl.length paths_dict.h > 0 then
-    error_at_key env key
+    error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)";
   { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }

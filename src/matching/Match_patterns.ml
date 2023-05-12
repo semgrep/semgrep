@@ -52,7 +52,8 @@ let set_last_matched_rule rule f =
    * reset to None and that's what we want!
    *)
   let res =
-    if !profile_mini_rules then Profiling.profile_code ("rule:" ^ rule.MR.id) f
+    if !profile_mini_rules then
+      Profiling.profile_code ("rule:" ^ (rule.MR.id :> string)) f
     else f ()
   in
   last_matched_rule := None;
