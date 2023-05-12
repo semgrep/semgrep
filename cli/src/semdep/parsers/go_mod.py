@@ -15,6 +15,7 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -48,7 +49,7 @@ def make_directive(
     return pair(dir, multi_spec(spec))
 
 
-dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2))
+dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.result(None)
 
 specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
     "module": consume_line,
@@ -64,7 +65,8 @@ directive = alt(
 )
 
 go_mod = (
-    directive.sep_by((comment.optional() >> string("\n")).at_least(1))
+    (comment.optional() >> string("\n")).many()
+    >> directive.sep_by((comment.optional() >> string("\n")).at_least(1))
     << (comment.optional() >> string("\n")).many()
 )
 
@@ -72,7 +74,7 @@ go_mod = (
 def parse_go_mod(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    specs = safe_path_parse(lockfile_path, go_mod)
+    specs = safe_path_parse(lockfile_path, go_mod, ParserName.go_mod)
     if not specs:
         return []
     exclude = set()

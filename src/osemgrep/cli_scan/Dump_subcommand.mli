@@ -8,7 +8,7 @@ type conf = { target : target_kind; json : bool }
 and target_kind =
   | Pattern of string * Lang.t
   | File of Fpath.t * Lang.t
-  | Config of Semgrep_dashdash_config.config_str
+  | Config of Semgrep_dashdash_config.config_string
 [@@deriving show]
 
 val run : conf -> Exit_code.t

@@ -175,7 +175,7 @@ let should_match_call = function
       false
 
 (*****************************************************************************)
-(* Optimisations (caching, bloom filter) *)
+(* Optimisations (caching) *)
 (*****************************************************************************)
 
 (* Getters and setters that were left abstract in the cache implementation. *)
@@ -186,31 +186,6 @@ let cache_access : tin Caching.Cache.access =
     get_mv_field = (fun tin -> tin.mv);
     set_mv_field = (fun tin mv -> { tin with mv });
   }
-
-let stmts_may_match pattern_stmts (stmts : G.stmt list) =
-  (* We could gather all the strings from the stmts
-     and perform one intersection, but this is quite slow.
-     By iterating over each stmt, we can shortcircuit *)
-  if not !Flag.use_bloom_filter then true
-  else
-    let pattern_strs =
-      Bloom_annotation.set_of_pattern_strings (Ss pattern_stmts)
-    in
-    let pats_in_stmt pats (stmt : AST_generic.stmt) =
-      match stmt.s_strings with
-      | None -> true
-      | Some strs -> Set_.subset pats strs
-    in
-    let rec patterns_in_any_stmt pats stmts acc =
-      match stmts with
-      | [] -> acc
-      | stmt :: rest -> (
-          match acc with
-          | false -> patterns_in_any_stmt pats rest (pats_in_stmt pats stmt)
-          | true -> acc)
-    in
-    patterns_in_any_stmt pattern_strs stmts true
-  [@@profiling]
 
 (*****************************************************************************)
 (* Name *)
@@ -365,12 +340,8 @@ let m_with_symbolic_propagation ~is_root f b tin =
            * we do, we shouldn't crash. This simple check will not protect
            * against complicated paths through which a symbol could resolve to
            * itself, but if it directly resolves to itself, we can easily catch
-           * it.
-           *
-           * Yes, Semgrep, I want physical equality.
-           *
-           * nosemgrep *)
-          if b1 == b then (
+           * it. *)
+          if phys_equal b1 b then (
             logger#error
               "Aborting symbolic propagation: Circular reference encountered \
                (\"%s\")"
@@ -923,10 +894,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
-  (* TODO? should probably do some equivalence like allowing extra
-   * paren in the pattern to still match code without parens
-   *)
-  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
@@ -1053,7 +1020,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.N _, _
   | G.New _, _
   | G.IdSpecial _, _
-  | G.ParenExpr _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _
@@ -1507,7 +1473,6 @@ and type_of_expr lang e : G.type_ option * G.ident option =
       | Some _
       | None ->
           (None, Some idb))
-  | B.ParenExpr (_, e, _) -> type_of_expr lang e
   | B.Conditional (_, e1, e2) ->
       let ( let* ) = Option.bind in
       let t1opt, id1opt = type_of_expr lang e1 in
@@ -2218,13 +2183,11 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
-          (if not (stmts_may_match xsa xsb) then fail ()
-          else
-            match SubAST_generic.flatten_substmts_of_stmts xsb with
-            | None -> fail () (* was already flat *)
-            | Some (xsb, last_stmt) ->
-                m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id)
-                  xsa xsb)
+          (match SubAST_generic.flatten_substmts_of_stmts xsb with
+          | None -> fail () (* was already flat *)
+          | Some (xsb, last_stmt) ->
+              m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
+                xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _

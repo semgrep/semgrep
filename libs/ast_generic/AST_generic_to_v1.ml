@@ -219,9 +219,6 @@ and map_qualifier = function
 
 and map_expr x : B.expr =
   match x.e with
-  | ParenExpr v1 ->
-      let v1 = map_bracket map_expr v1 in
-      `ParenExpr v1
   | N v1 ->
       let v1 = map_name v1 in
       `N v1
@@ -814,6 +811,7 @@ and map_other_stmt_operator = function
   | OS_Redo -> "Redo"
   | OS_Retry -> "Retry"
   | OS_ExprStmt2 -> "ExprStmt2"
+  | OS_Extension -> "Extension"
   | OS_Todo -> "Todo"
 
 and map_other_stmt_with_stmt_operator = function

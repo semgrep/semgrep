@@ -678,7 +678,9 @@ class TargetManager:
             return FilteredFiles(candidates)
 
         kept, removed = partition(
-            candidates, lambda path: os.path.getsize(path) <= max_target_bytes
+            candidates,
+            lambda path: os.path.isfile(path)
+            and os.path.getsize(path) <= max_target_bytes,
         )
 
         return FilteredFiles(frozenset(kept), frozenset(removed))

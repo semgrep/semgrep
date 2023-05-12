@@ -282,9 +282,6 @@ and vof_name = function
 and vof_expr e =
   (* TODO: also dump e_id? *)
   match e.e with
-  | ParenExpr v1 ->
-      let v1 = vof_bracket vof_expr v1 in
-      OCaml.VSum ("ParenExpr", [ v1 ])
   | DotAccessEllipsis (v1, v2) ->
       let v1 = vof_expr v1 in
       let v2 = vof_tok v2 in
@@ -1018,6 +1015,7 @@ and vof_other_stmt_operator = function
   | OS_Asm -> OCaml.VSum ("OS_Asm", [])
   | OS_Go -> OCaml.VSum ("OS_Go", [])
   | OS_Defer -> OCaml.VSum ("OS_Defer", [])
+  | OS_Extension -> OCaml.VSum ("OS_Extension", [])
   | OS_Fallthrough -> OCaml.VSum ("OS_Fallthrough", [])
 
 and vof_pattern = function

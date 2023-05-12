@@ -47,10 +47,7 @@ val create :
    Use Git_project.find_project_root to determine the root of the
    git project and obtain valid git paths (paths relative to the project root).
 *)
-val select :
-  t ->
-  Ppath.t ->
-  Gitignore_filter.status * Gitignore_syntax.selection_event list
+val select : t -> Ppath.t -> Gitignore.status * Gitignore.selection_event list
 
 (* TODO: list project files without relying on 'git ls-files'.
       This will allow de-excluding some files using negated patterns in

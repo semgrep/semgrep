@@ -11,7 +11,7 @@ type t = {
 }
 
 let check_nonnegated_pattern str =
-  match Gitignore_syntax.remove_negator str with
+  match Gitignore.remove_negator str with
   | None -> ()
   | Some _ -> failwith ("--include patterns cannot be negated: " ^ str)
 
@@ -20,7 +20,7 @@ let create ~project_root patterns =
   let glob_matchers =
     Common.map
       (fun pat ->
-        Gitignore_syntax.parse_pattern
+        Parse_gitignore.parse_pattern
           ~source:
             (Glob.Match.string_loc ~source_name:"include pattern"
                ~source_kind:(Some "include") pat)
@@ -84,8 +84,7 @@ let select t (full_git_path : Ppath.t) =
     t.glob_matchers
     |> find_first (fun matcher -> scan_segments matcher Ppath.root rel_segments)
   with
-  | None ->
-      (Gitignore_filter.Ignored, [ Gitignore_syntax.Selected t.no_match_loc ])
+  | None -> (Gitignore.Ignored, [ Gitignore.Selected t.no_match_loc ])
   | Some loc ->
       (* !! Deselected for gitignore = not ignored !! *)
-      (Gitignore_filter.Not_ignored, [ Gitignore_syntax.Deselected loc ])
+      (Gitignore.Not_ignored, [ Gitignore.Deselected loc ])

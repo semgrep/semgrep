@@ -129,13 +129,11 @@ let visitor_info_of_tok f = function
   | Kpackage ii -> Kpackage (f ii)
   | Koverride ii -> Koverride (f ii)
   | Kobject ii -> Kobject (f ii)
-  | Kenum ii -> Kenum (f ii)
   | Knull ii -> Knull (f ii)
   | Knew ii -> Knew (f ii)
   | Kmatch ii -> Kmatch (f ii)
   | Klazy ii -> Klazy (f ii)
   | Kimport ii -> Kimport (f ii)
-  | Kexport ii -> Kexport (f ii)
   | Kimplicit ii -> Kimplicit (f ii)
   | Kif ii -> Kif (f ii)
   | KforSome ii -> KforSome (f ii)
@@ -250,6 +248,23 @@ let inLastOfStat x =
 (* Used in the parser *)
 (* ------------------------------------------------------------------------- *)
 
+(* This function is for using a token of lookahead to check whether we should
+   enter an exportClause.
+   Since an `export` used as a keyword is always followed by an `id`, we can
+   prevent more false positives of `export` used as a keyword when it shouldn't,
+   by looking ahead a token.
+*)
+let isPathStart = function
+  | ID_LOWER _
+  | ID_UPPER _
+  | ID_BACKQUOTED _
+  | OP _
+  | ID_DOLLAR _
+  | Kthis _
+  | Ksuper _ ->
+      true
+  | _ -> false
+
 let isIdent = function
   | ID_LOWER ("given", _) -> None
   | ID_LOWER (s, info)
@@ -339,6 +354,17 @@ let isStatSep = function
 let isStatSeqEnd = function
   | RBRACE _
   | DEDENT _
+  (* This is here so we know how to end a blockStatSeq which is the "then"
+     expression in an if-then-else, like
+     if (true)
+       val x = 2
+       val y = 3
+     else
+       4
+     It should be safe to put this here, because there shouldn't be another reason
+     to see an `else`.
+  *)
+  | Kelse _
   | EOF _ ->
       true
   | _ -> false
@@ -377,15 +403,20 @@ let isLocalModifier = function
 (* Construct Intro *)
 (* ------------------------------------------------------------------------- *)
 
-let isTemplateIntro = function
-  | Kobject _
-  | Kclass _
-  | Kenum _
-  | Ktrait _
-  | ID_LOWER ("given", _) ->
+(* Some keywords are "soft keywords", which means they are lexed as identifiers,
+   but contextually may act as keywords.
+   When deciding if we want to parse a templateStat, we first check for
+   expressions. This would incorrectly flag these soft keywords, which can
+   otherwise start a templateStat, so this function whitelists them to not
+   enter the `expr` case, in favor of parsing them as templateStat keywords.
+*)
+let isTemplateStatIntroSoftKeyword = function
+  | ID_LOWER ("enum", _)
+  | ID_LOWER ("given", _)
+  | ID_LOWER ("end", _)
+  | ID_LOWER ("export", _)
+  | ID_LOWER ("extension", _) ->
       true
-  (*TODO | Kcaseobject | | Kcaseclass *)
-  | Kcase _ -> true
   | _ -> false
 
 let isDclIntro = function
@@ -422,7 +453,17 @@ let isExprIntro x =
       true
   | _ -> false
 
-let isDefIntro x = isTemplateIntro x || isDclIntro x
+let isTemplateDefIntro x =
+  match x with
+  | Kobject _
+  | Kclass _
+  | Ktrait _
+  | ID_LOWER ("enum", _)
+  | ID_LOWER ("given", _) ->
+      true
+  | _ -> false
+
+let isDefIntro x = isDclIntro x || isTemplateDefIntro x
 
 let isTypeIntroToken x =
   (isLiteral x && not (isNull x))

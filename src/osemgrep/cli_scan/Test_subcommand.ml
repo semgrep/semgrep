@@ -28,9 +28,9 @@ type conf = {
 and target_kind =
   | Dir of
       Fpath.t
-      * Semgrep_dashdash_config.config_str option (* optional --config *)
+      * Semgrep_dashdash_config.config_string option (* optional --config *)
   | File of
-      Fpath.t * Semgrep_dashdash_config.config_str (* mandatory --config *)
+      Fpath.t * Semgrep_dashdash_config.config_string (* mandatory --config *)
 [@@deriving show]
 
 (*****************************************************************************)

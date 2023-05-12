@@ -102,6 +102,14 @@ class ErrorsSchema(TypedDict, total=False):
     errors: List[str]
 
 
+class ExtensionSchema(TypedDict, total=False):
+    machineId: Optional[str]
+    isNewAppInstall: Optional[bool]
+    sessionId: Optional[str]
+    version: Optional[str]
+    type: Optional[str]
+
+
 class ValueRequiredSchema(TypedDict):
     features: Set[str]
 
@@ -134,6 +142,7 @@ class TopLevelSchema(TopLevelRequiredSchema, total=False):
 class PayloadSchema(TopLevelSchema):
     environment: EnvironmentSchema
     performance: PerformanceSchema
+    extension: ExtensionSchema
     errors: ErrorsSchema
     value: ValueSchema
     parse_rate: Dict[Language, ParseStatSchema]
@@ -184,6 +193,7 @@ class Metrics:
             environment=EnvironmentSchema(version=__VERSION__),
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
+            extension=ExtensionSchema(),
             value=ValueSchema(features=set()),
             parse_rate=dict(),
             started_at=datetime.now(),
@@ -378,6 +388,23 @@ class Metrics:
                 num_bytes=data.num_bytes,
             )
             for (lang, data) in parse_rates.get_errors_by_lang().items()
+        }
+
+    @suppress_errors
+    def add_extension(
+        self,
+        machine_id: Optional[str],
+        new_install: Optional[bool],
+        session_id: Optional[str],
+        version: Optional[str],
+        type: Optional[str],
+    ) -> None:
+        self.payload["extension"] = {
+            "machineId": machine_id,
+            "isNewAppInstall": new_install,
+            "sessionId": session_id,
+            "version": version,
+            "type": type,
         }
 
     def as_json(self) -> str:

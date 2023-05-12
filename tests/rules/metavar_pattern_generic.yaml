@@ -7,6 +7,6 @@ rules:
     - metavariable-pattern:
         metavariable: $...ARGS
         language: generic
-        pattern: 2
+        pattern: "2"
   message: rule_template_message
   severity: ERROR

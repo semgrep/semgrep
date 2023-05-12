@@ -68,7 +68,7 @@ class SemgrepCoreLSServer:
 
     def start_ls(self) -> None:
         cmd = [
-            "semgrep-core",
+            str(self.config.engine_type.get_binary_path()),
             "-j",
             str(self.config.jobs),
             "-rules",
@@ -77,6 +77,10 @@ class SemgrepCoreLSServer:
             self.target_file.name,
             "-max_memory",
             str(self.config.max_memory),
+            "-timeout",
+            str(self.config.timeout),
+            "-timeout_threshold",
+            str(self.config.timeout_threshold),
             "-fast",
             "-ls",
         ]
@@ -141,6 +145,8 @@ class SemgrepCoreLSServer:
             self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
         else:
             self.config = LSPConfig(config, [])
+
+        self.config.send_metrics()
 
     def m_semgrep__login(self, id: str) -> None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""

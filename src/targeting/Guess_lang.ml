@@ -241,6 +241,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Apex
     | Bash
     | C
+    | Cairo
     | Clojure
     | Cpp
     | Csharp

@@ -370,7 +370,6 @@ let rec is_symbolic_expr expr =
   | G.L _ -> true
   | G.N _ -> true
   | G.IdSpecial _ -> true
-  | G.ParenExpr (_, e, _)
   | G.Cast (_, _, e)
   | G.DotAccess (e, _, FN _) ->
       is_symbolic_expr e
@@ -514,6 +513,8 @@ let transfer :
                * call itself as a symbolic expression. *)
               let ccall = sym_prop instr.iorig in
               update_env_with inp' var ccall
+        | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
+            update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial
             (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
             let args = Common.map IL_helpers.exp_of_arg args in
@@ -605,7 +606,7 @@ let update_svalue (flow : F.cfg) mapping =
           (fun ii ->
             (* Note the use of physical equality, we are looking for the *same*
              * id_svalue ref, that tells us it's the same variable occurrence. *)
-            var.id_info.id_svalue != (* nosemgrep *) ii.id_svalue)
+            phys_not_equal var.id_info.id_svalue ii.id_svalue)
           (G.E e)
     | G.NotCst
     | G.Cst _
