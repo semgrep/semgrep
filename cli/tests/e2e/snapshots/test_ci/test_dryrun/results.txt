@@ -250,6 +250,40 @@ Would have sent findings and ignores blob: {
             }
         },
         {
+            "check_id": "abceversion1",
+            "path": "foo.py",
+            "line": 19,
+            "column": 5,
+            "end_line": 19,
+            "end_column": 13,
+            "message": "useless comparison to 4 (old version)",
+            "severity": 2,
+            "index": 1,
+            "commit_date": <MASKED>
+            "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
+            "metadata": {
+                "dev.semgrep.actions": [],
+                "semgrep.dev": {
+                    "rule": {
+                        "rule_id": "abce",
+                        "version_id": "version1",
+                        "url": "https://semgrep.dev/r/python.eqeq-five",
+                        "shortlink": "https://sg.run/abcd",
+                        "rule_name": "eqeq-four"
+                    },
+                    "src": "previous-scan"
+                }
+            },
+            "is_blocking": false,
+            "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
+            "hashes": {
+                "start_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+                "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+                "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+                "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+            }
+        },
+        {
             "check_id": "eqeq-four",
             "path": "foo.py",
             "line": 19,
@@ -450,7 +484,23 @@ Would have sent findings and ignores blob: {
             }
         }
     ],
-    "prev_scan_findings": [
+    "searched_paths": [
+        "foo.py",
+        "poetry.lock",
+        "yarn.lock"
+    ],
+    "renamed_paths": [],
+    "rule_ids": [
+        "eqeq-bad",
+        "eqeq-five",
+        "eqeq-four",
+        "abceversion1",
+        "taint-test",
+        "supply-chain1",
+        "supply-chain2"
+    ],
+    "cai_ids": [],
+    "ignores": [
         {
             "check_id": "abceversion1",
             "path": "foo.py",
@@ -485,57 +535,6 @@ Would have sent findings and ignores blob: {
                 "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
             }
         },
-        {
-            "check_id": "abceversion1",
-            "path": "foo.py",
-            "line": 19,
-            "column": 5,
-            "end_line": 19,
-            "end_column": 13,
-            "message": "useless comparison to 4 (old version)",
-            "severity": 2,
-            "index": 1,
-            "commit_date": <MASKED>
-            "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
-            "metadata": {
-                "dev.semgrep.actions": [],
-                "semgrep.dev": {
-                    "rule": {
-                        "rule_id": "abce",
-                        "version_id": "version1",
-                        "url": "https://semgrep.dev/r/python.eqeq-five",
-                        "shortlink": "https://sg.run/abcd",
-                        "rule_name": "eqeq-four"
-                    },
-                    "src": "previous-scan"
-                }
-            },
-            "is_blocking": false,
-            "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
-            "hashes": {
-                "start_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
-                "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
-                "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
-                "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
-            }
-        }
-    ],
-    "searched_paths": [
-        "foo.py",
-        "poetry.lock",
-        "yarn.lock"
-    ],
-    "renamed_paths": [],
-    "rule_ids": [
-        "eqeq-bad",
-        "eqeq-five",
-        "eqeq-four",
-        "taint-test",
-        "supply-chain1",
-        "supply-chain2"
-    ],
-    "cai_ids": [],
-    "ignores": [
         {
             "check_id": "eqeq-four",
             "path": "foo.py",
@@ -676,7 +675,7 @@ Would have sent complete blob: {
     "exit_code": 1,
     "dependency_parser_errors": [],
     "stats": {
-        "findings": 10,
+        "findings": 11,
         "errors": [],
         "total_time": <MASKED>
         "unsupported_exts": {
