@@ -542,7 +542,10 @@ def main(
         {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
 
-    findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
+    findings_count = sum(
+        len([match for match in matches if not match.is_prev_scan])
+        for matches in rule_matches_by_rule.values()
+    )
 
     # Run baseline if needed
     if baseline_handler:
