@@ -11,7 +11,7 @@ module MvarMap = Map.Make (String)
 module MvarSet = Set.Make (struct
   type t = Metavariable.mvalue
 
-  let compare a b = if M.Structural.equal_mvalue a b then 0 else compare a b
+  let compare a b = if M.Syntactic.equal_mvalue a b then 0 else compare a b
 end)
 
 (* Functions for Join Mode
