@@ -16,7 +16,7 @@ from jinja2 import select_autoescape
 
 
 # These languages are not covered by Lang.ml
-EXTERNAL_LANGS = ["generic", "regex"]
+EXTERNAL_LANGS = ["aliengrep", "generic", "regex", "spacegrep"]
 
 
 @dataclass(frozen=True)

@@ -659,7 +659,7 @@ let extracted_targets_of_config (config : Runner_config.t)
   in
   let extracted_ranges =
     basic_targets
-    |> List.concat_map (fun t ->
+    |> List.concat_map (fun (t : In.target) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let file = t.In.path in

@@ -20,9 +20,10 @@
 
 type target = {
   path: string (* source file *);
-  (* examples: "ocaml", "python", but also "generic" or "regexp".
-   * less: would be great to use Lang.t here, but atd does not
-   * allow (by design) to use types defined in other files.
+  (* Must be a valid "language" as defined in Xlang.mli.
+     examples: "ocaml", "python", but also "spacegrep" or "regexp".
+     less: would be great to use Lang.t here, but atd does not
+     allow (by design) to use types defined in other files.
    *)
   language: string;
   (* Index in the rule_ids list in targets of the rule_id to

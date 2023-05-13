@@ -33,6 +33,7 @@
 )
 
 ; Handle jinja2 generation of Lang.ml and Lang.mli
+; TODO: get rid of this monstrosity.
 (data_only_dirs lang)
 (rule
 
