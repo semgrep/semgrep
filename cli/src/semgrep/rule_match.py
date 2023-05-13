@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:
-    return value.rstrip() if value else None
+    return value.rstrip() if value is not None else None
 
 
 @total_ordering

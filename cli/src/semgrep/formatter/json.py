@@ -37,7 +37,7 @@ class JsonFormatter(BaseFormatter):
             extra.sca_info = rule_match.extra.get("sca_info")
         if rule_match.extra.get("fixed_lines"):
             extra.fixed_lines = rule_match.extra.get("fixed_lines")
-        if rule_match.fix:
+        if rule_match.fix is not None:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
             extra.fix_regex = rule_match.fix_regex

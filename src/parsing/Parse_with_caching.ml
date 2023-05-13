@@ -153,9 +153,9 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                  * special chars in a file path.
                  * hopefully there will be no collision
                  *)
-                let md5 = Digest.string str in
+                let md5_hex = Digest.string str |> Digest.to_hex in
                 (* TODO: create parsing_cache_dir in Cache_disk.ml, factorize *)
-                parsing_cache_dir // Fpath.(v md5 + binary_suffix));
+                parsing_cache_dir // Fpath.(v md5_hex + binary_suffix));
             cache_extra_for_input = cache_extra_for_input version;
             check_extra =
               (fun (version2, file2, mtime2) ->

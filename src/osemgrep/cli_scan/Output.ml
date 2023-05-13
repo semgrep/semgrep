@@ -101,7 +101,7 @@ let dispatch_output_format (output_format : Output_format.t)
              } ->
                  let severity = String.lowercase_ascii severity in
                  let severity_and_ruleid =
-                   if check_id = Constants.cli_rule_id then severity
+                   if check_id = Constants.rule_id_for_dash_e then severity
                    else
                      let xs =
                        check_id |> Str.split (Str.regexp_string ".") |> List.rev
@@ -137,6 +137,8 @@ let dispatch_output_format (output_format : Output_format.t)
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
         ~color_output:conf.force_color Format.std_formatter cli_output
+  (* matches have already been displayed in a file_match_results_hook *)
+  | TextIncremental -> ()
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml

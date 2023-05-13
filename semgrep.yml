@@ -365,3 +365,19 @@ rules:
     fix: Common.tl_exn "unexpected empty list"
     languages: [ocaml]
     severity: WARNING
+
+  - id: no-metavariable-equal-xyz
+    patterns:
+      - pattern: Metavariable.$F
+      - pattern-not: Metavariable.equal_mvar
+      - metavariable-regex:
+          metavariable: $F
+          regex: equal_.*
+    message: >-
+      Don't use 'Metavariable.$F' directly, see 'AST_utils'. Instead use
+      either 'Metavariable.Structural.$F' or 'Metavariable.Referential.$F'.
+      You can also consider replacing `equal_mvalue` with
+      'Matching_generic.equal_ast_bound_code'.
+    fix: Metavariable.Structural.$F
+    languages: [ocaml]
+    severity: WARNING

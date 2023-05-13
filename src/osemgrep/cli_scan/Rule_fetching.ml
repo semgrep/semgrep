@@ -383,7 +383,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
         | XP.Regexp _ ->
             ());
         let rule = Rule.rule_of_xpattern xlang xpat in
-        let rule = { rule with id = (Constants.cli_rule_id, fk); fix } in
+        let rule = { rule with id = (Constants.rule_id_for_dash_e, fk); fix } in
         { origin = None; rules = [ rule ]; errors = [] }
       in
 

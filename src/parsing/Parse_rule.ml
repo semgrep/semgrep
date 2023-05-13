@@ -174,9 +174,6 @@ let read_string_wrap e =
   | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
       Some (value, t)
-  | G.L (Float (Some n, t)) ->
-      if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
-      else Some (string_of_float n, t)
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
 
@@ -483,6 +480,12 @@ let parse_paths env key value =
     ( take_opt paths_dict env parse_string_list "include",
       take_opt paths_dict env parse_string_list "exclude" )
   in
+  (* alt: we could use report_unparsed_fields(), but better to raise an error for now
+     to be compatible with pysemgrep *)
+  if Hashtbl.length paths_dict.h > 0 then
+    error_at_key env key
+      "Additional properties are not allowed (only 'include' and 'exclude' are \
+       supported)";
   { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
 let parse_options env (key : key) value =
@@ -1476,6 +1479,9 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
             let loc = Tok.first_loc_of_file !!file in
             yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
+    | [] ->
+        (* an empty rules file returns an empty list of rules *)
+        (Tok.(tok_of_loc (first_loc_of_file !!file)), [])
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in
