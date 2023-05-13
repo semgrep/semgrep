@@ -3,7 +3,7 @@ CI="true" CIRCLECI="true" CIRCLE_PROJECT_USERNAME="project_name" CIRCLE_PROJECT_
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -105,9 +105,12 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  Has findings for blocking rules so exiting with code 1
+ScanHandler.report_findings() takes 12 positional arguments but 13 were given
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 492, in ci
+    scan_handler.report_findings(
+TypeError: ScanHandler.report_findings() takes 12 positional arguments but 13 were given
 
 === end of stderr - plain

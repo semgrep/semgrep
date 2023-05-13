@@ -3,7 +3,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
@@ -75,10 +75,13 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 2 findings (0 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  No blocking findings so exiting with code 0
+ScanHandler.report_findings() takes 12 positional arguments but 13 were given
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 492, in ci
+    scan_handler.report_findings(
+TypeError: ScanHandler.report_findings() takes 12 positional arguments but 13 were given
 
 === end of stdout - plain
 
