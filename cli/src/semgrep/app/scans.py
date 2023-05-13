@@ -17,7 +17,6 @@ import click
 import requests
 from boltons.iterutils import partition
 
-from semdep.parsers.util import DependencyParserError
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -153,10 +152,7 @@ class ScanHandler:
         if self.dry_run:
             app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         else:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-            # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
-            # CLI logic in place to ignore findings that are from old rule versions
-            # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+            app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
@@ -248,7 +244,6 @@ class ScanHandler:
         total_time: float,
         commit_date: str,
         lockfile_dependencies: Dict[str, List[FoundDependency]],
-        dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
     ) -> None:
         """
@@ -321,7 +316,6 @@ class ScanHandler:
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
-            "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
