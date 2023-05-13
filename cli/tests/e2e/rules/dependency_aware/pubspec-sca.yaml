@@ -1,0 +1,11 @@
+rules:
+  - id: pubspec
+    r2c-internal-project-depends-on:
+        namespace: pubspec
+        package: bad
+        version: "<= 1.43.5"
+    message: that's a bad lib
+    metadata:
+      sca-kind: upgrade-only
+    languages: [python]
+    severity: WARNING

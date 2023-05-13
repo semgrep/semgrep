@@ -61,6 +61,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pubspec
+
 
 logger = getLogger(__name__)
 
@@ -86,6 +88,7 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Gomod()): ["go.mod"],
     Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
+    Ecosystem(Pubspec()): ["pubspec.lock"],
 }
 
 
@@ -777,6 +780,7 @@ class TargetManager:
             Ecosystem(Gomod()),
             Ecosystem(Cargo()),
             Ecosystem(Maven()),
+            Ecosystem(Pubspec()),
         }
 
         return {

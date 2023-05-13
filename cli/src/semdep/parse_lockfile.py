@@ -30,6 +30,7 @@ from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.yarn import parse_yarn
 from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pnpm import parse_pnpm
+from semdep.parsers.pubspec import parse_pubspec_lock
 
 
 def parse_cargo(
@@ -72,6 +73,7 @@ NEW_LOCKFILE_PARSERS = {
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
+    "pubspec.lock" : parse_pubspec_lock,    #Dart & Flutter
 }
 
 LOCKFILE_TO_MANIFEST = {
@@ -87,6 +89,7 @@ LOCKFILE_TO_MANIFEST = {
     "maven_dep_tree.txt": None,
     "gradle.lockfile": None,
     "pnpm-lock.yaml": None,
+    "pubspec.lock" : "pubspec.yaml",
 }
 
 
