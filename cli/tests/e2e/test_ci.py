@@ -200,6 +200,13 @@ def automocks(mocker):
           severity: ERROR
           metadata:
             dev.semgrep.actions: []
+            semgrep.dev:
+                rule:
+                    rule_id: "abcd"
+                    version_id: "version1"
+                    url: "https://semgrep.dev/r/python.eqeq-five"
+                    shortlink: "https://sg.run/abcd"
+                src: unchanged
           fix: $X == 2
         - id: eqeq-four
           pattern: $X == 4
@@ -208,6 +215,28 @@ def automocks(mocker):
           severity: ERROR
           metadata:
             dev.semgrep.actions: ["block"]
+            semgrep.dev:
+                rule:
+                    rule_id: abce
+                    version_id: version2
+                    url: "https://semgrep.dev/r/python.eqeq-five"
+                    shortlink: "https://sg.run/abcd"
+                src: new-version
+        - id: abceversion1
+          pattern: $X == 4
+          message: "useless comparison to 4 (old version)"
+          languages: [python]
+          severity: ERROR
+          metadata:
+            dev.semgrep.actions: []
+            semgrep.dev:
+                rule:
+                    rule_id: abce
+                    version_id: version1
+                    url: "https://semgrep.dev/r/python.eqeq-five"
+                    shortlink: "https://sg.run/abcd"
+                    rule_name: eqeq-four
+                src: previous-scan
         - id: taint-test
           message: "unsafe use of danger"
           languages: [python]
@@ -217,6 +246,15 @@ def automocks(mocker):
             - pattern: danger
           pattern-sinks:
             - pattern: sink($X)
+          metadata:
+            dev.semgrep.actions: ["block"]
+            semgrep.dev:
+                rule:
+                    rule_id: abcf
+                    version_id: version1
+                    url: "https://semgrep.dev/r/python.eqeq-five"
+                    shortlink: "https://sg.run/abcd"
+                src: new-rule
         - id: supply-chain1
           message: "found a dependency"
           languages: [python]
