@@ -735,9 +735,6 @@ def test_full_run(
     for f in findings_and_ignores_json["ignores"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
-    for f in findings_and_ignores_json["prev_scan_findings"]:
-        assert f["commit_date"] is not None
-        f["commit_date"] = "sanitized"
     snapshot.assert_match(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
@@ -831,9 +828,6 @@ def test_lockfile_parse_failure_reporting(
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
     for f in findings_and_ignores_json["ignores"]:
-        assert f["commit_date"] is not None
-        f["commit_date"] = "sanitized"
-    for f in findings_and_ignores_json["prev_scan_findings"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
     snapshot.assert_match(
