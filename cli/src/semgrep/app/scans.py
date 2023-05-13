@@ -17,7 +17,6 @@ import click
 import requests
 from boltons.iterutils import partition
 
-from semdep.parsers.util import DependencyParserError
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -153,9 +152,7 @@ class ScanHandler:
         if self.dry_run:
             app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         else:
-            app_get_config_url = (
-                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
-            )
+            app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
@@ -247,31 +244,23 @@ class ScanHandler:
         total_time: float,
         commit_date: str,
         lockfile_dependencies: Dict[str, List[FoundDependency]],
-        dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
-        # partitions rules into those that were scanned in the previous scan
-        # we don't use it or send them to the app for now as findings include the metadata
-        curr_scan_rules, _ = partition(rules, lambda r: (not r.is_prev_scan))
-        all_ids = [r.id for r in curr_scan_rules]
+        all_ids = [r.id for r in rules]
         cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
             for match in matches_of_rule
         ]
-        curr_scan_matches, prev_scan_matches = partition(
-            all_matches, lambda m: (not m.is_prev_scan)
-        )
-
         # we want date stamps assigned by the app to be assigned such that the
         # current sort by relevant_since results in findings within a given scan
         # appear in an intuitive order.  this requires reversed ordering here.
-        curr_scan_matches.reverse()
+        all_matches.reverse()
         sort_order = {  # used only to order rules by severity
             "EXPERIMENT": 0,
             "INVENTORY": 1,
@@ -281,21 +270,17 @@ class ScanHandler:
         }
         # NB: sorted guarantees stable sort, so within a given severity level
         # issues remain sorted as before
-        curr_scan_matches = sorted(
-            curr_scan_matches, key=lambda match: sort_order[match.severity.value]
+        all_matches = sorted(
+            all_matches, key=lambda match: sort_order[match.severity.value]
         )
         new_ignored, new_matches = partition(
-            curr_scan_matches, lambda match: bool(match.is_ignored)
+            all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [
             match.to_app_finding_format(commit_date).to_json() for match in new_matches
         ]
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
-        ]
-        prev_scan_findings = [
-            match.to_app_finding_format(commit_date).to_json()
-            for match in prev_scan_matches
         ]
         token = (
             # GitHub (cloud)
@@ -310,7 +295,6 @@ class ScanHandler:
             # send a backup token in case the app is not available
             "token": token,
             "findings": findings,
-            "prev_scan_findings": prev_scan_findings,
             "searched_paths": [str(t) for t in sorted(targets)],
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "rule_ids": rule_ids,
@@ -330,12 +314,8 @@ class ScanHandler:
 
         complete = {
             "exit_code": 1
-            if any(
-                match.is_blocking and not match.is_ignored
-                for match in curr_scan_matches
-            )
+            if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
-            "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
