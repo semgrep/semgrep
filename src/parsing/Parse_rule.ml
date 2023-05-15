@@ -303,16 +303,6 @@ let parse_listi env (key : key) f x =
   | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
 
-(* TODO: delete at some point, should use parse_string_wrap_list *)
-let parse_string_list env (key : key) e =
-  let extract_string env = function
-    | { G.e = G.L (String (_, (value, _), _)); _ } -> value
-    | _ ->
-        error_at_key env key
-          ("Expected all values in the list to be strings for " ^ fst key)
-  in
-  parse_list env key extract_string e
-
 let parse_bool env (key : key) x =
   match x.G.e with
   | G.L (String (_, ("true", _), _)) -> true
@@ -476,9 +466,22 @@ let parse_equivalences env key value =
 
 let parse_paths env key value =
   let paths_dict = yaml_to_dict env key value in
+  (* TODO: should imitate parse_string_wrap_list *)
+  let parse_glob_list env (key : key) e =
+    let extract_string env = function
+      | { G.e = G.L (String (_, (value, _), _)); _ } -> (
+          try Glob.Parse.parse_string value with
+          | Glob.Lexer.Syntax_error _ ->
+              error_at_key env key ("Invalid glob for " ^ fst key))
+      | _ ->
+          error_at_key env key
+            ("Expected all values in the list to be globs for " ^ fst key)
+    in
+    parse_list env key extract_string e
+  in
   let inc_opt, exc_opt =
-    ( take_opt paths_dict env parse_string_list "include",
-      take_opt paths_dict env parse_string_list "exclude" )
+    ( take_opt paths_dict env parse_glob_list "include",
+      take_opt paths_dict env parse_glob_list "exclude" )
   in
   (* alt: we could use report_unparsed_fields(), but better to raise an error for now
      to be compatible with pysemgrep *)
@@ -486,7 +489,7 @@ let parse_paths env key value =
     error_at_key env key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)";
-  { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
+  { R.require = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
 let parse_options env (key : key) value =
   let s = J.string_of_json (generic_to_json env key value) in
