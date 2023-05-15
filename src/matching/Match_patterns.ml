@@ -20,7 +20,7 @@ module PM = Pattern_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
-module Config = Config_semgrep_t
+module Options = Rule_options_t
 module MG = Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -502,9 +502,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
       end
     in
     let visitor_env =
-      let vardef_assign = config.Config.vardef_assign in
-      let flddef_assign = config.Config.flddef_assign in
-      let attr_expr = config.Config.attr_expr in
+      let vardef_assign = config.Options.vardef_assign in
+      let flddef_assign = config.Options.flddef_assign in
+      let attr_expr = config.Options.attr_expr in
       Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ()
     in
     (* later: opti: dont analyze certain ASTs if they do not contain

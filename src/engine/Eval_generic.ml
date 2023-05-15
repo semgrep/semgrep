@@ -370,7 +370,7 @@ let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
   Some (mvar, AST x)
 
-let bindings_to_env (config : Config_semgrep.t) bindings =
+let bindings_to_env (config : Rule_options.t) bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
@@ -405,7 +405,7 @@ let bindings_to_env (config : Config_semgrep.t) bindings =
   in
   { mvars; constant_propagation }
 
-let bindings_to_env_just_strings (config : Config_semgrep.t) xs =
+let bindings_to_env_just_strings (config : Rule_options.t) xs =
   let mvars =
     xs
     |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)

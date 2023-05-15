@@ -499,7 +499,7 @@ let parse_options env (key : key) value =
        *)
       (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
       pr2 (spf "WARNING: unknown option: %s" field_name))
-    (fun () -> Config_semgrep_j.t_of_string s)
+    (fun () -> Rule_options_j.t_of_string s)
 
 (*****************************************************************************)
 (* Parser for xpattern *)
