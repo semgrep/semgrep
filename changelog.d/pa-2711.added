@@ -1,2 +1,0 @@
-Kotlin: Interpolated identifiers in strings, such as "$foo", are now properly
-able to match explicitly interpolated expressions, like "${...}".
