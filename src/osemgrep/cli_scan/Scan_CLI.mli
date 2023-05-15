@@ -13,7 +13,7 @@ type conf = {
   target_roots : Fpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
-  targeting_conf : Find_target.conf;
+  targeting_conf : Find_targets.conf;
   (* Other configuration options *)
   nosem : bool;
   autofix : bool;

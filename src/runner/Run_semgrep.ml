@@ -179,7 +179,7 @@ let map_targets ncores f (targets : In.target list) =
      This is needed only when ncores > 1, but to reduce discrepancy between
      the two modes, we always sort the target queue in the same way.
   *)
-  let targets = Find_target.sort_targets_by_decreasing_size targets in
+  let targets = Find_targets.sort_targets_by_decreasing_size targets in
   if ncores <= 1 then Common.map f targets
   else (
     (*
@@ -585,7 +585,7 @@ let targets_of_config (config : Runner_config.t)
         (* config.lang comes from Xlang.of_string which returns just a lang *)
         | Xlang.L (_, _) -> assert false
       in
-      let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
+      let files, skipped = Find_targets.files_of_dirs_or_files lang_opt roots in
       let rule_ids = all_rule_ids_when_no_target_file in
       let target_mappings =
         files
