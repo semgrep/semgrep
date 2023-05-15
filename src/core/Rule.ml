@@ -274,9 +274,13 @@ type 'mode rule_info = {
 }
 
 and paths = {
-  (* not regexp but globs *)
-  include_ : string list;
-  exclude : string list;
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   *)
+  require : Glob.Pattern.t list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : Glob.Pattern.t list;
 }
 
 (* TODO? just reuse Error_code.severity *)

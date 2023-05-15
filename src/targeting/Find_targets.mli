@@ -1,13 +1,6 @@
 (*
-   Find target files suitable to be analyzed by semgrep.
-
-   A file tree is a mix of files in different languages. Different rules
-   will target different files. We provide two main operations:
-
-   1. Select global targets: obtain all the files that Semgrep accepts to
-      scan regardless of rules or languages.
-   2. Filter suitable targets for a language or for a rule
-      (multiple languages).
+   Find target files suitable to be analyzed by semgrep,
+   regardless of rules or languages.
  *)
 
 type conf = {
@@ -46,8 +39,6 @@ type conf = {
    The order of the files isn't guaranteed to be anything special
    at the moment but we could obey some ordering if it makes sense to do it
    here.
-
-   Usage: let possible_targets = get_files scanning_roots
 
    This may raise Unix.Unix_error if the scanning root does not exist.
 *)

@@ -505,6 +505,7 @@ def test_regex_with_any_language_rule_none_alias(
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_regex_with_any_language_multiple_rule_none_alias(
     run_semgrep_in_tmp: RunSemgrep, snapshot
