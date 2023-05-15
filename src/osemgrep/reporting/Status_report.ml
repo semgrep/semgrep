@@ -17,6 +17,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
     (String_utils.unit_str num_targets "file")
     (if respect_git_ignore then " tracked by git" else "")
     (String_utils.unit_str num_rules "Code rule");
+
   (* TODO if sca_rules ...
      Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
   (* TODO pro_rule
@@ -25,7 +26,6 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
      if pro_rule_count:
          summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
   *)
-
   Fmt.pf ppf ":@.";
   if num_rules = 0 then Fmt.pf ppf "Nothing to scan."
   else if num_rules = 1 then
