@@ -2,7 +2,8 @@
 (* Prelude *)
 (*****************************************************************************)
 (*
-  Partially translated from semgrep_main.py (print_scan_status())
+  Partially translated from semgrep_main.py (print_scan_status()) and from
+  core_runner.py (print()).
 *)
 
 (*****************************************************************************)
@@ -12,10 +13,14 @@
 let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt_helpers.pp_heading ppf "Scan status";
   (* TODO indentation of the body *)
-  Fmt.pf ppf "Scanning %s%s with %s"
-    (String_utils.unit_str num_targets "file")
-    (if respect_git_ignore then " tracked by git" else "")
-    (String_utils.unit_str num_rules "Code rule");
+  if num_rules = 0 then Fmt.pf ppf "Nothing to scan."
+  else if num_rules = 1 then
+    Fmt.pf ppf "Scanning %s." (String_utils.unit_str num_targets "file")
+  else
+    Fmt.pf ppf "Scanning %s%s with %s"
+      (String_utils.unit_str num_targets "file")
+      (if respect_git_ignore then " tracked by git" else "")
+      (String_utils.unit_str num_rules "Code rule");
   (* TODO if sca_rules ...
      Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
   (* TODO pro_rule
