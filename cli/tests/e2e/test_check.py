@@ -455,6 +455,7 @@ def test_metavariable_multi_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot)
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
@@ -465,6 +466,7 @@ def test_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_regex_with_any_language_multiple_rule(
     run_semgrep_in_tmp: RunSemgrep, snapshot
@@ -489,6 +491,7 @@ def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, sn
     snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_regex_with_any_language_rule_none_alias(
     run_semgrep_in_tmp: RunSemgrep, snapshot

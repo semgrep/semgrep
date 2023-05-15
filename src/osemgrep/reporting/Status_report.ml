@@ -27,18 +27,18 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   *)
   Fmt.pf ppf ":@.@.";
   (* TODO origin table [Origin Rules] [Community N] *)
-  let lan_label = function
+  let xlang_label = function
     | Xlang.LGeneric
     | Xlang.LRegex ->
         "<multilang>"
-    | lang -> Xlang.to_string lang
+    | xlang -> Xlang.to_string xlang
   in
   Fmt_helpers.pp_table
     ("Language", [ "Rules"; "Files" ])
     ppf
     (lang_jobs
-    |> Common.map (fun Lang_job.{ lang; targets; rules } ->
-           (lan_label lang, List.length rules, List.length targets))
+    |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
+           (xlang_label xlang, List.length rules, List.length targets))
     |> List.fold_left
          (fun acc (lang, rules, targets) ->
            match List.partition (fun (l, _) -> l = lang) acc with

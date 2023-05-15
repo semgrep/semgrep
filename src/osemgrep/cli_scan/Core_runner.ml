@@ -13,35 +13,6 @@ module Env = Semgrep_envvars
    and not go through the intermediate semgrep-core JSON output.
 *)
 
-(* python: Don't translate this:
-
-   class StreamingSemgrepCore:
-       """
-       Handles running semgrep-core in a streaming fashion
-
-       This behavior is assumed to be that semgrep-core:
-       - prints a "." on a newline for every file it finishes scanning
-       - prints a number on a newline for any extra targets produced during a scan
-       - prints a single json blob of all results
-
-       Exposes the subprocess.CompletedProcess properties for
-       expediency in integrating
-       """
-*)
-
-(*
-   python: implement this but skip parsing the semgrep-core output,
-   getting it directly as OCaml objects.
-   Big class (500 lines of python):
-
-class CoreRunner:
-    """
-    Handles interactions between semgrep and semgrep-core
-
-    This includes properly invoking semgrep-core and parsing the output
-    """
-*)
-
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
@@ -61,7 +32,7 @@ type conf = {
 (* output *)
 (* LATER: ideally we should just return what Run_semgrep returns,
    without the need for the intermediate Out.core_match_results.
-   LATER: get rid of Output_from_core_util.ml
+   LATER: get rid also of Output_from_core_util.ml
 *)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
@@ -69,6 +40,7 @@ type result = {
    *)
   core : Out.core_match_results;
   hrules : Rule.hrules;
+  (* TODO: use Fpath.t *)
   scanned : Common.filename Set_.t;
       (* in python implem *)
       (* TODO: original intermediate data structures in python *)
@@ -138,53 +110,14 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
 let split_jobs_by_language all_rules all_targets : Lang_job.t list =
-  let grouped_rules = group_rules_by_target_language all_rules in
-  let cache = Filter_target.create_cache () in
-  grouped_rules
-  |> Common.map_filter (fun (lang, rules) ->
-         let rules, targets =
-           match lang with
-           | Xlang.LGeneric
-           | Xlang.LRegex ->
-               let rules, targets =
-                 List.fold_left
-                   (fun (rules, targets) rule ->
-                     let required_path_patterns, excluded_path_patterns =
-                       match rule.Rule.paths with
-                       | Some { include_; exclude } -> (include_, exclude)
-                       | None -> ([], [])
-                     in
-                     let targets' =
-                       all_targets
-                       |> List.filter (fun target ->
-                              Filter_target.filter_target_for_lang ~cache ~lang
-                                ~required_path_patterns ~excluded_path_patterns
-                                target)
-                     in
-                     if Common.null targets' then (rules, targets)
-                     else (rule :: rules, targets @ targets'))
-                   ([], []) rules
-               in
-               (rules, List.sort_uniq Fpath.compare targets)
-           | _else ->
-               ( rules,
-                 all_targets
-                 |> List.filter (fun target ->
-                        rules
-                        |> List.exists (fun (rule : Rule.t) ->
-                               let ( required_path_patterns,
-                                     excluded_path_patterns ) =
-                                 match rule.paths with
-                                 | Some { include_; exclude } ->
-                                     (include_, exclude)
-                                 | None -> ([], [])
-                               in
-                               Filter_target.filter_target_for_lang ~cache ~lang
-                                 ~required_path_patterns ~excluded_path_patterns
-                                 target)) )
+  all_rules |> group_rules_by_target_language
+  |> Common.map_filter (fun (xlang, rules) ->
+         let targets =
+           all_targets
+           |> List.filter (Filter_target.filter_target_for_xlang xlang)
          in
-         if Common.null rules || Common.null targets then None
-         else Some ({ lang; targets; rules } : Lang_job.t))
+         if Common.null targets then None
+         else Some ({ xlang; targets; rules } : Lang_job.t))
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
