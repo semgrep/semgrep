@@ -139,7 +139,7 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
 
 let split_jobs_by_language all_rules all_targets : Lang_job.t list =
   let grouped_rules = group_rules_by_target_language all_rules in
-  let cache = Find_target.create_cache () in
+  let cache = Filter_target.create_cache () in
   grouped_rules
   |> Common.map_filter (fun (lang, rules) ->
          let rules, targets =
@@ -157,7 +157,7 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
                      let targets' =
                        all_targets
                        |> List.filter (fun target ->
-                              Find_target.filter_target_for_lang ~cache ~lang
+                              Filter_target.filter_target_for_lang ~cache ~lang
                                 ~required_path_patterns ~excluded_path_patterns
                                 target)
                      in
@@ -179,7 +179,7 @@ let split_jobs_by_language all_rules all_targets : Lang_job.t list =
                                      (include_, exclude)
                                  | None -> ([], [])
                                in
-                               Find_target.filter_target_for_lang ~cache ~lang
+                               Filter_target.filter_target_for_lang ~cache ~lang
                                  ~required_path_patterns ~excluded_path_patterns
                                  target)) )
          in

@@ -263,7 +263,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
         (* step2: getting the targets *)
         let targets, semgrepignored_targets =
-          Find_target.get_targets conf.targeting_conf conf.target_roots
+          Find_targets.get_targets conf.targeting_conf conf.target_roots
         in
         Logs.debug (fun m ->
             m "%a" Targets_report.pp_targets_debug
