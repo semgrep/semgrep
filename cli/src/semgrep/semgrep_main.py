@@ -29,6 +29,8 @@ from semgrep.console import Title
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
+from semgrep.contributors import Contributor
+from semgrep.contributors import ContributorManager
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
@@ -57,6 +59,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
+from semgrep.target_manager import Target
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -200,6 +203,20 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     sca_plan.print(with_tables_for=RuleProduct.sca)
 
 
+def print_contributors(
+    contributors: Sequence[Contributor], targets: Sequence[Target]
+) -> None:
+    console.print(Title(f"{len(contributors)} Contributors"))
+    console.print(
+        Padding(
+            f"Found the following {len(contributors)} contributors across the {len(targets)} scanned targets:",
+            (1, 0),
+        ),
+        deindent=1,
+    )
+    ContributorManager.print(contributors)
+
+
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -224,7 +241,11 @@ def run_rules(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+    ) = core_runner.invoke_semgrep(
         target_manager, rest_of_the_rules, dump_command_for_core, engine_type
     )
 
@@ -491,6 +512,12 @@ def main(
         )
     except FilesNotFoundError as e:
         raise SemgrepError(e)
+
+    contributor_manager = ContributorManager(
+        target_manager=target_manager,
+    )
+    contributors = contributor_manager.collect_contributors()
+    print_contributors(contributors, target_manager.targets)
 
     core_start_time = time.time()
     core_runner = CoreRunner(
