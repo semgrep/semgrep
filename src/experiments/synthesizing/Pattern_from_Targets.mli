@@ -92,4 +92,4 @@
  *)
 
 val generate_patterns :
-  Config_semgrep.t -> AST_generic.any list -> Lang.t -> Pattern.t option
+  Rule_options.t -> AST_generic.any list -> Lang.t -> Pattern.t option

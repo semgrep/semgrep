@@ -263,7 +263,7 @@ type 'mode rule_info = {
   severity : severity; (* Currently a dummy value for extract mode rules *)
   languages : Xlang.t;
   (* OPTIONAL fields *)
-  options : Config_semgrep.t option;
+  options : Rule_options.t option;
   (* deprecated? todo: parse them *)
   equivalences : string list option;
   fix : string option;

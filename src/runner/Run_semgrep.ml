@@ -748,7 +748,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            in
            let xconf =
              {
-               Match_env.config = Config_semgrep.default_config;
+               Match_env.config = Rule_options.default_config;
                equivs = parse_equivalences config.equivalences_file;
                nested_formula = false;
                matching_explanations = config.matching_explanations;
@@ -1021,7 +1021,7 @@ let semgrep_with_one_pattern config =
                    Match_patterns.check
                      ~hook:(fun match_ ->
                        print_match config match_ Metavariable.ii_of_mval)
-                     ( Config_semgrep.default_config,
+                     ( Rule_options.default_config,
                        parse_equivalences config.equivalences_file )
                      minirule (file, lang, ast)
                    |> ignore)

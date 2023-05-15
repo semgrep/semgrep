@@ -14,11 +14,11 @@
 )
 
 (rule
- (targets Config_semgrep_j.ml Config_semgrep_j.mli)
- (deps    Config_semgrep.atd)
+ (targets Rule_options_j.ml Rule_options_j.mli)
+ (deps    Rule_options.atd)
  (action  (run atdgen -j -j-strict-fields -j-std %{deps})))
 
 (rule
- (targets Config_semgrep_t.ml Config_semgrep_t.mli)
- (deps    Config_semgrep.atd)
+ (targets Rule_options_t.ml Rule_options_t.mli)
+ (deps    Rule_options.atd)
  (action  (run atdgen -t %{deps})))

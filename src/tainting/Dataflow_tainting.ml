@@ -200,7 +200,7 @@ end
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
   lang : Lang.t;
-  options : Config_semgrep.t; (* rule options *)
+  options : Rule_options.t;
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
@@ -1569,7 +1569,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
 
 let transfer :
     Lang.t ->
-    Config_semgrep.t ->
+    Rule_options.t ->
     config ->
     Lval_env.t ->
     string option ->
@@ -1667,7 +1667,7 @@ let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
       Lang.t ->
-      Config_semgrep.t ->
+      Rule_options.t ->
       config ->
       F.cfg ->
       mapping) =

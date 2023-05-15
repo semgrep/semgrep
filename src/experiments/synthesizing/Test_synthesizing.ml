@@ -31,7 +31,7 @@ let expr_at_range s file =
   [@@action]
 
 let synthesize_patterns s file =
-  let config = Config_semgrep.default_config in
+  let config = Rule_options.default_config in
   let options = Synthesizer.synthesize_patterns config s file in
   let json_opts =
     J.Object (Common.map (fun (k, v) -> (k, J.String v)) options)
@@ -41,7 +41,7 @@ let synthesize_patterns s file =
   [@@action]
 
 let generate_pattern_choices s =
-  let config = Config_semgrep.default_config in
+  let config = Rule_options.default_config in
   let options = Synthesizer.print_pattern_from_targets config s in
   List.iter (fun s -> pr s) options
   [@@action]

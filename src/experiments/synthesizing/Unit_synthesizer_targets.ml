@@ -77,14 +77,14 @@ let ranges_matched lang file pattern : Range.t list =
         let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
         let minii_loc = Tok.unsafe_loc_of_tok minii in
         E.error "Synthesizier tests" minii_loc "" Out.SemgrepMatchFound)
-      (Config_semgrep.default_config, equiv)
+      (Rule_options.default_config, equiv)
       [ rule ] (file, lang, ast)
   in
   Common.map extract_range matches
 
 let run_single_test file linecols expected_pattern =
   let lang, _, inferred_pattern =
-    Synthesizer.generate_pattern_from_targets Config_semgrep.default_config
+    Synthesizer.generate_pattern_from_targets Rule_options.default_config
       (linecols @ [ file ])
   in
   let actual_pattern =
