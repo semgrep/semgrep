@@ -12,8 +12,8 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let ellipsis_string = " ... "
-let base_indent = String.make 8 ' '
-let findings_indent_depth = String.make 10 ' '
+let base_indent = String.make 10 ' '
+let findings_indent_depth = String.make 12 ' '
 
 let text_width =
   let max_text_width = 120 in
@@ -171,7 +171,7 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
              else (line, 0, false)
            in
            let line_number_str = string_of_int line_number in
-           let pad = String.make (11 - String.length line_number_str) ' ' in
+           let pad = String.make (13 - String.length line_number_str) ' ' in
            let col c = max 0 (c - 1 - dedented - line_off) in
            let ellipsis_len p =
              if stripped' && p then String.length ellipsis_string else 0
@@ -225,7 +225,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             if m.path = cur.path then (false, Some m.extra.message)
             else (true, None)
       in
-      if print then Fmt.pf ppf "  %a@." Fmt.(styled (`Fg `Cyan) string) cur.path;
+      if print then Fmt.pf ppf "  %a@." Fmt.(styled (`Fg `Cyan) (any "  " ++ string ++ any " ")) cur.path;
       msg
     in
     let print =
@@ -238,10 +238,10 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     if print then (
       List.iter
         (fun l -> Fmt.pf ppf "%a@." Fmt.(styled `Bold string) l)
-        (wrap ~indent:5 ~width:text_width cur.check_id);
+        (wrap ~indent:7 ~width:text_width cur.check_id);
       List.iter
         (fun l -> Fmt.pf ppf "%s@." l)
-        (wrap ~indent:8 ~width:text_width cur.extra.message);
+        (wrap ~indent:10 ~width:text_width cur.extra.message);
       (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
       | `String s -> Fmt.pf ppf "%sDetails: %s@." base_indent s
       | _else -> ());
