@@ -322,6 +322,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         Logs.app (fun m ->
             m "%a" Summary_report.pp_summary
               ( conf.targeting_conf.respect_git_ignore,
+                conf.legacy,
                 conf.targeting_conf.max_target_bytes,
                 semgrepignored,
                 included,

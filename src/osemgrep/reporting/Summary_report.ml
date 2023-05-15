@@ -17,6 +17,7 @@ module Out = Semgrep_output_v1_t
 
 let pp_summary ppf
     (( _respect_git_ignore,
+       legacy,
        max_target_bytes,
        semgrep_ignored,
        include_ignored,
@@ -25,6 +26,7 @@ let pp_summary ppf
        other_ignored,
        errors ) :
       bool
+      * bool
       * int
       * Out.skipped_target list
       * Out.skipped_target list
@@ -69,7 +71,7 @@ let pp_summary ppf
         opt_msg "files matching --exclude patterns" exclude_ignored;
         opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
         opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
-        opt_msg "other files ignored" other_ignored;
+        (if legacy then None else opt_msg "other files ignored" other_ignored);
       ]
   in
   let out_partial =
