@@ -330,7 +330,7 @@ let get_targets conf scanning_roots =
          let paths, skipped_paths1 =
            paths
            |> Common.partition_either (fun path ->
-                  Logs.debug (fun m -> m "analyzing path %s" !!path);
+                  Logs.debug (fun m -> m "Considering path %s" !!path);
                   let rel_path =
                     match Fpath.relativize ~root:project_root path with
                     | Some x -> x
