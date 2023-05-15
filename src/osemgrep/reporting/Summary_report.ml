@@ -34,7 +34,7 @@ let pp_summary ppf
       * Out.skipped_target list
       * Out.skipped_target list
       * Out.skipped_target list) =
-  Fmt_helpers.pp_heading ppf "Scan summary";
+  Fmt_helpers.pp_heading ppf "Scan Summary";
   (* TODO
         if self.target_manager.baseline_handler:
             limited_fragments.append(
