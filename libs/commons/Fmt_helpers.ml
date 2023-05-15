@@ -60,7 +60,9 @@ let pp_table (h1, heading) ppf entries =
 let pp_heading ppf txt =
   let chars = String.length txt + 2 in
   let line = line chars in
-  Fmt.pf ppf "%s@.%s@." (String.make (chars + 2) ' ') (String.make (chars + 2) ' ');
+  Fmt.pf ppf "%s@.%s@."
+    (String.make (chars + 2) ' ')
+    (String.make (chars + 2) ' ');
   Fmt.pf ppf "┌%s┐@." line;
   Fmt.pf ppf "│ %s │@." txt;
   Fmt.pf ppf "└%s┘@." line

@@ -225,7 +225,10 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             if m.path = cur.path then (false, Some m.extra.message)
             else (true, None)
       in
-      if print then Fmt.pf ppf "  %a@." Fmt.(styled (`Fg `Cyan) (any "  " ++ string ++ any " ")) cur.path;
+      if print then
+        Fmt.pf ppf "  %a@."
+          Fmt.(styled (`Fg `Cyan) (any "  " ++ string ++ any " "))
+          cur.path;
       msg
     in
     let print =
