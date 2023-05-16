@@ -5,3 +5,46 @@
 └─────────────┘
   Scanning 23 files tracked by git with 1 Code rule:
   Scanning 11 files.
+unhashable type: 'Fpath'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 907, in scan
+    ) = semgrep.semgrep_main.main(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 526, in main
+    ) = run_rules(
+        ^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 227, in run_rules
+    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1193, in invoke_semgrep
+    ) = self._run_rules_direct_to_semgrep_core(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1154, in _run_rules_direct_to_semgrep_core
+    raise e
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1149, in _run_rules_direct_to_semgrep_core
+    return self._run_rules_direct_to_semgrep_core_helper(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1077, in _run_rules_direct_to_semgrep_core_helper
+    output_json = self._extract_core_output(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 771, in _extract_core_output
+    raise core_error_to_semgrep_error(errors[0])
+semgrep.error.SemgrepCoreError: Rule parse error in rule rules.test-regex:
+ invalid regex '(abc': missing ) at position 4
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 938, in scan
+    output_handler.handle_semgrep_errors([e])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 218, in handle_semgrep_errors
+    self._handle_semgrep_error(err)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 252, in _handle_semgrep_error
+    if error not in self.error_set:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/error.py", line 199, in __hash__
+    return hash(
+           ^^^^^
+TypeError: unhashable type: 'Fpath'

@@ -13,7 +13,7 @@
           "codeFlows": [
             {
               "message": {
-                "text": "Untrusted dataflow from targets/taint/taint.py:3 to targets/taint/taint.py:9"
+                "text": "Untrusted dataflow from Fpath(value='targets/taint/taint.py'):3 to targets/taint/taint.py:9"
               },
               "threadFlows": [
                 {
@@ -21,7 +21,7 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Source: 'source1()' @ 'targets/taint/taint.py:3'"
+                          "text": "Source: 'source1()' @ 'Fpath(value='targets/taint/taint.py'):3'"
                         },
                         "physicalLocation": {
                           "artifactLocation": {
@@ -31,7 +31,7 @@
                             "endColumn": 18,
                             "endLine": 3,
                             "message": {
-                              "text": "Source: 'source1()' @ 'targets/taint/taint.py:3'"
+                              "text": "Source: 'source1()' @ 'Fpath(value='targets/taint/taint.py'):3'"
                             },
                             "snippet": {
                               "text": "source1()"
@@ -46,7 +46,7 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
+                          "text": "Propagator : 'a' @ 'Fpath(value='targets/taint/taint.py'):3'"
                         },
                         "physicalLocation": {
                           "artifactLocation": {
@@ -56,7 +56,7 @@
                             "endColumn": 6,
                             "endLine": 3,
                             "message": {
-                              "text": "Propagator : 'a' @ 'targets/taint/taint.py:3'"
+                              "text": "Propagator : 'a' @ 'Fpath(value='targets/taint/taint.py'):3'"
                             },
                             "snippet": {
                               "text": "a"
@@ -71,7 +71,7 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Propagator : 'b' @ 'targets/taint/taint.py:8'"
+                          "text": "Propagator : 'b' @ 'Fpath(value='targets/taint/taint.py'):8'"
                         },
                         "physicalLocation": {
                           "artifactLocation": {
@@ -81,7 +81,7 @@
                             "endColumn": 10,
                             "endLine": 8,
                             "message": {
-                              "text": "Propagator : 'b' @ 'targets/taint/taint.py:8'"
+                              "text": "Propagator : 'b' @ 'Fpath(value='targets/taint/taint.py'):8'"
                             },
                             "snippet": {
                               "text": "b"
