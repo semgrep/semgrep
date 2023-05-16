@@ -110,7 +110,8 @@ comment = regex(r" *#([^\n]*)", flags=0, group=1)
 
 # A whole poetry file
 poetry = (
-    comment.many() >> string("\n").many()
+    comment.many()
+    >> string("\n").many()
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
     .sep_by(string("\n\n"))
     .map(lambda xs: [x for x in xs if x])
