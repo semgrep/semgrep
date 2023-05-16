@@ -503,8 +503,8 @@ def main(
     contributor_manager = ContributionManager(
         target_manager=target_manager,
     )
-    contributions = contributor_manager.collect_contributions()
-    contributions.print_contributors()
+    latest_contributions = contributor_manager.collect_latest_contributions()
+    latest_contributions.print()
     profiler.save("contributor_time", contributor_start_time)
 
     core_start_time = time.time()

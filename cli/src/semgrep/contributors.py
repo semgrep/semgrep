@@ -49,36 +49,29 @@ class Contributor:
 @frozen(eq=True)
 class Contribution:
     project: str
+    commit: str
+    timestamp: datetime
     contributor: Contributor
 
 
 @define(eq=False)
 class ContributionsResponse:
     contributions: list[Contribution]
-    contributors_count: int = field(init=False)
+    contributions_count: int
+    contributors: list[Contributor]
+    contributors_count: int
+    projects: list[str]
+    projects_count: int
     # from_timestamp: datetime
     # to_timestamp: datetime
     # from_commit: str
     # to_commit: str
 
-    def __attrs_post_init__(self) -> None:
-        self.contributors_count = len(self.contributors)
-
-    @property
-    def contributors(self) -> list[Contributor]:
-        return list(
-            set(contribution.contributor for contribution in self.contributions)
-        )
-
-    @property
-    def projects(self) -> list[str]:
-        return list(set(contribution.project for contribution in self.contributions))
-
-    def print_contributors(self) -> None:
-        console.print(Title(f"{len(self.contributions)} Contributions"))
+    def print(self) -> None:
+        console.print(Title(f"{self.contributions_count} Contributions"))
         console.print(
             Padding(
-                f"Found the following {len(self.contributions)} contributions across the {len(self.projects)} scanned projects:",
+                f"Found the following {self.contributions_count} contributions across the {self.projects_count} scanned projects:",
                 (1, 0),
             ),
             deindent=1,
@@ -88,16 +81,24 @@ class ContributionsResponse:
         table.add_column("Project")
         table.add_column("Name")
         table.add_column("Email")
+        table.add_column("Timestamp")
+        table.add_column("Commit")
 
         sorted_contributions = sorted(
             self.contributions,
-            key=lambda c: (c.project, c.contributor.name, c.contributor.email),
+            key=lambda c: (
+                c.project,
+                (c.contributor.name or "").lower(),
+                (c.contributor.email or "").lower(),
+            ),
         )
         for contribution in sorted_contributions:
             table.add_row(
                 contribution.project,
                 contribution.contributor.name,
                 contribution.contributor.email,
+                str(contribution.timestamp),
+                contribution.commit,
             )
 
         columns = Columns([table], padding=(1, 8))
@@ -135,19 +136,64 @@ class ContributionManager:
 
     def collect_contributions(self) -> ContributionsResponse:
         contributions: list[Contribution] = []
+        contributors: list[Contributor] = []
+        projects: list[str] = []
 
         for commit in self._iter_commits():
             contributor = Contributor(
                 name=commit.author.name,
                 email=commit.author.email,
             )
+            if contributor not in contributors:
+                contributors.append(contributor)
+
+            if (project_name := commit.project_name) not in projects:
+                projects.append(project_name)
+
             contribution = Contribution(
                 contributor=contributor,
-                project=commit.project_name,
+                project=project_name,
+                commit=commit.hash,
+                timestamp=commit.author_date.astimezone(UTC),
             )
-            contributions.append(contribution)
+            if contribution not in contributions:
+                contributions.append(contribution)
 
-        return ContributionsResponse(contributions=list(set(contributions)))
+        return ContributionsResponse(
+            contributions=contributions,
+            contributions_count=len(contributions),
+            projects=projects,
+            projects_count=len(projects),
+            contributors=contributors,
+            contributors_count=len(contributors),
+        )
+
+    def collect_latest_contributions(self) -> ContributionsResponse:
+        contributions_cache: dict[Contributor, datetime] = {}
+        latest_contributions_cache: dict[Contributor, Contribution] = {}
+
+        contributions = self.collect_contributions()
+        for contribution in contributions.contributions:
+            if (contributor := contribution.contributor) in contributions_cache:
+                if (
+                    contribution.timestamp
+                    > latest_contributions_cache[contributor].timestamp
+                ):
+                    contributions_cache[contributor] = contribution.timestamp
+                    latest_contributions_cache[contributor] = contribution
+            else:
+                contributions_cache[contributor] = contribution.timestamp
+                latest_contributions_cache[contributor] = contribution
+
+        latest_contributions = list(latest_contributions_cache.values())
+        return ContributionsResponse(
+            contributions=latest_contributions,
+            contributions_count=len(latest_contributions),
+            projects=contributions.projects,
+            projects_count=contributions.projects_count,
+            contributors=contributions.contributors,
+            contributors_count=contributions.contributors_count,
+        )
 
     def _iter_commits(self) -> Iterator[Commit]:
         yield from filter(
