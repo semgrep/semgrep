@@ -1,5 +1,5 @@
-
 val x = 
+  // ERROR:
   try {
     2
   } catch {
@@ -7,6 +7,7 @@ val x =
   }
 
 val x = 
+  // ERROR:
   try {
     2
   } catch 4 
