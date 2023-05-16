@@ -405,8 +405,10 @@ let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
   { path = x.path; reason = x.reason }
 
 (* skipping the python intermediate FileTargetingLog for now *)
-let cli_skipped_targets ~(skipped_targets : Out.skipped_target list) :
-    Out.cli_skipped_target list =
+let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
+    Out.cli_skipped_target list option =
+  let* skipped_targets in
+
   (* TODO: skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
    *)
@@ -418,7 +420,7 @@ let cli_skipped_targets ~(skipped_targets : Out.skipped_target list) :
     skipped_targets |> Common.map cli_skipped_target_of_skipped_target
   in
   (* TODO: need to sort *)
-  core_skipped
+  Some core_skipped
 
 (*****************************************************************************)
 (* Entry point *)
@@ -460,7 +462,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
             {
               scanned;
               _comment = Some "<add --verbose for a list of skipped paths>";
-              skipped = [];
+              skipped = None;
             }
       in
       {

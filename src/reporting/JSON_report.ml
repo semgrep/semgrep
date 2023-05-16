@@ -359,26 +359,29 @@ let match_results_of_matches_and_errors render_fix nfiles res =
   let skipped_targets, profiling =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
-        (skipped_targets, Some profiling)
-    | RP.Time { profiling } -> ([], Some profiling)
-    | RP.No_info -> ([], None)
+        (Some skipped_targets, Some profiling)
+    | RP.Time { profiling } -> (None, Some profiling)
+    | RP.No_info -> (None, None)
   in
   {
     Out.matches;
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
-      res.RP.skipped_rules
+      ( res.RP.skipped_rules
       |> Common.map (fun (kind, rule_id, tk) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
                Out.rule_id;
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = OutH.position_of_token_location loc;
-             });
+             })
+      |> fun xs -> Some xs );
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
-    explanations = res.RP.explanations |> Common.map explanation_to_explanation;
+    explanations =
+      ( res.RP.explanations |> Common.map explanation_to_explanation |> fun x ->
+        Some x );
     rules_by_engine = Common.map convert_rule res.rules_by_engine;
     engine_requested = `OSS;
   }
