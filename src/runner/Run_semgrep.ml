@@ -844,7 +844,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
         Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
     },
     (* TODO not all_targets here, because ?? *)
-    targets |> Common.map (fun x -> x.In.path) )
+    targets |> Common.map (fun x -> Fpath.v x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
