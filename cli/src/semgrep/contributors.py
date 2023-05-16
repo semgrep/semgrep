@@ -60,10 +60,6 @@ class ContributionsResponse:
     contributors_count: int
     projects: list[str]
     projects_count: int
-    # from_timestamp: datetime
-    # to_timestamp: datetime
-    # from_commit: str
-    # to_commit: str
 
     def print(self) -> None:
         console.print(Title(f"{self.contributions_count} Contributions"))
