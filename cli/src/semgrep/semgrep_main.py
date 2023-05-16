@@ -499,11 +499,13 @@ def main(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
+    contributor_start_time = time.time()
     contributor_manager = ContributionManager(
         target_manager=target_manager,
     )
     contributions = contributor_manager.collect_contributions()
     contributions.print_contributors()
+    profiler.save("contributor_time", contributor_start_time)
 
     core_start_time = time.time()
     core_runner = CoreRunner(
