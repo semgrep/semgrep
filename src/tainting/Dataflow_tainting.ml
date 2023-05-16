@@ -738,7 +738,7 @@ let propagate_taint_via_java_setter env e args all_args_taints =
   | __else__ -> env.lval_env
 
 let fix_poly_taint_with_field env lval st =
-  if env.lang =*= Java then
+  if env.lang =*= Lang.Java || Lang.is_js env.lang then
     match lval.rev_offset with
     | { o = Dot n; _ } :: _ -> (
         match st with
@@ -903,7 +903,7 @@ let find_lval_taint_sources env ~labels lval =
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
 
-let rec check_tainted_lval env ?(fix_poly_field = false) (lval : IL.lval) :
+let rec check_tainted_lval env ?(fix_poly_field = true) (lval : IL.lval) :
     Taints.t * Lval_env.t =
   let new_taints, lval_in_env, lval_env =
     check_tainted_lval_aux env ~fix_poly_field lval
@@ -1174,7 +1174,10 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
-  let* base_lval, obj =
+  let os =
+    sig_arg.offset |> Common.map (fun x -> { o = Dot x; oorig = NoOrig })
+  in
+  let* lval, obj =
     match sig_arg.pos with
     | "<this>", -1 -> (
         match fun_exp with
@@ -1182,19 +1185,17 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
          _;
         } ->
-            Some ({ base = Var obj; rev_offset = [] }, obj)
+            Some ({ base = Var obj; rev_offset = List.rev os }, obj)
         | __else__ -> None)
     | pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
-        match arg_exp.e with
-        | Fetch ({ base = Var obj; _ } as arg_lval) -> Some (arg_lval, obj)
+        match arg_exp.e, sig_arg.offset with
+        | Fetch ({ base = Var obj; _ } as arg_lval), _ -> 
+            let lval = { arg_lval with rev_offset = List.rev_append os arg_lval.rev_offset } in
+            Some (lval, obj)
+        | Record [Field (fld, {e = Fetch ({ base = Var obj; _ } as lval); _} )], [o] when fst fld = fst o.ident -> 
+          Some (lval, obj)
         | __else__ -> None)
-  in
-  let os =
-    sig_arg.offset |> Common.map (fun x -> { o = Dot x; oorig = NoOrig })
-  in
-  let lval =
-    { base_lval with rev_offset = List.rev_append os base_lval.rev_offset }
   in
   Some (lval, obj)
 
