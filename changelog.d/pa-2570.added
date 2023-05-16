@@ -1,3 +1,0 @@
-Pro: Java: Taint-mode can now do field-sensitive analysis of class constructors.
-For example, if the default constructor of a class `C` sets its field `x` to a
-tainted value, given `o = new C()`, Semgrep will know that `o.getX()` is tainted.

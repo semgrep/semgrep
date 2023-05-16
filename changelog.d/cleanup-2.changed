@@ -1,3 +1,0 @@
-engine: The use of a matching cache for statements is now disabled by default,
-please let us know if you notice any performance degradation. We plan to remove
-this optimization in a few weeks.
