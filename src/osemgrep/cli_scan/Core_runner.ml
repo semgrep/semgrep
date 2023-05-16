@@ -40,8 +40,7 @@ type result = {
    *)
   core : Out.core_match_results;
   hrules : Rule.hrules;
-  (* TODO: use Fpath.t *)
-  scanned : Common.filename Set_.t;
+  scanned : Fpath.t Set_.t;
       (* in python implem *)
       (* TODO: original intermediate data structures in python *)
       (*
@@ -68,9 +67,8 @@ type result = {
  * TODO? do we have utility functions like that already in Report.mli?
  * should move it there? or should not need it at all, see TODO above?
  *)
-let merge_results
-    (xresults : (Report.final_result * Common.filename Set_.t) list) :
-    Report.final_result * Common.filename Set_.t =
+let merge_results (xresults : (Report.final_result * Fpath.t Set_.t) list) :
+    Report.final_result * Fpath.t Set_.t =
   let results = xresults |> Common.map fst in
   let files =
     xresults |> Common.map snd |> List.fold_left Set_.union Set_.empty
@@ -164,8 +162,7 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
    It should get simplified when we get rid of the pysemgrep completely.
 *)
 let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
-    (x : Lang_job.t) :
-    Exception.t option * Report.final_result * Common.filename list =
+    (x : Lang_job.t) : Exception.t option * Report.final_result * Fpath.t list =
   let lang_str = Xlang.to_string x.xlang in
   (* compute the rule idx and rule_nums for target_mappings
    * (see Input_to_core.atd)
