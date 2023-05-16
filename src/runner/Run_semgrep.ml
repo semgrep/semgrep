@@ -739,6 +739,15 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | `Search _
                     | `Taint _ ->
                         true)
+             |> List.filter (fun r ->
+                    (* TODO: some of this is already done in pysemgrep, so maybe
+                     * we should guard with a flag that only osemgrep set
+                     * like Runner_config.paths_processing: bool?
+                     *)
+                    match r.R.paths with
+                    | None -> true
+                    | Some paths ->
+                        Filter_target.filter_paths paths (Fpath.v file))
            in
 
            let xtarget = xtarget_of_file config xlang file in

@@ -277,11 +277,18 @@ and paths = {
   (* If not empty, list of file path patterns (globs) that
    * the file path must at least match once to be considered for the rule.
    * Called 'include' in our doc but really it is a 'require'.
+   * TODO? use wrap? to also get location of include/require field?
    *)
-  require : Glob.Pattern.t list;
+  require : glob list;
   (* List of file path patterns we want to exclude. *)
-  exclude : Glob.Pattern.t list;
+  exclude : glob list;
 }
+
+(* TODO? store also the compiled glob directly? but we preprocess the pattern
+ * in Filter_target.filter_paths, so we would need to recompile it anyway,
+ * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
+ *)
+and glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
 
 (* TODO? just reuse Error_code.severity *)
 and severity = Error | Warning | Info | Inventory | Experiment

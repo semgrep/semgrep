@@ -131,21 +131,15 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
   }
   (* TODO: time_flag = _;
   *) ->
-      (* We should default to Json because we do not want the same text
-       * displayed in osemgrep than in semgrep-core.
-       * We also don't want the current incremental matches output.
-       * LATER: probably provide a mechanism to display match as
-       * we process files, but probably need different text output
-       * of what semgrep-core match_hook currently provides.
+      (* We default to Json because we do not want the current text
+       * displayed in semgrep-core, and we don't want either the
+       * current semgrep-core incremental matches text output.
        *)
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
       let parsing_cache_dir =
         if ast_caching then
-          let dir = Env.env.user_dot_semgrep_dir / "cache" / "asts" in
-          match Bos.OS.Dir.create ~path:true dir with
-          | Ok _ -> Some dir
-          | Error (`Msg err) -> failwith err
+          Some (Env.env.user_dot_semgrep_dir / "cache" / "asts")
         else None
       in
       {
@@ -160,25 +154,18 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         version = Version.version;
       }
 
-(* Same as semgrep_with_raw_results_and_exn_handler but takes rules
+(* Similar to semgrep_with_raw_results_and_exn_handler but takes rules
    and targets already filtered for a specific language.
    All other options are read from the runner_config object.
    TODO: we should not need this function because
    semgrep_with_raw_results_and_exn_handler can take a list of targets
    in different language (via config.targets set via --targets)
-*)
-(*
-val semgrep_with_prepared_rules_and_targets :
-  Runner_config.t ->
-  Lang_job.t ->
-  Exception.t option * Report.final_result * Common.filename list
-*)
-(* This is ugly, with potentially some filtering operations being done twice.
-   It should get simplified when we get rid of the Python wrapper.
-   For now, we avoid code duplication.
+   This is ugly, with potentially some filtering operations being done twice.
+   It should get simplified when we get rid of the pysemgrep completely.
 *)
 let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
-    (x : Lang_job.t) =
+    (x : Lang_job.t) :
+    Exception.t option * Report.final_result * Common.filename list =
   let lang_str = Xlang.to_string x.xlang in
   (* compute the rule idx and rule_nums for target_mappings
    * (see Input_to_core.atd)
@@ -223,7 +210,7 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
   let config = { config with file_match_results_hook } in
 
   match rule_errors with
-  (* with semgrep-python, semgrep-core is passed all the rules unparsed,
+  (* with pysemgrep, semgrep-core is passed all the rules unparsed,
    * and as soon as semgrep-core detects an error in a rule, it raises
    * InvalidRule which is caught and translated to JSON before exiting.
    * Here we emulate the same behavior, even though the rules
