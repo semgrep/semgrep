@@ -30,7 +30,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.contributors import Contributor
-from semgrep.contributors import ContributorManager
+from semgrep.contributors import ContributionManager
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
@@ -201,20 +201,6 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     sast_plan.print(with_tables_for=RuleProduct.sast)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
-
-
-def print_contributors(
-    contributors: Sequence[Contributor], targets: Sequence[Target]
-) -> None:
-    console.print(Title(f"{len(contributors)} Contributors"))
-    console.print(
-        Padding(
-            f"Found the following {len(contributors)} contributors across the {len(targets)} scanned targets:",
-            (1, 0),
-        ),
-        deindent=1,
-    )
-    ContributorManager.print(contributors)
 
 
 def run_rules(
@@ -513,11 +499,11 @@ def main(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
-    contributor_manager = ContributorManager(
+    contributor_manager = ContributionManager(
         target_manager=target_manager,
     )
-    contributors = contributor_manager.collect_contributors()
-    print_contributors(contributors, target_manager.targets)
+    contributions = contributor_manager.collect_contributions()
+    contributions.print_contributors()
 
     core_start_time = time.time()
     core_runner = CoreRunner(

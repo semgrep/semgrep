@@ -6,7 +6,8 @@ information for logged-in users using semgrep CLI.
 """
 
 
-from datetime import datetime
+from dataclasses import Field
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Iterator, Sequence
 
@@ -17,16 +18,16 @@ from rich.columns import Columns
 from rich.padding import Padding
 from rich.table import Table
 
-from semgrep.console import console
-from semgrep.target_manager import TargetManager
+from semgrep.console import console, Title
+from semgrep.target_manager import TargetManager, PATHS_ALWAYS_SKIPPED
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
+
 
 IGNORED_COMMITTERS = ["semgrep.dev"]
 IGNORED_AUTHORS = ["semgrep-ci[bot]", "dependabot[bot]", "r2c-argo[bot]"]
-
-
-class ContributorSource(Enum):
-    author = "author"
-    user = "user"
+DEFAULT_LOOKBACK = timedelta(days=45)
 
 
 @frozen(eq=True)
@@ -43,18 +44,68 @@ class Contributor:
 
     name: str | None
     email: str | None
-    source: ContributorSource
 
 
 @frozen(eq=True)
 class Contribution:
+    project: str
     contributor: Contributor
-    commit_hash: str
-    commit_date: datetime
 
 
 @define(eq=False)
-class ContributorManager:
+class ContributionsResponse:
+    contributions: list[Contribution]
+    contributors_count: int = field(init=False)
+    # from_timestamp: datetime
+    # to_timestamp: datetime
+    # from_commit: str
+    # to_commit: str
+
+    def __attrs_post_init__(self) -> None:
+        self.contributors_count = len(self.contributors)
+
+    @property
+    def contributors(self) -> list[Contributor]:
+        return list(
+            set(contribution.contributor for contribution in self.contributions)
+        )
+
+    @property
+    def projects(self) -> list[str]:
+        return list(set(contribution.project for contribution in self.contributions))
+
+    def print_contributors(self) -> None:
+        console.print(Title(f"{len(self.contributions)} Contributions"))
+        console.print(
+            Padding(
+                f"Found the following {len(self.contributions)} contributions across the {len(self.projects)} scanned projects:",
+                (1, 0),
+            ),
+            deindent=1,
+        )
+
+        table = Table(box=box.SIMPLE, show_edge=False)
+        table.add_column("Project")
+        table.add_column("Name")
+        table.add_column("Email")
+
+        sorted_contributions = sorted(
+            self.contributions,
+            key=lambda c: (c.project, c.contributor.name, c.contributor.email),
+        )
+        for contribution in sorted_contributions:
+            table.add_row(
+                contribution.project,
+                contribution.contributor.name,
+                contribution.contributor.email,
+            )
+
+        columns = Columns([table], padding=(1, 8))
+        console.print(Padding(columns, (1, 0)), deindent=1)
+
+
+@define(eq=False)
+class ContributionManager:
     """
 
     Contributors are analyzed at the time of a scan and will be collected
@@ -63,54 +114,52 @@ class ContributorManager:
     """
 
     target_manager: TargetManager
-    repositories: Sequence[Repository] = field(init=False)
+
+    since: datetime | None = None
+    to: datetime | None = None
+    from_commit: str | None = None
+    to_commit: str | None = None
+
+    repository: Repository = field(init=False)
 
     def __attrs_post_init__(self) -> None:
-        self.repositories = [
-            Repository(str(target.path.resolve()))
-            for target in self.target_manager.targets
-        ]
+        if not self.since:
+            self.since = datetime.utcnow() - DEFAULT_LOOKBACK
 
-    def collect_contributors(self) -> Sequence[Contributor]:
-        contributors: list[Contributor] = []
+        self.repository = Repository(
+            path_to_repo=[
+                str(target.path.resolve()) for target in self.target_manager.targets
+            ],
+            since=self.since,
+        )
 
-        for commit in self._traverse_commits():
+    def collect_contributions(self) -> ContributionsResponse:
+        contributions: list[Contribution] = []
+
+        for commit in self._iter_commits():
             contributor = Contributor(
                 name=commit.author.name,
                 email=commit.author.email,
-                source=ContributorSource.author,
             )
             contribution = Contribution(
                 contributor=contributor,
-                commit_hash=commit.hash,
-                commit_date=commit.author_date,
+                project=commit.project_name,
             )
+            contributions.append(contribution)
 
-            contributors.append(contributor)
+        return ContributionsResponse(contributions=list(set(contributions)))
 
-        return list(set(contributors))
-
-    @classmethod
-    def print(cls, contributors: Sequence[Contributor]) -> None:
-        table = Table(box=box.SIMPLE, show_edge=False)
-        table.add_column("Name")
-        table.add_column("Email")
-        table.add_column("Source")
-
-        sorted_contributors = sorted(
-            contributors, key=lambda c: (c.name, c.email, c.source)
+    def _iter_commits(self) -> Iterator[Commit]:
+        yield from filter(
+            self._is_valid_commit,
+            self.repository.traverse_commits(),
         )
-        for contributor in sorted_contributors:
-            table.add_row(contributor.name, contributor.email, contributor.source.value)
 
-        columns = Columns([table], padding=(1, 8))
-        console.print(Padding(columns, (1, 0)), deindent=1)
+    def _is_valid_commit(self, commit: Commit) -> bool:
+        if commit.committer.name in IGNORED_COMMITTERS:
+            return False
 
-    def _traverse_commits(self) -> Iterator[Commit]:
-        for repository in self.repositories:
-            for commit in repository.traverse_commits():
-                if (
-                    commit.committer.name not in IGNORED_COMMITTERS
-                    and commit.author.name not in IGNORED_AUTHORS
-                ):
-                    yield commit
+        if commit.author.name in IGNORED_AUTHORS:
+            return False
+
+        return True
