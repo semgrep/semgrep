@@ -693,19 +693,19 @@ let propagate_basic lang prog =
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: dockerfile specific *)
         | Call
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         | DotAccess
             ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: terraform specific.
          * coupling: with eval() above
          *)
@@ -716,7 +716,7 @@ let propagate_basic lang prog =
           when lang = Lang.Terraform && not !(env.in_lvalue) ->
             let var = (prefix ^ "." ^ str, terraform_sid) in
             let/ svalue = Hashtbl.find_opt env.constants var in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         | ArrayAccess (e1, (_, e2, _)) ->
             self#visit_expr venv e1;
             Common.save_excursion env.in_lvalue false (fun () ->
