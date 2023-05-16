@@ -202,7 +202,7 @@ class SemgrepCoreError(SemgrepError):
                 self.level,
                 self.core.rule_id,
                 self.core.error_type.kind,
-                self.core.location.path,
+                self.core.location.path.value,
                 self.core.location.start,
                 self.core.location.end,
                 self.core.message,
