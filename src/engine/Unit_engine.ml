@@ -84,6 +84,7 @@ let ga_features =
       "metavar_key_value";
       "metavar_typed";
       "metavar_ellipsis_args";
+      "partial_try";
       (* TODO: metavar_ellipsis_params *)
       (* TODO: metavar_string? *)
       "regexp_string";

@@ -1,0 +1,4 @@
+// MATCH:
+defer func() {
+   ...
+}()
