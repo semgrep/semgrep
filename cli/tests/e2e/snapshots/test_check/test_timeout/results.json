@@ -3,8 +3,8 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ",
-      "path": "targets/equivalence/open_redirect.py",
+      "message": "Timeout when running rules.forcetimeout on Fpath(value='targets/equivalence/open_redirect.py'):\n ",
+      "path": "Fpath(value='targets/equivalence/open_redirect.py')",
       "rule_id": "rules.forcetimeout",
       "type": "Timeout"
     }
