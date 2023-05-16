@@ -6,10 +6,8 @@ information for logged-in users using semgrep CLI.
 """
 
 
-from dataclasses import Field
 from datetime import UTC, datetime, timedelta
-from enum import Enum
-from typing import Iterator, Sequence
+from typing import Iterator
 
 from attrs import define, field, frozen
 from pydriller import Commit, Repository
@@ -19,7 +17,7 @@ from rich.padding import Padding
 from rich.table import Table
 
 from semgrep.console import console, Title
-from semgrep.target_manager import TargetManager, PATHS_ALWAYS_SKIPPED
+from semgrep.target_manager import TargetManager
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
