@@ -149,7 +149,7 @@ class Span:
             config_path=self.config_path,
             context_start=context_start,
             context_end=context_end,
-            file=self.file if self.file else "<No file>",
+            file=out.Fpath(self.file if self.file else "<No file>"),
             start=self.start.to_PositionBis(),
             end=self.end.to_PositionBis(),
             source_hash=self.source_hash,
