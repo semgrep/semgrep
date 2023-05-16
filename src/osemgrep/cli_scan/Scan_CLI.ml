@@ -33,7 +33,7 @@ type conf = {
   target_roots : Fpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
-  targeting_conf : Find_target.conf;
+  targeting_conf : Find_targets.conf;
   (* Other configuration options *)
   nosem : bool;
   autofix : bool;
@@ -81,7 +81,7 @@ let default : conf =
            a command-line option? In osemgrep, a .semgrepignore at the
            git project root will be honored unlike in legacy semgrep
            if we're in a subfolder. *)
-        Find_target.project_root = None;
+        Find_targets.project_root = None;
         exclude = [];
         include_ = None;
         baseline_commit = None;
@@ -733,7 +733,7 @@ let cmdline_term : conf Term.t =
     in
     let targeting_conf =
       {
-        Find_target.project_root = Option.map Fpath.v project_root;
+        Find_targets.project_root = Option.map Fpath.v project_root;
         exclude;
         include_;
         baseline_commit;

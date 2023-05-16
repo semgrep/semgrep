@@ -40,7 +40,6 @@ type t = {
   pattern_string : string option;
   pattern_file : Fpath.t option;
   rule_source : rule_source option;
-  lang_job : Lang_job.t option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
   roots : Fpath.t list;
@@ -99,7 +98,6 @@ let default =
     pattern_string = None;
     pattern_file = None;
     rule_source = None;
-    lang_job = None;
     equivalences_file = None;
     lang = None;
     roots = [];

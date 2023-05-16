@@ -33,7 +33,7 @@ exception UnexpectedCase of string
 type named_variants = (string * Pattern.t) list
 
 type environment = {
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   count : int;
   mapping : (expr * expr) list;
   has_type : bool;

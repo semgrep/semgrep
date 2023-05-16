@@ -301,7 +301,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let equiv = [] in
   Match_patterns.check ~hook
-    (Config_semgrep.default_config, equiv)
+    (Rule_options.default_config, equiv)
     [ rule ] (!!file, lang, ast)
 
 (*

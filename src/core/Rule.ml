@@ -113,9 +113,13 @@ and metavar_analysis_kind = CondEntropy | CondReDoS
 [@@deriving show, eq, hash]
 
 type paths = {
-  (* not regexp but globs *)
-  include_ : string list;
-  exclude : string list;
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   *)
+  require : Glob.Pattern.t list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : Glob.Pattern.t list;
 }
 [@@deriving show]
 
@@ -286,7 +290,7 @@ type 'mode rule_info = {
   severity : severity; (* Currently a dummy value for extract mode rules *)
   languages : Xlang.t;
   (* OPTIONAL fields *)
-  options : Config_semgrep.t option;
+  options : Rule_options.t option;
   (* deprecated? todo: parse them *)
   equivalences : string list option;
   fix : string option;

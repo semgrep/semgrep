@@ -13,35 +13,6 @@ module Env = Semgrep_envvars
    and not go through the intermediate semgrep-core JSON output.
 *)
 
-(* python: Don't translate this:
-
-   class StreamingSemgrepCore:
-       """
-       Handles running semgrep-core in a streaming fashion
-
-       This behavior is assumed to be that semgrep-core:
-       - prints a "." on a newline for every file it finishes scanning
-       - prints a number on a newline for any extra targets produced during a scan
-       - prints a single json blob of all results
-
-       Exposes the subprocess.CompletedProcess properties for
-       expediency in integrating
-       """
-*)
-
-(*
-   python: implement this but skip parsing the semgrep-core output,
-   getting it directly as OCaml objects.
-   Big class (500 lines of python):
-
-class CoreRunner:
-    """
-    Handles interactions between semgrep and semgrep-core
-
-    This includes properly invoking semgrep-core and parsing the output
-    """
-*)
-
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
@@ -61,7 +32,7 @@ type conf = {
 (* output *)
 (* LATER: ideally we should just return what Run_semgrep returns,
    without the need for the intermediate Out.core_match_results.
-   LATER: get rid of Output_from_core_util.ml
+   LATER: get rid also of Output_from_core_util.ml
 *)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
@@ -69,6 +40,7 @@ type result = {
    *)
   core : Out.core_match_results;
   hrules : Rule.hrules;
+  (* TODO: use Fpath.t *)
   scanned : Common.filename Set_.t;
       (* in python implem *)
       (* TODO: original intermediate data structures in python *)
@@ -138,53 +110,14 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
 let split_jobs_by_language all_rules all_targets : Lang_job.t list =
-  let grouped_rules = group_rules_by_target_language all_rules in
-  let cache = Find_target.create_cache () in
-  grouped_rules
-  |> Common.map_filter (fun (lang, rules) ->
-         let rules, targets =
-           match lang with
-           | Xlang.LGeneric
-           | Xlang.LRegex ->
-               let rules, targets =
-                 List.fold_left
-                   (fun (rules, targets) rule ->
-                     let required_path_patterns, excluded_path_patterns =
-                       match rule.Rule.paths with
-                       | Some { include_; exclude } -> (include_, exclude)
-                       | None -> ([], [])
-                     in
-                     let targets' =
-                       all_targets
-                       |> List.filter (fun target ->
-                              Find_target.filter_target_for_lang ~cache ~lang
-                                ~required_path_patterns ~excluded_path_patterns
-                                target)
-                     in
-                     if Common.null targets' then (rules, targets)
-                     else (rule :: rules, targets @ targets'))
-                   ([], []) rules
-               in
-               (rules, List.sort_uniq Fpath.compare targets)
-           | _else ->
-               ( rules,
-                 all_targets
-                 |> List.filter (fun target ->
-                        rules
-                        |> List.exists (fun (rule : Rule.t) ->
-                               let ( required_path_patterns,
-                                     excluded_path_patterns ) =
-                                 match rule.paths with
-                                 | Some { include_; exclude } ->
-                                     (include_, exclude)
-                                 | None -> ([], [])
-                               in
-                               Find_target.filter_target_for_lang ~cache ~lang
-                                 ~required_path_patterns ~excluded_path_patterns
-                                 target)) )
+  all_rules |> group_rules_by_target_language
+  |> Common.map_filter (fun (xlang, rules) ->
+         let targets =
+           all_targets
+           |> List.filter (Filter_target.filter_target_for_xlang xlang)
          in
-         if Common.null rules || Common.null targets then None
-         else Some ({ lang; targets; rules } : Lang_job.t))
+         if Common.null targets then None
+         else Some ({ xlang; targets; rules } : Lang_job.t))
 
 let runner_config_of_conf (conf : conf) : Runner_config.t =
   match conf with
@@ -226,6 +159,54 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
         parsing_cache_dir;
         version = Version.version;
       }
+
+(* Same as semgrep_with_raw_results_and_exn_handler but takes rules
+   and targets already filtered for a specific language.
+   All other options are read from the runner_config object.
+   TODO: we should not need this function because
+   semgrep_with_raw_results_and_exn_handler can take a list of targets
+   in different language (via config.targets set via --targets)
+*)
+(*
+val semgrep_with_prepared_rules_and_targets :
+  Runner_config.t ->
+  Lang_job.t ->
+  Exception.t option * Report.final_result * Common.filename list
+*)
+(* This is ugly, with potentially some filtering operations being done twice.
+   It should get simplified when we get rid of the Python wrapper.
+   For now, we avoid code duplication.
+*)
+let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
+    (x : Lang_job.t) =
+  let lang_str = Xlang.to_string x.xlang in
+  (* compute the rule idx and rule_nums for target_mappings
+   * (see Input_to_core.atd)
+   *)
+  let rule_ids =
+    x.rules
+    |> Common.map (fun (x : Rule.t) ->
+           let id, _tok = x.id in
+           id)
+  in
+  let rule_nums = rule_ids |> Common.mapi (fun i _ -> i) in
+  let target_mappings =
+    x.targets
+    |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
+           { path = !!path; language = lang_str; rule_nums })
+  in
+  let wrapped_targets : Input_to_core_t.targets =
+    { target_mappings; rule_ids }
+  in
+  let config =
+    {
+      config with
+      target_source = Some (Targets wrapped_targets);
+      rule_source = Some (Rules x.rules);
+    }
+  in
+  (* !!!!Finally! this is where we branch to semgrep-core!!! *)
+  Run_semgrep.semgrep_with_raw_results_and_exn_handler config
 
 (*************************************************************************)
 (* Entry point *)
@@ -291,9 +272,7 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
         lang_jobs
         |> Common.map (fun lang_job ->
                let _exn_optTODO, report, files =
-                 (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-                 Run_semgrep.semgrep_with_prepared_rules_and_targets config
-                   lang_job
+                 semgrep_with_prepared_rules_and_targets config lang_job
                in
                (report, Set_.of_list files))
       in

@@ -263,7 +263,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
         (* step2: getting the targets *)
         let targets, semgrepignored_targets =
-          Find_target.get_targets conf.targeting_conf conf.target_roots
+          Find_targets.get_targets conf.targeting_conf conf.target_roots
         in
         Logs.debug (fun m ->
             m "%a" Targets_report.pp_targets_debug
@@ -322,6 +322,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         Logs.app (fun m ->
             m "%a" Summary_report.pp_summary
               ( conf.targeting_conf.respect_git_ignore,
+                conf.legacy,
                 conf.targeting_conf.max_target_bytes,
                 semgrepignored,
                 included,
@@ -330,10 +331,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                 other_ignored,
                 errors_skipped ));
         Logs.app (fun m ->
-            m "Ran %d rules on %d files: %d findings@."
-              (List.length filtered_rules)
-              (List.length targets)
-              (List.length res.core.matches));
+            m "Ran %s on %s: %s@."
+              (String_utils.unit_str (List.length filtered_rules) "rule")
+              (String_utils.unit_str (List.length targets) "file")
+              (String_utils.unit_str (List.length res.core.matches) "finding"));
 
         (* TOPORT? was in formater/base.py
            def keep_ignores(self) -> bool:

@@ -11,6 +11,7 @@
    atdgen-runtime
 
    commons
+   glob
    lib_parsing ; Parse_info.ml
    ast_generic
    parser_javascript.ast ; TODO remove this, ugly dependency to Ast_js.default_entity in Pattern.ml
