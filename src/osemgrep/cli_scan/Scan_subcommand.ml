@@ -306,7 +306,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         in
 
         (* outputting the result! in JSON/Text/... depending on conf *)
-        let cli_errors = Output.output_result { conf with output_format } res in
+        let cli_output = Output.output_result { conf with output_format } res in
 
         Logs.info (fun m ->
             m "%a" Skipped_report.pp_skipped
@@ -334,7 +334,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
             m "Ran %s on %s: %s@."
               (String_utils.unit_str (List.length filtered_rules) "rule")
               (String_utils.unit_str (List.length targets) "file")
-              (String_utils.unit_str (List.length res.core.matches) "finding"));
+              (String_utils.unit_str (List.length cli_output.results) "finding"));
 
         (* TOPORT? was in formater/base.py
            def keep_ignores(self) -> bool:
@@ -347,7 +347,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         *)
 
         (* step5: exit with the right exit code *)
-        match cli_errors with
+        match cli_output.Out.errors with
         | [] ->
             (* final result for the shell *)
             exit_code_of_errors ~strict:conf.strict res.core.errors
