@@ -450,7 +450,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
        * elements in OCaml compare order (=~ lexicographic for strings)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
-      let scanned = res.scanned |> Set_.elements in
+      let scanned = res.scanned |> Set_.elements |> File.Path.to_strings in
       let (paths : Out.cli_paths) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->

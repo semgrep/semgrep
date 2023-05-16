@@ -1,13 +1,16 @@
 open Lsp
 open Types
+open File.Operators
 
 type t = {
   capabilities : ServerCapabilities.t;
   incoming : Lwt_io.input_channel;
   outgoing : Lwt_io.output_channel;
   config : Runner_config.t; (* ... *)
+  (* TODO: Fpath.t option? *)
   root : string;
   cached_rules : Runner_config.rule_source option;
+  (* TODO: use Fpath.t for the key *)
   documents :
     (string, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
   only_git_dirty : bool;
@@ -20,6 +23,7 @@ let create capabilities config =
     incoming = Lwt_io.stdin;
     outgoing = Lwt_io.stdout;
     root = "";
+    (* TODO: should be a None? or should pass root to create()? *)
     cached_rules = None;
     documents = Hashtbl.create 10;
     only_git_dirty = true;
@@ -27,7 +31,7 @@ let create capabilities config =
 
 (* This is dynamic so if the targets file is updated we don't have to restart
  * (and reparse rules...).
- * Once osemgrep is ready, we can just use target manager directly here
+ * Once osemgrep is ready, we can just use its target manager directly here
  *)
 let targets session =
   let config = session.config in
@@ -35,7 +39,7 @@ let targets session =
   let dirty_files =
     if git_repo then
       let dirty_files = Git_wrapper.dirty_files () in
-      Common.map (Filename.concat session.root) dirty_files
+      Common.map (fun x -> Fpath.v session.root // x) dirty_files
     else []
   in
   let targets =
@@ -47,12 +51,12 @@ let targets session =
     | None -> failwith "No targets provided"
   in
   let target_mappings =
-    List.filter
-      (fun (t : Input_to_core_t.target) ->
-        (not (session.only_git_dirty && git_repo))
-        || List.mem t.path dirty_files)
-      targets.target_mappings
+    targets.target_mappings
+    |> List.filter (fun (t : Input_to_core_t.target) ->
+           (not (session.only_git_dirty && git_repo))
+           || List.mem (Fpath.v t.path) dirty_files)
   in
+
   { targets with target_mappings }
 
 let load_rules session =
@@ -81,15 +85,17 @@ let hrules session =
   in
   Rule.hrules_of_rules rules
 
-let record_results session results files =
+let record_results session results (files : Fpath.t list) =
   let results_by_file =
-    Common.group_by (fun ((m, _) : Processed_run.t) -> m.location.path) results
+    results
+    |> Common.group_by (fun ((m, _) : Processed_run.t) ->
+           Fpath.v m.location.path)
   in
   (* Clear out all results first *)
-  List.iter (fun file -> Hashtbl.add session.documents file []) files;
-  List.iter
-    (fun (file, results) -> Hashtbl.add session.documents file results)
-    results_by_file
+  files |> List.iter (fun file -> Hashtbl.add session.documents !!file []);
+  results_by_file
+  |> List.iter (fun (file, results) ->
+         Hashtbl.add session.documents !!file results)
 
 (* Useful for when we need to reset diagnostics, such as when changing what
  * rules we've run *)
