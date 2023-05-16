@@ -59,6 +59,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/poetry",
         ),
         (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_with_arbitrary_starting_comment",
+        ),
+        (
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
         ),
