@@ -266,7 +266,7 @@ let group_by_project_root func paths =
    LATER: use Ppaths rather than full paths as scanning roots
    when we switch to Semgrepignore.list to list project files.
 
-   TODO? move in ppath/Project.ml?
+   TODO? move in paths/Project.ml?
 *)
 let group_roots_by_project conf paths =
   let force_root =
