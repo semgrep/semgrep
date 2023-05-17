@@ -47,6 +47,14 @@ val get_targets :
   Fpath.t list (* scanning roots *) ->
   Fpath.t list * Output_from_core_t.skipped_target list
 
+(* old implementation, more complete for ignoring paths, but returning
+ * bad absolute fpaths instead of "readable" fpaths
+ *)
+val get_targets2 :
+  conf ->
+  Fpath.t list (* scanning roots *) ->
+  Fpath.t list * Output_from_core_t.skipped_target list
+
 (*
    [legacy implementation used in semgrep-core]
 
