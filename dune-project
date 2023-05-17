@@ -289,7 +289,7 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
-(package (name ppath)
+(package (name paths)
   (synopsis "XXX")
   (description "XXX")
 )
