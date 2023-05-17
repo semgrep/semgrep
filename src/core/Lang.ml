@@ -32,6 +32,14 @@ module FT = File_type
 (* Types *)
 (*****************************************************************************)
 
+(*
+   This constructor aliasing trick allows us to have all the types and
+   functions in a single module, Lang.
+
+   We need to keep this type definition to Language.t, which is generated.
+   It should be easy since the compiler tells us what to when the type
+   expressions don't match.
+*)
 type t = Language.t =
   | Apex
   | Bash
