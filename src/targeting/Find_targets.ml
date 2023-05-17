@@ -62,6 +62,7 @@ type conf = {
 
 type fppath = { fpath : Fpath.t; ppath : Ppath.t }
 
+(* TODO? could move in Project.ml *)
 type project_roots = {
   project : Project.t;
   (* scanning roots that belong to the project *)
@@ -225,16 +226,14 @@ let group_scanning_roots_by_project (conf : conf)
 (* Entry point (new) *)
 (*************************************************************************)
 
-(* This does almost nothing and is not as complete as get_targets2() below.
- * For example, it does not handle .semgrepignore; it handles .gitignore
- * but just because we use git ls-files really.
- * BUT, at least it returns "readable" fpaths as opposed to absolute
- * path in get_targets2, which currently leads to less e2e failures
- * TODO:
- *  - handle .semgrepignore but by doing it in a more efficient way
- *    than get_targets2
- *  - handle file size? e2e tests testing that?
- *)
+(* TODO! *)
+let walk_skip_and_collect (conf : conf)
+    (_ign : Osemgrep_targeting.Semgrep_ignore.t) (scan_root : fppath) :
+    Fpath.t list * Out.skipped_target list =
+  let xs = list_regular_files conf scan_root.fpath in
+  let skipped = [] in
+  (xs, skipped)
+
 let get_targets conf scanning_roots =
   scanning_roots
   |> group_scanning_roots_by_project conf
@@ -248,19 +247,16 @@ let get_targets conf scanning_roots =
                else Only_semgrepignore
            | Project.Other_project -> Only_semgrepignore
          in
-         let _ignTODO =
+         let ign =
            Osemgrep_targeting.Semgrepignore.create
              ?include_patterns:conf.include_ ~cli_patterns:conf.exclude
              ~exclusion_mechanism
              ~project_root:(Rpath.to_fpath project_root)
              ()
          in
-
          scanning_roots
          |> Common.map (fun scan_root ->
-                let xs = list_regular_files conf scan_root.fpath in
-                let skipped = [] in
-                (xs, skipped)))
+                walk_skip_and_collect conf ign scan_root))
   |> List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
