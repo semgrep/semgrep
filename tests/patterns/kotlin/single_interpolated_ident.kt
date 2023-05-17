@@ -1,8 +1,8 @@
 
-val x = "whatever"
+val temp = "whatever"
 
 // ERROR: match
-val x = "$FOO"
+val x = "$temp"
 
 // ERROR: match
-val x = "${FOO}"
+val x = "${temp}"

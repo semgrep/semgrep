@@ -1903,9 +1903,12 @@ and string_literal (env : env) (v1, v2, v3) : expr =
       (* This is something of the form "$X". This is interpreted as an interpolated
          string of a single identifier, but if this is the pattern,
          it's probably not what the person writing the rule meant.
+         Instead, we interpret it as a string literal containing a metavariable,
+         which allows the existing literal metavariable machinery to run.
 
-         This is without loss of expression, because a string containing an interpolated
-         identifier `X` can also be expressed in a Semgrep pattern via `"{X}"`.
+         This does not affect Semgrep's expressive power, because a string containing
+         an interpolated identifier `X` can also be expressed in a Semgrep pattern via
+         `"{X}"`.
       *)
       let s1, t1 = str env v1 (* "$" *) in
       let s2, t2 = simple_identifier env v2 in
