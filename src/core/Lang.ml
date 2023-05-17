@@ -73,15 +73,15 @@ type t = Language.t =
   | Yaml
 [@@deriving show { with_path = false }, eq, hash]
 
-let is_js = function
-  | Js
-  | Ts ->
-      true
-  | _ -> false
+let has_tag tag_name =
+  let tbl = Hashtbl.create 50 in
+  Language.list
+  |> List.iter (fun (x : Language.info) ->
+         if List.mem tag_name x.tags then Hashtbl.add tbl x.id ());
+  fun lang -> Hashtbl.mem tbl lang
 
-let is_proprietary = function
-  | Apex -> true
-  | _ -> false
+let is_js = has_tag "is_js"
+let is_proprietary = has_tag "is_proprietary"
 
 (*****************************************************************************)
 (* Helpers *)
