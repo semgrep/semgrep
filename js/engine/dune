@@ -25,3 +25,12 @@
  (modes js)
  (preprocess
   (pps js_of_ocaml-ppx)))
+
+; we have to massage the libyaml memory offsets
+; because the archiecture that ocaml-yaml and ocaml-ctypes
+; isn't compatible with wasm32 :(
+(rule
+ (targets Main.bc.fixed.js)
+ (deps fix-libyaml-offsets.py Main.bc.js)
+ (action (with-stdout-to %{targets} (run python3 fix-libyaml-offsets.py Main.bc.js)))
+)
