@@ -36,7 +36,7 @@ class SarifFormatter(BaseFormatter):
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
             content = "".join(taint_source.value.value[1]).strip()
-            source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+            source_message_text = f"Source: '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             taint_source_location_sarif = {
                 "location": {
@@ -69,7 +69,7 @@ class SarifFormatter(BaseFormatter):
         for intermediate_var in intermediate_vars:
             location = intermediate_var.location
             content = "".join(intermediate_var.content).strip()
-            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             intermediate_vars_location_sarif = {
                 "location": {
@@ -168,7 +168,7 @@ class SarifFormatter(BaseFormatter):
             return None
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
-            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+            code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
             code_flow_sarif = {
                 "message": {"text": code_flow_message},
             }
