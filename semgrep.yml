@@ -381,3 +381,17 @@ rules:
     fix: Metavariable.Structural.$F
     languages: [ocaml]
     severity: WARNING
+
+  - id: no-direct-assign-to-id_svalue
+    patterns:
+      - pattern-not-inside: |
+          if no_cycles_in_svalue ... then
+            ...
+      # FIXME: This doesn't work: $X.id_svalue := Some $E
+      - pattern-regex: \s([a-z0-5_]+)\.id_svalue\s+:=\s+Some\s+([a-z0-5_]+)
+    message: >-
+      Dot not set '$1.id_svalue' directly, instead use
+      'Dataflow_svalue.set_svalue_ref' which performs a cycle check.
+    fix: Dataflow_svalue.set_svalue_ref $1 $2
+    languages: [ocaml]
+    severity: WARNING
