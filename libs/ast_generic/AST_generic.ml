@@ -273,8 +273,7 @@ module IdInfoId = Gensym.MkId ()
  *)
 (* a single unique gensym'ed number. *)
 type sid = SId.t
-and resolved_name = resolved_name_kind * sid
-[@@deriving show, eq]
+and resolved_name = resolved_name_kind * sid [@@deriving show, eq]
 
 and resolved_name_kind =
   (* Global is useful in codemap/efuns to highlight differently and warn
@@ -548,13 +547,16 @@ and qualifier =
 (* Naming/typing *)
 (*****************************************************************************)
 and id_info = {
-  id_resolved : resolved_name option ref; [@equal AST_utils.equal_id_info (Common.equal_ref_option equal_resolved_name)]
+  id_resolved : resolved_name option ref;
+      [@equal
+        AST_utils.equal_id_info (Common.equal_ref_option equal_resolved_name)]
   (* variable tagger (naming) *)
   (* sgrep: in OCaml we also use that to store the type of
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
    *)
-  id_type : type_ option ref; [@equal AST_utils.equal_id_info (Common.equal_ref_option equal_type_)]
+  id_type : type_ option ref;
+      [@equal AST_utils.equal_id_info (Common.equal_ref_option equal_type_)]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
@@ -2420,11 +2422,6 @@ class virtual ['self] map_legacy =
   object (self : 'self)
     inherit [_] map
     method! visit_tok _env v = v
-
-    method! visit_expr env x =
-      let ekind = self#visit_expr_kind env x.e in
-      (* TODO? reuse the e_id or create a new one? *)
-      e ekind
 
     (* For convenience, so clients don't need to override visit_arguments and
      * deal with the bracket type. *)

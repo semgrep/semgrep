@@ -741,6 +741,15 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | `Taint _
                     | `Join _ ->
                         true)
+             |> List.filter (fun r ->
+                    (* TODO: some of this is already done in pysemgrep, so maybe
+                     * we should guard with a flag that only osemgrep set
+                     * like Runner_config.paths_processing: bool?
+                     *)
+                    match r.R.paths with
+                    | None -> true
+                    | Some paths ->
+                        Filter_target.filter_paths paths (Fpath.v file))
            in
 
            let xtarget = xtarget_of_file config xlang file in
@@ -837,7 +846,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
         Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
     },
     (* TODO not all_targets here, because ?? *)
-    targets |> Common.map (fun x -> x.In.path) )
+    targets |> Common.map (fun x -> Fpath.v x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
@@ -893,7 +902,7 @@ let output_semgrep_results (exn, res, files) config =
         |> List.iter (fun explain -> Matching_explanation.print explain);
       (* the match has already been printed above. We just print errors here *)
       if not (null res.errors) then (
-        pr "WARNING: some files were skipped on only partially analyzed:";
+        pr "WARNING: some files were skipped or only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 let semgrep_with_rules_and_formatted_output config =

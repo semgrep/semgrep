@@ -133,7 +133,7 @@ let files_from_git_ls ~cwd:scan_root =
   (* tracked files *)
   let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
   tracked_output
-  |> Common.map (fun x -> scan_root // x)
+  |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
   |> List.filter is_valid_file
   [@@profiling]
 
@@ -177,6 +177,31 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   | S_BLK
   | S_SOCK ->
       []
+  [@@profiling]
+
+(*************************************************************************)
+(* Entry point (new) *)
+(*************************************************************************)
+
+(* This does almost nothing and is not as complete as get_targets2() below.
+ * For example, it does not handle .semgrepignore; it handles .gitignore
+ * but just because we use git ls-files really.
+ * BUT, at least it returns "readable" fpaths as opposed to absolute
+ * path in get_targets2, which currently leads to less e2e failures
+ * TODO:
+ *  - handle .semgrepignore but by doing it in a more efficient way
+ *    than get_targets2
+ *  - handle file size? e2e tests testing that?
+ *)
+let get_targets conf scanning_roots =
+  scanning_roots
+  |> Common.map (fun scan_root ->
+         let xs = list_regular_files conf scan_root in
+         let skipped = [] in
+         (xs, skipped))
+  |> List.split
+  |> fun (paths_list, skipped_paths_list) ->
+  (List.flatten paths_list, List.flatten skipped_paths_list)
   [@@profiling]
 
 (*************************************************************************)
@@ -266,7 +291,7 @@ let group_by_project_root func paths =
    LATER: use Ppaths rather than full paths as scanning roots
    when we switch to Semgrepignore.list to list project files.
 
-   TODO? move in ppath/Project.ml?
+   TODO? move in paths/Project.ml?
 *)
 let group_roots_by_project conf paths =
   let force_root =
@@ -290,7 +315,7 @@ let group_roots_by_project conf paths =
            ((Project.Other_project, root), Ppath.to_fpath root git_path))
 
 (*************************************************************************)
-(* Entry point *)
+(* Entry point (old) *)
 (*************************************************************************)
 
 (* python: mix of Target_manager(), target_manager.get_files_for_rule(),
@@ -303,7 +328,7 @@ let group_roots_by_project conf paths =
    See the documentation for the conf object for the various filters
    that we apply.
 *)
-let get_targets conf scanning_roots =
+let get_targets2 conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   group_roots_by_project conf scanning_roots
   |> Common.map (fun ((proj_kind, project_root), scanning_roots) ->

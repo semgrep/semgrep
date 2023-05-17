@@ -112,7 +112,7 @@ class RuleMatch:
 
     @property
     def path(self) -> Path:
-        return Path(self.match.location.path)
+        return Path(self.match.location.path.value)
 
     @property
     def start(self) -> core.Position:
@@ -380,7 +380,7 @@ class RuleMatch:
         # We need this to quickly get augment a Location with the contents of the location
         # Convenient to just have it as a separate function
         def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
-            with open(location.path, errors="replace") as fd:
+            with open(location.path.value, errors="replace") as fd:
                 content = util.read_range(
                     fd, location.start.offset, location.end.offset
                 )
@@ -425,7 +425,7 @@ class RuleMatch:
                     # TODO avoid repeated opens in the common case (i.e. not
                     # DeepSemgrep) where all of these locations are in the same
                     # file?
-                    with open(location.path, errors="replace") as fd:
+                    with open(location.path.value, errors="replace") as fd:
                         content = util.read_range(
                             fd, location.start.offset, location.end.offset
                         )
@@ -490,7 +490,7 @@ class RuleMatch:
 
         ret = out.Finding(
             check_id=out.RuleId(self.rule_id),
-            path=str(self.path),
+            path=out.Fpath(str(self.path)),
             line=self.start.line,
             column=self.start.col,
             end_line=self.end.line,

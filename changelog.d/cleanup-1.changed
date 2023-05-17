@@ -1,3 +1,0 @@
-Cleanup: Removed Bloom filter optimization. This optimization had been turned off by
-default since September 2022 (release 0.116.0) without any noticeable effect. It had
-its role in the past when it was first introduced, but now it's time for it to go!

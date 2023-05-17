@@ -6,7 +6,7 @@
   (libraries
     glob
     profiling
-    ppath
+    paths
   )
   (preprocess (pps
     ppx_deriving.show

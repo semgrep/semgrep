@@ -117,8 +117,7 @@ val output_semgrep_results :
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Runner_config.t ->
-  Exception.t option * Report.final_result * Common.filename list
+  Runner_config.t -> Exception.t option * Report.final_result * Fpath.t list
 (** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
     engine with a starting list of targets and returns
     (success, result, targets).
@@ -135,7 +134,7 @@ val semgrep_with_raw_results_and_exn_handler :
 val semgrep_with_rules :
   Runner_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
-  Report.final_result * Common.filename list
+  Report.final_result * Fpath.t list
 
 (* utilities functions used in tests or semgrep-core variants *)
 

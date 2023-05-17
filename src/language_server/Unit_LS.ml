@@ -158,10 +158,12 @@ let processed_run () =
     let matches, rules = mock_run_results files in
     let hrules = Rule.hrules_of_rules rules in
     let matches, _ =
-      Processed_run.of_matches ~only_git_dirty matches hrules files
+      Processed_run.of_matches ~only_git_dirty matches hrules
+        (File.Path.of_strings files)
     in
     let final_files =
-      Common.map (fun ((m, _) : Processed_run.t) -> m.Out.location.path) matches
+      matches
+      |> Common.map (fun ((m, _) : Processed_run.t) -> m.Out.location.path)
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in

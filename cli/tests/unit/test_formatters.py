@@ -24,7 +24,7 @@ def create_taint_rule_match():
         match=core.CoreMatch(
             rule_id=core.RuleId("rule.id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(3, 4, 6),
                 end=core.Position(3, 5, 7),
             ),
@@ -34,7 +34,7 @@ def create_taint_rule_match():
                     taint_source=core.CoreMatchCallTrace(
                         core.CoreLoc(
                             core.Location(
-                                path="foo.py",
+                                path=core.Fpath("foo.py"),
                                 start=core.Position(8, 9, 11),
                                 end=core.Position(8, 10, 12),
                             )
@@ -43,7 +43,7 @@ def create_taint_rule_match():
                     intermediate_vars=[
                         core.CoreMatchIntermediateVar(
                             location=core.Location(
-                                path="foo.py",
+                                path=core.Fpath("foo.py"),
                                 start=core.Position(13, 14, 16),
                                 end=core.Position(13, 15, 17),
                             )
@@ -52,7 +52,7 @@ def create_taint_rule_match():
                     taint_sink=core.CoreMatchCallTrace(
                         core.CoreLoc(
                             core.Location(
-                                path="foo.py",
+                                path=core.Fpath("foo.py"),
                                 start=core.Position(15, 16, 20),
                                 end=core.Position(15, 17, 21),
                             )

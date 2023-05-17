@@ -756,7 +756,7 @@ let filename_without_leading_path prj_path s =
   else
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
 
-(* Deprecated: use the ppath library instead! *)
+(* Deprecated: use the Ppath.ml module instead! *)
 let readable ~root s =
   match root with
   | "/" -> s
@@ -1253,7 +1253,9 @@ let equal_ref_option equal_f a b =
   match (!a, !b) with
   | None, None -> true
   | Some a, Some b -> equal_f a b
-  | Some _, None | None, Some _ -> false
+  | Some _, None
+  | None, Some _ ->
+      false
 
 (*****************************************************************************)
 (* Operators *)

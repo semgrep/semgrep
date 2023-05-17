@@ -43,7 +43,11 @@
 type t = private Path of string [@@deriving show, eq]
 
 (* only way to build an Rpath *)
+val of_fpath : Fpath.t -> t
 val of_string : string -> t
+val to_fpath : t -> Fpath.t
+
+(* Deprecated: should use Fpath.t instead of string *)
 val to_string : t -> string
 
 (* <=> to_string (of_string s) *)
@@ -59,7 +63,9 @@ val basename : t -> string
 val dirname : t -> t
 val extension : t -> string
 
-(* Similar to functions in File.mli *)
+(* Deprecated: Similar to functions in File.mli. You should
+ * instead use directly the File module with 'File.xxx (Rpath.to_fpath rpath)'
+ *)
 val cat : t -> string list
 val write_file : file:t -> string -> unit
 val read_file : ?max_len:int -> t -> string
