@@ -27,8 +27,8 @@
   (pps js_of_ocaml-ppx)))
 
 ; we have to massage the libyaml memory offsets
-; because the archiecture that ocaml-yaml and ocaml-ctypes
-; isn't compatible with wasm32 :(
+; because the architecture that ocaml-yaml and ocaml-ctypes
+; was built with isn't compatible with wasm32 :(
 (rule
  (targets Main.bc.fixed.js)
  (deps fix-libyaml-offsets.py Main.bc.js)
