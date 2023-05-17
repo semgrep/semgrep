@@ -1,5 +1,5 @@
 # dune
-_build
+_build/
 # starting from dune 2.8.2, those are actually not generated anymore
 .merlin
 
@@ -10,7 +10,7 @@ _build
 !/semgrep.opam
 
 # bisect_ppx
-_coverage
+_coverage/
 *.coverage
 
 # pad's stuff (but better to put in ~pad/config/commons/gitignore)

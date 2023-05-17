@@ -48,7 +48,7 @@ def test_rule_match_attributes(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("long.rule.id"),
             location=core.Location(
-                path="relative/path/to/foo.py",
+                path=core.Fpath("relative/path/to/foo.py"),
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
@@ -86,7 +86,7 @@ def test_rule_match_sorting(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
@@ -101,7 +101,7 @@ def test_rule_match_sorting(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(4, 1, 36),
                 end=core.Position(4, 15, 50),
             ),
@@ -133,7 +133,7 @@ def test_rule_match_hashing(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
@@ -163,7 +163,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(3, 1, 28),
                 end=core.Position(5, 2, 48),
             ),
@@ -188,7 +188,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(3, 1, 28),
                 end=core.Position(5, 2, 72),
             ),
@@ -214,7 +214,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(4, 1, 55),
                 end=core.Position(6, 2, 75),
             ),
@@ -250,7 +250,7 @@ def test_rule_match_set_indexes(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(3, 1, 24),
                 end=core.Position(3, 15, 38),
             ),
@@ -265,7 +265,7 @@ def test_rule_match_set_indexes(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(4, 1, 36),
                 end=core.Position(4, 15, 50),
             ),
@@ -280,7 +280,7 @@ def test_rule_match_set_indexes(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(5, 1, 48),
                 end=core.Position(5, 15, 62),
             ),
@@ -295,7 +295,7 @@ def test_rule_match_set_indexes(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(6, 1, 60),
                 end=core.Position(6, 15, 74),
             ),
@@ -311,7 +311,7 @@ def test_rule_match_set_indexes(mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule_id_wrong_one"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(7, 1, 60),
                 end=core.Position(7, 15, 74),
             ),
@@ -368,7 +368,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
         match=core.CoreMatch(
             rule_id=core.RuleId("rule.id"),
             location=core.Location(
-                path="foo.py",
+                path=core.Fpath("foo.py"),
                 start=core.Position(0, 0, 0),
                 end=core.Position(0, 0, 0),
             ),

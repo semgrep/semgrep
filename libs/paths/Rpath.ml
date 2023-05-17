@@ -1,4 +1,4 @@
-(* Brandon Wu
+(* Brandon Wu, Yoann Padioleau
  *
  * Copyright (C) 2022-2023 Semgrep Inc.
  *
@@ -38,6 +38,7 @@
 (* Types *)
 (*****************************************************************************)
 
+(* TODO? use Path of Fpath.t instead? *)
 type t = Path of string [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -48,13 +49,19 @@ type t = Path of string [@@deriving show, eq]
  * and there is no unixcompat like we have stdcompat.
  * alt: use Common.fullpath, but not as good as Unix.realpath
  *)
+let of_fpath p = Path (Realpath.realpath p |> Fpath.to_string)
 let of_string s = Path (Realpath.realpath_str s)
+let to_fpath (Path s) = Fpath.v s
 let to_string (Path s) = s
 let canonical s = to_string (of_string s)
 let ( / ) (Path s1) s2 = of_string (Filename.concat s1 s2)
 let concat = ( / )
 let apply ~f (Path s) = f s
 let file_exists (Path s) = Sys.file_exists s
+
+(* TODO: probably better to direct people to the File module, and remove those
+ * functions. People just have to use 'rpath |> Rpath.to_fpath |> xxx'
+ *)
 let cat = apply ~f:Common.cat
 let read_file ?max_len = apply ~f:(Common.read_file ?max_len)
 let write_file ~file:(Path s1) = Common.write_file ~file:s1
