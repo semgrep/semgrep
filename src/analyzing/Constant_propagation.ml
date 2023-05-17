@@ -123,7 +123,7 @@ let no_cycles_in_sym_prop sid exp =
      * we can have a single visitor for all calls, given that the old
      * `mk_visitor` was kind of expensive, and constructing a visitor object
      * may be as well. *)
-    let ff = ref (fun _ -> true) in
+    let ff = ref (fun _ -> assert false) in
     let ok = ref true in
     let vout =
       object
