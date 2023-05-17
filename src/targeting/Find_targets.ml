@@ -212,8 +212,11 @@ let group_scanning_roots_by_project (conf : conf)
          let kind, project_root, scanning_root_ppath =
            Git_project.find_any_project_root ?force_root scanning_root
          in
-         ( (kind, project_root),
+         ( (kind, Rpath.of_fpath project_root),
            { fpath = scanning_root; ppath = scanning_root_ppath } ))
+  (* using an Rpath in Project.t ensures we group correctly even
+   * if the scanning_roots went through different symlink paths
+   *)
   |> Common.group_by fst
   |> Common.map (fun (project, xs) ->
          { project; scanning_roots = xs |> Common.map snd })
@@ -235,7 +238,24 @@ let group_scanning_roots_by_project (conf : conf)
 let get_targets conf scanning_roots =
   scanning_roots
   |> group_scanning_roots_by_project conf
-  |> List.concat_map (fun { project = _; scanning_roots } ->
+  |> List.concat_map (fun { project = kind, project_root; scanning_roots } ->
+         (* step1: filter with .gitignore and .semgrepignore *)
+         let exclusion_mechanism :
+             Osemgrep_targeting.Semgrepignore.exclusion_mechanism =
+           match (kind : Project.kind) with
+           | Project.Git_project ->
+               if conf.respect_git_ignore then Gitignore_and_semgrepignore
+               else Only_semgrepignore
+           | Project.Other_project -> Only_semgrepignore
+         in
+         let _ignTODO =
+           Osemgrep_targeting.Semgrepignore.create
+             ?include_patterns:conf.include_ ~cli_patterns:conf.exclude
+             ~exclusion_mechanism
+             ~project_root:(Rpath.to_fpath project_root)
+             ()
+         in
+
          scanning_roots
          |> Common.map (fun scan_root ->
                 let xs = list_regular_files conf scan_root.fpath in
