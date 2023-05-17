@@ -60,6 +60,14 @@ type conf = {
 }
 [@@deriving show]
 
+type fppath = { fpath : Fpath.t; ppath : Ppath.t }
+
+type project_roots = {
+  project : Project.t;
+  (* scanning roots that belong to the project *)
+  scanning_roots : fppath list;
+}
+
 (*************************************************************************)
 (* Diagnostic *)
 (*************************************************************************)
@@ -180,6 +188,37 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
   [@@profiling]
 
 (*************************************************************************)
+(* Grouping (new) *)
+(*************************************************************************)
+
+(*
+   Identify the project root for each scanning root and group them
+   by project root. If the project_root is specified, then we use that.
+
+   This is important to avoid reading the gitignore and semgrepignore files
+   twice when multiple scanning roots that belong to the same project.
+
+   TODO? move in paths/Project.ml?
+*)
+let group_scanning_roots_by_project (conf : conf)
+    (scanning_roots : Fpath.t list) : project_roots list =
+  let force_root =
+    match conf.project_root with
+    | None -> None
+    | Some proj_root -> Some (Project.Git_project, proj_root)
+  in
+  scanning_roots
+  |> Common.map (fun scanning_root ->
+         let kind, project_root, scanning_root_ppath =
+           Git_project.find_any_project_root ?force_root scanning_root
+         in
+         ( (kind, project_root),
+           { fpath = scanning_root; ppath = scanning_root_ppath } ))
+  |> Common.group_by fst
+  |> Common.map (fun (project, xs) ->
+         { project; scanning_roots = xs |> Common.map snd })
+
+(*************************************************************************)
 (* Entry point (new) *)
 (*************************************************************************)
 
@@ -195,10 +234,13 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
  *)
 let get_targets conf scanning_roots =
   scanning_roots
-  |> Common.map (fun scan_root ->
-         let xs = list_regular_files conf scan_root in
-         let skipped = [] in
-         (xs, skipped))
+  |> group_scanning_roots_by_project conf
+  |> List.concat_map (fun { project = _; scanning_roots } ->
+         scanning_roots
+         |> Common.map (fun scan_root ->
+                let xs = list_regular_files conf scan_root.fpath in
+                let skipped = [] in
+                (xs, skipped)))
   |> List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
@@ -270,7 +312,7 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
   [@@profiling]
 
 (*************************************************************************)
-(* Grouping *)
+(* Grouping (old) *)
 (*************************************************************************)
 
 (*
