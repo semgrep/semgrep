@@ -106,6 +106,7 @@ module Taint_set : sig
   val union : t -> t -> t
   val diff : t -> t -> t
   val map : (taint -> taint) -> t -> t
+  val concat_map : (taint -> t) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
   val of_list : taint list -> t
@@ -127,14 +128,11 @@ val taints_satisfy_requires : taint list -> Rule.precondition -> bool
 val taints_of_pms :
   incoming:taints -> (Pattern_match.t * Rule.taint_source) list -> taints
 
-(* This function is for substituting the polymorphic taint variables within
-   a taint's "precondition".
-   This is meant to be used at the call-site of a function, when we associate
-   the actual taints substituted in for that taint variable to their use sites.
+(* This function just maps, bottom-up, the preconditions in a taint.
+   Since this only acts on the children of a taint, the type remains
+   the same.
 *)
-val substitute_precondition_arg_taint :
-  arg_fn:(arg -> taint list) -> taint -> taint list
-
+val map_preconditions : (taint list -> taint list) -> taint -> taint
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string

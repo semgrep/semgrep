@@ -96,30 +96,6 @@ type source = {
 and orig = Src of source | Arg of arg [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-let substitute_precondition_arg_taint ~arg_fn taint =
-  let rec aux taint =
-    match taint.orig with
-    | Arg arg -> arg_fn arg
-    | Src { precondition = None; _ } -> [ taint ]
-    | Src ({ precondition = Some (incoming, expr); _ } as src) ->
-        let new_incoming = List.concat_map aux incoming in
-        let new_precondition = Some (new_incoming, expr) in
-        [
-          { taint with orig = Src { src with precondition = new_precondition } };
-        ]
-  in
-  (* We only want to replace preconditions! This function is called after
-     we already have replaced the top-level Arg taints, meaning that if we
-     just call `aux` outright, we might replace an Arg that we just produced.
-
-     For instance, suppose we replace Arg x with Arg y. Then, we run this
-     function on Arg y, and replace it with []. The ultimate effect is that
-     we erase the taint we just put in.
-  *)
-  match taint.orig with
-  | Arg _ -> [ taint ]
-  | Src _ -> aux taint
-
 let rec compare_precondition (ts1, f1) (ts2, f2) =
   match List.compare compare_taint ts1 ts2 with
   | 0 ->
@@ -375,6 +351,13 @@ module Taint_set = struct
 
   let to_seq set = set |> Taint_map.to_seq |> Seq.map snd
   let elements set = set |> to_seq |> List.of_seq
+
+  let concat_map f set =
+    let bindings = Taint_map.bindings set in
+    bindings
+    |> List.concat_map (fun (_, t2) ->
+           f t2 |> elements |> Common.map (fun t -> (t.orig, t)))
+    |> List.to_seq |> Taint_map.of_seq
 end
 
 type taints = Taint_set.t
@@ -504,6 +487,16 @@ let taints_satisfy_requires taints pre =
        * the precondition! *)
       logger#error "Could not solve taint label precondition";
       false
+
+(* Just a straightforward bottom-up map on preconditions. *)
+let rec map_preconditions f taint =
+  match taint.orig with
+  | Arg _ -> taint
+  | Src { precondition = None; _ } -> taint
+  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
+      let new_incoming = incoming |> Common.map (map_preconditions f) |> f in
+      let new_precondition = Some (new_incoming, expr) in
+      { taint with orig = Src { src with precondition = new_precondition } }
 
 (*****************************************************************************)
 (* New taints *)
