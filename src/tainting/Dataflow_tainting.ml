@@ -199,7 +199,7 @@ end
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
   lang : Lang.t;
-  options : Config_semgrep.t; (* rule options *)
+  options : Rule_options.t;
   config : config;
   fun_name : var option;
   lval_env : Lval_env.t;
@@ -366,7 +366,7 @@ let is_func_sink_with_focus taint_sink =
       true
   | __else__ -> false
 
-let unify_mvars_sets mvars1 mvars2 =
+let unify_mvars_sets env mvars1 mvars2 =
   let xs =
     List.fold_left
       (fun xs (mvar, mval) ->
@@ -374,7 +374,7 @@ let unify_mvars_sets mvars1 mvars2 =
         match List.assoc_opt mvar mvars2 with
         | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->
-            if Metavariable.equal_mvalue mval mval' then
+            if Matching_generic.equal_ast_bound_code env.options mval mval' then
               Some ((mvar, mval) :: xs)
             else None)
       (Some []) mvars1
@@ -392,7 +392,10 @@ let sink_biased_union_mvars source_mvars sink_mvars =
   in
   Some (source_mvars' @ sink_mvars)
 
-let merge_source_mvars bindings =
+(* Takes the bindings of multiple taint sources and filters the bindings ($MVAR, MVAL)
+ * such that either $MVAR is bound by a single source, or all MVALs bounds to $MVAR
+ * can be unified. *)
+let merge_source_mvars env bindings =
   let flat_bindings = List.concat bindings in
   let bindings_tbl =
     flat_bindings
@@ -414,8 +417,10 @@ let merge_source_mvars bindings =
              *)
              Hashtbl.replace bindings_tbl mvar (Some mval)
          | Some (Some mval') ->
-             if not (Metavariable.equal_mvalue mval mval') then
-               Hashtbl.remove bindings_tbl mvar);
+             if
+               not
+                 (Matching_generic.equal_ast_bound_code env.options mval mval')
+             then Hashtbl.remove bindings_tbl mvar);
   (* After this, the only surviving bindings should be those where
      there was no conflict between bindings in different sources.
   *)
@@ -437,7 +442,7 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
      * `pattern-sinks` as independent. We keep this option mainly for
      * backwards compatibility, it may be removed later on if no real use
      * is found. *)
-    unify_mvars_sets source_mvars sink_mvars
+    unify_mvars_sets env source_mvars sink_mvars
   else
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
@@ -544,7 +549,7 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
                     }))
       else
         match
-          taints_and_bindings |> Common.map snd |> merge_source_mvars
+          taints_and_bindings |> Common.map snd |> merge_source_mvars env
           |> merge_source_sink_mvars env sink_pm.PM.env
         with
         | None -> []
@@ -1571,7 +1576,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
 
 let transfer :
     Lang.t ->
-    Config_semgrep.t ->
+    Rule_options.t ->
     config ->
     Lval_env.t ->
     string option ->
@@ -1669,7 +1674,7 @@ let (fixpoint :
       ?in_env:Lval_env.t ->
       ?name:Var_env.var ->
       Lang.t ->
-      Config_semgrep.t ->
+      Rule_options.t ->
       config ->
       F.cfg ->
       mapping) =

@@ -1,35 +1,34 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Callable
+from typing import Dict
 from typing import Generator
 from typing import List
 from typing import Optional
+from typing import Tuple
 
-from semgrep.console import console
-from semgrep.error import SemgrepError
-from semgrep.verbose_logging import getLogger
-
-# NOTE: Defused XML doesn't export types :(
-
-
-logger = getLogger(__name__)
-
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
-
-from semdep.parsers.requirements import parse_requirements
-from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
+from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pipfile import parse_pipfile
+from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
+from semdep.parsers.requirements import parse_requirements
+from semdep.parsers.util import DependencyParserError
+from semdep.parsers.util import ParserName
 from semdep.parsers.yarn import parse_yarn
-from semdep.parsers.package_lock import parse_package_lock
-from semdep.parsers.pnpm import parse_pnpm
+from semgrep.console import console
+from semgrep.error import SemgrepError
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def parse_cargo(
@@ -60,7 +59,9 @@ OLD_LOCKFILE_PARSERS = {
     "cargo.lock": parse_cargo,  # Rust
 }
 
-NEW_LOCKFILE_PARSERS = {
+NEW_LOCKFILE_PARSERS: Dict[
+    str, Callable[[Path, Optional[Path]], List[FoundDependency]]
+] = {
     "requirements.txt": parse_requirements,  # Python
     "requirements3.txt": parse_requirements,  # Python
     "maven_dep_tree.txt": parse_pom_tree,  # Java
@@ -74,7 +75,7 @@ NEW_LOCKFILE_PARSERS = {
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
 }
 
-LOCKFILE_TO_MANIFEST = {
+LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "Pipfile.lock": "Pipfile",
     "poetry.lock": "pyproject.toml",
     "requirements.txt": "requirements.in",
@@ -85,7 +86,7 @@ LOCKFILE_TO_MANIFEST = {
     "go.mod": None,
     "Cargo.lock": None,
     "maven_dep_tree.txt": None,
-    "gradle.lockfile": None,
+    "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
 }
 
@@ -111,15 +112,24 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
 
 
 @lru_cache(maxsize=1000)
-def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
+def parse_lockfile_path(
+    lockfile_path: Path,
+) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
+
+    Also returns Optional DependencyParseError as second return value if there was a problem
+    parsing the lockfile
     """
     manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
-        return parse_lockfile(lockfile_path, manifest_path)
+
+        try:
+            return (parse_lockfile(lockfile_path, manifest_path), None)
+        except DependencyParserError as e:
+            return ([], e)
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         lockfile_text = lockfile_path.read_text()
@@ -129,14 +139,18 @@ def parse_lockfile_path(lockfile_path: Path) -> List[FoundDependency]:
             manifest_text = None
 
         try:
-            return list(
-                OLD_LOCKFILE_PARSERS[lockfile_name](lockfile_text, manifest_text)
+            return (
+                list(OLD_LOCKFILE_PARSERS[lockfile_name](lockfile_text, manifest_text)),
+                None,
             )
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
             console.print(f"Failed to parse {lockfile_path} with exception {e}")
-            return []
+            return (
+                [],
+                DependencyParserError(lockfile_path, ParserName.cargo, str(e)),
+            )
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")

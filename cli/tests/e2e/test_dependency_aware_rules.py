@@ -59,6 +59,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/poetry",
         ),
         (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_with_arbitrary_starting_comment",
+        ),
+        (
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
         ),
@@ -223,8 +227,9 @@ def test_maven_version_comparison(version, specifier, outcome):
 @pytest.mark.no_semgrep_cli
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
-    parse_lockfile_path_in_tmp(Path(target))
+    _, error = parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
+    assert error is None
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent

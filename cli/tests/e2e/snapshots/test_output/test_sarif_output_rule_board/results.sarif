@@ -117,7 +117,7 @@
                 ]
               },
               "shortDescription": {
-                "text": "this rule comes from the rule board!"
+                "text": "Semgrep Finding: rules.rule-board-eqeq-five"
               }
             }
           ],

@@ -20,23 +20,23 @@ type t = Semgrep_output_v1_t.core_match * Rule.rule
     in lines changed since last commit *)
 let filter_dirty_lines files matches =
   let dirty_files = Hashtbl.create 10 in
-  List.iter
-    (fun f ->
-      let dirty_lines = Git_wrapper.dirty_lines_of_file f in
-      Hashtbl.add dirty_files f dirty_lines)
-    files;
-  List.filter
-    (fun ((m, _) : t) ->
-      let dirty_lines = Hashtbl.find_opt dirty_files m.location.path in
-      let line = m.location.start.line in
-      match dirty_lines with
-      | None -> false
-      | Some [||] -> true (* Untracked files *)
-      | Some dirty_lines ->
-          Array.exists
-            (fun (start, end_) -> start <= line && line <= end_)
-            dirty_lines)
-    matches
+  files
+  |> List.iter (fun f ->
+         let dirty_lines = Git_wrapper.dirty_lines_of_file f in
+         Hashtbl.add dirty_files f dirty_lines);
+  matches
+  |> List.filter (fun ((m, _) : t) ->
+         let dirty_lines =
+           Hashtbl.find_opt dirty_files (Fpath.v m.location.path)
+         in
+         let line = m.location.start.line in
+         match dirty_lines with
+         | None -> false
+         | Some [||] -> true (* Untracked files *)
+         | Some dirty_lines ->
+             Array.exists
+               (fun (start, end_) -> start <= line && line <= end_)
+               dirty_lines)
 
 (** Get the first and previous line of a match *)
 let get_match_lines (loc : Semgrep_output_v1_t.location) =

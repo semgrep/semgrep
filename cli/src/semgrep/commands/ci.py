@@ -367,6 +367,7 @@ def ci(
             output_extra,
             shown_severities,
             dependencies,
+            dependency_parser_errors,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -489,6 +490,7 @@ def ci(
             total_time,
             metadata.commit_datetime,
             dependencies,
+            dependency_parser_errors,
             engine_type,
         )
         logger.info("  View results in Semgrep Cloud Platform:")

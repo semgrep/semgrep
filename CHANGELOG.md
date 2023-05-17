@@ -6,6 +6,35 @@
 
 <!-- insertion point -->
 
+## [1.22.0](https://github.com/returntocorp/semgrep/releases/tag/v1.22.0) - 2023-05-15
+
+### Added
+
+- Add support for language Cairo 1.0 (develop). Thanks to Frostweeds (Romain Jufer) for his contribution! (gh-7757)
+- On logged in `semgrep ci` scans, report lockfile parse errors to display in webUI (lockfileparse)
+- Pro: Java: Taint-mode can now do field-sensitive analysis of class constructors.
+  For example, if the default constructor of a class `C` sets its field `x` to a
+  tainted value, given `o = new C()`, Semgrep will know that `o.getX()` is tainted. (pa-2570)
+- Kotlin: Added named ellipses, like $...X (pa-2710)
+- Kotlin: Interpolated identifiers in strings, such as "$foo", are now properly
+  able to match explicitly interpolated expressions, like "${...}". (pa-2711)
+
+### Changed
+
+- Cleanup: Removed Bloom filter optimization. This optimization had been turned off by
+  default since September 2022 (release 0.116.0) without any noticeable effect. It had
+  its role in the past when it was first introduced, but now it's time for it to go! (cleanup-1)
+- engine: The use of a matching cache for statements is now disabled by default,
+  please let us know if you notice any performance degradation. We plan to remove
+  this optimization in a few weeks. (cleanup-2)
+
+### Fixed
+
+- Enable automatic removal of matched codes by allowing an empty string in the fix field. (gh-6318)
+- Updated SARIF to use nested levels, added confidence to tags and included references with markdown links. (gh-7317)
+- taint-mode: Fixed bug in taint labels that was causing some fatal errors:
+  > Failure "Call AST_utils.with_xxx_equal to avoid this error." (gh-7694)
+
 ## [1.21.0](https://github.com/returntocorp/semgrep/releases/tag/v1.21.0) - 2023-05-04
 
 ### Added

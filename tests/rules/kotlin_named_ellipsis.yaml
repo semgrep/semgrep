@@ -1,0 +1,13 @@
+rules:
+- id: kotlin-named-ellipsis 
+  languages:
+  - kotlin 
+  patterns:
+    - pattern: |
+        $...X
+        val $X = $Y
+    - metavariable-regex:
+        metavariable: $...X
+        regex: ".*foo.*"
+  message: rule_template_message
+  severity: ERROR

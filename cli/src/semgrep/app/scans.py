@@ -17,6 +17,7 @@ import click
 import requests
 from boltons.iterutils import partition
 
+from semdep.parsers.util import DependencyParserError
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -247,6 +248,7 @@ class ScanHandler:
         total_time: float,
         commit_date: str,
         lockfile_dependencies: Dict[str, List[FoundDependency]],
+        dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
     ) -> None:
         """
@@ -319,6 +321,7 @@ class ScanHandler:
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
+            "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],

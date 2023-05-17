@@ -13,6 +13,7 @@ from semdep.parsers import preprocessors
 from semdep.parsers.poetry import key_value
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import pair
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -43,13 +44,16 @@ manifest = (
 def parse_pipfile(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
+    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName.jsondoc)
     if not lockfile_json_opt:
         return []
 
     deps = lockfile_json_opt.as_dict()["default"].as_dict()
     manifest_deps = safe_path_parse(
-        manifest_path, manifest, preprocess=preprocessors.CommentRemover()
+        manifest_path,
+        manifest,
+        ParserName.pipfile,
+        preprocess=preprocessors.CommentRemover(),
     )
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent

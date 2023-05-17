@@ -29,7 +29,7 @@ module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
-module Config = Config_semgrep_t
+module Options = Rule_options_t
 module H = AST_generic_helpers
 module T = Type_generic
 
@@ -325,8 +325,8 @@ let max_NESTED_SYMBOLIC_PROPAGATION = 50
 let m_with_symbolic_propagation ~is_root f b tin =
   if
     (* If we are not at the root, then we permit recursing into substituted values. *)
-    tin.config.Config.constant_propagation
-    && tin.config.Config.symbolic_propagation && not is_root
+    tin.config.Options.constant_propagation
+    && tin.config.Options.symbolic_propagation && not is_root
   then
     (* In the past, naming bugs have introduced circular references causing
      * infinite loops, and not all are caught by the defensive check `b1 == b`
@@ -340,12 +340,8 @@ let m_with_symbolic_propagation ~is_root f b tin =
            * we do, we shouldn't crash. This simple check will not protect
            * against complicated paths through which a symbol could resolve to
            * itself, but if it directly resolves to itself, we can easily catch
-           * it.
-           *
-           * Yes, Semgrep, I want physical equality.
-           *
-           * nosemgrep *)
-          if b1 == b then (
+           * it. *)
+          if phys_equal b1 b then (
             logger#error
               "Aborting symbolic propagation: Circular reference encountered \
                (\"%s\")"
@@ -648,7 +644,7 @@ and m_id_info a b =
 (*****************************************************************************)
 
 and m_expr_deep a b tin =
-  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let symbolic_propagation = tin.config.Options.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr ~symbolic_propagation
   in
@@ -676,7 +672,7 @@ and m_expr_deep a b tin =
  *
  *)
 and m_expr_deep_implict a b tin =
-  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let symbolic_propagation = tin.config.Options.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr_implicit ~symbolic_propagation
   in
@@ -836,7 +832,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.L a1, _b ->
       if_config
-        (fun x -> x.Config.constant_propagation)
+        (fun x -> x.Options.constant_propagation)
         ~then_:
           (with_lang (fun lang ->
                match
@@ -1519,7 +1515,7 @@ and m_xml_kind a b =
   | G.XmlClassic (a0, a1, a2, _), B.XmlSingleton (b0, b1, b2)
   | G.XmlSingleton (a0, a1, a2), B.XmlClassic (b0, b1, b2, _) ->
       if_config
-        (fun x -> x.Config.xml_singleton_loose_matching)
+        (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
            let* () = m_ident a1 b1 in

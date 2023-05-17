@@ -1163,6 +1163,9 @@ and expression (env : env) (x : CST.expression) : expr =
       let v4 = type_ env v4 in
       let _v5 = (* ")" *) token env v5 in
       TypedMetavar (v2, v3, v4) |> G.e
+  | `Semg_named_ellips tok ->
+      (* pattern \$\.\.\.[a-zA-Z_][a-zA-Z_0-9]* *)
+      G.N (Id (str env tok, empty_id_info ())) |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in
@@ -1357,9 +1360,9 @@ and interpolation (env : env) (x : CST.interpolation) =
       let v3 = token env v3 (* "}" *) in
       Right3 (v1, Some v2, v3)
   | `DOLLAR_simple_id (v1, v2) ->
-      let _v1 = token env v1 (* "$" *) in
+      let v1 = token env v1 (* "$" *) in
       let v2 = simple_identifier env v2 in
-      Middle3 (N (Id (v2, empty_id_info ())) |> G.e)
+      Right3 (v1, Some (N (Id (v2, empty_id_info ())) |> G.e), v1)
 
 and jump_expression (env : env) (x : CST.jump_expression) =
   match x with

@@ -120,7 +120,7 @@ let tests ~any_gen_of_string =
                  let code = any_gen_of_string scode in
                  let cache = None in
                  let lang = Lang.Python in
-                 let config = Config_semgrep.default_config in
+                 let config = Rule_options.default_config in
                  let env =
                    Matching_generic.empty_environment cache lang config
                  in

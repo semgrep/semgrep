@@ -12,6 +12,10 @@ type t =
   | Sarif
   | Emacs
   | Vim
+  (* used to disable the final display of match results because
+   * we displayed them incrementally instead
+   *)
+  | TextIncremental
 [@@deriving show]
 
 let _output_format_is_json = function
@@ -23,5 +27,6 @@ let _output_format_is_json = function
   | Gitlab_secrets
   | Junit_xml
   | Emacs
-  | Vim ->
+  | Vim
+  | TextIncremental ->
       false

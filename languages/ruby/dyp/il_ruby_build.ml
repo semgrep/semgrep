@@ -35,7 +35,7 @@ let acc_append acc1 acc2 =
     q = DQueue.append acc1.q acc2.q;
     seen = StrSet.union acc1.seen acc2.seen;
     super_args =
-      (assert (acc1.super_args == acc2.super_args);
+      (assert (phys_equal acc1.super_args acc2.super_args);
        acc1.super_args);
   }
 

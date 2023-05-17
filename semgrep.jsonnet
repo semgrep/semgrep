@@ -8,7 +8,7 @@ local ocaml = import "p/ocaml";
 
 # this is useful to factorize exclude
 local test_code_globs = ["Unit_*.ml", "Test_*.ml"];
-local less_important_code_globs = ["spacegrep/*", "experiments/*", "scripts/*"];
+local less_important_code_globs = ["spacegrep/", "experiments/", "scripts/"];
 
 local semgrep_rules = [
 #TODO: does not parse anymore!!
@@ -72,12 +72,12 @@ local semgrep_rules = [
         "Parse_rule.ml",
         "yaml_to_generic.ml",
 	#skipping more stuff
-        "parsing/tree_sitter/*",
-        "metachecking/*",
+        "parsing/tree_sitter/",
+        "metachecking/",
 	# outside src/, not really semgrep code
-	"libs/*",
-	"languages/*",
-	"tools/*",
+	"libs/",
+	"languages/",
+	"tools/",
         ] + test_code_globs + less_important_code_globs,
     }
   }

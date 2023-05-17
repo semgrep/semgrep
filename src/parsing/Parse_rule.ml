@@ -174,9 +174,6 @@ let read_string_wrap e =
   | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
       Some (value, t)
-  | G.L (Float (Some n, t)) ->
-      if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
-      else Some (string_of_float n, t)
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
 
@@ -305,16 +302,6 @@ let parse_listi env (key : key) f x =
   match x.G.e with
   | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
-
-(* TODO: delete at some point, should use parse_string_wrap_list *)
-let parse_string_list env (key : key) e =
-  let extract_string env = function
-    | { G.e = G.L (String (_, (value, _), _)); _ } -> value
-    | _ ->
-        error_at_key env key
-          ("Expected all values in the list to be strings for " ^ fst key)
-  in
-  parse_list env key extract_string e
 
 let parse_bool env (key : key) x =
   match x.G.e with
@@ -479,11 +466,30 @@ let parse_equivalences env key value =
 
 let parse_paths env key value =
   let paths_dict = yaml_to_dict env key value in
-  let inc_opt, exc_opt =
-    ( take_opt paths_dict env parse_string_list "include",
-      take_opt paths_dict env parse_string_list "exclude" )
+  (* TODO: should imitate parse_string_wrap_list *)
+  let parse_glob_list env (key : key) e =
+    let extract_string env = function
+      | { G.e = G.L (String (_, (value, _), _)); _ } -> (
+          try (value, Glob.Parse.parse_string value) with
+          | Glob.Lexer.Syntax_error _ ->
+              error_at_key env key ("Invalid glob for " ^ fst key))
+      | _ ->
+          error_at_key env key
+            ("Expected all values in the list to be globs for " ^ fst key)
+    in
+    parse_list env key extract_string e
   in
-  { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
+  let inc_opt, exc_opt =
+    ( take_opt paths_dict env parse_glob_list "include",
+      take_opt paths_dict env parse_glob_list "exclude" )
+  in
+  (* alt: we could use report_unparsed_fields(), but better to raise an error for now
+     to be compatible with pysemgrep *)
+  if Hashtbl.length paths_dict.h > 0 then
+    error_at_key env key
+      "Additional properties are not allowed (only 'include' and 'exclude' are \
+       supported)";
+  { R.require = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
 let parse_options env (key : key) value =
   let s = J.string_of_json (generic_to_json env key value) in
@@ -496,7 +502,7 @@ let parse_options env (key : key) value =
        *)
       (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
       pr2 (spf "WARNING: unknown option: %s" field_name))
-    (fun () -> Config_semgrep_j.t_of_string s)
+    (fun () -> Rule_options_j.t_of_string s)
 
 (*****************************************************************************)
 (* Parser for xpattern *)
@@ -1480,6 +1486,9 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
             let loc = Tok.first_loc_of_file !!file in
             yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
+    | [] ->
+        (* an empty rules file returns an empty list of rules *)
+        (Tok.(tok_of_loc (first_loc_of_file !!file)), [])
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in

@@ -36,4 +36,4 @@
 type named_variants = (string * Pattern.t) list
 
 (* limited to expressions for now *)
-val from_any : Config_semgrep.t -> AST_generic.any -> named_variants
+val from_any : Rule_options.t -> AST_generic.any -> named_variants
