@@ -48,7 +48,7 @@ class JsonFormatter(BaseFormatter):
 
         return out.CliMatch(
             check_id=out.RuleId(rule_match.rule_id),
-            path=str(rule_match.path),
+            path=out.Fpath(str(rule_match.path)),
             start=rule_match.start,
             end=rule_match.end,
             extra=extra,

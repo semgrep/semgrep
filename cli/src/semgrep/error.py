@@ -129,7 +129,7 @@ class SemgrepCoreError(SemgrepError):
         if not isinstance(
             self.core.error_type.value, core.RuleParseError
         ) and not isinstance(self.core.error_type.value, core.PatternParseError):
-            base = dataclasses.replace(base, path=str(self.core.location.path))
+            base = dataclasses.replace(base, path=self.core.location.path)
 
         if self.spans:
             base = dataclasses.replace(base, spans=self.spans)
@@ -171,11 +171,9 @@ class SemgrepCoreError(SemgrepError):
             ) or isinstance(self.core.error_type.value, core.PatternParseError):
                 error_context = f"in rule {self.core.rule_id.value}"
             else:
-                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
+                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path.value}"
         else:
-            error_context = (
-                f"at line {self.core.location.path}:{self.core.location.start.line}"
-            )
+            error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
 
         return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
 
@@ -202,7 +200,7 @@ class SemgrepCoreError(SemgrepError):
                 self.level,
                 self.core.rule_id,
                 self.core.error_type.kind,
-                self.core.location.path,
+                self.core.location.path.value,
                 self.core.location.start,
                 self.core.location.end,
                 self.core.message,
