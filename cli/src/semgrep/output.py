@@ -470,7 +470,10 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths,
                 skipped=[
-                    out.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    out.CliSkippedTarget(
+                        path=out.Fpath(x["path"]),
+                        reason=out.SkipReason.from_json(x["reason"]),
+                    )
                     for x in skipped
                 ],
             )
