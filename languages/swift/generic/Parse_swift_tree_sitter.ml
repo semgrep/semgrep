@@ -1433,6 +1433,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
+  | `Semg_ellips_meta tok -> G.N (Id (str env tok, G.empty_id_info ())) |> G.e
   | `Semg_deep_ellips (v1, v2, v3) ->
       let l = (* "<..." *) token env v1 in
       let e = map_expression env v2 in
