@@ -1,0 +1,2 @@
+Increase timeout of `semgrep ci` upload findings network calls
+and make said timeout configurable with env var SEMGREP_UPLOAD_FINDINGS_TIMEOUT
