@@ -1,4 +1,4 @@
-(* Brandon Wu
+(* Brandon Wu, Yoann Padioleau
  *
  * Copyright (C) 2022-2023 Semgrep Inc.
  *
@@ -21,7 +21,7 @@
    This module governs a path type, which can only produce values which
    are for normalized paths to existent files or directories.
    These paths are always canonically kept at their absolute forms, in order to
-   maintain a canonicity property. Due to the `Path` constructor being
+   maintain a canonicity property. Due to the `Rpath` constructor being
    private, we can enforce this invariant at the type level.
 
    history: this file was originally called `Path.ml`, but this conflicts with
@@ -38,27 +38,27 @@
 (* Types *)
 (*****************************************************************************)
 
-type t = Path of string [@@deriving show, eq]
+(* TODO? use of Fpath.t instead? or too confusing? *)
+type t = Rpath of string [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Main functions *)
 (*****************************************************************************)
 
-(* TODO: we should use Unix.realpath but it's available only in 4.13
- * and there is no unixcompat like we have stdcompat.
- * alt: use Common.fullpath, but not as good as Unix.realpath
- *)
-let of_string s = Path (Realpath.realpath_str s)
-let to_string (Path s) = s
+let of_fpath p = Rpath (Realpath.realpath p |> Fpath.to_string)
+let of_string s = Rpath (Realpath.realpath_str s)
+let to_fpath (Rpath s) = Fpath.v s
+let to_string (Rpath s) = s
 let canonical s = to_string (of_string s)
-let ( / ) (Path s1) s2 = of_string (Filename.concat s1 s2)
+let ( / ) (Rpath s1) s2 = of_string (Filename.concat s1 s2)
 let concat = ( / )
-let apply ~f (Path s) = f s
-let file_exists (Path s) = Sys.file_exists s
-let cat = apply ~f:Common.cat
-let read_file ?max_len = apply ~f:(Common.read_file ?max_len)
-let write_file ~file:(Path s1) = Common.write_file ~file:s1
+let apply ~f (Rpath s) = f s
+let basename (Rpath s) = Filename.basename s
+let dirname (Rpath s) = Filename.dirname s |> of_string
+let extension (Rpath s) = Filename.extension s
+
+(* TODO: probably better to direct people to the File module, and remove those
+ * functions. People just have to use 'rpath |> Rpath.to_fpath |> xxx'
+ *)
 let is_directory = apply ~f:Sys.is_directory
-let basename (Path s) = Filename.basename s
-let dirname (Path s) = Filename.dirname s |> of_string
-let extension (Path s) = Filename.extension s
+let file_exists = apply ~f:Sys.file_exists

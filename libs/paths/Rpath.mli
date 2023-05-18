@@ -22,9 +22,11 @@
 
    Also note that even though it's tempting to use Rpath.t inside your
    program, because they provide a canonical representation of a path,
-   you should prefer in general to use Ppath.t because users want
-   error messages, findings, etc. that refer to paths relative to the
-   root of their project (and not /home/pad/my/long/project/foo/bar).
+   you should prefer in general to use Fpath.t because users want
+   error messages, findings, etc. that contain paths derived from
+   what was passed on the command line, or Ppath.t if users want
+   findings relative to the root of their project (and not real paths like
+   /home/pad/my/long/project/foo/bar).
 
    The name of the module imitates Fpath.ml, and Ppath.ml, but use Rpath.ml
    for Real path.
@@ -40,10 +42,16 @@
    `of_string`, and in particular, ensures that they all must be
    validated by `realpath()`.
 *)
-type t = private Path of string [@@deriving show, eq]
+type t = private Rpath of string [@@deriving show, eq]
 
 (* only way to build an Rpath *)
+val of_fpath : Fpath.t -> t
 val of_string : string -> t
+
+(* converters *)
+val to_fpath : t -> Fpath.t
+
+(* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
 val to_string : t -> string
 
 (* <=> to_string (of_string s) *)
@@ -59,9 +67,13 @@ val basename : t -> string
 val dirname : t -> t
 val extension : t -> string
 
-(* Similar to functions in File.mli *)
-val cat : t -> string list
-val write_file : file:t -> string -> unit
-val read_file : ?max_len:int -> t -> string
-val file_exists : t -> bool
+(* Deprecated? Similar to functions in File.mli. You should
+ * instead use directly the File module with 'File.xxx (Rpath.to_fpath rpath)'
+ *)
 val is_directory : t -> bool
+
+(* This should always return true because you normally can't build an Rpath
+ * from a nonexistent file. However, the underlying FS can change, or you may
+ * have used concat() above which may lead to a nonexistent file.
+ *)
+val file_exists : t -> bool

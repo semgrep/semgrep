@@ -1,13 +1,16 @@
 (*
-   OCaml implementation of realpath. Remove once we depend on ocaml >= 4.13.
+   OCaml implementation of realpath.
+
+   Remove once we depend on ocaml >= 4.13? Or just reduce
+   the code to a simple calls to Unix.realpath.
+   Unfortunately there is no unixcompat like we have stdcompat.
 
    related functions:
     - Unix.realpath(), but available only since OCaml 4.13
-    - Common.fullpath()
+    - Common.fullpath(), but not as good as Realpath
     - efuns/c/realpath.ml (an OCaml binding to the C library realpath(3))
       but Unix.realpath() should be the same
 *)
-
 open Printf
 
 (**********************************************************)
@@ -93,6 +96,7 @@ let realpath path =
     | _ -> abs_path
   in
   resolve (lazy (Unix.getcwd () |> Fpath.v)) path
+  [@@profiling]
 
 let realpath_str s =
   match Fpath.of_string s with

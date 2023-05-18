@@ -2,8 +2,8 @@ running 1 rules from 1 config rules/eqeq-basic.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:
 - rules.eqeq-bad
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -46,8 +46,8 @@ Files skipped:
 
    • [36m[22m[24mtargets/bad/invalid_go.go (2 lines skipped)[0m
 
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

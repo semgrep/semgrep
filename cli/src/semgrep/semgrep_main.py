@@ -423,6 +423,7 @@ def main(
     metrics = get_state().metrics
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
+        metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
         metrics.add_engine_type(engine_type)
 

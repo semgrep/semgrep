@@ -85,6 +85,7 @@ class EnvironmentSchema(EnvironmentRequiredSchema, total=False):
     configNamesHash: Sha256Hash
     rulesHash: Sha256Hash
     isAuthenticated: bool
+    integrationName: Optional[str]
 
 
 class PerformanceSchema(TypedDict, total=False):
@@ -342,6 +343,10 @@ class Metrics:
     @suppress_errors
     def add_token(self, token: Optional[str]) -> None:
         self.payload["environment"]["isAuthenticated"] = bool(token)
+
+    @suppress_errors
+    def add_integration_name(self, name: Optional[str]) -> None:
+        self.payload["environment"]["integrationName"] = name
 
     @suppress_errors
     def add_exit_code(self, exit_code: int) -> None:

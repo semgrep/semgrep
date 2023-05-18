@@ -160,7 +160,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
   | Lang.Swift ->
       Tree_sitter_swift.Parse.file file
-      |> dump_and_print_errors Tree_sitter_swift.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_swift.Boilerplate.dump_tree
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
