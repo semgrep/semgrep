@@ -1,0 +1,1 @@
+register_secret("important")

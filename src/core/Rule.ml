@@ -112,6 +112,25 @@ and metavar_cond =
 and metavar_analysis_kind = CondEntropy | CondReDoS
 [@@deriving show, eq, hash]
 
+(* TODO? store also the compiled glob directly? but we preprocess the pattern
+ * in Filter_target.filter_paths, so we would need to recompile it anyway,
+ * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
+ *)
+type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
+[@@deriving show]
+
+type paths = {
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   * TODO? use wrap? to also get location of include/require field?
+   *)
+  require : glob list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : glob list;
+}
+[@@deriving show]
+
 (*****************************************************************************)
 (* Taint-specific types *)
 (*****************************************************************************)
@@ -250,6 +269,22 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 [@@deriving show]
 
 (*****************************************************************************)
+(* Join mode *)
+(*****************************************************************************)
+
+type mode_for_join = Step_search of formula | Step_taint of taint_spec
+[@@deriving show]
+
+type step_info = {
+  step_formula : mode_for_join;
+  step_languages : Xlang.t;
+  step_paths : paths option;
+}
+[@@deriving show]
+
+type join_spec = step_info list [@@deriving show]
+
+(*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
 
@@ -273,23 +308,6 @@ type 'mode rule_info = {
   metadata : JSON.t option;
 }
 
-and paths = {
-  (* If not empty, list of file path patterns (globs) that
-   * the file path must at least match once to be considered for the rule.
-   * Called 'include' in our doc but really it is a 'require'.
-   * TODO? use wrap? to also get location of include/require field?
-   *)
-  require : glob list;
-  (* List of file path patterns we want to exclude. *)
-  exclude : glob list;
-}
-
-(* TODO? store also the compiled glob directly? but we preprocess the pattern
- * in Filter_target.filter_paths, so we would need to recompile it anyway,
- * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
- *)
-and glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
-
 (* TODO? just reuse Error_code.severity *)
 and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
@@ -298,7 +316,10 @@ and severity = Error | Warning | Info | Inventory | Experiment
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
+type join_mode = [ `Join of join_spec ] [@@deriving show]
+
+type mode = [ search_mode | taint_mode | extract_mode | join_mode ]
+[@@deriving show]
 
 (* If you know your function accepts only a certain kind of rule,
  * you can use those precise types below.
@@ -306,6 +327,7 @@ type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
+type join_rule = join_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
@@ -323,13 +345,21 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list =
-  rules
-  |> Common.partition_either3 (fun r ->
-         match r.mode with
-         | `Search _ as s -> Left3 { r with mode = s }
-         | `Taint _ as t -> Middle3 { r with mode = t }
-         | `Extract _ as e -> Right3 { r with mode = e })
+    search_rule list * taint_rule list * extract_rule list * join_rule list =
+  let rec part_rules search taint extract join = function
+    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev join)
+    | r :: l -> (
+        match r.mode with
+        | `Search _ as s ->
+            part_rules ({ r with mode = s } :: search) taint extract join l
+        | `Taint _ as t ->
+            part_rules search ({ r with mode = t } :: taint) extract join l
+        | `Extract _ as e ->
+            part_rules search taint ({ r with mode = e } :: extract) join l
+        | `Join _ as j ->
+            part_rules search taint extract ({ r with mode = j } :: join) l)
+  in
+  part_rules [] [] [] [] rules
 
 (*****************************************************************************)
 (* Error Management *)
