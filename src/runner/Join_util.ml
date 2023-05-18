@@ -40,9 +40,6 @@ let join_rule_to_rules rule join_info table =
   join_info |> mapi step_to_rule
 
 let extract_join_rules config parsed_rules =
-  if config.target_source <> None then
-    failwith "join mode experiment does not work with targets file yet";
-
   let rules, invalid_rules = parsed_rules in
   let join_rules_table = Hashtbl.create 10 in
   let rules_with_join_rules_resolved =
@@ -55,6 +52,9 @@ let extract_join_rules config parsed_rules =
            | `Extract _ ->
                [ r ])
   in
+  if Hashtbl.length join_rules_table > 0 && config.target_source <> None then
+    failwith "join mode experiment does not work with targets file yet";
+
   (* Use a Hashtbl to add the rules to simplify the code but then move it
      to a Map for later use *)
   let join_map = JoinRuleMap.of_seq (Hashtbl.to_seq join_rules_table) in
