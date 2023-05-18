@@ -266,7 +266,10 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     monkeypatch.chdir(tmp_path)
 
     runner = SemgrepRunner(
-        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
+        env={
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_INTEGRATION_NAME": "funkyintegration",
+        }
     )
     runner.invoke(
         cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + pro_flag
@@ -275,6 +278,7 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     payload = json.loads(mock_post.call_args.kwargs["data"])
     payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
+    payload["environment"]["integrationName"] = "funkyintegration"
 
     snapshot.assert_match(
         json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"

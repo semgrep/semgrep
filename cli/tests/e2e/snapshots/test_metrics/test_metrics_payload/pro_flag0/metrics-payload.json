@@ -3,9 +3,10 @@
   "environment": {
     "ci": null,
     "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
+    "integrationName": "funkyintegration",
     "isAuthenticated": false,
     "projectHash": null,
-    "version": "x.x.x"
+    "version": "x.x.x",
   },
   "errors": {
     "returnCode": 2
