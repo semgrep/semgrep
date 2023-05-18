@@ -227,9 +227,8 @@ let group_scanning_roots_by_project (conf : conf)
 (*************************************************************************)
 
 (* TODO! *)
-let walk_skip_and_collect (conf : conf)
-    (_ign : Osemgrep_targeting.Semgrep_ignore.t) (scan_root : fppath) :
-    Fpath.t list * Out.skipped_target list =
+let walk_skip_and_collect (conf : conf) (_ign : Semgrepignore.t)
+    (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
   let xs = list_regular_files conf scan_root.fpath in
   let skipped = [] in
   (xs, skipped)
@@ -239,8 +238,7 @@ let get_targets conf scanning_roots =
   |> group_scanning_roots_by_project conf
   |> List.concat_map (fun { project = kind, project_root; scanning_roots } ->
          (* step1: filter with .gitignore and .semgrepignore *)
-         let exclusion_mechanism :
-             Osemgrep_targeting.Semgrepignore.exclusion_mechanism =
+         let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
            match (kind : Project.kind) with
            | Project.Git_project ->
                if conf.respect_git_ignore then Gitignore_and_semgrepignore
@@ -248,9 +246,8 @@ let get_targets conf scanning_roots =
            | Project.Other_project -> Only_semgrepignore
          in
          let ign =
-           Osemgrep_targeting.Semgrepignore.create
-             ?include_patterns:conf.include_ ~cli_patterns:conf.exclude
-             ~exclusion_mechanism
+           Semgrepignore.create ?include_patterns:conf.include_
+             ~cli_patterns:conf.exclude ~exclusion_mechanism
              ~project_root:(Rpath.to_fpath project_root)
              ()
          in
@@ -399,16 +396,14 @@ let get_targets2 conf scanning_roots =
          in
 
          (* step1: filter with .gitignore and .semgrepignore *)
-         let exclusion_mechanism :
-             Osemgrep_targeting.Semgrepignore.exclusion_mechanism =
+         let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
            match (proj_kind : Project.kind) with
            | Project.Git_project -> Gitignore_and_semgrepignore
            | Project.Other_project -> Only_semgrepignore
          in
          let ign =
-           Osemgrep_targeting.Semgrepignore.create
-             ?include_patterns:conf.include_ ~cli_patterns:conf.exclude
-             ~exclusion_mechanism ~project_root ()
+           Semgrepignore.create ?include_patterns:conf.include_
+             ~cli_patterns:conf.exclude ~exclusion_mechanism ~project_root ()
          in
          let paths, skipped_paths1 =
            paths
@@ -423,7 +418,7 @@ let get_targets2 conf scanning_roots =
                   in
                   let git_path = Ppath.(of_fpath rel_path |> make_absolute) in
                   let status, selection_events =
-                    Osemgrep_targeting.Semgrepignore.select ign git_path
+                    Semgrepignore.select ign git_path
                   in
                   match status with
                   | Not_ignored -> Left path
