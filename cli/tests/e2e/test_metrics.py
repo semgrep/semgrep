@@ -278,7 +278,6 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     payload = json.loads(mock_post.call_args.kwargs["data"])
     payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
-    payload["environment"]["integrationName"] = "funkyintegration"
 
     snapshot.assert_match(
         json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"
