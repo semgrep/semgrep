@@ -1044,6 +1044,14 @@ val exn_to_real_unixexit : (unit -> 'a) -> 'a
 (*###########################################################################*)
 (*s: common.mli for collection types *)
 (*****************************************************************************)
+(* Nonempty List *)
+(*****************************************************************************)
+
+type 'a nonempty = Nonempty of 'a * 'a list
+
+val nonempty_to_list : 'a nonempty -> 'a list
+
+(*****************************************************************************)
 (* List *)
 (*****************************************************************************)
 
@@ -1138,6 +1146,7 @@ val collect : ('a -> 'b list) -> 'a list -> 'b list
 val remove : 'a -> 'a list -> 'a list
 val remove_first : 'a -> 'a list -> 'a list
 val exclude : ('a -> bool) -> 'a list -> 'a list
+val group : ('a -> 'a -> bool) -> 'a list -> 'a nonempty list
 
 (* Not like unix uniq command line tool that only delete contiguous repeated
  * line. Here we delete any repeated line (here list element).

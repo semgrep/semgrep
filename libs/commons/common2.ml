@@ -3191,6 +3191,16 @@ let uncat xs file =
 (* Collection-like types *)
 (*###########################################################################*)
 
+(*****************************************************************************)
+(* Nonempty List *)
+(*****************************************************************************)
+
+(* A type for nonempty lists *)
+type 'a nonempty = Nonempty of 'a * 'a list
+
+let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
+let nonempty_to_list (Nonempty (x, xs)) = x :: xs
+
 (*x: common.ml *)
 (*****************************************************************************)
 (* List *)
@@ -3582,6 +3592,27 @@ let rec collect_accu f accu = function
   | e :: l -> collect_accu f (List.rev_append (f e) accu) l
 
 let collect f l = List.rev (collect_accu f [] l)
+
+(** Groups a list into a list of equivalence classes (themselves nonempty
+    lists) according to the given equality predicate. `eq` must be an
+    equivalence relation for correctness.
+*)
+let group eq l =
+  List.fold_left
+    (fun grouped x ->
+      match
+        List.fold_left
+          (fun (checked, to_add) candidate_class ->
+            match (to_add, candidate_class) with
+            | None, _ -> (candidate_class :: checked, None)
+            | Some x, Nonempty (y, _) ->
+                if eq x y then ((x @: candidate_class) :: checked, None)
+                else (candidate_class :: checked, Some x))
+          ([], Some x) grouped
+      with
+      | grouped, None -> grouped
+      | grouped, Some new_class -> Nonempty (new_class, []) :: grouped)
+    [] l
 
 (* cf also List.partition *)
 
