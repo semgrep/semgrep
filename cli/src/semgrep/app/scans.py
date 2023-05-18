@@ -10,6 +10,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
@@ -250,7 +251,7 @@ class ScanHandler:
         lockfile_dependencies: Dict[str, List[FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
-    ) -> None:
+    ) -> Tuple[int, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
@@ -356,7 +357,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
-            return
+            return (0, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -391,3 +392,6 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
+        ret = response.json()
+        return (ret.get("exit_code", 0), ret.get("reason", ""))
