@@ -72,15 +72,16 @@ let normalize_lval lval =
   let { IL.base; rev_offset } = lval in
   let* base, rev_offset =
     match base with
+    | VarSpecial _ (* FIXME then need to change LvalOrdered perhaps *)
     | Var _ -> Some (base, rev_offset)
-    | VarSpecial _ -> (
+    (* | VarSpecial _ -> (
         match List.rev rev_offset with
         (* this.x o_1 ... o_N becomes x o_1 ... o_N *)
         | { o = IL.Dot var; _ } :: offset' -> Some (Var var, List.rev offset')
         (* we do not handle any other case *)
         | []
         | { o = IL.Index _; _ } :: _ ->
-            None)
+            None) *)
     | Mem _ -> None
   in
   let rev_offset =
