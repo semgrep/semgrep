@@ -56,6 +56,7 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(

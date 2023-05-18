@@ -11,15 +11,15 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 0 Code rules:
   Nothing to scan.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
