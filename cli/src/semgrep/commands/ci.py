@@ -477,6 +477,9 @@ def ci(
     logger.info(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
+
+    app_exit_code = 0
+    reason = ""
     if scan_handler:
         logger.info("  Uploading findings.")
         app_exit_code, reason = scan_handler.report_findings(
