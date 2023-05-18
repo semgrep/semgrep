@@ -1253,7 +1253,9 @@ let equal_ref_option equal_f a b =
   match (!a, !b) with
   | None, None -> true
   | Some a, Some b -> equal_f a b
-  | Some _, None | None, Some _ -> false
+  | Some _, None
+  | None, Some _ ->
+      false
 
 (*****************************************************************************)
 (* Operators *)
