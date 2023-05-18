@@ -7,9 +7,7 @@ type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
   (* global include list, passed via semgrep --include
-   * [!] include_ = None is the opposite of Some [].
-   * If a list of include patterns is specified, a path must match
-   * at least of the patterns to be selected.
+   * Those are flags copied from grep (and ripgrep).
    *)
   include_ : string list option;
   max_target_bytes : int;

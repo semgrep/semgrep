@@ -37,6 +37,9 @@ module Resp = Output_from_core_t
 (* Types *)
 (*************************************************************************)
 
+(* TODO? process also user's gitignore file like ripgrep does?
+ * TODO? use Glob.Pattern.t below instead of string for exclude and include_?
+ *)
 type conf = {
   (* global exclude list, passed via semgrep --exclude *)
   exclude : string list;
@@ -44,11 +47,13 @@ type conf = {
    * [!] include_ = None is the opposite of Some [].
    * If a list of include patterns is specified, a path must match
    * at least of the patterns to be selected.
+   * (--require would be a better flag name, but both grep and ripgrep
+   * uses the --exclude and --include names).
    *)
   include_ : string list option;
   max_target_bytes : int;
-  (* whether or not follow what is specified in the .gitignore
-   * TODO? what about .semgrepignore?
+  (* Whether or not follow what is specified in the .gitignore
+   * The .semgrepignore are always respected.
    *)
   respect_git_ignore : bool;
   (* TODO? use, and better parsing of the string? a Git.version type? *)
@@ -60,6 +65,12 @@ type conf = {
 }
 [@@deriving show]
 
+(* For gitignore computation, we need to operate on Ppath (see
+ * the signature of Gitignore_filter.select()), but when semgrep
+ * displays findings or errors, we want filenames derived from
+ * the scanning roots, not the root of the project. This is why we need to
+ * keep both the fpath and ppath for each target file.
+ *)
 type fppath = { fpath : Fpath.t; ppath : Ppath.t }
 
 (* TODO? could move in Project.ml *)
@@ -146,47 +157,32 @@ let files_from_git_ls ~cwd:scan_root =
   |> List.filter is_valid_file
   [@@profiling]
 
-(* python: mostly Target.files() method in target_manager.py *)
-let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
-  (* This may raise Unix.Unix_error.
-   * osemgrep-new: Note that I use Unix.stat below, not Unix.lstat, so we can
-   * actually analyze symlink to dirs!
-   * TODO? improve Unix.Unix_error in Find_target specific exn?
-   *)
-  match (Unix.stat !!scan_root).st_kind with
-  (* TOPORT? make sure has right permissions (readable) *)
-  | S_REG -> [ scan_root ]
-  | S_DIR ->
-      (* LATER: maybe we should first check whether scan_root is inside
-       * a git repository because respect_git_ignore is set to true by default
-       * and so it does not really mean the user want to use git (and
-       * a possible .gitignore) to list files.
-       *)
-      if conf.respect_git_ignore then (
-        try files_from_git_ls ~cwd:scan_root with
-        | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
-          ->
-            Logs.info (fun m ->
-                m
-                  "Unable to ignore files ignored by git (%s is not a git \
-                   directory or git is not installed). Running on all files \
-                   instead..."
-                  !!scan_root);
-            Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
-            List_files.list_regular_files ~keep_root:true scan_root)
-      else
-        (* python: was called Target.files_from_filesystem () *)
-        List_files.list_regular_files ~keep_root:true scan_root
-  | S_LNK ->
-      (* already dereferenced by Unix.stat *)
-      assert false
-  (* TODO? use write_pipe_to_disk? *)
-  | S_FIFO -> []
-  | S_CHR
-  | S_BLK
-  | S_SOCK ->
-      []
-  [@@profiling]
+(* TODO! *)
+let walk_skip_and_collect (conf : conf) (_ign : Semgrepignore.t)
+    (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
+  let xs =
+    (* LATER: maybe we should first check whether scan_root is inside
+     * a git repository because respect_git_ignore is set to true by default
+     * and so it does not really mean the user want to use git (and
+     * a possible .gitignore) to list files.
+     *)
+    if conf.respect_git_ignore then (
+      try files_from_git_ls ~cwd:scan_root.fpath with
+      | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn ->
+          Logs.info (fun m ->
+              m
+                "Unable to ignore files ignored by git (%s is not a git \
+                 directory or git is not installed). Running on all files \
+                 instead..."
+                !!(scan_root.fpath));
+          Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
+          List_files.list_regular_files ~keep_root:true scan_root.fpath)
+    else
+      (* python: was called Target.files_from_filesystem () *)
+      List_files.list_regular_files ~keep_root:true scan_root.fpath
+  in
+  let skipped = [] in
+  (xs, skipped)
 
 (*************************************************************************)
 (* Grouping (new) *)
@@ -226,13 +222,6 @@ let group_scanning_roots_by_project (conf : conf)
 (* Entry point (new) *)
 (*************************************************************************)
 
-(* TODO! *)
-let walk_skip_and_collect (conf : conf) (_ign : Semgrepignore.t)
-    (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
-  let xs = list_regular_files conf scan_root.fpath in
-  let skipped = [] in
-  (xs, skipped)
-
 let get_targets conf scanning_roots =
   scanning_roots
   |> group_scanning_roots_by_project conf
@@ -245,6 +234,10 @@ let get_targets conf scanning_roots =
                else Only_semgrepignore
            | Project.Other_project -> Only_semgrepignore
          in
+         (* step2: filter also the --include and --exclude from the CLI args
+          * (the paths: exclude: include: in a rule are handled elsewhere, in
+          * Run_semgrep.ml by calling Filter_target.filter_paths
+          *)
          let ign =
            Semgrepignore.create ?include_patterns:conf.include_
              ~cli_patterns:conf.exclude ~exclusion_mechanism
@@ -253,7 +246,28 @@ let get_targets conf scanning_roots =
          in
          scanning_roots
          |> Common.map (fun scan_root ->
-                walk_skip_and_collect conf ign scan_root))
+                (* better: Note that we use Unix.stat below, not Unix.lstat, so
+                 * osemgrep accepts symlink paths on the command--line;
+                 * you can do 'osemgrep -e ... ~/symlink-to-proj' or even
+                 * 'osemgrep -e ... symlink-to-file.py' whereas pysemgrep
+                 * exits with '"/home/foo/symlink-to-proj" file not found'
+                 * Note: This may raise Unix.Unix_error.
+                 * TODO? improve Unix.Unix_error in Find_targets specific exn?
+                 *)
+                match (Unix.stat !!(scan_root.fpath)).st_kind with
+                (* TOPORT? make sure has right permissions (readable) *)
+                | S_REG -> ([ scan_root.fpath ], [])
+                | S_DIR -> walk_skip_and_collect conf ign scan_root
+                | S_LNK ->
+                    (* already dereferenced by Unix.stat *)
+                    raise Impossible
+                (* TODO? use write_pipe_to_disk? *)
+                | S_FIFO -> ([], [])
+                (* TODO? return an error message or a new skipped_target kind? *)
+                | S_CHR
+                | S_BLK
+                | S_SOCK ->
+                    ([], [])))
   |> List.split
   |> fun (paths_list, skipped_paths_list) ->
   (List.flatten paths_list, List.flatten skipped_paths_list)
@@ -368,6 +382,52 @@ let group_roots_by_project conf paths =
     |> group_by_project_root (fun path ->
            let root, git_path = Git_project.force_project_root path in
            ((Project.Other_project, root), Ppath.to_fpath root git_path))
+
+(*************************************************************************)
+(* Finding (old) *)
+(*************************************************************************)
+
+(* python: mostly Target.files() method in target_manager.py *)
+let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
+  (* This may raise Unix.Unix_error.
+   * better: Note that I use Unix.stat below, not Unix.lstat, so we can
+   * actually analyze symlink to dirs!
+   * TODO? improve Unix.Unix_error in Find_targets specific exn?
+   *)
+  match (Unix.stat !!scan_root).st_kind with
+  (* TOPORT? make sure has right permissions (readable) *)
+  | S_REG -> [ scan_root ]
+  | S_DIR ->
+      (* LATER: maybe we should first check whether scan_root is inside
+       * a git repository because respect_git_ignore is set to true by default
+       * and so it does not really mean the user want to use git (and
+       * a possible .gitignore) to list files.
+       *)
+      if conf.respect_git_ignore then (
+        try files_from_git_ls ~cwd:scan_root with
+        | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn
+          ->
+            Logs.info (fun m ->
+                m
+                  "Unable to ignore files ignored by git (%s is not a git \
+                   directory or git is not installed). Running on all files \
+                   instead..."
+                  !!scan_root);
+            Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
+            List_files.list_regular_files ~keep_root:true scan_root)
+      else
+        (* python: was called Target.files_from_filesystem () *)
+        List_files.list_regular_files ~keep_root:true scan_root
+  | S_LNK ->
+      (* already dereferenced by Unix.stat *)
+      assert false
+  (* TODO? use write_pipe_to_disk? *)
+  | S_FIFO -> []
+  | S_CHR
+  | S_BLK
+  | S_SOCK ->
+      []
+  [@@profiling]
 
 (*************************************************************************)
 (* Entry point (old) *)
