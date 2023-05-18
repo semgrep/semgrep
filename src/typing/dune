@@ -1,18 +1,14 @@
 (library
- (public_name semgrep.matching)
- (name semgrep_matching)
+ (public_name semgrep.typing)
+ (name semgrep_typing)
  (wrapped false)
  (libraries
-   yaml ppx_deriving.runtime re
+   ppx_deriving.runtime
 
    commons
    lib_parsing
-   pfff-lang_GENERIC-analyze
-   parser_javascript.ast ; for Ast_js.default_entity
 
    semgrep_core
-   semgrep_typing
-   semgrep_optimizing
    ; No dependencies to semgrep_parsing here!
    ; we use parsers in Unit_matcher.ml but they are passed in
    ; via a parameter in tests().
