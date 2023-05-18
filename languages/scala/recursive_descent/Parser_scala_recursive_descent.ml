@@ -2750,7 +2750,8 @@ and parseTry in_ : stmt =
             accept (Ellipsis ab) in_;
             let r = TH.info_of_tok in_.token in
             accept (RBRACE ab) in_;
-            Some (ii, CatchCases (l, [ CaseEllipsis ii ], r))
+            Flag_parsing.sgrep_guard
+              (Some (ii, CatchCases (l, [ CaseEllipsis ii ], r)))
         | Kcase ab ->
             skipToken in_;
             let cc = exprCaseClause ab in_ in
