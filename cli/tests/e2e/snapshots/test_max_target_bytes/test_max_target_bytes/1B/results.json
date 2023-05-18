@@ -1,5 +1,13 @@
 {
-  "errors": [],
+  "errors": [
+    {
+      "code": 2,
+      "level": "error",
+      "message": "Fatal error at line :1:\n (Failure \"join mode experiment does not work with targets file yet\")\n====[ BEGIN error trace ]====\n(Failure \"join mode experiment does not work with targets file yet\")\n=====[ END error trace ]=====\n",
+      "path": "",
+      "type": "Fatal error"
+    }
+  ],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []
