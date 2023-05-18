@@ -479,7 +479,7 @@ def ci(
     )
     if scan_handler:
         logger.info("  Uploading findings.")
-        scan_handler.report_findings(
+        app_exit_code, reason = scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
             filtered_rules,
@@ -515,6 +515,10 @@ def ci(
     else:
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
+
+    if app_exit_code and not audit_mode:
+        logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
+        exit_code = 1
 
     if enable_version_check:
         from semgrep.app.version import version_check
