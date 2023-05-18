@@ -130,8 +130,8 @@ let unify_results config print_match join_rule_map res =
     Common.map C.nonempty_to_list matches_by_normal_rules
   in
   let process_steps_for_rule (matches_by_step : matches_by_step list) =
-    (* This is pretty specialized for intersection, may want to change how the
-       code's laid out if we decide to support other conditions for OSS *)
+    (* TODO this logic isn't actually quite right. See `tests/join/abc_harder`
+       for an example of why *)
     let intersect_mvars mvar_bindings
         ({ step_id = _; matches } : matches_by_step) =
       let mvars_by_steps = matches |> List.concat_map (fun m -> m.P.env) in
