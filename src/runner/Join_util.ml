@@ -94,7 +94,7 @@ let print_updated_matches config print_match has_join_steps matches =
     (fun match_ -> print_match config match_ Metavariable.ii_of_mval)
     matches
 
-let unify_results config print_match join_rule_map res =
+let unify_join_results config print_match join_rule_map res =
   let rule_for_step_id id =
     match JoinRuleMap.find_opt id join_rule_map with
     | Some (rule, _i, _n) -> Some (fst rule.R.id)
@@ -190,3 +190,7 @@ let unify_results config print_match join_rule_map res =
   matches
   |> print_updated_matches config print_match (matches_by_join_rules <> []);
   { res with matches }
+
+let unify_results config print_match join_rule_map res =
+  if JoinRuleMap.is_empty join_rule_map then res
+  else unify_join_results config print_match join_rule_map res
