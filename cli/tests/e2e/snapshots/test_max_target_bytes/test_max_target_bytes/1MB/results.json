@@ -1,116 +1,16 @@
 {
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/basic/inside.py",
-      "targets/basic/metavariable-comparison-bad-content.py",
-      "targets/basic/metavariable-comparison-base.py",
-      "targets/basic/metavariable-comparison-strip.py",
-      "targets/basic/metavariable-comparison.py",
-      "targets/basic/metavariable-regex-multi-regex.py",
-      "targets/basic/metavariable-regex-multi-rule.py",
-      "targets/basic/metavariable-regex.py",
-      "targets/basic/nested-patterns.js",
-      "targets/basic/nosem.js",
-      "targets/basic/nosem.py",
-      "targets/basic/regex.py",
-      "targets/basic/stupid.js",
-      "targets/basic/stupid.py"
-    ]
-  },
-  "results": [
+  "errors": [
     {
-      "check_id": "rules.eqeq-is-bad",
-      "end": {
-        "col": 26,
-        "line": 3,
-        "offset": 69
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    return a + b == a + b",
-        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
-        "metadata": {
-          "shortlink": "https://sg.run/xyz1"
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "a+b",
-            "end": {
-              "col": 17,
-              "line": 3,
-              "offset": 60
-            },
-            "start": {
-              "col": 12,
-              "line": 3,
-              "offset": 55
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/basic/stupid.py",
-      "start": {
-        "col": 12,
-        "line": 3,
-        "offset": 55
-      }
-    },
-    {
-      "check_id": "rules.javascript-basic-eqeq-bad",
-      "end": {
-        "col": 19,
-        "line": 3,
-        "offset": 67
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "console.log(x == x)",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 14,
-              "line": 3,
-              "offset": 62
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "window.prompt()",
-              "svalue_end": {
-                "col": 24,
-                "line": 1,
-                "offset": 23
-              },
-              "svalue_start": {
-                "col": 9,
-                "line": 1,
-                "offset": 8
-              }
-            },
-            "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 61
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/basic/stupid.js",
-      "start": {
-        "col": 13,
-        "line": 3,
-        "offset": 61
-      }
+      "code": 2,
+      "level": "error",
+      "message": "Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).\nsemgrep-core exit code: 0\nsemgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmp2phezs2g.json -j 2 -targets /tmp/tmpem9yxm41 -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast\nunexpected non-json output while invoking semgrep-core:\n--- semgrep-core stdout ---\ntargets/basic/stupid.js:3\n console.log(x == x)\ntargets/basic/stupid.py:3\n     return a + b == a + b\n{\"matches\":[{\"rule_id\":\"rules.javascript-basic-eqeq-bad\",\"location\":{\"path\":\"targets/basic/stupid.js\",\"start\":{\"line\":3,\"col\":13,\"offset\":61},\"end\":{\"line\":3,\"col\":19,\"offset\":67}},\"extra\":{\"message\":\"useless comparison\",\"metavars\":{\"$X\":{\"start\":{\"line\":3,\"col\":13,\"offset\":61},\"end\":{\"line\":3,\"col\":14,\"offset\":62},\"abstract_content\":\"x\",\"propagated_value\":{\"svalue_start\":{\"line\":1,\"col\":9,\"offset\":8},\"svalue_end\":{\"line\":1,\"col\":24,\"offset\":23},\"svalue_abstract_content\":\"window.prompt()\"}}},\"engine_kind\":\"OSS\"}},{\"rule_id\":\"rules.eqeq-is-bad\",\"location\":{\"path\":\"targets/basic/stupid.py\",\"start\":{\"line\":3,\"col\":12,\"offset\":55},\"end\":{\"line\":3,\"col\":26,\"offset\":69}},\"extra\":{\"message\":\"useless comparison operation `$X == $X` or `$X != $X`; possible bug?\",\"metavars\":{\"$X\":{\"start\":{\"line\":3,\"col\":12,\"offset\":55},\"end\":{\"line\":3,\"col\":17,\"offset\":60},\"abstract_content\":\"a+b\"}},\"engine_kind\":\"OSS\"}}],\"errors\":[],\"skipped_rules\":[],\"explanations\":[],\"stats\":{\"okfiles\":14,\"errorfiles\":0},\"time\":{\"targets\":[{\"path\":\"targets/basic/nosem.js\",\"rule_times\":[{\"rule_id\":\"rules.javascript-basic-eqeq-bad\",\"parse_time\":0.01155996322631836,\"match_time\":0.015726089477539062}],\"run_time\":0.046357154846191406},{\"path\":\"targets/basic/metavariable-comparison-base.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":6.890296936035156e-05,\"match_time\":2.8133392333984375e-05}],\"run_time\":0.00021886825561523438},{\"path\":\"targets/basic/metavariable-comparison-strip.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":7.200241088867188e-05,\"match_time\":2.7894973754882812e-05}],\"run_time\":0.00022602081298828125},{\"path\":\"targets/basic/regex.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":9.608268737792969e-05,\"match_time\":3.0040740966796875e-05}],\"run_time\":0.0002560615539550781},{\"path\":\"targets/basic/metavariable-comparison-bad-content.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":8.606910705566406e-05,\"match_time\":2.8133392333984375e-05}],\"run_time\":0.000247955322265625},{\"path\":\"targets/basic/stupid.js\",\"rule_times\":[{\"rule_id\":\"rules.javascript-basic-eqeq-bad\",\"parse_time\":0.000247955322265625,\"match_time\":3.0994415283203125e-05}],\"run_time\":0.00038886070251464844},{\"path\":\"targets/basic/metavariable-regex-multi-rule.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.0001220703125,\"match_time\":0.00018310546875}],\"run_time\":0.00044989585876464844},{\"path\":\"targets/basic/metavariable-regex.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.00012993812561035156,\"match_time\":3.600120544433594e-05}],\"run_time\":0.00030303001403808594},{\"path\":\"targets/basic/metavariable-comparison.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.00011301040649414062,\"match_time\":3.600120544433594e-05}],\"run_time\":0.0003159046173095703},{\"path\":\"targets/basic/metavariable-regex-multi-regex.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.00014090538024902344,\"match_time\":3.910064697265625e-05}],\"run_time\":0.0003261566162109375},{\"path\":\"targets/basic/nested-patterns.js\",\"rule_times\":[{\"rule_id\":\"rules.javascript-basic-eqeq-bad\",\"parse_time\":0.0004100799560546875,\"match_time\":2.5987625122070312e-05}],\"run_time\":0.0006299018859863281},{\"path\":\"targets/basic/inside.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.0026950836181640625,\"match_time\":6.4849853515625e-05}],\"run_time\":0.002933025360107422},{\"path\":\"targets/basic/stupid.py\",\"rule_times\":[{\"rule_id\":\"rules.assert-eqeq-is-ok\",\"parse_time\":0.00019788742065429688,\"match_time\":2.5987625122070312e-05},{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.0,\"match_time\":8.916854858398438e-05}],\"run_time\":0.0005478858947753906},{\"path\":\"targets/basic/nosem.py\",\"rule_times\":[{\"rule_id\":\"rules.eqeq-is-bad\",\"parse_time\":0.00663304328918457,\"match_time\":0.007547855377197266}],\"run_time\":0.02565789222717285}],\"rules\":[\"rules.assert-eqeq-is-ok\",\"rules.eqeq-is-bad\",\"rules.python37-compatability-os-module\",\"rules.javascript-basic-eqeq-bad\"],\"rules_parse_time\":0.0029249191284179688,\"max_memory_bytes\":36798464},\"rules_by_engine\":[[\"rules.assert-eqeq-is-ok\",\"OSS\"],[\"rules.eqeq-is-bad\",\"OSS\"],[\"rules.python37-compatability-os-module\",\"OSS\"],[\"rules.javascript-basic-eqeq-bad\",\"OSS\"]],\"engine_requested\":\"OSS\"}\n--- end semgrep-core stdout ---\n--- semgrep-core stderr ---\n<semgrep-core stderr not captured, should be printed above>\n--- end semgrep-core stderr ---\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep",
+      "type": "SemgrepError"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
   "version": "0.42"
 }

@@ -1,36 +1,16 @@
 {
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "/tmp/masked/path"
-    ]
-  },
-  "results": [
+  "errors": [
     {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "/tmp/masked/path",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
+      "code": 2,
+      "level": "error",
+      "message": "Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).\nsemgrep-core exit code: 0\nsemgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmpxx9wb7z5.json -j 2 -targets /tmp/tmpgmp3rm2m -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast\nunexpected non-json output while invoking semgrep-core:\n--- semgrep-core stdout ---\n/tmp/tmpkuophh_w/stdin:1\n a\n/tmp/tmpkuophh_w/stdin:1\n a\n{\"matches\":[{\"rule_id\":\"-\",\"location\":{\"path\":\"/tmp/tmpkuophh_w/stdin\",\"start\":{\"line\":1,\"col\":1,\"offset\":0},\"end\":{\"line\":1,\"col\":2,\"offset\":1}},\"extra\":{\"message\":\"a\",\"metavars\":{},\"engine_kind\":\"OSS\"}},{\"rule_id\":\"-\",\"location\":{\"path\":\"/tmp/tmpkuophh_w/stdin\",\"start\":{\"line\":1,\"col\":1,\"offset\":0},\"end\":{\"line\":1,\"col\":2,\"offset\":1}},\"extra\":{\"message\":\"a\",\"metavars\":{},\"engine_kind\":\"OSS\"}}],\"errors\":[],\"skipped_rules\":[],\"explanations\":[],\"stats\":{\"okfiles\":2,\"errorfiles\":0},\"time\":{\"targets\":[{\"path\":\"/tmp/tmpkuophh_w/stdin\",\"rule_times\":[{\"rule_id\":\"-\",\"parse_time\":0.0063059329986572266,\"match_time\":0.007921934127807617}],\"run_time\":0.0255889892578125},{\"path\":\"/tmp/tmpkuophh_w/stdin\",\"rule_times\":[{\"rule_id\":\"-\",\"parse_time\":0.01447916030883789,\"match_time\":0.024042844772338867}],\"run_time\":0.057795047760009766}],\"rules\":[\"-\"],\"rules_parse_time\":0.0026748180389404297,\"max_memory_bytes\":36798464},\"rules_by_engine\":[[\"-\",\"OSS\"]],\"engine_requested\":\"OSS\"}\n--- end semgrep-core stdout ---\n--- semgrep-core stderr ---\n<semgrep-core stderr not captured, should be printed above>\n--- end semgrep-core stderr ---\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep",
+      "type": "SemgrepError"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
   "version": "0.42"
 }

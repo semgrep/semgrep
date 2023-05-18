@@ -3,71 +3,10 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-
-┌──────────────────────────┐
-│ 8 Blocking Code Findings │
-└──────────────────────────┘
-
-    foo.py
-       eqeq-bad
-          useless comparison
-
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-           11┆ y == y
-            ⋮┆----------------------------------------
-           23┆ b == b # Triage ignored by syntactic_id
-            ⋮┆----------------------------------------
-           24┆ a == a # Triage ignored by match_based_id
-            ⋮┆----------------------------------------
-       eqeq-four
-          useless comparison to 4
-
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
-          unsafe use of danger
-
-           27┆ sink(d2)
-
-
-┌──────────────────────────────────┐
-│ 1 Reachable Supply Chain Finding │
-└──────────────────────────────────┘
-
-    poetry.lock
-       supply-chain1
-          found a dependency
-
-            1┆ [[package]]
-            2┆ name = "badlib"
-
-
-┌─────────────────────────────┐
-│ 1 Non-blocking Code Finding │
-└─────────────────────────────┘
-
-    foo.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
-
-  BLOCKING CODE RULES FIRED:
-    eqeq-bad
-    eqeq-four
-    taint-test
-
 
 === end of stdout - plain
 
@@ -94,16 +33,51 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 10 findings (8 blocking) from 6 rules.
-  Has findings for blocking rules so exiting with code 1
+[ERROR] Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).
+semgrep-core exit code: 0
+semgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmpzx9mjdlc.json -j 2 -targets /tmp/tmph_ofz4mm -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast
+unexpected non-json output while invoking semgrep-core:
+--- semgrep-core stdout ---
+foo.py:19
+     baz == 4
+foo.py:18
+     baz == 4  # nosemgrep
+foo.py:15
+     x == 5
+foo.py:16
+     y == 5  # nosemgrep
+foo.py:27
+     sink(d2)
+  * Taint may come from this source:
+    foo.py:26
+         d2 = danger
+  * These intermediate values are tainted: d2
+  * This is how taint reaches the sink:
+    foo.py:27
+         sink(d2)
+foo.py:9
+     x == x  # nosemgrep
+foo.py:5
+     a == a
+foo.py:4
+     a == a
+foo.py:24
+     a == a # Triage ignored by match_based_id
+foo.py:13
+     z == z  # nosemgrep
+foo.py:6
+     a == a  # nosemgrep
+foo.py:7
+     a == a
+foo.py:11
+     y == y
+foo.py:23
+     b == b # Triage ignored by syntactic_id
+{"matches":[{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":4,"col":5,"offset":37},"end":{"line":4,"col":11,"offset":43}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":4,"col":5,"offset":37},"end":{"line":4,"col":6,"offset":38},"abstract_content":"a"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":5,"col":5,"offset":48},"end":{"line":5,"col":11,"offset":54}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":5,"col":5,"offset":48},"end":{"line":5,"col":6,"offset":49},"abstract_content":"a"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":6,"col":5,"offset":59},"end":{"line":6,"col":11,"offset":65}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":6,"col":5,"offset":59},"end":{"line":6,"col":6,"offset":60},"abstract_content":"a"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":7,"col":5,"offset":83},"end":{"line":7,"col":11,"offset":89}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":7,"col":5,"offset":83},"end":{"line":7,"col":6,"offset":84},"abstract_content":"a"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":9,"col":5,"offset":95},"end":{"line":9,"col":11,"offset":101}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":9,"col":5,"offset":95},"end":{"line":9,"col":6,"offset":96},"abstract_content":"x"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":11,"col":5,"offset":120},"end":{"line":11,"col":11,"offset":126}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":11,"col":5,"offset":120},"end":{"line":11,"col":6,"offset":121},"abstract_content":"y"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":13,"col":5,"offset":132},"end":{"line":13,"col":11,"offset":138}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":13,"col":5,"offset":132},"end":{"line":13,"col":6,"offset":133},"abstract_content":"z"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-five","location":{"path":"foo.py","start":{"line":15,"col":5,"offset":157},"end":{"line":15,"col":11,"offset":163}},"extra":{"message":"useless comparison to 5","metavars":{"$X":{"start":{"line":15,"col":5,"offset":157},"end":{"line":15,"col":6,"offset":158},"abstract_content":"x"}},"rendered_fix":"(x == 2)","engine_kind":"OSS"}},{"rule_id":"eqeq-five","location":{"path":"foo.py","start":{"line":16,"col":5,"offset":168},"end":{"line":16,"col":11,"offset":174}},"extra":{"message":"useless comparison to 5","metavars":{"$X":{"start":{"line":16,"col":5,"offset":168},"end":{"line":16,"col":6,"offset":169},"abstract_content":"y"}},"rendered_fix":"(y == 2)","engine_kind":"OSS"}},{"rule_id":"eqeq-four","location":{"path":"foo.py","start":{"line":18,"col":5,"offset":193},"end":{"line":18,"col":13,"offset":201}},"extra":{"message":"useless comparison to 4","metavars":{"$X":{"start":{"line":18,"col":5,"offset":193},"end":{"line":18,"col":8,"offset":196},"abstract_content":"baz"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-four","location":{"path":"foo.py","start":{"line":19,"col":5,"offset":219},"end":{"line":19,"col":13,"offset":227}},"extra":{"message":"useless comparison to 4","metavars":{"$X":{"start":{"line":19,"col":5,"offset":219},"end":{"line":19,"col":8,"offset":222},"abstract_content":"baz"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":23,"col":5,"offset":250},"end":{"line":23,"col":11,"offset":256}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":23,"col":5,"offset":250},"end":{"line":23,"col":6,"offset":251},"abstract_content":"b"}},"engine_kind":"OSS"}},{"rule_id":"eqeq-bad","location":{"path":"foo.py","start":{"line":24,"col":5,"offset":294},"end":{"line":24,"col":11,"offset":300}},"extra":{"message":"useless comparison","metavars":{"$X":{"start":{"line":24,"col":5,"offset":294},"end":{"line":24,"col":6,"offset":295},"abstract_content":"a"}},"engine_kind":"OSS"}},{"rule_id":"taint-test","location":{"path":"foo.py","start":{"line":27,"col":5,"offset":357},"end":{"line":27,"col":13,"offset":365}},"extra":{"message":"","metavars":{"$X":{"start":{"line":27,"col":10,"offset":362},"end":{"line":27,"col":12,"offset":364},"abstract_content":"d2","propagated_value":{"svalue_start":{"line":26,"col":10,"offset":346},"svalue_end":{"line":26,"col":16,"offset":352},"svalue_abstract_content":"danger"}}},"dataflow_trace":{"taint_source":["CoreLoc",{"path":"foo.py","start":{"line":26,"col":10,"offset":346},"end":{"line":26,"col":16,"offset":352}}],"intermediate_vars":[{"location":{"path":"foo.py","start":{"line":26,"col":5,"offset":341},"end":{"line":26,"col":7,"offset":343}}}],"taint_sink":["CoreLoc",{"path":"foo.py","start":{"line":27,"col":5,"offset":357},"end":{"line":27,"col":13,"offset":365}}]},"engine_kind":"OSS"}}],"errors":[],"skipped_rules":[],"explanations":[],"stats":{"okfiles":1,"errorfiles":0},"time":{"targets":[{"path":"foo.py","rule_times":[{"rule_id":"taint-test","parse_time":0.012413978576660156,"match_time":7.867813110351562e-06},{"rule_id":"eqeq-bad","parse_time":0.0,"match_time":5.507469177246094e-05},{"rule_id":"eqeq-five","parse_time":0.0,"match_time":3.910064697265625e-05},{"rule_id":"eqeq-four","parse_time":0.0,"match_time":3.2901763916015625e-05}],"run_time":0.03641104698181152}],"rules":["eqeq-bad","eqeq-five","eqeq-four","taint-test"],"rules_parse_time":0.0032320022583007812,"max_memory_bytes":36798464},"rules_by_engine":[["eqeq-bad","OSS"],["eqeq-five","OSS"],["eqeq-four","OSS"],["taint-test","OSS"]],"engine_requested":"OSS"}
+--- end semgrep-core stdout ---
+--- semgrep-core stderr ---
+<semgrep-core stderr not captured, should be printed above>
+--- end semgrep-core stderr ---
+An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
 
 === end of stderr - plain

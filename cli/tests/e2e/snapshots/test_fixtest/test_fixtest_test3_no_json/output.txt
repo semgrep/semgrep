@@ -1,4 +1,4 @@
-1/1: ✓ All tests passed
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------
 	✖ targets/fixtest/test3.fixed.py <> autofix applied to targets/fixtest/test3.py
@@ -7,10 +7,27 @@
 	+++
 	@@ -2 +2 @@
 	-sys.exit(1)
-	+somethingElse(1)
+	+exit(1)
 	@@ -5 +5 @@
 	-sys.exit(2)
-	+somethingElse(1)
+	+exit(2)
 
 
 
+--------------------------------------------------------------------------------
+The following config files produced errors:
+	rules/fixtest/test3.yaml: Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).
+semgrep-core exit code: 0
+semgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmplbomp7bx.json -j 2 -targets /tmp/tmpp462sie_ -timeout 30 -timeout_threshold 0 -max_memory 0 -json_time -fast
+unexpected non-json output while invoking semgrep-core:
+--- semgrep-core stdout ---
+targets/fixtest/test3.py:2
+ exit(1)
+targets/fixtest/test3.py:5
+ exit(2)
+{"matches":[{"rule_id":"test3","location":{"path":"targets/fixtest/test3.py","start":{"line":2,"col":1,"offset":16},"end":{"line":2,"col":8,"offset":23}},"extra":{"message":"Use \"sys.exit\" over the python shell \"exit\" built-in. \"exit\" is a helper\nfor the interactive shell and is not be available on all Python implementations.\nhttps://stackoverflow.com/a/6501134\n","metavars":{"$X":{"start":{"line":2,"col":6,"offset":21},"end":{"line":2,"col":7,"offset":22},"abstract_content":"1"}},"rendered_fix":"somethingElse(1)","engine_kind":"OSS"}},{"rule_id":"test3","location":{"path":"targets/fixtest/test3.py","start":{"line":5,"col":1,"offset":41},"end":{"line":5,"col":8,"offset":48}},"extra":{"message":"Use \"sys.exit\" over the python shell \"exit\" built-in. \"exit\" is a helper\nfor the interactive shell and is not be available on all Python implementations.\nhttps://stackoverflow.com/a/6501134\n","metavars":{"$X":{"start":{"line":5,"col":6,"offset":46},"end":{"line":5,"col":7,"offset":47},"abstract_content":"2"}},"rendered_fix":"somethingElse(1)","engine_kind":"OSS"}}],"errors":[],"skipped_rules":[],"explanations":[],"stats":{"okfiles":1,"errorfiles":0},"time":{"targets":[{"path":"targets/fixtest/test3.py","rule_times":[{"rule_id":"test3","parse_time":0.007095813751220703,"match_time":0.005662202835083008}],"run_time":0.024914026260375977}],"rules":["test3"],"rules_parse_time":0.0027430057525634766,"max_memory_bytes":36798464},"rules_by_engine":[["test3","OSS"]],"engine_requested":"OSS"}
+--- end semgrep-core stdout ---
+--- semgrep-core stderr ---
+<semgrep-core stderr not captured, should be printed above>
+--- end semgrep-core stderr ---
+An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep

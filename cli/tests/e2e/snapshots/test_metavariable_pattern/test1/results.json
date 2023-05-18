@@ -2,93 +2,15 @@
   "errors": [
     {
       "code": 2,
-      "level": "warn",
-      "message": "Internal matching error when running rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval on targets/metavariable-pattern/test1.yml:\n An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nrule rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval: metavariable-pattern failed when parsing $SHELL's content as Bash: if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\nif ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\nif ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\nif ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\nif ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\nif ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\nif ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\ncurl -sSf -X POST -H \"Content-Type: application/json\" -d \"{\\\"text\\\": \\\"**${RUN_TYPE}** Test Error\\nBranch: \\`${{ github.head_ref }}\\`\\nUser: @${{ github.event.pull_request.user.login }}\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\nStep failed: \\`${FAILED}\\`\\\"}\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}\n",
-      "path": "targets/metavariable-pattern/test1.yml",
-      "rule_id": "rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval",
-      "type": "Internal matching error"
+      "level": "error",
+      "message": "Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).\nsemgrep-core exit code: 0\nsemgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmp3j6lt8ot.json -j 2 -targets /tmp/tmpe3ciqx1k -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast\nunexpected non-json output while invoking semgrep-core:\n--- semgrep-core stdout ---\ntargets/metavariable-pattern/test1.yml:7\n         run: |\n           if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\n           if ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\n           if ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\n           if ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\n           if ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\n           if ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\n           if ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\n           curl -sSf -X POST -H \"Content-Type: application/json\" -d \"{\\\"text\\\": \\\"**${RUN_TYPE}** Test Error\\nBranch: \\`${{ github.head_ref }}\\`\\nUser: @${{ github.event.pull_request.user.login }}\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\nStep failed: \\`${FAILED}\\`\\\"}\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}\n{\"matches\":[{\"rule_id\":\"rules.metavariable-pattern.yaml.github-actions.security.run-shell-injection.run-shell-injection\",\"location\":{\"path\":\"targets/metavariable-pattern/test1.yml\",\"start\":{\"line\":7,\"col\":9,\"offset\":107},\"end\":{\"line\":15,\"col\":378,\"offset\":1093}},\"extra\":{\"message\":\"Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \\\"$ENVVAR\\\".\",\"metavars\":{\"$SHELL\":{\"start\":{\"line\":7,\"col\":14,\"offset\":112},\"end\":{\"line\":16,\"col\":1,\"offset\":1093},\"abstract_content\":\"|\\n          if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\\n          if ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\\n          if ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\\n          if ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\\n          if ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\\n          if ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\\n          if ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\\n          curl -sSf -X POST -H \\\"Content-Type: application/json\\\" -d \\\"{\\\\\\\"text\\\\\\\": \\\\\\\"**${RUN_TYPE}** Test Error\\\\nBranch: \\\\`${{ github.head_ref }}\\\\`\\\\nUser: @${{ github.event.pull_request.user.login }}\\\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\\\nStep failed: \\\\`${FAILED}\\\\`\\\\\\\"}\\\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}\\n\"}},\"engine_kind\":\"OSS\"}}],\"errors\":[{\"rule_id\":\"rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval\",\"error_type\":\"Internal matching error\",\"severity\":\"warning\",\"location\":{\"path\":\"targets/metavariable-pattern/test1.yml\",\"start\":{\"line\":1,\"col\":1,\"offset\":0},\"end\":{\"line\":1,\"col\":1,\"offset\":0}},\"message\":\"An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\\n\\nrule rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval: metavariable-pattern failed when parsing $SHELL's content as Bash: if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\\nif ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\\nif ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\\nif ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\\nif ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\\nif ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\\nif ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\\ncurl -sSf -X POST -H \\\"Content-Type: application/json\\\" -d \\\"{\\\\\\\"text\\\\\\\": \\\\\\\"**${RUN_TYPE}** Test Error\\\\nBranch: \\\\`${{ github.head_ref }}\\\\`\\\\nUser: @${{ github.event.pull_request.user.login }}\\\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\\\nStep failed: \\\\`${FAILED}\\\\`\\\\\\\"}\\\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}\\n\"}],\"skipped_rules\":[],\"explanations\":[],\"stats\":{\"okfiles\":0,\"errorfiles\":1},\"time\":{\"targets\":[{\"path\":\"targets/metavariable-pattern/test1.yml\",\"rule_times\":[{\"rule_id\":\"rules.metavariable-pattern.yaml.github-actions.security.run-shell-injection.run-shell-injection\",\"parse_time\":0.006577014923095703,\"match_time\":0.007643938064575195},{\"rule_id\":\"rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval\",\"parse_time\":0.0,\"match_time\":5.316734313964844e-05}],\"run_time\":0.02865314483642578}],\"rules\":[\"rules.metavariable-pattern.yaml.github-actions.security.run-shell-injection.run-shell-injection\",\"rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval\"],\"rules_parse_time\":0.0035021305084228516,\"max_memory_bytes\":36798464},\"rules_by_engine\":[[\"rules.metavariable-pattern.yaml.github-actions.security.run-shell-injection.run-shell-injection\",\"OSS\"],[\"rules.metavariable-pattern.yaml.github-actions.security.curl-eval.curl-eval\",\"OSS\"]],\"engine_requested\":\"OSS\"}\n--- end semgrep-core stdout ---\n--- semgrep-core stderr ---\n<semgrep-core stderr not captured, should be printed above>\n--- end semgrep-core stderr ---\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep",
+      "type": "SemgrepError"
     }
   ],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/metavariable-pattern/test1.yml"
-    ]
+    "scanned": []
   },
-  "results": [
-    {
-      "check_id": "rules.metavariable-pattern.yaml.github-actions.security.run-shell-injection.run-shell-injection",
-      "end": {
-        "col": 378,
-        "line": 15,
-        "offset": 1093
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        run: |\n          if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\n          if ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\n          if ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\n          if ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\n          if ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\n          if ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\n          if ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\n          curl -sSf -X POST -H \"Content-Type: application/json\" -d \"{\\\"text\\\": \\\"**${RUN_TYPE}** Test Error\\nBranch: \\`${{ github.head_ref }}\\`\\nUser: @${{ github.event.pull_request.user.login }}\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\nStep failed: \\`${FAILED}\\`\\\"}\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}",
-        "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
-        "metadata": {
-          "category": "security",
-          "confidence": "HIGH",
-          "cwe": [
-            "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
-          ],
-          "cwe2021-top25": true,
-          "cwe2022-top25": true,
-          "impact": "HIGH",
-          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
-          "likelihood": "HIGH",
-          "owasp": [
-            "A01:2017 - Injection",
-            "A03:2021 - Injection"
-          ],
-          "references": [
-            "https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#understanding-the-risk-of-script-injections",
-            "https://securitylab.github.com/research/github-actions-untrusted-input/"
-          ],
-          "semgrep.dev": {
-            "rule": {
-              "origin": "community",
-              "rule_id": "v8UjQj",
-              "url": "https://semgrep.dev/playground/r/K3TPZA/yaml.github-actions.security.run-shell-injection.run-shell-injection",
-              "version_id": "K3TPZA"
-            }
-          },
-          "shortlink": "https://sg.run/pkzk",
-          "source": "https://semgrep.dev/r/yaml.github-actions.security.run-shell-injection.run-shell-injection",
-          "subcategory": [
-            "vuln"
-          ],
-          "technology": [
-            "github-actions"
-          ]
-        },
-        "metavars": {
-          "$SHELL": {
-            "abstract_content": "|\n          if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\n          if ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\n          if ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\n          if ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\n          if ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\n          if ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\n          if ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\n          curl -sSf -X POST -H \"Content-Type: application/json\" -d \"{\\\"text\\\": \\\"**${RUN_TYPE}** Test Error\\nBranch: \\`${{ github.head_ref }}\\`\\nUser: @${{ github.event.pull_request.user.login }}\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\nStep failed: \\`${FAILED}\\`\\\"}\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}\n",
-            "end": {
-              "col": 1,
-              "line": 16,
-              "offset": 1093
-            },
-            "start": {
-              "col": 14,
-              "line": 7,
-              "offset": 112
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/metavariable-pattern/test1.yml",
-      "start": {
-        "col": 9,
-        "line": 7,
-        "offset": 107
-      }
-    }
-  ],
+  "results": [],
   "version": "0.42"
 }

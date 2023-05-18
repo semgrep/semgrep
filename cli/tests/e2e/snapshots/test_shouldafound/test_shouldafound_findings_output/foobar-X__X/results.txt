@@ -3,23 +3,10 @@ SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_VERS
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-
-┌─────────────────┐
-│ 3 Code Findings │
-└─────────────────┘
-
-    stupid.py
-            3┆ return a + b == a + b
-            ⋮┆----------------------------------------
-            8┆ x == x
-            ⋮┆----------------------------------------
-           12┆ assertTrue(x == x)
-
 
 === end of stdout - plain
 
@@ -31,12 +18,22 @@ SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_VERS
 └─────────────┘
   Scanning 2 files tracked by git with 1 Code rule:
   Scanning 1 file.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-
-Ran 1 rule on 1 file: 3 findings.
+[ERROR] Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).
+semgrep-core exit code: 0
+semgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmpgqx1kxlm.json -j 2 -targets /tmp/tmpcha5m1mq -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast
+unexpected non-json output while invoking semgrep-core:
+--- semgrep-core stdout ---
+stupid.py:12
+ assertTrue(x == x)
+stupid.py:8
+     x == x
+stupid.py:3
+     return a + b == a + b
+{"matches":[{"rule_id":"-","location":{"path":"stupid.py","start":{"line":3,"col":12,"offset":55},"end":{"line":3,"col":26,"offset":69}},"extra":{"message":"$X == $X","metavars":{"$X":{"start":{"line":3,"col":12,"offset":55},"end":{"line":3,"col":17,"offset":60},"abstract_content":"a+b"}},"engine_kind":"OSS"}},{"rule_id":"-","location":{"path":"stupid.py","start":{"line":8,"col":5,"offset":168},"end":{"line":8,"col":11,"offset":174}},"extra":{"message":"$X == $X","metavars":{"$X":{"start":{"line":8,"col":5,"offset":168},"end":{"line":8,"col":6,"offset":169},"abstract_content":"x"}},"engine_kind":"OSS"}},{"rule_id":"-","location":{"path":"stupid.py","start":{"line":12,"col":12,"offset":260},"end":{"line":12,"col":18,"offset":266}},"extra":{"message":"$X == $X","metavars":{"$X":{"start":{"line":12,"col":12,"offset":260},"end":{"line":12,"col":13,"offset":261},"abstract_content":"x"}},"engine_kind":"OSS"}}],"errors":[],"skipped_rules":[],"explanations":[],"stats":{"okfiles":1,"errorfiles":0},"time":{"targets":[{"path":"stupid.py","rule_times":[{"rule_id":"-","parse_time":0.006654977798461914,"match_time":0.008198976516723633}],"run_time":0.02584099769592285}],"rules":["-"],"rules_parse_time":0.0031080245971679688,"max_memory_bytes":36798464},"rules_by_engine":[["-","OSS"]],"engine_requested":"OSS"}
+--- end semgrep-core stdout ---
+--- semgrep-core stderr ---
+<semgrep-core stderr not captured, should be printed above>
+--- end semgrep-core stderr ---
+An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
 
 === end of stderr - plain

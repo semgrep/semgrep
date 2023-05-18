@@ -3,7 +3,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
@@ -30,55 +30,23 @@ Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f
 └─────────────┘
   Scanning 2 files tracked by git with 4 Code rules:
   Scanning 2 files with 4 python rules.
-  Current version has 3 findings.
-
-Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
-  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
-    * 7b5cda4 commit #4
-    * 5b37988 commit #3
-
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
-
-
-┌──────────────────────────────┐
-│ 2 Non-blocking Code Findings │
-└──────────────────────────────┘
-
-    bar.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (bar == 2)
-            1┆ bar == 5
-
-    foo.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (foo == 2)
-            2┆ foo == 5
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 2 findings (0 blocking) from 6 rules.
-  Uploading findings.
-  View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  No blocking findings so exiting with code 0
+[ERROR] Error while matching: Semgrep encountered an internal error: Expecting value: line 1 column 1 (char 0).
+semgrep-core exit code: 0
+semgrep-core command: /home/runner/work/semgrep/semgrep/cli/src/semgrep/bin/semgrep-core -json -rules /tmp/tmppztu4jpa.json -j 2 -targets /tmp/tmp59rxqjx3 -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast
+unexpected non-json output while invoking semgrep-core:
+--- semgrep-core stdout ---
+bar.py:1
+ bar == 5
+foo.py:2
+ foo == 5
+foo.py:1
+ foo == 5
+{"matches":[{"rule_id":"eqeq-five","location":{"path":"bar.py","start":{"line":1,"col":1,"offset":0},"end":{"line":1,"col":9,"offset":8}},"extra":{"message":"useless comparison to 5","metavars":{"$X":{"start":{"line":1,"col":1,"offset":0},"end":{"line":1,"col":4,"offset":3},"abstract_content":"bar"}},"rendered_fix":"(bar == 2)","engine_kind":"OSS"}},{"rule_id":"eqeq-five","location":{"path":"foo.py","start":{"line":1,"col":1,"offset":0},"end":{"line":1,"col":9,"offset":8}},"extra":{"message":"useless comparison to 5","metavars":{"$X":{"start":{"line":1,"col":1,"offset":0},"end":{"line":1,"col":4,"offset":3},"abstract_content":"foo"}},"rendered_fix":"(foo == 2)","engine_kind":"OSS"}},{"rule_id":"eqeq-five","location":{"path":"foo.py","start":{"line":2,"col":1,"offset":9},"end":{"line":2,"col":9,"offset":17}},"extra":{"message":"useless comparison to 5","metavars":{"$X":{"start":{"line":2,"col":1,"offset":9},"end":{"line":2,"col":4,"offset":12},"abstract_content":"foo"}},"rendered_fix":"(foo == 2)","engine_kind":"OSS"}}],"errors":[],"skipped_rules":[],"explanations":[],"stats":{"okfiles":2,"errorfiles":0},"time":{"targets":[{"path":"foo.py","rule_times":[{"rule_id":"eqeq-bad","parse_time":0.014678001403808594,"match_time":0.015642881393432617},{"rule_id":"eqeq-five","parse_time":0.0,"match_time":2.193450927734375e-05},{"rule_id":"eqeq-four","parse_time":0.0,"match_time":1.5020370483398438e-05}],"run_time":0.0459902286529541},{"path":"bar.py","rule_times":[{"rule_id":"eqeq-bad","parse_time":0.006265163421630859,"match_time":0.0077228546142578125},{"rule_id":"eqeq-five","parse_time":0.0,"match_time":2.3126602172851562e-05},{"rule_id":"eqeq-four","parse_time":0.0,"match_time":1.3113021850585938e-05}],"run_time":0.02590012550354004}],"rules":["eqeq-bad","eqeq-five","eqeq-four","taint-test"],"rules_parse_time":0.0028748512268066406,"max_memory_bytes":36798464},"rules_by_engine":[["eqeq-bad","OSS"],["eqeq-five","OSS"],["eqeq-four","OSS"],["taint-test","OSS"]],"engine_requested":"OSS"}
+--- end semgrep-core stdout ---
+--- semgrep-core stderr ---
+<semgrep-core stderr not captured, should be printed above>
+--- end semgrep-core stderr ---
+An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
 
 === end of stdout - plain
 
