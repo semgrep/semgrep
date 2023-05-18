@@ -1521,12 +1521,14 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
   report_findings env findings;
   (taints, var_env')
 
-let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
+(* let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
+  logger#flash "exit_env = %s" (Lval_env.to_string T.show_taints exit_env);
   (* TOOD: We need to get a map of `lval` to `Taint.arg`, and if an extension
    * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
    * extension and generate an `ArgToArg` finding too. *)
   enter_env |> Lval_env.seq_of_tainted |> List.of_seq
   |> List.concat_map (fun (lval, enter_taints) ->
+        logger#flash "enter_env lval = %s" (Display_IL.string_of_lval lval);
          (* For each lval in the enter_env, we get its `T.arg`, and check
           * if it got new taints at the exit_env. If so, we generate an
           * ArgToArg. *)
@@ -1548,7 +1550,36 @@ let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
              (* TODO: Also report if taints are _cleaned_. *)
              if not (Taints.is_empty new_taints) then
                [ T.ToArg (new_taints |> Taints.elements, arg) ]
-             else [])
+             else []) *)
+
+let findings_from_arg_updates_at_exit enter_env exit_env : T.finding list =
+  exit_env |> Lval_env.seq_of_tainted |> Seq.filter_map (fun (lval, exit_taints) ->
+    let new_taints =
+      Taints.diff exit_taints (Lval_env.dumb_find enter_env lval |> status_to_taints)
+    in
+    if not (Taints.is_empty new_taints) then
+    begin
+    (* logger#flash "exit_env lval = %s new_taints = %s" (Display_IL.string_of_lval lval) (T.show_taints new_taints); *)
+    (* TODO: Also report if taints are _cleaned_. *)
+    match lval with
+    | { base = VarSpecial (This, _); rev_offset = [{o = Dot x; _}] } ->
+      let arg = { Taint.pos = ("<this>", -1); offset = [x] } in
+      Some (T.ToArg (new_taints |> Taints.elements, arg))
+    | { base = Var v; rev_offset = [{o = Dot x; _}] } ->
+      (match Lval_env.dumb_find enter_env {base = Var v; rev_offset = []} with
+      | `Tainted ts0 ->
+        (match ts0 |> Taints.to_seq |> List.of_seq with
+      | [{orig = Arg ({pos = _; offset = []; _} as arg); _}] ->
+        let arg = { arg with offset = [x] } in
+      Some (T.ToArg (new_taints |> Taints.elements, arg))
+      | _ -> None)
+    | _ -> None
+      )
+    | _ ->
+     None
+    end
+    else None
+    ) |> List.of_seq
 
 (*****************************************************************************)
 (* Transfer *)
