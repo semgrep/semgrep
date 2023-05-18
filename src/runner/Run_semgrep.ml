@@ -850,10 +850,13 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
-    let timed_rules =
-      Common.with_time (fun () -> rules_from_rule_source config)
+    let (join_rules_map, rules), time =
+      Common.with_time (fun () ->
+          let rules = rules_from_rule_source config in
+          Join_util.extract_join_rules config rules)
     in
-    let res, files = semgrep_with_rules config timed_rules in
+    let res, files = semgrep_with_rules config (rules, time) in
+    let res = Join_util.unify_results config print_match join_rules_map res in
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
@@ -900,7 +903,7 @@ let semgrep_with_rules_and_formatted_output config =
         |> List.iter (fun explain -> Matching_explanation.print explain);
       (* the match has already been printed above. We just print errors here *)
       if not (null res.errors) then (
-        pr "WARNING: some files were skipped or only partially analyzed:";
+        pr "WARNING: some files were skipped on only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 (*****************************************************************************)
