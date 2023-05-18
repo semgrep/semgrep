@@ -31,7 +31,6 @@ module MV = Metavariable
 module Flag = Flag_semgrep
 module Options = Rule_options_t
 module H = AST_generic_helpers
-module T = Type_generic
 
 (* optimisations *)
 module CK = Caching.Cache_key
@@ -1393,14 +1392,14 @@ and m_container_ordered_elements a b =
  *    style as typechecking could also bind metavariables in the process
  *)
 and m_compatible_type lang typed_mvar t e =
-  match (Type_generic.builtin_type_of_type lang t, e.G.e) with
+  match (Type.builtin_type_of_type lang t, e.G.e) with
   | Some builtin, B.L lit -> (
       match (builtin, lit) with
-      | T.TInt, B.Int _
-      | T.TFloat, B.Float _
-      | T.TNumber, (B.Int _ | B.Float _)
-      | T.TBool, B.Bool _
-      | T.TString, B.String _ ->
+      | Type.Int, B.Int _
+      | Type.Float, B.Float _
+      | Type.Number, (B.Int _ | B.Float _)
+      | Type.Bool, B.Bool _
+      | Type.String, B.String _ ->
           envf typed_mvar (MV.E e)
       | _ -> fail ())
   | _else_ -> (
