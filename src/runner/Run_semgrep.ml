@@ -637,7 +637,8 @@ let extracted_targets_of_config (config : Runner_config.t)
         match r.Rule.mode with
         | `Extract _ as e -> Some { r with mode = e }
         | `Search _
-        | `Taint _ ->
+        | `Taint _
+        | `Join _ ->
             None)
       all_rules
   in
@@ -737,7 +738,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     match r.R.mode with
                     | `Extract _ -> false
                     | `Search _
-                    | `Taint _ ->
+                    | `Taint _
+                    | `Join _ ->
                         true)
              |> List.filter (fun r ->
                     (* TODO: some of this is already done in pysemgrep, so maybe
@@ -848,10 +850,13 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
-    let timed_rules =
-      Common.with_time (fun () -> rules_from_rule_source config)
+    let (join_rules_map, rules), time =
+      Common.with_time (fun () ->
+          let rules = rules_from_rule_source config in
+          Join_util.extract_join_rules config rules)
     in
-    let res, files = semgrep_with_rules config timed_rules in
+    let res, files = semgrep_with_rules config (rules, time) in
+    let res = Join_util.unify_results config print_match join_rules_map res in
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->

@@ -1,0 +1,19 @@
+rules:
+  - id: abc
+    message: "abc"
+    languages: [python]
+    severity: WARNING
+    mode: join
+    steps:
+        - languages: [python]
+          patterns:
+          - pattern: |
+                x = $A + $B + $T
+        - languages: [python]
+          patterns:
+          - pattern: |
+                y = $B + $C
+        - languages: [python]
+          patterns:
+          - pattern: |
+                z = $A + $C
