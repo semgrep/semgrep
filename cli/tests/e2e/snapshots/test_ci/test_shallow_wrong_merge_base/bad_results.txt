@@ -3,7 +3,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
@@ -30,55 +30,12 @@ Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f
 └─────────────┘
   Scanning 2 files tracked by git with 4 Code rules:
   Scanning 2 files with 4 python rules.
-  Current version has 3 findings.
+[ERROR] Fatal error at line :1:
+ (Failure "join mode experiment does not work with targets file yet")
+====[ BEGIN error trace ]====
+(Failure "join mode experiment does not work with targets file yet")
+=====[ END error trace ]=====
 
-Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
-  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
-    * 7b5cda4 commit #4
-    * 5b37988 commit #3
-
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
-
-
-┌──────────────────────────────┐
-│ 2 Non-blocking Code Findings │
-└──────────────────────────────┘
-
-    bar.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (bar == 2)
-            1┆ bar == 5
-
-    foo.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (foo == 2)
-            2┆ foo == 5
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 2 findings (0 blocking) from 6 rules.
-  Uploading findings.
-  View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  No blocking findings so exiting with code 0
 
 === end of stdout - plain
 

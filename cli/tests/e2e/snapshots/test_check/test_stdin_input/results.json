@@ -1,36 +1,17 @@
 {
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "/tmp/masked/path"
-    ]
-  },
-  "results": [
+  "errors": [
     {
-      "check_id": "-",
-      "end": {
-        "col": 2,
-        "line": 1,
-        "offset": 1
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
-        "message": "a",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "/tmp/masked/path",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
+      "code": 2,
+      "level": "error",
+      "message": "Fatal error at line :1:\n (Failure \"join mode experiment does not work with targets file yet\")\n====[ BEGIN error trace ]====\n(Failure \"join mode experiment does not work with targets file yet\")\n=====[ END error trace ]=====\n",
+      "path": "",
+      "type": "Fatal error"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
   "version": "0.42"
 }

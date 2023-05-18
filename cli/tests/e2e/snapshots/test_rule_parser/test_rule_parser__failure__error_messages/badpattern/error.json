@@ -3,37 +3,9 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
-      "rule_id": "rules.syntax.eqeq-is-bad",
-      "spans": [
-        {
-          "config_end": {
-            "col": 13,
-            "line": 0
-          },
-          "config_path": [
-            "rules",
-            "0",
-            "patterns",
-            "0",
-            "pattern"
-          ],
-          "config_start": {
-            "col": 1,
-            "line": 0
-          },
-          "end": {
-            "col": 34,
-            "line": 11
-          },
-          "file": "tmp/masked/path",
-          "start": {
-            "col": 22,
-            "line": 11
-          }
-        }
-      ],
-      "type": "Pattern parse error"
+      "message": "Fatal error at line :1:\n (Failure \"join mode experiment does not work with targets file yet\")\n====[ BEGIN error trace ]====\n(Failure \"join mode experiment does not work with targets file yet\")\n=====[ END error trace ]=====\n",
+      "path": "",
+      "type": "Fatal error"
     }
   ],
   "paths": {
