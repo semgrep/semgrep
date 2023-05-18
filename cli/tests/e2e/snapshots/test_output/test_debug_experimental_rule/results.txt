@@ -34,8 +34,8 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 Experimental Rules:
 - rules.experiment.research-experiment
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -107,8 +107,8 @@ Files skipped:
 
    • <none>
 
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
