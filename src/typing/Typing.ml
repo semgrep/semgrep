@@ -98,12 +98,14 @@ and type_of_expr_new lang e : G.name Type.t * G.ident option =
       let t =
         match lit with
         | G.Int _ -> Type.Builtin Type.Int
+        | G.Bool _ -> Type.Builtin Type.Bool
         | _else_ -> Type.NoType
       in
       (t, None)
   | G.N (Id (ident, id_info)) ->
       let t = resolved_type_of_id_info lang id_info in
       (t, Some ident)
+  (* Binary operator *)
   | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e1; Arg e2 ], _r)) ->
       let t1, _id = type_of_expr_new lang e1 in
       let t2, _id = type_of_expr_new lang e2 in
@@ -113,6 +115,28 @@ and type_of_expr_new lang e : G.name Type.t * G.ident option =
             (G.Plus | G.Minus (* TODO more *)),
             Type.Builtin Type.Int ) ->
             Type.Builtin Type.Int
+        | ( _,
+            ( G.Eq | G.PhysEq | G.NotEq | G.NotPhysEq | G.Lt | G.LtE | G.Gt
+            | G.GtE | G.And | G.Or ),
+            _ ) ->
+            Type.Builtin Type.Bool
+        | Type.Builtin Type.Bool, (G.BitOr | G.BitAnd | G.BitXor), _
+        | _, (G.BitOr | G.BitAnd | G.BitXor), Type.Builtin Type.Bool
+          when lang =*= Lang.Java ->
+            (* If the operands to |, &, or ^ are boolean, in Java these are
+             * boolean operators. If we can resolve one operand to a boolean, we
+             * know that in a well-formed program, the other is also a boolean.
+             * *)
+            Type.Builtin Type.Bool
+        | _else_ -> Type.NoType
+      in
+      (t, None)
+  (* Unary operator *)
+  | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e ], _r)) ->
+      let t, _id = type_of_expr_new lang e in
+      let t =
+        match (op, t) with
+        | G.Not, _ -> Type.Builtin Type.Bool
         | _else_ -> Type.NoType
       in
       (t, None)
