@@ -103,86 +103,115 @@ let get_reason_for_exclusion sel_events =
       (* shouldn't happen *) fallback
 
 (*************************************************************************)
-(* Finding *)
+(* Finding (new) *)
 (*************************************************************************)
 
-(* Check if file is a readable regular file.
-
-   This eliminates files that should never be semgrep targets. Among
-   others, this takes care of excluding symbolic links (because we don't
-   want to scan the target twice), directories (which may be returned by
-   globbing or by 'git ls-files' e.g. submodules), and
-   TODO files missing the read permission.
-
-   bugfix: we were using Common2.is_file but it is throwing an exn when a
-   file does exist
-   (which could happen when a file tracked by git was deleted, in which
-   case files_from_git_ls() below would still return it but Common2.is_file()
-   would fail).
-
-   TODO: we could return a skipped_target if the valid is not valid, adding
-   a new Unreadable_file and Inexistent_file to semgrep_output_v1.atd
-   skip_reason type.
-*)
-let is_valid_file file =
-  (* TOPORT: return self._is_valid_file_or_dir(path) and path.is_file() *)
-  try
-    let stat = Unix.stat !!file in
-    stat.Unix.st_kind =*= Unix.S_REG
-  with
-  | Unix.Unix_error (Unix.ENOENT, _, _) -> false
-
-(* python: 'git ls-files' is significantly faster than os.walk when performed
- * on a git project, so identify the git files first, then filter those later.
+(* We used to call 'git ls-files' when conf.respect_git_ignore was true,
+ * which could potentially speedup things because git may rely on
+ * internal data-structures to answer the question instead of walking
+ * the filesystem and read the potentially many .gitignore files.
+ * However this was not handling .semgrepignore and especially the
+ * ability to negate gitignore decisions in a .semgrepignore, so I think it's
+ * simpler to just walk the filesystem whatever the value of
+ * conf.respect_git_ignore. That's what ripgrep does too.
+ *
+ * old:
+ *   (* LATER: maybe we should first check whether scan_root is inside
+ *    * a git repository because respect_git_ignore is set to true by default
+ *    * and so it does not really mean the user want to use git (and
+ *    * a possible .gitignore) to list files.
+ *    *)
+ *   if conf.respect_git_ignore then (
+ *     try files_from_git_ls ~cwd:scan_root.fpath with
+ *    | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn ->
+ *         Logs.info (fun m ->
+ *             m
+ *               "Unable to ignore files ignored by git (%s is not a git \
+ *                directory or git is not installed). Running on all files \
+ *                instead..."
+ *               !!(scan_root.fpath));
+ *         Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
+ *         List_files.list_regular_files ~keep_root:true scan_root.fpath)
+ *
+ * pre: the scan_root must be a path to a directory
+ * python: was called Target.files_from_filesystem ()
  *)
-let files_from_git_ls ~cwd:scan_root =
-  (* TOPORT:
-      # Untracked but not ignored files
-      untracked_output = run_git_command([
-              "git",
-              "ls-files",
-              "--other",
-              "--exclude-standard",
-          ])
-      deleted_output = run_git_command(["git", "ls-files", "--deleted"])
-      tracked = self._parse_git_output(tracked_output)
-      untracked_unignored = self._parse_git_output(untracked_output)
-      deleted = self._parse_git_output(deleted_output)
-      return frozenset(tracked | untracked_unignored - deleted)
-  *)
-  (* tracked files *)
-  let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
-  tracked_output
-  |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
-  |> List.filter is_valid_file
-  [@@profiling]
-
-(* TODO! *)
-let walk_skip_and_collect (conf : conf) (_ign : Semgrepignore.t)
+let walk_skip_and_collect (conf : conf) (ign : Semgrepignore.t)
     (scan_root : fppath) : Fpath.t list * Out.skipped_target list =
-  let xs =
-    (* LATER: maybe we should first check whether scan_root is inside
-     * a git repository because respect_git_ignore is set to true by default
-     * and so it does not really mean the user want to use git (and
-     * a possible .gitignore) to list files.
-     *)
-    if conf.respect_git_ignore then (
-      try files_from_git_ls ~cwd:scan_root.fpath with
-      | (Git_wrapper.Error _ | Common.CmdError _ | Unix.Unix_error _) as exn ->
-          Logs.info (fun m ->
-              m
-                "Unable to ignore files ignored by git (%s is not a git \
-                 directory or git is not installed). Running on all files \
-                 instead..."
-                !!(scan_root.fpath));
-          Logs.debug (fun m -> m "exn = %s" (Common.exn_to_s exn));
-          List_files.list_regular_files ~keep_root:true scan_root.fpath)
-    else
-      (* python: was called Target.files_from_filesystem () *)
-      List_files.list_regular_files ~keep_root:true scan_root.fpath
+  (* Imperative style! walk and collect *)
+  let (res : Fpath.t list ref) = ref [] in
+  let (skipped : Out.skipped_target list ref) = ref [] in
+
+  (* mostly a copy-paste of List_files.list_regular_files() *)
+  let rec aux (dir : fppath) =
+    Logs.debug (fun m ->
+        m "listing dir %s (ppath = %s)" !!(dir.fpath)
+          (Ppath.to_string dir.ppath));
+    (* TODO? should we sort them first? *)
+    let entries = List_files.read_dir_entries dir.fpath in
+    entries
+    |> List.iter (fun name ->
+           let fpath =
+             (* if scan_root was "." we want to display paths as "foo/bar"
+              * and not "./foo/bar"
+              *)
+             if Fpath.equal dir.fpath (Fpath.v ".") then Fpath.v name
+             else Fpath.add_seg dir.fpath name
+           in
+           let ppath = Ppath.add_seg dir.ppath name in
+           (* TODO? if a dir, then add trailing / to ppath? it will be detected
+            * though in the children of the dir at least
+            *)
+           (* skipping hidden files (this includes big directories like .git/)
+            * TODO? maybe add a setting in conf?
+            * TODO? add a skip reason for those?
+            *)
+           if name =~ "^\\." then ignore ()
+           else
+             let status, selection_events = Semgrepignore.select ign ppath in
+             match status with
+             | Ignored ->
+                 Logs.debug (fun m ->
+                     m "Ignoring path %s:\n%s" !!fpath
+                       (Gitignore.show_selection_events selection_events));
+                 let reason = get_reason_for_exclusion selection_events in
+                 let skip =
+                   {
+                     Resp.path = !!fpath;
+                     reason;
+                     details =
+                       "excluded by --include/--exclude, gitignore, or \
+                        semgrepignore";
+                     rule_id = None;
+                   }
+                 in
+                 Common.push skip skipped
+             | Not_ignored -> (
+                 match Unix.lstat !!fpath with
+                 (* skipping symlinks *)
+                 | { Unix.st_kind = S_LNK; _ } -> ()
+                 | { Unix.st_kind = S_REG; _ } -> Common.push fpath res
+                 | { Unix.st_kind = S_DIR; _ } ->
+                     (* skipping submodules.
+                      * TODO? should we add a skip_reason for it? pysemgrep
+                      * though was using `git ls-files` which implicitely does
+                      * not even consider submodule files, so those files/dirs
+                      * were not mentioned in the skip list
+                      *)
+                     if
+                       conf.respect_git_ignore
+                       && Git_project.is_git_submodule_root fpath
+                     then ignore ()
+                     else aux { fpath; ppath }
+                 | { Unix.st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> ()
+                 (* ignore for now errors. TODO? return a skip? *)
+                 | exception Unix.Unix_error (_err, _fun, _info) -> ()))
   in
-  let skipped = [] in
-  (xs, skipped)
+  aux scan_root;
+  (* TODO? List.rev? anyway we gonna sort those files later no? or for
+   * displaying matches incrementally the order matters?
+   *)
+  (!res, !skipped)
 
 (*************************************************************************)
 (* Grouping (new) *)
@@ -386,6 +415,57 @@ let group_roots_by_project conf paths =
 (*************************************************************************)
 (* Finding (old) *)
 (*************************************************************************)
+
+(* Check if file is a readable regular file.
+
+   This eliminates files that should never be semgrep targets. Among
+   others, this takes care of excluding symbolic links (because we don't
+   want to scan the target twice), directories (which may be returned by
+   globbing or by 'git ls-files' e.g. submodules), and
+   TODO files missing the read permission.
+
+   bugfix: we were using Common2.is_file but it is throwing an exn when a
+   file does exist
+   (which could happen when a file tracked by git was deleted, in which
+   case files_from_git_ls() below would still return it but Common2.is_file()
+   would fail).
+
+   TODO: we could return a skipped_target if the valid is not valid, adding
+   a new Unreadable_file and Inexistent_file to semgrep_output_v1.atd
+   skip_reason type.
+*)
+let is_valid_file file =
+  (* TOPORT: return self._is_valid_file_or_dir(path) and path.is_file() *)
+  try
+    let stat = Unix.stat !!file in
+    stat.Unix.st_kind =*= Unix.S_REG
+  with
+  | Unix.Unix_error (Unix.ENOENT, _, _) -> false
+
+(* python: 'git ls-files' is significantly faster than os.walk when performed
+ * on a git project, so identify the git files first, then filter those later.
+ *)
+let files_from_git_ls ~cwd:scan_root =
+  (* TOPORT:
+      # Untracked but not ignored files
+      untracked_output = run_git_command([
+              "git",
+              "ls-files",
+              "--other",
+              "--exclude-standard",
+          ])
+      deleted_output = run_git_command(["git", "ls-files", "--deleted"])
+      tracked = self._parse_git_output(tracked_output)
+      untracked_unignored = self._parse_git_output(untracked_output)
+      deleted = self._parse_git_output(deleted_output)
+      return frozenset(tracked | untracked_unignored - deleted)
+  *)
+  (* tracked files *)
+  let tracked_output = Git_wrapper.files_from_git_ls ~cwd:scan_root in
+  tracked_output
+  |> Common.map (fun x -> if !!scan_root = "." then x else scan_root // x)
+  |> List.filter is_valid_file
+  [@@profiling]
 
 (* python: mostly Target.files() method in target_manager.py *)
 let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =

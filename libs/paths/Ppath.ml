@@ -67,13 +67,14 @@ let append_segment xs x =
   | "" :: xs -> "" :: loop xs
   | xs -> loop xs
 
-let append path seg =
+(* use same terminology than in Fpath *)
+let add_seg path seg =
   check_segment seg;
   let segments = append_segment path.segments seg in
   unsafe_create segments
 
 module Operators = struct
-  let ( / ) = append
+  let ( / ) = add_seg
 end
 
 let segments x = x.segments
@@ -235,12 +236,12 @@ let () =
       test_str norm "/a/" "/a/";
       test_str norm "/a/b/" "/a/b/";
 
-      let test_append a b ab =
-        Alcotest.(check string) "equal" ab (append (of_string a) b |> to_string)
+      let test_add_seg a b ab =
+        Alcotest.(check string) "equal" ab (add_seg (of_string a) b |> to_string)
       in
-      test_append "/" "a" "/a";
-      test_append "/a" "b" "/a/b";
-      test_append "/a/" "c" "/a/c";
+      test_add_seg "/" "a" "/a";
+      test_add_seg "/a" "b" "/a/b";
+      test_add_seg "/a/" "c" "/a/c";
 
       let test_in_project_ok root path expected =
         match in_project ~root:(Fpath.v root) (Fpath.v path) with

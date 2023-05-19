@@ -41,3 +41,8 @@ val fold_left :
   ('acc -> Fpath.t -> Unix.stats -> 'acc) -> 'acc -> Fpath.t -> 'acc
 
 val iter : (Fpath.t -> Unix.stats -> unit) -> Fpath.t -> unit
+
+(* internals *)
+
+(* Read the names found in a directory, excluding "." and "..". *)
+val read_dir_entries : Fpath.t -> string list

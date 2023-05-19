@@ -4,9 +4,15 @@
 
 (*
    Is a given path the root of a git project?
-   This works by checking the presence of a folder named '.git'.
+   This works by checking the presence of a folder named '.git/'.
 *)
 val is_git_root : Fpath.t -> bool
+
+(*
+   Is a given path the root of a git submodule?
+   This works by checking the presence of a *file* named '.git'.
+*)
+val is_git_submodule_root : Fpath.t -> bool
 
 (*
    Locate the root folder of the git project starting from
