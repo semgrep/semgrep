@@ -68,7 +68,7 @@ type env = {
   (* for producing decent error messages when checking the validity
      of the options section that was parsed as a whole from JSON *)
   options_key : key option;
-  options : Config_semgrep_t.t option;
+  options : Rule_options_t.t option;
 }
 
 (* Parsing generic dictionaries creates a mutable Hashtbl and consumes the
@@ -315,16 +315,6 @@ let parse_listi env (key : key) f x =
   | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
-(* TODO: delete at some point, should use parse_string_wrap_list *)
-let parse_string_list env (key : key) e =
-  let extract_string env = function
-    | { G.e = G.L (String (_, (value, _), _)); _ } -> value
-    | _ ->
-        error_at_key env.id key
-          ("Expected all values in the list to be strings for " ^ fst key)
-  in
-  parse_list env key extract_string e
-
 let parse_bool env (key : key) x =
   match x.G.e with
   | G.L (String (_, ("true", _), _)) -> true
@@ -383,7 +373,7 @@ let parse_language ~id ((s, t) as _lang) : Lang.t =
   | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
   | Some l -> l
 
-let parse_languages ~id (options : Config_semgrep_t.t) langs : Xlang.t =
+let parse_languages ~id (options : Rule_options_t.t) langs : Xlang.t =
   match langs with
   | [ (("none" | "regex"), _t) ] -> LRegex
   | [ ("generic", _t) ] -> (
@@ -494,9 +484,22 @@ let parse_equivalences env key value =
 
 let parse_paths env key value =
   let paths_dict = yaml_to_dict env key value in
+  (* TODO: should imitate parse_string_wrap_list *)
+  let parse_glob_list env (key : key) e =
+    let extract_string env = function
+      | { G.e = G.L (String (_, (value, _), _)); _ } -> (
+          try (value, Glob.Parse.parse_string value) with
+          | Glob.Lexer.Syntax_error _ ->
+              error_at_key env.id key ("Invalid glob for " ^ fst key))
+      | _ ->
+          error_at_key env.id key
+            ("Expected all values in the list to be globs for " ^ fst key)
+    in
+    parse_list env key extract_string e
+  in
   let inc_opt, exc_opt =
-    ( take_opt paths_dict env parse_string_list "include",
-      take_opt paths_dict env parse_string_list "exclude" )
+    ( take_opt paths_dict env parse_glob_list "include",
+      take_opt paths_dict env parse_glob_list "exclude" )
   in
   (* alt: we could use report_unparsed_fields(), but better to raise an error for now
      to be compatible with pysemgrep *)
@@ -504,7 +507,7 @@ let parse_paths env key value =
     error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)";
-  { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
+  { R.require = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
 (*****************************************************************************)
 (* Check the validity of the Aliengrep options *)
@@ -545,9 +548,7 @@ let brace_pairs_of_string_pairs env xs =
          (opening_char, closing_char))
 
 let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
-  let options =
-    Option.value env.options ~default:Config_semgrep.default_config
-  in
+  let options = Option.value env.options ~default:Rule_options.default_config in
   let default = Aliengrep.Conf.default_multiline_conf in
   let multiline = options.generic_multiline in
   let word_chars =
@@ -579,7 +580,7 @@ let parse_options rule_id (key : key) value =
          *)
         (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
         pr2 (spf "WARNING: unknown option: %s" field_name))
-      (fun () -> Config_semgrep_j.t_of_string s)
+      (fun () -> Rule_options_j.t_of_string s)
   in
   (options, Some key)
 
@@ -1496,9 +1497,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     | None -> (None, None)
     | Some (options, options_key) -> (Some options, options_key)
   in
-  let options =
-    Option.value options_opt ~default:Config_semgrep.default_config
-  in
+  let options = Option.value options_opt ~default:Rule_options.default_config in
   let languages = parse_languages ~id options languages in
   let env =
     {
@@ -1576,6 +1575,9 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
             let loc = Tok.first_loc_of_file !!file in
             yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key")
+    | [] ->
+        (* an empty rules file returns an empty list of rules *)
+        (Tok.(tok_of_loc (first_loc_of_file !!file)), [])
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in

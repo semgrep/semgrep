@@ -124,6 +124,9 @@ let rule_match_nosem ~strict (rule_match : Out.cli_match) :
           (Option.value ~default:[||] ids_previous_line)
       in
       let ids = Common.map_filter Fun.id (Array.to_list ids) in
+      let ids = Common.map (String.split_on_char ' ') ids in
+      let ids = Common.map List.hd (* nosemgrep: list-hd *) ids in
+      (* [String.split_on_char] can **not** return an empty list. *)
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       List.fold_left
         (fun (result, errors) id ->

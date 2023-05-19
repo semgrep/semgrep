@@ -105,7 +105,7 @@ val fixpoint :
   ?in_env:Taint_lval_env.t ->
   ?name:var ->
   Lang.t ->
-  Config_semgrep.t ->
+  Rule_options.t ->
   config ->
   IL.cfg ->
   mapping

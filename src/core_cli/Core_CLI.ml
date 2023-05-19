@@ -353,7 +353,6 @@ let mk_config () =
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
     rule_source = !rule_source;
-    lang_job = None;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* not part of CLI *)
     equivalences_file = !equivalences_file;

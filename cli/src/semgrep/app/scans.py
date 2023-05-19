@@ -365,6 +365,7 @@ class ScanHandler:
 
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
 
@@ -382,6 +383,7 @@ class ScanHandler:
         # mark as complete
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+            timeout=state.env.upload_findings_timeout,
             json=complete,
         )
 

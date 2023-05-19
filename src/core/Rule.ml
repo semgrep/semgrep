@@ -282,7 +282,7 @@ type 'mode rule_info = {
   severity : severity; (* Currently a dummy value for extract mode rules *)
   languages : Xlang.t;
   (* OPTIONAL fields *)
-  options : Config_semgrep.t option;
+  options : Rule_options.t option;
   (* deprecated? todo: parse them *)
   equivalences : string list option;
   fix : string option;
@@ -293,10 +293,21 @@ type 'mode rule_info = {
 }
 
 and paths = {
-  (* not regexp but globs *)
-  include_ : string list;
-  exclude : string list;
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   * TODO? use wrap? to also get location of include/require field?
+   *)
+  require : glob list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : glob list;
 }
+
+(* TODO? store also the compiled glob directly? but we preprocess the pattern
+ * in Filter_target.filter_paths, so we would need to recompile it anyway,
+ * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
+ *)
+and glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
 
 (* TODO? just reuse Error_code.severity *)
 and severity = Error | Warning | Info | Inventory | Experiment

@@ -73,21 +73,21 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
-            
-            
+
+
   CODE RULES
   Nothing to scan.
-                    
+
   SUPPLY CHAIN RULES
   Scanning 1 file.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

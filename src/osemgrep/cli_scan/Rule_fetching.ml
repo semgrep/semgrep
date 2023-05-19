@@ -151,6 +151,7 @@ type _registry_cached_value =
     float (* timestamp *) * Uri.t )
   Cache_disk.cached_value_on_disk
 
+(* better: faster fetching by using a cache *)
 let fetch_content_from_registry_url ~registry_caching url =
   if not registry_caching then fetch_content_from_url url
   else

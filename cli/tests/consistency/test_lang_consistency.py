@@ -25,5 +25,7 @@ def test_no_duplicate_reverse_exts() -> None:
     for d in LANGUAGE.definition_by_id.values():
         for e in d.reverse_exts:
             if e in exts:
-                raise Exception(f"Duplicate language key {e}")
+                raise Exception(
+                    f"Duplicate reverse extension {e} in lang.json occurring in language {d.id}"
+                )
             exts.add(e)

@@ -29,9 +29,8 @@ module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
-module Config = Config_semgrep_t
+module Options = Rule_options_t
 module H = AST_generic_helpers
-module T = Type_generic
 
 (* optimisations *)
 module CK = Caching.Cache_key
@@ -325,8 +324,8 @@ let max_NESTED_SYMBOLIC_PROPAGATION = 50
 let m_with_symbolic_propagation ~is_root f b tin =
   if
     (* If we are not at the root, then we permit recursing into substituted values. *)
-    tin.config.Config.constant_propagation
-    && tin.config.Config.symbolic_propagation && not is_root
+    tin.config.Options.constant_propagation
+    && tin.config.Options.symbolic_propagation && not is_root
   then
     (* In the past, naming bugs have introduced circular references causing
      * infinite loops, and not all are caught by the defensive check `b1 == b`
@@ -644,7 +643,7 @@ and m_id_info a b =
 (*****************************************************************************)
 
 and m_expr_deep a b tin =
-  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let symbolic_propagation = tin.config.Options.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr ~symbolic_propagation
   in
@@ -672,7 +671,7 @@ and m_expr_deep a b tin =
  *
  *)
 and m_expr_deep_implict a b tin =
-  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let symbolic_propagation = tin.config.Options.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr_implicit ~symbolic_propagation
   in
@@ -832,7 +831,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.L a1, _b ->
       if_config
-        (fun x -> x.Config.constant_propagation)
+        (fun x -> x.Options.constant_propagation)
         ~then_:
           (with_lang (fun lang ->
                match
@@ -1393,14 +1392,14 @@ and m_container_ordered_elements a b =
  *    style as typechecking could also bind metavariables in the process
  *)
 and m_compatible_type lang typed_mvar t e =
-  match (Type_generic.builtin_type_of_type lang t, e.G.e) with
+  match (Type.builtin_type_of_type lang t, e.G.e) with
   | Some builtin, B.L lit -> (
       match (builtin, lit) with
-      | T.TInt, B.Int _
-      | T.TFloat, B.Float _
-      | T.TNumber, (B.Int _ | B.Float _)
-      | T.TBool, B.Bool _
-      | T.TString, B.String _ ->
+      | Type.Int, B.Int _
+      | Type.Float, B.Float _
+      | Type.Number, (B.Int _ | B.Float _)
+      | Type.Bool, B.Bool _
+      | Type.String, B.String _ ->
           envf typed_mvar (MV.E e)
       | _ -> fail ())
   | _else_ -> (
@@ -1424,7 +1423,7 @@ and m_compatible_type lang typed_mvar t e =
           m_type_option_with_hook idb (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _ta, _eb -> (
-          match type_of_expr lang e with
+          match Typing.type_of_expr lang e with
           | tbopt, Some idb ->
               m_type_option_with_hook idb (Some t) tbopt >>= fun () ->
               envf typed_mvar (MV.E e)
@@ -1432,72 +1431,6 @@ and m_compatible_type lang typed_mvar t e =
               let* () = m_type_ t tb in
               envf typed_mvar (MV.E e)
           | None, None -> fail ()))
-
-(* returns possibly the inferred type of the expression,
- * as well as an ident option that can then be used to query LSP to get the
- * type of the ident.
- *)
-and type_of_expr lang e : G.type_ option * G.ident option =
-  match e.B.e with
-  (* TODO? or generate a fake "new" id for LSP to query on tk? *)
-  | B.New (_tk, t, _ii, _) -> (Some t, None)
-  (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | B.N
-      (B.IdQualified
-        { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
-  | B.DotAccess
-      ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { B.id_type = tb; _ })))
-    ->
-      (!tb, Some idb)
-  (* deep: those are usually resolved only in deep mode *)
-  | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> (!tb, Some idb)
-  (* deep: same *)
-  | B.Call
-      ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
-        _args ) -> (
-      match !tb with
-      (* less: in OCaml functions can be curried, so we need to match
-       * _params and _args to calculate the resulting type.
-       *)
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  (* deep: in Java, there can be an implicit `this.`
-     so calculate the type in the same way as above
-     THINK: should we do this for all languages? Why not? *)
-  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
-    when lang =*= Lang.Java -> (
-      match !tb with
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  | B.Conditional (_, e1, e2) ->
-      let ( let* ) = Option.bind in
-      let t1opt, id1opt = type_of_expr lang e1 in
-      let t2opt, id2opt = type_of_expr lang e2 in
-      (* LATER: we could also not enforce to have a type for both branches,
-       * but let's go simple for now and enforce both branches have
-       * a type and that the types are equal.
-       *)
-      let topt =
-        let* t1 = t1opt in
-        let* t2 = t2opt in
-        (* LATER: in theory we should look if the types are compatible,
-         * and take the lowest upper bound of the two types *)
-        if AST_utils.with_structural_equal G.equal_type_ t1 t2 then Some t1
-        else None
-      in
-      let idopt =
-        (* TODO? is there an Option.xxx or Common.xxx function for that? *)
-        match (id1opt, id2opt) with
-        | Some id1, _ -> Some id1
-        | _, Some id2 -> Some id2
-        | None, None -> None
-      in
-      (topt, idopt)
-  | _else_ -> (None, None)
 
 (*---------------------------------------------------------------------------*)
 (* XML *)
@@ -1515,7 +1448,7 @@ and m_xml_kind a b =
   | G.XmlClassic (a0, a1, a2, _), B.XmlSingleton (b0, b1, b2)
   | G.XmlSingleton (a0, a1, a2), B.XmlClassic (b0, b1, b2, _) ->
       if_config
-        (fun x -> x.Config.xml_singleton_loose_matching)
+        (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
            let* () = m_ident a1 b1 in

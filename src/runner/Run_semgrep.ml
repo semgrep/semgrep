@@ -93,6 +93,17 @@ let update_cli_progress config =
   | Json true -> pr "."
   | _ -> ()
 
+(*
+   Sort targets by decreasing size. This is meant for optimizing
+   CPU usage when processing targets in parallel on a fixed number of cores.
+*)
+let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
+    =
+  targets
+  |> Common.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
+  |> Common.map fst
+
 (*****************************************************************************)
 (* Printing matches *)
 (*****************************************************************************)
@@ -179,7 +190,7 @@ let map_targets ncores f (targets : In.target list) =
      This is needed only when ncores > 1, but to reduce discrepancy between
      the two modes, we always sort the target queue in the same way.
   *)
-  let targets = Find_target.sort_targets_by_decreasing_size targets in
+  let targets = sort_targets_by_decreasing_size targets in
   if ncores <= 1 then Common.map f targets
   else (
     (*
@@ -590,7 +601,9 @@ let targets_of_config (config : Runner_config.t)
         (* config.lang comes from Xlang.of_string which returns just a lang *)
         | Xlang.L (_, _) -> assert false
       in
-      let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
+      let files, skipped =
+        Find_targets_old.files_of_dirs_or_files lang_opt roots
+      in
       let rule_ids = all_rule_ids_when_no_target_file in
       let target_mappings =
         files
@@ -744,6 +757,15 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | `Search _
                     | `Taint _ ->
                         true)
+             |> List.filter (fun r ->
+                    (* TODO: some of this is already done in pysemgrep, so maybe
+                     * we should guard with a flag that only osemgrep set
+                     * like Runner_config.paths_processing: bool?
+                     *)
+                    match r.R.paths with
+                    | None -> true
+                    | Some paths ->
+                        Filter_target.filter_paths paths (Fpath.v file))
            in
 
            let xtarget = xtarget_of_file config xlang file in
@@ -753,7 +775,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            in
            let xconf =
              {
-               Match_env.config = Config_semgrep.default_config;
+               Match_env.config = Rule_options.default_config;
                equivs = parse_equivalences config.equivalences_file;
                nested_formula = false;
                matching_explanations = config.matching_explanations;
@@ -840,7 +862,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
         Common.map (fun x -> (fst x.R.id, Pattern_match.OSS)) rules;
     },
     (* TODO not all_targets here, because ?? *)
-    targets |> Common.map (fun x -> x.In.path) )
+    targets |> Common.map (fun x -> Fpath.v x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
@@ -857,38 +879,6 @@ let semgrep_with_raw_results_and_exn_handler config =
         { RP.empty_final_result with errors = [ E.exn_to_error "" e ] }
       in
       (Some e, res, [])
-
-(* This is ugly, with potentially some filtering operations being done twice.
-   It should get simplified when we get rid of the Python wrapper.
-   For now, we avoid code duplication.
-*)
-let semgrep_with_prepared_rules_and_targets config (x : Lang_job.t) =
-  let lang_str = Xlang.to_string x.lang in
-  let rule_ids (* what are these for? *) =
-    Common.map
-      (fun (x : Rule.t) ->
-        let id, _tok = x.id in
-        id)
-      x.rules
-  in
-  let rule_nums = Common.mapi (fun i _ -> i) rule_ids in
-  let target_mappings =
-    Common.map
-      (fun path : Input_to_core_t.target ->
-        { path = !!path; language = lang_str; rule_nums })
-      x.targets
-  in
-  let wrapped_targets : Input_to_core_t.targets =
-    { target_mappings; rule_ids = (rule_ids :> string list) }
-  in
-  let config =
-    {
-      config with
-      target_source = Some (Targets wrapped_targets);
-      rule_source = Some (Rules x.rules);
-    }
-  in
-  semgrep_with_raw_results_and_exn_handler config
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
@@ -926,7 +916,7 @@ let semgrep_with_rules_and_formatted_output config =
         |> List.iter (fun explain -> Matching_explanation.print explain);
       (* the match has already been printed above. We just print errors here *)
       if not (null res.errors) then (
-        pr "WARNING: some files were skipped on only partially analyzed:";
+        pr "WARNING: some files were skipped or only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
 
 (*****************************************************************************)
@@ -1026,7 +1016,7 @@ let semgrep_with_one_pattern config =
                    Match_patterns.check
                      ~hook:(fun match_ ->
                        print_match config match_ Metavariable.ii_of_mval)
-                     ( Config_semgrep.default_config,
+                     ( Rule_options.default_config,
                        parse_equivalences config.equivalences_file )
                      minirule (file, lang, ast)
                    |> ignore)

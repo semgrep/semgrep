@@ -365,3 +365,33 @@ rules:
     fix: Common.tl_exn "unexpected empty list"
     languages: [ocaml]
     severity: WARNING
+
+  - id: no-metavariable-equal-xyz
+    patterns:
+      - pattern: Metavariable.$F
+      - pattern-not: Metavariable.equal_mvar
+      - metavariable-regex:
+          metavariable: $F
+          regex: equal_.*
+    message: >-
+      Don't use 'Metavariable.$F' directly, see 'AST_utils'. Instead use
+      either 'Metavariable.Structural.$F' or 'Metavariable.Referential.$F'.
+      You can also consider replacing `equal_mvalue` with
+      'Matching_generic.equal_ast_bound_code'.
+    fix: Metavariable.Structural.$F
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: no-direct-assign-to-id_svalue
+    patterns:
+      - pattern-not-inside: |
+          if no_cycles_in_svalue ... then
+            ...
+      # FIXME: This doesn't work: $X.id_svalue := Some $E
+      - pattern-regex: \s([a-z0-5_]+)\.id_svalue\s+:=\s+Some\s+([a-z0-5_]+)
+    message: >-
+      Dot not set '$1.id_svalue' directly, instead use
+      'Dataflow_svalue.set_svalue_ref' which performs a cycle check.
+    fix: Dataflow_svalue.set_svalue_ref $1 $2
+    languages: [ocaml]
+    severity: WARNING

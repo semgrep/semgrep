@@ -1,0 +1,22 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - label: TEST
+        by-side-effect: true
+        patterns:
+          - pattern-either:
+              - pattern: $A($SOURCE)
+              - pattern: $A.$SANITIZE($SOURCE)
+          - focus-metavariable: $SOURCE
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)(.*valid)
+    pattern-sinks:
+      - requires: TEST
+        pattern: '"$HTMLSTR" + $EXPR'

@@ -8,6 +8,7 @@
    yaml pcre
 
    commons
+   paths
    lib_parsing
    process_limits
    spacegrep
