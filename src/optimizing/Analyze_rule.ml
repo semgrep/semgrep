@@ -603,7 +603,8 @@ let regexp_prefilter_of_rule (r : R.rule) =
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with
-      (* TODO: see tests/rules/tainted-filename.yaml *)
+      (* TODO: see tests/rules/tainted-filename.yaml,
+                   tests/rules/kotlin_slow_import.yaml *)
       | CNF_exploded ->
           logger#error "CNF size exploded on rule id %s" rule_id;
           None
