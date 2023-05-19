@@ -56,13 +56,15 @@ function ctypes_read(primType, buffer) {
 //Provides: ctypes_read_pointer
 //Requires: libyaml
 function ctypes_read_pointer(ptr) {
-  return libyaml.getValue(ptr[2], 'i32')
+  return libyaml.getValue(ptr[2], "i32");
 }
 
 //Provides: yaml_stub_1_yaml_get_version_string const
 //Requires: libyaml, caml_string_of_jsstring
 function yaml_stub_1_yaml_get_version_string() {
-  return caml_string_of_jsstring(libyaml.UTF8ToString(libyaml._yaml_get_version_string()));
+  return caml_string_of_jsstring(
+    libyaml.UTF8ToString(libyaml._yaml_get_version_string())
+  );
 }
 
 //Provides: yaml_stub_2_yaml_get_version

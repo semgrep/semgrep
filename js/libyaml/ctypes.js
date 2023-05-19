@@ -389,8 +389,6 @@ function ctypes_use(x) {
   caml_failwith("ctypes: ctypes_use not implemented");
 }
 
-
-
 //Provides: ctypes_cstring_of_string
 //Requires: caml_failwith
 function ctypes_cstring_of_string(x) {

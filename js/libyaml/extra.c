@@ -20,7 +20,7 @@ print_event(yaml_event_t* ptr) {
 	char* str = malloc(1024);
 	char* scalar = malloc(1024);
 	char* str2 = str;
-	
+
 	switch (ptr->type) {
 		case YAML_NO_EVENT:
 			str2 += sprintf(str2, "YAML_NO_EVENT:\n");

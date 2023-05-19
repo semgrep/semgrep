@@ -10,7 +10,9 @@ external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
    of the build machine (e.g. most computers these days have a 64-bit address space,
    but WASM is currently 32-bit). cross-compilation ended up being too much work, so
    instead we exploit javascript's mutability to correct some memory offsets for WASM *)
-external override_yaml_ctypes_field_offset : ('a, 'b) Yaml_bindings.T.field -> int -> unit = "override_yaml_ctypes_field_offset"
+external override_yaml_ctypes_field_offset :
+  ('a, 'b) Yaml_bindings.T.field -> int -> unit
+  = "override_yaml_ctypes_field_offset"
 
 let fix_libyaml_field_offsets_for_wasm () =
   (* mark *)
@@ -44,8 +46,10 @@ let fix_libyaml_field_offsets_for_wasm () =
   override_yaml_ctypes_field_offset Yaml_types.M.Event.Mapping_start.style 12;
 
   (* event_document_start *)
-  override_yaml_ctypes_field_offset Yaml_types.M.Event.Document_start.tag_directives 4;
-  override_yaml_ctypes_field_offset Yaml_types.M.Event.Document_start.implicit 12;
+  override_yaml_ctypes_field_offset
+    Yaml_types.M.Event.Document_start.tag_directives 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Document_start.implicit
+    12
 
 type jbool = bool Js.t
 type jstring = Js.js_string Js.t
@@ -53,13 +57,13 @@ type jstring = Js.js_string Js.t
 let _ =
   Common.jsoo := true;
   Tree_sitter_run.Util_file.jsoo := true;
+
   (* Using semgrep.parsing_languages makes the JS goes
      from 16MB to 7MB (in release mode) and from 110MB to 50MB (in dev mode)
      TODO: we should add language parsers dynamically, loading language "bundles"
      from the web on demand when one select a language in the playground.
      old: Parsing_init.init ();
   *)
-
   fix_libyaml_field_offsets_for_wasm ();
 
   Js.export_all
