@@ -12,8 +12,7 @@
 
 let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt_helpers.pp_heading ppf "Scan Status";
-  (* TODO indentation of the body *)
-  Fmt.pf ppf "Scanning %s%s with %s"
+  Fmt.pf ppf "  Scanning %s%s with %s"
     (String_utils.unit_str num_targets "file")
     (if respect_git_ignore then " tracked by git" else "")
     (String_utils.unit_str num_rules "Code rule");
@@ -27,9 +26,9 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
          summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
   *)
   Fmt.pf ppf ":@.";
-  if num_rules = 0 then Fmt.pf ppf "Nothing to scan."
+  if num_rules = 0 then Fmt.pf ppf "  Nothing to scan."
   else if num_rules = 1 then
-    Fmt.pf ppf "Scanning %s." (String_utils.unit_str num_targets "file")
+    Fmt.pf ppf "  Scanning %s." (String_utils.unit_str num_targets "file")
   else
     (* TODO origin table [Origin Rules] [Community N] *)
     let xlang_label = function
