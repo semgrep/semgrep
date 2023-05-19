@@ -51,8 +51,8 @@ fun Route.customerRouting() {
                     // "userAgent (raw): ${req.userAgent()} \n" +
                     // "userAgent (decoded): ${URLDecoder.decode(req.userAgent())} \n"
 
-            // ruleid: ktor_request_xss_2
             call.respondBytes(
+                // ruleid: ktor_request_xss_2
                 bytes="hi! ${resp}",
                 contentType = ContentType.Text.Html,
             )
