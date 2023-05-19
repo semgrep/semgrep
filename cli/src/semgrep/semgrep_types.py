@@ -47,7 +47,9 @@ class LanguageDefinition:
             name=data["name"],
             keys=data["keys"],
             exts=data["exts"],
-            reverse_exts=data["reverse_exts"] if data["reverse_exts"] else data["exts"],
+            reverse_exts=data["reverse_exts"]
+            if data["reverse_exts"] is not None
+            else data["exts"],
             shebangs=data.get("shebangs", []),
         )
 
