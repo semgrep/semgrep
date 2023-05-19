@@ -174,11 +174,6 @@ let refine c1 c2 =
   | G.Sym _, G.Cst _ ->
       c2
 
-let refine_svalue_ref c_ref c' =
-  match !c_ref with
-  | None -> c_ref := Some c'
-  | Some c -> c_ref := Some (refine c c')
-
 (*****************************************************************************)
 (* Constness evaluation *)
 (*****************************************************************************)
@@ -400,6 +395,59 @@ let eval_or_sym_prop env exp =
   | G.NotCst -> sym_prop exp.eorig
   | c -> c
 
+let no_cycles_in_svalue (id_info : G.id_info) svalue =
+  let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
+    (* Check that all id_info's satisfy a given condition. We use refs so that
+     * we can have a single visitor for all calls, given that the old
+     * `mk_visitor` was pretty expensive, and constructing a visitor object may
+     * be as well. *)
+    let ff = ref (fun _ -> assert false) in
+    let ok = ref true in
+    let vout =
+      object
+        inherit [_] G.iter
+
+        method! visit_id_info _env ii =
+          ok := !ok && !ff ii;
+          if not !ok then raise Exit
+      end
+    in
+    fun f ast ->
+      ff := f;
+      ok := true;
+      try
+        vout#visit_any () ast;
+        !ok
+      with
+      | Exit -> false
+  in
+  (* Check that `c' contains no reference to `var'. It can contain references
+   * to other occurrences of `var', but not to the same occurrence (that would
+   * be a cycle), and each occurence must have its own `id_svalue` ref. This
+   * is not supposed to happen, but if it does happen by accident then it would
+   * cause an infinite loop, stack overflow, or segfault later on. *)
+  match svalue with
+  | G.Sym e ->
+      for_all_id_info
+        (fun ii ->
+          (* Note the use of physical equality, we are looking for the *same*
+           * id_svalue ref, that tells us it's the same variable occurrence. *)
+          not (phys_equal id_info.id_svalue ii.id_svalue))
+        (G.E e)
+  | G.NotCst
+  | G.Cst _
+  | G.Lit _ ->
+      true
+
+let set_svalue_ref id_info c' =
+  if no_cycles_in_svalue id_info c' then
+    match !(id_info.id_svalue) with
+    | None -> id_info.id_svalue := Some c'
+    | Some c -> id_info.id_svalue := Some (refine c c')
+  else
+    logger#error "Cycle check failed for %s := %s" (G.show_id_info id_info)
+      (G.show_svalue c')
+
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
@@ -569,50 +617,6 @@ let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
     ~forward:true ~flow
 
 let update_svalue (flow : F.cfg) mapping =
-  let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
-    (* Check that all id_info's satisfy a given condition. We use refs so that
-     * we can have a single visitor for all calls, given that the old
-     * `mk_visitor` was pretty expensive, and constructing a visitor object may
-     * be as well. *)
-    let ff = ref (fun _ -> true) in
-    let ok = ref true in
-    let vout =
-      object
-        inherit [_] G.iter
-
-        method! visit_id_info _env ii =
-          ok := !ok && !ff ii;
-          if not !ok then raise Exit
-      end
-    in
-    fun f ast ->
-      ff := f;
-      ok := true;
-      try
-        vout#visit_any () ast;
-        !ok
-      with
-      | Exit -> false
-  in
-  let no_cycles var c =
-    (* Check that `c' contains no reference to `var'. It can contain references
-     * to other occurrences of `var', but not to the same occurrence (that would
-     * be a cycle), and each occurence must have its own `id_svalue` ref. This
-     * is not supposed to happen, but if it does happen by accident then it would
-     * cause an infinite loop, stack overflow, or segfault later on. *)
-    match c with
-    | G.Sym e ->
-        for_all_id_info
-          (fun ii ->
-            (* Note the use of physical equality, we are looking for the *same*
-             * id_svalue ref, that tells us it's the same variable occurrence. *)
-            phys_not_equal var.id_info.id_svalue ii.id_svalue)
-          (G.E e)
-    | G.NotCst
-    | G.Cst _
-    | G.Lit _ ->
-        true
-  in
   flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in
@@ -625,12 +629,7 @@ let update_svalue (flow : F.cfg) mapping =
               | { base = Var var; _ } -> (
                   match VarMap.find_opt (str_of_name var) ni_info.D.in_env with
                   | None -> ()
-                  | Some c ->
-                      if no_cycles var c then
-                        refine_svalue_ref var.id_info.id_svalue c
-                      else
-                        logger#error "Cycle check failed for %s -> %s"
-                          (str_of_name var) (G.show_svalue c))
+                  | Some c -> set_svalue_ref var.id_info c)
               | ___else___ -> ())
          (* Should not update the LHS svalue since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))

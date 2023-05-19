@@ -1,0 +1,1 @@
+Fixed bug introduced in 1.19.0 that was causing some stack overflows.

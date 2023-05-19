@@ -225,9 +225,9 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
         {
           Out.matches = [];
           errors = [ error ];
-          skipped_targets = [];
-          skipped_rules = [];
-          explanations = [];
+          skipped_targets = None;
+          skipped_rules = None;
+          explanations = None;
           time = None;
           stats = { okfiles = 0; errorfiles = 0 };
           rules_by_engine = [];

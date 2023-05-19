@@ -219,7 +219,7 @@ def match_to_lines(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
 ) -> Iterator[str]:
-    path = Path(location.path)
+    path = Path(location.path.value)
     is_same_file = path == ref_path
     lines = get_lines(path, location.start.line, location.end.line)
     yield from format_lines(
@@ -276,11 +276,11 @@ def call_trace_to_lines(
             prev_path = ref_path
             for var in intermediate_vars:
                 loc = var.location
-                path = Path(loc.path)
-                lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
+                path = Path(loc.path.value)
+                lines = get_lines(Path(loc.path.value), loc.start.line, loc.end.line)
                 is_same_file = path == prev_path
                 yield from format_lines(
-                    Path(loc.path),
+                    Path(loc.path.value),
                     loc.start.line,
                     loc.start.col,
                     loc.end.line,
@@ -341,7 +341,7 @@ def dataflow_trace_to_lines(
             prev_path = rule_match_path
             for var in intermediate_vars:
                 loc = var.location
-                path = Path(loc.path)
+                path = Path(loc.path.value)
                 lines = get_lines(path, loc.start.line, loc.end.line)
                 is_same_file = path == prev_path
                 yield from format_lines(
@@ -400,7 +400,7 @@ def print_time_summary(
         sum(t for t in target.parse_times if t >= 0) for target in targets
     )
     file_timings = {
-        target.path: (
+        target.path.value: (
             sum(t for t in target.parse_times if t >= 0),
             target.run_time,
         )
@@ -418,7 +418,7 @@ def print_time_summary(
         if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
     ]
     errors = {
-        (err.core.location.path, err.core.error_type.kind)
+        (err.core.location.path.value, err.core.error_type.kind)
         for err in semgrep_core_errors
     }
 
@@ -442,7 +442,7 @@ def print_time_summary(
     ext_info = sorted(
         (
             (
-                lang_of_path(target.path),
+                lang_of_path(target.path.value),
                 (target.num_bytes, target.run_time),
             )
             for target in targets

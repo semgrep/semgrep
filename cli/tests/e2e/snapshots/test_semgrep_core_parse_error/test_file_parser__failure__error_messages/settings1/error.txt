@@ -3,8 +3,8 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -47,8 +47,8 @@ Files skipped:
 
    • [36m[22m[24mtargets/bad/invalid_python.py (2 lines skipped)[0m
 
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

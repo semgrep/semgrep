@@ -93,7 +93,7 @@ def _build_time_target_json(
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
 
     return out.CliTargetTimes(
-        path=path_str,
+        path=out.Fpath(path_str),
         num_bytes=num_bytes,
         parse_times=[timing.parse_time for timing in timings],
         match_times=[timing.match_time for timing in timings],
@@ -207,11 +207,11 @@ class OutputHandler:
                 self.error_set.add(err)
 
                 if not err.core.rule_id:
-                    timeout_errors[Path(err.core.location.path)].append(
+                    timeout_errors[Path(err.core.location.path.value)].append(
                         "<unknown rule_id>"
                     )
                 else:
-                    timeout_errors[Path(err.core.location.path)].append(
+                    timeout_errors[Path(err.core.location.path.value)].append(
                         err.core.rule_id.value
                     )
             else:
@@ -279,7 +279,7 @@ class OutputHandler:
             memo: Mapping[Path, Tuple[Optional[int], List[out.RuleId]]],
             err: SemgrepCoreError,
         ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
-            path = Path(err.core.location.path)
+            path = Path(err.core.location.path.value)
             so_far = memo.get(path, (0, []))
             if err.spans is None or so_far[0] is None:
                 num_lines = None
@@ -470,7 +470,10 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths,
                 skipped=[
-                    out.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    out.CliSkippedTarget(
+                        path=out.Fpath(x["path"]),
+                        reason=out.SkipReason.from_json(x["reason"]),
+                    )
                     for x in skipped
                 ],
             )
