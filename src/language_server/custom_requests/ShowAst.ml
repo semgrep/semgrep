@@ -40,7 +40,7 @@ module Request_params = struct
     | Some (`Assoc [ ("uri", uri); ("named", `Bool named) ]) ->
         let document_uri = Uri.t_of_yojson uri in
         Some { document_uri; named }
-    | _ -> None
+    | __else__ -> None
 
   let of_jsonrpc_params_exn params : t =
     match of_jsonrpc_params params with
