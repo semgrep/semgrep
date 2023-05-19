@@ -136,7 +136,7 @@ let offsets_of_mval extract_mvalue =
    there is no way to ignore an html path for a specific javascript
    rule. In general extract mode does not allow you to select rules to
    run on extracted targets so this is in keeping with that design *)
-let rules_for_extracted_lang (all_rules : Rule.t list) =
+let rules_for_extracted_lang (all_rules : Rule.t list) extract_rules_paths =
   let rules_for_lang_tbl = Hashtbl.create 10 in
   let memo xlang =
     match Hashtbl.find_opt rules_for_lang_tbl xlang with
@@ -153,6 +153,16 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
                  | Xlang.LGeneric, Xlang.LGeneric -> true
                  | Xlang.LRegex, Xlang.LRegex -> true
                  | (Xlang.L _ | Xlang.LGeneric | Xlang.LRegex), _ -> false)
+          |> List.filter (fun (_i, r) ->
+                 let r = r.Rule.id in
+                 match extract_rules_paths with
+                 | None -> true
+                 | Some { Rule.required_rules; excluded_rules } ->
+                     List.for_all (fun r' -> fst r = fst r') required_rules
+                     && not
+                          (List.exists
+                             (fun r' -> fst r = fst r')
+                             excluded_rules))
           |> Common.map fst
         in
         Hashtbl.add rules_for_lang_tbl xlang rule_ids_for_lang;
@@ -160,7 +170,7 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
   in
   memo
 
-let mk_extract_target dst_lang contents all_rules =
+let mk_extract_target extract_rules_paths dst_lang contents all_rules =
   let dst_lang_str =
     match dst_lang with
     | Xlang.LGeneric -> "generic"
@@ -172,7 +182,7 @@ let mk_extract_target dst_lang contents all_rules =
   {
     In.path = f;
     language = dst_lang_str;
-    rule_nums = rules_for_extracted_lang all_rules dst_lang;
+    rule_nums = rules_for_extracted_lang all_rules extract_rules_paths dst_lang;
   }
 
 (* Unquote string *)
@@ -436,8 +446,12 @@ let extract_and_concat erule_table xtarget rule_ids matches =
             %s"
            (fst r.Rule.id) xtarget.file contents;
          (* Write out the extracted text in a tmpfile *)
-         let (`Extract { Rule.dst_lang; _ }) = r.mode in
-         let target = mk_extract_target dst_lang contents rule_ids in
+         let (`Extract { Rule.dst_lang; Rule.extract_rules_paths; _ }) =
+           r.mode
+         in
+         let target =
+           mk_extract_target extract_rules_paths dst_lang contents rule_ids
+         in
          (target, map_res map_loc target.path xtarget.file))
 
 let extract_as_separate erule_table xtarget rule_ids matches =
@@ -481,8 +495,18 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                 %s"
                m.rule_id.id m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
-             let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
-             let target = mk_extract_target dst_lang contents rule_ids in
+             let (`Extract
+                   {
+                     Rule.dst_lang;
+                     Rule.transform;
+                     Rule.extract_rules_paths;
+                     _;
+                   }) =
+               erule.mode
+             in
+             let target =
+               mk_extract_target extract_rules_paths dst_lang contents rule_ids
+             in
              (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
              (* TODO: Find the reason of this behaviour and fix it properly *)
              let map_loc =
