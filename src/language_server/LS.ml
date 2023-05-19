@@ -226,6 +226,14 @@ module Server = struct
     in
     server
 
+  let handle_custom_request (meth : string)
+      (params : Jsonrpc.Structured.t option) server : Yojson.Safe.t option * t =
+    match [ (ShowAst.meth, ShowAst.on_request) ] |> List.assoc_opt meth with
+    | None ->
+        logger#warning "Unhandled request";
+        (None, server)
+    | Some handler -> (handler params, server)
+
   let on_request (type r) (request : r CR.t) server =
     let to_yojson r = Some (CR.yojson_of_result request r) in
     let resp, server =
@@ -287,6 +295,8 @@ module Server = struct
           (to_yojson (Some actions), server)
       | CR.Shutdown -> (None, { server with state = State.Stopped })
       | CR.DebugEcho params -> (to_yojson params, server)
+      | CR.UnknownRequest { meth; params } ->
+          handle_custom_request meth params server
       | _ ->
           logger#warning "Unhandled request";
           (None, server)

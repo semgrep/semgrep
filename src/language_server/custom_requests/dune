@@ -1,6 +1,6 @@
 (library
- (public_name semgrep.language_server)
- (name semgrep_language_server)
+ (public_name semgrep.language_server_custom_requests)
+ (name semgrep_language_server_custom_requests)
  (wrapped false)
  (libraries
    yaml
@@ -14,7 +14,6 @@
    semgrep.core
    semgrep.running
    semgrep.reporting
-   semgrep.language_server_custom_requests
  )
  (preprocess
   (pps
