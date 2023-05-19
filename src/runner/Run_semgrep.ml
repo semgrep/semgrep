@@ -93,6 +93,17 @@ let update_cli_progress config =
   | Json true -> pr "."
   | _ -> ()
 
+(*
+   Sort targets by decreasing size. This is meant for optimizing
+   CPU usage when processing targets in parallel on a fixed number of cores.
+*)
+let sort_targets_by_decreasing_size (targets : In.target list) : In.target list
+    =
+  targets
+  |> Common.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
+  |> Common.map fst
+
 (*****************************************************************************)
 (* Printing matches *)
 (*****************************************************************************)
@@ -179,7 +190,7 @@ let map_targets ncores f (targets : In.target list) =
      This is needed only when ncores > 1, but to reduce discrepancy between
      the two modes, we always sort the target queue in the same way.
   *)
-  let targets = Find_targets.sort_targets_by_decreasing_size targets in
+  let targets = sort_targets_by_decreasing_size targets in
   if ncores <= 1 then Common.map f targets
   else (
     (*
@@ -585,7 +596,9 @@ let targets_of_config (config : Runner_config.t)
         (* config.lang comes from Xlang.of_string which returns just a lang *)
         | Xlang.L (_, _) -> assert false
       in
-      let files, skipped = Find_targets.files_of_dirs_or_files lang_opt roots in
+      let files, skipped =
+        Find_targets_old.files_of_dirs_or_files lang_opt roots
+      in
       let rule_ids = all_rule_ids_when_no_target_file in
       let target_mappings =
         files
