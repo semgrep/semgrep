@@ -251,7 +251,7 @@ class ScanHandler:
         lockfile_dependencies: Dict[str, List[FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
-    ) -> Tuple[int, str]:
+    ) -> Tuple[bool, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
@@ -357,7 +357,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
-            return (0, "")
+            return (False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -394,4 +394,4 @@ class ScanHandler:
             )
 
         ret = response.json()
-        return (ret.get("exit_code", 0), ret.get("reason", ""))
+        return (ret.get("app_block_override", False), ret.get("app_block_reason", ""))

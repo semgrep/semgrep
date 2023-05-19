@@ -478,11 +478,11 @@ def ci(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
 
-    app_exit_code = 0
+    app_block_override = False
     reason = ""
     if scan_handler:
         logger.info("  Uploading findings.")
-        app_exit_code, reason = scan_handler.report_findings(
+        app_block_override, reason = scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
             filtered_rules,
@@ -519,7 +519,7 @@ def ci(
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
 
-    if app_exit_code and not audit_mode:
+    if app_block_override and not audit_mode:
         logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
         exit_code = 1
 
