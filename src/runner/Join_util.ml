@@ -40,9 +40,6 @@ let join_rule_to_rules rule join_info table =
   join_info |> mapi step_to_rule
 
 let extract_join_rules config parsed_rules =
-  if config.target_source <> None then
-    failwith "join mode experiment does not work with targets file yet";
-
   let rules, invalid_rules = parsed_rules in
   let join_rules_table = Hashtbl.create 10 in
   let rules_with_join_rules_resolved =
@@ -55,6 +52,9 @@ let extract_join_rules config parsed_rules =
            | `Extract _ ->
                [ r ])
   in
+  if Hashtbl.length join_rules_table > 0 && config.target_source <> None then
+    failwith "join mode experiment does not work with targets file yet";
+
   (* Use a Hashtbl to add the rules to simplify the code but then move it
      to a Map for later use *)
   let join_map = JoinRuleMap.of_seq (Hashtbl.to_seq join_rules_table) in
@@ -94,7 +94,7 @@ let print_updated_matches config print_match has_join_steps matches =
     (fun match_ -> print_match config match_ Metavariable.ii_of_mval)
     matches
 
-let unify_results config print_match join_rule_map res =
+let unify_join_results config print_match join_rule_map res =
   let rule_for_step_id id =
     match JoinRuleMap.find_opt id join_rule_map with
     | Some (rule, _i, _n) -> Some (fst rule.R.id)
@@ -130,8 +130,8 @@ let unify_results config print_match join_rule_map res =
     Common.map C.nonempty_to_list matches_by_normal_rules
   in
   let process_steps_for_rule (matches_by_step : matches_by_step list) =
-    (* This is pretty specialized for intersection, may want to change how the
-       code's laid out if we decide to support other conditions for OSS *)
+    (* TODO this logic isn't actually quite right. See `tests/join/abc_harder`
+       for an example of why *)
     let intersect_mvars mvar_bindings
         ({ step_id = _; matches } : matches_by_step) =
       let mvars_by_steps = matches |> List.concat_map (fun m -> m.P.env) in
@@ -190,3 +190,7 @@ let unify_results config print_match join_rule_map res =
   matches
   |> print_updated_matches config print_match (matches_by_join_rules <> []);
   { res with matches }
+
+let unify_results config print_match join_rule_map res =
+  if JoinRuleMap.is_empty join_rule_map then res
+  else unify_join_results config print_match join_rule_map res

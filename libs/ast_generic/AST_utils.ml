@@ -40,14 +40,18 @@ module Node_ID = Gensym.MkId ()
    so as to select structural or referential equality.
 *)
 
-type busy_with_equal = Not_busy | Structural_equal | Referential_equal | Syntactic_equal
+type busy_with_equal =
+  | Not_busy
+  | Structural_equal
+  | Referential_equal
+  | Syntactic_equal
 
 (* global state! managed by the with_equal_* functions *)
 let busy_with_equal = ref Not_busy
 
 let equal_id_info equal a b =
   match !busy_with_equal with
-  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error." 
+  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Syntactic_equal -> true
   | Structural_equal -> equal a b
   | Referential_equal -> equal a b

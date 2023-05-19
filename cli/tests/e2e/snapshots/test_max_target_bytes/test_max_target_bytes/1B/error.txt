@@ -1,12 +1,12 @@
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 23 files tracked by git with 4 Code rules:
   Nothing to scan.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

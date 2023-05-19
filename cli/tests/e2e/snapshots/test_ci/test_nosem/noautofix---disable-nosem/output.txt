@@ -7,16 +7,16 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of exit code
 
 === stdout - plain
-                             
-                             
+
+
 ┌───────────────────────────┐
 │ 12 Blocking Code Findings │
 └───────────────────────────┘
-           
-    foo.py 
-       eqeq-bad             
+
+    foo.py
+       eqeq-bad
           useless comparison
-                            
+
             4┆ a == a
             ⋮┆----------------------------------------
             5┆ a == a
@@ -35,45 +35,45 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
             ⋮┆----------------------------------------
            24┆ a == a # Triage ignored by match_based_id
             ⋮┆----------------------------------------
-       eqeq-four                 
+       eqeq-four
           useless comparison to 4
-                                 
+
            18┆ baz == 4  # nosemgrep
             ⋮┆----------------------------------------
            19┆ baz == 4
             ⋮┆----------------------------------------
-       taint-test             
+       taint-test
           unsafe use of danger
-                              
+
            27┆ sink(d2)
-                                    
-                                    
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
-                
-    poetry.lock 
-       supply-chain1        
+
+    poetry.lock
+       supply-chain1
           found a dependency
-                            
+
             1┆ [[package]]
             2┆ name = "badlib"
-                                
-                                
+
+
 ┌──────────────────────────────┐
 │ 2 Non-blocking Code Findings │
 └──────────────────────────────┘
-           
-    foo.py 
-       eqeq-five                 
+
+    foo.py
+       eqeq-five
           useless comparison to 5
-                                 
+
            ▶▶┆ Autofix ▶ (x == 2)
            15┆ x == 5
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ (y == 2)
            16┆ y == 5  # nosemgrep
-                            
+
   BLOCKING CODE RULES FIRED:
     eqeq-bad
     eqeq-four
@@ -83,30 +83,30 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of stdout - plain
 
 === stderr - plain
-                  
-                  
+
+
 ┌────────────────┐
 │ Debugging Info │
 └────────────────┘
-                  
+
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
-            
-            
+
+
   CODE RULES
   Scanning 1 file with 4 python rules.
-                    
+
   SUPPLY CHAIN RULES
   Scanning 1 file.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

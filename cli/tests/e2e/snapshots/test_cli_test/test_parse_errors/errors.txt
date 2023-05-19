@@ -3,8 +3,8 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.cli_test.parse_errors.eqeq-is-bad
 - rules.cli_test.parse_errors.func
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -49,8 +49,8 @@ Files skipped:
 
    • [36m[22m[24mtargets/cli_test/parse_errors/invalid_javascript.js (2 lines skipped)[0m
 
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

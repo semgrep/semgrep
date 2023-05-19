@@ -867,7 +867,8 @@ let semgrep_with_raw_results_and_exn_handler config =
       in
       (Some e, res, [])
 
-let output_semgrep_results (exn, res, files) config =
+let semgrep_with_rules_and_formatted_output config =
+  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -904,10 +905,6 @@ let output_semgrep_results (exn, res, files) config =
       if not (null res.errors) then (
         pr "WARNING: some files were skipped or only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
-
-let semgrep_with_rules_and_formatted_output config =
-  let res = semgrep_with_raw_results_and_exn_handler config in
-  output_semgrep_results res config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)

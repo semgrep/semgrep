@@ -231,6 +231,9 @@ class SemgrepResult:
                 text = pattern.sub(mask_capture_group, text)
             elif callable(pattern):
                 text = pattern(text)
+        # strip trailing whitespace characters that are emitted by pysemgrep,
+        # but we do not plan to emit them in osemgrep
+        text = re.sub(r"[ \t]+$", "", text, flags=re.M)
         # special code for JSON cleaning, used to be in ALWAYS_MASK
         # but sometimes we want fingerprint masking and sometimes not
         text = _clean_output_json(text, self.clean_fingerprint)
