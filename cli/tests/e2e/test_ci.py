@@ -658,6 +658,9 @@ def test_full_run(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -777,6 +780,9 @@ def test_lockfile_parse_failure_reporting(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -922,6 +928,7 @@ def test_lockfile_parse_failure_reporting(
 #        result.as_snapshot(
 #            mask=[
 #                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+#                re.compile(r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)")
 #                # Mask variable debug output
 #                re.compile(r"/(.*)/semgrep-core"),
 #                re.compile(r"loaded 1 configs in(.*)"),
@@ -1072,6 +1079,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "bad_results.txt",
@@ -1094,6 +1104,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -1342,6 +1355,22 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
         target_name=None,
         strict=False,
         assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+
+
+def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test backend sending non-zero exit code on complete causes exit 1
+    """
+    mocker.patch.object(
+        ScanHandler, "report_findings", return_value=(1, "some reason to fail")
+    )
+    run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
 
