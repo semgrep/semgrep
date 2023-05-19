@@ -1130,7 +1130,16 @@ def test_config_run(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
     )
-    snapshot.assert_match(result.as_snapshot(), "results.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.kinda_slow
@@ -1149,7 +1158,16 @@ def test_outputs(
         output_format=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(result.as_snapshot(), "results.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
@@ -1164,7 +1182,16 @@ def test_nosem(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
     )
-    snapshot.assert_match(result.as_snapshot(), "output.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "output.txt",
+    )
 
 
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
@@ -1472,7 +1499,16 @@ def test_query_dependency(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(result.as_snapshot(), "output.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "output.txt",
+    )
 
     post_calls = AppSession.post.call_args_list
     complete_json = post_calls[2].kwargs["json"]
