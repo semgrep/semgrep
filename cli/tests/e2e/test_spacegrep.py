@@ -11,6 +11,7 @@ from tests.fixtures import RunSemgrep
         ("rules/spacegrep/markdown.yaml", "spacegrep/markdown.md"),
         ("rules/spacegrep/httpresponse.yaml", "spacegrep/httpresponse.txt"),
         ("rules/spacegrep/dockerfile.yaml", "spacegrep/root.Dockerfile"),
+        ("rules/spacegrep/dockerfile.yaml", "spacegrep/dockerfile"),
         ("rules/spacegrep/multi-lines.yaml", "spacegrep/multi-lines.java"),
     ],
 )

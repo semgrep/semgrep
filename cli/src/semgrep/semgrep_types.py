@@ -40,12 +40,16 @@ class LanguageDefinition:
 
     @classmethod
     def from_dict(cls, data: JsonObject) -> "LanguageDefinition":
+        # Assume all the fields exist in lang.json, which is generated.
+        # Optional fields may be set to 'null'.
         return cls(
             id=Language(data["id"]),
             name=data["name"],
             keys=data["keys"],
             exts=data["exts"],
-            reverse_exts=data.get("reverse_exts", data["exts"]),
+            reverse_exts=data["reverse_exts"]
+            if data["reverse_exts"] is not None
+            else data["exts"],
             shebangs=data.get("shebangs", []),
         )
 

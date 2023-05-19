@@ -266,7 +266,10 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     monkeypatch.chdir(tmp_path)
 
     runner = SemgrepRunner(
-        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")}
+        env={
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_INTEGRATION_NAME": "funkyintegration",
+        }
     )
     runner.invoke(
         cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + pro_flag
