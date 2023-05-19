@@ -658,7 +658,9 @@ def test_full_run(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                re.compile(r"<MagicMock name='post().json().get()'.*"),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -778,7 +780,9 @@ def test_lockfile_parse_failure_reporting(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                re.compile(r"<MagicMock name='post().json().get()'.*"),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -924,7 +928,7 @@ def test_lockfile_parse_failure_reporting(
 #        result.as_snapshot(
 #            mask=[
 #                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-#                re.compile(r"<MagicMock name='post().json().get()'.*"),
+#                re.compile(r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)")
 #                # Mask variable debug output
 #                re.compile(r"/(.*)/semgrep-core"),
 #                re.compile(r"loaded 1 configs in(.*)"),
@@ -1075,7 +1079,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                re.compile(r"<MagicMock name='post().json().get()'.*"),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "bad_results.txt",
@@ -1098,7 +1104,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                re.compile(r"<MagicMock name='post().json().get()'.*"),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
