@@ -101,6 +101,9 @@ and type_of_expr_new lang e : G.name Type.t * G.ident option =
         | _else_ -> Type.NoType
       in
       (t, None)
+  | G.N (Id (ident, id_info)) ->
+      let t = resolved_type_of_id_info lang id_info in
+      (t, Some ident)
   | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e1; Arg e2 ], _r)) ->
       let t1, _id = type_of_expr_new lang e1 in
       let t2, _id = type_of_expr_new lang e2 in
@@ -125,3 +128,17 @@ and type_of_expr lang e : G.type_ option * G.ident option =
   with
   | None -> type_of_expr_old lang e
   | Some t -> (Some t, id)
+
+and resolved_type_of_id_info lang info : G.name Type.t =
+  match !(info.G.id_type) with
+  | Some t -> type_of_ast_generic_type lang t
+  | None -> Type.NoType
+
+and type_of_ast_generic_type lang t : G.name Type.t =
+  match t.G.t with
+  | G.TyN (Id ((str, _), _) as name) -> (
+      match Type.builtin_type_of_string lang str with
+      | Some t -> Type.Builtin t
+      | None -> Type.N ((name, []), []))
+  (* TODO *)
+  | _else_ -> Type.NoType
