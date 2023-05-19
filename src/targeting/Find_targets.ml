@@ -193,7 +193,7 @@ let list_regular_files (conf : conf) (scan_root : Fpath.t) : Fpath.t list =
  *    than get_targets2
  *  - handle file size? e2e tests testing that?
  *)
-let get_targets conf scanning_roots =
+let get_targets2 conf scanning_roots =
   scanning_roots
   |> Common.map (fun scan_root ->
          let xs = list_regular_files conf scan_root in
@@ -328,7 +328,7 @@ let group_roots_by_project conf paths =
    See the documentation for the conf object for the various filters
    that we apply.
 *)
-let get_targets2 conf scanning_roots =
+let get_targets conf scanning_roots =
   (* python: =~ Target_manager.get_all_files() *)
   group_roots_by_project conf scanning_roots
   |> Common.map (fun ((proj_kind, project_root), scanning_roots) ->
