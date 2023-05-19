@@ -47,13 +47,14 @@ let negatable_flag_with_env ?(default = false) ?env ~neg_options ~doc options =
   let enable = Arg.(value (flag (info options ~doc ?env))) in
   let disable = Arg.(value (flag (info neg_options ~doc:neg_doc))) in
   let combine yes no =
-    match yes, no with
+    match (yes, no) with
     | true, false -> true
     | false, true -> false
     | false, false -> default
     | true, true ->
-      invalid_arg ("mutually exclusive options: " ^ String.concat ", "
-                     (options @ neg_options))
+        invalid_arg
+          ("mutually exclusive options: "
+          ^ String.concat ", " (options @ neg_options))
   in
   Term.(const combine $ enable $ disable)
 
