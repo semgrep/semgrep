@@ -16,7 +16,8 @@ let mock_session () =
 let set_session_targets (session : Session.t) files =
   let target_mappings =
     Common.map
-      (fun file -> { In.path = file; language = "python"; rule_nums = [] })
+      (fun file ->
+        { In.path = file; target_language = Some "python"; rule_nums = [] })
       files
   in
   let targets : In.targets = { target_mappings; rule_ids = [] } in

@@ -31,11 +31,11 @@ class ParsingData:
         parsing statistics
         """
         for task in plan.target_mappings:
-            if task.language in ["regex", "generic"]:
+            if not task.target_language:
                 continue
-            self._file_info[task.path] = (task.language, True)
+            self._file_info[task.path] = (task.target_language, True)
             entry = self._parse_errors_by_lang.get(
-                task.language, LanguageParseData(0, 0, 0, 0)
+                task.target_language, LanguageParseData(0, 0, 0, 0)
             )
             try:
                 entry.num_bytes += os.path.getsize(task.path)
@@ -43,7 +43,7 @@ class ParsingData:
             except OSError:
                 # Don't count the target if the path doesn't exist
                 pass
-            self._parse_errors_by_lang[task.language] = entry
+            self._parse_errors_by_lang[task.target_language] = entry
 
     def add_error(self, err: core.CoreError) -> None:
         """

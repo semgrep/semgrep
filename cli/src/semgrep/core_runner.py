@@ -452,11 +452,10 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    # TODO: specify analyzer here, define Analyzer type, etc.
-    # language = predefined target selector
-    # analyzer = xlang as in Xlang.mli
-    language: Language
-    analyzer: Analyzer
+    # Distinguish target selector (optional lang) from target analyzer
+    # (lang or regex, spacegrep, ...)
+    target_language: Optional[Language]  # Lang
+    target_analyzer: Language  # invalid Xlang, ignored by semgrep-core
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -464,8 +463,8 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if self.language in {Language("regex"), Language("generic")}
-            else self.language
+            if self.target_language is None
+            else self.target_language.definition.id
         )
 
 
@@ -703,22 +702,6 @@ class Plan:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
 
 
-# Trying to cope with the confusion between target selectors and
-# target analyzers which are all called "language" but should be distinguished.
-#
-# The user-facing list of languages uses "generic" to cover both
-# engines spacegrep and aliengrep, which are specified in the "options"
-# section of the rule.
-def get_analyzer_of_language(lang: str, rule: Rule) -> str:
-    if lang == "generic":
-        if rule.options:
-            return rule.options.generic_engine
-        else:
-            return "spacegrep"
-    else:
-        return lang
-
-
 class CoreRunner:
     """
     Handles interactions between semgrep and semgrep-core
@@ -928,27 +911,29 @@ class CoreRunner:
 
         for rule_num, rule in enumerate(rules):
             for language in rule.languages:
-                analyzer = get_analyzer_of_language(language, rule)
                 targets = list(
                     target_manager.get_files_for_rule(
-                        analyzer, rule.includes, rule.excludes, rule.id
+                        language, rule.includes, rule.excludes, rule.id
                     )
                 )
 
                 for target in targets:
                     if all_targets is not None:
                         all_targets.add(target)
-                    target_info[target, analyzer].append(rule_num)
+                    target_info[target, language].append(rule_num)
 
         return Plan(
             [
                 Task(
                     path=target,
-                    analyzer=analyzer,
+                    target_language=language
+                    if language.definition.is_target_language
+                    else None,
+                    target_analyzer=language,
                     # tuple conversion makes rule_nums hashable, so usable as cache key
-                    rule_nums=tuple(target_info[target, analyzer]),
+                    rule_nums=tuple(target_info[target, language]),
                 )
-                for target, analyzer in target_info
+                for target, language in target_info
             ],
             rules,
             lockfiles_by_ecosystem=lockfiles,

@@ -177,7 +177,7 @@ let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
   let target_mappings =
     x.targets
     |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-           { path = !!path; language = lang_str; rule_nums })
+           { path = !!path; target_language = Some lang_str; rule_nums })
   in
   let wrapped_targets : Input_to_core_t.targets =
     { target_mappings; rule_ids }

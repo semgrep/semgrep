@@ -547,23 +547,17 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   Common.hash_of_list id_pairs
 
-let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
+let xtarget_of_file (config : Runner_config.t) (lang : Lang.t)
     (file : Common.filename) : Xtarget.t =
   let lazy_ast_and_errors =
-    match xlang with
-    | Xlang.L (lang, other_langs) ->
-        (* xlang from the language field in -target, which should be unique *)
-        assert (other_langs =*= []);
-        lazy
-          (Parse_with_caching.parse_and_resolve_name
-             ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version
-             lang (Fpath.v file))
-    | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
+    lazy
+      (Parse_with_caching.parse_and_resolve_name
+         ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
+         (Fpath.v file))
   in
-
   {
     Xtarget.file;
-    xlang;
+    xlang = L (lang, []);
     lazy_content = lazy (Common.read_file file);
     lazy_ast_and_errors;
   }
@@ -610,7 +604,7 @@ let targets_of_config (config : Runner_config.t)
         |> Common.map (fun file ->
                {
                  In.path = Fpath.to_string file;
-                 language = Xlang.to_string xlang;
+                 target_language = Option.map Lang.to_string lang_opt;
                  rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
@@ -675,9 +669,15 @@ let extracted_targets_of_config (config : Runner_config.t)
     |> List.concat_map (fun (t : In.target) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
-           let file = t.In.path in
-           let xlang = Xlang.of_string t.In.language in
-           let xtarget = xtarget_of_file config xlang file in
+           let file = t.path in
+           let lang =
+             match t.target_language with
+             | Some str -> Lang.of_string str
+             | None ->
+                 failwith
+                   "requesting generic AST for an unspecified target language"
+           in
+           let xtarget = xtarget_of_file config lang file in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
@@ -740,9 +740,14 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     (List.length skipped);
   let file_results =
     all_targets
-    |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
-           let file = target.In.path in
-           let xlang = Xlang.of_string target.In.language in
+    |> iter_targets_and_get_matches_and_exn_to_errors config
+         (fun (target : In.target) ->
+           let file = target.path in
+           let lang =
+             match target.target_language with
+             | None -> failwith "unspecified target language"
+             | Some str -> Lang.of_string str
+           in
            let rules =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
@@ -767,8 +772,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | Some paths ->
                         Filter_target.filter_paths paths (Fpath.v file))
            in
-
-           let xtarget = xtarget_of_file config xlang file in
+           let xtarget = xtarget_of_file config lang file in
            let match_hook str match_ =
              if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval

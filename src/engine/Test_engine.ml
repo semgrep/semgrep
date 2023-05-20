@@ -208,26 +208,22 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  extract_targets
                  |> Common.map (fun t ->
                         let file = t.Input_to_core_t.path in
-                        let xlang =
-                          Xlang.of_string t.Input_to_core_t.language
+                        let lang =
+                          match t.Input_to_core_t.target_language with
+                          | None -> assert false
+                          | Some str -> Lang.of_string str
                         in
                         let lazy_ast_and_errors =
                           lazy
-                            (match xlang with
-                            | L (lang, _) ->
-                                let { Parsing_result2.ast; skipped_tokens; _ } =
-                                  Parse_target.parse_and_resolve_name lang file
-                                in
-                                (ast, skipped_tokens)
-                            | LRegex
-                            | LSpacegrep
-                            | LAliengrep ->
-                                assert false)
+                            (let { Parsing_result2.ast; skipped_tokens; _ } =
+                               Parse_target.parse_and_resolve_name lang file
+                             in
+                             (ast, skipped_tokens))
                         in
                         let xtarget =
                           {
                             Xtarget.file;
-                            xlang;
+                            xlang = L (lang, []);
                             lazy_content = lazy (Common.read_file file);
                             lazy_ast_and_errors;
                           }

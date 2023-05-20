@@ -165,18 +165,21 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
   memo
 
 let mk_extract_target dst_lang contents all_rules =
-  let dst_lang_str =
+  let dst_lang_str, temp_suffix =
     match dst_lang with
-    | Xlang.LSpacegrep -> "spacegrep"
-    | Xlang.LAliengrep -> "aliengrep"
-    | Xlang.LRegex -> "regex"
-    | Xlang.L (x, _) -> Lang.show x
+    | Xlang.LSpacegrep
+    | Xlang.LAliengrep
+    | Xlang.LRegex ->
+        (None, "generic")
+    | Xlang.L (x, _) ->
+        let name = Lang.to_lowercase_alnum x in
+        (Some name, name)
   in
-  let f = Common.new_temp_file "extracted" dst_lang_str in
+  let f = Common.new_temp_file "extracted" temp_suffix in
   Common2.write_file ~file:f contents;
   {
     In.path = f;
-    language = dst_lang_str;
+    target_language = dst_lang_str;
     rule_nums = rules_for_extracted_lang all_rules dst_lang;
   }
 
