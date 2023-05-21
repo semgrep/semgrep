@@ -61,22 +61,26 @@ let pp_summary ppf
   *)
   let opt_msg msg = function
     | [] -> None
-    | xs -> Some (string_of_int (List.length xs) ^ " " ^ msg)
+    | xs ->
+      let file_count = List.length xs in
+      let file_str = if file_count = 1 then "file" else "files" in
+      Some (string_of_int file_count ^ " " ^ file_str ^ " " ^ msg)
   in
   let out_skipped =
     let mb = string_of_int Stdlib.(max_target_bytes / 1000 / 1000) in
     Common.map_filter Fun.id
       [
-        opt_msg "files not matching --include patterns" include_ignored;
-        opt_msg "files matching --exclude patterns" exclude_ignored;
-        opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
-        opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
-        (if legacy then None else opt_msg "other files ignored" other_ignored);
+        opt_msg "not matching --include patterns" include_ignored;
+        opt_msg "matching --exclude patterns" exclude_ignored;
+        opt_msg ("larger than " ^ mb ^ " MB") file_size_ignored;
+        opt_msg "matching .semgrepignore patterns" semgrep_ignored;
+        (if legacy then None else opt_msg "also ignored but not already \
+          mentioned" other_ignored);
       ]
   in
   let out_partial =
     opt_msg
-      "files only partially analyzed due to a parsing or internal Semgrep error"
+      "only partially analyzed due to a parsing or internal Semgrep error"
       errors
   in
   match (out_skipped, out_partial) with
