@@ -1,0 +1,4 @@
+Semgrep scan summary output offers correct plurality for the term file.
+In the following output, files has been changed to file for instances of 1 file:
+Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
+Scan skipped: 1 files matching .semgrepignore patterns
