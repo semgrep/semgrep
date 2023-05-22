@@ -85,7 +85,6 @@ build:
 core:
 	rm -f bin
 	$(MAKE) minimal-build
-	dune build
 	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
@@ -138,6 +137,34 @@ build-docker:
 build-otarzan:
 	rm -f bin
 	dune build _build/install/default/bin/otarzan
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-pfff
+build-pfff:
+	rm -f bin
+	dune build _build/install/default/bin/pfff
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-parse-cairo
+build-parse-cairo:
+	rm -f bin
+	dune build _build/install/default/bin/parse-cairo
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-spacegrep
+build-spacegrep:
+	rm -f bin
+	dune build _build/install/default/bin/spacegrep
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-oncall
+build-oncall:
+	rm -f bin
+	dune build _build/install/default/bin/oncall
 	test -e bin || ln -s _build/install/default/bin .
 
 # Build the js_of_ocaml portion of the semgrep javascript packages
