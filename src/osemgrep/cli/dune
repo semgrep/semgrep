@@ -11,8 +11,13 @@
 
     ; Internal libraries
     osemgrep_cli_scan
-    osemgrep_cli_login
     osemgrep_cli_ci
+    osemgrep_cli_login
+    osemgrep_cli_lsp
+    osemgrep_cli_interactive
+    osemgrep_cli_dump
+    osemgrep_cli_test
+
     ; reusing code from Core_cli
     semgrep_core_cli
   )
