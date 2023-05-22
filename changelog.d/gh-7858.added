@@ -1,0 +1,24 @@
+Extract mode: users can now choose to include or exclude rules to run on, similar to `paths:`. For example,
+to only run on the rules `example-1` and `example-2`, you would write
+
+```
+rules:
+   - id: test-rule
+     mode: extract
+     rules:
+        include:
+        - example-1
+        - example-2
+```
+
+To run on everything except `example-1` and `example-2`, you would write
+
+```
+rules:
+   - id: test-rule
+     mode: exclude
+     rules:
+        include:
+        - example-1
+        - example-2
+```
