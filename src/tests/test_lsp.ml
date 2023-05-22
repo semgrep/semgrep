@@ -10,7 +10,7 @@ let foo e =
   | AST_generic.Call (x, (_, [], _)) -> 1
   | G.Call (x, (_, [ _ ], _)) -> 1
   | Call (x, y) -> 1
-  | _ -> 2
+  | _else -> 2
 
 let bar () =
   AST_generic.fake_bracket [] |> ignore;

@@ -89,7 +89,12 @@ let tests () =
 *)
 let tests_with_delayed_error () =
   try tests () with
-  | e -> [ ("cannot load test data - not a real test", fun () -> raise e) ]
+  | e ->
+      let exn = Exception.catch e in
+      [
+        ( "cannot load test data - not a real test",
+          fun () -> Exception.reraise exn );
+      ]
 
 let main () =
   Parsing_init.init ();
