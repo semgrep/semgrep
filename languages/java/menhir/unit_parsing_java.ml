@@ -7,7 +7,7 @@ module Vis = Visitor_java
 (*****************************************************************************)
 
 (* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+let tests_path = "../../../../tests"
 
 let tests =
   Testutil.pack_tests "parsing_java"

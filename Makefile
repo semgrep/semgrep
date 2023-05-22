@@ -85,7 +85,6 @@ build:
 core:
 	rm -f bin
 	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
@@ -250,9 +249,8 @@ test:
 core-test: core
 	# The test executable has a few options that can be useful
 	# in some contexts.
-	# The following command ensures that we can call 'test.exe --help'
-	# without having to chdir into the test data folder.
-	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	dune build ./_build/default/src/tests/test.exe
+	cd ./_build/default/src/tests/ && ./test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
 

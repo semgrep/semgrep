@@ -1,4 +1,4 @@
-(executable
+(test
  (name test)
  (libraries
     commons
@@ -29,8 +29,5 @@
    (pps
       ppx_deriving.show
    ))
+ (deps (source_tree ../tests) (source_tree ../cli/tests/e2e/snapshots))
 )
-
-(rule
- (alias runtest)
- (action (run ./test.exe -e)))

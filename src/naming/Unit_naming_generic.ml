@@ -6,7 +6,7 @@ open File.Operators
 (*****************************************************************************)
 
 (* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+let tests_path = "../../../../tests"
 
 let tests parse_program =
   Testutil.pack_tests "naming generic"

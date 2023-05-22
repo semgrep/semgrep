@@ -7,7 +7,7 @@ module G = AST_generic
 (*****************************************************************************)
 
 (* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../tests"
+let tests_path = Fpath.v "../../../../tests"
 let tests_path_typing = tests_path / "typing"
 
 let tests parse_program parse_pattern =

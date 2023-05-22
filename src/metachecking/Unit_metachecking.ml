@@ -14,7 +14,7 @@ module E = Semgrep_error_code
 (*****************************************************************************)
 
 (* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../tests"
+let tests_path = Fpath.v "../../../../tests"
 
 (*****************************************************************************)
 (* Helpers *)
