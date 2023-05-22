@@ -121,6 +121,8 @@ symlink-core-for-cli:
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
+# Builds only the two main binaries mainly needed for development. If you
+# need other binaries, look at the rules below.
 .PHONY: minimal-build
 minimal-build:
 	dune build _build/install/default/bin/semgrep-core _build/install/default/bin/osemgrep
