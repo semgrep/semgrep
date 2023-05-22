@@ -1,0 +1,9 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test
+    options:
+      symbolic_propagation: true
+    pattern: foo(bar())
+    severity: WARNING
