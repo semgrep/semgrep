@@ -145,7 +145,7 @@ let dispatch_subcommand argv =
       | "install-semgrep-pro" -> missing_subcommand ()
       | "login" -> Login_subcommand.main subcmd_argv
       | "logout" -> Logout_subcommand.main subcmd_argv
-      | "lsp" -> missing_subcommand ()
+      | "lsp" -> Lsp_subcommand.main subcmd_argv
       | "publish" -> missing_subcommand ()
       | "scan" -> Scan_subcommand.main subcmd_argv
       | "shouldafound" -> missing_subcommand ()
