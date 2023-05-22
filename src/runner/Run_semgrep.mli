@@ -210,5 +210,5 @@ val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-val sort_targets_by_decreasing_size : 
+val sort_targets_by_decreasing_size :
   Input_to_core_t.target list -> Input_to_core_t.target list

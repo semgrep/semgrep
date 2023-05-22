@@ -25,6 +25,9 @@ module H2 = AST_generic_helpers
 (* Solidity parser using tree-sitter-lang/semgrep-solidity and converting
  * directly to AST_generic.ml
  *
+ * related work:
+ *  - https://github.com/OCamlPro/ocaml-solidity which contains not only a parser
+ *    but also a typechecker!
  *)
 
 (*****************************************************************************)
