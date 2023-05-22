@@ -6,6 +6,7 @@ rules:
     rules:
       include:
         - check-for-data
+        - test123
     pattern: |
       {
         "cell_type": "code",
@@ -15,6 +16,12 @@ rules:
     extract: $CODE
     transform: concat_json_string_array
     dest-language: python
+  - id: test123
+    languages: [python]
+    message: left `test123` in the code
+    severity: ERROR
+    pattern: |
+      test123
   - id: forbid-pickle
     languages: [python]
     message: found pickle

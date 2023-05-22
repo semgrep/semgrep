@@ -163,9 +163,10 @@ let rules_for_extracted_lang (all_rules : Rule.t list) extract_rules_paths =
                  match extract_rules_paths with
                  | None -> true
                  | Some { Rule.required_rules; excluded_rules } ->
-                     List.for_all
-                       (fun r' -> rule_path_equal (fst r) (fst r'))
-                       required_rules
+                     (List.length required_rules =|= 0
+                     || List.exists
+                          (fun r' -> rule_path_equal (fst r) (fst r'))
+                          required_rules)
                      && not
                           (List.exists
                              (fun r' -> rule_path_equal (fst r) (fst r'))
