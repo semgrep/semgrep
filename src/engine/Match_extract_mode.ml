@@ -134,10 +134,15 @@ let offsets_of_mval extract_mvalue =
    annoying, however. The main implication of selecting the rules
    here is, if your target is html and your dest lang is javascript,
    there is no way to ignore an html path for a specific javascript
-   rule. In general extract mode does not allow you to select rules to
-   run on extracted targets so this is in keeping with that design *)
+   rule. *)
 let rules_for_extracted_lang (all_rules : Rule.t list) extract_rules_paths =
   let rules_for_lang_tbl = Hashtbl.create 10 in
+  let rule_path_equal r inc_or_exc_rule =
+    (* Rule ids are prepended with the `path.to.the.rules.file.`, so
+       when comparing a rule (r) with the rule to be included or excluded,
+       allow for a preceding path *)
+    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+  in
   let memo xlang =
     match Hashtbl.find_opt rules_for_lang_tbl xlang with
     | Some rules_for_lang -> rules_for_lang
@@ -158,10 +163,12 @@ let rules_for_extracted_lang (all_rules : Rule.t list) extract_rules_paths =
                  match extract_rules_paths with
                  | None -> true
                  | Some { Rule.required_rules; excluded_rules } ->
-                     List.for_all (fun r' -> fst r = fst r') required_rules
+                     List.for_all
+                       (fun r' -> rule_path_equal (fst r) (fst r'))
+                       required_rules
                      && not
                           (List.exists
-                             (fun r' -> fst r = fst r')
+                             (fun r' -> rule_path_equal (fst r) (fst r'))
                              excluded_rules))
           |> Common.map fst
         in
