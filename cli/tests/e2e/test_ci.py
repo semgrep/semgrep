@@ -658,6 +658,9 @@ def test_full_run(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -777,6 +780,9 @@ def test_lockfile_parse_failure_reporting(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -922,6 +928,7 @@ def test_lockfile_parse_failure_reporting(
 #        result.as_snapshot(
 #            mask=[
 #                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+#                re.compile(r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)")
 #                # Mask variable debug output
 #                re.compile(r"/(.*)/semgrep-core"),
 #                re.compile(r"loaded 1 configs in(.*)"),
@@ -1072,6 +1079,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "bad_results.txt",
@@ -1094,6 +1104,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -1117,7 +1130,16 @@ def test_config_run(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
     )
-    snapshot.assert_match(result.as_snapshot(), "results.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.kinda_slow
@@ -1136,7 +1158,16 @@ def test_outputs(
         output_format=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(result.as_snapshot(), "results.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
@@ -1151,7 +1182,16 @@ def test_nosem(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
     )
-    snapshot.assert_match(result.as_snapshot(), "output.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "output.txt",
+    )
 
 
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
@@ -1346,6 +1386,22 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
     )
 
 
+def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test backend sending non-zero exit code on complete causes exit 1
+    """
+    mocker.patch.object(
+        ScanHandler, "report_findings", return_value=(1, "some reason to fail")
+    )
+    run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+
+
 def test_fail_finish_scan_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
@@ -1443,7 +1499,16 @@ def test_query_dependency(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(result.as_snapshot(), "output.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "output.txt",
+    )
 
     post_calls = AppSession.post.call_args_list
     complete_json = post_calls[2].kwargs["json"]
