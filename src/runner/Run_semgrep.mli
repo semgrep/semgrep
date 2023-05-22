@@ -91,10 +91,16 @@
  * `Common.map`, which is tail-recursive, instead of `List.map`.
  *****************************************************************************)
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
 val semgrep_dispatch : Runner_config.t -> unit
 (** Main entry point to the semgrep-core engine. This is called from Main.ml *)
 
-(* engine functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
+(* Engine functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 val semgrep_with_one_pattern : Runner_config.t -> unit
 (** this is the function used when running semgrep-core with -e or -f *)
@@ -128,7 +134,9 @@ val semgrep_with_rules :
   (Rule.t list * Rule.invalid_rule_error list) * float ->
   Report.final_result * Fpath.t list
 
-(* utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
+(* Utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
@@ -198,3 +206,10 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
 
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
 val xtarget_of_file : Runner_config.t -> Lang.t -> Common.filename -> Xtarget.t
+
+(*
+   Sort targets by decreasing size. This is meant for optimizing
+   CPU usage when processing targets in parallel on a fixed number of cores.
+*)
+val sort_targets_by_decreasing_size :
+  Input_to_core_t.target list -> Input_to_core_t.target list
