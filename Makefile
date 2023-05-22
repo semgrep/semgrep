@@ -85,6 +85,7 @@ build:
 core:
 	rm -f bin
 	$(MAKE) minimal-build
+	dune build
 	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
@@ -123,7 +124,7 @@ symlink-core-for-cli:
 # Requires the environment variables set by the included file above.
 .PHONY: minimal-build
 minimal-build:
-	dune build
+	dune build _build/install/default/bin/semgrep-core _build/install/default/bin/osemgrep
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
