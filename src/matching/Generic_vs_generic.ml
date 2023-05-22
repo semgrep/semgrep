@@ -1423,8 +1423,16 @@ and m_compatible_type lang typed_mvar t e =
           m_type_option_with_hook idb (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _ta, _eb -> (
-          match Typing.type_of_expr lang e with
-          | tbopt, Some idb ->
+          let tb, idopt = Typing.type_of_expr lang e in
+          let tbopt =
+            tb
+            |> Type.to_ast_generic_type_ lang (fun name _alts ->
+                   (* TODO Do something with the alts? Or are they already in
+                    * `name`? *)
+                   name)
+          in
+          match (tbopt, idopt) with
+          | _, Some idb ->
               m_type_option_with_hook idb (Some t) tbopt >>= fun () ->
               envf typed_mvar (MV.E e)
           | Some tb, None ->

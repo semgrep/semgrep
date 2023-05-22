@@ -33,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type todo_kind = string option [@@deriving show]
+type todo_kind = string option [@@deriving show, eq]
 
 (* Fully qualified name *)
 type 'resolved name = 'resolved * 'resolved type_argument list
@@ -81,7 +81,7 @@ and 'resolved parameter_classic = {
   pident : string option;
   ptype : 'resolved t;
 }
-[@@deriving show { with_path = false }]
+[@@deriving show { with_path = false }, eq]
 
 (*****************************************************************************)
 (* Helpers *)
