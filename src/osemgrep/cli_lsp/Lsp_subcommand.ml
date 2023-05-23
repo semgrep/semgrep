@@ -20,7 +20,9 @@
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (_conf : Lsp_CLI.conf) : Exit_code.t = Exit_code.ok
+let run (conf : Lsp_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  Exit_code.ok
 
 (*****************************************************************************)
 (* Entry point *)
