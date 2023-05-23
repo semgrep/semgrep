@@ -236,6 +236,8 @@ let is_hcl lang =
 let mk_class_constructor_name (ty : G.type_) cons_id_info =
   match ty with
   | { t = TyN (G.Id (id, _)); _ }
+  | { t = TyExpr {e = G.N (G.Id (id, _)); _}; _}
+    (* FIXME: JS parser produces this ^ although it should be parsed as a 'TyN'. *)
     when Option.is_some !(cons_id_info.G.id_resolved) ->
       Some (G.Id (id, cons_id_info))
   | __else__ -> None
