@@ -176,6 +176,7 @@ let semgrep_with_interactive_mode (config : Runner_config.t) =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Interactive_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
   let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
   let config =
     {
