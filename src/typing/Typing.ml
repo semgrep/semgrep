@@ -20,79 +20,10 @@ module G = AST_generic
  * as well as an ident option that can then be used to query LSP to get the
  * type of the ident.
  *
- * Old type inference over `AST_generic.type_`. TODO Let's migrate all of this
- * to the new type inference over `Type.t`.
- *)
-let rec type_of_expr_old lang e : G.type_ option * G.ident option =
-  match e.G.e with
-  (* TODO? or generate a fake "new" id for LSP to query on tk? *)
-  | G.New (_tk, t, _ii, _) -> (Some t, None)
-  (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | G.N
-      (G.IdQualified
-        { name_last = idb, None; name_info = { G.id_type = tb; _ }; _ })
-  | G.DotAccess
-      ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { G.id_type = tb; _ })))
-    ->
-      (!tb, Some idb)
-  (* deep: those are usually resolved only in deep mode *)
-  | G.DotAccess (_, _, FN (Id (idb, { G.id_type = tb; _ }))) -> (!tb, Some idb)
-  (* deep: same *)
-  | G.Call
-      ( { e = G.DotAccess (_, _, FN (Id (idb, { G.id_type = tb; _ }))); _ },
-        _args ) -> (
-      match !tb with
-      (* less: in OCaml functions can be curried, so we need to match
-       * _params and _args to calculate the resulting type.
-       *)
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  (* deep: in Java, there can be an implicit `this.`
-     so calculate the type in the same way as above
-     THINK: should we do this for all languages? Why not? *)
-  | G.Call ({ e = N (Id (idb, { G.id_type = tb; _ })); _ }, _args)
-    when lang =*= Lang.Java -> (
-      match !tb with
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  | G.Conditional (_, e1, e2) ->
-      let ( let* ) = Option.bind in
-      let t1opt, id1opt = type_of_expr lang e1 in
-      let t2opt, id2opt = type_of_expr lang e2 in
-      (* LATER: we could also not enforce to have a type for both branches,
-       * but let's go simple for now and enforce both branches have
-       * a type and that the types are equal.
-       *)
-      let topt =
-        let* t1 = t1opt in
-        let* t2 = t2opt in
-        (* LATER: in theory we should look if the types are compatible,
-         * and take the lowest upper bound of the two types *)
-        if AST_utils.with_structural_equal G.equal_type_ t1 t2 then Some t1
-        else None
-      in
-      let idopt =
-        (* TODO? is there an Option.xxx or Common.xxx function for that? *)
-        match (id1opt, id2opt) with
-        | Some id1, _ -> Some id1
-        | _, Some id2 -> Some id2
-        | None, None -> None
-      in
-      (topt, idopt)
-  | _else_ -> (None, None)
-
-(* returns possibly the inferred type of the expression,
- * as well as an ident option that can then be used to query LSP to get the
- * type of the ident.
- *
  * New Type inference over `Type.t`. Prefer this to the old type inference over
  * `AST_generic.type_`. Eventually we'll do all the type inference here and
  * delete the old. *)
-and type_of_expr_new lang e : G.name Type.t * G.ident option =
+let rec type_of_expr lang e : G.name Type.t * G.ident option =
   match e.G.e with
   | G.L lit ->
       let t =
@@ -102,13 +33,18 @@ and type_of_expr_new lang e : G.name Type.t * G.ident option =
         | _else_ -> Type.NoType
       in
       (t, None)
-  | G.N (Id (ident, id_info)) ->
-      let t = resolved_type_of_id_info lang id_info in
-      (t, Some ident)
+  | G.N name
+  | G.DotAccess (_, _, FN name) ->
+      type_of_name lang name
+  (* TODO? or generate a fake "new" id for LSP to query on tk? *)
+  (* We conflate the type of a class with the type of its instance. Maybe at
+   * some point we should introduce a `Class` type and unwrap it here upon
+   * instantiation. *)
+  | G.New (_tk, t, _ii, _) -> (type_of_ast_generic_type lang t, None)
   (* Binary operator *)
   | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e1; Arg e2 ], _r)) ->
-      let t1, _id = type_of_expr_new lang e1 in
-      let t2, _id = type_of_expr_new lang e2 in
+      let t1, _id = type_of_expr lang e1 in
+      let t2, _id = type_of_expr lang e2 in
       let t =
         match (t1, op, t2) with
         | ( Type.Builtin Type.Int,
@@ -133,25 +69,69 @@ and type_of_expr_new lang e : G.name Type.t * G.ident option =
       (t, None)
   (* Unary operator *)
   | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e ], _r)) ->
-      let t, _id = type_of_expr_new lang e in
+      let t, _id = type_of_expr lang e in
       let t =
         match (op, t) with
         | G.Not, _ -> Type.Builtin Type.Bool
         | _else_ -> Type.NoType
       in
       (t, None)
+  | G.Call (e, _args) ->
+      let t, id = type_of_expr lang e in
+      let t =
+        match t with
+        (* less: in OCaml functions can be curried, so we need to match _params
+         * and _args to calculate the resulting type. *)
+        | Function (_params, ret) -> ret
+        | _else_ -> Type.NoType
+      in
+      (t, id)
+  | G.Conditional (_, e1, e2) ->
+      let t1, id1opt = type_of_expr lang e1 in
+      let t2, id2opt = type_of_expr lang e2 in
+      (* LATER: we could also not enforce to have a type for both branches,
+       * but let's go simple for now and enforce both branches have
+       * a type and that the types are equal.
+       *)
+      let t =
+        (* LATER: in theory we should look if the types are compatible,
+         * and take the lowest upper bound of the two types *)
+        let eq = Type.equal (AST_utils.with_structural_equal G.equal_name) in
+        if eq t1 t2 then t1 else Type.NoType
+      in
+      let idopt =
+        (* TODO? is there an Option.xxx or Common.xxx function for that? *)
+        match (id1opt, id2opt) with
+        | Some id1, _ -> Some id1
+        | _, Some id2 -> Some id2
+        | None, None -> None
+      in
+      (t, idopt)
   | _else_ -> (Type.NoType, None)
 
-and type_of_expr lang e : G.type_ option * G.ident option =
-  let t, id = type_of_expr_new lang e in
-  match
-    Type.to_ast_generic_type_ lang
-      (fun name _alts ->
-        (* TODO Do something with alts? Or are they already there? *) name)
-      t
-  with
-  | None -> type_of_expr_old lang e
-  | Some t -> (Some t, id)
+and type_of_name lang = function
+  | Id (ident, id_info) ->
+      let t = resolved_type_of_id_info lang id_info in
+      let t =
+        match t with
+        (* Even if we can't resolve the type, the name of the ident can still be
+         * useful for matching. If we had a Typeof variant of Type.t, it might
+         * be more accurate to say this is `Type.Typeof (Type.UnresolvedName
+         * ...)`. See also how we conflate `Class<T>` with `T` itself, evident
+         * in the way we infer the type for a `new` expression. *)
+        | Type.NoType -> Type.UnresolvedName (fst ident, [])
+        | _else_ -> t
+      in
+      (t, Some ident)
+  | IdQualified { name_last = ident, None; name_info; _ } ->
+      let t = resolved_type_of_id_info lang name_info in
+      (* TODO Use UnresolvedName like above when we can't resolve the name? What
+       * part of the qualified name should be used? The whole thing? How should
+       * it be converted to a string representation? *)
+      (t, Some ident)
+  | IdQualified { name_last = _, Some _; _ } ->
+      (* TODO What to do with type arguments? *)
+      (Type.NoType, None)
 
 and resolved_type_of_id_info lang info : G.name Type.t =
   match !(info.G.id_type) with
@@ -160,9 +140,57 @@ and resolved_type_of_id_info lang info : G.name Type.t =
 
 and type_of_ast_generic_type lang t : G.name Type.t =
   match t.G.t with
+  (* TODO Check language? Someone could make a user type named `nil` in Java,
+   * for example. *)
+  | G.TyN (Id ((("null" | "nil"), _), _)) -> Type.Null
   | G.TyN (Id ((str, _), _) as name) -> (
       match Type.builtin_type_of_string lang str with
       | Some t -> Type.Builtin t
       | None -> Type.N ((name, []), []))
-  (* TODO *)
+  | G.TyApply ({ G.t = G.TyN name; _ }, (_l, args, _r)) ->
+      let args =
+        args
+        |> Common.map (function
+             | G.TA t -> Type.TA (type_of_ast_generic_type lang t)
+             | _else_ -> Type.OtherTypeArg None)
+      in
+      Type.N ((name, args), [])
+  | G.TyApply _ ->
+      (* Should always be a TyN according to the comments in AST_generic.ml *)
+      Type.NoType
+  | G.TyArray ((_l, size_expr, _r), elem_type) ->
+      let size =
+        match size_expr with
+        | Some { G.e = G.L (G.Int (Some n, _)); _ } -> Some n
+        | _else_ -> None
+      in
+      let elem_type = type_of_ast_generic_type lang elem_type in
+      Type.Array (size, elem_type)
+  | G.TyFun (params, tret) ->
+      let params =
+        params
+        |> Common.map (function
+             | G.Param { G.pname; ptype; _ } ->
+                 let pident = Option.map fst pname in
+                 let ptype =
+                   Option.map (type_of_ast_generic_type lang) ptype
+                   |> Type.of_opt
+                 in
+                 Type.Param { Type.pident; ptype }
+             | _else_ -> OtherParam None)
+      in
+      let tret = type_of_ast_generic_type lang tret in
+      Type.Function (params, tret)
+  | G.TyPointer (_, t) ->
+      let t = type_of_ast_generic_type lang t in
+      Type.Pointer t
+  | G.TyExpr e when Lang.is_js lang ->
+      (* TyExpr is a bit of a suspicious construct with a few uses. But in JS/TS
+       * it's most often used for `new` where you could write `new (foo())()` to
+       * instantiate the class returned by the function `foo()` (or any other
+       * arbitrary expression). So, we find the type of that expression and pass
+       * it up. *)
+      let t, _id = type_of_expr lang e in
+      t
+  (* TODO: Need to expand Type.ml if we want to represent more *)
   | _else_ -> Type.NoType
