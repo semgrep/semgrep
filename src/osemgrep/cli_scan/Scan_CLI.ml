@@ -24,6 +24,10 @@ module H = Cmdliner_helpers
 (*****************************************************************************)
 (*
    The result of parsing a 'semgrep scan' command.
+
+   LATER: we could actually define this structure in ATD, so people could
+   programmatically set the command-line arguments they want if they
+   want to programmatically call Semgrep.
 *)
 type conf = {
   (* Main configuration options *)
@@ -68,6 +72,10 @@ type conf = {
 }
 [@@deriving show]
 
+(* We could split the content of this variable in different files, e.g.,
+ * targeting_conf default could be move in a Find_targets.default, but
+ * it's also nice to have everything in one place.
+ *)
 let default : conf =
   {
     (* alt: Configs [ "auto" ]? *)

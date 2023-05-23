@@ -6,7 +6,16 @@
    The result of parsing a 'semgrep interactive' command.
 *)
 
-type conf = { logging_level : Logs.level option } [@@deriving show]
+(* a subset of Scan_CLI.conf *)
+type conf = {
+  lang : Lang.t; (* use Xlang.t at some point? or even Xlang option? *)
+  target_roots : Fpath.t list;
+  targeting_conf : Find_targets.conf;
+  core_runner_conf : Core_runner.conf;
+  (* nosem? *)
+  logging_level : Logs.level option;
+}
+[@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-interactive"; <args> |]

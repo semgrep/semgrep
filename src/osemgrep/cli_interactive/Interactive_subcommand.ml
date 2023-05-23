@@ -148,6 +148,9 @@ let check_interactive f xlang xtargets =
   done;
   ()
 
+(* TODO: we should rewrite this to use the osemgrep file targeting instead
+ * of the deprecated (and possibly slow) files_of_dirs_or_files() below
+ *)
 let semgrep_with_interactive_mode (config : Runner_config.t) =
   (* TODO: support generic and regex patterns as well. See code in Deep.
    * Just use Parse_rule.parse_xpattern xlang (str, fk)
@@ -172,7 +175,17 @@ let semgrep_with_interactive_mode (config : Runner_config.t) =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (_conf : Interactive_CLI.conf) : Exit_code.t = Exit_code.ok
+let run (conf : Interactive_CLI.conf) : Exit_code.t =
+  let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
+  let config =
+    {
+      config with
+      roots = conf.target_roots;
+      lang = Some (Xlang.L (conf.lang, []));
+    }
+  in
+  semgrep_with_interactive_mode config;
+  Exit_code.ok
 
 (*****************************************************************************)
 (* Entry point *)

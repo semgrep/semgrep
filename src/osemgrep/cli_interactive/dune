@@ -14,6 +14,7 @@
 
     osemgrep_core
     osemgrep_configuring
+    osemgrep_cli_scan
   )
  (preprocess
    (pps
