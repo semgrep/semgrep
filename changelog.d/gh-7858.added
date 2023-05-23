@@ -16,9 +16,9 @@ To run on everything except `example-1` and `example-2`, you would write
 ```
 rules:
    - id: test-rule
-     mode: exclude
+     mode: extract
      rules:
-        include:
+        exclude:
         - example-1
         - example-2
 ```

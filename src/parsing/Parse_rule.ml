@@ -1387,7 +1387,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
-      let extract_rules_paths =
+      let extract_rule_ids =
         take_opt rule_dict env parse_rules_to_run_with_extract "rules"
       in
       let transform =
@@ -1401,7 +1401,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         |> Option.value ~default:R.Separate
       in
       `Extract
-        { formula; dst_lang; extract_rules_paths; extract; reduce; transform }
+        { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
   | Some key, _ ->
       error_at_key env key
         (spf
