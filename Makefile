@@ -246,7 +246,7 @@ test:
 # the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core
+core-test: core build-spacegrep
 	# The test executable has a few options that can be useful
 	# in some contexts.
 	dune build ./_build/default/src/tests/test.exe

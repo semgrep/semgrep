@@ -15,17 +15,18 @@ symlinks:
 	ln -sf spacegrep bin/spacecat
 
 .PHONY: test
-test: build
+test:
 	dune exec -- src/test/test.exe -e
+	$(MAKE) symlinks
 	$(MAKE) examples > /dev/null
 	$(MAKE) show-perf > /dev/null
 
 .PHONY: examples
-examples: build
+examples:
 	./scripts/run-examples
 
 .PHONY: show-perf
-show-perf: build
+show-perf:
 	./scripts/show-perf
 
 .PHONY: clean
