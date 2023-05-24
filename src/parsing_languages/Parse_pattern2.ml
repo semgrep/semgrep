@@ -168,7 +168,7 @@ let dump_tree_sitter_pattern_cst lang file =
       |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
-      |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_lua.Boilerplate.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
