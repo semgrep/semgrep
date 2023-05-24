@@ -35,7 +35,7 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
       | Xlang.LGeneric
       | Xlang.LRegex ->
           "<multilang>"
-      | xlang -> Xlang.to_string xlang
+      | Xlang.L (l, _) -> Lang.to_lowercase_alnum l
     in
     Fmt_helpers.pp_table
       ("Language", [ "Rules"; "Files" ])
