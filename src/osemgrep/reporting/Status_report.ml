@@ -29,8 +29,9 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   if num_rules = 0 then Fmt.pf ppf "  Nothing to scan."
   else if num_rules = 1 then
     Fmt.pf ppf "  Scanning %s." (String_utils.unit_str num_targets "file")
-  else
+  else (
     (* TODO origin table [Origin Rules] [Community N] *)
+    Fmt.pf ppf "@.";
     let xlang_label = function
       | Xlang.LGeneric
       | Xlang.LRegex ->
@@ -50,5 +51,4 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
              | [ (_, [ r1; t1 ]) ], others ->
                  (lang, [ rules + r1; targets + t1 ]) :: others
              | _ -> assert false)
-           []
-      |> List.rev)
+           []))

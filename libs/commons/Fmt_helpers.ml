@@ -33,23 +33,20 @@ let pp_table (h1, heading) ppf entries =
       (String.length h1, acc)
       entries
   in
-  let len1, lengths = (len1 + 3, Common.map (fun i -> i + 3) lengths) in
+  let lengths = Common.map (fun i -> i + 3) lengths in
   let line = List.fold_left (fun acc w -> acc + w) (len1 + 2) lengths |> line in
   let pad str_size len =
     let to_pad = len - str_size in
     String.make to_pad ' '
   in
-  Fmt.pf ppf "  %a%s" Fmt.(styled `Bold string) h1 (pad (String.length h1) len1);
+  Fmt.pf ppf "  %s%s" h1 (pad (String.length h1) len1);
   List.iter2
-    (fun h l ->
-      Fmt.pf ppf "%s%a" (pad (String.length h) l) Fmt.(styled `Bold string) h)
+    (fun h l -> Fmt.pf ppf "%s%s" (pad (String.length h) l) h)
     heading lengths;
   Fmt.pf ppf "@. %s@." line;
   List.iter
     (fun (e1, entries) ->
-      Fmt.pf ppf "  %s%s"
-        (String.capitalize_ascii e1)
-        (pad (String.length e1) len1);
+      Fmt.pf ppf "  %s%s" e1 (pad (String.length e1) len1);
       List.iter2
         (fun e l -> Fmt.pf ppf "%s%u" (pad (int_size e) l) e)
         entries lengths;
@@ -58,11 +55,7 @@ let pp_table (h1, heading) ppf entries =
   Fmt.pf ppf "@."
 
 let pp_heading ppf txt =
-  let chars = String.length txt + 2 in
-  let line = line chars in
-  Fmt.pf ppf "%s@.%s@."
-    (String.make (chars + 2) ' ')
-    (String.make (chars + 2) ' ');
-  Fmt.pf ppf "┌%s┐@." line;
+  let line = line (String.length txt + 2) in
+  Fmt.pf ppf "@.@.┌%s┐@." line;
   Fmt.pf ppf "│ %s │@." txt;
   Fmt.pf ppf "└%s┘@." line
