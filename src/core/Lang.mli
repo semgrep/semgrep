@@ -1,6 +1,50 @@
-type t =
-{% for item in langs %}  | {{ item.id }}
-{% endfor %}
+(*
+   Type representing the languages for which Semgrep has a dedicated
+   parser that uses the generic AST for analyzing files.
+
+   Language analyzers that work differently are not covered by this type but
+   are part of XLang.t.
+*)
+
+type t = Language.t =
+  | Apex
+  | Bash
+  | C
+  | Cairo
+  | Clojure
+  | Cpp
+  | Csharp
+  | Dart
+  | Dockerfile
+  | Elixir
+  | Go
+  | Hack
+  | Html
+  | Java
+  | Js
+  | Json
+  | Jsonnet
+  | Julia
+  | Kotlin
+  | Lisp
+  | Lua
+  | Ocaml
+  | Php
+  | Python2
+  | Python3
+  | Python
+  | R
+  | Ruby
+  | Rust
+  | Scala
+  | Scheme
+  | Solidity
+  | Swift
+  | Terraform
+  | Ts
+  | Vue
+  | Xml
+  | Yaml
 [@@deriving show, eq, hash]
 
 (* unsupported_language_message [lang] takes the language as a string and
@@ -11,11 +55,10 @@ type t =
  * Otherwise it returns an error with the list of supported languages.
  *)
 val unsupported_language_message : string -> string
-
 val of_string_opt : string -> t option
 
 (* may raise Failure unsupported_language_message *)
-val of_string: string -> t
+val of_string : string -> t
 
 (*
    Produce a human-readable representation of the language e.g. "C#"
@@ -85,7 +128,6 @@ val is_js : t -> bool
 
 (* accept any variants *)
 val is_proprietary : t -> bool
-
 val lang_map : (string, t) Hashtbl.t
 
 (* Association from a valid name for a language to its unique internal ID. *)

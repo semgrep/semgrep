@@ -100,6 +100,26 @@ let offsets_of_mval extract_mvalue =
            end_pos = end_loc.pos.charpos + end_len;
          })
 
+let check_includes_and_excludes rule extract_rule_ids =
+  let rule_path_equal r inc_or_exc_rule =
+    (* Rule ids are prepended with the `path.to.the.rules.file.`, so
+       when comparing a rule (r) with the rule to be included or excluded,
+       allow for a preceding path
+       TODO we may want to allow globs for rules *)
+    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+  in
+  let r = rule.Rule.id in
+  match extract_rule_ids with
+  | None -> true
+  | Some { Rule.required_rules; excluded_rules } ->
+      (List.length required_rules =|= 0
+      || List.exists (fun r' -> rule_path_equal (fst r) (fst r')) required_rules
+      )
+      && not
+           (List.exists
+              (fun r' -> rule_path_equal (fst r) (fst r'))
+              excluded_rules)
+
 (* Compute the rules that should be run for the extracted
    language.
 
@@ -108,9 +128,8 @@ let offsets_of_mval extract_mvalue =
    annoying, however. The main implication of selecting the rules
    here is, if your target is html and your dest lang is javascript,
    there is no way to ignore an html path for a specific javascript
-   rule. In general extract mode does not allow you to select rules to
-   run on extracted targets so this is in keeping with that design *)
-let rules_for_extracted_lang (all_rules : Rule.t list) =
+   rule. *)
+let rules_for_extracted_lang (all_rules : Rule.t list) extract_rule_ids =
   let rules_for_lang_tbl = Hashtbl.create 10 in
   let memo xlang =
     match Hashtbl.find_opt rules_for_lang_tbl xlang with
@@ -127,6 +146,8 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
                  | Xlang.LGeneric, Xlang.LGeneric -> true
                  | Xlang.LRegex, Xlang.LRegex -> true
                  | (Xlang.L _ | Xlang.LGeneric | Xlang.LRegex), _ -> false)
+          |> List.filter (fun (_i, r) ->
+                 check_includes_and_excludes r extract_rule_ids)
           |> Common.map fst
         in
         Hashtbl.add rules_for_lang_tbl xlang rule_ids_for_lang;
@@ -134,7 +155,7 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
   in
   memo
 
-let mk_extract_target dst_lang contents all_rules =
+let mk_extract_target extract_rule_ids dst_lang contents all_rules =
   let dst_lang_str =
     match dst_lang with
     | Xlang.LGeneric -> "generic"
@@ -146,7 +167,7 @@ let mk_extract_target dst_lang contents all_rules =
   {
     In.path = f;
     language = dst_lang_str;
-    rule_nums = rules_for_extracted_lang all_rules dst_lang;
+    rule_nums = rules_for_extracted_lang all_rules extract_rule_ids dst_lang;
   }
 
 (* Unquote string *)
@@ -410,8 +431,10 @@ let extract_and_concat erule_table xtarget rule_ids matches =
             %s"
            (fst r.Rule.id) xtarget.file contents;
          (* Write out the extracted text in a tmpfile *)
-         let (`Extract { Rule.dst_lang; _ }) = r.mode in
-         let target = mk_extract_target dst_lang contents rule_ids in
+         let (`Extract { Rule.dst_lang; Rule.extract_rule_ids; _ }) = r.mode in
+         let target =
+           mk_extract_target extract_rule_ids dst_lang contents rule_ids
+         in
          (target, map_res map_loc target.path xtarget.file))
 
 let extract_as_separate erule_table xtarget rule_ids matches =
@@ -455,8 +478,14 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                 %s"
                m.rule_id.id m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
-             let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
-             let target = mk_extract_target dst_lang contents rule_ids in
+             let (`Extract
+                   { Rule.dst_lang; Rule.transform; Rule.extract_rule_ids; _ })
+                 =
+               erule.mode
+             in
+             let target =
+               mk_extract_target extract_rule_ids dst_lang contents rule_ids
+             in
              (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
              (* TODO: Find the reason of this behaviour and fix it properly *)
              let map_loc =

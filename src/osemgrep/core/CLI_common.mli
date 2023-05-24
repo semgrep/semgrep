@@ -11,17 +11,5 @@ val eval_value : argv:string array -> 'a Cmdliner.Cmd.t -> 'a
 (* handles logging arguments (--quiet/--verbose/--debug) *)
 val logging_term : Logs.level option Cmdliner.Term.t
 
-(* TODO: parser+printer for file path so we can write things like:
-
-        Arg.value (Arg.opt (Arg.some CLI_common.fpath) None info)
-
-      instead of
-
-        Arg.value (Arg.opt (Arg.some Arg.string) None info)
-        (* + having to convert the string to an fpath by hand *)
-
-      The main benefit would be to clarify error messages by having Fpath.t
-      instead of string.
-
-   val fpath : Fpath.t Cmdliner.conv????
-*)
+(* small wrapper around Logs_helper.setup_logging and Logging_helpers.setup *)
+val setup_logging : force_color:bool -> level:Logs.level option -> unit

@@ -1,0 +1,308 @@
+# From https://github.com/returntocorp/semgrep/pull/7845
+# This used to take a very long time when running with `-filter_irrelevant_rules` due
+# to the CNF getting very large
+rules:
+  - id: ktor_request_xss_2
+    languages:
+      - kotlin
+    message: >
+      Untrusted, unsanitized user input enters `$RESPFUNC()` with `contentType =
+      ContentType.Text.Html`, which can lead to a Cross-site scripting (XSS)
+      vulnerability.
+
+      XSS vulnerabilities occur when untrusted input executes malicious JavaScript code, leading to issues such as account compromise and sensitive information leakage.
+
+      To prevent this vulnerability, validate the user input, perform contextual output encoding or sanitize the input.
+
+      For more information, see: [XSS prevention in Go](https://semgrep.dev/docs/cheat-sheets/go-xss/).
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation
+          ('Cross-site Scripting')"
+      cwe2020-top25: true
+      cwe2021-top25: true
+      cwe2022-top25: true
+      impact: MEDIUM
+      likelihood: MEDIUM
+      owasp:
+        - A07:2017 - Cross-Site Scripting (XSS)
+        - A03:2021 - Injection
+      references:
+        - https://owasp.org/Top10/A03_2021-Injection
+      subcategory:
+        - vuln
+      technology:
+        - kotlin
+    mode: taint
+    options:
+      symbolic_propagation: true
+    pattern-sinks:
+      - label: sink
+        patterns:
+          - patterns:
+              - pattern-either:
+                  - patterns:
+                      - pattern: call.$RESPFUNC($INPUT, ContentType.Text.Html, ...)
+                      - metavariable-regex:
+                          metavariable: $RESPFUNC
+                          regex: ^(respond(Text|Bytes))$
+                  - patterns:
+                      - pattern: call.$RESPFUNC(message = $INPUT, contentType = ContentType.Text.Html,
+                          ...)
+                      - metavariable-regex:
+                          metavariable: $RESPFUNC
+                          regex: ^(respondText)$
+                  - patterns:
+                      - pattern: call.$RESPFUNC(bytes = $INPUT, contentType = ContentType.Text.Html,
+                          ...)
+                      - metavariable-regex:
+                          metavariable: $RESPFUNC
+                          regex: ^(respondBytes)$
+              - focus-metavariable: $INPUT
+        requires: urldecode or list_access or no_processing_needed
+    pattern-sources:
+      - label: no_processing_needed
+        patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: server.application.call.request.$F(...)
+                          - metavariable-regex:
+                              metavariable: $F
+                              regex: ^(accept|acceptCharset|acceptEncoding|acceptLanguage|cacheControl|header|location|userAgent)$
+                      - patterns:
+                          - pattern: server.application.call.request.local.$F
+                          - metavariable-regex:
+                              metavariable: $F
+                              regex: ^(uri)$
+                      - patterns:
+                          - patterns:
+                              - pattern-either:
+                                  - pattern: server.application.call.request.$F["..."]
+                                  - pattern: server.application.call.request.$F.get("...", ...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(cookies|queryParameters)$
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.server.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server.application
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: application.call.request.$F(...)
+                          - metavariable-regex:
+                              metavariable: $F
+                              regex: ^(accept|acceptCharset|acceptEncoding|acceptLanguage|cacheControl|header|location|userAgent)$
+                      - patterns:
+                          - pattern: application.call.request.local.$F
+                          - metavariable-regex:
+                              metavariable: $F
+                              regex: ^(uri)$
+                      - patterns:
+                          - patterns:
+                              - pattern-either:
+                                  - pattern: application.call.request.$F["..."]
+                                  - pattern: application.call.request.$F.get("...", ...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(cookies|queryParameters)$
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.server.application.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server.application.call
+                          ...
+                  - pattern-either:
+                      - patterns:
+                          - pattern: call.request.$F(...)
+                          - metavariable-regex:
+                              metavariable: $F
+                              regex: ^(accept|acceptCharset|acceptEncoding|acceptLanguage|cacheControl|header|location|userAgent)$
+                      - patterns:
+                          - pattern: call.request.local.$F
+                          - metavariable-regex:
+                              metavariable: $F
+                              regex: ^(uri)$
+                      - patterns:
+                          - patterns:
+                              - pattern-either:
+                                  - pattern: call.request.$F["..."]
+                                  - pattern: call.request.$F.get("...", ...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(cookies|queryParameters)$
+      - label: returns_list
+        patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server
+                          ...
+                  - patterns:
+                      - pattern: server.application.call.request.$F(...)
+                      - metavariable-regex:
+                          metavariable: $F
+                          regex: ^(acceptCharsetItems|acceptEncodingItems|acceptItems|acceptLanguageItems)$
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.server.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server.application
+                          ...
+                  - patterns:
+                      - pattern: application.call.request.$F(...)
+                      - metavariable-regex:
+                          metavariable: $F
+                          regex: ^(acceptCharsetItems|acceptEncodingItems|acceptItems|acceptLanguageItems)$
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.server.application.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server.application.call
+                          ...
+                  - patterns:
+                      - pattern: call.request.$F(...)
+                      - metavariable-regex:
+                          metavariable: $F
+                          regex: ^(acceptCharsetItems|acceptEncodingItems|acceptItems|acceptLanguageItems)$
+      - label: returns_url_encoded
+        patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server
+                          ...
+                  - patterns:
+                      - pattern-either:
+                          - patterns:
+                              - pattern: server.application.call.request.$F
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(rawQueryParameters|uri)$
+                          - patterns:
+                              - pattern: server.application.call.request.$F(...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(document|path|queryString|toLogString)$
+                          - patterns:
+                              - pattern: server.application.call.request.cookies.$F
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(rawCookies)$
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.server.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server.application
+                          ...
+                  - patterns:
+                      - pattern-either:
+                          - patterns:
+                              - pattern: application.call.request.$F
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(rawQueryParameters|uri)$
+                          - patterns:
+                              - pattern: application.call.request.$F(...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(document|path|queryString|toLogString)$
+                          - patterns:
+                              - pattern: application.call.request.cookies.$F
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(rawCookies)$
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import io.ktor.server.application.*
+                          ...
+                      - pattern-inside: |
+                          import io.ktor.server.application.call
+                          ...
+                  - patterns:
+                      - pattern-either:
+                          - patterns:
+                              - pattern: call.request.$F
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(rawQueryParameters|uri)$
+                          - patterns:
+                              - pattern: call.request.$F(...)
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(document|path|queryString|toLogString)$
+                          - patterns:
+                              - pattern: call.request.cookies.$F
+                              - metavariable-regex:
+                                  metavariable: $F
+                                  regex: ^(rawCookies)$
+      - label: list_access
+        patterns:
+          - patterns:
+              - pattern-either:
+                  - pattern: for (... in $LIST) { ... }
+                  - pattern: for (... in $LIST.size) { ... }
+                  - pattern: $LIST.forEach { ... }
+                  - pattern: $LIST.forEachIndexed { ... }
+                  - pattern: $LIST.listIterator(...)
+                  - pattern: $LIST.iterator(...)
+                  - pattern: $LIST.get(...)
+                  - pattern: $LIST[...]
+                  - pattern: $LIST.subList(...)
+                  - pattern: $LIST.slice(...)
+              - focus-metavariable: $LIST
+        requires: returns_list
+      - label: urldecode
+        patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-inside: |
+                      import java.net
+                      ...
+                  - patterns:
+                      - pattern: net.URLDecoder.decode($INPUT, ...)
+                      - focus-metavariable: $INPUT
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          import java.net.*
+                          ...
+                      - pattern-inside: |
+                          import java.net.URLDecoder
+                          ...
+                  - patterns:
+                      - pattern: URLDecoder.decode($INPUT, ...)
+                      - focus-metavariable: $INPUT
+        requires: returns_url_encoded
+    severity: WARNING

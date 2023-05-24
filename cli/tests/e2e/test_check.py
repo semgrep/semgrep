@@ -141,6 +141,34 @@ def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
+def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/python_jupyter_paths_exclude.yaml",
+            target_name="extract/python_jupyter_paths_exclude.ipynb",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_extract_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/python_jupyter_paths_include.yaml",
+            target_name="extract/python_jupyter_paths_include.ipynb",
+        ).stdout,
+        "results.json",
+    )
+
+
 @pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -340,7 +368,6 @@ def test_regex_rule__utf8(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.osempass
 def test_regex_rule__utf8_on_image(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # https://github.com/returntocorp/semgrep/issues/4258
     snapshot.assert_match(

@@ -1,0 +1,2 @@
+Fix for very long runtimes that could happen due to one of our optimizations. We now detect when that might
+happen and skip the optimization.

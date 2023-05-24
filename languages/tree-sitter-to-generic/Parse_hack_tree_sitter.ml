@@ -631,7 +631,7 @@ and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
   let v2 =
     (* MISS: Do not capture ?as vs as *)
     match v2 with
-    | `As tok -> (* as *) token env tok
+    | `Tok_pdyn_n1_as tok -> (* as *) token env tok
     | `QMARKas tok -> (* "?as" *) token env tok
   in
   let v3 = type_ env v3 in
@@ -2958,7 +2958,9 @@ let parse file =
       try script env cst with
       | Failure "not implemented" as exn ->
           let e = Exception.catch exn in
-          H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
+          (* TODO: Use Boilerplate.dumper now on Raw_tree
+           * H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
+           *)
           Exception.reraise e)
 
 let parse_expression_or_source_file str =

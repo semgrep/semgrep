@@ -33,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type todo_kind = string option [@@deriving show]
+type todo_kind = string option [@@deriving show, eq]
 
 (* Fully qualified name *)
 type 'resolved name = 'resolved * 'resolved type_argument list
@@ -67,6 +67,7 @@ and builtin_type =
   | Float
   | String
   | Bool
+  | Number
   | OtherBuiltins of string
 
 and 'resolved function_type = 'resolved parameter list * 'resolved t
@@ -80,7 +81,7 @@ and 'resolved parameter_classic = {
   pident : string option;
   ptype : 'resolved t;
 }
-[@@deriving show { with_path = false }]
+[@@deriving show { with_path = false }, eq]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -106,6 +107,15 @@ let rec to_name_opt lang ty =
   | Pointer ty when lang =*= Lang.Go -> to_name_opt lang ty
   | _else_ -> None
 
+let mkt str =
+  G.TyN (G.Id ((str, Tok.unsafe_fake_tok str), G.empty_id_info ())) |> G.t
+
+let is_real_type = function
+  | NoType
+  | Todo _ ->
+      false
+  | _else_ -> true
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
@@ -115,13 +125,53 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
   | Some s -> (s, Tok.unsafe_fake_tok s)
   | None -> ("TodoKind is None", Tok.unsafe_fake_tok "")
 
+(* less: should sanity check things by looking at [lang]. but maybe users like
+ * to write `bool` in a language that uses `boolean`, and we should allow that?
+ *
+ * coupling: Inverse of ast_generic_type_of_builtin_type *)
+let builtin_type_of_string _langTODO str =
+  match str with
+  | "int" -> Some Int
+  | "float" -> Some Float
+  | "str"
+  | "string"
+  | "String" ->
+      Some String
+  | "bool"
+  | "boolean" ->
+      Some Bool
+  (* TS *)
+  | "number" -> Some Number
+  | __else__ -> None
+
+(* coupling: Inverse of builtin_type_of_string
+ *
+ * TODO: Check lang to get proper builtin type for more languages *)
+let ast_generic_type_of_builtin_type lang t =
+  match (lang, t) with
+  | _, Int -> mkt "int"
+  | _, Float -> mkt "float"
+  (* TODO check lang for string type *)
+  | _, String -> mkt "string"
+  | Lang.Java, Bool -> mkt "boolean"
+  | _, Bool -> mkt "bool"
+  (* TS *)
+  | _, Number -> mkt "number"
+  | _, OtherBuiltins str -> mkt str
+
+let builtin_type_of_type lang t =
+  match t.G.t with
+  (* for Python literal checking *)
+  | G.TyExpr { e = G.N (G.Id ((str, _t), _idinfo)); _ } ->
+      builtin_type_of_string lang str
+  (* for Java/Go/... literals *)
+  | G.TyN (Id ((str, _t), _idinfo)) -> builtin_type_of_string lang str
+  | __else__ -> None
+
 (* There is no function of_ast_generic_type_. The closest is
  * Naming_AST.type_of_expr  which converts an G.type_ to Type.t *)
 let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
     (x : 'a t) : G.type_ option =
-  let mkt str =
-    G.TyN (G.Id ((str, Tok.unsafe_fake_tok str), G.empty_id_info ())) |> G.t
-  in
   match x with
   | N ((name, args), alts) -> (
       let n = f name alts in
@@ -139,15 +189,7 @@ let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
           let* targs = type_arguments lang f xs in
           Some (G.TyApply (t, Tok.unsafe_fake_bracket targs) |> G.t))
   | Null -> Some (mkt "null")
-  | Builtin x -> (
-      (* Roughly the inverse of Type_generic.builtin_type_of_ident. TODO Unify
-       * *)
-      match x with
-      | Int -> Some (mkt "int")
-      | Float -> Some (mkt "float")
-      | String -> Some (mkt "string")
-      | Bool -> Some (mkt "bool")
-      | OtherBuiltins _ -> None)
+  | Builtin x -> Some (ast_generic_type_of_builtin_type lang x)
   | Array (size, ty) ->
       let size =
         Option.map

@@ -23,11 +23,7 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target_name,expect_change",
-    [
-        ("rules/match_based_id/formatting.yaml", "formatting.c", False),
-        ("rules/match_based_id/formatting.yaml", "ellipse.c", False),
-        ("rules/taint.yaml", "taint.py", False),
-    ],
+    [],
 )
 def test_id_change(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
@@ -75,6 +71,9 @@ def test_id_change(
 @pytest.mark.parametrize(
     "rule,target_name,expect_change",
     [
+        ("rules/match_based_id/formatting.yaml", "formatting.c", False),
+        ("rules/match_based_id/formatting.yaml", "ellipse.c", False),
+        ("rules/taint.yaml", "taint.py", False),
         # ("rules/match_based_id/","",True)
         ("rules/match_based_id/operator.yaml", "operator.c", True),
         ("rules/match_based_id/formatting.yaml", "meta-change.c", True),

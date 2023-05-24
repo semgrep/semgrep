@@ -64,3 +64,7 @@ val parse_argv : string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
 val cmdline_term : conf Cmdliner.Term.t
+
+(* exported because used by Interactive_CLI.ml too *)
+val o_lang : string option Cmdliner.Term.t
+val o_target_roots : string list Cmdliner.Term.t

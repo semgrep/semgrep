@@ -39,7 +39,7 @@ val create : string list -> t
 val segments : t -> string list
 
 (* Append a segment to a path. *)
-val append : t -> string -> t
+val add_seg : t -> string -> t
 
 (* Imitate File.Operators in libs/commons/ *)
 module Operators : sig

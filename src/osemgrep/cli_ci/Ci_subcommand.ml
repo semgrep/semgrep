@@ -21,12 +21,12 @@
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (_conf : Ci_CLI.conf) : Exit_code.t =
-  (* TODO:
-     Setup_logging.setup config;
-     logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
-     logger#info "Version: %s" config.version;
-  *)
+let run (conf : Ci_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:conf.force_color
+    ~level:conf.logging_level;
+  (* TODO: lots of work here!! lots of things to port, but also lots of code
+   * from Scan_subcommand.ml to reuse.
+   *)
   Exit_code.ok
 
 (*****************************************************************************)

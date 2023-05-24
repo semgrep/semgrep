@@ -135,29 +135,31 @@ class GitlabSastFormatter(BaseFormatter):
             https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
         """
         metrics = get_state().metrics
+        start_time = datetime.fromisoformat(metrics.payload.started_at.value)
+        start_time = start_time.replace(tzinfo=None)
         output_dict = {
             "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
             "version": "15.0.4",
             "scan": {
-                "start_time": metrics.payload["started_at"].isoformat(
-                    timespec="seconds"
+                "start_time": start_time.isoformat(
+                    timespec="seconds",
                 ),
                 "end_time": datetime.now().isoformat(timespec="seconds"),
                 "analyzer": {
                     "id": "semgrep",
                     "name": "Semgrep",
                     "url": "https://semgrep.dev",
-                    "version": metrics.payload["environment"]["version"],
+                    "version": metrics.payload.environment.version,
                     "vendor": {"name": "Semgrep"},
                 },
                 "scanner": {
                     "id": "semgrep",
                     "name": "Semgrep",
                     "url": "https://semgrep.dev",
-                    "version": metrics.payload["environment"]["version"],
+                    "version": metrics.payload.environment.version,
                     "vendor": {"name": "Semgrep"},
                 },
-                "version": metrics.payload["environment"]["version"],
+                "version": metrics.payload.environment.version,
                 "status": "success",
                 "type": "sast",
             },

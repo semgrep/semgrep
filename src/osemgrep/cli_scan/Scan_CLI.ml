@@ -24,6 +24,10 @@ module H = Cmdliner_helpers
 (*****************************************************************************)
 (*
    The result of parsing a 'semgrep scan' command.
+
+   LATER: we could actually define this structure in ATD, so people could
+   programmatically set the command-line arguments they want if they
+   want to programmatically call Semgrep.
 *)
 type conf = {
   (* Main configuration options *)
@@ -68,6 +72,10 @@ type conf = {
 }
 [@@deriving show]
 
+(* We could split the content of this variable in different files, e.g.,
+ * targeting_conf default could be move in a Find_targets.default, but
+ * it's also nice to have everything in one place.
+ *)
 let default : conf =
   {
     (* alt: Configs [ "auto" ]? *)
@@ -162,7 +170,7 @@ environment variable, defaults to 'auto'.
 
 (* alt: was in "Performance and memory options" before *)
 let o_version_check : bool Term.t =
-  H.negatable_flag [ "enable-version-check" ]
+  H.negatable_flag_with_env [ "enable-version-check" ]
     ~neg_options:[ "disable-version-check" ]
     ~default:default.version_check
     ~env:(Cmd.Env.info "SEMGREP_ENABLE_VERSION_CHECK")
@@ -338,7 +346,7 @@ the file is skipped. If set to 0 will not have limit. Defaults to 3.
  * better be backward compatible with how semgrep was doing it before
  *)
 let o_force_color : bool Term.t =
-  H.negatable_flag [ "force-color" ] ~neg_options:[ "no-force-color" ]
+  H.negatable_flag_with_env [ "force-color" ] ~neg_options:[ "no-force-color" ]
     ~default:default.force_color
       (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR
        * # https://no-color.org/
