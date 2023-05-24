@@ -14,16 +14,48 @@ open Notty_unix
 (*****************************************************************************)
 
 type command = Exit | Pat of Xpattern.t * bool | Any | All
-(*| Lparen
-  | Rparen
-*)
 
 type interactive_pat =
   | IPat of Xpattern.t * bool
   | IAll of interactive_pat list
   | IAny of interactive_pat list
 
-module Matches = struct
+(* This module implements something I call a "pointed zipper".
+
+   A zipper is, of course, the classic data structure for a
+   list's "one hole context", of traversing a list via being located
+   at a single point.
+
+   A "pointed zipper" is a zipper which also has a "frame", which
+   is of a certain size, and a pointer which can move around the
+   frame freely. Esesentially, a pointed zipper is not just located
+   at a single element in the list, but a frame of many such
+   elements.
+
+   The main use case here is for scrolling purposes on a list of
+   n entries with a frame of length m. In this case, we want to
+   keep a pointer around so we can move around on the entries we
+   already see, but we also want to be able to move elements
+   through the zipper, for when the elements in our frame change.
+
+   So for instance, we might have a zipper like:
+
+   A
+   B <- only these
+   C <- are in
+   D <- our frame
+   E
+
+   Our pointer moves freely between B,C,D, but if we try to go
+   up, the whole zipper moves, and we get:
+
+   A <- only these
+   B <- are in
+   C <- our frame
+   D
+   E
+*)
+module Pointed_zipper = struct
   type 'a t = {
     before_rev : 'a list;
     pointer : int;
@@ -31,34 +63,40 @@ module Matches = struct
     after : 'a list;
   }
 
-  let shift_left m =
+  let shift_frame_left m =
     match (m.before_rev, m.after) with
     | [], _ -> m
     | x :: xs, after -> { m with before_rev = xs; after = x :: after }
 
-  let shift_right m =
+  let shift_frame_right m =
     match (m.before_rev, m.after) with
     | _, [] -> m
     | before_rev, x :: xs -> { m with before_rev = x :: before_rev; after = xs }
 
-  let move_ptr_left m =
-    if m.pointer <= 0 then { (shift_left m) with pointer = 0 }
+  (* A move necessitates a pointer move, which may or may
+     not cause a frame move, depending on if the pointer is
+     at the boundaries of the frame.
+  *)
+  let move_left m =
+    if m.pointer <= 0 then { (shift_frame_left m) with pointer = 0 }
     else { m with pointer = m.pointer - 1 }
 
-  let move_ptr_right m =
+  let move_right m =
     if m.pointer >= m.max_len - 1 then
-      { (shift_right m) with pointer = m.max_len - 1 }
+      { (shift_frame_right m) with pointer = m.max_len - 1 }
+    else if m.pointer >= List.length m.after - 1 then
+      (* This is the case where we move the pointer
+         down, but we don't have enough entries left.
+         In this case, don't move the pointer.
+      *)
+      m
     else { m with pointer = m.pointer + 1 }
-
-  let rec _shift_left_n n m =
-    if n <= 0 then m else _shift_left_n (n - 1) (shift_left m)
-
-  let rec _shift_right_n n m =
-    if n <= 0 then m else _shift_right_n (n - 1) (shift_right m)
 
   let take n m = Common2.take_safe n m.after
   let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
   let position m = m.pointer
+  let get_current m = List.nth m.after (position m)
+  let is_empty m = List.length m.after + List.length m.before_rev = 0
 end
 
 (* The type of the state for the interactive loop.
@@ -68,8 +106,7 @@ end
 type state = {
   xlang : Xlang.t;
   xtargets : Xtarget.t list;
-  input : string; (* TODO: remove *)
-  matches : (string * Pattern_match.t list) Matches.t;
+  matches : (string * Pattern_match.t list) Pointed_zipper.t;
   cur_line_rev : char list;
       (** The current line that we are reading in, which is not yet
         finished.
@@ -85,13 +122,15 @@ type state = {
 (* Helpers *)
 (*****************************************************************************)
 
-let files_height_of_term term = snd (Term.size term) - 4
+let files_height_of_term term = snd (Term.size term) - 3
+
+(* Arbitrarily, let's just set the width of files to 40 chars. *)
+let files_width = 40
 
 let empty xlang xtargets term =
   {
     xlang;
     xtargets;
-    input = "";
     matches =
       {
         before_rev = [];
@@ -104,9 +143,6 @@ let empty xlang xtargets term =
     mode = true;
     term;
   }
-
-let change_str s state = { state with input = s }
-let cons_char c state = { state with cur_line_rev = c :: state.cur_line_rev }
 
 let get_current_line state =
   Common2.string_of_chars (List.rev state.cur_line_rev)
@@ -155,7 +191,7 @@ let matches_of_new_ipat new_ipat state =
       filter_irrelevant_rules = false;
     }
   in
-  let res =
+  let res : Report.rule_profiling Report.match_result list =
     state.xtargets
     |> Common.map (fun xtarget ->
            let results =
@@ -164,20 +200,80 @@ let matches_of_new_ipat new_ipat state =
            results)
   in
   let res_by_file =
-    state.xtargets
-    |> Common.map (fun { Xtarget.file; _ } ->
-           (file, Report.collate_rule_results file res))
-    |> Common.map_filter (fun (file, (res : _ Report.match_result)) ->
-           match res.matches with
-           | [] -> None
-           | _ -> Some (file, res.matches))
+    res
+    |> List.concat_map (fun ({ matches; _ } : _ Report.match_result) ->
+           Common.map (fun (m : Pattern_match.t) -> (m.file, m)) matches)
+    |> Common2.group_assoc_bykey_eff
     |> List.sort (fun (k1, _) (k2, _) -> String.compare k1 k2)
   in
-  Matches.of_list (files_height_of_term state.term) res_by_file
+  Pointed_zipper.of_list (files_height_of_term state.term) res_by_file
+
+let safe_subtract x y =
+  let res = x - y in
+  if res < 0 then 0 else res
 
 (*****************************************************************************)
 (* User Interface *)
 (*****************************************************************************)
+
+(* Given the bounds of a highlighted range, does this index
+   fall in or out of the highlighted range?
+*)
+let placement_wrt_bound (lb, rb) idx =
+  match (lb, rb) with
+  | None, None -> Common.Middle3 ()
+  | Some lb, _ when idx < lb -> Left3 ()
+  | _, Some rb when idx > rb -> Right3 ()
+  | _ -> Middle3 ()
+
+(* Given a range of locations, we want to split a given line
+ * into things that are in the match, or are not.
+ *)
+let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
+  if row < t1.pos.line then (line, "", "")
+  else if row > t2.pos.line then (line, "", "")
+  else
+    let lb = if row = t1.pos.line then Some t1.pos.column else None in
+    let rb = if row = t2.pos.line then Some t2.pos.column else None in
+    let l_rev, m_rev, r_rev, _ =
+      String.fold_left
+        (fun (l, m, r, i) c ->
+          match placement_wrt_bound (lb, rb) i with
+          | Common.Left3 _ -> (c :: l, m, r, i + 1)
+          | Middle3 _ -> (l, c :: m, r, i + 1)
+          | Right3 _ -> (l, m, c :: r, i + 1))
+        ([], [], [], 0) line
+    in
+    ( Common2.string_of_chars (List.rev l_rev),
+      Common2.string_of_chars (List.rev m_rev),
+      Common2.string_of_chars (List.rev r_rev) )
+
+let img_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
+  let lines = Common2.cat file in
+  let start_line = t1.pos.line in
+  let end_line = t2.pos.line in
+  let max_len = files_height_of_term state.term in
+  let range_height = end_line - start_line in
+  let preview_start, preview_end =
+    if range_height <= max_len then
+      (* if this fits within our window *)
+      let extend_before = (max_len - range_height) / 2 in
+      let start = safe_subtract start_line extend_before in
+      (start, start + max_len)
+    else (start_line, start_line + max_len)
+  in
+  lines
+  |> Common.mapi (fun idx x -> (idx + 1, x))
+  |> List.filter_map (fun (idx, line) ->
+         if preview_start <= idx && idx < preview_end then
+           Some (split_line t1 t2 (idx, line))
+         else None)
+  |> Common.map (fun (l, m, r) ->
+         I.(
+           string A.empty l
+           <|> string A.(bg (rgb_888 ~r:255 ~g:255 ~b:194)) m
+           <|> string A.empty r))
+  |> I.vcat
 
 let render_screen state =
   let w, _h = Term.size state.term in
@@ -189,23 +285,38 @@ let render_screen state =
     if List.length l >= n then 0 else n - List.length l
   in
   let matches =
-    Matches.take lines_of_files state.matches
+    Pointed_zipper.take lines_of_files state.matches
     |> Common.mapi (fun idx (file, _) ->
-           if idx = Matches.position state.matches then
+           if idx = Pointed_zipper.position state.matches then
              I.string A.(fg (gray 19) ++ st bold ++ bg (gray 5)) file
            else I.string (A.fg (A.gray 16)) file)
   in
-  let s = I.string A.empty state.input in
-  let bar = String.make w (Char.chr 45) in
-  let prompt =
-    I.(
-      matches |> I.vcat
-      |> I.vpad 0 (lines_to_pad_below_to_reach matches lines_of_files)
-      <-> string (A.fg (A.gray 12)) bar
-      <-> (string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
-      <-> string (A.fg A.green) "Semgrep Interactive Mode")
+  let preview =
+    if Pointed_zipper.is_empty state.matches then
+      I.string A.empty "preview unavailable (no matches)"
+    else
+      let file, pms = Pointed_zipper.get_current state.matches in
+      match pms with
+      | [] -> I.string A.empty "preview unavailable (impossible?)"
+      | pm :: _ -> (
+          (* THINK: is this try still relevant? *)
+          try img_of_match pm file state with
+          | _ -> I.string A.empty "preview unavailble")
   in
-  I.(s <-> prompt)
+  let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
+  let vertical_bar =
+    I.char A.empty '|' 1 (files_height_of_term state.term) |> I.hpad 1 1
+  in
+  let prompt =
+    I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
+  in
+  let lowerbar = I.(string (A.fg A.green) "Semgrep Interactive Mode") in
+  I.(
+    matches |> I.vcat
+    (* THINK: unnecessary? *)
+    |> I.vpad 0 (lines_to_pad_below_to_reach matches lines_of_files)
+    |> (fun img -> I.hcrop 0 (I.width img - files_width) img)
+    <|> vertical_bar <|> preview <-> horizontal_bar <-> prompt <-> lowerbar)
 
 (*****************************************************************************)
 (* Commands *)
@@ -217,9 +328,6 @@ let parse_command ({ xlang; _ } as state : state) =
   | "exit" -> Exit
   | "any" -> Any
   | "all" -> All
-  (*| "(" -> Lparen
-    | ")" -> Rparen
-  *)
   | _ when String.starts_with ~prefix:"not " s ->
       let s = Str.string_after s 4 in
       (* TODO: error handle *)
@@ -281,13 +389,16 @@ let interactive_loop xlang xtargets =
         match state.cur_line_rev with
         | [] -> loop t state
         | _ :: cs -> update t { state with cur_line_rev = cs })
-    | `Key (`Arrow `Left, _) -> update t (change_str "left" state)
-    | `Key (`Arrow `Right, _) -> update t (change_str "right" state)
+    | `Key (`Arrow `Left, _)
+    | `Key (`Arrow `Right, _) ->
+        update t state (* TODO *)
     | `Key (`Arrow `Up, _) ->
-        update t { state with matches = Matches.move_ptr_left state.matches }
+        update t { state with matches = Pointed_zipper.move_left state.matches }
     | `Key (`Arrow `Down, _) ->
-        update t { state with matches = Matches.move_ptr_right state.matches }
-    | `Key (`ASCII c, _) -> update t (cons_char c state)
+        update t
+          { state with matches = Pointed_zipper.move_right state.matches }
+    | `Key (`ASCII c, _) ->
+        update t { state with cur_line_rev = c :: state.cur_line_rev }
     | `Resize _ -> update t state
     | _ -> loop t state
   in
