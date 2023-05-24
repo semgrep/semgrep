@@ -187,12 +187,13 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
                   (if m.start.line = m.end_.line then
                    start_color + (m.end_.col - m.start.col)
                   else col m.end_.col - ellipsis_len true)
-                  (String.length line - 1 - ellipsis_len true)
-               else String.length line - 1)
+                  (String.length line - ellipsis_len true)
+               else String.length line)
            in
            let a, b, c = cut line start_color end_color in
            Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
-             Fmt.(styled `Bold string)
+             (* The 24m is "no underline", and for python compatibility *)
+             Fmt.(styled `Bold (any "\027[24m" ++ string))
              b c;
            (stripped' || stripped, succ line_number))
          (false, start_line)
@@ -226,8 +227,9 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             else (true, None)
       in
       if print then
+        (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
         Fmt.pf ppf "  %a@."
-          Fmt.(styled (`Fg `Cyan) (any "  " ++ string ++ any " "))
+          Fmt.(styled (`Fg `Cyan) (any "\027[22m\027[24m  " ++ string ++ any " "))
           cur.path;
       msg
     in
@@ -240,7 +242,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     in
     if print then (
       List.iter
-        (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold string) l)
+        (* The 24m is "no underline", and for python compatibility *)
+        (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (any "\027[24m" ++ string)) l)
         (wrap ~indent:7 ~width:text_width cur.check_id);
       List.iter
         (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
