@@ -6,28 +6,213 @@
 
 *)
 
+open Notty
+open Notty_unix
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type prompt = Exit | Pat of Xpattern.t * bool | Any | All
+type command = Exit | Pat of Xpattern.t * bool | Any | All
 (*| Lparen
   | Rparen
 *)
 
 type interactive_pat =
-  | P of Xpattern.t * bool
-  | And of interactive_pat * interactive_pat
-  | Or of interactive_pat * interactive_pat
+  | IPat of Xpattern.t * bool
+  | IAll of interactive_pat list
+  | IAny of interactive_pat list
+
+module Matches = struct
+  type 'a t = {
+    before_rev : 'a list;
+    pointer : int;
+    max_len : int;
+    after : 'a list;
+  }
+
+  let shift_left m =
+    match (m.before_rev, m.after) with
+    | [], _ -> m
+    | x :: xs, after -> { m with before_rev = xs; after = x :: after }
+
+  let shift_right m =
+    match (m.before_rev, m.after) with
+    | _, [] -> m
+    | before_rev, x :: xs -> { m with before_rev = x :: before_rev; after = xs }
+
+  let move_ptr_left m =
+    if m.pointer <= 0 then { (shift_left m) with pointer = 0 }
+    else { m with pointer = m.pointer - 1 }
+
+  let move_ptr_right m =
+    if m.pointer >= m.max_len - 1 then
+      { (shift_right m) with pointer = m.max_len - 1 }
+    else { m with pointer = m.pointer + 1 }
+
+  let rec _shift_left_n n m =
+    if n <= 0 then m else _shift_left_n (n - 1) (shift_left m)
+
+  let rec _shift_right_n n m =
+    if n <= 0 then m else _shift_right_n (n - 1) (shift_right m)
+
+  let take n m = Common2.take_safe n m.after
+  let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
+  let position m = m.pointer
+end
+
+(* The type of the state for the interactive loop.
+   This is the information we need to carry in between every key press,
+   and whenever we need to redraw the canvas.
+*)
+type state = {
+  xlang : Xlang.t;
+  xtargets : Xtarget.t list;
+  input : string; (* TODO: remove *)
+  matches : (string * Pattern_match.t list) Matches.t;
+  cur_line_rev : char list;
+      (** The current line that we are reading in, which is not yet
+        finished.
+        It's in reverse because we're consing on to the front.
+      *)
+  pat : interactive_pat option;
+  mode : bool;  (** True if `All`, false if `Any`
+      *)
+  term : Term.t;
+}
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let prompt xlang =
-  prerr_string "> ";
-  flush stderr;
-  let s = read_line () in
+let files_height_of_term term = snd (Term.size term) - 4
+
+let empty xlang xtargets term =
+  {
+    xlang;
+    xtargets;
+    input = "";
+    matches =
+      {
+        before_rev = [];
+        after = [];
+        pointer = 0;
+        max_len = files_height_of_term term;
+      };
+    cur_line_rev = [];
+    pat = None;
+    mode = true;
+    term;
+  }
+
+let change_str s state = { state with input = s }
+let cons_char c state = { state with cur_line_rev = c :: state.cur_line_rev }
+
+let get_current_line state =
+  Common2.string_of_chars (List.rev state.cur_line_rev)
+
+let fk = Tok.unsafe_fake_tok ""
+
+let rec translate_formula = function
+  | IPat (pat, true) -> Rule.P pat
+  | IPat (pat, false) -> Rule.Not (fk, P pat)
+  | IAll ipats ->
+      Rule.And
+        ( fk,
+          {
+            conjuncts = List.map translate_formula ipats;
+            conditions = [];
+            focus = [];
+          } )
+  | IAny ipats -> Rule.Or (fk, List.map translate_formula ipats)
+
+let mk_fake_rule lang formula =
+  {
+    Rule.id = ("-i", fk);
+    mode = `Search formula;
+    (* alt: could put xpat.pstr for the message *)
+    message = "";
+    severity = Error;
+    languages = lang;
+    options = None;
+    equivalences = None;
+    fix = None;
+    fix_regexp = None;
+    paths = None;
+    metadata = None;
+  }
+
+let matches_of_new_ipat new_ipat state =
+  let rule_formula = translate_formula new_ipat in
+  let fake_rule = mk_fake_rule state.xlang rule_formula in
+  let hook _s (_m : Pattern_match.t) = () in
+  let xconf =
+    {
+      Match_env.config = Rule_options.default_config;
+      equivs = [];
+      nested_formula = false;
+      matching_explanations = false;
+      filter_irrelevant_rules = false;
+    }
+  in
+  let res =
+    state.xtargets
+    |> Common.map (fun xtarget ->
+           let results =
+             Match_search_mode.check_rule fake_rule hook xconf xtarget
+           in
+           results)
+  in
+  let res_by_file =
+    state.xtargets
+    |> Common.map (fun { Xtarget.file; _ } ->
+           (file, Report.collate_rule_results file res))
+    |> Common.map_filter (fun (file, (res : _ Report.match_result)) ->
+           match res.matches with
+           | [] -> None
+           | _ -> Some (file, res.matches))
+    |> List.sort (fun (k1, _) (k2, _) -> String.compare k1 k2)
+  in
+  Matches.of_list (files_height_of_term state.term) res_by_file
+
+(*****************************************************************************)
+(* User Interface *)
+(*****************************************************************************)
+
+let render_screen state =
+  let w, _h = Term.size state.term in
+  (* Minus two, because one for the line, and one for
+     the input line.
+  *)
+  let lines_of_files = files_height_of_term state.term in
+  let lines_to_pad_below_to_reach l n =
+    if List.length l >= n then 0 else n - List.length l
+  in
+  let matches =
+    Matches.take lines_of_files state.matches
+    |> Common.mapi (fun idx (file, _) ->
+           if idx = Matches.position state.matches then
+             I.string A.(fg (gray 19) ++ st bold ++ bg (gray 5)) file
+           else I.string (A.fg (A.gray 16)) file)
+  in
+  let s = I.string A.empty state.input in
+  let bar = String.make w (Char.chr 45) in
+  let prompt =
+    I.(
+      matches |> I.vcat
+      |> I.vpad 0 (lines_to_pad_below_to_reach matches lines_of_files)
+      <-> string (A.fg (A.gray 12)) bar
+      <-> (string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
+      <-> string (A.fg A.green) "Semgrep Interactive Mode")
+  in
+  I.(s <-> prompt)
+
+(*****************************************************************************)
+(* Commands *)
+(*****************************************************************************)
+
+let parse_command ({ xlang; _ } as state : state) =
+  let s = get_current_line state in
   match s with
   | "exit" -> Exit
   | "any" -> Any
@@ -55,98 +240,62 @@ let prompt xlang =
             (s, Tok.unsafe_fake_tok ""),
           true )
 
-let fk = Tok.unsafe_fake_tok ""
-
-let rec translate_formula = function
-  | P (pat, true) -> Rule.P pat
-  | P (pat, false) -> Rule.Not (fk, P pat)
-  | And (ipat1, ipat2) ->
-      Rule.And
-        ( fk,
-          {
-            conjuncts = [ translate_formula ipat1; translate_formula ipat2 ];
-            conditions = [];
-            focus = [];
-          } )
-  | Or (ipat1, ipat2) ->
-      Rule.Or (fk, [ translate_formula ipat1; translate_formula ipat2 ])
-
-let mk_fake_rule lang formula =
-  {
-    Rule.id = ("-i", fk);
-    mode = `Search formula;
-    (* alt: could put xpat.pstr for the message *)
-    message = "";
-    severity = Error;
-    languages = lang;
-    options = None;
-    equivalences = None;
-    fix = None;
-    fix_regexp = None;
-    paths = None;
-    metadata = None;
-  }
-
-let report f xlang formula xtargets =
-  match formula with
-  | None -> failwith "bad"
-  | Some formula ->
-      let rule_formula = translate_formula formula in
-      let fake_rule = mk_fake_rule xlang rule_formula in
-      let hook _s (m : Pattern_match.t) =
-        (*let content =
-            m.tokens
-            |> Lazy.force
-            |> Common.map Tok.content_of_tok
-            |> Matching_report.join_with_space_if_needed
-          in
-        *)
-        f m Metavariable.ii_of_mval
-      in
-      let xconf =
-        {
-          Match_env.config = Rule_options.default_config;
-          equivs = [];
-          nested_formula = false;
-          matching_explanations = false;
-          filter_irrelevant_rules = false;
-        }
-      in
-      let count = ref 0 in
-      let res =
-        xtargets
-        |> Common.map (fun xtarget ->
-               let results =
-                 Match_search_mode.check_rule fake_rule hook xconf xtarget
-               in
-               count := !count + List.length results.matches;
-               results)
-      in
-      Common.(pr2 (spf "Found %d total findings." !count));
-      res
-
-let check_interactive f xlang xtargets =
-  let loop = ref true in
-  let formula = ref None in
-  let last_op = ref true in
+let execute_command (state : state) =
+  let cmd = parse_command state in
   let handle_pat (pat, b) =
-    match !formula with
-    | None -> formula := Some (P (pat, b))
-    | Some pat1 ->
-        if !last_op then formula := Some (And (pat1, P (pat, b)))
-        else formula := Some (Or (pat1, P (pat, b)))
+    let new_pat = IPat (pat, b) in
+    match (state.pat, state.mode) with
+    | None, _ -> new_pat
+    | Some (IAll pats), true -> IAll (new_pat :: pats)
+    | Some (IAny pats), false -> IAny (new_pat :: pats)
+    | Some pat, true -> IAny [ new_pat; pat ]
+    | Some pat, false -> IAll [ new_pat; pat ]
   in
-  while !loop do
-    match prompt xlang with
+  let state =
+    match cmd with
     | Exit -> failwith "bye bye"
-    | All -> last_op := true
-    | Any -> last_op := false
+    | All -> { state with mode = true }
+    | Any -> { state with mode = false }
     | Pat (pat, b) ->
-        handle_pat (pat, b);
-        ignore (report f xlang !formula xtargets);
-        ()
-  done;
-  ()
+        let new_ipat = handle_pat (pat, b) in
+        let matches = matches_of_new_ipat new_ipat state in
+        { state with matches }
+  in
+  (* Remember to reset the current line after executing a command. *)
+  { state with cur_line_rev = [] }
+
+(*****************************************************************************)
+(* Interactive loop *)
+(*****************************************************************************)
+
+let interactive_loop xlang xtargets =
+  let rec update (t : Term.t) state =
+    Term.image t (render_screen state);
+    loop t state
+  and loop t state =
+    match Term.event t with
+    | `Key (`Enter, _) ->
+        let state = execute_command state in
+        update t state
+    | `Key (`Backspace, _) -> (
+        match state.cur_line_rev with
+        | [] -> loop t state
+        | _ :: cs -> update t { state with cur_line_rev = cs })
+    | `Key (`Arrow `Left, _) -> update t (change_str "left" state)
+    | `Key (`Arrow `Right, _) -> update t (change_str "right" state)
+    | `Key (`Arrow `Up, _) ->
+        update t { state with matches = Matches.move_ptr_left state.matches }
+    | `Key (`Arrow `Down, _) ->
+        update t { state with matches = Matches.move_ptr_right state.matches }
+    | `Key (`ASCII c, _) -> update t (cons_char c state)
+    | `Resize _ -> update t state
+    | _ -> loop t state
+  in
+  let t = Term.create () in
+  let state = empty xlang xtargets t in
+  (* TODO: change *)
+  if true then update t state;
+  Term.release t
 
 (* TODO: we should rewrite this to use the osemgrep file targeting instead
  * of the deprecated (and possibly slow) files_of_dirs_or_files() below
@@ -167,7 +316,7 @@ let semgrep_with_interactive_mode (config : Runner_config.t) =
     files |> Common.map Fpath.to_string
     |> Common.map (Run_semgrep.xtarget_of_file config xlang)
   in
-  check_interactive (Run_semgrep.print_match config) xlang xtargets
+  interactive_loop xlang xtargets
 
 (*****************************************************************************)
 (* Main logic *)
