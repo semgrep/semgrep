@@ -156,11 +156,11 @@ let rec translate_formula = function
       Rule.And
         ( fk,
           {
-            conjuncts = List.map translate_formula ipats;
+            conjuncts = Common.map translate_formula ipats;
             conditions = [];
             focus = [];
           } )
-  | IAny ipats -> Rule.Or (fk, List.map translate_formula ipats)
+  | IAny ipats -> Rule.Or (fk, Common.map translate_formula ipats)
 
 let mk_fake_rule lang formula =
   {
@@ -224,7 +224,7 @@ let placement_wrt_bound (lb, rb) idx =
   | None, None -> Common.Middle3 ()
   | Some lb, _ when idx < lb -> Left3 ()
   | _, Some rb when idx > rb -> Right3 ()
-  | _ -> Middle3 ()
+  | __else__ -> Middle3 ()
 
 (* Given a range of locations, we want to split a given line
  * into things that are in the match, or are not.
@@ -264,7 +264,7 @@ let img_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   in
   lines
   |> Common.mapi (fun idx x -> (idx + 1, x))
-  |> List.filter_map (fun (idx, line) ->
+  |> Common.map_filter (fun (idx, line) ->
          if preview_start <= idx && idx < preview_end then
            Some (split_line t1 t2 (idx, line))
          else None)
@@ -400,7 +400,7 @@ let interactive_loop xlang xtargets =
     | `Key (`ASCII c, _) ->
         update t { state with cur_line_rev = c :: state.cur_line_rev }
     | `Resize _ -> update t state
-    | _ -> loop t state
+    | __else__ -> loop t state
   in
   let t = Term.create () in
   let state = empty xlang xtargets t in
