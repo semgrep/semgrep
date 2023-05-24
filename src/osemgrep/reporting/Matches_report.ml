@@ -102,7 +102,7 @@ let wrap ~indent ~width s =
   let pre = String.make indent ' ' in
   let rec go indent width pre s acc =
     let real_width = width - indent in
-    if String.length s <= real_width then List.rev ((pre ^ s) :: acc)
+    if String.length s <= real_width then List.rev ((pre, s) :: acc)
     else
       let cut =
         let prev_ws =
@@ -118,7 +118,7 @@ let wrap ~indent ~width s =
       let e, s =
         (Str.first_chars s cut, String.(trim (sub s cut (length s - cut))))
       in
-      go indent width pre s ((pre ^ e) :: acc)
+      go indent width pre s ((pre, e) :: acc)
   in
   go indent width pre s []
 
@@ -240,10 +240,10 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     in
     if print then (
       List.iter
-        (fun l -> Fmt.pf ppf "%a@." Fmt.(styled `Bold string) l)
+        (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold string) l)
         (wrap ~indent:7 ~width:text_width cur.check_id);
       List.iter
-        (fun l -> Fmt.pf ppf "%s@." l)
+        (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
         (wrap ~indent:10 ~width:text_width cur.extra.message);
       (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
       | `String s -> Fmt.pf ppf "%sDetails: %s@." base_indent s
