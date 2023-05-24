@@ -42,6 +42,10 @@ type state = {
 (* Arbitrarily, let's just set the width of files to 40 chars. *)
 let files_width = 40
 
+(* color settings *)
+let bg_file_selected = A.(bg (gray 5))
+let bg_match = A.(bg (gray 5))
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -186,7 +190,8 @@ let img_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   |> Common.map (fun (l, m, r) ->
          I.(
            string A.empty l
-           <|> string A.(bg (rgb_888 ~r:255 ~g:255 ~b:194)) m
+           (* alt: A.(bg (rgb_888 ~r:255 ~g:255 ~b:194)) *)
+           <|> string A.(st bold ++ bg_match) m
            <|> string A.empty r))
   |> I.vcat
 
@@ -203,7 +208,7 @@ let render_screen state =
     Pointed_zipper.take lines_of_files state.matches
     |> Common.mapi (fun idx (file, _) ->
            if idx = Pointed_zipper.position state.matches then
-             I.string A.(fg (gray 19) ++ st bold ++ bg (gray 5)) file
+             I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
            else I.string (A.fg (A.gray 16)) file)
   in
   let preview =
@@ -318,10 +323,12 @@ let interactive_loop xlang xtargets =
     | __else__ -> loop t state
   in
   let t = Term.create () in
-  let state = empty xlang xtargets t in
-  (* TODO: change *)
-  if true then update t state;
-  Term.release t
+  Common.finalize
+    (fun () ->
+      let state = empty xlang xtargets t in
+      (* TODO: change *)
+      if true then update t state)
+    (fun () -> Term.release t)
 
 (* TODO: we should rewrite this to use the osemgrep file targeting instead
  * of the deprecated (and possibly slow) files_of_dirs_or_files() below
@@ -369,6 +376,4 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Interactive_CLI.parse_argv argv in
-  (* TODO: add CLI args to have config.roots, config.lang *)
-  ignore semgrep_with_interactive_mode;
   run conf
