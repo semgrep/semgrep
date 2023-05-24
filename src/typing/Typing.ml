@@ -28,8 +28,14 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
   | G.L lit ->
       let t =
         match lit with
+        (* NB: We could infer Type.Number for JS int/float literals, but we can
+         * handle that relationship in matching and we can be more precise for
+         * now. One actual rule uses `float` for a typed metavariable in JS so
+         * let's avoid breaking that for now at least. *)
         | G.Int _ -> Type.Builtin Type.Int
+        | G.Float _ -> Type.Builtin Type.Float
         | G.Bool _ -> Type.Builtin Type.Bool
+        | G.String _ -> Type.Builtin Type.String
         | _else_ -> Type.NoType
       in
       (t, None)
