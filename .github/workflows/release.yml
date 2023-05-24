@@ -48,228 +48,236 @@ jobs:
             echo "Setting dry-run to FALSE"
           fi
 
-  park-pypi-packages:
-    name: Park PyPI package names
-    runs-on: ubuntu-latest
-    needs: [dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    defaults:
-      run:
-        working-directory: cli/
-    env:
-      SEMGREP_SKIP_BIN: "1"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: pipenv
-      - run: sudo python3 -m pip install pipenv==2022.6.7
-      - name: Install dependencies
-        run: pipenv install --dev
-      - name: Build parked packages
-        run: pipenv run python setup.py park
-      - name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ !contains(github.ref,'-test-release') }}
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_upload_token }}
-          skip_existing: true
-          packages_dir: cli/dist/
-      - name: Publish to test Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ contains(github.ref,'-test-release') }}
-        with:
-          repository_url: https://test.pypi.org/legacy/
-          user: __token__
-          password: ${{ secrets.test_pypi_upload_token }}
-          skip_existing: true
-          packages_dir: cli/dist/
+  # park-pypi-packages:
+  #   name: Park PyPI package names
+  #   runs-on: ubuntu-latest
+  #   needs: [dry-run]
+  #   if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+  #   defaults:
+  #     run:
+  #       working-directory: cli/
+  #   env:
+  #     SEMGREP_SKIP_BIN: "1"
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.10"
+  #         cache: pipenv
+  #     - run: sudo python3 -m pip install pipenv==2022.6.7
+  #     - name: Install dependencies
+  #       run: pipenv install --dev
+  #     - name: Build parked packages
+  #       run: pipenv run python setup.py park
+  #     - name: Publish to Pypi
+  #       uses: pypa/gh-action-pypi-publish@master
+  #       if: ${{ !contains(github.ref,'-test-release') }}
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.pypi_upload_token }}
+  #         skip_existing: true
+  #         packages_dir: cli/dist/
+  #     - name: Publish to test Pypi
+  #       uses: pypa/gh-action-pypi-publish@master
+  #       if: ${{ contains(github.ref,'-test-release') }}
+  #       with:
+  #         repository_url: https://test.pypi.org/legacy/
+  #         user: __token__
+  #         password: ${{ secrets.test_pypi_upload_token }}
+  #         skip_existing: true
+  #         packages_dir: cli/dist/
 
-  build-test-docker:
-    uses: ./.github/workflows/build-test-docker.yaml
-    secrets: inherit
-    with:
-      docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-      repository-name: ${{ github.repository }}
-      artifact-name: image-release
-      file: Dockerfile
-      enable-tests: true
+  # build-test-docker:
+  #   uses: ./.github/workflows/build-test-docker.yaml
+  #   secrets: inherit
+  #   with:
+  #     docker-tags: |
+  #       type=semver,pattern={{version}}
+  #       type=semver,pattern={{major}}.{{minor}}
+  #     repository-name: ${{ github.repository }}
+  #     artifact-name: image-release
+  #     file: Dockerfile
+  #     enable-tests: true
 
-  build-test-osx-x86:
-    uses: ./.github/workflows/build-test-osx-x86.yaml
-    secrets: inherit
+  # build-test-osx-x86:
+  #   uses: ./.github/workflows/build-test-osx-x86.yaml
+  #   secrets: inherit
 
-  build-test-osx-m1:
-    uses: ./.github/workflows/build-test-osx-m1.yaml
-    secrets: inherit
+  # build-test-osx-m1:
+  #   uses: ./.github/workflows/build-test-osx-m1.yaml
+  #   secrets: inherit
 
-  build-test-core-x86:
-    uses: ./.github/workflows/build-test-core-x86.yaml
-    secrets: inherit
+  # build-test-core-x86:
+  #   uses: ./.github/workflows/build-test-core-x86.yaml
+  #   secrets: inherit
 
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
-    secrets: inherit
+  # build-test-ubuntu-16-04:
+  #   needs: [build-test-core-x86]
+  #   uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+  #   secrets: inherit
 
-  build-test-manylinux-x86:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-manylinux-x86.yaml
-    secrets: inherit
+  # build-test-manylinux-x86:
+  #   needs: [build-test-core-x86]
+  #   uses: ./.github/workflows/build-test-manylinux-x86.yaml
+  #   secrets: inherit
 
-  wait-for-build-test:
-    name: Wait for Build/Test All Platforms
-    runs-on: ubuntu-22.04
-    needs:
-      [
-        build-test-docker,
-        build-test-manylinux-x86,
-        build-test-osx-x86,
-        build-test-osx-m1,
-        build-test-ubuntu-16-04,
-      ]
-    steps:
-      - name: Continue
-        run: echo "All Platforms have been built and tested - proceeding!"
+  # wait-for-build-test:
+  #   name: Wait for Build/Test All Platforms
+  #   runs-on: ubuntu-22.04
+  #   needs:
+  #     [
+  #       build-test-docker,
+  #       build-test-manylinux-x86,
+  #       build-test-osx-x86,
+  #       build-test-osx-m1,
+  #       build-test-ubuntu-16-04,
+  #     ]
+  #   steps:
+  #     - name: Continue
+  #       run: echo "All Platforms have been built and tested - proceeding!"
 
-  push-docker:
-    needs: [wait-for-build-test, dry-run]
-    uses: ./.github/workflows/push-docker.yaml
-    secrets: inherit
-    with:
-      artifact-name: image-release
-      repository-name: ${{ github.repository }}
-      dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
+  # push-docker:
+  #   needs: [wait-for-build-test, dry-run]
+  #   uses: ./.github/workflows/push-docker.yaml
+  #   secrets: inherit
+  #   with:
+  #     artifact-name: image-release
+  #     repository-name: ${{ github.repository }}
+  #     dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
 
-  upload-wheels:
-    name: Upload Wheels to PyPI
-    runs-on: ubuntu-latest
-    needs: [wait-for-build-test, dry-run]
-    steps:
-      - name: Download Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: manylinux-wheel
-          path: manylinux-wheel
-      - name: Download Osx Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: osx-wheel
-          path: osx-wheel
-      - name: Download Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: m1-wheel
-          path: m1-wheel
-      - name: Unzip
-        run: unzip ./manylinux-wheel/dist.zip
-      - name: Unzip OSX Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./osx-wheel/dist.zip "*.whl"
-      - name: Unzip M1 Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./m1-wheel/dist.zip "*.whl"
-      - name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_upload_token }}
-          skip_existing: true
+  # upload-wheels:
+  #   name: Upload Wheels to PyPI
+  #   runs-on: ubuntu-latest
+  #   needs: [wait-for-build-test, dry-run]
+  #   steps:
+  #     - name: Download Artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: manylinux-wheel
+  #         path: manylinux-wheel
+  #     - name: Download Osx Artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: osx-wheel
+  #         path: osx-wheel
+  #     - name: Download Artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: m1-wheel
+  #         path: m1-wheel
+  #     - name: Unzip
+  #       run: unzip ./manylinux-wheel/dist.zip
+  #     - name: Unzip OSX Wheel
+  #       # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+  #       run: unzip ./osx-wheel/dist.zip "*.whl"
+  #     - name: Unzip M1 Wheel
+  #       # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+  #       run: unzip ./m1-wheel/dist.zip "*.whl"
+  #     - name: Publish to Pypi
+  #       uses: pypa/gh-action-pypi-publish@master
+  #       if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.pypi_upload_token }}
+  #         skip_existing: true
 
-  create-release:
-    name: Create the Github Release
-    runs-on: ubuntu-latest
-    needs: [wait-for-build-test, dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    steps:
-      - name: Get the version
-        id: get-version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
-      # wait for the draft release since these may not be ready after the refactor of the start-release.
-      - name: Wait for Draft Release if not Ready
-        id: wait-draft-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
-            echo "release not yet ready, sleeping for 5 seconds"
-            sleep 5
-          done
-      - name: Publish Release
-        id: publish_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false
+  # create-release:
+  #   name: Create the Github Release
+  #   runs-on: ubuntu-latest
+  #   needs: [wait-for-build-test, dry-run]
+  #   if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+  #   steps:
+  #     - name: Get the version
+  #       id: get-version
+  #       run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+  #     # wait for the draft release since these may not be ready after the refactor of the start-release.
+  #     - name: Wait for Draft Release if not Ready
+  #       id: wait-draft-release
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
+  #           echo "release not yet ready, sleeping for 5 seconds"
+  #           sleep 5
+  #         done
+  #     - name: Publish Release
+  #       id: publish_release
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
-  create-release-interfaces:
-    name: Create the Github Release on Semgrep Interfaces
-    runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    needs: [wait-for-build-test, dry-run]
-    steps:
-      - name: Get the version
-        id: get-version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
-      - name: Get JWT for semgrep-ci GitHub App
-        id: jwt
-        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-        env:
-          EXPIRATION: 600 # seconds
-          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
-          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
-      - name: Get token for semgrep-ci GitHub App
-        id: token
-        run: |
-          TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
-          jq -r .token)"
-          echo "::add-mask::$TOKEN"
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-          token: ${{ steps.token.outputs.token }}
-      - name: Upload Schema Files
-        id: upload-semgrep-schema-files
-        env:
-          GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
-        run: |
-          gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
-      - name: Publish Release Semgrep Interfaces
-        id: publish_release_semgrep_interfaces
-        env:
-          GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
-        run: |
-          gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
+  # create-release-interfaces:
+  #   name: Create the Github Release on Semgrep Interfaces
+  #   runs-on: ubuntu-latest
+  #   if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+  #   needs: [wait-for-build-test, dry-run]
+  #   steps:
+  #     - name: Get the version
+  #       id: get-version
+  #       run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+  #     - name: Get JWT for semgrep-ci GitHub App
+  #       id: jwt
+  #       uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+  #       env:
+  #         EXPIRATION: 600 # seconds
+  #         ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+  #         PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+  #     - name: Get token for semgrep-ci GitHub App
+  #       id: token
+  #       run: |
+  #         TOKEN="$(curl -X POST \
+  #         -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+  #         -H "Accept: application/vnd.github.v3+json" \
+  #         "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+  #         jq -r .token)"
+  #         echo "::add-mask::$TOKEN"
+  #         echo "token=$TOKEN" >> $GITHUB_OUTPUT
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #       with:
+  #         submodules: true
+  #         token: ${{ steps.token.outputs.token }}
+  #     - name: Upload Schema Files
+  #       id: upload-semgrep-schema-files
+  #       env:
+  #         GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+  #       run: |
+  #         gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
+  #     - name: Publish Release Semgrep Interfaces
+  #       id: publish_release_semgrep_interfaces
+  #       env:
+  #         GITHUB_TOKEN: "${{ steps.token.outputs.token }}"
+  #       run: |
+  #         gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
 
-  sleep-before-homebrew:
-    name: Sleep 10 min before releasing to homebrew
-    # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
-    needs: [dry-run, upload-wheels]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Sleep 10 min
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-        run: sleep 10m
+  # sleep-before-homebrew:
+  #   name: Sleep 10 min before releasing to homebrew
+  #   # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
+  #   needs: [dry-run, upload-wheels]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Sleep 10 min
+  #       if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+  #       run: sleep 10m
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
-    needs: [dry-run, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
+    # TODO: remove before flight
+    # needs: [dry-run, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
+    needs: [dry-run]
     runs-on: macos-12
     steps:
       - name: Get the version
         id: get-version
         run: |
-          echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+          TAG=${GITHUB_REF/refs\/tags\//}
+          if [ "${{ needs.dry-run.outputs.dry-run }}" = "true" ]; then
+            TAG=v99.99.99
+          fi
+          echo "Using TAG=${TAG}"
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using VERSION=${TAG#v}"
           echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       - uses: actions/setup-python@v4
         id: python-setup
