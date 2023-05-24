@@ -229,7 +229,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       if print then
         (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
         Fmt.pf ppf "  %a@."
-          Fmt.(styled (`Fg `Cyan) (any "\027[22m\027[24m  " ++ string ++ any " "))
+          Fmt.(
+            styled (`Fg `Cyan) (any "\027[22m\027[24m  " ++ string ++ any " "))
           cur.path;
       msg
     in
@@ -243,7 +244,8 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     if print then (
       List.iter
         (* The 24m is "no underline", and for python compatibility *)
-        (fun (sp, l) -> Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (any "\027[24m" ++ string)) l)
+          (fun (sp, l) ->
+          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (any "\027[24m" ++ string)) l)
         (wrap ~indent:7 ~width:text_width cur.check_id);
       List.iter
         (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)

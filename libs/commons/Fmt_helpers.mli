@@ -18,3 +18,11 @@ val pp_table : string * string list -> (string * int list) list Fmt.t
       A    1  2
       B  100 20
     ]} *)
+
+val pp_tables :
+  Format.formatter ->
+  string * string list * (string * int list) list ->
+  string * string list * (string * int list) list ->
+  unit
+(** Pretty-prints two tables with headings side by side, with some spacing in between.
+    Look at [pp_table] for the individual arguments. *)

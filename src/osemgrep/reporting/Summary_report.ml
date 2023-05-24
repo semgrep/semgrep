@@ -16,7 +16,7 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let pp_summary ppf
-    (( _respect_git_ignore,
+    (( respect_git_ignore,
        legacy,
        max_target_bytes,
        semgrep_ignored,
@@ -41,24 +41,25 @@ let pp_summary ppf
                 "Scan was limited to files changed since baseline commit."
             )
   *)
-  (* TODO
-        elif self.target_manager.respect_git_ignore:
-            # Each target could be a git repo, and we respect the git ignore
-            # of each target, so to be accurate with this print statement we
-            # need to check if any target is a git repo and not just the cwd
-            targets_not_in_git = 0
-            dir_targets = 0
-            for t in self.target_manager.targets:
-                if t.path.is_dir():
-                    dir_targets += 1
-                    try:
-                        t.files_from_git_ls()
-                    except (subprocess.SubprocessError, FileNotFoundError):
-                        targets_not_in_git += 1
-                        continue
-            if targets_not_in_git != dir_targets:
-                limited_fragments.append(f"Scan was limited to files tracked by git.")
-  *)
+  let out_limited =
+    if respect_git_ignore then
+      (* # Each target could be a git repo, and we respect the git ignore
+         # of each target, so to be accurate with this print statement we
+         # need to check if any target is a git repo and not just the cwd
+         targets_not_in_git = 0
+         dir_targets = 0
+         for t in self.target_manager.targets:
+             if t.path.is_dir():
+                 dir_targets += 1
+                 try:
+                     t.files_from_git_ls()
+                 except (subprocess.SubprocessError, FileNotFoundError):
+                     targets_not_in_git += 1
+                     continue
+         if targets_not_in_git != dir_targets: *)
+      Some "Scan was limited to files tracked by git."
+    else None
+  in
   let opt_msg msg = function
     | [] -> None
     | xs -> Some (string_of_int (List.length xs) ^ " " ^ msg)
@@ -79,13 +80,14 @@ let pp_summary ppf
       "files only partially analyzed due to a parsing or internal Semgrep error"
       errors
   in
-  match (out_skipped, out_partial) with
-  | [], None -> ()
-  | xs, parts ->
+  match (out_skipped, out_partial, out_limited) with
+  | [], None, None -> ()
+  | xs, parts, limited ->
       (* TODO if limited_fragments:
               for fragment in limited_fragments:
                   message += f"\n  {fragment}" *)
       Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
+      Option.iter (fun txt -> Fmt.pf ppf "  %s" txt) limited;
       Option.iter (fun txt -> Fmt.pf ppf "  Partially scanned: %s@." txt) parts;
       (match xs with
       | [] -> ()
