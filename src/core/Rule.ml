@@ -274,13 +274,57 @@ end
 
 type rule_id = ID.t [@@deriving show, eq]
 
+(*
+   For historical reasons, the 'languages' field in the Semgrep rule
+   (YAML file) is a list of strings. There was no distinction between
+   target selection and target analysis. This led to oddities for
+   analyzers that aren't specific to a programming language.
+
+   We can now start to decouple file filtering from their analysis.
+   For example, we can select Bash files using the predefined
+   rules that inspect the file extension or the shebang line
+   but analyze them using a regexp instead of a regular Semgrep pattern.
+
+   This is the beginning of fixing this giant mess.
+
+   to be continued...
+*)
+type languages = {
+  (* How to select target files e.g. "files that look like C files".
+     If unspecified, the selector selects all the files that are not
+     ignored by generic mechanisms such as semgrepignore.
+     In a Semgrep rule where a string is expected, the standard way
+     is to use "generic" but "regex" and "none" have the same effect.
+     They all translate into 'None'.
+     TODO: extend this with the per-rule include/exclude options?
+  *)
+  target_selector : Lang.t list option;
+  (* How to analyze target files. The accompanying patterns are specified
+     elsewhere in the rule.
+     Examples:
+     - "pattern for the C parser using the generic AST" (regular programming
+       language using a classic Semgrep pattern)
+     - "pattern for Fortran77 or for Fortran90" (two possible parsers)
+     - "spacegrep pattern"
+     - "high-entropy detection" (doesn't use a pattern)
+     - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
+     This information may have to be extracted from another part of the
+     YAML rule.
+  *)
+  target_analyzer : Xlang.t;
+}
+[@@deriving show]
+
 type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
   mode : 'mode;
-  message : string; (* Currently a dummy value for extract mode rules *)
-  severity : severity; (* Currently a dummy value for extract mode rules *)
-  languages : Xlang.t;
+  (* Currently a dummy value for extract mode rules *)
+  message : string;
+  (* Currently a dummy value for extract mode rules *)
+  severity : severity;
+  (* This is the list of languages in which the root pattern makes sense. *)
+  languages : languages;
   (* OPTIONAL fields *)
   options : Rule_options.t option;
   (* deprecated? todo: parse them *)
@@ -487,6 +531,18 @@ let kind_of_formula = function
 (* Converters *)
 (*****************************************************************************)
 
+let languages_of_lang (lang : Lang.t) : languages =
+  { target_selector = Some [ lang ]; target_analyzer = L (lang, []) }
+
+let languages_of_xlang (xlang : Xlang.t) : languages =
+  match xlang with
+  | LRegex
+  | LAliengrep
+  | LSpacegrep ->
+      { target_selector = None; target_analyzer = xlang }
+  | L (lang, other_langs) ->
+      { target_selector = Some (lang :: other_langs); target_analyzer = xlang }
+
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
@@ -512,7 +568,7 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
-    languages = xlang;
+    languages = languages_of_xlang xlang;
     options = None;
     equivalences = None;
     fix = None;

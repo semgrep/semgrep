@@ -204,8 +204,10 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Semgrep_error_code.error list
   * Output_from_core_j.skipped_target list
 
+(* TODO: This is used by semgrep-pro and not by semgrep. What is it?
+   TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
-val xtarget_of_file : Runner_config.t -> Lang.t -> Common.filename -> Xtarget.t
+val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
 
 (*
    Sort targets by decreasing size. This is meant for optimizing

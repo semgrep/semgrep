@@ -185,7 +185,7 @@ let check r =
   match r.mode with
   | `Search f
   | `Extract { formula = f; _ } ->
-      check_formula { r; errors = ref [] } r.languages f
+      check_formula { r; errors = ref [] } r.languages.target_analyzer f
   | `Taint _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =

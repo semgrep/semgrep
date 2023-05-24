@@ -58,7 +58,7 @@ type env = {
   (* id of the current rule (needed by some exns) *)
   id : Rule.rule_id;
   (* languages of the current rule (needed by parse_pattern) *)
-  languages : Xlang.t;
+  languages : Rule.languages;
   (* whether we are underneath a `metavariable-pattern` *)
   in_metavariable_pattern : bool;
   (* emma: save the path within the yaml file for each pattern
@@ -136,7 +136,10 @@ let try_and_raise_invalid_pattern_if_error env (s, t) f =
         (R.Err
            (R.InvalidRule
               ( R.InvalidPattern
-                  (s, env.languages, Common.exn_to_s exn, env.path),
+                  ( s,
+                    env.languages.target_analyzer,
+                    Common.exn_to_s exn,
+                    env.path ),
                 env.id,
                 t )))
 
@@ -373,27 +376,40 @@ let parse_language ~id ((s, t) as _lang) : Lang.t =
   | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
   | Some l -> l
 
-let parse_languages ~id (options : Rule_options_t.t) langs : Xlang.t =
-  match langs with
-  | [ (("none" | "regex"), _t) ] -> LRegex
-  | [ ("generic", _t) ] -> (
-      (* The generic mode now uses one of two possible engines.
-         For now, we keep the name "generic" for both and use an option
-         to choose one engine or the other. *)
-      match options.generic_engine with
-      | `Spacegrep -> LSpacegrep
-      | `Aliengrep -> LAliengrep)
-  | xs -> (
-      let languages = xs |> Common.map (parse_language ~id:(fst id)) in
-      match languages with
-      | [] ->
-          raise
-            (R.Err
-               (R.InvalidRule
-                  ( R.InvalidOther "we need at least one language",
-                    fst id,
-                    snd id )))
-      | x :: xs -> L (x, xs))
+(*
+   This list specifies target selection and possible pattern parsers.
+   Constraints:
+   - target selection is either generic or a list of programming languages
+     that can be detected by file extensions and other quick lookups.
+   - target analysis is done by one of the generic analyzers (regex,
+     spacegrep, aliengrep, ...) or by trying to parse the semgrep pattern
+     as one of several programming languages.
+   This decouples target selection from pattern parsing.
+*)
+let parse_languages ~id (options : Rule_options_t.t) langs : Rule.languages =
+  let opt_target_selector, (target_analyzer : Xlang.t) =
+    match langs with
+    | [ (("none" | "regex"), _t) ] -> (None, LRegex)
+    | [ ("generic", _t) ] -> (
+        (* The generic mode now uses one of two possible engines.
+           For now, we keep the name "generic" for both and use an option
+           to choose one engine or the other. *)
+        match options.generic_engine with
+        | `Spacegrep -> (None, LSpacegrep)
+        | `Aliengrep -> (None, LAliengrep))
+    | xs -> (
+        let langs = xs |> Common.map (parse_language ~id:(fst id)) in
+        match langs with
+        | [] ->
+            raise
+              (R.Err
+                 (R.InvalidRule
+                    ( R.InvalidOther "we need at least one language",
+                      fst id,
+                      snd id )))
+        | x :: xs -> (Some langs, L (x, xs)))
+  in
+  { target_selector = opt_target_selector; target_analyzer }
 
 let parse_severity ~id (s, t) =
   match s with
@@ -589,8 +605,8 @@ let parse_options rule_id (key : key) value =
 (*****************************************************************************)
 
 (* less: could move in a separate Parse_xpattern.ml *)
-let parse_xpattern env (str, tok) =
-  match env.languages with
+let parse_rule_xpattern env (str, tok) =
+  match env.languages.target_analyzer with
   | Xlang.L (lang, _) ->
       (* opti: parsing Semgrep patterns lazily improves speed significantly.
        * Parsing p/default goes from 13s to just 0.2s, mostly because
@@ -663,7 +679,7 @@ let parse_xpattern_expr env e =
        (* TODO put in *)
      in *)
   try_and_raise_invalid_pattern_if_error env (s, t) (fun () ->
-      parse_xpattern env (s, t))
+      parse_rule_xpattern env (s, t))
 
 (*****************************************************************************)
 (* Parser for old (but current) formula *)
@@ -759,7 +775,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let get_formula ?(allow_string = false) env x =
     match (parse_str_or_dict env x, x.G.e) with
     | Left (value, t), _ when allow_string ->
-        R.P (parse_xpattern env (value, t))
+        R.P (parse_rule_xpattern env (value, t))
     | Left _, _ -> error_at_expr env.id x "Expected dictionary, not a string!"
     | ( _,
         G.Container
@@ -909,7 +925,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
             let env' =
               {
                 id = env.id;
-                languages = xlang;
+                languages = Rule.languages_of_xlang xlang;
                 in_metavariable_pattern = env.in_metavariable_pattern;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
                 options_key = None;
@@ -1001,7 +1017,7 @@ and parse_formula env (value : G.expr) : R.formula =
            (* TODO put in *)
          in *)
       R.P
-        (try parse_xpattern env (s, t) with
+        (try parse_rule_xpattern env (s, t) with
         | (Time_limit.Timeout _ | UnixExit _) as e ->
             Exception.catch_and_reraise e
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
@@ -1010,7 +1026,10 @@ and parse_formula env (value : G.expr) : R.formula =
               (R.Err
                  (R.InvalidRule
                     ( R.InvalidPattern
-                        (s, env.languages, Common.exn_to_s exn, env.path),
+                        ( s,
+                          env.languages.target_analyzer,
+                          Common.exn_to_s exn,
+                          env.path ),
                       env.id,
                       t ))))
   (* If that doesn't work, it should be a key-value pairing.
@@ -1091,7 +1110,7 @@ and produce_constraint env dict tok indicator =
             let env' =
               {
                 env with
-                languages = xlang;
+                languages = Rule.languages_of_xlang xlang;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
               }
             in
@@ -1214,7 +1233,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
   else
     match parse_str_or_dict env value with
     | Left value ->
-        let source_formula = R.P (parse_xpattern env value) in
+        let source_formula = R.P (parse_rule_xpattern env value) in
         {
           source_formula;
           source_by_side_effect = false;
@@ -1281,7 +1300,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
   else
     match parse_str_or_dict env value with
     | Left value ->
-        let sanitizer_formula = R.P (parse_xpattern env value) in
+        let sanitizer_formula = R.P (parse_rule_xpattern env value) in
         {
           sanitizer_formula;
           sanitizer_by_side_effect = false;
@@ -1305,7 +1324,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
   else
     match parse_str_or_dict env value with
     | Left value ->
-        let sink_formula = R.P (parse_xpattern env value) in
+        let sink_formula = R.P (parse_rule_xpattern env value) in
         { sink_id; sink_formula; sink_requires = (snd key, None) }
     | Right dict -> parse_from_dict dict parse_formula_from_dict
 
@@ -1675,14 +1694,14 @@ let parse_xpattern xlang (str, tok) =
   let env =
     {
       id = Rule.ID.of_string "-e/-f";
-      languages = xlang;
+      languages = Rule.languages_of_xlang xlang;
       in_metavariable_pattern = false;
       path = [];
       options_key = None;
       options = None;
     }
   in
-  parse_xpattern env (str, tok)
+  parse_rule_xpattern env (str, tok)
 
 (*****************************************************************************)
 (* Useful for tests *)

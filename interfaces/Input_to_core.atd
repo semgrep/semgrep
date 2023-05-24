@@ -18,13 +18,15 @@
  * tests/e2e/target
 *)
 
+type xlang = string wrap <ocaml module="Xlang">
+
 type target = {
   path: string (* source file *);
-  (* Target selector = the name of a programming language.
-     This should not be "regex" or "generic" or "spacegrep".
-     In OCaml, this is a Lang, not Xlang.
-     It seems to be used only by Test_engine. Can we get rid of it? *)
-  ?target_language: string option;
+  (* Must be a valid "language" as defined in Xlang.mli.
+     examples: "ocaml", "python", but also "spacegrep" or "regexp".
+     less: would be great to use Lang.t here, but atd does not
+     allow (by design) to use types defined in other files. *)
+  language: xlang;
   (* Index in the rule_ids list in targets of the rule_id to
    * run this target on *)
   rule_nums: int list;

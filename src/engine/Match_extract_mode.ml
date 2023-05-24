@@ -129,14 +129,21 @@ let offsets_of_mval extract_mvalue =
 (* Compute the rules that should be run for the extracted
    language.
 
+   Input: all the rules known to the current semgrep scan. This allows
+   us to identify them by their numeric index. This seems to be used to
+   populate the rule_nums field that we normally get from pysemgrep.
+   This is fragile. Let's try to get rid of this. Rules are identified
+   by rule IDs which are strings. We should use that.
+
    Note: for normal targets, this decision is made on the Python
    side. Implementing that for extracted targets would be far more
    annoying, however. The main implication of selecting the rules
    here is, if your target is html and your dest lang is javascript,
    there is no way to ignore an html path for a specific javascript
    rule. In general extract mode does not allow you to select rules to
-   run on extracted targets so this is in keeping with that design *)
-let rules_for_extracted_lang (all_rules : Rule.t list) =
+   run on extracted targets so this is in keeping with that design.
+*)
+let rules_for_extracted_lang ~(all_rules : Rule.t list) =
   let rules_for_lang_tbl = Hashtbl.create 10 in
   let memo xlang =
     match Hashtbl.find_opt rules_for_lang_tbl xlang with
@@ -146,7 +153,7 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
           all_rules
           |> Common.mapi (fun i r -> (i, r))
           |> List.filter (fun (_i, r) ->
-                 let r_lang = r.Rule.languages in
+                 let r_lang = r.Rule.languages.target_analyzer in
                  match (xlang, r_lang) with
                  | Xlang.L (l, _), Xlang.L (rl, rls) ->
                      List.exists (fun x -> Lang.equal l x) (rl :: rls)
@@ -165,22 +172,13 @@ let rules_for_extracted_lang (all_rules : Rule.t list) =
   memo
 
 let mk_extract_target dst_lang contents all_rules =
-  let dst_lang_str, temp_suffix =
-    match dst_lang with
-    | Xlang.LSpacegrep
-    | Xlang.LAliengrep
-    | Xlang.LRegex ->
-        (None, "generic")
-    | Xlang.L (x, _) ->
-        let name = Lang.to_lowercase_alnum x in
-        (Some name, name)
-  in
-  let f = Common.new_temp_file "extracted" temp_suffix in
+  let suffix = Xlang.to_string dst_lang in
+  let f = Common.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
   {
     In.path = f;
-    target_language = dst_lang_str;
-    rule_nums = rules_for_extracted_lang all_rules dst_lang;
+    language = dst_lang;
+    rule_nums = rules_for_extracted_lang ~all_rules dst_lang;
   }
 
 (* Unquote string *)
@@ -306,7 +304,7 @@ let map_res map_loc tmpfile file
 (* Main logic *)
 (*****************************************************************************)
 
-let extract_and_concat erule_table xtarget rule_ids matches =
+let extract_and_concat erule_table xtarget rules matches =
   matches
   (* Group the matches within this file by rule id.
    * TODO? dangerous use of =*= ?
@@ -448,10 +446,10 @@ let extract_and_concat erule_table xtarget rule_ids matches =
            xtarget.file contents;
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; _ }) = r.mode in
-         let target = mk_extract_target dst_lang contents rule_ids in
+         let target = mk_extract_target dst_lang contents rules in
          (target, map_res map_loc target.path xtarget.file))
 
-let extract_as_separate erule_table xtarget rule_ids matches =
+let extract_as_separate erule_table xtarget rules matches =
   matches
   |> Common.map_filter (fun m ->
          match extract_of_match erule_table m with
@@ -494,7 +492,7 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
              let (`Extract { Rule.dst_lang; Rule.transform; _ }) = erule.mode in
-             let target = mk_extract_target dst_lang contents rule_ids in
+             let target = mk_extract_target dst_lang contents rules in
              (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
              (* TODO: Find the reason of this behaviour and fix it properly *)
              let map_loc =
@@ -524,7 +522,7 @@ let extract_as_separate erule_table xtarget rule_ids matches =
    to the original file will be produced.
  *)
 let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
-    (erules : Rule.extract_rule list) xtarget rule_ids =
+    (erules : Rule.extract_rule list) xtarget rules =
   let erule_table = mk_rule_table erules in
   let xconf = Match_env.default_xconfig in
   let res =
@@ -544,9 +542,7 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
            | None -> raise Impossible)
   in
   let separate =
-    extract_as_separate erule_table xtarget rule_ids separate_matches
+    extract_as_separate erule_table xtarget rules separate_matches
   in
-  let combined =
-    extract_and_concat erule_table xtarget rule_ids combine_matches
-  in
+  let combined = extract_and_concat erule_table xtarget rules combine_matches in
   separate @ combined

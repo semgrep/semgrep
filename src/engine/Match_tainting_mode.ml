@@ -445,7 +445,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let xtarget =
     {
       Xtarget.file;
-      xlang = rule.languages;
+      xlang = rule.languages.target_analyzer;
       lazy_content = lazy (Common.read_file file);
       lazy_ast_and_errors;
     }

@@ -452,10 +452,7 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    # Distinguish target selector (optional lang) from target analyzer
-    # (lang or regex, spacegrep, ...)
-    target_language: Optional[Language]  # Lang
-    target_analyzer: Language  # invalid Xlang, ignored by semgrep-core
+    language: Language  # Xlang; see Xlang.mli
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -463,8 +460,7 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if self.target_language is None
-            else self.target_language.definition.id
+            if self.language.definition.id
         )
 
 
@@ -926,10 +922,7 @@ class CoreRunner:
             [
                 Task(
                     path=target,
-                    target_language=language
-                    if language.definition.is_target_language
-                    else None,
-                    target_analyzer=language,
+                    language=language,
                     # tuple conversion makes rule_nums hashable, so usable as cache key
                     rule_nums=tuple(target_info[target, language]),
                 )

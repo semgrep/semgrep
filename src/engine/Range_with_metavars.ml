@@ -37,7 +37,7 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
  fun r range ->
   let m = range.origin in
   let rule_id = m.rule_id in
-  let languages = Xlang.to_langs r.Rule.languages in
+  let languages = Xlang.to_langs r.Rule.languages.target_analyzer in
   (* adjust the rule id *)
   let rule_id : Pattern_match.rule_id =
     {

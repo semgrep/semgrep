@@ -41,6 +41,7 @@ class Rule:
         self._id = str(self._raw["id"])
 
         path_dict = self._raw.get("paths", {})
+        self.options_dict = self._raw.get("options", {})
         self._includes = cast(Sequence[str], path_dict.get("include", []))
         self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
 
@@ -50,6 +51,15 @@ class Rule:
         rule_languages: Set[Language] = {
             LANGUAGE.resolve(l, lang_span) for l in self._raw.get("languages", [])
         }
+
+        # Replace "generic" in the "languages" list by the engine specified
+        # in the options section.
+        rule_languages = [
+            language
+            if language != "generic"
+            else self.options_dict.get("generic_engine", "spacegrep")
+            for language in rule_languages
+        ]
 
         # add typescript to languages if the rule supports javascript.
         # TODO: Move this hack to lang.json

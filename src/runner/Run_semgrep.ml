@@ -515,12 +515,18 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
 let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
   rules
   |> List.filter (fun r ->
-         match (xlang, r.R.languages) with
+         match (xlang, r.R.languages.target_analyzer) with
          | LRegex, LRegex
          | LSpacegrep, LSpacegrep
          | LAliengrep, LAliengrep ->
              true
-         | L (x, _empty), L (y, ys) -> List.mem x (y :: ys)
+         | ( L
+               ( x,
+                 _empty
+                 (* FIXME: why should '_empty' be empty? Use [] and 'assert' *)
+               ),
+             L (y, ys) ) ->
+             List.mem x (y :: ys)
          | (LRegex | LSpacegrep | LAliengrep | L _), _ -> false)
 
 (* Creates a table mapping rule id indicies to rules. In the case that a rule
@@ -547,17 +553,25 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   Common.hash_of_list id_pairs
 
-let xtarget_of_file (config : Runner_config.t) (lang : Lang.t)
+let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
     (file : Common.filename) : Xtarget.t =
   let lazy_ast_and_errors =
     lazy
-      (Parse_with_caching.parse_and_resolve_name
+      (let lang =
+         (* ew. We fail tests if this gets pulled out of the lazy block. *)
+         match xlang with
+         | L (lang, _) -> lang
+         | _ ->
+             failwith
+               "requesting generic AST for an unspecified target language"
+       in
+       Parse_with_caching.parse_and_resolve_name
          ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
          (Fpath.v file))
   in
   {
     Xtarget.file;
-    xlang = L (lang, []);
+    xlang;
     lazy_content = lazy (Common.read_file file);
     lazy_ast_and_errors;
   }
@@ -604,7 +618,7 @@ let targets_of_config (config : Runner_config.t)
         |> Common.map (fun file ->
                {
                  In.path = Fpath.to_string file;
-                 target_language = Option.map Lang.to_string lang_opt;
+                 language = xlang;
                  rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
@@ -645,9 +659,9 @@ let extracted_targets_of_config (config : Runner_config.t)
       Hashtbl.t =
   let extractors =
     Common.map_filter
-      (fun r ->
-        match r.Rule.mode with
-        | `Extract _ as e -> Some { r with mode = e }
+      (fun (r : Rule.t) ->
+        match r.mode with
+        | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
         | `Search _
         | `Taint _ ->
             None)
@@ -670,19 +684,13 @@ let extracted_targets_of_config (config : Runner_config.t)
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
            let file = t.path in
-           let lang =
-             match t.target_language with
-             | Some str -> Lang.of_string str
-             | None ->
-                 failwith
-                   "requesting generic AST for an unspecified target language"
-           in
-           let xtarget = xtarget_of_file config lang file in
+           let xlang = t.language in
+           let xtarget = xtarget_of_file config xlang file in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold extractors xtarget
-               all_rules
+               (extractors :> Rule.t list)
            in
            (* Print number of extra targets so Python knows *)
            (match config.output_format with
@@ -743,11 +751,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (fun (target : In.target) ->
            let file = target.path in
-           let lang =
-             match target.target_language with
-             | None -> failwith "unspecified target language"
-             | Some str -> Lang.of_string str
-           in
+           let xlang = target.language in
            let rules =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
@@ -772,7 +776,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | Some paths ->
                         Filter_target.filter_paths paths (Fpath.v file))
            in
-           let xtarget = xtarget_of_file config lang file in
+           let xtarget = xtarget_of_file config xlang file in
            let match_hook str match_ =
              if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval

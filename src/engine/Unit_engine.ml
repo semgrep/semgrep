@@ -541,14 +541,15 @@ let get_extract_source_lang file rules =
   in
   match erule_langs with
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
-  | [ x ] -> x
+  | [ x ] -> x.target_analyzer
   | x :: _ ->
+      let xlang = x.target_analyzer in
       pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
             first one: %s"
-           !!file (Xlang.show x));
-      x
+           !!file (Xlang.show xlang));
+      xlang
 
 let extract_tests () =
   let path = tests_path / "extract" in
@@ -580,7 +581,7 @@ let tainting_test lang rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages with
+           match r.Rule.languages.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in

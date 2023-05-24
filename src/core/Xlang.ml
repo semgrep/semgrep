@@ -51,6 +51,7 @@ let assoc : (string * t) list =
   @ [
       ("regex", LRegex);
       ("none", LRegex);
+      ("generic", LSpacegrep);
       ("spacegrep", LSpacegrep);
       ("aliengrep", LAliengrep);
     ]
@@ -71,7 +72,9 @@ let of_string ?rule_id:id_opt s =
   | "none"
   | "regex" ->
       LRegex
-  | "spacegrep" -> LSpacegrep
+  | "generic"
+  | "spacegrep" ->
+      LSpacegrep
   | "aliengrep" -> LAliengrep
   | __else__ -> (
       match Lang.of_string_opt s with
@@ -96,3 +99,6 @@ let is_proprietary = function
   | LSpacegrep
   | LAliengrep ->
       false
+
+let wrap str = of_string str
+let unwrap xlang = to_string xlang
