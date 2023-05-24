@@ -104,7 +104,6 @@ let main () =
       (Sys.chdir ".."; parent ())
   in
   parent ();
-  print_endline (Sys.getcwd ());
   Parsing_init.init ();
   Data_init.init ();
   Core_CLI.register_exception_printers ();
