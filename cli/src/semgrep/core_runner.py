@@ -458,10 +458,7 @@ class Task:
 
     @property
     def language_label(self) -> str:
-        return (
-            "<multilang>"
-            if self.language.definition.id
-        )
+        return "<multilang>" if self.language is None else self.language.definition.id
 
 
 class TargetMappings(List[Task]):
