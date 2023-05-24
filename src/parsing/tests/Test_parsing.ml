@@ -177,7 +177,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
-      |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_ocaml.Boilerplate.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
