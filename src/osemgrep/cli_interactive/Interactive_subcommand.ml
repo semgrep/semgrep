@@ -142,18 +142,19 @@ let placement_wrt_bound (lb, rb) idx =
   match (lb, rb) with
   | None, None -> Common.Middle3 ()
   | Some lb, _ when idx < lb -> Left3 ()
-  | _, Some rb when idx > rb -> Right3 ()
+  | _, Some rb when idx >= rb -> Right3 ()
   | __else__ -> Middle3 ()
 
-(* Given a range of locations, we want to split a given line
+(* Given the range of a match, we want to split a given line
  * into things that are in the match, or are not.
  *)
 let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
+  let end_line, end_col, _ = Tok.end_pos_of_loc t2 in
   if row < t1.pos.line then (line, "", "")
   else if row > t2.pos.line then (line, "", "")
   else
     let lb = if row = t1.pos.line then Some t1.pos.column else None in
-    let rb = if row = t2.pos.line then Some t2.pos.column else None in
+    let rb = if row = end_line then Some end_col else None in
     let l_rev, m_rev, r_rev, _ =
       String.fold_left
         (fun (l, m, r, i) c ->
@@ -171,17 +172,27 @@ let img_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let lines = Common2.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
-  let max_len = files_height_of_term state.term in
-  let range_height = end_line - start_line in
+  let max_height = files_height_of_term state.term in
+  let match_height = end_line - start_line in
+  (* We want the appropriate amount of lines that will fit within
+     our terminal window.
+     We also want the match to be relatively centered, however.
+     Fortunately, the precise math doesn't matter too much. We
+     take the height of the match and try to equivalently
+     pad it on both sides with other lines.
+     TODO(brandon): cases for if the match is too close to the top
+     or bottom of the file
+  *)
   let preview_start, preview_end =
-    if range_height <= max_len then
+    if match_height <= max_height then
       (* if this fits within our window *)
-      let extend_before = (max_len - range_height) / 2 in
+      let extend_before = (max_height - match_height) / 2 in
       let start = safe_subtract start_line extend_before in
-      (start, start + max_len)
-    else (start_line, start_line + max_len)
+      (start, start + max_height)
+    else (start_line, start_line + max_height)
   in
   lines
+  (* Row is 1-indexed *)
   |> Common.mapi (fun idx x -> (idx + 1, x))
   |> Common.map_filter (fun (idx, line) ->
          if preview_start <= idx && idx < preview_end then
@@ -223,14 +234,25 @@ let render_screen state =
           try img_of_match pm file state with
           | _ -> I.string A.empty "preview unavailble")
   in
-  let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let vertical_bar =
     I.char A.empty '|' 1 (files_height_of_term state.term) |> I.hpad 1 1
   in
+  let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let prompt =
     I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
   in
   let lowerbar = I.(string (A.fg A.green) "Semgrep Interactive Mode") in
+  (* The format of the Interactive Mode UI is:
+   *
+   * files files vertical bar preview preview preview
+   * files files vertical bar preview preview preview
+   * files files vertical bar preview preview preview
+   * files files vertical bar preview preview preview
+   * files files vertical bar preview preview preview
+   * horizontal bar   horizontal bar   horizontal bar
+   * prompt prompt prompt prompt prompt prompt prompt
+   * lower bar lower bar lower bar lower bar lower bar
+   *)
   I.(
     matches |> I.vcat
     (* THINK: unnecessary? *)
@@ -287,7 +309,7 @@ let execute_command (state : state) =
     | Pat (pat, b) ->
         let new_ipat = handle_pat (pat, b) in
         let matches = matches_of_new_ipat new_ipat state in
-        { state with matches }
+        { state with matches; pat = Some new_ipat }
   in
   (* Remember to reset the current line after executing a command. *)
   { state with cur_line_rev = [] }
