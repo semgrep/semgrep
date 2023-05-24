@@ -410,6 +410,7 @@ For more information see https://semsgrep.dev
     emile
     bos
     (digestif (>= 1.0.0))
+    notty
   )
 )
 
