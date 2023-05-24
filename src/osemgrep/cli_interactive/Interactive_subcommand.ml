@@ -10,7 +10,7 @@ open Notty
 open Notty_unix
 
 (*****************************************************************************)
-(* Types *)
+(* Types and constants *)
 (*****************************************************************************)
 
 type command = Exit | Pat of Xpattern.t * bool | Any | All
@@ -19,85 +19,6 @@ type interactive_pat =
   | IPat of Xpattern.t * bool
   | IAll of interactive_pat list
   | IAny of interactive_pat list
-
-(* This module implements something I call a "pointed zipper".
-
-   A zipper is, of course, the classic data structure for a
-   list's "one hole context", of traversing a list via being located
-   at a single point.
-
-   A "pointed zipper" is a zipper which also has a "frame", which
-   is of a certain size, and a pointer which can move around the
-   frame freely. Esesentially, a pointed zipper is not just located
-   at a single element in the list, but a frame of many such
-   elements.
-
-   The main use case here is for scrolling purposes on a list of
-   n entries with a frame of length m. In this case, we want to
-   keep a pointer around so we can move around on the entries we
-   already see, but we also want to be able to move elements
-   through the zipper, for when the elements in our frame change.
-
-   So for instance, we might have a zipper like:
-
-   A
-   B <- only these
-   C <- are in
-   D <- our frame
-   E
-
-   Our pointer moves freely between B,C,D, but if we try to go
-   up, the whole zipper moves, and we get:
-
-   A <- only these
-   B <- are in
-   C <- our frame
-   D
-   E
-*)
-module Pointed_zipper = struct
-  type 'a t = {
-    before_rev : 'a list;
-    pointer : int;
-    max_len : int;
-    after : 'a list;
-  }
-
-  let shift_frame_left m =
-    match (m.before_rev, m.after) with
-    | [], _ -> m
-    | x :: xs, after -> { m with before_rev = xs; after = x :: after }
-
-  let shift_frame_right m =
-    match (m.before_rev, m.after) with
-    | _, [] -> m
-    | before_rev, x :: xs -> { m with before_rev = x :: before_rev; after = xs }
-
-  (* A move necessitates a pointer move, which may or may
-     not cause a frame move, depending on if the pointer is
-     at the boundaries of the frame.
-  *)
-  let move_left m =
-    if m.pointer <= 0 then { (shift_frame_left m) with pointer = 0 }
-    else { m with pointer = m.pointer - 1 }
-
-  let move_right m =
-    if m.pointer >= m.max_len - 1 then
-      { (shift_frame_right m) with pointer = m.max_len - 1 }
-    else if m.pointer >= List.length m.after - 1 then
-      (* This is the case where we move the pointer
-         down, but we don't have enough entries left.
-         In this case, don't move the pointer.
-      *)
-      m
-    else { m with pointer = m.pointer + 1 }
-
-  let take n m = Common2.take_safe n m.after
-  let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
-  let position m = m.pointer
-  let get_current m = List.nth m.after (position m)
-  let is_empty m = List.length m.after + List.length m.before_rev = 0
-end
 
 (* The type of the state for the interactive loop.
    This is the information we need to carry in between every key press,
@@ -115,8 +36,11 @@ type state = {
   pat : interactive_pat option;
   mode : bool;  (** True if `All`, false if `Any`
       *)
-  term : Term.t;
+  term : Notty_unix.Term.t;
 }
+
+(* Arbitrarily, let's just set the width of files to 40 chars. *)
+let files_width = 40
 
 (*****************************************************************************)
 (* Helpers *)
@@ -124,20 +48,11 @@ type state = {
 
 let files_height_of_term term = snd (Term.size term) - 3
 
-(* Arbitrarily, let's just set the width of files to 40 chars. *)
-let files_width = 40
-
 let empty xlang xtargets term =
   {
     xlang;
     xtargets;
-    matches =
-      {
-        before_rev = [];
-        after = [];
-        pointer = 0;
-        max_len = files_height_of_term term;
-      };
+    matches = Pointed_zipper.empty_with_max_len (files_height_of_term term);
     cur_line_rev = [];
     pat = None;
     mode = true;
