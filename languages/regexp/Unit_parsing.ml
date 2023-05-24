@@ -4,8 +4,8 @@
 
 open Common
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let test_valid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in

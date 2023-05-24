@@ -15,10 +15,10 @@ module Out = Output_from_core_j
 (* Constants *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../../tests"
-let e2e_path = "../../../../cli/tests/e2e/snapshots/"
-let e2e_ci_path = "../../../../cli/tests/e2e/snapshots/test_ci/test_full_run"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
+let e2e_path = "cli/tests/e2e/snapshots/"
+let e2e_ci_path = e2e_path ^ "test_ci/test_full_run"
 
 (*****************************************************************************)
 (* Semgrep-core output *)

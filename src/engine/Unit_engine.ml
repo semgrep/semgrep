@@ -25,9 +25,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 (* TODO: move these to the "main" for the test suite. *)
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../../tests"
-let tests_path_patterns = Fpath.v "../../../../tests/patterns"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
+let tests_path_patterns = tests_path / "patterns"
 let polyglot_pattern_path = tests_path_patterns / "POLYGLOT"
 
 (*****************************************************************************)

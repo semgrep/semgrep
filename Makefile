@@ -250,7 +250,7 @@ core-test: core
 	# The test executable has a few options that can be useful
 	# in some contexts.
 	dune build ./_build/default/src/tests/test.exe
-	cd ./_build/default/src/tests/ && ./test.exe --show-errors --help 2>&1 >/dev/null
+	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
 

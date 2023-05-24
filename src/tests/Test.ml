@@ -97,6 +97,14 @@ let tests_with_delayed_error () =
       ]
 
 let main () =
+  let rec parent () =
+    if Sys.getcwd () = "/" then
+      invalid_arg "couldn't find semgrep root"
+    else if not (Sys.file_exists ".git" && Sys.is_directory ".git") then
+      (Sys.chdir ".."; parent ())
+  in
+  parent ();
+  print_endline (Sys.getcwd ());
   Parsing_init.init ();
   Data_init.init ();
   Core_CLI.register_exception_printers ();

@@ -6,8 +6,8 @@ module G = AST_generic
 (* Unit tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
 let tests_path_typing = tests_path / "typing"
 
 let tests parse_program parse_pattern =
