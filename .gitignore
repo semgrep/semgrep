@@ -71,6 +71,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# src/targeting/Unit_guess_lang.ml creates a top-level tmp folder
+# "We don't delete the files when we're done because it's easier when troubleshooting tests."
+/tmp/
+
 # Translations
 *.mo
 *.pot

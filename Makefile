@@ -85,7 +85,6 @@ build:
 core:
 	rm -f bin
 	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
@@ -121,9 +120,11 @@ symlink-core-for-cli:
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
+# Builds only the two main binaries needed for development.
+# If you need other binaries, look at the rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build
+	dune build _build/install/default/bin/semgrep-core _build/install/default/bin/osemgrep
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -137,6 +138,34 @@ build-docker:
 build-otarzan:
 	rm -f bin
 	dune build _build/install/default/bin/otarzan
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-pfff
+build-pfff:
+	rm -f bin
+	dune build _build/install/default/bin/pfff
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-parse-cairo
+build-parse-cairo:
+	rm -f bin
+	dune build _build/install/default/bin/parse-cairo
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-spacegrep
+build-spacegrep:
+	rm -f bin
+	dune build _build/install/default/bin/spacegrep
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-oncall
+build-oncall:
+	rm -f bin
+	dune build _build/install/default/bin/oncall
 	test -e bin || ln -s _build/install/default/bin .
 
 # Build the js_of_ocaml portion of the semgrep javascript packages
@@ -217,12 +246,13 @@ test:
 # the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core
+core-test: core build-spacegrep
 	# The test executable has a few options that can be useful
 	# in some contexts.
+	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
-	# without having to chdir into the test data folder.
-	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	# from the directory of the checkou
+	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
 
