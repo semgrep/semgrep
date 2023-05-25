@@ -690,27 +690,6 @@ class TargetManager:
         return frozenset(f for target in self.targets for f in target.files())
 
     @lru_cache(maxsize=None)
-    def get_filtered_files(self) -> FilteredFiles:
-        all_files = self.get_all_files()
-
-        files = self.filter_includes(self.includes, candidates=all_files)
-        self.ignore_log.cli_includes.update(files.removed)
-
-        files = self.filter_excludes(self.excludes, candidates=files.kept)
-        self.ignore_log.cli_excludes.update(files.removed)
-
-        files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
-        self.ignore_log.always_skipped.update(files.removed)
-
-        if self.file_ignore:
-            files = self.file_ignore.filter_paths(candidates=files.kept)
-            self.ignore_log.semgrepignored.update(files.removed)
-
-        kept_files = files.kept
-
-        return FilteredFiles(kept_files, all_files - kept_files)
-
-    @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
