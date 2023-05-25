@@ -202,6 +202,7 @@ def test_terminal_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(results.as_snapshot(), "results_second.txt")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
@@ -369,6 +370,7 @@ def test_regex_rule__utf8(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osempass
 def test_regex_rule__utf8_on_image(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # https://github.com/returntocorp/semgrep/issues/4258
     snapshot.assert_match(
