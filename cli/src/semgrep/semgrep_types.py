@@ -96,7 +96,16 @@ class _LanguageData:
             )
 
     def show_suppported_languages_message(self) -> str:
-        return f"supported languages are: {', '.join(self.all_language_keys)}"
+        languages_usable_in_the_languages_field = sorted(
+            {
+                key: value
+                # "generic", "regex", and "none" are the only non-languages
+                # that are supported in the "languages" field for historical reasons.
+                for key, value in self.lang_by_key.items()
+                if key not in ["spacegrep", "aliengrep"]
+            }
+        )
+        return f"supported languages are: {', '.join(languages_usable_in_the_languages_field)}"
 
 
 LANGUAGE = _LanguageData()
