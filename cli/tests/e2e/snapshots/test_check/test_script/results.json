@@ -19,7 +19,7 @@
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "4 == 4",
-        "message": "useless comparison operation `4 == 4` or `4 != 4`; possible bug?",
+        "message": "useless comparison operation `4 == 4` or `4 != 4`",
         "metadata": {
           "shortlink": "https://sg.run/xyz1"
         },
