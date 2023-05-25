@@ -421,8 +421,8 @@ let parse_equivalences equivalences_file =
 
 let iter_targets_and_get_matches_and_exn_to_errors config f targets =
   targets
-  |> map_targets config.ncores (fun target ->
-         let file = target.In.path in
+  |> map_targets config.ncores (fun (target : In.target) ->
+         let file = target.path in
          logger#info "Analyzing %s" file;
          let res, run_time =
            Common.with_time (fun () ->

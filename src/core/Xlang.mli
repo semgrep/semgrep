@@ -67,3 +67,9 @@ val is_proprietary : t -> bool
 *)
 val wrap : string -> t
 val unwrap : t -> string
+
+(*
+   Produce an extension to be appended to temporary files.
+   This helps when debugging.
+*)
+val informative_suffix : t -> string

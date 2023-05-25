@@ -189,7 +189,7 @@ let rules_for_extracted_lang ~(all_rules : Rule.t list) extract_rule_ids =
   memo
 
 let mk_extract_target extract_rule_ids dst_lang contents all_rules =
-  let suffix = Xlang.to_string dst_lang in
+  let suffix = Xlang.informative_suffix dst_lang in
   let f = Common.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
   {

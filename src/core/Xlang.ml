@@ -102,3 +102,14 @@ let is_proprietary = function
 
 let wrap str = of_string str
 let unwrap xlang = to_string xlang
+
+let informative_suffix xlang =
+  match xlang with
+  | L (lang, _) -> (
+      match Lang.ext_of_lang lang with
+      | x :: _ -> x
+      | [] -> "." ^ Lang.to_string lang)
+  | LRegex
+  | LSpacegrep
+  | LAliengrep ->
+      ".target-for-" ^ to_string xlang
