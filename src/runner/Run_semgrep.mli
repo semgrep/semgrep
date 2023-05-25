@@ -170,7 +170,8 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table : Rule.t list -> Rule.rule_id list -> (int, Rule.t) Hashtbl.t
+val mk_rule_table :
+  Rule.t list -> string list (* rule IDs *) -> (int, Rule.t) Hashtbl.t
 (** Helper to create the table of rules to run for each file **)
 
 val extracted_targets_of_config :
@@ -203,6 +204,8 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Semgrep_error_code.error list
   * Output_from_core_j.skipped_target list
 
+(* TODO: This is used by semgrep-pro and not by semgrep. What is it?
+   TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
 val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
 

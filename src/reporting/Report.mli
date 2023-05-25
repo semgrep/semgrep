@@ -42,7 +42,7 @@ type file_profiling = {
 }
 [@@deriving show]
 
-type rule_id_and_engine_kind = string * Pattern_match.engine_kind
+type rule_id_and_engine_kind = Rule.ID.t * Pattern_match.engine_kind
 [@@deriving show]
 
 (* Substitute in the profiling type we have *)

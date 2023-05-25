@@ -31,7 +31,8 @@ let filter_target_for_xlang (xlang : Xlang.t) (path : Fpath.t) : bool =
       lang :: langs
       |> List.exists (fun lang -> Guess_lang.inspect_file_p lang path)
   | LRegex
-  | LGeneric ->
+  | LSpacegrep
+  | LAliengrep ->
       true
 
 (* Used by Run_semgrep.semgrep_with_rules().

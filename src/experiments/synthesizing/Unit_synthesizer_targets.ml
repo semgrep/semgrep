@@ -59,7 +59,7 @@ let ranges_matched lang file pattern : Range.t list =
   let ast = parse_file lang file in
   let rule =
     {
-      Mini_rule.id = "unit testing";
+      Mini_rule.id = Rule.ID.of_string "unit testing";
       pattern;
       inside = false;
       message = "";
@@ -77,7 +77,9 @@ let ranges_matched lang file pattern : Range.t list =
         let toks = xs |> List.filter Tok.is_origintok in
         let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
         let minii_loc = Tok.unsafe_loc_of_tok minii in
-        E.error "Synthesizier tests" minii_loc "" Out.SemgrepMatchFound)
+        E.error
+          (Rule.ID.of_string "Synthesizer tests")
+          minii_loc "" Out.SemgrepMatchFound)
       (Rule_options.default_config, equiv)
       [ rule ] (file, lang, ast)
   in

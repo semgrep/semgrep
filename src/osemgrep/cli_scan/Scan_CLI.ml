@@ -749,7 +749,13 @@ let cmdline_term : conf Term.t =
         respect_git_ignore;
       }
     in
-    let rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity } in
+    let rule_filtering_conf =
+      {
+        Rule_filtering.exclude_rule_ids =
+          Common.map Rule.ID.of_string exclude_rule_ids;
+        severity;
+      }
+    in
 
     (* ugly: dump should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
