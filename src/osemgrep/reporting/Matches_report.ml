@@ -191,9 +191,13 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
                else String.length line)
            in
            let a, b, c = cut line start_color end_color in
+           (* The 24m is "no underline", and for python compatibility *)
+           let esc =
+             if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
+             else Fmt.any ""
+           in
            Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
-             (* The 24m is "no underline", and for python compatibility *)
-             Fmt.(styled `Bold (any "\027[24m" ++ string))
+             Fmt.(styled `Bold (esc ++ string))
              b c;
            (stripped' || stripped, succ line_number))
          (false, start_line)
@@ -226,12 +230,15 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             if m.path = cur.path then (false, Some m.extra.message)
             else (true, None)
       in
-      if print then
-        (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
-        Fmt.pf ppf "  %a@."
-          Fmt.(
-            styled (`Fg `Cyan) (any "\027[22m\027[24m  " ++ string ++ any " "))
-          cur.path;
+      (if print then
+       (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+       let esc =
+         if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[22m\027[24m  "
+         else Fmt.any "  "
+       in
+       Fmt.pf ppf "  %a@."
+         Fmt.(styled (`Fg `Cyan) (esc ++ string ++ any " "))
+         cur.path);
       msg
     in
     let print =
@@ -242,10 +249,14 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       | Some m -> m <> cur.extra.message
     in
     if print then (
+      (* The 24m is "no underline", and for python compatibility *)
+      let esc =
+        if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
+        else Fmt.any ""
+      in
       List.iter
-        (* The 24m is "no underline", and for python compatibility *)
-          (fun (sp, l) ->
-          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (any "\027[24m" ++ string)) l)
+        (fun (sp, l) ->
+          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
         (wrap ~indent:7 ~width:text_width cur.check_id);
       List.iter
         (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)

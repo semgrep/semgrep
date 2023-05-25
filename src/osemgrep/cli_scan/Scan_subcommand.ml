@@ -202,15 +202,19 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* step0: potentially notify user about metrics *)
       if not (settings.has_shown_metrics_notification = Some true) then (
-        (* the 22m 24m is just for python compatibility *)
+        (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+        let esc =
+          if Fmt.style_renderer Fmt.stderr = `Ansi_tty then "\027[22m\027[24m"
+          else ""
+        in
         Logs.warn (fun m ->
             m
-              "\027[22m\027[24mMETRICS: Using configs from the Registry (like \
-               --config=p/ci) reports pseudonymous rule metrics to \
-               semgrep.dev.@.To disable Registry rule metrics, use \
-               \"--metrics=off\".@.Using configs only from local files (like \
-               --config=xyz.yml) does not enable metrics.@.@.More information: \
-               https://semgrep.dev/docs/metrics");
+              "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
+               reports pseudonymous rule metrics to semgrep.dev.@.To disable \
+               Registry rule metrics, use \"--metrics=off\".@.Using configs \
+               only from local files (like --config=xyz.yml) does not enable \
+               metrics.@.@.More information: https://semgrep.dev/docs/metrics"
+              esc);
         Logs.app (fun m -> m "");
         let settings =
           {
