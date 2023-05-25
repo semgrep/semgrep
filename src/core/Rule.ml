@@ -296,7 +296,23 @@ type languages = {
      In a Semgrep rule where a string is expected, the standard way
      is to use "generic" but "regex" and "none" have the same effect.
      They all translate into 'None'.
-     TODO: extend this with the per-rule include/exclude options?
+
+     Example:
+
+       target_selector = Some [Javascript; Typescript];
+
+     ... selects all the files that can be parsed and analyzed
+     as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
+     JavaScript.
+
+     TODO: instead of always deriving this field automatically from
+     the 'languages' field of the rule, add support for an optional
+     'target-selectors' field that supports a variety of predefined
+     target selectors (e.g. "minified-javascript-files",
+     "javascript-executable-scripts", "makefile", ...). This would reduce
+     the maintenance burden for custom target selectors and allow mixing
+     them other target analyzers. For example, we could select all the
+     Bash scripts but analyze them with a regexp.
   *)
   target_selector : Lang.t list option;
   (* How to analyze target files. The accompanying patterns are specified
@@ -310,6 +326,10 @@ type languages = {
      - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
      This information may have to be extracted from another part of the
      YAML rule.
+
+     Example:
+
+       target_analyzer = L (Typescript, []);
   *)
   target_analyzer : Xlang.t;
 }
