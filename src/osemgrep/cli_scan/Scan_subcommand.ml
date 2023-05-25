@@ -169,7 +169,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
   Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load () in
+  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -200,6 +200,24 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
+      (* step0: potentially notify user about metrics *)
+      if not (settings.has_shown_metrics_notification = Some true) then (
+        Logs.warn (fun m ->
+            m
+              "METRICS: Using configs from the Registry (like --config=p/ci) \
+               reports pseudonymous rule metrics to semgrep.dev.@.To disable \
+               Registry rule metrics, use \"--metrics=off\".@.Using configs \
+               only from local files (like --config=xyz.yml) does not enable \
+               metrics.@.@.More information: \
+               https://semgrep.dev/docs/metrics@.");
+        let settings =
+          {
+            settings with
+            Semgrep_settings.has_shown_metrics_notification = Some true;
+          }
+        in
+        ignore (Semgrep_settings.save settings));
+
       (* step1: getting the rules *)
 
       (* Rule_fetching.rules_and_origin record also contain errors *)
