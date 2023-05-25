@@ -32,7 +32,8 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   else
     (* TODO origin table [Origin Rules] [Community N] *)
     let xlang_label = function
-      | Xlang.LGeneric
+      | Xlang.LSpacegrep
+      | Xlang.LAliengrep
       | Xlang.LRegex ->
           "<multilang>"
       | xlang -> Xlang.to_string xlang

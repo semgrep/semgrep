@@ -1,0 +1,12 @@
+rules:
+  - id: multi-lines
+    languages:
+      - generic
+    options:
+      generic_engine: aliengrep
+    pattern: |
+      $V = open();
+      ...
+      close($V);
+    message: found
+    severity: ERROR

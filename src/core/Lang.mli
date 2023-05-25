@@ -1,9 +1,17 @@
 (*
    Type representing the languages for which Semgrep has a dedicated
-   parser that uses the generic AST for analyzing files.
+   parser that uses the generic AST and Semgrep's usual pattern matching.
 
-   Language analyzers that work differently are not covered by this type but
-   are part of XLang.t.
+   File targeting: a Lang.t identifies the rules (extensions, shebangs, ...)
+   for filtering files of a certain type.
+
+   File analysis: a Lang.t guarantees that we have a parser for that language.
+   Other ways to parse and analyze files are supported by Semgrep (Regex,
+   Spacegrep, ...). To represent a way to analyze a file, use Xlang.t,
+   not Lang.t.
+
+   See Rule.language for more on the distinction between target selection and
+   target analysis.
 *)
 
 type t = Language.t =
