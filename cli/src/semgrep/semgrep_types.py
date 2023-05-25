@@ -37,6 +37,7 @@ class LanguageDefinition:
     exts: Collection[FileExtension]
     reverse_exts: Collection[str]
     shebangs: Collection[Shebang]
+    is_target_language: bool
 
     @classmethod
     def from_dict(cls, data: JsonObject) -> "LanguageDefinition":
@@ -51,6 +52,7 @@ class LanguageDefinition:
             if data["reverse_exts"] is not None
             else data["exts"],
             shebangs=data.get("shebangs", []),
+            is_target_language=data["is_target_language"],
         )
 
 

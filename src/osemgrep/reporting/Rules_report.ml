@@ -30,11 +30,13 @@ let pp_rules ppf (rules_source, filtered_rules) =
 
   let rule_id r = fst r.Rule.id in
   let sorted =
-    List.sort (fun r1 r2 -> String.compare (rule_id r1) (rule_id r2))
+    List.sort (fun r1 r2 -> Rule.ID.compare (rule_id r1) (rule_id r2))
   in
-  sorted normal |> List.iter (fun rule -> Fmt.pf ppf "- %s@." (rule_id rule));
+  sorted normal
+  |> List.iter (fun rule -> Fmt.pf ppf "- %s@." (rule_id rule :> string));
   match exp with
   | [] -> ()
   | __non_empty__ ->
       Fmt.pf ppf "Experimental rules:@.";
-      sorted exp |> List.iter (fun rule -> Fmt.pf ppf "- %s@." (rule_id rule))
+      sorted exp
+      |> List.iter (fun rule -> Fmt.pf ppf "- %s@." (rule_id rule :> string))
