@@ -13,12 +13,20 @@ open Notty_unix
 (* Types and constants *)
 (*****************************************************************************)
 
-type command = Exit | Pat of Xpattern.t * bool | Any | All
+type command =
+  (* ex: "foobar" *)
+  | Pat of Xpattern.t * bool
+  (* boolean composition of patterns *)
+  | Any
+  | All
+  (* meta commands *)
+  | Exit
 
-type interactive_pat =
-  | IPat of Xpattern.t * bool
-  | IAll of interactive_pat list
-  | IAny of interactive_pat list
+(* interactive formula *)
+type iformula =
+  | IPat of Xpattern.t * bool (* false = negated *)
+  | IAll of iformula list
+  | IAny of iformula list
 
 type matches_by_file = {
   file : string;
@@ -43,7 +51,7 @@ type state = {
         finished.
         It's in reverse because we're consing on to the front.
       *)
-  pat : interactive_pat option;
+  formula : iformula option;
   mode : bool;  (** True if `All`, false if `Any`
       *)
   term : Notty_unix.Term.t;
@@ -61,7 +69,7 @@ let bg_match_position = A.(bg light_green ++ fg (gray 3))
 let fg_line_num = A.(fg neutral_yellow)
 
 (*****************************************************************************)
-(* Helpers *)
+(* UI Helpers *)
 (*****************************************************************************)
 
 let files_height_of_term term = snd (Term.size term) - 3
@@ -72,13 +80,21 @@ let empty xlang xtargets term =
     xtargets;
     file_zipper = Pointed_zipper.empty_with_max_len (files_height_of_term term);
     cur_line_rev = [];
-    pat = None;
+    formula = None;
     mode = true;
     term;
   }
 
 let get_current_line state =
   Common2.string_of_chars (List.rev state.cur_line_rev)
+
+let safe_subtract x y =
+  let res = x - y in
+  if res < 0 then 0 else res
+
+(*****************************************************************************)
+(* Engine Helpers *)
+(*****************************************************************************)
 
 let fk = Tok.unsafe_fake_tok ""
 
@@ -111,8 +127,27 @@ let mk_fake_rule lang formula =
     metadata = None;
   }
 
-let matches_of_new_ipat new_ipat state =
-  let rule_formula = translate_formula new_ipat in
+(*****************************************************************************)
+(* Calling the Semgrep Engine *)
+(*****************************************************************************)
+(* Right now we call the engine via Match_search_mode.check_rule()
+ * which is pretty down in the call stack compared to
+ * Run_semgrep.semgrep_with_rules(). That means we lose some of the
+ * features provided upper in the call stack such as:
+ * - Parallelization in Run_semgrep.map_targets().
+ *   However, maybe it's hard to reuse this parallelization
+ *   and it's easier for now to use threads for the dynamic refresh of the UI.
+ * - the -filter_irrelevant_rules default handling (a.k.a -fast)
+ *   So we had to explicitely call is_relevant_rule below
+ * - probably more.
+ *
+ * At the same time it's nice to go directly to the function
+ * we need; it's doubtful we want to write interactively tainting rules,
+ * so getting directly to Match_search_mode.check_rule() can be simpler.
+ *)
+let matches_of_new_iformula (new_iform : iformula) (state : state) :
+    matches_by_file Pointed_zipper.t =
+  let rule_formula = translate_formula new_iform in
   let fake_rule = mk_fake_rule state.xlang rule_formula in
   let hook _s (_m : Pattern_match.t) = () in
   let xconf =
@@ -121,17 +156,20 @@ let matches_of_new_ipat new_ipat state =
       equivs = [];
       nested_formula = false;
       matching_explanations = false;
-      filter_irrelevant_rules = false;
+      (* set to true for the -fast optimization! *)
+      filter_irrelevant_rules = true;
     }
   in
   let res : Report.rule_profiling Report.match_result list =
     state.xtargets
-    |> Common.map (fun xtarget ->
-           let results =
-             Match_search_mode.check_rule fake_rule hook xconf xtarget
-           in
-           results)
+    |> Common.map_filter (fun xtarget ->
+           if Match_rules.is_relevant_rule_for_xtarget fake_rule xconf xtarget
+           then
+             (* Calling the engine! *)
+             Some (Match_search_mode.check_rule fake_rule hook xconf xtarget)
+           else None)
   in
+
   let res_by_file =
     res
     |> List.concat_map (fun ({ matches; _ } : _ Report.match_result) ->
@@ -152,10 +190,6 @@ let matches_of_new_ipat new_ipat state =
     |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
   Pointed_zipper.of_list (files_height_of_term state.term) res_by_file
-
-let safe_subtract x y =
-  let res = x - y in
-  if res < 0 then 0 else res
 
 (*****************************************************************************)
 (* User Interface *)
@@ -345,7 +379,7 @@ let execute_command (state : state) =
   let cmd = parse_command state in
   let handle_pat (pat, b) =
     let new_pat = IPat (pat, b) in
-    match (state.pat, state.mode) with
+    match (state.formula, state.mode) with
     | None, _ -> new_pat
     | Some (IAll pats), true -> IAll (new_pat :: pats)
     | Some (IAny pats), false -> IAny (new_pat :: pats)
@@ -358,9 +392,9 @@ let execute_command (state : state) =
     | All -> { state with mode = true }
     | Any -> { state with mode = false }
     | Pat (pat, b) ->
-        let new_ipat = handle_pat (pat, b) in
-        let file_zipper = matches_of_new_ipat new_ipat state in
-        { state with file_zipper; pat = Some new_ipat }
+        let new_iformula = handle_pat (pat, b) in
+        let file_zipper = matches_of_new_iformula new_iformula state in
+        { state with file_zipper; formula = Some new_iformula }
   in
   (* Remember to reset the current line after executing a command. *)
   { state with cur_line_rev = [] }
