@@ -19,7 +19,7 @@ type conf = { logging_level : Logs.level option } [@@deriving show]
 
 let cmdline_term : conf Term.t =
   let combine logging_level = { logging_level } in
-  Term.(const combine $ CLI_common.logging_term)
+  Term.(const combine $ CLI_common.o_logging)
 
 let doc = "Language server mode!!"
 

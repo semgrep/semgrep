@@ -19,6 +19,7 @@ type conf = {
   core_runner_conf : Core_runner.conf;
   (* nosem? *)
   logging_level : Logs.level option;
+  profile : bool;
 }
 [@@deriving show]
 
@@ -27,7 +28,10 @@ type conf = {
 (*************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine exclude include_ lang target_roots logging_level =
+  (* those parameters must be in alphabetic order, like in the 'const combine'
+   * further below, so it's easy to add new options.
+   *)
+  let combine exclude include_ lang logging_level profile target_roots =
     let lang =
       match lang with
       (* TODO? we could omit the language like for -e and try all languages?*)
@@ -50,11 +54,12 @@ let cmdline_term : conf Term.t =
         { Scan_CLI.default.targeting_conf with include_; exclude };
       core_runner_conf = Scan_CLI.default.core_runner_conf;
       logging_level;
+      profile;
     }
   in
   Term.(
     const combine $ Scan_CLI.o_exclude $ Scan_CLI.o_include $ Scan_CLI.o_lang
-    $ Scan_CLI.o_target_roots $ CLI_common.logging_term)
+    $ CLI_common.o_logging $ CLI_common.o_profile $ Scan_CLI.o_target_roots)
 
 let doc = "Interactive mode!!"
 
