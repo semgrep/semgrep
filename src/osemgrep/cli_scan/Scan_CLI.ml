@@ -108,8 +108,11 @@ let default : conf =
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
-        (* like legacy, should maybe be set to false when we release osemgrep*)
-        ast_caching = true;
+        (* better to set to false for now; annoying to add --ast-caching to
+         * each command, but while we're still developing osemgrep it is
+         * better to eliminate some source of complexity by default.
+         *)
+        ast_caching = false;
       };
     autofix = false;
     dryrun = false;

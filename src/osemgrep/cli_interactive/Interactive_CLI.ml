@@ -16,8 +16,8 @@ type conf = {
   lang : Lang.t; (* use Xlang.t at some point? or even Xlang option? *)
   target_roots : Fpath.t list;
   targeting_conf : Find_targets.conf;
+  (* LATER: nosem *)
   core_runner_conf : Core_runner.conf;
-  (* nosem? *)
   logging_level : Logs.level option;
   profile : bool;
 }
@@ -31,7 +31,8 @@ let cmdline_term : conf Term.t =
   (* those parameters must be in alphabetic order, like in the 'const combine'
    * further below, so it's easy to add new options.
    *)
-  let combine exclude include_ lang logging_level profile target_roots =
+  let combine ast_caching exclude include_ lang logging_level profile
+      target_roots =
     let lang =
       match lang with
       (* TODO? we could omit the language like for -e and try all languages?*)
@@ -41,6 +42,7 @@ let cmdline_term : conf Term.t =
           Lang.of_string s
     in
     let target_roots = File.Path.of_strings target_roots in
+    (* like in Scan_CLI.combine *)
     let include_ =
       match include_ with
       | [] -> None
@@ -52,14 +54,15 @@ let cmdline_term : conf Term.t =
       (* LATER: accept all CLI args *)
       targeting_conf =
         { Scan_CLI.default.targeting_conf with include_; exclude };
-      core_runner_conf = Scan_CLI.default.core_runner_conf;
+      core_runner_conf = { Scan_CLI.default.core_runner_conf with ast_caching };
       logging_level;
       profile;
     }
   in
   Term.(
-    const combine $ Scan_CLI.o_exclude $ Scan_CLI.o_include $ Scan_CLI.o_lang
-    $ CLI_common.o_logging $ CLI_common.o_profile $ Scan_CLI.o_target_roots)
+    const combine $ Scan_CLI.o_ast_caching $ Scan_CLI.o_exclude
+    $ Scan_CLI.o_include $ Scan_CLI.o_lang $ CLI_common.o_logging
+    $ CLI_common.o_profile $ Scan_CLI.o_target_roots)
 
 let doc = "Interactive mode!!"
 

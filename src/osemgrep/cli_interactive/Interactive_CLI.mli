@@ -8,11 +8,10 @@
 
 (* a subset of Scan_CLI.conf *)
 type conf = {
-  lang : Lang.t; (* use Xlang.t at some point? or even Xlang option? *)
+  lang : Lang.t;
   target_roots : Fpath.t list;
   targeting_conf : Find_targets.conf;
   core_runner_conf : Core_runner.conf;
-  (* nosem? *)
   logging_level : Logs.level option;
   profile : bool;
 }
