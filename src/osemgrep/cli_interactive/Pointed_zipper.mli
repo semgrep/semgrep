@@ -42,9 +42,12 @@ type 'a t
 *)
 val move_left : 'a t -> 'a t
 val move_right : 'a t -> 'a t
-val take : int -> 'a t -> 'a list
 val of_list : int -> 'a list -> 'a t
 val empty_with_max_len : int -> 'a t
+val take : int -> 'a t -> 'a list
 val get_current : 'a t -> 'a
+val map_current : ('a -> 'a) -> 'a t -> 'a t
 val is_empty : 'a t -> bool
-val position : 'a t -> int
+val length : 'a t -> int
+val absolute_position : 'a t -> int
+val relative_position : 'a t -> int

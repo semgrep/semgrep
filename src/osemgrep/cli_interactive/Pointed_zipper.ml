@@ -43,20 +43,32 @@ let move_left m =
   else { m with pointer = m.pointer - 1 }
 
 let move_right m =
-  if m.pointer >= m.max_len - 1 then
-    { (shift_frame_right m) with pointer = m.max_len - 1 }
-  else if m.pointer >= List.length m.after - 1 then
+  if m.pointer >= List.length m.after - 1 then
     (* This is the case where we move the pointer
        down, but we don't have enough entries left.
        In this case, don't move the pointer.
     *)
     m
+  else if m.pointer >= m.max_len - 1 then
+    { (shift_frame_right m) with pointer = m.max_len - 1 }
   else { m with pointer = m.pointer + 1 }
 
 let take n m = Common2.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
-let position m = m.pointer
-let get_current m = List.nth m.after (position m)
+let relative_position m = m.pointer
+let get_current m = List.nth m.after (relative_position m)
+
+let map_current f m =
+  {
+    m with
+    after =
+      Common.mapi
+        (fun idx x -> if idx = relative_position m then f x else x)
+        m.after;
+  }
+
+let absolute_position m = List.length m.before_rev + m.pointer
+let length m = List.length m.before_rev + List.length m.after
 let is_empty m = List.length m.after + List.length m.before_rev = 0
 
 let empty_with_max_len max_len =

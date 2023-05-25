@@ -20,6 +20,16 @@ type interactive_pat =
   | IAll of interactive_pat list
   | IAny of interactive_pat list
 
+type matches_by_file = {
+  file : string;
+  matches : Pattern_match.t Pointed_zipper.t;
+      (** A zipper, because we want to be able to go back and forth
+        through the matches in the file.
+        Fortunately, a regular zipper is equivalent to a pointed
+        zipper with a frame size of 1.
+      *)
+}
+
 (* The type of the state for the interactive loop.
    This is the information we need to carry in between every key press,
    and whenever we need to redraw the canvas.
@@ -27,7 +37,7 @@ type interactive_pat =
 type state = {
   xlang : Xlang.t;
   xtargets : Xtarget.t list;
-  matches : (string * Pattern_match.t list) Pointed_zipper.t;
+  file_zipper : matches_by_file Pointed_zipper.t;
   cur_line_rev : char list;
       (** The current line that we are reading in, which is not yet
         finished.
@@ -43,8 +53,12 @@ type state = {
 let files_width = 40
 
 (* color settings *)
+let light_green = A.rgb_888 ~r:77 ~g:255 ~b:175
+let neutral_yellow = A.rgb_888 ~r:255 ~g:255 ~b:161
 let bg_file_selected = A.(bg (gray 5))
 let bg_match = A.(bg (gray 5))
+let bg_match_position = A.(bg light_green ++ fg (gray 3))
+let fg_line_num = A.(fg neutral_yellow)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -56,7 +70,7 @@ let empty xlang xtargets term =
   {
     xlang;
     xtargets;
-    matches = Pointed_zipper.empty_with_max_len (files_height_of_term term);
+    file_zipper = Pointed_zipper.empty_with_max_len (files_height_of_term term);
     cur_line_rev = [];
     pat = None;
     mode = true;
@@ -123,7 +137,19 @@ let matches_of_new_ipat new_ipat state =
     |> List.concat_map (fun ({ matches; _ } : _ Report.match_result) ->
            Common.map (fun (m : Pattern_match.t) -> (m.file, m)) matches)
     |> Common2.group_assoc_bykey_eff
-    |> List.sort (fun (k1, _) (k2, _) -> String.compare k1 k2)
+    (* A pointed zipper with a frame size of 1 is the same as a regular
+       zipper.
+    *)
+    |> Common.map (fun (file, pms) ->
+           let sorted_pms =
+             List.sort
+               (fun { Pattern_match.range_loc = l1, _; _ }
+                    { Pattern_match.range_loc = l2, _; _ } ->
+                 Int.compare l1.pos.charpos l2.pos.charpos)
+               pms
+           in
+           { file; matches = Pointed_zipper.of_list 1 sorted_pms })
+    |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
   Pointed_zipper.of_list (files_height_of_term state.term) res_by_file
 
@@ -168,7 +194,7 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
       Common2.string_of_chars (List.rev m_rev),
       Common2.string_of_chars (List.rev r_rev) )
 
-let img_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
+let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let lines = Common2.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
@@ -191,20 +217,39 @@ let img_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
       (start, start + max_height)
     else (start_line, start_line + max_height)
   in
-  lines
-  (* Row is 1-indexed *)
-  |> Common.mapi (fun idx x -> (idx + 1, x))
-  |> Common.map_filter (fun (idx, line) ->
-         if preview_start <= idx && idx < preview_end then
-           Some (split_line t1 t2 (idx, line))
-         else None)
-  |> Common.map (fun (l, m, r) ->
-         I.(
-           string A.empty l
-           (* alt: A.(bg (rgb_888 ~r:255 ~g:255 ~b:194)) *)
-           <|> string A.(st bold ++ bg_match) m
-           <|> string A.empty r))
-  |> I.vcat
+  let line_num_imgs, line_imgs =
+    lines
+    (* Row is 1-indexed *)
+    |> Common.mapi (fun idx x -> (idx + 1, x))
+    (* Get only the lines that we care about (the ones in the preview) *)
+    |> Common.map_filter (fun (idx, line) ->
+           if preview_start <= idx && idx < preview_end then
+             Some (idx, split_line t1 t2 (idx, line))
+           else None)
+    (* Turn line numbers and the line contents to images *)
+    |> Common.map (fun (idx, (l, m, r)) ->
+           ( I.(string fg_line_num (Int.to_string idx)),
+             I.(
+               string A.empty l
+               (* alt: A.(bg (rgb_888 ~r:255 ~g:255 ~b:194)) *)
+               <|> string A.(st bold ++ bg_match) m
+               <|> string A.empty r) ))
+    |> Common2.unzip
+  in
+  (* Right-align the images and pad on the right by 1 *)
+  let line_num_imgs_aligned_and_padded =
+    let max_line_num_len =
+      line_num_imgs
+      |> Common.map (fun line_num_img -> I.width line_num_img)
+      |> List.fold_left Int.max 0
+    in
+    line_num_imgs
+    |> Common.map (fun line_num_img ->
+           I.hsnap ~align:`Right max_line_num_len line_num_img)
+    |> I.vcat |> I.hpad 0 1
+  in
+  (* Put the line numbers and contents together! *)
+  I.(line_num_imgs_aligned_and_padded <|> vcat line_imgs)
 
 let render_screen state =
   let w, _h = Term.size state.term in
@@ -215,28 +260,34 @@ let render_screen state =
   let lines_to_pad_below_to_reach l n =
     if List.length l >= n then 0 else n - List.length l
   in
-  let matches =
-    Pointed_zipper.take lines_of_files state.matches
-    |> Common.mapi (fun idx (file, _) ->
-           if idx = Pointed_zipper.position state.matches then
+  let files =
+    Pointed_zipper.take lines_of_files state.file_zipper
+    |> Common.mapi (fun idx { file; _ } ->
+           if idx = Pointed_zipper.relative_position state.file_zipper then
              I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
            else I.string (A.fg (A.gray 16)) file)
   in
   let preview =
-    if Pointed_zipper.is_empty state.matches then
+    if Pointed_zipper.is_empty state.file_zipper then
       I.string A.empty "preview unavailable (no matches)"
     else
-      let file, pms = Pointed_zipper.get_current state.matches in
-      match pms with
-      | [] -> I.string A.empty "preview unavailable (impossible?)"
-      | pm :: _ -> (
-          (* THINK: is this try still relevant? *)
-          try img_of_match pm file state with
-          | _ -> I.string A.empty "preview unavailble")
+      let { file; matches = matches_zipper } =
+        Pointed_zipper.get_current state.file_zipper
+      in
+      (* 1 indexed *)
+      let match_idx = Pointed_zipper.absolute_position matches_zipper + 1 in
+      let total_matches = Pointed_zipper.length matches_zipper in
+      let match_position_img =
+        if total_matches = 1 then I.void 0 0
+        else
+          I.string bg_match_position
+            (Common.spf "%d/%d" match_idx total_matches)
+          |> I.hsnap ~align:`Right (w - files_width - 1)
+      in
+      let pm = Pointed_zipper.get_current matches_zipper in
+      I.(match_position_img </> preview_of_match pm file state)
   in
-  let vertical_bar =
-    I.char A.empty '|' 1 (files_height_of_term state.term) |> I.hpad 1 1
-  in
+  let vertical_bar = I.char A.empty '|' 1 (files_height_of_term state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let prompt =
     I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
@@ -254,9 +305,9 @@ let render_screen state =
    * lower bar lower bar lower bar lower bar lower bar
    *)
   I.(
-    matches |> I.vcat
+    files |> I.vcat
     (* THINK: unnecessary? *)
-    |> I.vpad 0 (lines_to_pad_below_to_reach matches lines_of_files)
+    |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
     |> (fun img -> I.hcrop 0 (I.width img - files_width) img)
     <|> vertical_bar <|> preview <-> horizontal_bar <-> prompt <-> lowerbar)
 
@@ -308,8 +359,8 @@ let execute_command (state : state) =
     | Any -> { state with mode = false }
     | Pat (pat, b) ->
         let new_ipat = handle_pat (pat, b) in
-        let matches = matches_of_new_ipat new_ipat state in
-        { state with matches; pat = Some new_ipat }
+        let file_zipper = matches_of_new_ipat new_ipat state in
+        { state with file_zipper; pat = Some new_ipat }
   in
   (* Remember to reset the current line after executing a command. *)
   { state with cur_line_rev = [] }
@@ -331,14 +382,38 @@ let interactive_loop xlang xtargets =
         match state.cur_line_rev with
         | [] -> loop t state
         | _ :: cs -> update t { state with cur_line_rev = cs })
-    | `Key (`Arrow `Left, _)
+    | `Key (`Arrow `Left, _) ->
+        update t
+          {
+            state with
+            file_zipper =
+              Pointed_zipper.map_current
+                (fun { file; matches = mz } ->
+                  { file; matches = Pointed_zipper.move_left mz })
+                state.file_zipper;
+          }
     | `Key (`Arrow `Right, _) ->
-        update t state (* TODO *)
+        update t
+          {
+            state with
+            file_zipper =
+              Pointed_zipper.map_current
+                (fun { file; matches = mz } ->
+                  { file; matches = Pointed_zipper.move_right mz })
+                state.file_zipper;
+          }
     | `Key (`Arrow `Up, _) ->
-        update t { state with matches = Pointed_zipper.move_left state.matches }
+        update t
+          {
+            state with
+            file_zipper = Pointed_zipper.move_left state.file_zipper;
+          }
     | `Key (`Arrow `Down, _) ->
         update t
-          { state with matches = Pointed_zipper.move_right state.matches }
+          {
+            state with
+            file_zipper = Pointed_zipper.move_right state.file_zipper;
+          }
     | `Key (`ASCII c, _) ->
         update t { state with cur_line_rev = c :: state.cur_line_rev }
     | `Resize _ -> update t state
