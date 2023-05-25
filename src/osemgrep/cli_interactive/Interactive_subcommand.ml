@@ -1,10 +1,21 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
-   Parse a semgrep-interactive command, execute it and exit.
-
-*)
+(* Parse a semgrep-interactive command, execute it and exit.
+ *
+ * TODO:
+ *  - turbo/live mode, show results as you type, using threads for a v0
+ *    (not waiting until you have typed the whole thing)
+ *  - turbo/live mode with displaying incremental matches
+ *    (not waiting until we have found all the matches)
+ *  - code highlighting using Highlight_AST.ml in codemap/efuns
+ *  - leverage multicore (switch to OCaml 5.0 or find a way to use
+ *    Parmap like in Run_semgrep.map_targets)
+ *  - support more complex iformula (where, inside, etc.)
+ *  - readline-like input with history
+ *  - completion on function names in the project! (or maybe put this in
+ *    osemgrep-pro interactive)
+ *)
 
 open Notty
 open Notty_unix
