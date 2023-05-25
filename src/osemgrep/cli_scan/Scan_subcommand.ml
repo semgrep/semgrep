@@ -211,6 +211,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                \"--metrics=off\".@.Using configs only from local files (like \
                --config=xyz.yml) does not enable metrics.@.@.More information: \
                https://semgrep.dev/docs/metrics");
+        Logs.info (fun m -> m "");
         let settings =
           {
             settings with
