@@ -312,7 +312,7 @@ type languages = {
      "javascript-executable-scripts", "makefile", ...). This would reduce
      the maintenance burden for custom target selectors and allow mixing
      them other target analyzers. For example, we could select all the
-     Bash scripts but analyze them with a regexp.
+     Bash scripts but analyze them with spacegrep.
   *)
   target_selector : Lang.t list option;
   (* How to analyze target files. The accompanying patterns are specified
