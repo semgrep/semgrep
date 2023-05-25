@@ -114,23 +114,21 @@ let loading_screen_lines =
      (((((((((((((((((((((((%       ";
     "             ((((((((((((((                %(((((((((((((%                \
      ((((((((((((((            ";
-    "";
-    "Semgrep Interactive Mode";
-    "";
-    "powered by Semgrep Open-Source Engine";
   ]
 
 (*****************************************************************************)
 (* UI Helpers *)
 (*****************************************************************************)
 
-let files_height_of_term term = snd (Term.size term) - 3
+let height_of_files term = snd (Term.size term) - 3
+let width_of_files _term = files_width
+let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
 let empty xlang xtargets term =
   {
     xlang;
     xtargets;
-    file_zipper = Pointed_zipper.empty_with_max_len (files_height_of_term term);
+    file_zipper = Pointed_zipper.empty_with_max_len (height_of_files term);
     cur_line_rev = [];
     formula = None;
     mode = true;
@@ -143,6 +141,9 @@ let get_current_line state =
 let safe_subtract x y =
   let res = x - y in
   if res < 0 then 0 else res
+
+let default_screen_img _term =
+  loading_screen_lines |> Common.map (I.string (A.fg semgrep_green))
 
 (*****************************************************************************)
 (* Engine Helpers *)
@@ -241,7 +242,7 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
            { file; matches = Pointed_zipper.of_list 1 sorted_pms })
     |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
-  Pointed_zipper.of_list (files_height_of_term state.term) res_by_file
+  Pointed_zipper.of_list (height_of_files state.term) res_by_file
 
 (*****************************************************************************)
 (* User Interface *)
@@ -284,7 +285,7 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let lines = Common2.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
-  let max_height = files_height_of_term state.term in
+  let max_height = height_of_files state.term in
   let match_height = end_line - start_line in
   (* We want the appropriate amount of lines that will fit within
      our terminal window.
@@ -342,7 +343,7 @@ let render_screen state =
   (* Minus two, because one for the line, and one for
      the input line.
   *)
-  let lines_of_files = files_height_of_term state.term in
+  let lines_of_files = height_of_files state.term in
   let lines_to_pad_below_to_reach l n =
     if List.length l >= n then 0 else n - List.length l
   in
@@ -355,7 +356,19 @@ let render_screen state =
   in
   let preview =
     if Pointed_zipper.is_empty state.file_zipper then
-      I.string A.empty "preview unavailable (no matches)"
+      I.(
+        default_screen_img state.term
+        @ [
+            vpad 1 0
+              (string
+                 A.(fg semgrep_green ++ st bold)
+                 "Semgrep Interactive Mode");
+            vpad 1 1 (string A.empty "powered by Semgrep Open-Source Engine");
+            string A.empty "(type a pattern to get started!)";
+          ]
+        |> Common.map (hsnap (width_of_preview state.term))
+        |> vcat
+        |> I.vsnap (height_of_files state.term))
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current state.file_zipper
@@ -373,7 +386,7 @@ let render_screen state =
       let pm = Pointed_zipper.get_current matches_zipper in
       I.(match_position_img </> preview_of_match pm file state)
   in
-  let vertical_bar = I.char A.empty '|' 1 (files_height_of_term state.term) in
+  let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let prompt =
     I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
@@ -451,18 +464,11 @@ let execute_command (state : state) =
   (* Remember to reset the current line after executing a command. *)
   { state with cur_line_rev = [] }
 
-let loading_screen_img term =
-  let w, h = Term.size term in
-  loading_screen_lines
-  |> Common.map (I.string (A.fg semgrep_green))
-  |> Common.map (I.hsnap w)
-  |> I.vcat |> I.vsnap h
-
 (*****************************************************************************)
 (* Interactive loop *)
 (*****************************************************************************)
 
-let interactive_loop state =
+let interactive_loop xlang xtargets =
   let rec update (t : Term.t) state =
     Term.image t (render_screen state);
     loop t state
@@ -512,17 +518,14 @@ let interactive_loop state =
     | `Resize _ -> update t state
     | __else__ -> loop t state
   in
+  let t = Term.create () in
   Common.finalize
     (fun () ->
       (* TODO: change *)
+      let state = empty xlang xtargets t in
       if true then update state.term state)
-    (fun () -> Term.release state.term)
+    (fun () -> Term.release t)
   [@@profiling]
-
-let start_loading_screen () =
-  let t = Term.create () in
-  Term.image t (loading_screen_img t);
-  t
 
 (*****************************************************************************)
 (* Main logic *)
@@ -532,7 +535,6 @@ let start_loading_screen () =
    exit code. *)
 let run (conf : Interactive_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
-  let t = start_loading_screen () in
   let targets, _skipped =
     Find_targets.get_targets conf.targeting_conf conf.target_roots
   in
@@ -549,8 +551,7 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
     targets |> Common.map Fpath.to_string
     |> Common.map (Run_semgrep.xtarget_of_file config xlang)
   in
-  let state = empty xlang xtargets t in
-  interactive_loop state;
+  interactive_loop xlang xtargets;
   Exit_code.ok
 
 (*****************************************************************************)
