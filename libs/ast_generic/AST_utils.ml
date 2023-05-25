@@ -45,12 +45,6 @@ type busy_with_equal = Not_busy | Structural_equal | Referential_equal
 (* global state! managed by the with_equal_* functions *)
 let busy_with_equal = ref Not_busy
 
-let equal_id_info equal a b =
-  match !busy_with_equal with
-  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
-  | Structural_equal -> equal a b
-  | Referential_equal -> equal a b
-
 let equal_stmt_field_s equal_stmt_kind a b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
@@ -65,7 +59,7 @@ let equal_stmt_field_s_id a b =
 
 (*
    Wrap one of the generated equal_* functions into one that selects
-   structural equality, ignoring node IDs and position information)
+   structural equality, ignoring node IDs and position information.
 *)
 let with_structural_equal equal a b =
   match !busy_with_equal with
