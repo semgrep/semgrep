@@ -991,9 +991,16 @@ and check_tainted_lval_aux env (lval : IL.lval) :
             | (`Clean | `Tainted _) as st' -> st'
             | `None ->
                 (* HACK(field-sensitivity): If we encounter `obj.x` and `obj` has
-                   * polymorphic taint,  and we know nothing specific about `obj.x`, then
+                   * polymorphic taint, and we know nothing specific about `obj.x`, then
                    * we add the same offset `.x` to the polymorphic taint coming from `obj`.
-                   * See also 'propagate_taint_via_java_setter'. *)
+                   * (See also 'propagate_taint_via_java_setter'.)
+                   *
+                   * For example, given `function foo(o) { sink(o.x); }`, and being '0 the
+                   * polymorphic taint of `o`, this allows us to record that what goes into
+                   * the sink is '0.x (and not just '0). So if later we encounter `foo(obj)`
+                   * where `obj.y` is tainted but `obj.x` is not tainted, we will not
+                   * produce a finding.
+                *)
                 fix_poly_taint_with_field env lval st)
       in
       let taints_from_env = status_to_taints lval_in_env in
@@ -1201,15 +1208,22 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
             in
             Some (lval, obj)
         | Record fields, [ o ] -> (
+            (* JS: The argument of a function call may be a record expression such as
+             * `{x="tainted"l, y="safe"}`, if 'sig_arg' refers to the `x` field then
+             * we want to resolve it to `"tainted"`. *)
             match
               fields
               |> List.find_opt (function
+                   (* The 'o' is the offset that 'sig_arg' is referring to, here
+                    * we look for a `fld=lval` field in the record object such that
+                    * 'fld' has the same name as 'o'. *)
                    | Field (fld, _) -> fst fld = fst o.ident
                    | Spread _ -> false)
             with
             | Some (Field (_, { e = Fetch ({ base = Var obj; _ } as lval); _ }))
               ->
-                (* Actual argument is of the form {..., fld=lval, ...} and the offset is 'fld'. *)
+                (* Actual argument is of the form {..., fld=lval, ...} and the offset is 'fld',
+                 * we return 'lval'. *)
                 Some (lval, obj)
             | Some _
             | None ->
