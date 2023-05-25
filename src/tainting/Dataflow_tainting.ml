@@ -738,7 +738,7 @@ let propagate_taint_via_java_setter env e args all_args_taints =
   | __else__ -> env.lval_env
 
 let fix_poly_taint_with_field env lval st =
-  if env.lang =*= Java then
+  if env.lang =*= Lang.Java || Lang.is_js env.lang then
     match lval.rev_offset with
     | { o = Dot n; _ } :: _ -> (
         match st with
@@ -903,11 +903,8 @@ let find_lval_taint_sources env ~labels lval =
   let lval_env = Lval_env.add env.lval_env lval taints_sources_mut in
   (Taints.union taints_sources_reg taints_sources_mut, lval_env)
 
-let rec check_tainted_lval env ?(fix_poly_field = false) (lval : IL.lval) :
-    Taints.t * Lval_env.t =
-  let new_taints, lval_in_env, lval_env =
-    check_tainted_lval_aux env ~fix_poly_field lval
-  in
+let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
+  let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
   let taints_from_env = status_to_taints lval_in_env in
   let taints = Taints.union new_taints taints_from_env in
   let sinks =
@@ -919,12 +916,7 @@ let rec check_tainted_lval env ?(fix_poly_field = false) (lval : IL.lval) :
   report_findings { env with lval_env } findings;
   (taints, lval_env)
 
-(* With 'fix_poly_field', given an l-value 'x.a', if 'x' has polymorphic taint
- * (hence the taint comes from formal argument), and we have no info for 'x.a',
- * then we'll add the offset '.a' to that taint. This is a field-sensitive HACK
- * for which there could be unexpected side-effects, so to be on the safe side
- * we only enable it when analyzing the taint signature of a function. *)
-and check_tainted_lval_aux env ~fix_poly_field (lval : IL.lval) :
+and check_tainted_lval_aux env (lval : IL.lval) :
     Taints.t
     (* `Sanitized means that the lval matched a sanitizer "right now", whereas
      * `Clean means that the lval has been _previously_ sanitized. They are
@@ -973,8 +965,7 @@ and check_tainted_lval_aux env ~fix_poly_field (lval : IL.lval) :
             (taints, `None, lval_env)
         | { base = _; rev_offset = _ :: rev_offset' } ->
             (* Recursive case, given `x.a.b` we must first check `x.a`. *)
-            check_tainted_lval_aux env ~fix_poly_field
-              { lval with rev_offset = rev_offset' }
+            check_tainted_lval_aux env { lval with rev_offset = rev_offset' }
       in
       (* Check the status of lval in the environemnt. *)
       let lval_in_env =
@@ -986,13 +977,11 @@ and check_tainted_lval_aux env ~fix_poly_field (lval : IL.lval) :
             match Lval_env.dumb_find lval_env lval with
             | (`Clean | `Tainted _) as st' -> st'
             | `None ->
-                if fix_poly_field then
-                  (* HACK(field-sensitivity): If we encounter `obj.x` and `obj` has
-                     * polymorphic taint,  and we know nothing specific about `obj.x`, then
-                     * we add the same offset `.x` to the polymorphic taint coming from `obj`.
-                     * See also 'propagate_taint_via_java_setter'. *)
-                  fix_poly_taint_with_field env lval st
-                else st)
+                (* HACK(field-sensitivity): If we encounter `obj.x` and `obj` has
+                   * polymorphic taint,  and we know nothing specific about `obj.x`, then
+                   * we add the same offset `.x` to the polymorphic taint coming from `obj`.
+                   * See also 'propagate_taint_via_java_setter'. *)
+                fix_poly_taint_with_field env lval st)
       in
       let taints_from_env = status_to_taints lval_in_env in
       (* Find taint sources matching lval. *)
@@ -1174,7 +1163,10 @@ let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
  * E.g. `lval_of_sig_arg o.f [] [] (this,-1).x = o.x`
  *)
 let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
-  let* base_lval, obj =
+  let os =
+    sig_arg.offset |> Common.map (fun x -> { o = Dot x; oorig = NoOrig })
+  in
+  let* lval, obj =
     match sig_arg.pos with
     | "<this>", -1 -> (
         match fun_exp with
@@ -1182,19 +1174,34 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
          _;
         } ->
-            Some ({ base = Var obj; rev_offset = [] }, obj)
+            Some ({ base = Var obj; rev_offset = List.rev os }, obj)
         | __else__ -> None)
     | pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
-        match arg_exp.e with
-        | Fetch ({ base = Var obj; _ } as arg_lval) -> Some (arg_lval, obj)
+        match (arg_exp.e, sig_arg.offset) with
+        | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
+            let lval =
+              {
+                arg_lval with
+                rev_offset = List.rev_append os arg_lval.rev_offset;
+              }
+            in
+            Some (lval, obj)
+        | Record fields, [ o ] -> (
+            match
+              fields
+              |> List.find_opt (function
+                   | Field (fld, _) -> fst fld = fst o.ident
+                   | Spread _ -> false)
+            with
+            | Some (Field (_, { e = Fetch ({ base = Var obj; _ } as lval); _ }))
+              ->
+                (* Actual argument is of the form {..., fld=lval, ...} and the offset is 'fld'. *)
+                Some (lval, obj)
+            | Some _
+            | None ->
+                None)
         | __else__ -> None)
-  in
-  let os =
-    sig_arg.offset |> Common.map (fun x -> { o = Dot x; oorig = NoOrig })
-  in
-  let lval =
-    { base_lval with rev_offset = List.rev_append os base_lval.rev_offset }
   in
   Some (lval, obj)
 
@@ -1207,9 +1214,7 @@ let taints_of_sig_arg env fparams fun_exp args_exps args_taints
   | __else__ ->
       (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
       let* lval, _obj = lval_of_sig_arg fun_exp fparams args_exps sig_arg in
-      let arg_taints =
-        check_tainted_lval env ~fix_poly_field:true lval |> fst
-      in
+      let arg_taints = check_tainted_lval env lval |> fst in
       Some arg_taints
 
 (* This function is consuming the taint signature of a function to determine
@@ -1390,7 +1395,7 @@ let check_function_call_callee env e =
     when env.lang =*= Lang.Java
          && (not (LV.is_pro_resolved_global method_))
          && Stdcompat.String.starts_with ~prefix:"get" (fst method_.ident) ->
-      check_tainted_lval env ~fix_poly_field:true e_lval
+      check_tainted_lval env e_lval
   | __else__ -> check_tainted_expr env e
 
 (* Check the actual arguments of a function call. This also handles left-to-right
