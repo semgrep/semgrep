@@ -6,31 +6,6 @@
       "targets/extract/python_jupyter_paths_exclude.ipynb"
     ]
   },
-  "results": [
-    {
-      "check_id": "rules.extract_rules.forbid-pickle",
-      "end": {
-        "col": 25,
-        "line": 31,
-        "offset": 617
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "       \"    pickle.dump(data, f)\"",
-        "message": "found pickle",
-        "metadata": {},
-        "metavars": {},
-        "severity": "ERROR"
-      },
-      "path": "targets/extract/python_jupyter_paths_exclude.ipynb",
-      "start": {
-        "col": 5,
-        "line": 31,
-        "offset": 597
-      }
-    }
-  ],
+  "results": [],
   "version": "0.42"
 }
