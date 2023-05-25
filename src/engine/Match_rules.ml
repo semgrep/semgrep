@@ -98,7 +98,7 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | `Join _ ->
+           | `Step _ ->
                pr2 (Rule.show_rule r);
                raise Common.Todo)
   in
@@ -195,7 +195,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
                      match_hook xconf xtarget
-               | `Join _ as mode ->
+               | `Step _ as mode ->
                    pr2 (Rule.show_rule { r with mode });
                    raise Common.Todo))
   in

@@ -651,7 +651,7 @@ let extracted_targets_of_config (config : Runner_config.t)
         | `Extract _ as e -> Some { r with mode = e }
         | `Search _
         | `Taint _
-        | `Join _ ->
+        | `Step _ ->
             None)
       all_rules
   in
@@ -752,7 +752,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | `Extract _ -> false
                     | `Search _
                     | `Taint _
-                    | `Join _ ->
+                    | `Step _ ->
                         true)
              |> List.filter (fun r ->
                     (* TODO: some of this is already done in pysemgrep, so maybe

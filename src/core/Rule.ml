@@ -279,20 +279,28 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 [@@deriving show]
 
 (*****************************************************************************)
-(* Join mode *)
+(* Shared mode definitions *)
 (*****************************************************************************)
 
-type mode_for_join = Step_search of formula | Step_taint of taint_spec
-[@@deriving show]
+(* Polymorhic variants used to improve type checking of rules (see below) *)
+type search_mode = [ `Search of formula ] [@@deriving show]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
 
-type step_info = {
-  step_formula : mode_for_join;
+(*****************************************************************************)
+(* Step mode *)
+(*****************************************************************************)
+
+type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
+
+type step = {
+  step_mode : mode_for_step;
   step_languages : Xlang.t;
   step_paths : paths option;
 }
 [@@deriving show]
 
-type join_spec = step_info list [@@deriving show]
+type steps = step list [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)
@@ -320,13 +328,12 @@ type 'mode rule_info = {
 and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
-(* Polymorhic variants used to improve type checking of rules (see below) *)
-type search_mode = [ `Search of formula ] [@@deriving show]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-type join_mode = [ `Join of join_spec ] [@@deriving show]
+(* Step mode includes rules that use search_mode and taint_mode *)
+(* Later, if we keep it, we might want to make all rules have steps,
+   but for the experiment this is easier to remove *)
+type step_mode = [ `Step of steps ] [@@deriving show]
 
-type mode = [ search_mode | taint_mode | extract_mode | join_mode ]
+type mode = [ search_mode | taint_mode | extract_mode | step_mode ]
 [@@deriving show]
 
 (* If you know your function accepts only a certain kind of rule,
@@ -335,7 +342,7 @@ type mode = [ search_mode | taint_mode | extract_mode | join_mode ]
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
-type join_rule = join_mode rule_info [@@deriving show]
+type step_rule = step_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
@@ -353,19 +360,19 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list * join_rule list =
-  let rec part_rules search taint extract join = function
-    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev join)
+    search_rule list * taint_rule list * extract_rule list * step_rule list =
+  let rec part_rules search taint extract step = function
+    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev step)
     | r :: l -> (
         match r.mode with
         | `Search _ as s ->
-            part_rules ({ r with mode = s } :: search) taint extract join l
+            part_rules ({ r with mode = s } :: search) taint extract step l
         | `Taint _ as t ->
-            part_rules search ({ r with mode = t } :: taint) extract join l
+            part_rules search ({ r with mode = t } :: taint) extract step l
         | `Extract _ as e ->
-            part_rules search taint ({ r with mode = e } :: extract) join l
-        | `Join _ as j ->
-            part_rules search taint extract ({ r with mode = j } :: join) l)
+            part_rules search taint ({ r with mode = e } :: extract) step l
+        | `Step _ as j ->
+            part_rules search taint extract ({ r with mode = j } :: step) l)
   in
   part_rules [] [] [] [] rules
 
