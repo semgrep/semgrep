@@ -16,6 +16,7 @@ from rich.progress import Progress
 from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
+from semgrep.contributors import ContributionManager
 
 import semgrep.semgrep_main
 from semgrep.app import auth
@@ -368,6 +369,7 @@ def ci(
             shown_severities,
             dependencies,
             dependency_parser_errors,
+            latest_contributions,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -500,6 +502,19 @@ def ci(
         if "r2c-internal-project-depends-on" in scan_handler.rules:
             logger.info(
                 f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/supply-chain"
+            )
+
+        # Report contributors
+        logger.info("  Uploading contributors.")
+        if ContributionManager.report_contributions(latest_contributions.contributions):
+            logger.info(
+                f"  Successfully reported {latest_contributions.contributors_count} contributors across {latest_contributions.projects_count} projects."
+            )
+            logger.info(
+                "  View your current seat utilization in Semgrep Cloud Platform:"
+            )
+            logger.info(
+                f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/settings/upgrade"
             )
 
     audit_mode = metadata.event_name in audit_on

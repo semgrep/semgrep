@@ -7,24 +7,22 @@ information for logged-in users using semgrep CLI.
 
 
 from datetime import UTC, datetime, timedelta
-from typing import Iterator
 
 from attrs import define, field, frozen
-from pydriller import Commit, Repository
+from pydriller import Repository
+import requests
 from rich import box
 from rich.columns import Columns
 from rich.padding import Padding
 from rich.table import Table
 
 from semgrep.console import console, Title
+from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-
-IGNORED_COMMITTERS = ["semgrep.dev"]
-IGNORED_AUTHORS = ["semgrep-ci[bot]", "dependabot[bot]", "r2c-argo[bot]"]
 DEFAULT_LOOKBACK = timedelta(days=45)
 
 
@@ -111,9 +109,6 @@ class ContributionManager:
     target_manager: TargetManager
 
     since: datetime | None = None
-    to: datetime | None = None
-    from_commit: str | None = None
-    to_commit: str | None = None
 
     repository: Repository = field(init=False)
 
@@ -133,7 +128,7 @@ class ContributionManager:
         contributors: list[Contributor] = []
         projects: list[str] = []
 
-        for commit in self._iter_commits():
+        for commit in self.repository.traverse_commits():
             contributor = Contributor(
                 name=commit.author.name,
                 email=commit.author.email,
@@ -189,17 +184,22 @@ class ContributionManager:
             contributors_count=contributions.contributors_count,
         )
 
-    def _iter_commits(self) -> Iterator[Commit]:
-        yield from filter(
-            self._is_valid_commit,
-            self.repository.traverse_commits(),
+    @classmethod
+    def report_contributions(cls, contributions: list[Contribution]) -> bool:
+        request_body = {
+            "contributions": [contribution.asdict() for contribution in contributions]
+        }
+
+        state = get_state()
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/billing/contributors",
+            json=request_body,
         )
 
-    def _is_valid_commit(self, commit: Commit) -> bool:
-        if commit.committer.name in IGNORED_COMMITTERS:
-            return False
-
-        if commit.author.name in IGNORED_AUTHORS:
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            logger.error(f"API server returned this error: {response.text}")
             return False
 
         return True

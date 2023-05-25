@@ -29,8 +29,7 @@ from semgrep.console import Title
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
-from semgrep.contributors import Contributor
-from semgrep.contributors import ContributionManager
+from semgrep.contributors import ContributionManager, ContributionsResponse
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
@@ -59,7 +58,6 @@ from semgrep.state import get_state
 from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
-from semgrep.target_manager import Target
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -126,6 +124,7 @@ def invoke_semgrep(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
     ) = main(
@@ -390,6 +389,7 @@ def main(
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
+    ContributionsResponse,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -656,4 +656,5 @@ def main(
         shown_severities,
         dependencies,
         dependency_parser_errors,
+        latest_contributions,
     )
