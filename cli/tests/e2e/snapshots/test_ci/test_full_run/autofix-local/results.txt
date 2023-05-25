@@ -93,6 +93,10 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_REPO_URL="git@github.com:example
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
+  Failed to parse [bold]yarn.lock[/bold] at [bold]5:1[/bold] - expected one of
+  ['\n', ':\n', 'EOF', '^"?@?([^@:]*)@?(.*)?"?:']
+  5 | lodash@4.17.20:
+      ^
 
 
 ┌──────────────┐

@@ -1,29 +1,5 @@
 
 
-┌──────────────────────────────────┐
-│ 1 Reachable Supply Chain Finding │
-└──────────────────────────────────┘
-
-    targets/dependency_aware/monorepo/webapp1/app.js with lockfile
-  targets/dependency_aware/monorepo/webapp1/yarn.lock
-       rules.dependency_aware.js-sca
-          oh no
-
-            1┆ bad()
-
-
-┌────────────────────────────────────┐
-│ 1 Unreachable Supply Chain Finding │
-└────────────────────────────────────┘
-
-    targets/dependency_aware/monorepo/webapp2/yarn.lock
-       rules.dependency_aware.js-sca
-          oh no
-
-            5┆ bad-lib@0.0.7:
-            6┆   version "0.0.7"
-
-
 ┌─────────────────┐
 │ 2 Code Findings │
 └─────────────────┘

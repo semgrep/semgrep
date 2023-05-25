@@ -35,6 +35,11 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
+  Failed to parse [bold]targets/dependency_aware/lodash/yarn.lock[/bold] at
+  [bold]5:1[/bold] - expected one of ['\n', ':\n', 'EOF',
+  '^"?@?([^@:]*)@?(.*)?"?:']
+  5 | lodash@4.17.20:
+      ^
 
 
 ┌──────────────┐

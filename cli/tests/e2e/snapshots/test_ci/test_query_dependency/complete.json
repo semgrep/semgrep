@@ -1,6 +1,15 @@
 {
   "exit_code": 1,
-  "dependency_parser_errors": [],
+  "dependency_parser_errors": [
+    {
+      "path": "yarn.lock",
+      "parser": "yarn_1",
+      "reason": "expected one of ['\\n', ':\\n', 'EOF', '^\"?@?([^@:]*)@?(.*)?\"?:']",
+      "line": 5,
+      "col": 1,
+      "text": "lodash@4.17.20:"
+    }
+  ],
   "stats": {
     "findings": 7,
     "errors": [],
@@ -46,20 +55,6 @@
         "line_number": 17
       }
     ],
-    "yarn.lock": [
-      {
-        "package": "lodash",
-        "version": "4.17.20",
-        "ecosystem": "npm",
-        "allowed_hashes": {
-          "sha512": [
-            "6aee0bd6ad0729c69a6b7eea39da565a1c330e707fb5a6097d188a50b9da4fe325f5468122327648e24c78bb5279e2d3fb351dc85326d3eb6cfa3e1e7ae52920"
-          ]
-        },
-        "transitivity": "unknown",
-        "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.18.tgz",
-        "line_number": 5
-      }
-    ]
+    "yarn.lock": []
   }
 }
