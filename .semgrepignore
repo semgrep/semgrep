@@ -33,3 +33,6 @@
 # rules being tested for performance
 /perf/rules/
 /perf/r2c-rules/
+
+#TODO: fix, can't parse currently, weird
+/src/osemgrep/cli_scan/Cli_json_output.ml
