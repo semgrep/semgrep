@@ -60,11 +60,6 @@ val mvalue_of_any : AST_generic.any -> mvalue option
  * of a metavariable into a program so we can use evaluate_formula on it *)
 val program_of_mvalue : mvalue -> AST_generic.program option
 
-module Syntactic : sig
-  val equal_mvalue : mvalue -> mvalue -> bool
-  val equal_bindings : bindings -> bindings -> bool
-end
-
 module Structural : sig
   val equal_mvalue : mvalue -> mvalue -> bool
   val equal_bindings : bindings -> bindings -> bool
