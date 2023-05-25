@@ -21,6 +21,7 @@
    semgrep_configuring
 
    spacegrep ; Rule.ml references Spacegrep.Pattern_AST.t
+   aliengrep
  )
  (preprocess
    (pps

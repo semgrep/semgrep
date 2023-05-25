@@ -57,6 +57,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
                   Regexp_engine.unanchored_match re str)
          in
 
-         if not match_ then logger#info "filtering rule %s" rule.R.id;
+         if not match_ then
+           logger#info "filtering rule %s" (rule.R.id :> string);
          match_)
   [@@profiling "Mini_rules_filter.filter"]

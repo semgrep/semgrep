@@ -42,12 +42,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
- fun rs -> rs |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
+ fun rs ->
+  rs
+  |> Common.map (fun r -> r.R.languages.target_analyzer)
+  |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
   match rs with
   | [] -> failwith "no rules"
-  | { R.languages = x; _ } :: _ -> x
+  | { R.languages = x; _ } :: _ -> x.target_analyzer
 
 let single_xlang_from_rules file rules =
   let xlangs = xlangs_of_rules rules in
@@ -149,7 +152,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                      in
                      (ast, skipped_tokens)
                  | LRegex
-                 | LGeneric ->
+                 | LSpacegrep
+                 | LAliengrep ->
                      assert false)
              in
              let xtarget =
@@ -207,9 +211,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  extract_targets
                  |> Common.map (fun t ->
                         let file = t.Input_to_core_t.path in
-                        let xlang =
-                          Xlang.of_string t.Input_to_core_t.language
-                        in
+                        let xlang = t.Input_to_core_t.language in
                         let lazy_ast_and_errors =
                           lazy
                             (match xlang with
@@ -219,7 +221,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                                 in
                                 (ast, skipped_tokens)
                             | LRegex
-                            | LGeneric ->
+                            | LSpacegrep
+                            | LAliengrep ->
                                 assert false)
                         in
                         let xtarget =
