@@ -426,6 +426,7 @@ let interactive_loop xlang xtargets =
       (* TODO: change *)
       if true then update t state)
     (fun () -> Term.release t)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Main logic *)
