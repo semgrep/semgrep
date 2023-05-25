@@ -85,8 +85,7 @@ let pp_tables ppf (h1, heading1, entries1) (h2, heading2, entries2) =
         Fmt.pf ppf "  %s%s%s@." l1_space space b;
         one (idx + 1) [] rb
   in
-  one 0 lines1 lines2;
-  Fmt.pf ppf "@."
+  one 0 lines1 lines2
 
 let pp_heading ppf txt =
   let line = line (String.length txt + 2) in

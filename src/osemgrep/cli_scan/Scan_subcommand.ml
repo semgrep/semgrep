@@ -202,14 +202,16 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* step0: potentially notify user about metrics *)
       if not (settings.has_shown_metrics_notification = Some true) then (
+        (* the 22m 24m is just for python compatibility *)
         Logs.warn (fun m ->
             m
-              "METRICS: Using configs from the Registry (like --config=p/ci) \
-               reports pseudonymous rule metrics to semgrep.dev.@.To disable \
-               Registry rule metrics, use \"--metrics=off\".@.Using configs \
-               only from local files (like --config=xyz.yml) does not enable \
-               metrics.@.@.More information: \
-               https://semgrep.dev/docs/metrics@.");
+              "\027[22m\027[24mMETRICS: Using configs from the Registry (like \
+               --config=p/ci) reports pseudonymous rule metrics to \
+               semgrep.dev.@.To disable Registry rule metrics, use \
+               \"--metrics=off\".@.Using configs only from local files (like \
+               --config=xyz.yml) does not enable metrics.@.@.More information: \
+               https://semgrep.dev/docs/metrics");
+        Logs.app (fun m -> m "@.");
         let settings =
           {
             settings with
