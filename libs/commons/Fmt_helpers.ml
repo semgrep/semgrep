@@ -66,7 +66,11 @@ let pp_table (h1, heading) ppf entries =
 let pp_tables ppf (h1, heading1, entries1) (h2, heading2, entries2) =
   let lines1 = layout_table (h1, heading1) entries1
   and lines2 = layout_table (h2, heading2) entries2 in
-  let l1_space = String.make (String.length (List.hd lines1)) ' ' in
+  let l1_space =
+    String.make
+      (String.length (Common.hd_exn "unexpected empty list" lines1))
+      ' '
+  in
   let space = String.make 10 ' ' in
   let rec one idx a b =
     match (a, b) with
