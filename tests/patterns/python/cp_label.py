@@ -11,8 +11,8 @@ a =\
     #ERROR:
     "foo"
 
-#ERROR: a is foo by constant propagation
-a[b] = 1
+#OK:
+a = "bar"
 
 def f():
     #OK:
