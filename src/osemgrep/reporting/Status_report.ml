@@ -30,6 +30,7 @@ let origin rule =
 (*****************************************************************************)
 
 let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
+  Fmt.pf ppf "@.";
   Fmt_helpers.pp_heading ppf "Scan Status";
   Fmt.pf ppf "  Scanning %s%s with %s"
     (String_utils.unit_str num_targets "file")
