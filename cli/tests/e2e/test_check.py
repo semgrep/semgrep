@@ -178,6 +178,7 @@ def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_terminal_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Have shared settings file to test second run doesnt show metric output
