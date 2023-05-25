@@ -1,3 +1,0 @@
-On scan complete during logged in `semgrep ci` scans, check returned exit code to
-see if should block scans. This is to support incoming features that requires
-information from semgrep.dev

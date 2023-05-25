@@ -1,3 +1,0 @@
-Kotlin: Added literal metavariables, from patterns like `"$FOO"`.
-You can still match strings that only contain a single interpolated
-ident by using the brace notation, e.g. `"${FOO}"`.
