@@ -59,7 +59,7 @@
         "line": 3,
         "offset": 55
       }
-    }.
+    },
     {
       "check_id": "rules.javascript-basic-eqeq-bad",
       "end": {
