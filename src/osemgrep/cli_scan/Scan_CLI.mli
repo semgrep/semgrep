@@ -68,3 +68,5 @@ val cmdline_term : conf Cmdliner.Term.t
 (* exported because used by Interactive_CLI.ml too *)
 val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
+val o_include : string list Cmdliner.Term.t
+val o_exclude : string list Cmdliner.Term.t

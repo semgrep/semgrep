@@ -427,27 +427,6 @@ let interactive_loop xlang xtargets =
       if true then update t state)
     (fun () -> Term.release t)
 
-(* TODO: we should rewrite this to use the osemgrep file targeting instead
- * of the deprecated (and possibly slow) files_of_dirs_or_files() below
- *)
-let semgrep_with_interactive_mode (config : Runner_config.t) =
-  (* TODO: support generic and regex patterns as well. See code in Deep.
-   * Just use Parse_rule.parse_xpattern xlang (str, fk)
-   *)
-  let lang = Xlang.lang_of_opt_xlang_exn config.lang in
-
-  (* copied from -e *)
-  let roots = config.roots in
-  let files, _skipped =
-    Find_targets_old.files_of_dirs_or_files (Some lang) roots
-  in
-  let xlang = Xlang.L (lang, []) in
-  let xtargets =
-    files |> Common.map Fpath.to_string
-    |> Common.map (Run_semgrep.xtarget_of_file config xlang)
-  in
-  interactive_loop xlang xtargets
-
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -456,15 +435,24 @@ let semgrep_with_interactive_mode (config : Runner_config.t) =
    exit code. *)
 let run (conf : Interactive_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
-  let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
-  let config =
-    {
-      config with
-      roots = conf.target_roots;
-      lang = Some (Xlang.L (conf.lang, []));
-    }
+  let targets, _skipped =
+    Find_targets.get_targets conf.targeting_conf conf.target_roots
   in
-  semgrep_with_interactive_mode config;
+  (* TODO: support generic and regex patterns as well. See code in Deep.
+   * Just use Parse_rule.parse_xpattern xlang (str, fk)
+   *)
+  let xlang = Xlang.L (conf.lang, []) in
+  let targets =
+    targets |> List.filter (Filter_target.filter_target_for_xlang xlang)
+  in
+
+  let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
+  let config = { config with roots = conf.target_roots; lang = Some xlang } in
+  let xtargets =
+    targets |> Common.map Fpath.to_string
+    |> Common.map (Run_semgrep.xtarget_of_file config xlang)
+  in
+  interactive_loop xlang xtargets;
   Exit_code.ok
 
 (*****************************************************************************)

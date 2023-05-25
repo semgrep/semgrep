@@ -27,7 +27,7 @@ type conf = {
 (*************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine lang target_roots logging_level =
+  let combine exclude include_ lang target_roots logging_level =
     let lang =
       match lang with
       (* TODO? we could omit the language like for -e and try all languages?*)
@@ -37,18 +37,24 @@ let cmdline_term : conf Term.t =
           Lang.of_string s
     in
     let target_roots = File.Path.of_strings target_roots in
+    let include_ =
+      match include_ with
+      | [] -> None
+      | nonempty -> Some nonempty
+    in
     {
       lang;
       target_roots;
-      (* TODO: accept CLI args at some point *)
-      targeting_conf = Scan_CLI.default.targeting_conf;
+      (* LATER: accept all CLI args *)
+      targeting_conf =
+        { Scan_CLI.default.targeting_conf with include_; exclude };
       core_runner_conf = Scan_CLI.default.core_runner_conf;
       logging_level;
     }
   in
   Term.(
-    const combine $ Scan_CLI.o_lang $ Scan_CLI.o_target_roots
-    $ CLI_common.logging_term)
+    const combine $ Scan_CLI.o_exclude $ Scan_CLI.o_include $ Scan_CLI.o_lang
+    $ Scan_CLI.o_target_roots $ CLI_common.logging_term)
 
 let doc = "Interactive mode!!"
 
