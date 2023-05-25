@@ -751,17 +751,30 @@ let fix_poly_taint_with_field env lval st =
               taints
               |> Taints.map (fun taint ->
                      match taint.orig with
-                     | Arg ({ offset; _ } as arg) when not (List.mem n offset)
-                       ->
-                         (* If the offset we are trying to take is already in the
-                            list of offsets, don't append it! This is so we don't
-                            never-endingly loop the dataflow and make it think the
-                            Arg taint is never-endingly changing.
+                     | Arg ({ offset; _ } as arg)
+                       when (* If the offset we are trying to take is already in the
+                               list of offsets, don't append it! This is so we don't
+                               never-endingly loop the dataflow and make it think the
+                               Arg taint is never-endingly changing.
 
-                            For instance, this code example would previously loop,
-                            if `x` started with an `Arg` taint:
-                            while (true) { x = x.getX(); }
-                         *)
+                               For instance, this code example would previously loop,
+                               if `x` started with an `Arg` taint:
+                               while (true) { x = x.getX(); }
+                            *)
+                            (not (List.mem n offset))
+                            && (* For perf reasons we don't allow offsets to get too long.
+                                * Otherwise in a long chain of function calls where each
+                                * function adds some offset, we could end up a very large
+                                * amount of polymorphic taint.
+                                * This actually happened with rule
+                                * semgrep.perf.rules.express-fs-filename from the Pro
+                                * benchmarks, and file
+                                * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
+                                *
+                                * TODO: This is way less likely to happen if we had better
+                                *   type info and we used to remove taint, e.g. if Boolean
+                                *   and integer expressions didn't propagate taint. *)
+                            List.length offset <= 1 ->
                          let arg' = { arg with offset = arg.offset @ [ n ] } in
                          { taint with orig = Arg arg' }
                      | Arg _
@@ -1379,24 +1392,7 @@ let check_function_signature env fun_exp args args_taints =
   | Some _, _ ->
       None
 
-let check_function_call_callee env e =
-  match e with
-  | {
-   e =
-     Fetch
-       ({ base = Var _obj; rev_offset = [ { o = Dot method_; _ } ] } as e_lval);
-   _;
-  }
-  (* HACK(field-sensitivity):
-   * For Java `getX` methods for which we have no definition available
-   * (or could not be resolved) we just assume that they are getter methods
-   * and we use `fix_poly_field` to add the `.getX` offset in case `_obj`
-   * were a parameter (e.g. `this`) and had polymorphic taint. *)
-    when env.lang =*= Lang.Java
-         && (not (LV.is_pro_resolved_global method_))
-         && Stdcompat.String.starts_with ~prefix:"get" (fst method_.ident) ->
-      check_tainted_lval env e_lval
-  | __else__ -> check_tainted_expr env e
+let check_function_call_callee env e = check_tainted_expr env e
 
 (* Check the actual arguments of a function call. This also handles left-to-right
  * taint propagation by chaining the 'lval_env's returned when checking the arguments.
