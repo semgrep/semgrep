@@ -3,4 +3,4 @@
 val type_of_expr :
   Lang.t ->
   AST_generic.expr ->
-  AST_generic.type_ option * AST_generic.ident option
+  AST_generic.name Type.t * AST_generic.ident option

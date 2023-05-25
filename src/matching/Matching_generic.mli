@@ -101,7 +101,7 @@ val m_option_ellipsis_ok :
   AST_generic.expr matcher -> AST_generic.expr option matcher
 
 val m_option_none_can_match_some : 'a matcher -> 'a option matcher
-val m_list : 'a matcher -> 'a list matcher
+val m_list : ('a, 'b) general_matcher -> ('a list, 'b list) general_matcher
 val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*

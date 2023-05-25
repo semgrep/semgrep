@@ -269,7 +269,13 @@ jobs:
       - name: Get the version
         id: get-version
         run: |
-          echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+          TAG=${GITHUB_REF/refs\/tags\//}
+          if [ "${{ needs.dry-run.outputs.dry-run }}" = "true" ]; then
+            TAG=v99.99.99
+          fi
+          echo "Using TAG=${TAG}"
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using VERSION=${TAG#v}"
           echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       - uses: actions/setup-python@v4
         id: python-setup

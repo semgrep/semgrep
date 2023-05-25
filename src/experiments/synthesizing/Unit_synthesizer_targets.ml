@@ -4,7 +4,8 @@ module R = Rule
 module E = Semgrep_error_code
 module Out = Output_from_core_t
 
-let test_path = "../../../tests/synthesizing/targets/"
+(* ran from the root of the semgrep repository *)
+let test_path = "tests/synthesizing/targets/"
 
 (* Format: file, list of target ranges, expected pattern line. *)
 let stmt_tests =

@@ -15,46 +15,10 @@ module RP = Report
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
-(* ugly: also partially done in CLI.ml *)
 let setup_logging (conf : Scan_CLI.conf) =
-  (* For osemgrep we use the Logs library instead of the Logger
-   * library in pfff. We had a few issues with Logger (which is a small
-   * wrapper around the easy_logging library), and we don't really want
-   * the logging in semgrep-core to interfere with the proper
-   * logging/output we want in osemgrep, so this is a good opportunity
-   * to evaluate a new logging library.
-   *)
-  Logs_helpers.setup_logging ~force_color:conf.force_color
+  CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.logging_level;
-  (* TOPORT
-        # Setup file logging
-        # env.user_log_file dir must exist
-        env.user_log_file.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(env.user_log_file, "w")
-        file_formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
-  *)
-  Logs.debug (fun m -> m "Logging setup for semgrep scan");
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
-  Logs.debug (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
-
-  (* Easy_logging setup. We should avoid to use Logger in osemgrep/
-   * and use Logs instead, but it is still useful to get the semgrep-core
-   * logging information at runtime, hence this call.
-   *)
-  let debug =
-    match conf.logging_level with
-    | Some Logs.Debug -> true
-    | _else_ -> false
-  in
-  Logging_helpers.setup ~debug
-    ~log_config_file:(Fpath.v "log_config.json")
-    ~log_to_file:None;
   ()
 
 (* ugly: also partially done in CLI.ml *)

@@ -33,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type todo_kind = string option [@@deriving show]
+type todo_kind = string option [@@deriving show, eq]
 
 (* Fully qualified name *)
 type 'resolved name = 'resolved * 'resolved type_argument list
@@ -81,7 +81,7 @@ and 'resolved parameter_classic = {
   pident : string option;
   ptype : 'resolved t;
 }
-[@@deriving show { with_path = false }]
+[@@deriving show { with_path = false }, eq]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -110,6 +110,12 @@ let rec to_name_opt lang ty =
 let mkt str =
   G.TyN (G.Id ((str, Tok.unsafe_fake_tok str), G.empty_id_info ())) |> G.t
 
+let is_real_type = function
+  | NoType
+  | Todo _ ->
+      false
+  | _else_ -> true
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
@@ -119,7 +125,8 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
   | Some s -> (s, Tok.unsafe_fake_tok s)
   | None -> ("TodoKind is None", Tok.unsafe_fake_tok "")
 
-(* less: should sanity check things by looking at [lang]
+(* less: should sanity check things by looking at [lang]. but maybe users like
+ * to write `bool` in a language that uses `boolean`, and we should allow that?
  *
  * coupling: Inverse of ast_generic_type_of_builtin_type *)
 let builtin_type_of_string _langTODO str =

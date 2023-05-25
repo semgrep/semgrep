@@ -318,6 +318,15 @@ let parse_listi env (key : key) f x =
   | G.Container (Array, (_, xs, _)) -> Common.mapi get_component xs
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
+let parse_string_wrap_list conv env (key : key) e =
+  let extract_string_wrap env = function
+    | { G.e = G.L (String (_, (value, t), _)); _ } -> (conv value, t)
+    | _ ->
+        error_at_key env.id key
+          ("Expected all values in the list to be strings for " ^ fst key)
+  in
+  parse_list env key extract_string_wrap e
+
 let parse_bool env (key : key) x =
   match x.G.e with
   | G.L (String (_, ("true", _), _)) -> true
@@ -1403,6 +1412,27 @@ let parse_extract_transform ~id (s, t) =
                 id,
                 t )))
 
+let parse_rules_to_run_with_extract env key value =
+  let ruleids_dict = yaml_to_dict env key value in
+  let inc_opt, exc_opt =
+    ( take_opt ruleids_dict env
+        (parse_string_wrap_list Rule.ID.of_string)
+        "include",
+      take_opt ruleids_dict env
+        (parse_string_wrap_list Rule.ID.of_string)
+        "exclude" )
+  in
+  (* alt: we could use report_unparsed_fields(), but better to raise an error for now
+     to be compatible with pysemgrep *)
+  if Hashtbl.length ruleids_dict.h > 0 then
+    error_at_key env.id key
+      "Additional properties are not allowed (only 'include' and 'exclude' are \
+       supported)";
+  {
+    R.required_rules = optlist_to_list inc_opt;
+    excluded_rules = optlist_to_list exc_opt;
+  }
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -1470,6 +1500,9 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
+      let extract_rule_ids =
+        take_opt rule_dict env parse_rules_to_run_with_extract "rules"
+      in
       let transform =
         take_opt rule_dict env parse_string_wrap "transform"
         |> Option.map (parse_extract_transform ~id:env.id)
@@ -1480,7 +1513,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         |> Option.map (parse_extract_reduction ~id:env.id)
         |> Option.value ~default:R.Separate
       in
-      `Extract { formula; dst_lang; extract; reduce; transform }
+      `Extract
+        { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
   | Some key, _ ->
       error_at_key env.id key
         (spf

@@ -28,6 +28,47 @@ open Ppx_hash_lib.Std.Hash.Builtin
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
+(*
+   A rule ID is a string. This creates a dedicated type to clarify interfaces
+   and error messages. The coercion operator can be used as an alternative
+   to 'to_string x': '(x :> string)' to obtain a plain string.
+*)
+module ID : sig
+  type t = private string [@@deriving show, eq]
+
+  val to_string : t -> string
+  val of_string : string -> t
+  val to_string_list : t list -> string list
+  val of_string_list : string list -> t list
+  val compare : t -> t -> int
+
+  (*
+     Rule ids are prepended with the `path.to.the.rules.file.`, so
+     when comparing a rule (r) with the rule to be included or excluded,
+     allow for a preceding path
+
+       "path.to.foo.bar" ~suffix:"foo.bar" -> true
+       "foo.bar" ~suffix:"foo.bar" -> true
+       "xfoo.bar" ~suffix:"foo.bar" -> false
+
+     TODO we may want to allow globs for rules
+  *)
+  val ends_with : t -> suffix:t -> bool
+end = struct
+  type t = string [@@deriving show, eq]
+
+  let to_string x = x
+  let of_string x = x
+  let to_string_list x = x
+  let of_string_list x = x
+  let compare = String.compare
+
+  let ends_with r ~suffix:inc_or_exc_rule =
+    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+end
+
+type rule_id = ID.t [@@deriving show, eq]
+
 (*****************************************************************************)
 (* Position information *)
 (*****************************************************************************)
@@ -233,7 +274,15 @@ type extract_spec = {
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
+  extract_rule_ids : extract_rule_ids option;
   transform : extract_transform;
+}
+
+(* SR wants to be able to choose rules to run on
+   Behaves the same as paths *)
+and extract_rule_ids = {
+  required_rules : rule_id wrap list;
+  excluded_rules : rule_id wrap list;
 }
 
 (* Method to combine extracted ranges within a file:
@@ -252,27 +301,6 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 (*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
-
-(*
-   A rule ID is a string. This creates a dedicated type to clarify interfaces
-   and error messages. The coercion operator can be used as an alternative
-   to 'to_string x': '(x :> string)' to obtain a plain string.
-*)
-module ID : sig
-  type t = private string [@@deriving show, eq]
-
-  val to_string : t -> string
-  val of_string : string -> t
-  val compare : t -> t -> int
-end = struct
-  type t = string [@@deriving show, eq]
-
-  let to_string x = x
-  let of_string x = x
-  let compare = String.compare
-end
-
-type rule_id = ID.t [@@deriving show, eq]
 
 (*
    For historical reasons, the 'languages' field in the Semgrep rule

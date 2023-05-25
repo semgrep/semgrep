@@ -1,0 +1,14 @@
+Relaxed restrictions on symbolic propagation so that symbolic values survive
+branching statements. Now (with symbolic-propagation enabled) `foo(bar())` will
+match match the following code:
+
+```python
+def test():
+  x = bar()
+  if cond:
+    exit()
+  foo(x)
+```
+
+Previously any symbolically propagated value was lost after any kind of branching
+statement.
