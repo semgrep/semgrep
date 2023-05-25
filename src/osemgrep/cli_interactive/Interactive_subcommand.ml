@@ -72,12 +72,53 @@ type state = {
 let files_width = 40
 
 (* color settings *)
+let semgrep_green = A.rgb_888 ~r:58 ~g:212 ~b:167
 let light_green = A.rgb_888 ~r:77 ~g:255 ~b:175
 let neutral_yellow = A.rgb_888 ~r:255 ~g:255 ~b:161
 let bg_file_selected = A.(bg (gray 5))
 let bg_match = A.(bg (gray 5))
 let bg_match_position = A.(bg light_green ++ fg (gray 3))
 let fg_line_num = A.(fg neutral_yellow)
+
+let loading_screen_lines =
+  [
+    "                 ((((((                         \
+     (((((                         ((((((                ";
+    "          ((((((((((((((((((((          %(((((((((((((((((((           \
+     ((((((((((((((((((((         ";
+    "     %((((((((((((((((((((((((((    (((((((((((((((((((((((((((   \
+     #((((((((((((((((((((((((((       ";
+    "   (((((((((((((((((((((((((((((( ((((((((((((((((((((((((((((((( \
+     (((((((((((((((((((((((((((((#    ";
+    "  (((((((((((%          (((((((&((((((((((((           \
+     (((((((((((((((((((%          ((((((((((((   ";
+    "&(((((((((#                ((((((((((((((                 \
+     (((((((((((((#                ((((((((((& ";
+    "(((((((((                    ((((((((((&                   \
+     (((((((((((                    ((((((((( ";
+    "(((((((((                      (((((((((                     \
+     (((((((((                      ((((((((";
+    "(((((((((                      (((((((((                     \
+     (((((((((                      ((((((((";
+    " (((((((((                    ((((((((((                     \
+     (((((((((#                    (((((((((";
+    " ((((((((((                  ((((((((((((                   \
+     ((((((((((((                  ((((((((((";
+    "  (((((((((((              ((((((((((((((((%             \
+     (((((#(((((((((((              ((((((((((( ";
+    "   %((((((((((((((####(((((((((((((( \
+     ((((((((((((###((((((((((((%((((((((((((((####((((((((((((((   ";
+    "     #((((((((((((((((((((((((((((& ((((((((((((((((((((((((((((( \
+     #((((((((((((((((((((((((((((&    ";
+    "        (((((((((((((((((((((((%       (((((((((((((((((((((((       \
+     (((((((((((((((((((((((%       ";
+    "             ((((((((((((((                %(((((((((((((%                \
+     ((((((((((((((            ";
+    "";
+    "Semgrep Interactive Mode";
+    "";
+    "powered by Semgrep Open-Source Engine";
+  ]
 
 (*****************************************************************************)
 (* UI Helpers *)
@@ -410,11 +451,18 @@ let execute_command (state : state) =
   (* Remember to reset the current line after executing a command. *)
   { state with cur_line_rev = [] }
 
+let loading_screen_img term =
+  let w, h = Term.size term in
+  loading_screen_lines
+  |> Common.map (I.string (A.fg semgrep_green))
+  |> Common.map (I.hsnap w)
+  |> I.vcat |> I.vsnap h
+
 (*****************************************************************************)
 (* Interactive loop *)
 (*****************************************************************************)
 
-let interactive_loop xlang xtargets =
+let interactive_loop state =
   let rec update (t : Term.t) state =
     Term.image t (render_screen state);
     loop t state
@@ -464,14 +512,17 @@ let interactive_loop xlang xtargets =
     | `Resize _ -> update t state
     | __else__ -> loop t state
   in
-  let t = Term.create () in
   Common.finalize
     (fun () ->
-      let state = empty xlang xtargets t in
       (* TODO: change *)
-      if true then update t state)
-    (fun () -> Term.release t)
+      if true then update state.term state)
+    (fun () -> Term.release state.term)
   [@@profiling]
+
+let start_loading_screen () =
+  let t = Term.create () in
+  Term.image t (loading_screen_img t);
+  t
 
 (*****************************************************************************)
 (* Main logic *)
@@ -481,6 +532,7 @@ let interactive_loop xlang xtargets =
    exit code. *)
 let run (conf : Interactive_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  let t = start_loading_screen () in
   let targets, _skipped =
     Find_targets.get_targets conf.targeting_conf conf.target_roots
   in
@@ -491,14 +543,14 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let targets =
     targets |> List.filter (Filter_target.filter_target_for_xlang xlang)
   in
-
   let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
     targets |> Common.map Fpath.to_string
     |> Common.map (Run_semgrep.xtarget_of_file config xlang)
   in
-  interactive_loop xlang xtargets;
+  let state = empty xlang xtargets t in
+  interactive_loop state;
   Exit_code.ok
 
 (*****************************************************************************)
