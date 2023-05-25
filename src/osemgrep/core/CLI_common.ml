@@ -4,7 +4,8 @@ open Cmdliner
 (* Prelude *)
 (*************************************************************************)
 (*
-   Shared parameters, options, and help messages for the semgrep CLI.
+   Shared CLI flags, CLI processing helpers, and help messages for the
+   semgrep CLI.
 
    TODO: parser+printer for file path so we can write things like:
 
@@ -22,7 +23,7 @@ open Cmdliner
 *)
 
 (*************************************************************************)
-(* "Verbosity options" (mutually exclusive) *)
+(* Verbosity options (mutually exclusive) *)
 (*************************************************************************)
 
 (* alt: we could use Logs_cli.level(), but by defining our own flags
@@ -49,7 +50,7 @@ let o_debug : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let logging_term : Logs.level option Term.t =
+let o_logging : Logs.level option Term.t =
   let combine debug quiet verbose =
     match (verbose, debug, quiet) with
     | false, false, false -> Some Logs.Warning
@@ -101,6 +102,15 @@ let setup_logging ~force_color ~level =
     ~log_config_file:(Fpath.v "log_config.json")
     ~log_to_file:None;
   ()
+
+(*************************************************************************)
+(* Profiling options *)
+(*************************************************************************)
+
+(* osemgrep-only:  *)
+let o_profile : bool Term.t =
+  let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
+  Arg.value (Arg.flag info)
 
 (*************************************************************************)
 (* Misc *)
