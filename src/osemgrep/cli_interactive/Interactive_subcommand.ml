@@ -4,6 +4,9 @@
 (* Parse a semgrep-interactive command, execute it and exit.
  *
  * TODO:
+ *  - data race on AST_utils.busy_with_equal (pad tried
+ *    to use Lock_protected.t around it but ended up with
+ *    some Mutex deadlock exn)
  *  - turbo/live mode with displaying incremental matches
  *    (not waiting until we have found all the matches)
  *  - code highlighting using Highlight_AST.ml in codemap/efuns
@@ -48,38 +51,47 @@ type matches_by_file = {
       *)
 }
 
-(* xtarget contains a lazy ref on the AST that is not thread-safe *)
+(* Xtarget.t contains a lazy reference on the AST that is not thread-safe,
+ * hence the use of Lock_protected.t
+ *)
 type xtarget = Xtarget.t Lock_protected.t
 
 (* The type of the state for the interactive loop.
    This is the information we need to carry in between every key press,
    and whenever we need to redraw the canvas.
-
-   Subtle: use mutable fields not ref below! because
-   { state with formular = Some xxx }
+   coupling: if you add refs below, please update fresh_state() further below.
 *)
 type state = {
   xlang : Xlang.t;
   xtargets : xtarget list;
-  (* TODO: mutable should_continue_iterating_targets bool; *)
   file_zipper : matches_by_file Pointed_zipper.t ref;
-      (** mutable because our matches might change at any time when the
+      (** ref because our matches might change at any time when the
           thread which is doing matches completes.
           The thread needs to be able to communicate the new file zipper
           back to the main thread.
         *)
-  cur_line_rev : char list ref;
-      (** The current line that we are reading in, which is not yet
-        finished.
-        It's in reverse because we're consing on to the front.
-        A ref, but "read-only". It's only mutable so that threads
-        can later read the current state of the buffer.
+  cur_line_rev : char list;
+      (** The current line that we are reading in, which is not yet finished.
+          It's in reverse because we're consing on to the front.
       *)
   formula : iformula option;
-  mode : bool;  (** True if `All`, false if `Any`
-      *)
+  (* True if in "All mode", false if "Any mode". This is changed
+   * when the user type 'all' or 'any' in the prompt.
+   *)
+  mode : bool;
   term : Notty_unix.Term.t;
   turbo : bool;  (** Whether or not to do Turbo. *)
+  (* To tell the spawned thread to stop because its computation is not
+   * needed anymore because the user typed already something else.
+   * Ideally we could just call Thread.kill from the main thread on
+   * the id of the thread returned by Thread.create(), but the function
+   * is actually deprecated because it's not the recommended way to do.
+   * See https://fa.caml.narkive.com/kBWpAhJu/caml-list-the-best-way-to-circumvent-the-lack-of-thread-kill
+   * alt:
+   * - http://haesbaert.org/oslo/oslo/Oslo/index.html
+   * - http://ocsigen.org/lwt/5.5.0/api/Lwt_preemptive
+   *)
+  should_continue_iterating_targets : bool ref;
 }
 
 (* Arbitrarily, let's just set the width of files to 40 chars. *)
@@ -190,20 +202,36 @@ let height_of_files term = snd (Term.size term) - 3
 let width_of_files _term = files_width
 let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
-let empty turbo xlang xtargets term =
+let init_state turbo xlang xtargets term =
   {
     xlang;
     xtargets;
     file_zipper = ref (Pointed_zipper.empty_with_max_len (height_of_files term));
-    cur_line_rev = ref [];
+    should_continue_iterating_targets = ref true;
+    cur_line_rev = [];
     formula = None;
     mode = true;
     term;
     turbo;
   }
 
+let fresh_state old_state =
+  (* generating fresh refs! otherwise they will be shared between
+   * different spawned threads.
+   * alt: we could use mutable fields instead of refs in state.
+   * mutable fields are freshly generated when doing
+   *      { state with other_field = xx },
+   * but they are also confusing (because of this magic), so simpler
+   * for now to be explicit by calling a clear fresh_state() function.
+   *)
+  {
+    old_state with
+    file_zipper = ref !(old_state.file_zipper);
+    should_continue_iterating_targets = ref true;
+  }
+
 let get_current_line state =
-  Common2.string_of_chars (List.rev !(state.cur_line_rev))
+  Common2.string_of_chars (List.rev state.cur_line_rev)
 
 let safe_subtract x y =
   let res = x - y in
@@ -280,16 +308,20 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
   let res : Report.rule_profiling Report.match_result list =
     state.xtargets
     |> Common.map_filter (fun xtarget_prot ->
-           xtarget_prot
-           |> Lock_protected.with_lock (fun xtarget ->
-                  if
-                    Match_rules.is_relevant_rule_for_xtarget fake_rule xconf
-                      xtarget
-                  then
-                    (* Calling the engine! *)
-                    Some
-                      (Match_search_mode.check_rule fake_rule hook xconf xtarget)
-                  else None))
+           if !(state.should_continue_iterating_targets) then
+             xtarget_prot
+             |> Lock_protected.with_lock (fun xtarget ->
+                    if
+                      Match_rules.is_relevant_rule_for_xtarget fake_rule xconf
+                        xtarget
+                    then
+                      (* Calling the engine! *)
+                      Some
+                        (Match_search_mode.check_rule fake_rule hook xconf
+                           xtarget)
+                    else None)
+             (* the user typed something else; we're not needed anyore *)
+           else raise Thread.Exit)
   in
 
   let res_by_file =
@@ -651,8 +683,7 @@ let execute_command (state : state) =
   (* Remember to reset the current line after executing a command,
      but only if we're not doing a Turbo run!
   *)
-  if not state.turbo then state.cur_line_rev := [];
-  state
+  if not state.turbo then { state with cur_line_rev = [] } else state
 
 (*****************************************************************************)
 (* Turbo mode *)
@@ -665,7 +696,7 @@ let execute_command (state : state) =
 
    Care must be taken to ensure multiple threads don't mess with each other.
 *)
-let spawn_thread state =
+let spawn_thread_if_turbo state =
   if state.turbo then
     Thread.create
       (fun _ ->
@@ -681,26 +712,20 @@ let spawn_thread state =
         | _, Some pat ->
             let new_iformula = IPat (pat, true) in
             let file_zipper = matches_of_new_iformula new_iformula state in
-            (* THINK: are there still race conditions here? *)
-            (* the idea is that a bunch of threads may be spawned all at once while we are
-               typing
-               because Thread.kill is not actually implemented, we can't stop any of them
-               so let's just make sure that none of them takes a "significant action" that
-               can affect the main loop, unless the query they were originally for is the
-               current actual query that is reflected on the command-line
-            *)
-            if String.equal (get_current_line state) cur_line then
-              should_refresh := true;
-            state.file_zipper := file_zipper)
+            state.file_zipper := file_zipper;
+            should_refresh := true)
       ()
     |> ignore
+
+let stop_thread_if_turbo state =
+  if state.turbo then state.should_continue_iterating_targets := false
 
 (*****************************************************************************)
 (* Interactive loop *)
 (*****************************************************************************)
 
 let interactive_loop ~turbo xlang xtargets =
-  let rec update ?(has_changed = false) (t : Term.t) state =
+  let rec render_and_loop ?(has_changed = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed state);
     loop t state
   and loop t state =
@@ -709,9 +734,9 @@ let interactive_loop ~turbo xlang xtargets =
          thread has asynchronously given us new matches (and a new file zipper)
       *)
       should_refresh := false;
-      update t state)
+      render_and_loop t state)
     else
-      (* I have absolutely no idea why, but for some reason
+      (* I (Brandon) have absolutely no idea why, but for some reason
          using `Term.pending` here just loops forever and
          seems to think that it's always not pending.
 
@@ -722,6 +747,9 @@ let interactive_loop ~turbo xlang xtargets =
          So instead we just poll stdin to see whether there is
          data, which should be a good proxy for whether or not it
          is safe to proceed to the blocking `event` call.
+
+         TODO(pad): we should not need any Unix.select, and no 0.0005 timeout.
+         Thread should work fine with Term.event
       *)
       match Unix.select [ Unix.stdin ] [] [] 0.0005 with
       | [], _, _ ->
@@ -729,51 +757,60 @@ let interactive_loop ~turbo xlang xtargets =
          *)
           loop t state
       | _ :: _, _, _ -> (
-          let file_zipper = !(state.file_zipper) in
           match Term.event t with
           | `Key (`Enter, _) ->
               let state = execute_command state in
-              update t state
+              render_and_loop t state
           | `Key (`Backspace, _) -> (
-              match !(state.cur_line_rev) with
+              match state.cur_line_rev with
+              (* nothing to delete, just stay the same *)
               | [] -> loop t state
               | _ :: cs ->
-                  state.cur_line_rev := cs;
-                  spawn_thread state;
-                  update ~has_changed:true t state)
+                  stop_thread_if_turbo state;
+                  let state = fresh_state { state with cur_line_rev = cs } in
+                  spawn_thread_if_turbo state;
+                  render_and_loop ~has_changed:true t state)
           | `Key (`ASCII c, _) ->
-              state.cur_line_rev := c :: !(state.cur_line_rev);
-              spawn_thread state;
-              update ~has_changed:true t state
+              stop_thread_if_turbo state;
+              let state =
+                fresh_state
+                  { state with cur_line_rev = c :: state.cur_line_rev }
+              in
+              spawn_thread_if_turbo state;
+              render_and_loop ~has_changed:true t state
           | `Key (`Arrow `Left, _) ->
+              let file_zipper = !(state.file_zipper) in
               state.file_zipper :=
                 Pointed_zipper.map_current
                   (fun { file; matches = mz } ->
                     { file; matches = Pointed_zipper.move_left mz })
                   file_zipper;
-              update t state
+              render_and_loop t state
           | `Key (`Arrow `Right, _) ->
+              let file_zipper = !(state.file_zipper) in
               state.file_zipper :=
                 Pointed_zipper.map_current
                   (fun { file; matches = mz } ->
                     { file; matches = Pointed_zipper.move_right mz })
                   file_zipper;
-              update t state
+              render_and_loop t state
           | `Key (`Arrow `Up, _) ->
+              let file_zipper = !(state.file_zipper) in
               state.file_zipper := Pointed_zipper.move_left file_zipper;
-              update t state
+              render_and_loop t state
           | `Key (`Arrow `Down, _) ->
+              let file_zipper = !(state.file_zipper) in
               state.file_zipper := Pointed_zipper.move_right file_zipper;
-              update t state
-          | `Resize _ -> update t state
-          | __else__ -> update t state)
+              render_and_loop t state
+          | `Resize _ -> render_and_loop t state
+          | __else__ -> render_and_loop t state)
   in
   let t = Term.create () in
   Common.finalize
     (fun () ->
-      (* TODO: change *)
-      let state = empty turbo xlang xtargets t in
-      if true then update state.term state)
+      let state = init_state turbo xlang xtargets t in
+      (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
+      if true then render_and_loop state.term state)
     (fun () -> Term.release t)
   [@@profiling]
 
