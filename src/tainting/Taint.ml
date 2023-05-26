@@ -370,14 +370,6 @@ let show_taints taints =
 (* Taint labels *)
 (*****************************************************************************)
 
-(* let labels_of_taints taints : LabelSet.t =
-   taints
-   |> Common.map_filter (fun (t : taint) ->
-          match t.orig with
-          | Src src -> Some src.label
-          | Arg _ -> None)
-   |> LabelSet.of_list *)
-
 let labels_in_precondition pre =
   let rec loop = function
     | R.PBool _ -> LabelSet.empty
@@ -405,6 +397,11 @@ let labels_in_precondition pre =
  * solve the precondition as being true (i.e. 'Some true'); otherwise we will consider
  * that 'B' could be present, and the precondition would be considered unsolvable
  * (i.e. 'None').
+ *
+ * TODO: Perhaps we should "simplify" the precondition _and_ the incoming taints,
+ *   so e.g. if we got taint labels 'A' and '?1' (poly label), and the precondition
+ *   is `A and not B`, we can reduce that to having taint '?1' and precondition
+ *   `not B`.
  *)
 let rec solve_precondition ?(ignore_poly_taint = false) ~taints pre :
     bool option =
@@ -459,7 +456,7 @@ and labels_in_taints taints =
   (!sure_labels, !maybe_labels, !has_poly_taint)
 
 let taints_satisfy_requires taints pre =
-  (* This is used when deciding whether to report a finding, ad if we had:
+  (* This is used when deciding whether to report a finding, so if we had:
    *
    *     def foo(y):
    *       x = "taint:A"

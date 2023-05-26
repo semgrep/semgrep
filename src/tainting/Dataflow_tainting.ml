@@ -607,15 +607,6 @@ let check_orig_if_sink env ?filter_sinks orig taints =
 (* Miscellaneous large functions *)
 (*****************************************************************************)
 
-(* For all our new sources, we need to know that they only hold if a certain
-   formula holds of the incoming taints to the source.
-   So here we just do the job of actually constraining the taints to have these
-   preconditions.
-   Later on, when we produce a pattern match, we will solve to see if this
-   formula is satisfied. We don't know right now, however, because there may be
-   argument taint involved.
-*)
-
 let find_pos_in_actual_args args_taints fparams =
   let pos_args_taints, named_args_taints =
     List.partition_map
@@ -1226,14 +1217,17 @@ let check_function_signature env fun_exp args args_taints =
       let arg_to_taints arg =
         taints_of_sig_arg env fparams fun_exp args args_taints arg
       in
-      let substitute_preconditions taints =
-        taints
-        |> List.concat_map (fun t ->
-               match t.T.orig with
-               | Src _ -> [ t ]
-               | Arg arg ->
-                   let+ res = arg_to_taints arg in
-                   Taints.elements res)
+      let subst_in_precondition taint =
+        let subst taints =
+          taints
+          |> List.concat_map (fun t ->
+                 match t.T.orig with
+                 | Src _ -> [ t ]
+                 | Arg arg ->
+                     let+ arg_taints = arg_to_taints arg in
+                     Taints.elements arg_taints)
+        in
+        T.map_preconditions subst taint
       in
       let process_sig :
           T.finding ->
@@ -1242,9 +1236,7 @@ let check_function_signature env fun_exp args args_taints =
             `UpdateEnv of
             lval * Taints.t
             (* ^ Taints flowing through function's arguments (or the callee object) by side-effect *)
-          | `SinkTaints of
-            T.taint_to_sink_item list * T.sink
-            (* ^ Taints flowing into a sink, that should be reported *) ]
+          ]
           list = function
         | T.ToReturn (taints, _return_tok) ->
             taints
@@ -1257,10 +1249,11 @@ let check_function_signature env fun_exp args args_taints =
                        Some
                          (`Return
                            (Taints.singleton
-                              {
-                                orig = Src { src with call_trace };
-                                tokens = [];
-                              }))
+                              ({
+                                 orig = Src { src with call_trace };
+                                 tokens = [];
+                               }
+                              |> subst_in_precondition)))
                    | Arg arg ->
                        let* arg_taints = arg_to_taints arg in
                        (* Get the token of the function *)
@@ -1321,7 +1314,12 @@ let check_function_signature env fun_exp args args_taints =
                             taint signature will fail to realize that the taint of `source_a` is
                             going into `sink_of_a_and_b`, and we will fail to produce a finding.
                          *)
-                         [ { T.taint; sink_trace } ]
+                         [
+                           {
+                             T.taint = taint |> subst_in_precondition;
+                             sink_trace;
+                           };
+                         ]
                      | Arg arg ->
                          (* Here, we modify the call trace associated to the argument,
                             and then we replace it by all the taints that correspond to it.
@@ -1329,11 +1327,13 @@ let check_function_signature env fun_exp args args_taints =
                          let sink_trace =
                            T.Call (eorig, taint.tokens, sink_trace)
                          in
-                         let+ res = arg_to_taints arg in
-                         Taints.elements res
+                         let+ arg_taints = arg_to_taints arg in
+                         Taints.elements arg_taints
                          |> Common.map (fun x -> { T.taint = x; sink_trace }))
             in
-            [ `SinkTaints (incoming_taints, sink) ]
+            findings_of_tainted_sink env incoming_taints sink
+            |> report_findings env;
+            []
         | T.ToArg (taints, dst_arg) ->
             (* Taints 'taints' go into an argument of the call, by side-effect.
              * Right now this is mainly used to track taint going into specific
@@ -1347,7 +1347,7 @@ let check_function_signature env fun_exp args args_taints =
             |> List.concat_map (fun t ->
                    let dst_taints =
                      match t.T.orig with
-                     | Src _ -> Taints.singleton t
+                     | Src _ -> Taints.singleton (t |> subst_in_precondition)
                      | Arg src_arg ->
                          (* Taint is flowing from one argument to another argument
                           * (or possibly the callee object). Given the formal poly
@@ -1365,50 +1365,15 @@ let check_function_signature env fun_exp args args_taints =
                    if Taints.is_empty dst_taints then []
                    else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
-      (* This is our second pass for taint substitution, which will run
-          on all of the taints equally. This is because we need to do this
-          on Src taints, even if they weren't the results of substitutions,
-          because they may have dependencies on Arg taints. The alternative
-          is to specifically do the substitution in each case, which is easy
-          to overlook.
-
-          This step could be done on the args taints before we substitute,
-          as well, but `args_taints` has a pretty unfriendly type. It's
-          equivalent and easier to do it here.
-      *)
-      let substitute_taints_in_preconditions = function
-        | `Return taints ->
-            `Return
-              (taints
-              |> Taints.map (T.map_preconditions substitute_preconditions))
-        | `UpdateEnv x -> `UpdateEnv x
-        | `SinkTaints (taints_to_sink, sink) ->
-            let taints_to_sink =
-              taints_to_sink
-              |> Common.map (fun (tts : T.taint_to_sink_item) ->
-                     {
-                       tts with
-                       taint =
-                         T.map_preconditions substitute_preconditions tts.taint;
-                     })
-            in
-            `SinkTaints (taints_to_sink, sink)
-      in
       Some
         (fun_sig
-        |> List.concat_map process_sig (* substitute the top-level args *)
-        |> Common.map substitute_taints_in_preconditions
-           (* substitute the precondition args *)
+        |> List.concat_map process_sig
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->
                match fsig with
                | `Return taints -> (Taints.union taints taints_acc, lval_env)
                | `UpdateEnv (lval, taints) ->
-                   (taints_acc, Lval_env.add lval_env lval taints)
-               | `SinkTaints (taints, sink) ->
-                   findings_of_tainted_sink env taints sink
-                   |> report_findings env;
-                   (taints_acc, lval_env))
+                   (taints_acc, Lval_env.add lval_env lval taints))
              (Taints.empty, env.lval_env))
   | None, _
   | Some _, _ ->

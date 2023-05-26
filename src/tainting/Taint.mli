@@ -118,7 +118,6 @@ type taints = Taint_set.t
 
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
-(* val labels_of_taints : taint list -> LabelSet.t *)
 
 val solve_precondition :
   ?ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
