@@ -80,7 +80,7 @@ let bg_match = A.(bg (gray 5))
 let bg_match_position = A.(bg light_green ++ fg (gray 3))
 let fg_line_num = A.(fg neutral_yellow)
 
-let loading_screen_lines =
+let default_screen_lines =
   [
     "                 ((((((                         \
      (((((                         ((((((                ";
@@ -141,9 +141,6 @@ let get_current_line state =
 let safe_subtract x y =
   let res = x - y in
   if res < 0 then 0 else res
-
-let default_screen_img _term =
-  loading_screen_lines |> Common.map (I.string (A.fg semgrep_green))
 
 (*****************************************************************************)
 (* Engine Helpers *)
@@ -338,6 +335,19 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   (* Put the line numbers and contents together! *)
   I.(line_num_imgs_aligned_and_padded <|> vcat line_imgs)
 
+let default_screen_img state =
+  I.(
+    (default_screen_lines |> Common.map (I.string (A.fg semgrep_green)))
+    @ [
+        vpad 1 0
+          (string A.(fg semgrep_green ++ st bold) "Semgrep Interactive Mode");
+        vpad 1 1 (string A.empty "powered by Semgrep Open-Source Engine");
+        string A.empty "(type a pattern to get started!)";
+      ]
+    |> Common.map (hsnap (width_of_preview state.term))
+    |> vcat
+    |> I.vsnap (height_of_files state.term))
+
 let render_screen state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
@@ -355,20 +365,7 @@ let render_screen state =
            else I.string (A.fg (A.gray 16)) file)
   in
   let preview =
-    if Pointed_zipper.is_empty state.file_zipper then
-      I.(
-        default_screen_img state.term
-        @ [
-            vpad 1 0
-              (string
-                 A.(fg semgrep_green ++ st bold)
-                 "Semgrep Interactive Mode");
-            vpad 1 1 (string A.empty "powered by Semgrep Open-Source Engine");
-            string A.empty "(type a pattern to get started!)";
-          ]
-        |> Common.map (hsnap (width_of_preview state.term))
-        |> vcat
-        |> I.vsnap (height_of_files state.term))
+    if Pointed_zipper.is_empty state.file_zipper then default_screen_img state
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current state.file_zipper
