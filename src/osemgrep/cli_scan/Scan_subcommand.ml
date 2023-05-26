@@ -169,7 +169,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
   Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load () in
+  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -200,6 +200,30 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
+      (* step0: potentially notify user about metrics *)
+      if not (settings.has_shown_metrics_notification = Some true) then (
+        (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+        let esc =
+          if Fmt.style_renderer Fmt.stderr = `Ansi_tty then "\027[22m\027[24m"
+          else ""
+        in
+        Logs.warn (fun m ->
+            m
+              "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
+               reports pseudonymous rule metrics to semgrep.dev.@.To disable \
+               Registry rule metrics, use \"--metrics=off\".@.Using configs \
+               only from local files (like --config=xyz.yml) does not enable \
+               metrics.@.@.More information: https://semgrep.dev/docs/metrics"
+              esc);
+        Logs.app (fun m -> m "");
+        let settings =
+          {
+            settings with
+            Semgrep_settings.has_shown_metrics_notification = Some true;
+          }
+        in
+        ignore (Semgrep_settings.save settings));
+
       (* step1: getting the rules *)
 
       (* Rule_fetching.rules_and_origin record also contain errors *)
@@ -297,9 +321,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                 other_ignored,
                 errors_skipped ));
         Logs.app (fun m ->
-            m "Ran %s on %s: %s@."
+            m "Ran %s on %s: %s."
               (String_utils.unit_str (List.length filtered_rules) "rule")
-              (String_utils.unit_str (List.length targets) "file")
+              (String_utils.unit_str
+                 (List.length cli_output.paths.scanned)
+                 "file")
               (String_utils.unit_str (List.length cli_output.results) "finding"));
 
         (* TOPORT? was in formater/base.py
