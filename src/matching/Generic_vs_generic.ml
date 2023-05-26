@@ -2018,6 +2018,10 @@ and m_generic_type_vs_type_t lang a b =
       Type.UnresolvedName (str2, targs2) ) ->
       let* () = m_string str1 str2 in
       m_generic_targs_vs_type_targs lang targs1 targs2
+  | G.TyN (Id ((str, _), _)), Type.Builtin _ when MV.is_metavar_name str ->
+      (* TODO Convert the builtin to AST generic and bind it to the
+       * metavariable. *)
+      return ()
   | G.TyN (Id ((str, _), _)), Type.Builtin builtin2 -> (
       (* Convert the string in the pattern to a Type.builtin_type. Currently,
        * this lets users write, for example `str` in Java and have it

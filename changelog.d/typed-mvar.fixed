@@ -1,0 +1,4 @@
+Fixed a recent regression which caused typed metavariables to fail to match when
+the type itself also contained a metavariable, and the target was a builtin
+type. For example, the pattern `(List<$T> $X)` would fail to match a value of
+type `List<String>`.
