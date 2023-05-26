@@ -4,8 +4,6 @@
 (* Parse a semgrep-interactive command, execute it and exit.
  *
  * TODO:
- *  - turbo/live mode, show results as you type, using threads for a v0
- *    (not waiting until you have typed the whole thing)
  *  - turbo/live mode with displaying incremental matches
  *    (not waiting until we have found all the matches)
  *  - code highlighting using Highlight_AST.ml in codemap/efuns
@@ -30,7 +28,7 @@ type command =
   (* boolean composition of patterns *)
   | Any
   | All
-  (* meta commands *)
+  (* actual commands *)
   | Exit
 
 (* interactive formula *)
@@ -50,19 +48,25 @@ type matches_by_file = {
       *)
 }
 
+(* xtarget contains a lazy ref on the AST that is not thread-safe *)
+type xtarget = Xtarget.t Lock_protected.t
+
 (* The type of the state for the interactive loop.
    This is the information we need to carry in between every key press,
    and whenever we need to redraw the canvas.
+
+   Subtle: use mutable fields not ref below! because
+   { state with formular = Some xxx }
 *)
 type state = {
   xlang : Xlang.t;
-  xtargets : Xtarget.t list;
+  xtargets : xtarget list;
+  (* TODO: mutable should_continue_iterating_targets bool; *)
   file_zipper : matches_by_file Pointed_zipper.t ref;
-      (** A ref, because our matches might change at any time when the
+      (** mutable because our matches might change at any time when the
           thread which is doing matches completes.
           The thread needs to be able to communicate the new file zipper
-          back to the main process.
-          Note that making this a mutable field doesn't work.
+          back to the main thread.
         *)
   cur_line_rev : char list ref;
       (** The current line that we are reading in, which is not yet
@@ -75,8 +79,7 @@ type state = {
   mode : bool;  (** True if `All`, false if `Any`
       *)
   term : Notty_unix.Term.t;
-  turbo : bool;  (** Whether or not to do Turbo.
-      *)
+  turbo : bool;  (** Whether or not to do Turbo. *)
 }
 
 (* Arbitrarily, let's just set the width of files to 40 chars. *)
@@ -276,12 +279,17 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
   in
   let res : Report.rule_profiling Report.match_result list =
     state.xtargets
-    |> Common.map_filter (fun xtarget ->
-           if Match_rules.is_relevant_rule_for_xtarget fake_rule xconf xtarget
-           then
-             (* Calling the engine! *)
-             Some (Match_search_mode.check_rule fake_rule hook xconf xtarget)
-           else None)
+    |> Common.map_filter (fun xtarget_prot ->
+           xtarget_prot
+           |> Lock_protected.with_lock (fun xtarget ->
+                  if
+                    Match_rules.is_relevant_rule_for_xtarget fake_rule xconf
+                      xtarget
+                  then
+                    (* Calling the engine! *)
+                    Some
+                      (Match_search_mode.check_rule fake_rule hook xconf xtarget)
+                  else None))
   in
 
   let res_by_file =
@@ -791,7 +799,9 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
     targets |> Common.map Fpath.to_string
-    |> Common.map (Run_semgrep.xtarget_of_file config xlang)
+    |> Common.map (fun file ->
+           let xtarget = Run_semgrep.xtarget_of_file config xlang file in
+           Lock_protected.protect xtarget)
   in
   interactive_loop ~turbo:conf.turbo xlang xtargets;
   Exit_code.ok

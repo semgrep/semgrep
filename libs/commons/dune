@@ -4,6 +4,7 @@
  (libraries
    str
    unix
+   threads
    fpath
    uri
    yojson
