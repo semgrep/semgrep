@@ -65,6 +65,19 @@ Running Semgrep engine with command:
 <MASKED>
 <MASKED>
 <MASKED>
+  test = false; debug = true; profile = false; report_time = true;
+  error_recovery = false; profile_start = 1685072043.98;
+  matching_explanations = false; pattern_string = None; pattern_file = None;
+  rule_source = (Some (Runner_config.Rule_file /tmp/tmp33it89ri.json));
+  equivalences_file = None; lang = None; roots = [];
+  output_format = (Runner_config.Json true);
+  match_format = Matching_report.Normal; mvars = []; ls = false;
+  timeout = 30.; timeout_threshold = 3; max_memory_mb = 0;
+  max_match_per_file = 10000; ncores = 2; parsing_cache_dir = None;
+  filter_irrelevant_rules = true; file_match_results_hook = None;
+  target_source = (Some (Runner_config.Target_file /tmp/tmp0zey029t));
+  action = ""; version = "<MASKED>" }
+<MASKED>
 <MASKED>
 <MASKED>
 <MASKED>
