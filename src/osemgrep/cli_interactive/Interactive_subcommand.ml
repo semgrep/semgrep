@@ -72,6 +72,7 @@ type state = {
 let files_width = 40
 
 (* color settings *)
+let semgrep_green = A.rgb_888 ~r:58 ~g:212 ~b:167
 let light_green = A.rgb_888 ~r:77 ~g:255 ~b:175
 let neutral_yellow = A.rgb_888 ~r:255 ~g:255 ~b:161
 let bg_file_selected = A.(bg (gray 5))
@@ -79,17 +80,55 @@ let bg_match = A.(bg (gray 5))
 let bg_match_position = A.(bg light_green ++ fg (gray 3))
 let fg_line_num = A.(fg neutral_yellow)
 
+let default_screen_lines =
+  [
+    "                 ((((((                         \
+     (((((                         ((((((                ";
+    "          ((((((((((((((((((((          %(((((((((((((((((((           \
+     ((((((((((((((((((((         ";
+    "     %((((((((((((((((((((((((((    (((((((((((((((((((((((((((   \
+     #((((((((((((((((((((((((((       ";
+    "   (((((((((((((((((((((((((((((( ((((((((((((((((((((((((((((((( \
+     (((((((((((((((((((((((((((((#    ";
+    "  (((((((((((%          (((((((&((((((((((((           \
+     (((((((((((((((((((%          ((((((((((((   ";
+    "&(((((((((#                ((((((((((((((                 \
+     (((((((((((((#                ((((((((((& ";
+    "(((((((((                    ((((((((((&                   \
+     (((((((((((                    ((((((((( ";
+    "(((((((((                      (((((((((                     \
+     (((((((((                      ((((((((";
+    "(((((((((                      (((((((((                     \
+     (((((((((                      ((((((((";
+    " (((((((((                    ((((((((((                     \
+     (((((((((#                    (((((((((";
+    " ((((((((((                  ((((((((((((                   \
+     ((((((((((((                  ((((((((((";
+    "  (((((((((((              ((((((((((((((((%             \
+     (((((#(((((((((((              ((((((((((( ";
+    "   %((((((((((((((####(((((((((((((( \
+     ((((((((((((###((((((((((((%((((((((((((((####((((((((((((((   ";
+    "     #((((((((((((((((((((((((((((& ((((((((((((((((((((((((((((( \
+     #((((((((((((((((((((((((((((&    ";
+    "        (((((((((((((((((((((((%       (((((((((((((((((((((((       \
+     (((((((((((((((((((((((%       ";
+    "             ((((((((((((((                %(((((((((((((%                \
+     ((((((((((((((            ";
+  ]
+
 (*****************************************************************************)
 (* UI Helpers *)
 (*****************************************************************************)
 
-let files_height_of_term term = snd (Term.size term) - 3
+let height_of_files term = snd (Term.size term) - 3
+let width_of_files _term = files_width
+let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
 let empty xlang xtargets term =
   {
     xlang;
     xtargets;
-    file_zipper = Pointed_zipper.empty_with_max_len (files_height_of_term term);
+    file_zipper = Pointed_zipper.empty_with_max_len (height_of_files term);
     cur_line_rev = [];
     formula = None;
     mode = true;
@@ -200,7 +239,7 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
            { file; matches = Pointed_zipper.of_list 1 sorted_pms })
     |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
-  Pointed_zipper.of_list (files_height_of_term state.term) res_by_file
+  Pointed_zipper.of_list (height_of_files state.term) res_by_file
 
 (*****************************************************************************)
 (* User Interface *)
@@ -243,7 +282,7 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let lines = Common2.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
-  let max_height = files_height_of_term state.term in
+  let max_height = height_of_files state.term in
   let match_height = end_line - start_line in
   (* We want the appropriate amount of lines that will fit within
      our terminal window.
@@ -296,12 +335,25 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   (* Put the line numbers and contents together! *)
   I.(line_num_imgs_aligned_and_padded <|> vcat line_imgs)
 
+let default_screen_img state =
+  I.(
+    (default_screen_lines |> Common.map (I.string (A.fg semgrep_green)))
+    @ [
+        vpad 1 0
+          (string A.(fg semgrep_green ++ st bold) "Semgrep Interactive Mode");
+        vpad 1 1 (string A.empty "powered by Semgrep Open-Source Engine");
+        string A.empty "(type a pattern to get started!)";
+      ]
+    |> Common.map (hsnap (width_of_preview state.term))
+    |> vcat
+    |> I.vsnap (height_of_files state.term))
+
 let render_screen state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
      the input line.
   *)
-  let lines_of_files = files_height_of_term state.term in
+  let lines_of_files = height_of_files state.term in
   let lines_to_pad_below_to_reach l n =
     if List.length l >= n then 0 else n - List.length l
   in
@@ -313,8 +365,7 @@ let render_screen state =
            else I.string (A.fg (A.gray 16)) file)
   in
   let preview =
-    if Pointed_zipper.is_empty state.file_zipper then
-      I.string A.empty "preview unavailable (no matches)"
+    if Pointed_zipper.is_empty state.file_zipper then default_screen_img state
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current state.file_zipper
@@ -332,7 +383,7 @@ let render_screen state =
       let pm = Pointed_zipper.get_current matches_zipper in
       I.(match_position_img </> preview_of_match pm file state)
   in
-  let vertical_bar = I.char A.empty '|' 1 (files_height_of_term state.term) in
+  let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let prompt =
     I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
@@ -467,9 +518,9 @@ let interactive_loop xlang xtargets =
   let t = Term.create () in
   Common.finalize
     (fun () ->
-      let state = empty xlang xtargets t in
       (* TODO: change *)
-      if true then update t state)
+      let state = empty xlang xtargets t in
+      if true then update state.term state)
     (fun () -> Term.release t)
   [@@profiling]
 
@@ -491,7 +542,6 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let targets =
     targets |> List.filter (Filter_target.filter_target_for_xlang xlang)
   in
-
   let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
