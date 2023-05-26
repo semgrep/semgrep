@@ -84,6 +84,7 @@ let files_width = 40
 let semgrep_green = A.rgb_888 ~r:58 ~g:212 ~b:167
 let light_green = A.rgb_888 ~r:77 ~g:255 ~b:175
 let neutral_yellow = A.rgb_888 ~r:255 ~g:255 ~b:161
+let light_blue = A.rgb_888 ~r:51 ~g:129 ~b:255
 let bg_file_selected = A.(bg (gray 5))
 let bg_match = A.(bg (A.rgb_888 ~r:128 ~g:83 ~b:0))
 let bg_match_position = A.(bg light_green ++ fg (gray 3))
@@ -123,6 +124,50 @@ let default_screen_lines =
      (((((((((((((((((((((((%       ";
     "             ((((((((((((((                %(((((((((((((%                \
      ((((((((((((((            ";
+  ]
+
+let ghost_lines =
+  [
+    "                       .-=*#%%@@@@@@%%#*+-.                       ";
+    "                   -+#@@@@@@@@@@@@@@@@@@@@@@%*-.                  ";
+    "               .+%@@@@@@@@@%#**++++**#%@@@@@@@@@%+:               ";
+    "             =%@@@@@@@*=:.               :=*%@@@@@@%=             ";
+    "          .+@@@@@@#=.                        .=#@@@@@@*.          ";
+    "         =@@@@@@+.                              .+@@@@@@+         ";
+    "       :%@@@@@+                                    =%@@@@%-       ";
+    "      +@@@@@+                                        +@@@@@*      ";
+    "     #@@@@%:                                          .#@@@@%     ";
+    "    #@@@@#                                              *@@@@%.   ";
+    "   #@@@@#                                                *@@@@#   ";
+    "  =@@@@%                                                  #@@@@+  ";
+    "  @@@@@.                                                   @@@@@: ";
+    " +@@@@+            ...                      ...            -@@@@# ";
+    " @@@@@.         .*@@@@@#:                .*@@@@@#:          @@@@@.";
+    ":@@@@%         .@@@@@@@@@:              .@@@@@@@@@:         *@@@@-";
+    "-@@@@*         -@@@@@@@@@+              -@@@@@@@@@+         +@@@@+";
+    "-@@@@*          *@@@@@@@%.               *@@@@@@@%.         =@@@@+";
+    "-@@@@*           :+###+:                  :+###+:           =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*                                                      =@@@@+";
+    "-@@@@*      :*#*-              =*#+.             .+#*-      =@@@@+";
+    "-@@@@*    .*@@@@@*           .#@@@@@-           =@@@@@%-    =@@@@+";
+    "-@@@@*  .+@@@@@@@@%-        =@@@@@@@@#        .#@@@@@@@@#:  =@@@@+";
+    "-@@@@* +@@@@@%+@@@@@*     .#@@@@@#@@@@@=     -@@@@@##@@@@@*.=@@@@+";
+    "-@@@@%@@@@@@=  :%@@@@%:  =@@@@@#  =@@@@@*   *@@@@@=  -%@@@@@%@@@@+";
+    "-@@@@@@@@@*      *@@@@@+#@@@@@=    .%@@@@@=@@@@@#.     =@@@@@@@@@+";
+    "-@@@@@@@*.        -%@@@@@@@@*.       +@@@@@@@@@=         +@@@@@@@+";
+    "-@@@@@#:            *@@@@@@-          :%@@@@@%.           .*@@@@@+";
+    "#@@#-               -%@@*.             +@@%+               :#@@#. ";
   ]
 
 (* This ref indicates whether or not the interactive loop should refresh.
@@ -378,6 +423,14 @@ let default_screen_img s state =
     |> vcat
     |> I.vsnap (height_of_files state.term))
 
+let no_matches_found_img state =
+  I.(
+    (ghost_lines |> Common.map (I.string (A.fg light_blue)))
+    @ [ vpad 2 0 (string A.empty "no matches found") ]
+    |> Common.map (hsnap (width_of_preview state.term))
+    |> vcat
+    |> I.vsnap (height_of_files state.term))
+
 let render_screen ?(has_changed = false) state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
@@ -401,13 +454,10 @@ let render_screen ?(has_changed = false) state =
   in
   let preview =
     if Pointed_zipper.is_empty file_zipper then
-      let s =
-        if String.equal (get_current_line state) "" then
-          "(type a pattern to get started!)"
-        else if has_changed then "thinking..."
-        else "no matches found"
-      in
-      default_screen_img s state
+      if String.equal (get_current_line state) "" then
+        default_screen_img "(type a pattern to get started!)" state
+      else if has_changed then default_screen_img "thinking..." state
+      else no_matches_found_img state
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current file_zipper
