@@ -14,6 +14,7 @@
  *)
 open Common
 module In = Input_to_core_j
+module C = Common2
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -50,40 +51,13 @@ type match_result_location_adjuster =
   Report.partial_profiling Report.match_result ->
   Report.partial_profiling Report.match_result
 
-(* A type for nonempty lists *)
-type 'a nonempty = Nonempty of 'a * 'a list
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
-let nonempty_to_list (Nonempty (x, xs)) = x :: xs
-
 (* from Run_semgrep *)
 let mk_rule_table rules =
   rules |> Common.map (fun r -> (fst r.Rule.id, r)) |> Common.hash_of_list
-
-(** Collects a list into a list of equivalence classes (themselves nonempty
-    lists) according to the given equality predicate. `eq` must be an
-    equivalence relation for correctness.
-*)
-let collect eq l =
-  List.fold_left
-    (fun collected x ->
-      match
-        List.fold_left
-          (fun (checked, to_add) candidate_class ->
-            match (to_add, candidate_class) with
-            | None, _ -> (candidate_class :: checked, None)
-            | Some x, Nonempty (y, _) ->
-                if eq x y then ((x @: candidate_class) :: checked, None)
-                else (candidate_class :: checked, Some x))
-          ([], Some x) collected
-      with
-      | collected, None -> collected
-      | collected, Some new_class -> Nonempty (new_class, []) :: collected)
-    [] l
 
 let extract_of_match erule_table match_ =
   Common.find_some_opt
@@ -326,8 +300,8 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
   (* Group the matches within this file by rule id.
    * TODO? dangerous use of =*= ?
    *)
-  |> collect (fun m m' -> m.Pattern_match.rule_id =*= m'.Pattern_match.rule_id)
-  |> Common.map (fun matches -> nonempty_to_list matches)
+  |> C.group (fun m m' -> m.Pattern_match.rule_id =*= m'.Pattern_match.rule_id)
+  |> Common.map (fun matches -> C.nonempty_to_list matches)
   (* Convert matches to the extract metavariable / bound value *)
   |> Common.map
        (Common.map_filter (fun m ->
