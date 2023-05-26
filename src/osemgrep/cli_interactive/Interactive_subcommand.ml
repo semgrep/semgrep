@@ -487,7 +487,7 @@ let execute_command (state : state) =
     let new_pat = IPat (pat, b) in
     match (state.formula, state.mode) with
     (* None, *)
-    | _ -> new_pat
+    | __else__ -> new_pat
     (* | Some (IAll pats), true -> IAll (new_pat :: pats)
        | Some (IAny pats), false -> IAny (new_pat :: pats)
        | Some pat, true -> IAny [ new_pat; pat ]
