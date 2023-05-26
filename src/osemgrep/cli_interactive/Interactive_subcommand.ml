@@ -75,6 +75,8 @@ type state = {
   mode : bool;  (** True if `All`, false if `Any`
       *)
   term : Notty_unix.Term.t;
+  turbo : bool;  (** Whether or not to do Turbo.
+      *)
 }
 
 (* Arbitrarily, let's just set the width of files to 40 chars. *)
@@ -185,7 +187,7 @@ let height_of_files term = snd (Term.size term) - 3
 let width_of_files _term = files_width
 let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
-let empty xlang xtargets term =
+let empty turbo xlang xtargets term =
   {
     xlang;
     xtargets;
@@ -194,6 +196,7 @@ let empty xlang xtargets term =
     formula = None;
     mode = true;
     term;
+    turbo;
   }
 
 let get_current_line state =
@@ -431,6 +434,24 @@ let no_matches_found_img state =
     |> vcat
     |> I.vsnap (height_of_files state.term))
 
+let render_preview_no_matches ~has_changed state =
+  if state.turbo then
+    (* In Turbo Mode, what we display here is dependent on two
+        things, the current state of the buffer and whether we
+        actually changed the query bar with our last key press.
+    *)
+    if String.equal (get_current_line state) "" then
+      default_screen_img "(type a pattern to get started!)" state
+    else if has_changed then default_screen_img "thinking..." state
+    else no_matches_found_img state
+  else if
+    (* In regular mode, we don't care about those things, but we
+        do care about whether we have entered a pattern or not.
+    *)
+    Option.is_some state.formula
+  then no_matches_found_img state
+  else default_screen_img "(type a pattern to get started!)" state
+
 let render_screen ?(has_changed = false) state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
@@ -454,10 +475,7 @@ let render_screen ?(has_changed = false) state =
   in
   let preview =
     if Pointed_zipper.is_empty file_zipper then
-      if String.equal (get_current_line state) "" then
-        default_screen_img "(type a pattern to get started!)" state
-      else if has_changed then default_screen_img "thinking..." state
-      else no_matches_found_img state
+      render_preview_no_matches ~has_changed state
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current file_zipper
@@ -481,7 +499,11 @@ let render_screen ?(has_changed = false) state =
     I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
   in
   let lowerbar =
-    I.(string (A.fg A.green) (Common.spf "Semgrep Interactive Mode"))
+    let status =
+      if state.turbo then "Semgrep Interactive Mode (TURBO ACTIVATED)"
+      else "Semgrep Interactive Mode"
+    in
+    I.(string (A.fg A.green) status)
   in
   (* The format of the Interactive Mode UI is:
    *
@@ -555,13 +577,10 @@ let execute_command (state : state) =
         state.file_zipper := file_zipper;
         { state with formula = Some new_iformula }
   in
-  (* old: Remember to reset the current line after executing a command. *)
-  (* We don't want this anymore because of Turbo Mode, but we should
-     figure out a way to make Turbo Mode play well with the idea of using
-     multiple patterns
+  (* Remember to reset the current line after executing a command,
+     but only if we're not doing a Turbo run!
   *)
-  (* state.cur_line_rev := [];
-  *)
+  if not state.turbo then state.cur_line_rev := [];
   state
 
 (*****************************************************************************)
@@ -576,39 +595,40 @@ let execute_command (state : state) =
    Care must be taken to ensure multiple threads don't mess with each other.
 *)
 let spawn_thread state =
-  Thread.create
-    (fun _ ->
-      let cur_line = get_current_line state in
-      let pat_opt = parse_pattern_opt cur_line state in
-      match (cur_line, pat_opt) with
-      | "", _ ->
-          (* When we go back to the empty line, reset the view to default. *)
-          should_refresh := true;
-          state.file_zipper :=
-            Pointed_zipper.empty_with_max_len (height_of_files state.term)
-      | _, None -> ()
-      | _, Some pat ->
-          let new_iformula = IPat (pat, true) in
-          let file_zipper = matches_of_new_iformula new_iformula state in
-          (* THINK: are there still race conditions here? *)
-          (* the idea is that a bunch of threads may be spawned all at once while we are
-             typing
-             because Thread.kill is not actually implemented, we can't stop any of them
-             so let's just make sure that none of them takes a "significant action" that
-             can affect the main loop, unless the query they were originally for is the
-             current actual query that is reflected on the command-line
-          *)
-          if String.equal (get_current_line state) cur_line then
+  if state.turbo then
+    Thread.create
+      (fun _ ->
+        let cur_line = get_current_line state in
+        let pat_opt = parse_pattern_opt cur_line state in
+        match (cur_line, pat_opt) with
+        | "", _ ->
+            (* When we go back to the empty line, reset the view to default. *)
             should_refresh := true;
-          state.file_zipper := file_zipper)
-    ()
-  |> ignore
+            state.file_zipper :=
+              Pointed_zipper.empty_with_max_len (height_of_files state.term)
+        | _, None -> ()
+        | _, Some pat ->
+            let new_iformula = IPat (pat, true) in
+            let file_zipper = matches_of_new_iformula new_iformula state in
+            (* THINK: are there still race conditions here? *)
+            (* the idea is that a bunch of threads may be spawned all at once while we are
+               typing
+               because Thread.kill is not actually implemented, we can't stop any of them
+               so let's just make sure that none of them takes a "significant action" that
+               can affect the main loop, unless the query they were originally for is the
+               current actual query that is reflected on the command-line
+            *)
+            if String.equal (get_current_line state) cur_line then
+              should_refresh := true;
+            state.file_zipper := file_zipper)
+      ()
+    |> ignore
 
 (*****************************************************************************)
 (* Interactive loop *)
 (*****************************************************************************)
 
-let interactive_loop xlang xtargets =
+let interactive_loop ~turbo xlang xtargets =
   let rec update ?(has_changed = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed state);
     loop t state
@@ -681,7 +701,7 @@ let interactive_loop xlang xtargets =
   Common.finalize
     (fun () ->
       (* TODO: change *)
-      let state = empty xlang xtargets t in
+      let state = empty turbo xlang xtargets t in
       if true then update state.term state)
     (fun () -> Term.release t)
   [@@profiling]
@@ -710,7 +730,7 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
     targets |> Common.map Fpath.to_string
     |> Common.map (Run_semgrep.xtarget_of_file config xlang)
   in
-  interactive_loop xlang xtargets;
+  interactive_loop ~turbo:conf.turbo xlang xtargets;
   Exit_code.ok
 
 (*****************************************************************************)

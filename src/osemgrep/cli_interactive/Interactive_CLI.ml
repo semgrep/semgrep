@@ -1,4 +1,5 @@
 open Cmdliner
+module H = Cmdliner_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -20,8 +21,18 @@ type conf = {
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
   profile : bool;
+  turbo : bool;
 }
 [@@deriving show]
+
+(*************************************************************************)
+(* Command-line flags *)
+(*************************************************************************)
+(* The o_ below stands for option (as in command-line argument option) *)
+
+let o_turbo : bool Term.t =
+  H.negatable_flag [ "turbo" ] ~neg_options:[ "no-turbo" ] ~default:false
+    ~doc:{|Automatically search as you type in Interactive Mode.|}
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
@@ -32,7 +43,7 @@ let cmdline_term : conf Term.t =
    * further below, so it's easy to add new options.
    *)
   let combine ast_caching exclude include_ lang logging_level profile
-      target_roots =
+      target_roots turbo =
     let lang =
       match lang with
       (* TODO? we could omit the language like for -e and try all languages?*)
@@ -57,12 +68,13 @@ let cmdline_term : conf Term.t =
       core_runner_conf = { Scan_CLI.default.core_runner_conf with ast_caching };
       logging_level;
       profile;
+      turbo;
     }
   in
   Term.(
     const combine $ Scan_CLI.o_ast_caching $ Scan_CLI.o_exclude
     $ Scan_CLI.o_include $ Scan_CLI.o_lang $ CLI_common.o_logging
-    $ CLI_common.o_profile $ Scan_CLI.o_target_roots)
+    $ CLI_common.o_profile $ Scan_CLI.o_target_roots $ o_turbo)
 
 let doc = "Interactive mode!!"
 
