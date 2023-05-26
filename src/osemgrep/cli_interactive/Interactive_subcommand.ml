@@ -34,11 +34,11 @@ type command =
   | Exit
 
 (* interactive formula *)
-type iformula = IPat of Xpattern.t * bool
-(* false = negated *)
-(* | IAll of iformula list
-   | IAny of iformula list
-*)
+type iformula =
+  | IPat of Xpattern.t * bool
+  (* false = negated *)
+  | IAll of iformula list
+  | IAny of iformula list
 
 type matches_by_file = {
   file : string;
@@ -75,6 +75,8 @@ type state = {
   mode : bool;  (** True if `All`, false if `Any`
       *)
   term : Notty_unix.Term.t;
+  turbo : bool;  (** Whether or not to do Turbo.
+      *)
 }
 
 (* Arbitrarily, let's just set the width of files to 40 chars. *)
@@ -185,7 +187,7 @@ let height_of_files term = snd (Term.size term) - 3
 let width_of_files _term = files_width
 let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
-let empty xlang xtargets term =
+let empty turbo xlang xtargets term =
   {
     xlang;
     xtargets;
@@ -194,6 +196,7 @@ let empty xlang xtargets term =
     formula = None;
     mode = true;
     term;
+    turbo;
   }
 
 let get_current_line state =
@@ -209,10 +212,10 @@ let safe_subtract x y =
 
 let fk = Tok.unsafe_fake_tok ""
 
-let (* rec *) translate_formula = function
+let rec translate_formula = function
   | IPat (pat, true) -> Rule.P pat
   | IPat (pat, false) -> Rule.Not (fk, P pat)
-(*| IAll ipats ->
+  | IAll ipats ->
       Rule.And
         ( fk,
           {
@@ -221,7 +224,6 @@ let (* rec *) translate_formula = function
             focus = [];
           } )
   | IAny ipats -> Rule.Or (fk, Common.map translate_formula ipats)
-*)
 
 let mk_fake_rule lang formula =
   {
@@ -317,7 +319,7 @@ let parse_pattern_opt s state =
       None
 
 (*****************************************************************************)
-(* User Interface *)
+(* User Interface (Preview Pane) *)
 (*****************************************************************************)
 
 (* Given the bounds of a highlighted range, does this index
@@ -431,6 +433,91 @@ let no_matches_found_img state =
     |> vcat
     |> I.vsnap (height_of_files state.term))
 
+let render_preview_no_matches ~has_changed state =
+  if state.turbo then
+    (* In Turbo Mode, what we display here is dependent on two
+        things, the current state of the buffer and whether we
+        actually changed the query bar with our last key press.
+    *)
+    if String.equal (get_current_line state) "" then
+      default_screen_img "(type a pattern to get started!)" state
+    else if has_changed then default_screen_img "thinking..." state
+    else no_matches_found_img state
+  else if
+    (* In regular mode, we don't care about those things, but we
+        do care about whether we have entered a pattern or not.
+    *)
+    Option.is_some state.formula
+  then no_matches_found_img state
+  else default_screen_img "(type a pattern to get started!)" state
+
+(*****************************************************************************)
+(* User Interface (Top Left Pane) *)
+(*****************************************************************************)
+
+(* This just pretty-prints out the patterns we currently have in
+   our tree.
+*)
+let rec render_patterns = function
+  | IPat ({ Xpattern.pstr = s, _; _ }, b) ->
+      if b then I.(string A.empty (Common.spf "%s" s))
+      else I.(string A.(fg lightblue) "not: " <|> string A.empty s)
+  | IAll pats ->
+      I.(
+        let patterns =
+          pats |> Common.map render_patterns
+          |> Common.map (fun img -> I.(string A.empty "- " <|> img))
+          |> vcat |> hpad 2 0
+        in
+        hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "all:")
+        <-> patterns)
+  | IAny pats ->
+      I.(
+        let patterns =
+          pats |> Common.map render_patterns
+          |> Common.map (fun img -> I.(string A.empty "- " <|> img))
+          |> vcat |> hpad 2 0
+        in
+        hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "any:")
+        <-> patterns)
+
+(* This differs based on our mode. In Turbo Mode, this is just the
+   list of files.
+
+   In Normal Mode, we allow cumulative building of patterns, so this can
+   sometimes print out the patterns that we are currently building up.
+*)
+let render_top_left_pane file_zipper state =
+  let lines_to_pad_below_to_reach l n =
+    if List.length l >= n then 0 else n - List.length l
+  in
+  let patterns =
+    match state.formula with
+    | None -> I.void 0 0
+    | Some formula ->
+        render_patterns formula
+        |> I.hsnap (width_of_files state.term) ~align:`Left
+  in
+  let intermediary_bar =
+    String.make (width_of_files state.term) '-' |> I.string (A.fg (A.gray 12))
+  in
+  let lines_of_files = height_of_files state.term - I.height patterns - 1 in
+  let files =
+    Pointed_zipper.take lines_of_files file_zipper
+    |> Common.mapi (fun idx { file; _ } ->
+           if idx = Pointed_zipper.relative_position file_zipper then
+             I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
+           else I.string (A.fg (A.gray 16)) file)
+  in
+  I.(
+    files |> I.vcat
+    |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
+    <-> intermediary_bar <-> patterns)
+
+(*****************************************************************************)
+(* User Interface (Screen) *)
+(*****************************************************************************)
+
 let render_screen ?(has_changed = false) state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
@@ -441,23 +528,10 @@ let render_screen ?(has_changed = false) state =
      ensures that we don't act like it does, anyways.
   *)
   let file_zipper = !(state.file_zipper) in
-  let lines_of_files = height_of_files state.term in
-  let lines_to_pad_below_to_reach l n =
-    if List.length l >= n then 0 else n - List.length l
-  in
-  let files =
-    Pointed_zipper.take lines_of_files file_zipper
-    |> Common.mapi (fun idx { file; _ } ->
-           if idx = Pointed_zipper.relative_position file_zipper then
-             I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
-           else I.string (A.fg (A.gray 16)) file)
-  in
-  let preview =
+  let top_left_pane = render_top_left_pane file_zipper state in
+  let preview_pane =
     if Pointed_zipper.is_empty file_zipper then
-      if String.equal (get_current_line state) "" then
-        default_screen_img "(type a pattern to get started!)" state
-      else if has_changed then default_screen_img "thinking..." state
-      else no_matches_found_img state
+      render_preview_no_matches ~has_changed state
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current file_zipper
@@ -477,11 +551,23 @@ let render_screen ?(has_changed = false) state =
   in
   let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
+  let mode =
+    if state.turbo then I.void 0 0
+    else if state.mode then I.(string A.(fg semgrep_green) "[ALL]")
+    else I.(string A.(fg semgrep_green) "[ANY]")
+  in
   let prompt =
-    I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
+    I.(
+      mode
+      <|> string (A.fg A.cyan) "> "
+      <|> string A.empty (get_current_line state))
   in
   let lowerbar =
-    I.(string (A.fg A.green) (Common.spf "Semgrep Interactive Mode"))
+    let status =
+      if state.turbo then "Semgrep Interactive Mode (TURBO ACTIVATED)"
+      else "Semgrep Interactive Mode"
+    in
+    I.(string (A.fg A.green) status)
   in
   (* The format of the Interactive Mode UI is:
    *
@@ -495,11 +581,10 @@ let render_screen ?(has_changed = false) state =
    * lower bar lower bar lower bar lower bar lower bar
    *)
   I.(
-    files |> I.vcat
+    top_left_pane
     (* THINK: unnecessary? *)
-    |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
     |> (fun img -> I.hcrop 0 (I.width img - files_width) img)
-    <|> vertical_bar <|> preview <-> horizontal_bar <-> prompt <-> lowerbar)
+    <|> vertical_bar <|> preview_pane <-> horizontal_bar <-> prompt <-> lowerbar)
 
 (*****************************************************************************)
 (* Commands *)
@@ -535,14 +620,14 @@ let execute_command (state : state) =
   let cmd = parse_command state in
   let handle_pat (pat, b) =
     let new_pat = IPat (pat, b) in
-    match (state.formula, state.mode) with
-    (* None, *)
-    | __else__ -> new_pat
-    (* | Some (IAll pats), true -> IAll (new_pat :: pats)
-       | Some (IAny pats), false -> IAny (new_pat :: pats)
-       | Some pat, true -> IAny [ new_pat; pat ]
-       | Some pat, false -> IAll [ new_pat; pat ]
-    *)
+    if state.turbo then new_pat
+    else
+      match (state.formula, state.mode) with
+      | None, _ -> new_pat
+      | Some (IAll pats), true -> IAll (new_pat :: pats)
+      | Some (IAny pats), false -> IAny (new_pat :: pats)
+      | Some pat, true -> IAll [ new_pat; pat ]
+      | Some pat, false -> IAny [ new_pat; pat ]
   in
   let state =
     match cmd with
@@ -555,13 +640,10 @@ let execute_command (state : state) =
         state.file_zipper := file_zipper;
         { state with formula = Some new_iformula }
   in
-  (* old: Remember to reset the current line after executing a command. *)
-  (* We don't want this anymore because of Turbo Mode, but we should
-     figure out a way to make Turbo Mode play well with the idea of using
-     multiple patterns
+  (* Remember to reset the current line after executing a command,
+     but only if we're not doing a Turbo run!
   *)
-  (* state.cur_line_rev := [];
-  *)
+  if not state.turbo then state.cur_line_rev := [];
   state
 
 (*****************************************************************************)
@@ -576,39 +658,40 @@ let execute_command (state : state) =
    Care must be taken to ensure multiple threads don't mess with each other.
 *)
 let spawn_thread state =
-  Thread.create
-    (fun _ ->
-      let cur_line = get_current_line state in
-      let pat_opt = parse_pattern_opt cur_line state in
-      match (cur_line, pat_opt) with
-      | "", _ ->
-          (* When we go back to the empty line, reset the view to default. *)
-          should_refresh := true;
-          state.file_zipper :=
-            Pointed_zipper.empty_with_max_len (height_of_files state.term)
-      | _, None -> ()
-      | _, Some pat ->
-          let new_iformula = IPat (pat, true) in
-          let file_zipper = matches_of_new_iformula new_iformula state in
-          (* THINK: are there still race conditions here? *)
-          (* the idea is that a bunch of threads may be spawned all at once while we are
-             typing
-             because Thread.kill is not actually implemented, we can't stop any of them
-             so let's just make sure that none of them takes a "significant action" that
-             can affect the main loop, unless the query they were originally for is the
-             current actual query that is reflected on the command-line
-          *)
-          if String.equal (get_current_line state) cur_line then
+  if state.turbo then
+    Thread.create
+      (fun _ ->
+        let cur_line = get_current_line state in
+        let pat_opt = parse_pattern_opt cur_line state in
+        match (cur_line, pat_opt) with
+        | "", _ ->
+            (* When we go back to the empty line, reset the view to default. *)
             should_refresh := true;
-          state.file_zipper := file_zipper)
-    ()
-  |> ignore
+            state.file_zipper :=
+              Pointed_zipper.empty_with_max_len (height_of_files state.term)
+        | _, None -> ()
+        | _, Some pat ->
+            let new_iformula = IPat (pat, true) in
+            let file_zipper = matches_of_new_iformula new_iformula state in
+            (* THINK: are there still race conditions here? *)
+            (* the idea is that a bunch of threads may be spawned all at once while we are
+               typing
+               because Thread.kill is not actually implemented, we can't stop any of them
+               so let's just make sure that none of them takes a "significant action" that
+               can affect the main loop, unless the query they were originally for is the
+               current actual query that is reflected on the command-line
+            *)
+            if String.equal (get_current_line state) cur_line then
+              should_refresh := true;
+            state.file_zipper := file_zipper)
+      ()
+    |> ignore
 
 (*****************************************************************************)
 (* Interactive loop *)
 (*****************************************************************************)
 
-let interactive_loop xlang xtargets =
+let interactive_loop ~turbo xlang xtargets =
   let rec update ?(has_changed = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed state);
     loop t state
@@ -681,7 +764,7 @@ let interactive_loop xlang xtargets =
   Common.finalize
     (fun () ->
       (* TODO: change *)
-      let state = empty xlang xtargets t in
+      let state = empty turbo xlang xtargets t in
       if true then update state.term state)
     (fun () -> Term.release t)
   [@@profiling]
@@ -710,7 +793,7 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
     targets |> Common.map Fpath.to_string
     |> Common.map (Run_semgrep.xtarget_of_file config xlang)
   in
-  interactive_loop xlang xtargets;
+  interactive_loop ~turbo:conf.turbo xlang xtargets;
   Exit_code.ok
 
 (*****************************************************************************)
