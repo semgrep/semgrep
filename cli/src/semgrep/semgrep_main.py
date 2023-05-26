@@ -499,6 +499,7 @@ def main(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
+    # Collect and print contributors
     contributor_start_time = time.time()
     contributor_manager = ContributionManager(
         target_manager=target_manager,

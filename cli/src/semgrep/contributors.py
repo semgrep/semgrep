@@ -1,8 +1,8 @@
 """
 Contributors.py
 
-This modules handles the collection, cleansing, and submission of contributor
-information for logged-in users using semgrep CLI.
+This modules handles the collection and reporting of contributor information for 
+logged-in users using semgrep CLI.
 """
 
 
@@ -32,10 +32,12 @@ class Contributor:
     Represents a single actor who has contributed in some way to a project scanned with
     Semgrep.
 
-    Contributors can be any of:
-    1. A commit author (per related commits via `git log`)
-    2. A committer (per related commits via `git log`)
-    3. The logged in user
+    Attributes
+    ----------
+    name : str
+        The developer name, as defined within their git configuration
+    email : str
+        The developer email, as defined within their git configuration
     """
 
     name: str | None
@@ -44,6 +46,22 @@ class Contributor:
 
 @frozen(eq=True)
 class Contribution:
+    """
+    Represents a single contribution, representative of a single commit within the
+    `git log` output for a single repository.
+
+    Attributes
+    ----------
+    project : str
+        The repository name, as defined by the git configuration for the repository
+    commit : str
+        The commit hash traversed via `git log`
+    timestamp : datetime
+        The commit timestamp traversed via `git log`
+    contributor : Contributor
+        Details regarding the developer which committed the contribution
+    """
+
     project: str
     commit: str
     timestamp: datetime
@@ -52,6 +70,25 @@ class Contribution:
 
 @define(eq=False)
 class ContributionsResponse:
+    """
+    Represents the response from the ContributorsManager when collecting contributors.
+
+    Attributes
+    ----------
+    contributions : list[Contribution]
+        A list of all contributions collected via `git log`
+    contributions_count : int
+        A top-level count of all contributions
+    contributors : list[Contributor]
+        A list of all unique contributors collected from the list of contributions
+    contributors_count : int
+        A top-level count of all contributors
+    projects : list[str]
+        A list of all unique projects collected from the list of contributions
+    projects_count : int
+        A top-level count of all projects
+    """
+
     contributions: list[Contribution]
     contributions_count: int
     contributors: list[Contributor]
@@ -60,6 +97,13 @@ class ContributionsResponse:
     projects_count: int
 
     def print(self) -> None:
+        """
+        Print the contributors collected to the CLI output.
+
+        Note: this is intended to be used in a customer-facing manner. Take care in the
+            format and content of the response.
+
+        """
         console.print(Title(f"{self.contributions_count} Contributions"))
         console.print(
             Padding(
@@ -124,6 +168,12 @@ class ContributionManager:
         )
 
     def collect_contributions(self) -> ContributionsResponse:
+        """
+        Collect all contributions for the repository via `git log`.
+
+        For every commit, the developer name and email, the timestamp, and commit hash
+        are collected and stored in the ContributionsResponse, which is returned.
+        """
         contributions: list[Contribution] = []
         contributors: list[Contributor] = []
         projects: list[str] = []
@@ -158,18 +208,30 @@ class ContributionManager:
         )
 
     def collect_latest_contributions(self) -> ContributionsResponse:
+        """
+        Collect all contributions for the repository via `git log`, taking only the
+        latest for every contributor involved.
+
+        For every commit, the developer name and email, the timestamp, and commit hash
+        are collected and stored in the ContributionsResponse, which is returned.
+        """
+        # Track the current latest contribution and timestamp for each contributor
         contributions_cache: dict[Contributor, datetime] = {}
         latest_contributions_cache: dict[Contributor, Contribution] = {}
 
         contributions = self.collect_contributions()
         for contribution in contributions.contributions:
+            # Check if we already have a latest contribution for the contribution
             if (contributor := contribution.contributor) in contributions_cache:
                 if (
                     contribution.timestamp
                     > latest_contributions_cache[contributor].timestamp
                 ):
+                    # If this contribution is later, replace latest with this one
                     contributions_cache[contributor] = contribution.timestamp
                     latest_contributions_cache[contributor] = contribution
+
+            # ... otherwise, just store it as the first
             else:
                 contributions_cache[contributor] = contribution.timestamp
                 latest_contributions_cache[contributor] = contribution
