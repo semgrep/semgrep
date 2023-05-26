@@ -34,11 +34,11 @@ type command =
   | Exit
 
 (* interactive formula *)
-type iformula = IPat of Xpattern.t * bool
-(* false = negated *)
-(* | IAll of iformula list
-   | IAny of iformula list
-*)
+type iformula =
+  | IPat of Xpattern.t * bool
+  (* false = negated *)
+  | IAll of iformula list
+  | IAny of iformula list
 
 type matches_by_file = {
   file : string;
@@ -212,10 +212,10 @@ let safe_subtract x y =
 
 let fk = Tok.unsafe_fake_tok ""
 
-let (* rec *) translate_formula = function
+let rec translate_formula = function
   | IPat (pat, true) -> Rule.P pat
   | IPat (pat, false) -> Rule.Not (fk, P pat)
-(*| IAll ipats ->
+  | IAll ipats ->
       Rule.And
         ( fk,
           {
@@ -224,7 +224,6 @@ let (* rec *) translate_formula = function
             focus = [];
           } )
   | IAny ipats -> Rule.Or (fk, Common.map translate_formula ipats)
-*)
 
 let mk_fake_rule lang formula =
   {
@@ -320,7 +319,7 @@ let parse_pattern_opt s state =
       None
 
 (*****************************************************************************)
-(* User Interface *)
+(* User Interface (Preview Pane) *)
 (*****************************************************************************)
 
 (* Given the bounds of a highlighted range, does this index
@@ -452,6 +451,73 @@ let render_preview_no_matches ~has_changed state =
   then no_matches_found_img state
   else default_screen_img "(type a pattern to get started!)" state
 
+(*****************************************************************************)
+(* User Interface (Top Left Pane) *)
+(*****************************************************************************)
+
+(* This just pretty-prints out the patterns we currently have in
+   our tree.
+*)
+let rec render_patterns = function
+  | IPat ({ Xpattern.pstr = s, _; _ }, b) ->
+      if b then I.(string A.empty (Common.spf "%s" s))
+      else I.(string A.(fg lightblue) "not: " <|> string A.empty s)
+  | IAll pats ->
+      I.(
+        let patterns =
+          pats |> Common.map render_patterns
+          |> Common.map (fun img -> I.(string A.empty "- " <|> img))
+          |> vcat |> hpad 2 0
+        in
+        hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "all:")
+        <-> patterns)
+  | IAny pats ->
+      I.(
+        let patterns =
+          pats |> Common.map render_patterns
+          |> Common.map (fun img -> I.(string A.empty "- " <|> img))
+          |> vcat |> hpad 2 0
+        in
+        hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "any:")
+        <-> patterns)
+
+(* This differs based on our mode. In Turbo Mode, this is just the
+   list of files.
+
+   In Normal Mode, we allow cumulative building of patterns, so this can
+   sometimes print out the patterns that we are currently building up.
+*)
+let render_top_left_pane file_zipper state =
+  let lines_to_pad_below_to_reach l n =
+    if List.length l >= n then 0 else n - List.length l
+  in
+  let patterns =
+    match state.formula with
+    | None -> I.void 0 0
+    | Some formula ->
+        render_patterns formula
+        |> I.hsnap (width_of_files state.term) ~align:`Left
+  in
+  let intermediary_bar =
+    String.make (width_of_files state.term) '-' |> I.string (A.fg (A.gray 12))
+  in
+  let lines_of_files = height_of_files state.term - I.height patterns - 1 in
+  let files =
+    Pointed_zipper.take lines_of_files file_zipper
+    |> Common.mapi (fun idx { file; _ } ->
+           if idx = Pointed_zipper.relative_position file_zipper then
+             I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
+           else I.string (A.fg (A.gray 16)) file)
+  in
+  I.(
+    files |> I.vcat
+    |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
+    <-> intermediary_bar <-> patterns)
+
+(*****************************************************************************)
+(* User Interface (Screen) *)
+(*****************************************************************************)
+
 let render_screen ?(has_changed = false) state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
@@ -462,18 +528,8 @@ let render_screen ?(has_changed = false) state =
      ensures that we don't act like it does, anyways.
   *)
   let file_zipper = !(state.file_zipper) in
-  let lines_of_files = height_of_files state.term in
-  let lines_to_pad_below_to_reach l n =
-    if List.length l >= n then 0 else n - List.length l
-  in
-  let files =
-    Pointed_zipper.take lines_of_files file_zipper
-    |> Common.mapi (fun idx { file; _ } ->
-           if idx = Pointed_zipper.relative_position file_zipper then
-             I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
-           else I.string (A.fg (A.gray 16)) file)
-  in
-  let preview =
+  let top_left_pane = render_top_left_pane file_zipper state in
+  let preview_pane =
     if Pointed_zipper.is_empty file_zipper then
       render_preview_no_matches ~has_changed state
     else
@@ -495,8 +551,16 @@ let render_screen ?(has_changed = false) state =
   in
   let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
+  let mode =
+    if state.turbo then I.void 0 0
+    else if state.mode then I.(string A.(fg semgrep_green) "[ALL]")
+    else I.(string A.(fg semgrep_green) "[ANY]")
+  in
   let prompt =
-    I.(string (A.fg A.cyan) "> " <|> string A.empty (get_current_line state))
+    I.(
+      mode
+      <|> string (A.fg A.cyan) "> "
+      <|> string A.empty (get_current_line state))
   in
   let lowerbar =
     let status =
@@ -517,11 +581,10 @@ let render_screen ?(has_changed = false) state =
    * lower bar lower bar lower bar lower bar lower bar
    *)
   I.(
-    files |> I.vcat
+    top_left_pane
     (* THINK: unnecessary? *)
-    |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
     |> (fun img -> I.hcrop 0 (I.width img - files_width) img)
-    <|> vertical_bar <|> preview <-> horizontal_bar <-> prompt <-> lowerbar)
+    <|> vertical_bar <|> preview_pane <-> horizontal_bar <-> prompt <-> lowerbar)
 
 (*****************************************************************************)
 (* Commands *)
@@ -557,14 +620,14 @@ let execute_command (state : state) =
   let cmd = parse_command state in
   let handle_pat (pat, b) =
     let new_pat = IPat (pat, b) in
-    match (state.formula, state.mode) with
-    (* None, *)
-    | __else__ -> new_pat
-    (* | Some (IAll pats), true -> IAll (new_pat :: pats)
-       | Some (IAny pats), false -> IAny (new_pat :: pats)
-       | Some pat, true -> IAny [ new_pat; pat ]
-       | Some pat, false -> IAll [ new_pat; pat ]
-    *)
+    if state.turbo then new_pat
+    else
+      match (state.formula, state.mode) with
+      | None, _ -> new_pat
+      | Some (IAll pats), true -> IAll (new_pat :: pats)
+      | Some (IAny pats), false -> IAny (new_pat :: pats)
+      | Some pat, true -> IAll [ new_pat; pat ]
+      | Some pat, false -> IAny [ new_pat; pat ]
   in
   let state =
     match cmd with
