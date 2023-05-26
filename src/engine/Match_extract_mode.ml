@@ -188,7 +188,7 @@ let rules_for_extracted_lang ~(all_rules : Rule.t list) extract_rule_ids =
   in
   memo
 
-let mk_extract_target extract_rule_ids dst_lang contents all_rules =
+let mk_extract_target extract_rule_ids dst_lang contents ~all_rules =
   let suffix = Xlang.informative_suffix dst_lang in
   let f = Common.new_temp_file "extracted" suffix in
   Common2.write_file ~file:f contents;
@@ -321,7 +321,7 @@ let map_res map_loc tmpfile file
 (* Main logic *)
 (*****************************************************************************)
 
-let extract_and_concat erule_table xtarget rules matches =
+let extract_and_concat erule_table xtarget ~all_rules matches =
   matches
   (* Group the matches within this file by rule id.
    * TODO? dangerous use of =*= ?
@@ -464,11 +464,11 @@ let extract_and_concat erule_table xtarget rules matches =
          (* Write out the extracted text in a tmpfile *)
          let (`Extract { Rule.dst_lang; Rule.extract_rule_ids; _ }) = r.mode in
          let target =
-           mk_extract_target extract_rule_ids dst_lang contents rules
+           mk_extract_target extract_rule_ids dst_lang contents ~all_rules
          in
          (target, map_res map_loc target.path xtarget.file))
 
-let extract_as_separate erule_table xtarget rules matches =
+let extract_as_separate erule_table xtarget ~all_rules matches =
   matches
   |> Common.map_filter (fun m ->
          match extract_of_match erule_table m with
@@ -516,7 +516,7 @@ let extract_as_separate erule_table xtarget rules matches =
                erule.mode
              in
              let target =
-               mk_extract_target extract_rule_ids dst_lang contents rules
+               mk_extract_target extract_rule_ids dst_lang contents ~all_rules
              in
              (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
              (* TODO: Find the reason of this behaviour and fix it properly *)
@@ -546,8 +546,8 @@ let extract_as_separate erule_table xtarget rules matches =
    settings, and (a) target(s) along with a function to translate results back
    to the original file will be produced.
  *)
-let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
-    (erules : Rule.extract_rule list) xtarget rules =
+let extract_nested_lang ~match_hook ~timeout ~timeout_threshold ~all_rules
+    (erules : Rule.extract_rule list) xtarget =
   let erule_table = mk_rule_table erules in
   let xconf = Match_env.default_xconfig in
   let res =
@@ -567,7 +567,9 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
            | None -> raise Impossible)
   in
   let separate =
-    extract_as_separate erule_table xtarget rules separate_matches
+    extract_as_separate erule_table xtarget ~all_rules separate_matches
   in
-  let combined = extract_and_concat erule_table xtarget rules combine_matches in
+  let combined =
+    extract_and_concat erule_table xtarget ~all_rules combine_matches
+  in
   separate @ combined

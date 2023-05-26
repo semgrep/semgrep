@@ -18,9 +18,9 @@
  * tests/e2e/target
 *)
 
-type xlang = string wrap <ocaml module="Xlang">
+type xlang <ocaml attr="deriving show"> = string wrap <ocaml module="Xlang">
 
-type target = {
+type target <ocaml attr="deriving show"> = {
   path: string (* source file *);
   (* Must be a valid "language" as defined in Xlang.mli.
      examples: "ocaml", "python", but also "spacegrep" or "regexp".
@@ -47,7 +47,7 @@ type target = {
  * alt: rule_ids above could also be used to analyze at once the same
  * file with both PL and generic/regexp rules.
  *)
-type targets = {
+type targets <ocaml attr="deriving show"> = {
    target_mappings: target list;
    (* If there is no rule_id, the default we will use is '-' *)
    rule_ids: string list
@@ -58,12 +58,12 @@ type targets = {
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
 (*****************************************************************************)
 
-type diff_file = {
+type diff_file <ocaml attr="deriving show"> = {
   filename : string;
   diffs : string (* start_line-end_line *) list;
   url : string (* metadata to help SCA rule generation *)
 }
 
-type diff_files = {
+type diff_files <ocaml attr="deriving show"> = {
   cve_diffs : diff_file list;
 }

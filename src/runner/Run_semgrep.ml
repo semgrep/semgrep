@@ -424,6 +424,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
   |> map_targets config.ncores (fun (target : In.target) ->
          let file = target.path in
          logger#info "Analyzing %s" file;
+         logger#linfo (lazy (spf "Config: %s" (Runner_config.show config)));
          let res, run_time =
            Common.with_time (fun () ->
                try
@@ -560,7 +561,10 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
       (let lang =
          (* ew. We fail tests if this gets pulled out of the lazy block. *)
          match xlang with
-         | L (lang, _) -> lang
+         | L (lang, []) -> lang
+         | L (_lang, _ :: _) ->
+             (* xlang from the language field in -target should be unique *)
+             assert false
          | _ ->
              failwith
                "requesting generic AST for an unspecified target language"
@@ -689,8 +693,9 @@ let extracted_targets_of_config (config : Runner_config.t)
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
-               ~timeout_threshold:config.timeout_threshold extractors xtarget
-               (extractors :> Rule.t list)
+               ~timeout_threshold:config.timeout_threshold
+               ~all_rules:(all_rules :> Rule.t list)
+               extractors xtarget
            in
            (* Print number of extra targets so Python knows *)
            (match config.output_format with
