@@ -1490,10 +1490,20 @@ let parse_taint_fields env rule_dict =
 
 let parse_step_fields env key (value : G.expr) : R.step =
   let rd = yaml_to_dict env key value in
-  let languages = take rd env parse_string_wrap_list "languages" in
+  let languages = take_no_env rd parse_string_wrap_list_no_env "languages" in
   (* No id, so error at the steps key
      TODO error earlier *)
-  let step_languages = parse_languages ~id:key languages in
+  let rule_options =
+    (* TODO: this is annoying and refers to the global options which may be
+       incorrect anyway -> support an 'options' field next to 'languages'
+       in the step object? *)
+    Option.value env.options ~default:Rule_options.default_config
+  in
+  let step_id_str, tok = key in
+  let id =
+    (Rule.ID.of_string (* TODO: is this really a rule ID? *) step_id_str, tok)
+  in
+  let step_languages = parse_languages ~id rule_options languages in
   let step_paths = take_opt rd env parse_paths "paths" in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
@@ -1510,18 +1520,18 @@ let parse_step_fields env key (value : G.expr) : R.step =
         | `Taint formula -> `Taint formula
         | _else_ -> raise Common.Impossible)
     | Some key, _ ->
-        error_at_key env key
+        error_at_key env.id key
           (spf
              "Unexpected value for mode, should be 'search' or 'taint', not %s"
              (fst key))
   in
-  { step_languages; step_paths; step_mode }
+  { step_languages = step_languages.target_analyzer; step_paths; step_mode }
 
 let parse_steps env key (value : G.expr) : R.steps =
   let parse_step step = parse_step_fields env key step in
   match value.G.e with
   | G.Container (Array, (_, xs, _)) -> Common.map parse_step xs
-  | _ -> error_at_key env key ("Expected a list for " ^ fst key)
+  | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 (*****************************************************************************)
 (* Main entry point *)

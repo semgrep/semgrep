@@ -334,6 +334,8 @@ type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 type step = {
   step_mode : mode_for_step;
+  (* TODO: should the type be 'languages' like for the main rule?
+     Yes if it's concerned with target selection, no otherwise. *)
   step_languages : Xlang.t;
   step_paths : paths option;
 }
