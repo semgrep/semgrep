@@ -28,6 +28,8 @@ open Ppx_hash_lib.Std.Hash.Builtin
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
+type rule_id = string [@@deriving show]
+
 (*****************************************************************************)
 (* Position information *)
 (*****************************************************************************)
@@ -243,7 +245,15 @@ type extract_spec = {
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
+  extract_rule_ids : extract_rule_ids option;
   transform : extract_transform;
+}
+
+(* SR wants to be able to choose rules to run on
+   Behaves the same as paths *)
+and extract_rule_ids = {
+  required_rules : rule_id wrap list;
+  excluded_rules : rule_id wrap list;
 }
 
 (* Method to combine extracted ranges within a file:
@@ -262,8 +272,6 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 (*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
-
-type rule_id = string [@@deriving show]
 
 type 'mode rule_info = {
   (* MANDATORY fields *)

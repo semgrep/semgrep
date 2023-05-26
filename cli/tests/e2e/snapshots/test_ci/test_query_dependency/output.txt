@@ -7,16 +7,16 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of exit code
 
 === stdout - plain
-                            
-                            
+
+
 ┌──────────────────────────┐
 │ 4 Blocking Code Findings │
 └──────────────────────────┘
-           
-    foo.py 
-       eqeq-bad             
+
+    foo.py
+       eqeq-bad
           useless comparison
-                            
+
             4┆ a == a
             ⋮┆----------------------------------------
             5┆ a == a
@@ -24,19 +24,19 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             7┆ a == a
             ⋮┆----------------------------------------
            11┆ y == y
-                                    
-                                    
+
+
 ┌──────────────────────────────────┐
 │ 1 Reachable Supply Chain Finding │
 └──────────────────────────────────┘
-                
-    poetry.lock 
-       supply-chain1        
+
+    poetry.lock
+       supply-chain1
           found a dependency
-                            
+
             1┆ [[package]]
             2┆ name = "badlib"
-                            
+
   BLOCKING CODE RULES FIRED:
     eqeq-bad
 
@@ -44,33 +44,33 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of stdout - plain
 
 === stderr - plain
-                  
-                  
+
+
 ┌────────────────┐
 │ Debugging Info │
 └────────────────┘
-                  
+
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown
-            
+
   CONNECTION
-  Reporting start of scan for deployment_name         
-  Fetching configuration from Semgrep Cloud Platform                 
-               
+  Reporting start of scan for deployment_name
+  Fetching configuration from Semgrep Cloud Platform
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 4 files tracked by git with 1 Code rule, 1 Supply Chain rule:
-            
-            
+
+
   CODE RULES
   Scanning 1 file.
-                    
+
   SUPPLY CHAIN RULES
   Scanning 1 file.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
@@ -84,5 +84,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stderr - plain

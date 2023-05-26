@@ -289,7 +289,7 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
-(package (name ppath)
+(package (name paths)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -410,6 +410,7 @@ For more information see https://semsgrep.dev
     emile
     bos
     (digestif (>= 1.0.0))
+    notty
   )
 )
 

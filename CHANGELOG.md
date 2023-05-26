@@ -6,6 +6,79 @@
 
 <!-- insertion point -->
 
+## [1.23.0](https://github.com/returntocorp/semgrep/releases/tag/v1.23.0) - 2023-05-24
+
+### Added
+
+- On scan complete during logged in `semgrep ci` scans, check returned exit code to
+  see if should block scans. This is to support incoming features that requires
+  information from semgrep.dev (complete)
+- Extract mode: users can now choose to include or exclude rules to run on, similar to `paths:`. For example,
+  to only run on the rules `example-1` and `example-2`, you would write
+
+  ```
+  rules:
+     - id: test-rule
+       mode: extract
+       rules:
+          include:
+          - example-1
+          - example-2
+  ```
+
+  To run on everything except `example-1` and `example-2`, you would write
+
+  ````
+  rules:
+     - id: test-rule
+       mode: extract
+       rules:
+          exclude:
+          - example-1
+          - example-2
+  ``` (gh-7858)
+  ````
+
+- Kotlin: Added literal metavariables, from patterns like `"$FOO"`.
+  You can still match strings that only contain a single interpolated
+  ident by using the brace notation, e.g. `"${FOO}"`. (pa-2755)
+- Increase timeout of `semgrep ci` upload findings network calls
+  and make said timeout configurable with env var SEMGREP_UPLOAD_FINDINGS_TIMEOUT (timeout)
+
+### Changed
+
+- Relaxed restrictions on symbolic propagation so that symbolic values survive
+  branching statements. Now (with symbolic-propagation enabled) `foo(bar())` will
+  match match the following code:
+
+  ```python
+  def test():
+    x = bar()
+    if cond:
+      exit()
+    foo(x)
+  ```
+
+  Previously any symbolically propagated value was lost after any kind of branching
+  statement. (pa-2739)
+
+### Fixed
+
+- swift: support ellipsis metavariable (gh-7666)
+- Scala: You can now put an ellipsis inside of a `catch`, to
+  write a pattern like:
+  try {
+  ...
+  } catch {
+  ...
+  }
+  which will match every kind of try-catch. (gh-7807)
+- When scanning with `-l dockerfile`, files named `dockerfile` as well as `Dockerfile` will be scanned. (gh-7824)
+- Fix for very long runtimes that could happen due to one of our optimizations. We now detect when that might
+  happen and skip the optimization. (gh-7839)
+- Improve type inference for some simple arithmetic expressions (inference)
+- Fixed bug introduced in 1.19.0 that was causing some stack overflows. (pa-2740)
+
 ## [1.22.0](https://github.com/returntocorp/semgrep/releases/tag/v1.22.0) - 2023-05-15
 
 ### Added

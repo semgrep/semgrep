@@ -19,6 +19,8 @@ val fixpoint : Lang.t -> IL.name list -> IL.cfg -> mapping
  * !Note that this assumes Naming_AST.resolve has been called before!
 *)
 
+val set_svalue_ref : AST_generic.id_info -> AST_generic.svalue -> unit
+
 val update_svalue : IL.cfg -> mapping -> unit
 (**
  * Updates the [IL.lval.svalue] refs according to the mapping.

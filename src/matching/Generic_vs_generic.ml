@@ -31,7 +31,6 @@ module MV = Metavariable
 module Flag = Flag_semgrep
 module Options = Rule_options_t
 module H = AST_generic_helpers
-module T = Type_generic
 
 (* optimisations *)
 module CK = Caching.Cache_key
@@ -1393,111 +1392,36 @@ and m_container_ordered_elements a b =
  *    style as typechecking could also bind metavariables in the process
  *)
 and m_compatible_type lang typed_mvar t e =
-  match (Type_generic.builtin_type_of_type lang t, e.G.e) with
-  | Some builtin, B.L lit -> (
-      match (builtin, lit) with
-      | T.TInt, B.Int _
-      | T.TFloat, B.Float _
-      | T.TNumber, (B.Int _ | B.Float _)
-      | T.TBool, B.Bool _
-      | T.TString, B.String _ ->
-          envf typed_mvar (MV.E e)
-      | _ -> fail ())
-  | _else_ -> (
-      match (t.G.t, e.G.e) with
-      (* for C specific literals *)
-      | ( G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }),
-          B.L (B.String _) ) ->
-          envf typed_mvar (MV.E e)
-      | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
-      (* for C strings to match metavariable pointer types *)
-      | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
-          B.L (B.String _) ) ->
-          m_type_ t
-            (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t)
-            |> G.t)
-          >>= fun () -> envf typed_mvar (MV.E e)
-      (* for matching ids *)
-      (* this is covered by the basic type propagation done in Naming_AST.ml *)
-      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-          (* NOTE: Name values must be represented with MV.Id! *)
-          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-          envf typed_mvar (MV.Id (idb, Some id_infob))
-      | _ta, _eb -> (
-          match type_of_expr lang e with
-          | tbopt, Some idb ->
-              m_type_option_with_hook idb (Some t) tbopt >>= fun () ->
-              envf typed_mvar (MV.E e)
-          | Some tb, None ->
-              let* () = m_type_ t tb in
-              envf typed_mvar (MV.E e)
-          | None, None -> fail ()))
-
-(* returns possibly the inferred type of the expression,
- * as well as an ident option that can then be used to query LSP to get the
- * type of the ident.
- *)
-and type_of_expr lang e : G.type_ option * G.ident option =
-  match e.B.e with
-  (* TODO? or generate a fake "new" id for LSP to query on tk? *)
-  | B.New (_tk, t, _ii, _) -> (Some t, None)
+  match (t.G.t, e.G.e) with
+  (* for C specific literals *)
+  | G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }), B.L (B.String _) ->
+      envf typed_mvar (MV.E e)
+  | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
+  (* for C strings to match metavariable pointer types *)
+  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
+      B.L (B.String _) ) ->
+      m_type_ t
+        (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
+      >>= fun () -> envf typed_mvar (MV.E e)
+  (* for matching ids *)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | B.N
-      (B.IdQualified
-        { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
-  | B.DotAccess
-      ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { B.id_type = tb; _ })))
-    ->
-      (!tb, Some idb)
-  (* deep: those are usually resolved only in deep mode *)
-  | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> (!tb, Some idb)
-  (* deep: same *)
-  | B.Call
-      ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
-        _args ) -> (
-      match !tb with
-      (* less: in OCaml functions can be curried, so we need to match
-       * _params and _args to calculate the resulting type.
-       *)
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  (* deep: in Java, there can be an implicit `this.`
-     so calculate the type in the same way as above
-     THINK: should we do this for all languages? Why not? *)
-  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
-    when lang =*= Lang.Java -> (
-      match !tb with
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  | B.Conditional (_, e1, e2) ->
-      let ( let* ) = Option.bind in
-      let t1opt, id1opt = type_of_expr lang e1 in
-      let t2opt, id2opt = type_of_expr lang e2 in
-      (* LATER: we could also not enforce to have a type for both branches,
-       * but let's go simple for now and enforce both branches have
-       * a type and that the types are equal.
-       *)
-      let topt =
-        let* t1 = t1opt in
-        let* t2 = t2opt in
-        (* LATER: in theory we should look if the types are compatible,
-         * and take the lowest upper bound of the two types *)
-        if AST_utils.with_structural_equal G.equal_type_ t1 t2 then Some t1
-        else None
-      in
-      let idopt =
-        (* TODO? is there an Option.xxx or Common.xxx function for that? *)
-        match (id1opt, id2opt) with
-        | Some id1, _ -> Some id1
-        | _, Some id2 -> Some id2
-        | None, None -> None
-      in
-      (topt, idopt)
-  | _else_ -> (None, None)
+  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+      (* NOTE: Name values must be represented with MV.Id! *)
+      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+      envf typed_mvar (MV.Id (idb, Some id_infob))
+  | _ta, _eb -> (
+      let tb, idopt = Typing.type_of_expr lang e in
+      (* If we can infer the type, then match against it. Otherwise, fall back
+       * on LSP type matching *)
+      if Type.is_real_type tb then
+        let* () = m_generic_type_vs_type_t lang t tb in
+        envf typed_mvar (MV.E e)
+      else
+        match idopt with
+        | Some idb ->
+            m_type_option_with_hook idb (Some t) None >>= fun () ->
+            envf typed_mvar (MV.E e)
+        | None -> fail ())
 
 (*---------------------------------------------------------------------------*)
 (* XML *)
@@ -2063,6 +1987,129 @@ and m_todo_kind a b = m_ident a b
 and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in
   m_type_ a2 b2
+
+(******************************************************************************)
+(* Type.t, constructed during type inference and matched for typed metavariables
+ * *)
+(******************************************************************************)
+
+(* The AST_generic.type_ written in a pattern vs an inferred Type.t
+ *
+ * Checks if the pattern `a` describes any supertype of the type `b`. Currently,
+ * subtype analysis is fairly limited (I believe it only happens with
+ * inheritance for nominal types when used with the Pro Engine) but it may be
+ * extended at some point.
+ * *)
+and m_generic_type_vs_type_t lang a b =
+  match (a.G.t, b) with
+  | G.TyN name1, Type.N ((name2, (* targs *) []), _alts) ->
+      (* TODO: Alternate names should actually be part of the 'resolved type
+       * param in Type.t. They are actually stored in the name, so we ignore
+       * them here. *)
+      m_name name1 name2
+  | G.TyApply ({ t = G.TyN name1; _ }, targs1), Type.N ((name2, targs2), _alts)
+    ->
+      let* () = m_name name1 name2 in
+      m_generic_targs_vs_type_targs lang targs1 targs2
+  (* TODO: Handle IdQualified matching unresolved name? *)
+  | G.TyN (Id ((str1, _), _)), Type.UnresolvedName (str2, (* targs *) []) ->
+      m_string str1 str2
+  | ( G.TyApply ({ t = G.TyN (Id ((str1, _), _)); _ }, targs1),
+      Type.UnresolvedName (str2, targs2) ) ->
+      let* () = m_string str1 str2 in
+      m_generic_targs_vs_type_targs lang targs1 targs2
+  | G.TyN (Id ((str, _), _)), Type.Builtin builtin2 -> (
+      (* Convert the string in the pattern to a Type.builtin_type. Currently,
+       * this lets users write, for example `str` in Java and have it
+       * interpreted as `String`. We could make this a bit stricter, but some
+       * tests rely on this behavior and real rules probably do as well. It's
+       * probably fine to be a bit generous here when we're attempting a match
+       * against a builtin, as this will not preclude matches elsewhere against
+       * named types that happen to collide. *)
+      match (Type.builtin_type_of_string lang str, builtin2) with
+      | Some Type.Int, Type.Int
+      | Some Type.Float, Type.Float
+      | Some Type.String, Type.String
+      | Some Type.Bool, Type.Bool
+      (* Type.Number used for JS/TS. We still infer more specific types for
+       * literals, however. *)
+      | Some Type.Number, (Type.Number | Type.Int | Type.Float) ->
+          return ()
+      | Some Type.Int, _
+      | Some Type.Float, _
+      | Some Type.String, _
+      | Some Type.Bool, _
+      | Some Type.Number, _
+      | Some (Type.OtherBuiltins _), _
+      | None, _ ->
+          fail ())
+  (* coupling: we also match on "null" etc. in Typing.type_of_ast_generic_type.
+   * Pull out into util? *)
+  | G.TyN (Id ((("null" | "nil"), _), _)), Type.Null -> return ()
+  (* An array type pattern with no size specified should still match an array
+   * type where we know the size. *)
+  | G.TyArray ((_l, None, _r), t1), Type.Array (_size, t2) ->
+      (* THINK: Should be an invariant match rather than covariant? *)
+      m_generic_type_vs_type_t lang t1 t2
+  | ( G.TyArray ((_l, Some { e = G.L (G.Int (Some size1, _)); _ }, _r), t1),
+      Type.Array (Some size2, t2) ) ->
+      let* () = m_int size1 size2 in
+      (* THINK: Should be an invariant match rather than covariant? *)
+      m_generic_type_vs_type_t lang t1 t2
+  | G.TyFun (params1, tret1), Type.Function (params2, tret2) ->
+      let* () = m_generic_params_vs_params lang params1 params2 in
+      m_generic_type_vs_type_t lang tret1 tret2
+  | G.TyPointer (_tok, t1), Type.Pointer t2 ->
+      m_generic_type_vs_type_t lang t1 t2
+  | G.TyExpr { e = G.N name1; _ }, _ ->
+      m_generic_type_vs_type_t lang (G.TyN name1 |> G.t) b
+  | _, Type.N _
+  | _, Type.UnresolvedName _
+  | _, Type.Builtin _
+  | _, Type.Null
+  | _, Type.Array _
+  | _, Type.Function _
+  | _, Type.Pointer _
+  | _, Type.NoType
+  | _, Type.Todo _ ->
+      fail ()
+
+and m_generic_targs_vs_type_targs lang (_l, a, _r) b =
+  (* TODO Handle ellipses? *)
+  m_list (m_generic_targ_vs_type_targ lang) a b
+
+and m_generic_targ_vs_type_targ lang a b =
+  match (a, b) with
+  | G.TA t1, Type.TA t2 ->
+      (* Technically this isn't quite right. m_generic_type_vs_type_t checks if
+       * t1 is a supertype of t2. Typically, type parameters must be invariant,
+       * and this will assume covariance. But it's probably not a big deal, and
+       * they don't have to be invariant in all cases anyway. *)
+      m_generic_type_vs_type_t lang t1 t2
+  | G.TA _, Type.OtherTypeArg _
+  (* TODO Represent more typearg kinds in Type.t? *)
+  | G.TAWildcard _, _
+  | G.TAExpr _, _
+  (* THINK: Should G.OtherTypeArg match Type.OtherTypeArg? *)
+  | G.OtherTypeArg _, _ ->
+      fail ()
+
+and m_generic_params_vs_params lang a b =
+  (* TODO Handle ellipses? *)
+  m_list (m_generic_param_vs_param lang) a b
+
+and m_generic_param_vs_param lang a b =
+  match (a, b) with
+  | ( G.Param { G.pname = name1; ptype = t1; _ },
+      Type.Param { Type.pident = name2; ptype = t2 } ) -> (
+      let name1 = Option.map fst name1 in
+      let* () = m_option m_string name1 name2 in
+      match t1 with
+      | Some t1 -> m_generic_type_vs_type_t lang t1 t2
+      | None -> (* THINK: Is this right? *) return ())
+  | _, Type.Param _
+  | _, Type.OtherParam _ ->
+      fail ()
 
 (*****************************************************************************)
 (* Attribute *)

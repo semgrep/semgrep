@@ -18,7 +18,8 @@ val parse_and_resolve_name :
 type ast_cached_value =
   ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
     string (* AST_generic.version *)
-    * Fpath.t (* original file *)
+    * Lang.t
+    * Rpath.t (* original file *)
     * float (* mtime of the original file *) )
   Cache_disk.cached_value_on_disk
 

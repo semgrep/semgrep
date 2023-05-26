@@ -20,7 +20,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* Cache parsed generic ASTs between runs to speedup things.
+(* Cache parsed generic ASTs between two runs of Semgrep to speedup things.
  *
  * On some big repositories (e.g., elasticsearch), the speedup can be
  * very important (e.g., 10x). Indeed:
@@ -50,13 +50,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * The extra data is to double check the cached AST correspond
  * to the file, to check it has the right AST_generic.version, and
  * to check if the cache is stale.
- * alt: we could add Lang.t in it, but instead it is part of the input
- * and used to generate the cache file.
+ * We use Rpath below instead of Fpath which reduces cache miss if
+ * some people are running Semgrep from different places or through
+ * symlinks.
  *)
 type ast_cached_value =
   ( (AST_generic.program * Tok.location list, Exception.t) Common.either,
     string (* AST_generic.version *)
-    * Fpath.t (* original file *)
+    * Lang.t
+    * Rpath.t (* original file *)
     * float (* mtime of the original file *) )
   Cache_disk.cached_value_on_disk
 
@@ -87,8 +89,8 @@ let ast_or_exn_of_file (lang, file) =
       Right e
 
 (* Cache_disk methods reused in a few places *)
-let cache_extra_for_input version (_lang, file) =
-  (version, file, File.filemtime file)
+let cache_extra_for_input version (lang, file) =
+  (version, lang, Rpath.of_fpath file, File.filemtime file)
 
 (* this is used for semgrep-core -generate_ast_binary done for Snowflake *)
 let binary_suffix : Fpath.ext = ".ast.binary"
@@ -115,7 +117,10 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
     logger#info "%s is already an AST binary file, unmarshalling its value"
       !!file;
     let (v : ast_cached_value) = Common2.get_value !!file in
-    let { Cache_disk.value = either; extra = version2, _file2, _mtime2 } = v in
+    let { Cache_disk.value = either; extra = version2, _lang2, _file2, _mtime2 }
+        =
+      v
+    in
     (* coupling: similar to check_extra() method below, but we're not
      * checking it's the same file here
      *)
@@ -137,16 +142,19 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
           {
             Cache_disk.cache_file_for_input =
               (fun (lang, file) ->
+                (* canonicalize to reduce cache misses *)
+                let file = Rpath.of_fpath file in
                 (* we may use different parsers for the same file
-                 * (e.g., in Python3 or Python2 mode), so we put the lang as part
-                 * of the cache "dependency".
+                 * (e.g., in Python3 or Python2 mode), so we put the lang as
+                 * part of the cache "dependency".
                  * We also add version here so bumping the version will not
                  * try to use the old cache file.
-                 * TODO? do we need version here since anyway we would generate an
-                 * exception when reading the cache and regenerate it.
+                 * TODO? do we need version here since anyway we would
+                 * generate an exn when reading the cache and regenerate it.
                  *)
                 let str =
-                  spf "%s__%s__%s" !!file (Lang.to_string lang) version
+                  spf "%s__%s__%s" (Rpath.to_string file) (Lang.to_string lang)
+                    version
                 in
                 (* Better to obfuscate the cache files, like in Unison, to
                  * discourage people to play with it. Also simple way to escape
@@ -158,13 +166,15 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
                 parsing_cache_dir // Fpath.(v md5_hex + binary_suffix));
             cache_extra_for_input = cache_extra_for_input version;
             check_extra =
-              (fun (version2, file2, mtime2) ->
+              (fun (version2, lang2, file2, mtime2) ->
                 (* TODO: better logging for the different reason the cache is
                  * invalid?
                  * - "Version mismatch! Clean the cache file"
                  * - "Not the same file! Md5sum collision! Clean the cache file"
                  *)
-                version = version2 && Fpath.equal file file2
+                version = version2
+                && Rpath.equal (Rpath.of_fpath file) file2
+                && Lang.equal lang lang2
                 && File.filemtime file =*= mtime2);
             input_to_string =
               (fun (lang, file) ->
@@ -177,3 +187,4 @@ let parse_and_resolve_name ?(parsing_cache_dir = None) version lang
         match either with
         | Left x -> x
         | Right exn -> Exception.reraise exn)
+  [@@profiling]

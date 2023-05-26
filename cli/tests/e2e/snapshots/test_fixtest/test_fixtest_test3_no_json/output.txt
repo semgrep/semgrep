@@ -1,7 +1,7 @@
-1/1: ✓ All tests passed 
-0/1: 1 fix tests did not pass: 
+1/1: ✓ All tests passed
+0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------
-	✖ targets/fixtest/test3.fixed.py <> autofix applied to targets/fixtest/test3.py 
+	✖ targets/fixtest/test3.fixed.py <> autofix applied to targets/fixtest/test3.py
 
 	---
 	+++

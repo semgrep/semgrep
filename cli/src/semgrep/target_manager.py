@@ -336,6 +336,7 @@ class FileTargetingLog:
 
         return output
 
+    # TODO: return directly a out.CliSkippedTarget
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
         # coupling: if you add a reason here,
         # add it also to semgrep_output_v1.atd.

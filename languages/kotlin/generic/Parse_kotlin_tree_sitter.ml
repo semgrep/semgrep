@@ -31,12 +31,19 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = unit H.env
+
+type context = Program | Pattern
+type env = context H.env
 
 let token = H.token
 let str = H.str
 let fb = Tok.unsafe_fake_bracket
 let sc tok = Tok.sc tok
+
+let in_pattern env =
+  match env.H.extra with
+  | Program -> false
+  | Pattern -> true
 
 let var_to_pattern (id, ptype) =
   let pat = PatId (id, empty_id_info ()) in
@@ -1889,19 +1896,35 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   v1 :: v2
 
 and string_literal (env : env) (v1, v2, v3) : expr =
-  let v1 = token env v1 in
-  let v2 =
-    Common.map
-      (fun x ->
-        match x with
-        | `Str_content tok ->
-            (* string_content *)
-            Left3 (str env tok)
-        | `Interp x -> interpolation env x)
-      v2
-  in
-  let v3 = token env v3 in
-  G.interpolated (v1, v2, v3)
+  let l = token env v1 in
+  let r = token env v3 in
+  match v2 with
+  | [ `Interp (`DOLLAR_simple_id (v1, v2)) ] when in_pattern env ->
+      (* This is something of the form "$X". This is interpreted as an interpolated
+         string of a single identifier, but if this is the pattern,
+         it's probably not what the person writing the rule meant.
+         Instead, we interpret it as a string literal containing a metavariable,
+         which allows the existing literal metavariable machinery to run.
+
+         This does not affect Semgrep's expressive power, because a string containing
+         an interpolated identifier `X` can also be expressed in a Semgrep pattern via
+         `"{X}"`.
+      *)
+      let s1, t1 = str env v1 (* "$" *) in
+      let s2, t2 = simple_identifier env v2 in
+      G.L (G.String (l, (s1 ^ s2, Tok.combine_toks l [ t1; t2; r ]), r)) |> G.e
+  | _ ->
+      let v2 =
+        Common.map
+          (fun x ->
+            match x with
+            | `Str_content tok ->
+                (* string_content *)
+                Left3 (str env tok)
+            | `Interp x -> interpolation env x)
+          v2
+      in
+      G.interpolated (l, v2, r)
 
 and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
   let v1 =
@@ -2289,7 +2312,7 @@ let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_kotlin.Parse.file file)
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       match source_file env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -2307,5 +2330,5 @@ let parse_pattern str =
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
       source_file env cst)
