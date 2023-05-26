@@ -99,6 +99,9 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
       in
       Some prefix
 
+let add_prefix prefix (rule_id : Rule.ID.t) =
+  Rule.ID.of_string (prefix ^ (rule_id :> string))
+
 let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
     rules_and_origin =
   let { rules; errors; origin } = x in
@@ -112,11 +115,11 @@ let rules_rewrite_rule_ids ~rewrite_rule_ids (x : rules_and_origin) :
             rules =
               rules
               |> Common.map (function { Rule.id = rule_id, tk; _ } as r ->
-                     { r with id = (prefix ^ rule_id, tk) });
+                     { r with id = (add_prefix prefix rule_id, tk) });
             errors =
               errors
               |> Common.map (fun (kind, rule_id, tk) ->
-                     (kind, prefix ^ rule_id, tk));
+                     (kind, add_prefix prefix rule_id, tk));
           })
   | _else_ -> x
 
@@ -381,6 +384,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
         (match xpat.XP.pat with
         | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
         | XP.Spacegrep _
+        | XP.Aliengrep _
         | XP.Regexp _ ->
             ());
         let rule = Rule.rule_of_xpattern xlang xpat in

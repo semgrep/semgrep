@@ -232,7 +232,7 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
       msg
     in
     let print =
-      cur.check_id <> Constants.rule_id_for_dash_e
+      cur.check_id <> (Constants.rule_id_for_dash_e :> string)
       &&
       match last_message with
       | None -> true

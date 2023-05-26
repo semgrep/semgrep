@@ -71,7 +71,8 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
   | P { pat; pstr; _ } -> (
       match pat with
       | Sem (_, _)
-      | Spacegrep _ ->
+      | Spacegrep _
+      | Aliengrep _ ->
           `O [ ("pattern", `String (fst pstr)) ]
       | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]

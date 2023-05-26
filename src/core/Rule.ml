@@ -28,7 +28,46 @@ open Ppx_hash_lib.Std.Hash.Builtin
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
-type rule_id = string [@@deriving show]
+(*
+   A rule ID is a string. This creates a dedicated type to clarify interfaces
+   and error messages. The coercion operator can be used as an alternative
+   to 'to_string x': '(x :> string)' to obtain a plain string.
+*)
+module ID : sig
+  type t = private string [@@deriving show, eq]
+
+  val to_string : t -> string
+  val of_string : string -> t
+  val to_string_list : t list -> string list
+  val of_string_list : string list -> t list
+  val compare : t -> t -> int
+
+  (*
+     Rule ids are prepended with the `path.to.the.rules.file.`, so
+     when comparing a rule (r) with the rule to be included or excluded,
+     allow for a preceding path
+
+       "path.to.foo.bar" ~suffix:"foo.bar" -> true
+       "foo.bar" ~suffix:"foo.bar" -> true
+       "xfoo.bar" ~suffix:"foo.bar" -> false
+
+     TODO we may want to allow globs for rules
+  *)
+  val ends_with : t -> suffix:t -> bool
+end = struct
+  type t = string [@@deriving show, eq]
+
+  let to_string x = x
+  let of_string x = x
+  let to_string_list x = x
+  let of_string_list x = x
+  let compare = String.compare
+
+  let ends_with r ~suffix:inc_or_exc_rule =
+    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+end
+
+type rule_id = ID.t [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Position information *)
@@ -295,6 +334,8 @@ type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 type step = {
   step_mode : mode_for_step;
+  (* TODO: should the type be 'languages' like for the main rule?
+     Yes if it's concerned with target selection, no otherwise. *)
   step_languages : Xlang.t;
   step_paths : paths option;
 }
@@ -306,13 +347,77 @@ type steps = step list [@@deriving show]
 (* The rule *)
 (*****************************************************************************)
 
+(*
+   For historical reasons, the 'languages' field in the Semgrep rule
+   (YAML file) is a list of strings. There was no distinction between
+   target selection and target analysis. This led to oddities for
+   analyzers that aren't specific to a programming language.
+
+   We can now start to decouple file filtering from their analysis.
+   For example, we can select Bash files using the predefined
+   rules that inspect the file extension or the shebang line
+   but analyze them using a regexp instead of a regular Semgrep pattern.
+
+   This is the beginning of fixing this giant mess.
+
+   to be continued...
+*)
+type languages = {
+  (* How to select target files e.g. "files that look like C files".
+     If unspecified, the selector selects all the files that are not
+     ignored by generic mechanisms such as semgrepignore.
+     In a Semgrep rule where a string is expected, the standard way
+     is to use "generic" but "regex" and "none" have the same effect.
+     They all translate into 'None'.
+
+     Example:
+
+       target_selector = Some [Javascript; Typescript];
+
+     ... selects all the files that can be parsed and analyzed
+     as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
+     JavaScript.
+
+     TODO: instead of always deriving this field automatically from
+     the 'languages' field of the rule, add support for an optional
+     'target-selectors' field that supports a variety of predefined
+     target selectors (e.g. "minified-javascript-files",
+     "javascript-executable-scripts", "makefile", ...). This would reduce
+     the maintenance burden for custom target selectors and allow mixing
+     them other target analyzers. For example, we could select all the
+     Bash scripts but analyze them with spacegrep.
+  *)
+  target_selector : Lang.t list option;
+  (* How to analyze target files. The accompanying patterns are specified
+     elsewhere in the rule.
+     Examples:
+     - "pattern for the C parser using the generic AST" (regular programming
+       language using a classic Semgrep pattern)
+     - "pattern for Fortran77 or for Fortran90" (two possible parsers)
+     - "spacegrep pattern"
+     - "high-entropy detection" (doesn't use a pattern)
+     - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
+     This information may have to be extracted from another part of the
+     YAML rule.
+
+     Example:
+
+       target_analyzer = L (Typescript, []);
+  *)
+  target_analyzer : Xlang.t;
+}
+[@@deriving show]
+
 type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
   mode : 'mode;
-  message : string; (* Currently a dummy value for extract mode rules *)
-  severity : severity; (* Currently a dummy value for extract mode rules *)
-  languages : Xlang.t;
+  (* Currently a dummy value for extract mode rules *)
+  message : string;
+  (* Currently a dummy value for extract mode rules *)
+  severity : severity;
+  (* This is the list of languages in which the root pattern makes sense. *)
+  languages : languages;
   (* OPTIONAL fields *)
   options : Rule_options.t option;
   (* deprecated? todo: parse them *)
@@ -438,7 +543,9 @@ let string_of_invalid_rule_error_kind = function
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
-  spf "invalid rule %s, %s: %s" rule_id (Tok.stringpos_of_tok pos)
+  spf "invalid rule %s, %s: %s"
+    (rule_id :> string)
+    (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
@@ -511,6 +618,18 @@ let kind_of_formula = function
 (* Converters *)
 (*****************************************************************************)
 
+let languages_of_lang (lang : Lang.t) : languages =
+  { target_selector = Some [ lang ]; target_analyzer = L (lang, []) }
+
+let languages_of_xlang (xlang : Xlang.t) : languages =
+  match xlang with
+  | LRegex
+  | LAliengrep
+  | LSpacegrep ->
+      { target_selector = None; target_analyzer = xlang }
+  | L (lang, other_langs) ->
+      { target_selector = Some (lang :: other_langs); target_analyzer = xlang }
+
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
@@ -531,12 +650,12 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   {
-    id = ("-e", fk);
+    id = (ID.of_string "-e", fk);
     mode = `Search (P xpat);
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
-    languages = xlang;
+    languages = languages_of_xlang xlang;
     options = None;
     equivalences = None;
     fix = None;

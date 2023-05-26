@@ -124,7 +124,7 @@ let rec translate_formula = function
 
 let mk_fake_rule lang formula =
   {
-    Rule.id = ("-i", fk);
+    Rule.id = (Rule.ID.of_string "-i", fk);
     mode = `Search formula;
     (* alt: could put xpat.pstr for the message *)
     message = "";
@@ -159,7 +159,9 @@ let mk_fake_rule lang formula =
 let matches_of_new_iformula (new_iform : iformula) (state : state) :
     matches_by_file Pointed_zipper.t =
   let rule_formula = translate_formula new_iform in
-  let fake_rule = mk_fake_rule state.xlang rule_formula in
+  let fake_rule =
+    mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
+  in
   let hook _s (_m : Pattern_match.t) = () in
   let xconf =
     {

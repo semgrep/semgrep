@@ -49,7 +49,9 @@ let timeout_function rule file timeout f =
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
       AST_utils.busy_with_equal := saved_busy_with_equal;
-      logger#info "timeout for rule %s on file %s" (fst rule.R.id) file;
+      logger#info "timeout for rule %s on file %s"
+        (fst rule.R.id :> string)
+        file;
       None
 
 let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
@@ -59,13 +61,13 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     spf
       "No need to perform deeper matching because target does not contain some \
        elements necessary for the rule to match '%s'"
-      rule_id
+      (rule_id :> string)
   in
   {
     path = file_and_more.file;
     reason = Irrelevant_rule;
     details;
-    rule_id = Some rule_id;
+    rule_id = Some (rule_id :> string);
   }
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
@@ -83,7 +85,7 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
     else true
   in
   if not is_relevant then
-    logger#trace "skipping rule %s for %s" (fst r.R.id) file;
+    logger#trace "skipping rule %s for %s" (fst r.R.id :> string) file;
   is_relevant
 
 (* This function separates out rules into groups of taint rules by languages,
@@ -129,7 +131,9 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
     let rule_id = fst rule.R.id in
     Rule.last_matched_rule := Some rule_id;
     let res_opt =
-      Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+      Profiling.profile_code
+        (spf "real_rule:%s" (rule_id :> string))
+        (fun () ->
           (* here we handle the rule! *)
           timeout_function rule file timeout f)
     in
