@@ -1325,6 +1325,96 @@ let parse_rules_to_run_with_extract env key value =
   }
 
 (*****************************************************************************)
+(* Parsers used by step mode as well as general rules *)
+(*****************************************************************************)
+
+let parse_search_fields env rule_dict =
+  let formula =
+    take_opt rule_dict env (fun env _ expr -> parse_formula env expr) "match"
+  in
+  match formula with
+  | Some formula -> `Search formula
+  | None -> `Search (parse_pair_old env (find_formula_old env rule_dict))
+
+let parse_taint_fields env rule_dict =
+  let parse_specs parse_spec env key x =
+    ( snd key,
+      parse_listi env key
+        (fun env -> parse_spec env (fst key ^ "list item", snd key))
+        x )
+  in
+  match Hashtbl.find_opt rule_dict.h "taint" with
+  | Some (key, value) -> parse_taint_pattern env key value
+  | __else__ ->
+      let sources, propagators_opt, sanitizers_opt, sinks =
+        ( take rule_dict env
+            (parse_specs (parse_taint_source ~is_old:true))
+            "pattern-sources",
+          take_opt rule_dict env
+            (parse_specs (parse_taint_propagator ~is_old:true))
+            "pattern-propagators",
+          take_opt rule_dict env
+            (parse_specs (parse_taint_sanitizer ~is_old:true))
+            "pattern-sanitizers",
+          take rule_dict env
+            (parse_specs (parse_taint_sink ~is_old:true))
+            "pattern-sinks" )
+      in
+      `Taint
+        {
+          sources;
+          propagators =
+            (* optlist_to_list *)
+            (match propagators_opt with
+            | None -> []
+            | Some (_, xs) -> xs);
+          sanitizers =
+            (match sanitizers_opt with
+            | None -> []
+            | Some (_, xs) -> xs);
+          sinks;
+        }
+
+(*****************************************************************************)
+(* Parsers for step mode *)
+(*****************************************************************************)
+
+let parse_step_fields env key (value : G.expr) : R.step =
+  let rd = yaml_to_dict env key value in
+  let languages = take rd env parse_string_wrap_list "languages" in
+  (* No id, so error at the steps key
+     TODO error earlier *)
+  let step_languages = parse_languages ~id:key languages in
+  let step_paths = take_opt rd env parse_paths "paths" in
+  let mode_opt = take_opt rd env parse_string_wrap "mode" in
+  let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
+  let step_mode =
+    match (mode_opt, has_taint_key) with
+    | None, false
+    | Some ("search", _), false -> (
+        match parse_search_fields env rd with
+        | `Search formula -> `Search formula
+        | _else_ -> raise Common.Impossible)
+    | _, true
+    | Some ("taint", _), _ -> (
+        match parse_taint_fields env rd with
+        | `Taint formula -> `Taint formula
+        | _else_ -> raise Common.Impossible)
+    | Some key, _ ->
+        error_at_key env key
+          (spf
+             "Unexpected value for mode, should be 'search' or 'taint', not %s"
+             (fst key))
+  in
+  { step_languages; step_paths; step_mode }
+
+let parse_steps env key (value : G.expr) : R.steps =
+  let parse_step step = parse_step_fields env key step in
+  match value.G.e with
+  | G.Container (Array, (_, xs, _)) -> Common.map parse_step xs
+  | _ -> error_at_key env key ("Expected a list for " ^ fst key)
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
@@ -1335,54 +1425,11 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
   match (mode_opt, has_taint_key) with
   | None, false
-  | Some ("search", _), false -> (
-      let formula =
-        take_opt rule_dict env
-          (fun env _ expr -> parse_formula env expr)
-          "match"
-      in
-      match formula with
-      | Some formula -> `Search formula
-      | None -> `Search (parse_pair_old env (find_formula_old env rule_dict)))
+  | Some ("search", _), false ->
+      parse_search_fields env rule_dict
   | _, true
-  | Some ("taint", _), _ -> (
-      let parse_specs parse_spec env key x =
-        ( snd key,
-          parse_listi env key
-            (fun env -> parse_spec env (fst key ^ "list item", snd key))
-            x )
-      in
-      match Hashtbl.find_opt rule_dict.h "taint" with
-      | Some (key, value) -> parse_taint_pattern env key value
-      | __else__ ->
-          let sources, propagators_opt, sanitizers_opt, sinks =
-            ( take rule_dict env
-                (parse_specs (parse_taint_source ~is_old:true))
-                "pattern-sources",
-              take_opt rule_dict env
-                (parse_specs (parse_taint_propagator ~is_old:true))
-                "pattern-propagators",
-              take_opt rule_dict env
-                (parse_specs (parse_taint_sanitizer ~is_old:true))
-                "pattern-sanitizers",
-              take rule_dict env
-                (parse_specs (parse_taint_sink ~is_old:true))
-                "pattern-sinks" )
-          in
-          `Taint
-            {
-              sources;
-              propagators =
-                (* optlist_to_list *)
-                (match propagators_opt with
-                | None -> []
-                | Some (_, xs) -> xs);
-              sanitizers =
-                (match sanitizers_opt with
-                | None -> []
-                | Some (_, xs) -> xs);
-              sinks;
-            })
+  | Some ("taint", _), _ ->
+      parse_taint_fields env rule_dict
   | Some ("extract", _), _ ->
       let formula = parse_pair_old env (find_formula_old env rule_dict) in
       let dst_lang =
@@ -1406,11 +1453,14 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
+  | Some ("step", _), _ ->
+      let steps = take rule_dict env parse_steps "steps" in
+      `Step steps
   | Some key, _ ->
       error_at_key env key
         (spf
-           "Unexpected value for mode, should be 'search', 'taint', or \
-            'extract', not %s"
+           "Unexpected value for mode, should be 'search', 'taint', 'extract', \
+            or 'step', not %s"
            (fst key))
 
 (* sanity check there are no remaining fields in rd *)
