@@ -424,7 +424,6 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
   |> map_targets config.ncores (fun (target : In.target) ->
          let file = target.path in
          logger#info "Analyzing %s" file;
-         logger#linfo (lazy (spf "Config: %s" (Runner_config.show config)));
          let res, run_time =
            Common.with_time (fun () ->
                try
