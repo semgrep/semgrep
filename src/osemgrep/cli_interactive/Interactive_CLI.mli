@@ -14,6 +14,7 @@ type conf = {
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
   profile : bool;
+  turbo : bool;
 }
 [@@deriving show]
 
