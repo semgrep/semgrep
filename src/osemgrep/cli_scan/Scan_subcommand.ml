@@ -238,7 +238,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* TODO: we should probably warn the user about rules using the same id *)
       let rules =
         Common.uniq_by
-          (fun r1 r2 -> String.equal (fst r1.Rule.id) (fst r2.Rule.id))
+          (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
           rules
       in
       if Common.null rules then Exit_code.missing_config
