@@ -56,6 +56,9 @@ end = struct
   type t = string [@@deriving show, eq]
 
   let to_string x = x
+
+  (* TODO: check the validity of the rule ID (spec?) and produce a polite
+     and informative error message describing the expected format. *)
   let of_string x = x
   let to_string_list x = x
   let of_string_list x = x
