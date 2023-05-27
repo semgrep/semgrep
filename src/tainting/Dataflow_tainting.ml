@@ -1442,8 +1442,17 @@ let check_function_call_arguments env args =
  * report the finding too (by side effect). *)
 let check_tainted_instr env instr : Taints.t * Lval_env.t =
   let check_expr env = check_tainted_expr env in
-  let check_instr = function
-    | Assign (_, e) -> check_expr env e
+  let rec check_instr = function
+    | Assign (_, e) -> (
+        match e.e with
+        (* Considering that Ruby permits function calls without parameters or
+         * parentheses, we are checking whether the identifier has a function
+         * signature specifically for Ruby. *)
+        | Fetch _
+          when env.lang =*= Lang.Ruby
+               && Option.is_some (check_function_signature env e [] []) ->
+            check_instr (Call (None, e, []))
+        | _ -> check_expr env e)
     | AssignAnon _ -> (Taints.empty, env.lval_env) (* TODO *)
     | Call (_, e, args) ->
         let args_taints, all_args_taints, lval_env =
