@@ -5,9 +5,8 @@ rules:
     options:
       generic_engine: aliengrep
     patterns:
-      - pattern-either:
-          - pattern: |
-              USER $ROOT
+      - pattern: |
+          USER $ROOT
       - pattern-inside: |
           USER $ROOT
           ...
