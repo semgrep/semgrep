@@ -50,8 +50,6 @@ module ID : sig
        "path.to.foo.bar" ~suffix:"foo.bar" -> true
        "foo.bar" ~suffix:"foo.bar" -> true
        "xfoo.bar" ~suffix:"foo.bar" -> false
-
-     TODO we may want to allow globs for rules
   *)
   val ends_with : t -> suffix:t -> bool
 end = struct
