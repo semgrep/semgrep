@@ -1187,34 +1187,41 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
 (* Parsers for taint *)
 (*****************************************************************************)
 
-let parse_taint_requires env key x =
-  let parse_error () =
-    error_at_key env.id key "Expected a Boolean (Python) expression over labels"
+let requires_expr_to_precondition env key e =
+  let invalid_requires () =
+    error_at_key env.id key
+      "Invalid `requires' expression, it must be a Python Boolean expression \
+       over labels (any valid Python identifier) using operators `not', `or' \
+       and `and'."
   in
-  let rec check e =
+  let rec expr_to_precondition e =
     match e.G.e with
-    | G.L (G.Bool (_v, _)) -> ()
+    | G.L (G.Bool (v, _)) -> R.PBool v
     | G.N (G.Id ((str, _), _)) when Metavariable.is_metavar_name str ->
         error_at_key env.id key
-          ("Metavariables cannot be used as labels: " ^ str)
-    | G.N (G.Id (_id, _)) -> ()
-    | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg _e1 ], _)) -> ()
+          ("Invalid `requires' expression, metavariables cannot be used as \
+            labels: " ^ str)
+    | G.N (G.Id ((str, _), _)) -> R.PLabel str
+    | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
+        PNot (expr_to_precondition e1)
     | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
-        List.iter check_arg args;
-        match op with
-        | G.And
-        | G.Or ->
-            ()
-        | _ -> parse_error ())
-    | ___else__ -> parse_error ()
-  and check_arg = function
-    | G.Arg e -> check e
-    | __else_ -> parse_error ()
+        match (op, args_to_precondition args) with
+        | G.And, xs -> R.PAnd xs
+        | G.Or, xs -> R.POr xs
+        | __else__ -> invalid_requires ())
+    | __else__ -> invalid_requires ()
+  and args_to_precondition args =
+    match args with
+    | [] -> []
+    | G.Arg e :: args' -> expr_to_precondition e :: args_to_precondition args'
+    | _ :: _args' -> invalid_requires ()
   in
+  expr_to_precondition e
+
+let parse_taint_requires env key x =
   let s = parse_string env key x in
   let e = parse_python_expression env key s in
-  check e;
-  e
+  requires_expr_to_precondition env key e
 
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :

@@ -1,3 +1,5 @@
+module LabelSet : Set.S with type elt = string
+
 type tainted_tokens = AST_generic.tok list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. *)
@@ -11,6 +13,12 @@ type 'a call_trace =
       (** An indirect match through a function call. *)
 [@@deriving show]
 
+type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
+[@@deriving show]
+
+type arg_pos = string * int [@@deriving show]
+type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
+
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -19,23 +27,26 @@ type source = {
         this label may have changed, for instance by being propagated to
         a different label.
       *)
+  precondition : (taint list * Rule.precondition) option;
+      (** A precondition is a Boolean formula that must hold of a list of
+          taints, which may include taint variables.
+          A taint with an attached precondition is a "hypothetical taint",
+          because it may or may not actually exist. This is spawned by
+          (as of now) sources with an attached `requires`, because in the
+          interprocedural case, this taint's existence may depend on the
+          particular taint that the taint variables are instantiated with.
+      *)
 }
 [@@deriving show]
 
-type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
-[@@deriving show]
-
-type arg_pos = string * int [@@deriving show]
-type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
-
 (** The origin of taint, where does taint comes from? *)
-type orig =
+and orig =
   | Src of source  (** An actual taint source (`pattern-sources:` match). *)
   | Arg of arg
       (** A taint variable (potential taint coming through an argument). *)
 [@@deriving show]
 
-type taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
+and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 type taint_to_sink_item = {
   taint : taint;
@@ -50,7 +61,7 @@ type taint_to_sink_item = {
 [@@deriving show]
 
 type taints_to_sink = {
-  taints_with_precondition : taint_to_sink_item list * AST_generic.expr;
+  taints_with_precondition : taint_to_sink_item list * Rule.precondition;
   sink : sink;
   merged_env : Metavariable.bindings;
 }
@@ -95,6 +106,7 @@ module Taint_set : sig
   val union : t -> t -> t
   val diff : t -> t -> t
   val map : (taint -> taint) -> t -> t
+  val concat_map : (taint -> t) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
   val of_list : taint list -> t
@@ -106,8 +118,21 @@ type taints = Taint_set.t
 
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
-val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
-val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
+
+val solve_precondition :
+  ?ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
+
+val taints_satisfy_requires : taint list -> Rule.precondition -> bool
+
+val taints_of_pms :
+  incoming:taints -> (Pattern_match.t * Rule.taint_source) list -> taints
+
+(* This function just maps, bottom-up, the preconditions in a taint.
+   Since this only acts on the children of a taint, the type remains
+   the same.
+*)
+val map_preconditions : (taint list -> taint list) -> taint -> taint
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string
+val _show_taint : taint -> string
