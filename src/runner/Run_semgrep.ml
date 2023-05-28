@@ -274,8 +274,9 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let (id, pat), cnt = biggest_offending_rule in
            logger#info
-             "most offending rule: id = %s, matches = %d, pattern = %s" id cnt
-             pat;
+             "most offending rule: id = %s, matches = %d, pattern = %s"
+             (id :> string)
+             cnt pat;
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
@@ -289,18 +290,20 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> Common.map (fun ((rule_id, _pat), n) ->
+             |> Common.map (fun (((rule_id : Rule.rule_id), _pat), n) ->
                     let details =
                       spf
                         "found %i matches for rule %s, which exceeds the \
                          maximum of %i matches."
-                        n rule_id max_match_per_file
+                        n
+                        (rule_id :> string)
+                        max_match_per_file
                     in
                     {
                       Output_from_core_t.path = file;
                       reason = Too_many_matches;
                       details;
-                      rule_id = Some rule_id;
+                      rule_id = Some (rule_id :> string);
                     })
            in
            (error, skipped))
@@ -379,7 +382,7 @@ let parse_pattern lang_pattern str =
            (R.InvalidRule
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-                "no-id",
+                Rule.ID.of_string "no-id",
                 Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
@@ -418,8 +421,8 @@ let parse_equivalences equivalences_file =
 
 let iter_targets_and_get_matches_and_exn_to_errors config f targets =
   targets
-  |> map_targets config.ncores (fun target ->
-         let file = target.In.path in
+  |> map_targets config.ncores (fun (target : In.target) ->
+         let file = target.path in
          logger#info "Analyzing %s" file;
          let res, run_time =
            Common.with_time (fun () ->
@@ -427,7 +430,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                  let get_context () =
                    match !Rule.last_matched_rule with
                    | None -> file
-                   | Some rule_id -> spf "%s on %s" rule_id file
+                   | Some rule_id -> spf "%s on %s" (rule_id :> string) file
                  in
                  Memory_limit.run_with_memory_limit ~get_context
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
@@ -459,7 +462,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    | None -> ()
                    | Some rule ->
                        logger#info "critical exn while matching ruleid %s"
-                         rule.MR.id;
+                         (rule.MR.id :> string);
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Tok.first_loc_of_file file in
                    let errors =
@@ -512,26 +515,33 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
 let rules_for_xlang (xlang : Xlang.t) (rules : Rule.t list) : Rule.t list =
   rules
   |> List.filter (fun r ->
-         match (xlang, r.R.languages) with
-         | Xlang.LRegex, Xlang.LRegex
-         | Xlang.LGeneric, Xlang.LGeneric ->
+         match (xlang, r.R.languages.target_analyzer) with
+         | LRegex, LRegex
+         | LSpacegrep, LSpacegrep
+         | LAliengrep, LAliengrep ->
              true
-         | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
-         | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
+         | ( L
+               ( x,
+                 _empty
+                 (* FIXME: why should '_empty' be empty? Use [] and 'assert' *)
+               ),
+             L (y, ys) ) ->
+             List.mem x (y :: ys)
+         | (LRegex | LSpacegrep | LAliengrep | L _), _ -> false)
 
 (* Creates a table mapping rule id indicies to rules. In the case that a rule
  * id is present and there is no correpsonding rule, that rule is simply
  * omitted from the final table.
  * TODO: This is needed because?
  *)
-let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
+let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
     (int, Rule.t) Hashtbl.t =
   let rule_table =
     rules |> Common.map (fun r -> (fst r.R.id, r)) |> Common.hash_of_list
   in
   let id_pairs =
     list_of_rule_ids
-    |> Common.mapi (fun i x -> (i, x))
+    |> Common.mapi (fun i x -> (i, Rule.ID.of_string x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
@@ -546,17 +556,22 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : Rule.rule_id list) :
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
     (file : Common.filename) : Xtarget.t =
   let lazy_ast_and_errors =
-    match xlang with
-    | Xlang.L (lang, other_langs) ->
-        (* xlang from the language field in -target, which should be unique *)
-        assert (other_langs =*= []);
-        lazy
-          (Parse_with_caching.parse_and_resolve_name
-             ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version
-             lang (Fpath.v file))
-    | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
+    lazy
+      (let lang =
+         (* ew. We fail tests if this gets pulled out of the lazy block. *)
+         match xlang with
+         | L (lang, []) -> lang
+         | L (_lang, _ :: _) ->
+             (* xlang from the language field in -target should be unique *)
+             assert false
+         | _ ->
+             failwith
+               "requesting generic AST for an unspecified target language"
+       in
+       Parse_with_caching.parse_and_resolve_name
+         ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
+         (Fpath.v file))
   in
-
   {
     Xtarget.file;
     xlang;
@@ -590,7 +605,8 @@ let targets_of_config (config : Runner_config.t)
       let lang_opt =
         match xlang with
         | Xlang.LRegex
-        | Xlang.LGeneric ->
+        | Xlang.LSpacegrep
+        | Xlang.LAliengrep ->
             None (* we will get all the files *)
         | Xlang.L (lang, []) -> Some lang
         (* config.lang comes from Xlang.of_string which returns just a lang *)
@@ -605,11 +621,11 @@ let targets_of_config (config : Runner_config.t)
         |> Common.map (fun file ->
                {
                  In.path = Fpath.to_string file;
-                 language = Xlang.to_string xlang;
+                 language = xlang;
                  rule_nums = Common.mapi (fun i _ -> i) rule_ids;
                })
       in
-      ({ target_mappings; rule_ids }, skipped)
+      ({ target_mappings; rule_ids = (rule_ids :> string list) }, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | Some target_source, roots, lang_opt ->
@@ -646,9 +662,9 @@ let extracted_targets_of_config (config : Runner_config.t)
       Hashtbl.t =
   let extractors =
     Common.map_filter
-      (fun r ->
-        match r.Rule.mode with
-        | `Extract _ as e -> Some { r with mode = e }
+      (fun (r : Rule.t) ->
+        match r.mode with
+        | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
         | `Search _
         | `Taint _
         | `Step _ ->
@@ -668,17 +684,18 @@ let extracted_targets_of_config (config : Runner_config.t)
   in
   let extracted_ranges =
     basic_targets
-    |> List.concat_map (fun t ->
+    |> List.concat_map (fun (t : In.target) ->
            (* TODO: addt'l filtering required for rule_ids when targets are
               passed explicitly? *)
-           let file = t.In.path in
-           let xlang = Xlang.of_string t.In.language in
+           let file = t.path in
+           let xlang = t.language in
            let xtarget = xtarget_of_file config xlang file in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
-               ~timeout_threshold:config.timeout_threshold extractors xtarget
-               all_rules
+               ~timeout_threshold:config.timeout_threshold
+               ~all_rules:(all_rules :> Rule.t list)
+               extractors xtarget
            in
            (* Print number of extra targets so Python knows *)
            (match config.output_format with
@@ -736,9 +753,10 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     (List.length skipped);
   let file_results =
     all_targets
-    |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
-           let file = target.In.path in
-           let xlang = Xlang.of_string target.In.language in
+    |> iter_targets_and_get_matches_and_exn_to_errors config
+         (fun (target : In.target) ->
+           let file = target.path in
+           let xlang = target.language in
            let rules =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
@@ -764,7 +782,6 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                     | Some paths ->
                         Filter_target.filter_paths paths (Fpath.v file))
            in
-
            let xtarget = xtarget_of_file config xlang file in
            let match_hook str match_ =
              if config.output_format =*= Text then
@@ -922,7 +939,7 @@ let semgrep_with_rules_and_formatted_output config =
 
 let minirule_of_pattern lang pattern_string pattern =
   {
-    MR.id = "-e/-f";
+    MR.id = Rule.ID.of_string "-e/-f";
     pattern_string;
     pattern;
     inside = false;

@@ -60,7 +60,8 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
     in
     Fmt.pf ppf "@.";
     let xlang_label = function
-      | Xlang.LGeneric
+      | Xlang.LSpacegrep
+      | Xlang.LAliengrep
       | Xlang.LRegex ->
           "<multilang>"
       | Xlang.L (l, _) -> Lang.to_lowercase_alnum l

@@ -33,6 +33,7 @@ type match_format =
   | Emacs
   (* ex: tests/misc/foo4.php:3: foo(1,2) *)
   | OneLine
+[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)

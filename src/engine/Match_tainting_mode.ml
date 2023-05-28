@@ -104,7 +104,13 @@ module DataflowY = Dataflow_core.Make (struct
 end)
 
 let convert_rule_id (id, _tok) =
-  { PM.id; message = ""; pattern_string = id; fix = None; languages = [] }
+  {
+    PM.id;
+    message = "";
+    pattern_string = (id :> string);
+    fix = None;
+    languages = [];
+  }
 
 let option_bind_list opt f =
   match opt with
@@ -439,7 +445,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   let xtarget =
     {
       Xtarget.file;
-      xlang = rule.languages;
+      xlang = rule.languages.target_analyzer;
       lazy_content = lazy (Common.read_file file);
       lazy_ast_and_errors;
     }
@@ -695,7 +701,8 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let lang =
     match xlang with
     | L (lang, _) -> lang
-    | LGeneric
+    | LSpacegrep
+    | LAliengrep
     | LRegex ->
         failwith "taint-mode and generic/regex matching are incompatible"
   in
@@ -744,7 +751,9 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     |> Common.before_return (fun v ->
            v
            |> List.iter (fun (m : Pattern_match.t) ->
-                  let str = Common.spf "with rule %s" m.rule_id.id in
+                  let str =
+                    Common.spf "with rule %s" (m.rule_id.id :> string)
+                  in
                   match_hook str m))
     |> Common.map (fun m ->
            { m with PM.rule_id = convert_rule_id rule.Rule.id })

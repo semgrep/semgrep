@@ -38,6 +38,7 @@ type xpattern_kind =
    *)
   | Sem of Pattern.t Lazy.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
+  | Aliengrep of Aliengrep.Pat_compile.t
   | Regexp of regexp_string
       (** NOTE "Regexp":
       * We used to keep the compiled regexp of type `Regexp_engine.t', but
