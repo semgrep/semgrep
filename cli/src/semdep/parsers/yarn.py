@@ -40,17 +40,18 @@ A = TypeVar("A")
 
 # The initial line of a yarn version 1 dependency, lists the constraints that lead to this package
 # Examples:
-# "@ampproject/remapping@^2.0.0"
-# bad-lib@0.0.8
+# "@ampproject/remapping@^2.0.0":
+# bad-lib@0.0.8:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-source1 = regex("^\"?@?([^@:]*)@?(.*)?\"?:", flags=0, group=(1, 2))
+part1 = regex("^\"?@?([^@:]*)", flags=0, group=1)
+part2 = string("@").optional() >> regex("([^:,\"]*:?(?!\n))", flags=0, group=1)
+source1 = pair(part1, part2)
 
 # Examples:
 # "@ampproject/remapping@^2.0.0", "@ampproject/remapping@^3.1.0"
 # bad-lib@0.0.8, bad-lib@^0.0.4
 multi_source1 = source1.sep_by(string(", "))
-
 
 # A key value pair. These can be a name followed by a nested list, but the only data we care about is in outermost list
 # This is why we produce None if the line is preceeded by more than 2 spaces, or if it ends in a colon
