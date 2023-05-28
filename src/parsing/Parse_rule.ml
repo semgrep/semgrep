@@ -1197,6 +1197,10 @@ let requires_expr_to_precondition env key e =
   let rec expr_to_precondition e =
     match e.G.e with
     | G.L (G.Bool (v, _)) -> R.PBool v
+    | G.N (G.Id ((str, _), _)) when Metavariable.is_metavar_name str ->
+        error_at_key env.id key
+          ("Invalid `requires' expression, metavariables cannot be used as \
+            labels: " ^ str)
     | G.N (G.Id ((str, _), _)) -> R.PLabel str
     | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
         PNot (expr_to_precondition e1)
