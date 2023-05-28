@@ -41,27 +41,18 @@ A = TypeVar("A")
 
 # The initial line of a yarn version 1 dependency, lists the constraints that lead to this package
 # Examples:
-# "@ampproject/remapping@^2.0.0"
-# bad-lib@0.0.8
+# "@ampproject/remapping@^2.0.0":
+# bad-lib@0.0.8:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
-
-    return pair(
-        string("@").optional("") + upto("@", consume_other=True),
-        # If the source is quoted, then we know it ends at a quote
-        # If it's not, then it must end at either a colon, or a comma
-        # The colon is the end of the line (see the yarn_dep1 example)
-        # The comma indicates we have a list of sources (see the multi_source1 example)
-        upto(*(['"'] + ([":", ","] if not quoted else []))),
-    )
-
+part1 = regex("^\"?@?([^@:]*)", flags=0, group=1)
+part2 = string("@").optional() >> regex("([^:,\"]*:?(?!\n))", flags=0, group=1)
+source1 = pair(part1, part2)
 
 # Examples:
 # "@ampproject/remapping@^2.0.0", "@ampproject/remapping@^3.1.0"
 # bad-lib@0.0.8, bad-lib@^0.0.4
-multi_source1 = (quoted(source1(True)) | source1(False)).sep_by(string(", "))
-
+multi_source1 = source1.sep_by(string(", "))
 
 # A key value pair. These can be a name followed by a nested list, but the only data we care about is in outermost list
 # This is why we produce None if the line is preceeded by more than 2 spaces, or if it ends in a colon
