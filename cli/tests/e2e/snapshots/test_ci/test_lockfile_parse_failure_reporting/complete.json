@@ -8,6 +8,14 @@
       "line": 2,
       "col": 1,
       "text": "invalid"
+    },
+    {
+      "path": "yarn.lock",
+      "parser": "yarn_1",
+      "reason": "expected one of ['\\n', ':\\n', 'EOF', '^\"?@?([^@:]*)']",
+      "line": 5,
+      "col": 1,
+      "text": "lodash@4.17.20:"
     }
   ],
   "stats": {
