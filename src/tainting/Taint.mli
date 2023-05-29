@@ -100,6 +100,7 @@ module Taint_set : sig
 
   val empty : t
   val is_empty : t -> bool
+  val cardinal : t -> int
   val equal : t -> t -> bool
   val singleton : taint -> t
   val add : taint -> t -> t

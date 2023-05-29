@@ -1,0 +1,2 @@
+Set limits to the amount of taint that is tracked by Semgrep to prevent perf
+issues on very large fiels and some other rare cases.

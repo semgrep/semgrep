@@ -277,6 +277,7 @@ module Taint_set = struct
 
   let empty = Taint_map.empty
   let is_empty set = Taint_map.is_empty set
+  let cardinal set = Taint_map.cardinal set
 
   let equal set1 set2 =
     let eq t1 t2 = compare_taint t1 t2 = 0 in
