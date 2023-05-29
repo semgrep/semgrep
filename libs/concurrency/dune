@@ -1,0 +1,13 @@
+(library
+ (public_name concurrency)
+ (wrapped false)
+ (libraries
+   threads
+ )
+ (preprocess
+   (pps
+     ppx_deriving.show
+     profiling.ppx
+   )
+ )
+)
