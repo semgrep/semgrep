@@ -6,6 +6,7 @@
   (libraries
     cmdliner
     commons
+    concurrency
 
     semgrep.parsing
     semgrep.matching
