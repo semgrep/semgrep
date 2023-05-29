@@ -28,7 +28,7 @@ class Language(str):
 @frozen
 class LanguageDefinition:
     """
-    Mirrors schema of lang.json (see lang/README.md) for each language
+    Mirrors schema of lang.json (see semgrep_interfaces/README.md) for each language
     """
 
     id: Language
@@ -58,7 +58,7 @@ class LanguageDefinition:
 
 class _LanguageData:
     def __init__(self) -> None:
-        with (Path(__file__).parent / "lang" / "lang.json").open() as fd:
+        with (Path(__file__).parent / "semgrep_interfaces" / "lang.json").open() as fd:
             data = json.load(fd)
 
         self.definition_by_id: Mapping[Language, LanguageDefinition] = {
