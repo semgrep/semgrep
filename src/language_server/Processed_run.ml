@@ -20,29 +20,23 @@ type t = Semgrep_output_v1_t.core_match * Rule.rule
     in lines changed since last commit *)
 let filter_dirty_lines files matches =
   let dirty_files = Hashtbl.create 10 in
-  let%lwt () =
-    Lwt_list.iter_s
-      (fun f ->
-        let%lwt dirty_lines = Git_wrapper_lwt.dirty_lines_of_file f in
-        Hashtbl.add dirty_files f dirty_lines;
-        Lwt.return ())
-      files
-  in
-  Lwt_list.filter_p
-    (fun ((m, _) : t) ->
-      let dirty_lines = Hashtbl.find_opt dirty_files m.location.path in
-      let line = m.location.start.line in
-      let res =
-        match dirty_lines with
-        | None -> false
-        | Some [||] -> true (* Untracked files *)
-        | Some dirty_lines ->
-            Array.exists
-              (fun (start, end_) -> start <= line && line <= end_)
-              dirty_lines
-      in
-      Lwt.return res)
-    matches
+  files
+  |> List.iter (fun f ->
+         let dirty_lines = Git_wrapper.dirty_lines_of_file f in
+         Hashtbl.add dirty_files f dirty_lines);
+  matches
+  |> List.filter (fun ((m, _) : t) ->
+         let dirty_lines =
+           Hashtbl.find_opt dirty_files (Fpath.v m.location.path)
+         in
+         let line = m.location.start.line in
+         match dirty_lines with
+         | None -> false
+         | Some [||] -> true (* Untracked files *)
+         | Some dirty_lines ->
+             Array.exists
+               (fun (start, end_) -> start <= line && line <= end_)
+               dirty_lines)
 
 (** Get the first and previous line of a match *)
 let get_match_lines (loc : Semgrep_output_v1_t.location) =
@@ -107,7 +101,7 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
 (* Entry point *)
 (*************************************************************************)
 
-let of_matches ?(only_git_dirty = true) matches hrules files =
+let of_matches ?(only_git_dirty = true) matches (hrules : Rule.hrules) files =
   let matches, _ =
     Common.partition_either
       (JSON_report.match_to_match (Some Autofix.render_fix))
@@ -117,7 +111,7 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
   let matches =
     Common.map
       (fun (m : Semgrep_output_v1_t.core_match) ->
-        let rule = Hashtbl.find_opt hrules m.rule_id in
+        let rule = Hashtbl.find_opt hrules (Rule.ID.of_string m.rule_id) in
         let rule =
           match rule with
           | Some rule -> rule
@@ -131,11 +125,11 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
         (m, rule))
       matches
   in
-  let%lwt git_repo = Git_wrapper_lwt.is_git_repo () in
+  let git_repo = Git_wrapper.is_git_repo () in
   (* Filter dirty lines *)
-  let%lwt matches =
+  let matches =
     if only_git_dirty && git_repo then filter_dirty_lines files matches
-    else Lwt.return matches
+    else matches
   in
   (* Filter misc severities *)
   let matches =
@@ -150,4 +144,4 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
       (fun ((m, _) : t) -> not (nosem_ignored m.location m.rule_id))
       matches
   in
-  Lwt.return (matches, files)
+  (matches, files)

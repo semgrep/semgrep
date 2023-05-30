@@ -1,0 +1,17 @@
+; see also libs/jsonnet/
+(library
+  (name osemgrep_jsonnet)
+  (wrapped false)
+  (libraries
+     ojsonnet
+     ast_generic
+  )
+ (preprocess
+   (pps
+     profiling.ppx
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
+)

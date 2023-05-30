@@ -53,6 +53,10 @@ depends: [
   "js_of_ocaml-ppx" {= "5.1.1"}
   "ctypes_stubs_js"
   "integers_stubs_js"
+  "emile"
+  "bos"
+  "digestif" {>= "1.0.0"}
+  "notty"
   "odoc" {with-doc}
 ]
 build: [

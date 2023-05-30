@@ -75,7 +75,7 @@ let emit_extra tok k = fun state lexbuf ->
 
 (* helper for transitioning between states *)
 let beg_choose want yes no = fun state lexbuf ->
-  if state.S.state == want
+  if phys_equal state.S.state want
   then yes state lexbuf
   else no state lexbuf
 
@@ -145,7 +145,7 @@ let push_back str lexbuf =
       Bytes.of_string (Bytes.to_string pre_str ^ str ^ Bytes.to_string post_str);
     lexbuf.Lexing.lex_buffer_len <- lexbuf.Lexing.lex_buffer_len + (String.length str);
     lexbuf.Lexing.lex_curr_p <- update_pos str lexbuf.Lexing.lex_curr_p;
-    assert ((Bytes.length lexbuf.Lexing.lex_buffer) == lexbuf.Lexing.lex_buffer_len)
+    assert ((Bytes.length lexbuf.Lexing.lex_buffer) =|= lexbuf.Lexing.lex_buffer_len)
 
 (* ---------------------------------------------------------------------- *)
 (* Misc *)
@@ -632,7 +632,7 @@ and percent state = parse
          else interp_string_lexer d
        in
          if modifier = "r"
-         then regexp_delim ((==)d) ((==)d) (Buffer.create 31) state lexbuf
+         then regexp_delim (phys_equal d) (phys_equal d) (Buffer.create 31) state lexbuf
          else emit_extra (T_USER_BEG(modifier, (tk lexbuf))) f state lexbuf
       }
 
@@ -649,7 +649,7 @@ and percent state = parse
            then (incr level; false)
            else false
        in
-       let chk d = d == d_start || d == d_end in
+       let chk d = phys_equal d d_start || phys_equal d d_end in
        let f =
          if modifier_is_single modifier
          then non_interp_string d_end (Buffer.create 31) (tk lexbuf)
@@ -800,7 +800,7 @@ and non_interp_string delim buf t state = parse
       { Buffer.add_string buf (str lexbuf);
         non_interp_string delim buf (add_to_tok lexbuf t) state lexbuf }
   | _ as c
-      { if c == delim
+      { if phys_equal c delim
         then T_SINGLE_STRING(Buffer.contents buf, add_to_tok lexbuf t)
         else begin
           Buffer.add_char buf c;
@@ -824,7 +824,7 @@ and tick_string t state = parse
 
 and interp_string_lexer delim state = parse
   | e { let chk x =
-          x == delim
+          phys_equal x delim
         in
         let t  = tk lexbuf in
         interp_lexer fail_eof chk chk (Buffer.create 31) t state lexbuf
@@ -884,7 +884,7 @@ and interp_code start cont state = parse
                incr level;
                tok
            | T_RBRACE _ as tok ->
-               if !level == 0 then begin
+               if phys_equal !level 0 then begin
                  pop_lexer state; (* abort k *)
                  cont state lexbuf
                end else begin
@@ -906,7 +906,7 @@ and regexp state = parse
   | e { regexp_string (Buffer.create 31) state lexbuf }
 
 and regexp_string buf state = parse
-  | e { regexp_delim ((==)'/') ((==)'/') buf state lexbuf }
+  | e { regexp_delim (phys_equal '/') (phys_equal '/') buf state lexbuf }
 
 and regexp_delim delim_f escape_f buf state = parse
   | e { let k state lexbuf =

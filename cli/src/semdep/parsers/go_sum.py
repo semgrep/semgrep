@@ -10,6 +10,7 @@ from semdep.external.parsy import any_char
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -43,7 +44,7 @@ go_sum = dep.sep_by(string("\n")) << (string("\n") | string("\r")).optional()
 def parse_go_sum(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, go_sum)
+    deps = safe_path_parse(lockfile_path, go_sum, ParserName.go_sum)
     if not deps:
         return []
     output = []

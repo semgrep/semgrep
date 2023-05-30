@@ -140,7 +140,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "Use `.get()` method to avoid a KeyNotFound error"
+                "text": "Semgrep Finding: rules.autofix.use-dict-get"
               }
             }
           ],

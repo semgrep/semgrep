@@ -38,7 +38,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens2 ?(init_state = Lexer_php.INITIAL) input_source =
+let tokens ?(init_state = Lexer_php.INITIAL) input_source =
   Lexer_php.reset ();
   Lexer_php._mode_stack := [ init_state ];
 
@@ -70,9 +70,7 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) input_source =
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
     TH.visitor_info_of_tok TH.is_eof
-
-let tokens ?init_state a =
-  Profiling.profile_code "Parse_php.tokens" (fun () -> tokens2 ?init_state a)
+  [@@profiling]
 
 let is_comment v =
   TH.is_comment v
@@ -87,7 +85,7 @@ let is_comment v =
 (* Main entry point *)
 (*****************************************************************************)
 
-let parse2 ?(pp = !Flag_php.pp_default) filename =
+let parse ?(pp = !Flag_php.pp_default) filename =
   let orig_filename = filename in
   let filename =
     (* note that now that pfff support XHP constructs directly,
@@ -191,9 +189,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
         tokens = info_item;
         stat;
       }
-
-let parse ?pp a =
-  Profiling.profile_code "Parse_php.parse" (fun () -> parse2 ?pp a)
+  [@@profiling]
 
 let parse_program ?pp file =
   let res = parse ?pp file in

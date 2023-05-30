@@ -1,0 +1,7 @@
+rules:
+- id: python-typing-osemgrep
+  pattern: from typing import $X
+  languages: [ python ]
+  fix: ""
+  message: found one
+  severity: ERROR

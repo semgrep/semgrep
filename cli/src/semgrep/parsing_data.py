@@ -31,7 +31,7 @@ class ParsingData:
         parsing statistics
         """
         for task in plan.target_mappings:
-            if task.language in ["regex", "generic"]:
+            if not task.language.definition.is_target_language:
                 continue
             self._file_info[task.path] = (task.language, True)
             entry = self._parse_errors_by_lang.get(
@@ -51,7 +51,7 @@ class ParsingData:
         given error. The file the error originated from should have been
         registered from the original plan with `add_targets`.
         """
-        path = err.location.path
+        path = err.location.path.value
         try:
             (lang, no_error_yet) = self._file_info[path]
         except KeyError:

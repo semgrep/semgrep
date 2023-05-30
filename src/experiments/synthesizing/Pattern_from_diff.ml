@@ -97,7 +97,7 @@ module Set = Set_
 (* Generate pattern *)
 (*****************************************************************************)
 
-let range_of_ast ast = R.range_of_tokens (Visitor_AST.ii_of_any ast)
+let range_of_ast ast = R.range_of_tokens (AST_generic_helpers.ii_of_any ast)
 
 let pattern_from_diff f =
   let file = f.In.filename in

@@ -2,11 +2,10 @@ open Lsp
 open Types
 open Testutil
 module Out = Output_from_core_t
+module In = Input_to_core_t
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
     for the python side as testing there is easier *)
-
-let lwt_test test () = Lwt_main.run (test ())
 
 let mock_session () =
   let mock_config = Runner_config.default in
@@ -18,10 +17,10 @@ let set_session_targets (session : Session.t) files =
   let target_mappings =
     Common.map
       (fun file ->
-        { Input_to_core_t.path = file; language = "python"; rule_nums = [] })
+        { In.path = file; language = L (Python, []); rule_nums = [] })
       files
   in
-  let targets : Input_to_core_t.targets = { target_mappings; rule_ids = [] } in
+  let targets : In.targets = { target_mappings; rule_ids = [] } in
   let target_source = Some (Runner_config.Targets targets) in
   let config = { session.config with target_source } in
   { session with config }
@@ -36,7 +35,7 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (lazy pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
-  let rule = { rule with id = ("print", fk) } in
+  let rule = { rule with id = (Rule.ID.of_string "print", fk) } in
   let rule_id =
     {
       Pattern_match.id = fst rule.id;
@@ -106,14 +105,11 @@ let session_targets () =
     let session = mock_session () in
     let session = { session with only_git_dirty; root } in
     let session = set_session_targets session files in
-    let%lwt { target_mappings; _ } = Session.targets session in
-    let targets =
-      Common.map (fun target -> target.Input_to_core_t.path) target_mappings
-    in
+    let { In.target_mappings; _ } = Session.targets session in
+    let targets = Common.map (fun target -> target.In.path) target_mappings in
     let targets = Common.sort targets in
     let expected = Common.sort expected in
-    Alcotest.(check (list string)) "targets" expected targets;
-    Lwt.return_unit
+    Alcotest.(check (list string)) "targets" expected targets
   in
   let test_no_git () =
     let workspace = mock_workspace () in
@@ -150,10 +146,10 @@ let session_targets () =
   in
   let tests =
     [
-      ("Test no git", lwt_test test_no_git);
-      ("Test git", lwt_test test_git);
-      ("Test git with dirty files", lwt_test test_git_dirty);
-      ("Test only git dirty with no git", lwt_test test_git_dirty_no_git);
+      ("Test no git", test_no_git);
+      ("Test git", test_git);
+      ("Test git with dirty files", test_git_dirty);
+      ("Test only git dirty with no git", test_git_dirty_no_git);
     ]
   in
   pack_tests "Session Targets" tests
@@ -162,16 +158,17 @@ let processed_run () =
   let test_processed_run files expected only_git_dirty =
     let matches, rules = mock_run_results files in
     let hrules = Rule.hrules_of_rules rules in
-    let%lwt matches, _ =
-      Processed_run.of_matches ~only_git_dirty matches hrules files
+    let matches, _ =
+      Processed_run.of_matches ~only_git_dirty matches hrules
+        (File.Path.of_strings files)
     in
     let final_files =
-      Common.map (fun ((m, _) : Processed_run.t) -> m.Out.location.path) matches
+      matches
+      |> Common.map (fun ((m, _) : Processed_run.t) -> m.Out.location.path)
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in
-    Alcotest.(check (list string)) "processed run" expected final_files;
-    Lwt.return_unit
+    Alcotest.(check (list string)) "processed run" expected final_files
   in
   let test_no_git () =
     let workspace = mock_workspace () in
@@ -237,11 +234,11 @@ let processed_run () =
   in
   let tests =
     [
-      ("Test no git", lwt_test test_no_git);
-      ("Test git", lwt_test test_git);
-      ("Test git with dirty files", lwt_test test_git_dirty_lines);
-      ("Test only git dirty with no git", lwt_test test_git_dirty_no_git);
-      ("Test nosem", lwt_test test_nosem);
+      ("Test no git", test_no_git);
+      ("Test git", test_git);
+      ("Test git with dirty files", test_git_dirty_lines);
+      ("Test only git dirty with no git", test_git_dirty_no_git);
+      ("Test nosem", test_nosem);
     ]
   in
   pack_tests "Processed Run" tests

@@ -99,8 +99,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
-        | { token = Tok.OriginTok { str; _ }; _ } ->
-            spf "`%s` was unexpected" str
+        | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
       Some (mk_error_tok tok msg Out.ParseError)

@@ -3,28 +3,88 @@
   "environment": {
     "ci": null,
     "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
+    "integrationName": "funkyintegration",
     "isAuthenticated": false,
     "projectHash": null,
+    "rulesHash": "43af0cc99ad4b3620194d238a7875cc37f8d8eaa1800fd395c15a5ee21967ac3",
     "version": "x.x.x"
   },
   "errors": {
-    "returnCode": 2
+    "errors": [],
+    "returnCode": 0
   },
   "event_id": "00000000-0000-0000-0000-000000000000",
-  "parse_rate": {},
-  "performance": {},
+  "extension": {},
+  "parse_rate": {
+    "python": {
+      "bytes_parsed": 6,
+      "num_bytes": 6,
+      "num_targets": 1,
+      "targets_parsed": 1
+    }
+  },
+  "performance": {
+    "fileStats": [
+      {
+        "matchTime": 0.0,
+        "numTimesScanned": 0,
+        "parseTime": 0.0,
+        "runTime": 0.0,
+        "size": 6
+      }
+    ],
+    "maxMemoryBytes": null,
+    "numRules": 4,
+    "numTargets": 1,
+    "profilingTimes": {
+      "config_time": 0.0,
+      "core_time": 0.0,
+      "ignores_time": 0.0,
+      "total_time": 0.0
+    },
+    "ruleStats": [
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "5c6d327ecdc0f6028e2d9a7e79c0ca03887a91189fbfd871286edad46e5d2516"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731"
+      }
+    ],
+    "totalBytesScanned": 6
+  },
   "sent_at": "2017-03-03T00:00:00+09:00",
   "started_at": "2017-03-03T00:00:00+09:00",
   "value": {
-    "engineRequested": "PRO_INTERFILE",
+    "engineRequested": "OSS",
     "features": [
       "cli-flag/config",
       "cli-flag/metrics",
-      "cli-flag/requested_engine",
       "cli-flag/targets",
       "config/local",
       "language/python",
       "subcommand/scan"
-    ]
+    ],
+    "numFindings": 1,
+    "numIgnored": 0,
+    "ruleHashesWithFindings": {
+      "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8": 0,
+      "5c6d327ecdc0f6028e2d9a7e79c0ca03887a91189fbfd871286edad46e5d2516": 1,
+      "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089": 0,
+      "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731": 0
+    }
   }
 }

@@ -59,6 +59,32 @@ jobs:
           #
           opam exec -- make report-perf-matching
 
+  test-osemgrep:
+    name: test osemgrep
+    runs-on: ubuntu-22.04
+    container: returntocorp/ocaml:alpine-2023-04-03
+    env:
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+      - name: Build semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
+      - name: Install osemgrep
+        run: |
+          eval $(opam env)
+          make core-install
+          cp bin/semgrep-core /usr/bin/ # needed for pipenv install to work below
+      - name: Install Python dependencies
+        working-directory: cli
+        run: pipenv install --dev
+      - name: Run pytest for osemgrep known passing tests
+        working-directory: cli
+        run: |
+          make osempass
+
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-22.04
@@ -74,7 +100,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -166,7 +192,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -209,7 +235,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
@@ -243,7 +269,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
@@ -321,6 +347,7 @@ jobs:
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository # only returntocorp has the necessary credentials to access semgrep pro
     secrets: inherit
     with:
       artifact-name: image-test

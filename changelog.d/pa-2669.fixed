@@ -1,3 +1,0 @@
-CLI: Fixed a bug where Git projects with URLs with subgroups would not parse correctly,
-and produce non-clickable links in Semgrep App. These are such as:
-https://gitlab.com/example/group2/group3/test-case.git

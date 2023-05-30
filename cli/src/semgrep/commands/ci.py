@@ -168,6 +168,7 @@ def ci(
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -366,6 +367,7 @@ def ci(
             output_extra,
             shown_severities,
             dependencies,
+            dependency_parser_errors,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -375,6 +377,7 @@ def ci(
             lang=None,
             configs=config,
             no_rewrite_rule_ids=(not rewrite_rule_ids),
+            dump_command_for_core=dump_command_for_core,
             jobs=jobs,
             include=include,
             exclude=exclude,
@@ -474,9 +477,12 @@ def ci(
     logger.info(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
+
+    app_block_override = False
+    reason = ""
     if scan_handler:
         logger.info("  Uploading findings.")
-        scan_handler.report_findings(
+        app_block_override, reason = scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
             filtered_rules,
@@ -487,9 +493,10 @@ def ci(
             total_time,
             metadata.commit_datetime,
             dependencies,
+            dependency_parser_errors,
             engine_type,
         )
-        logger.info("  View results in Semgrep App:")
+        logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )
@@ -511,6 +518,10 @@ def ci(
     else:
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
+
+    if app_block_override and not audit_mode:
+        logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
+        exit_code = 1
 
     if enable_version_check:
         from semgrep.app.version import version_check

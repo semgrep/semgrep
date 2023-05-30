@@ -336,6 +336,7 @@ class FileTargetingLog:
 
         return output
 
+    # TODO: return directly a out.CliSkippedTarget
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
         # coupling: if you add a reason here,
         # add it also to semgrep_output_v1.atd.
@@ -678,7 +679,9 @@ class TargetManager:
             return FilteredFiles(candidates)
 
         kept, removed = partition(
-            candidates, lambda path: os.path.getsize(path) <= max_target_bytes
+            candidates,
+            lambda path: os.path.isfile(path)
+            and os.path.getsize(path) <= max_target_bytes,
         )
 
         return FilteredFiles(frozenset(kept), frozenset(removed))

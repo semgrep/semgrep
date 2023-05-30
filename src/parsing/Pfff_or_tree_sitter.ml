@@ -65,7 +65,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   }
 
 let exn_of_loc loc =
-  let info = { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo } in
+  let info = Tok.OriginTok loc in
   Parsing_error.Syntax_error info |> Exception.trace
 
 (* used by Parse_jsonnet *)
@@ -102,7 +102,8 @@ let extract_pattern_from_tree_sitter_result
         res.errors
         |> List.iter (fun err ->
                pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
-      failwith "error parsing the pattern"
+      (* to be backward compatible with what we do in PfffPat *)
+      raise Parsing.Parse_error
 
 (*****************************************************************************)
 (* Run target parsers *)

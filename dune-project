@@ -85,8 +85,8 @@ a few other projects developed at r2c.
   (depends
     (ocaml (>= "4.12.0"))
     (dune (>= "3.2.0" ))
-    (alcotest (>= "1.5.0"))
     (ANSITerminal (>= "0.8.4"))
+    (alcotest (>= "1.5.0"))
     (cmdliner (>= "1.1.1" ))
     (logs (>= "0.7.0" ))
     (easy_logging (>= "0.8.1" ))
@@ -98,9 +98,16 @@ a few other projects developed at r2c.
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
     (parmap (>= "1.2.4"))
+    (digestif (>= "1.0.0"))
+    uri
+    bos
   )
 )
 
+(package (name concurrency)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package (name gitignore)
   (synopsis "XXX")
   (description "XXX")
@@ -109,7 +116,7 @@ a few other projects developed at r2c.
   (synopsis "XXX")
   (description "XXX")
 )
-(package (name globbing)
+(package (name glob)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -163,6 +170,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name parser_bash)
+  (synopsis "XXX")
+  (description "XXX")
+)
+(package (name parser_cairo)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -282,7 +293,7 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
-(package (name ppath)
+(package (name paths)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -400,6 +411,10 @@ For more information see https://semsgrep.dev
     (js_of_ocaml-ppx (= 5.1.1))
     ctypes_stubs_js
     integers_stubs_js
+    emile
+    bos
+    (digestif (>= 1.0.0))
+    notty
   )
 )
 

@@ -184,7 +184,7 @@ and map_ident_or_op (env : env) = function
       (id, None)
   | IdConverter (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      let ii = Visitor_AST.ii_of_any (G.T v2) in
+      let ii = AST_generic_helpers.ii_of_any (G.T v2) in
       let s = v1 :: ii |> Common.map Tok.content_of_tok |> String.concat "" in
       let t = Tok.combine_toks v1 ii in
       let id = (s, t) in

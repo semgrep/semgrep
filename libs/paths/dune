@@ -1,0 +1,17 @@
+; Library containing different way to process paths
+(library
+  (public_name paths)
+  (name paths)
+  (wrapped false)
+  (libraries
+     fpath
+
+     commons
+     profiling
+  )
+  (preprocess (pps
+     ppx_deriving.show
+     ppx_deriving.eq
+     profiling.ppx
+))
+)

@@ -1,2 +1,0 @@
-Pro: `semgrep --pro` still requires a single target, but this target no longer
-needs to be a directory, it can be an individual file too.

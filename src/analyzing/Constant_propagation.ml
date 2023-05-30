@@ -16,7 +16,6 @@
 open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -117,6 +116,34 @@ let rec lvars_in_lhs expr =
       [ (id, sid) ]
   | Container ((Tuple | Array), (_, es, _)) -> List.concat_map lvars_in_lhs es
   | __else__ -> []
+
+let no_cycles_in_sym_prop sid exp =
+  let for_all_sid : (G.sid -> bool) -> G.any -> bool =
+    (* Check that all sid's satisfy a given condition. We use refs so that
+     * we can have a single visitor for all calls, given that the old
+     * `mk_visitor` was kind of expensive, and constructing a visitor object
+     * may be as well. *)
+    let ff = ref (fun _ -> assert false) in
+    let ok = ref true in
+    let vout =
+      object
+        inherit [_] G.iter
+
+        method! visit_resolved_name _env (_, sid) =
+          ok := !ok && !ff sid;
+          if not !ok then raise Exit
+      end
+    in
+    fun f ast ->
+      ff := f;
+      ok := true;
+      try
+        vout#visit_any () ast;
+        !ok
+      with
+      | Exit -> false
+  in
+  for_all_sid (fun sid' -> sid' <> sid) (E exp)
 
 (*****************************************************************************)
 (* Environment Helpers *)
@@ -402,9 +429,23 @@ let var_stats prog : var_stats =
             super#visit_definition env x
         | _ -> super#visit_definition env x
 
-      (* TODO An `ExprStmt` method call (probably returning 'void') should count as
-       * a potential assignment too... We need a visit_stmt here. E.g. in Ruby
-       * `a.concat(b)` is going to update `a`. *)
+      (* TODO: An `ExprStmt` method call (probably returning 'void') should count as a
+       * potential assignment too... E.g. in Ruby `a.concat(b)` is going to update `a`. *)
+      method! visit_stmt env x =
+        (match x.s with
+        | For
+            ( _,
+              ForEach
+                ( PatId
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }),
+                  _,
+                  _ ),
+              _ ) ->
+            let var = (H.str_of_ident id, sid) in
+            let stat = get_stat_or_create var h in
+            incr stat.lvalue
+        | _ -> ());
+        super#visit_stmt env x
 
       method! visit_expr env x =
         match x.e with
@@ -627,7 +668,9 @@ let propagate_basic lang prog =
                 Although we may propagate expressions with identifiers in them, those identifiers
                 will simply not have an `svalue` if they are non-propagated as well.
              *)
-             | None, _ when Dataflow_svalue.is_symbolic_expr e ->
+             | None, _
+               when Dataflow_svalue.is_symbolic_expr e
+                    && no_cycles_in_sym_prop sid e ->
                  add_constant_env id (sid, Sym e) env
              | None, _ -> ());
             super#visit_definition venv x
@@ -650,19 +693,19 @@ let propagate_basic lang prog =
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: dockerfile specific *)
         | Call
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         | DotAccess
             ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: terraform specific.
          * coupling: with eval() above
          *)
@@ -673,7 +716,7 @@ let propagate_basic lang prog =
           when lang = Lang.Terraform && not !(env.in_lvalue) ->
             let var = (prefix ^ "." ^ str, terraform_sid) in
             let/ svalue = Hashtbl.find_opt env.constants var in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         | ArrayAccess (e1, (_, e2, _)) ->
             self#visit_expr venv e1;
             Common.save_excursion env.in_lvalue false (fun () ->
@@ -709,8 +752,10 @@ let propagate_basic lang prog =
                match opt_svalue with
                | Some svalue -> add_constant_env id (sid, svalue) env
                | None ->
-                   if Dataflow_svalue.is_symbolic_expr rexp then
-                     add_constant_env id (sid, Sym rexp) env;
+                   if
+                     Dataflow_svalue.is_symbolic_expr rexp
+                     && no_cycles_in_sym_prop sid rexp
+                   then add_constant_env id (sid, Sym rexp) env;
                    ());
             self#visit_expr venv rexp
         | Assign (e1, _, e2)

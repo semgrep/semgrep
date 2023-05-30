@@ -503,7 +503,7 @@ and anon_choice_type_id_b8f8ced (env : env)
 
 let rec parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) =
-  let _v1 = token env v1 (* "(" *) in
+  let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
     | `Exp_opt_type_anno (v1, v2) -> (
@@ -515,8 +515,8 @@ let rec parenthesized_expression (env : env)
         | None -> v1)
     | `Seq_exp x -> sequence_expression env x
   in
-  let _v3 = token env v3 (* ")" *) in
-  v2
+  let v3 = token env v3 (* ")" *) in
+  ParenExpr (v1, v2, v3)
 
 and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     =

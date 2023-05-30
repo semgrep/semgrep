@@ -46,8 +46,8 @@ type t = {
 }
 [@@deriving show, eq]
 
-(* basic file position (used to be Common2.filepos) (unused in Semgrep) *)
-type _linecol = { l : int; c : int }
+(* basic file position (used to be Common2.filepos) (used in codemap) *)
+type linecol = { l : int; c : int } [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Helpers *)

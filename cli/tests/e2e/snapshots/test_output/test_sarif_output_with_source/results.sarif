@@ -79,6 +79,10 @@
               "fullDescription": {
                 "text": "possibly useless comparison but in eq function"
               },
+              "help": {
+                "markdown": "possibly useless comparison but in eq function\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/assert)\n",
+                "text": "possibly useless comparison but in eq function"
+              },
               "helpUri": "https://semgrep.dev/foo/bar/assert",
               "id": "rules.assert-eqeq-is-ok",
               "name": "rules.assert-eqeq-is-ok",
@@ -87,7 +91,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
               }
             },
             {
@@ -95,6 +99,10 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+              },
+              "help": {
+                "markdown": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/bad)\n",
                 "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
               },
               "helpUri": "https://semgrep.dev/foo/bar/bad",
@@ -105,7 +113,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "Semgrep Finding: rules.eqeq-is-bad"
               }
             },
             {
@@ -113,6 +121,10 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "useless comparison"
+              },
+              "help": {
+                "markdown": "useless comparison\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/js)\n - [https://google.com](https://google.com)\n",
                 "text": "useless comparison"
               },
               "helpUri": "https://semgrep.dev/foo/bar/js",
@@ -123,7 +135,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison"
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
               }
             },
             {
@@ -131,6 +143,10 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "this function is only available on Python 3.7+"
+              },
+              "help": {
+                "markdown": "this function is only available on Python 3.7+\n\n<b>References:</b>\n - [Semgrep Rule](https://semgrep.dev/foo/bar/compat)\n",
                 "text": "this function is only available on Python 3.7+"
               },
               "helpUri": "https://semgrep.dev/foo/bar/compat",
@@ -141,7 +157,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "this function is only available on Python 3.7+"
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             }
           ],

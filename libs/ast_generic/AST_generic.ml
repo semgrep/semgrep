@@ -163,17 +163,17 @@
  *    of a VarDef, as done in Python for example).
  *)
 
-(* !! Modify version below each time you modify the generic AST!! There are
- * now a few places where we cache the generic AST in a marshalled binary
- * form on disk (e.g., in src/runner/Parsing_with_cache.ml) and reading back
+(* !! Modify version below each time you modify the generic AST!!
+ * There are now a few places where we cache the generic AST in a marshalled
+ * form on disk (e.g., in src/parsing/Parsing_with_cache.ml) and reading back
  * old version of this AST can lead to segfaults in OCaml.
- * Note that this number below could be independent of the versioning scheme of
+ * Note that the number below could be independent of the versioning scheme of
  * Semgrep; we don't have to update version below for each version of
- * Semgrep, just when we actually modify the generic AST. However it's convenient
- * to correspond mostly to Semgrep versions. So version below can jump from
- * "1.12.1" to "1.20.0" and that's fine.
+ * Semgrep, just when we actually modify the generic AST. However it's
+ * convenient to correspond mostly to Semgrep versions. So version below
+ * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.19.0-2"
+let version = "1.20.0"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -741,13 +741,6 @@ and expr_kind =
      Revisit when symbolic propagation is more stable
   *)
   | Alias of string wrap * expr
-  (* In some rare cases, we need to keep the parenthesis around an expression
-   * otherwise in autofix semgrep could produce incorrect code. For example,
-   * in Go a cast int(3.0) requires the parenthesis.
-   * alt: change cast to take a expr bracket, but this is used only for Go.
-   * Note that this data structure is really becoming more a CST than an AST.
-   *)
-  | ParenExpr of expr bracket
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
   | Ellipsis of tok (* '...' *)
@@ -1115,6 +1108,15 @@ and argument =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+(* NOTE: We used to have a Bloom filter optimization that annotated statements
+ * with the strings occurring in it, for which we had a `s_strings` mutable
+ * field here. We disabled this optimization in 0.116.0 after realizing that it
+ * (no longer?) had a meaningful effect on performance. (And because it hadtricky
+ * interactions with const-prop and sym-prop, see #4670, and PA-1920 / PR #6179.)
+ * Finally, Bloom-filter's code was removed in 1.22.0, and paradoxically, that
+ * made Semgrep noticeably faster (an average of 1.35x on a set of 9 repos) on
+ * our stress-test-monorepo benchmark. *)
 and stmt = {
   s : stmt_kind;
       [@equal AST_utils.equal_stmt_field_s equal_stmt_kind] [@hash.ignore]
@@ -1152,9 +1154,6 @@ and stmt = {
      This field is set on pattern ASTs only, in a pass right after parsing
      and before matching.
   *)
-  (* used in semgrep to skip some AST matching *)
-  mutable s_strings : string Set_.t option;
-      [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
   mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
@@ -1355,6 +1354,8 @@ and other_stmt_operator =
   | OS_Retry
   (* OCaml *)
   | OS_ExprStmt2
+  (* Scala *)
+  | OS_Extension
   (* Other: Leave/Emit in Solidity *)
   | OS_Todo
 
@@ -1362,7 +1363,7 @@ and other_stmt_operator =
 (* Pattern *)
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
- * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
+* equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
  * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.
@@ -2136,7 +2137,6 @@ let s skind =
     s_id = AST_utils.Node_ID.mk ();
     s_use_cache = false;
     s_backrefs = None;
-    s_strings = None;
     s_range = None;
   }
 
@@ -2418,16 +2418,7 @@ class virtual ['self] iter_no_id_info =
 class virtual ['self] map_legacy =
   object (self : 'self)
     inherit [_] map
-
-    method! visit_tok _env v =
-      (* Make a copy, since Tok.t is mutable *)
-      let v = { v with Tok.token = v.token } in
-      v
-
-    method! visit_expr env x =
-      let ekind = self#visit_expr_kind env x.e in
-      (* TODO? reuse the e_id or create a new one? *)
-      e ekind
+    method! visit_tok _env v = v
 
     (* For convenience, so clients don't need to override visit_arguments and
      * deal with the bracket type. *)

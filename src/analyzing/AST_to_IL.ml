@@ -73,7 +73,7 @@ let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
-  let toks = Visitor_AST.ii_of_any gany in
+  let toks = AST_generic_helpers.ii_of_any gany in
   let opt_tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
@@ -232,6 +232,15 @@ let is_hcl lang =
   match lang with
   | Lang.Terraform -> true
   | _ -> false
+
+let mk_class_constructor_name (ty : G.type_) cons_id_info =
+  match ty with
+  | { t = TyN (G.Id (id, _)); _ }
+  | { t = TyExpr { e = G.N (G.Id (id, _)); _ }; _ }
+  (* FIXME: JS parser produces this ^ although it should be parsed as a 'TyN'. *)
+    when Option.is_some !(cons_id_info.G.id_resolved) ->
+      Some (G.Id (id, cons_id_info))
+  | __else__ -> None
 
 (*****************************************************************************)
 (* lvalue *)
@@ -570,13 +579,15 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, _TODO, args) ->
-      (* TODO: lift up New in IL like we did in AST_generic *)
-      let special = (New, tok) in
-      let arg = G.ArgType ty in
+  | G.New (tok, ty, _cons_id_info, args) ->
+      (* HACK: Fall-through case where we don't know to what variable the allocated
+       * object is being assigned to. See HACK(new), we expect to intercept `New`
+       * already in 'stmt_aux'.
+       *)
+      let lval = fresh_lval env tok in
       let args = arguments env (Tok.unbracket args) in
-      add_call env tok eorig ~void (fun res ->
-          CallSpecial (res, special, argument env arg :: args))
+      add_instr env (mk_i (New (lval, type_ env ty, None, args)) eorig);
+      mk_e (Fetch lval) NoOrig
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
       let args = arguments env (Tok.unbracket args) in
@@ -740,7 +751,6 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ expr env e ], r))) NoOrig
-  | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml xml -> xml_expr env xml
   | G.Cast (typ, _, e) ->
       let e = expr env e in
@@ -854,7 +864,7 @@ and argument env arg =
   | G.ArgKwdOptional (id, e) ->
       Named (id, expr env e)
   | G.ArgType { t = TyExpr e; _ } -> Unnamed (expr env e)
-  | _ ->
+  | __else__ ->
       let any = G.Ar arg in
       Unnamed (fixme_exp ToDo any (Related any))
 
@@ -1044,14 +1054,14 @@ and lval_of_ent env ent =
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
   | G.OtherEntity _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
@@ -1106,6 +1116,18 @@ and parameters _env params : name list =
        | ___else___ -> None (* TODO *))
 
 (*****************************************************************************)
+(* Type *)
+(*****************************************************************************)
+
+and type_ env (ty : G.type_) : type_ =
+  let exps =
+    match ty.t with
+    | G.TyExpr e -> [ expr env e ]
+    | __TODO__ -> []
+  in
+  { type_ = ty; exps }
+
+(*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
 
@@ -1147,6 +1169,44 @@ and stmt_aux env st =
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
       ss @ ss'
+  | G.DefStmt
+      ( { name = EN obj; _ },
+        G.VarDef
+          {
+            G.vinit =
+              Some ({ e = G.New (_tok, ty, cons_id_info, args); _ } as new_exp);
+            _;
+          } ) ->
+      (* x = new T(args) *)
+      (* HACK(new): Because of field-sensitivity hacks, we need to know to which
+       * variable are we assigning the `new` object, so we intercept the assignment. *)
+      let obj' = var_of_name obj in
+      let obj_lval = lval_of_base (Var obj') in
+      let ss, args' = args_with_pre_stmts env (Tok.unbracket args) in
+      let opt_cons =
+        let* cons = mk_class_constructor_name ty cons_id_info in
+        let cons' = var_of_name cons in
+        let cons_exp =
+          mk_e
+            (Fetch
+               {
+                 obj_lval with
+                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
+               })
+            (SameAs (N cons |> G.e))
+          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+           * looks at the eorig, but maybe it shouldn't? *)
+        in
+        Some cons_exp
+      in
+      ss
+      @ [
+          mk_s
+            (Instr
+               (mk_i
+                  (New (obj_lval, type_ env ty, opt_cons, args'))
+                  (SameAs new_exp)));
+        ]
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in

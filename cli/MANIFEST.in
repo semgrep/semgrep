@@ -1,4 +1,4 @@
 include src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
-include src/semgrep/lang/lang.json
+include src/semgrep/semgrep_interfaces/lang.json
 include LICENSE
 include src/semgrep/templates/.semgrepignore

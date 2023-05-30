@@ -3,7 +3,7 @@
 *)
 
 (*
-   The result of parsing a 'semgrep login' command.
+   The result of parsing a 'semgrep login/logout' command.
 *)
 type conf = {
   (* mix of --debug, --quiet, --verbose *)

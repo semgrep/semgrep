@@ -1,9 +1,6 @@
 (*
-   Filter targets.
+   Skip targets.
 
-   TODO: note that some of the functions below are also present in
-   semgrep-python so we might want to move all file-filtering in one
-   place.
 *)
 open Common
 open File.Operators

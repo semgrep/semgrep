@@ -92,7 +92,7 @@ let insert_virtual_positions l =
               | ii -> Ast_cpp.rewrap_pinfo pi ii)
             x
         in
-        match ii.Tok.token with
+        match ii with
         | Tok.OriginTok _pi ->
             let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs
@@ -111,7 +111,7 @@ let insert_virtual_positions l =
     | [] -> List.rev acc
     | x :: xs -> (
         let ii = TH.info_of_tok x in
-        match ii.Tok.token with
+        match ii with
         | Tok.OriginTok _pi ->
             let prev = Tok.unsafe_loc_of_tok ii in
             loop (x :: acc) prev (strlen ii) xs

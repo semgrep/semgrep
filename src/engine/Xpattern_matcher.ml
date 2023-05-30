@@ -51,8 +51,7 @@ and match_range = Tok.location * Tok.location
 (*****************************************************************************)
 
 (* todo: same, we should not need that *)
-let info_of_token_location loc =
-  { Tok.token = Tok.OriginTok loc; transfo = Tok.NoTransfo }
+let info_of_token_location loc = Tok.OriginTok loc
 
 let (matches_of_matcher :
       ('xpattern * Xpattern.pattern_id * string) list ->

@@ -22,7 +22,6 @@ module P = Pattern_match
 module RP = Report
 module SJ = Output_from_core_j
 module Set = Set_
-module V = Visitor_AST
 module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -162,7 +161,8 @@ let check_pattern (lang : Xlang.t) f =
       match (pat, lang) with
       | Sem ((lazy semgrep_pat), _lang), L (lang, _rest) ->
           Check_pattern.check lang semgrep_pat
-      | Spacegrep _spacegrep_pat, LGeneric -> ()
+      | Spacegrep _spacegrep_pat, LSpacegrep -> ()
+      | Aliengrep _aliengrep_pat, LAliengrep -> ()
       | Regexp _, _ -> ()
       | _ -> raise Impossible)
     f
@@ -185,8 +185,9 @@ let check r =
   match r.mode with
   | `Search f
   | `Extract { formula = f; _ } ->
-      check_formula { r; errors = ref [] } r.languages f
+      check_formula { r; errors = ref [] } r.languages.target_analyzer f
   | `Taint _ -> (* TODO *) []
+  | `Step _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =
@@ -299,7 +300,7 @@ let stat_files fparser xs =
                     incr bad;
                     pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" !!file
-                         (fst r.id))
+                         (fst r.id :> string))
                 | Some (f, _f) ->
                     incr good;
                     let s = Semgrep_prefilter_j.string_of_formula f in

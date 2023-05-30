@@ -4,8 +4,8 @@ Rules:
 - rules.forcetimeout
 - rules.forcetimeout2
 - rules.forcetimeout3
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -52,8 +52,8 @@ Files skipped:
 
    • [36m[22m[24mtargets/equivalence/open_redirect.py with rule rules.forcetimeout[0m
 
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

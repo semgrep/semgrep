@@ -380,7 +380,6 @@ rule token = parse
         | "class"      -> Kclass t
         | "trait"      -> Ktrait t
         | "object"     -> Kobject t
-        | "enum"       -> Kenum t
         | "new"      -> Knew t
         | "super" -> Ksuper t
         | "this" -> Kthis t
@@ -394,7 +393,16 @@ rule token = parse
 
         | "package"     -> Kpackage t
         | "import"   -> Kimport t
-        | "export"   -> Kexport t
+
+        (* Scala 3: There are more keywords, but they are "soft" keywords,
+           meaning that we cannot lex them here as keywords!
+
+           Soft keywords behave like keywords only in certain contextual
+           situations, and otherwise behave as normal identifiers.
+
+           We just case on them as `ID_LOWER` in `Parser_scala_recursive_descent`,
+           such as `accept (ID_LOWER ("export", ab)) in_`.
+         *)
 
         | "abstract"       -> Kabstract t
         | "final"       -> Kfinal t

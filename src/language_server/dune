@@ -4,6 +4,7 @@
  (wrapped false)
  (libraries
    yaml
+   uuidm
    lsp
    lwt
    lwt.unix
@@ -11,8 +12,8 @@
    commons
 
    semgrep.core
-   semgrep_running
-   semgrep_reporting
+   semgrep.running
+   semgrep.reporting
  )
  (preprocess
   (pps

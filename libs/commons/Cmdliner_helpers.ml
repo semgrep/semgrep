@@ -1,6 +1,20 @@
 open Common
 open Cmdliner
 
+let uri =
+  let parser str = Ok (Uri.of_string str) in
+  let pp = Fmt.(using Uri.to_string string) in
+  Arg.conv ~docv:"<URL>" (parser, pp)
+
+let sha1 =
+  let parser str =
+    match Digestif.SHA1.of_hex_opt str with
+    | Some sha1 -> Ok sha1
+    | None -> Error (`Msg (Fmt.str "Invalid SHA1 value: %S" str))
+  in
+  let pp = Digestif.SHA1.pp in
+  Arg.conv ~docv:"<SHA1>" (parser, pp)
+
 (* Turn "a" into "-a" and "abc" into "--abc" *)
 let add_option_dashes option_names =
   Common.map
@@ -14,14 +28,35 @@ let add_option_dashes option_names =
    backward compatibility with the Python CLI.
    See https://github.com/dbuenzli/cmdliner/issues/164
 *)
-let negatable_flag ?(default = false) ?env ~neg_options ~doc options =
+let negatable_flag ?(default = false) ~neg_options ~doc options =
   let neg_doc =
     let options_str = add_option_dashes options |> String.concat "/" in
     Printf.sprintf "negates %s" options_str
   in
-  let enable = (true, Arg.info options ~doc ?env) in
+  let enable = (true, Arg.info options ~doc) in
   let disable = (false, Arg.info neg_options ~doc:neg_doc) in
   Arg.value (Arg.vflag default [ enable; disable ])
+
+(* Cmdliner.Arg.vflag does not support environment variables, thus we use
+   Arg.value manually if we need supporting environment variables as well *)
+let negatable_flag_with_env ?(default = false) ?env ~neg_options ~doc options =
+  let neg_doc =
+    let options_str = add_option_dashes options |> String.concat "/" in
+    Printf.sprintf "negates %s" options_str
+  in
+  let enable = Arg.(value (flag (info options ~doc ?env))) in
+  let disable = Arg.(value (flag (info neg_options ~doc:neg_doc))) in
+  let combine yes no =
+    match (yes, no) with
+    | true, false -> true
+    | false, true -> false
+    | false, false -> default
+    | true, true ->
+        invalid_arg
+          ("mutually exclusive options: "
+          ^ String.concat ", " (options @ neg_options))
+  in
+  Term.(const combine $ enable $ disable)
 
 (* Parse command-line arguments representing a number of bytes, such as
  * '5 mb' or '3.2GiB'

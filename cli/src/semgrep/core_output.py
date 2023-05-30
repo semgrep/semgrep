@@ -137,7 +137,7 @@ def core_matches_to_rule_matches(
         propagated_values = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-        with open(match.location.path, errors="replace") as fd:
+        with open(match.location.path.value, errors="replace") as fd:
             for metavariable, metavariable_data in match.extra.metavars.value.items():
                 # Offsets are start inclusive and end exclusive
                 start_offset = metavariable_data.start.offset
@@ -162,10 +162,10 @@ def core_matches_to_rule_matches(
         rule = rule_table[match.rule_id.value]
         matched_values, propagated_values = read_metavariables(match)
         message = interpolate(rule.message, matched_values, propagated_values)
-        if match.extra.rendered_fix:
+        if match.extra.rendered_fix is not None:
             fix = match.extra.rendered_fix
             logger.debug(f"Using AST-based autofix rendered in semgrep-core: `{fix}`")
-        elif rule.fix:
+        elif rule.fix is not None:
             fix = interpolate(rule.fix, matched_values, propagated_values)
             logger.debug(f"Using text-based autofix rendered in cli: `{fix}`")
         else:

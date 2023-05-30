@@ -224,7 +224,7 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
         if file_offsets.active_line != rule_match.start.line:
             file_offsets.active_line = rule_match.start.line
             file_offsets.col_offset = 0
-        if fix:
+        if fix is not None:
             try:
                 fixobj, new_file_offset = _basic_fix(rule_match, file_offsets, fix)
             except Exception as e:

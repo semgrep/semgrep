@@ -13,8 +13,8 @@ module E = Semgrep_error_code
 (* Constants *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
 
 (*****************************************************************************)
 (* Helpers *)

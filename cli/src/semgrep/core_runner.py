@@ -155,7 +155,7 @@ def uniq_error_id(
 ) -> Tuple[int, Path, core.Position, core.Position, str]:
     return (
         error.code,
-        Path(error.core.location.path),
+        Path(error.core.location.path.value),
         error.core.location.start,
         error.core.location.end,
         error.core.message,
@@ -452,7 +452,7 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    language: Language
+    language: Language  # Xlang; see Xlang.mli
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -460,8 +460,8 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if self.language in {Language("regex"), Language("generic")}
-            else self.language
+            if not self.language.definition.is_target_language
+            else self.language.definition.id
         )
 
 
@@ -863,7 +863,7 @@ class CoreRunner:
             rule_timings = {
                 rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
             }
-            profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
+            profiling_data.set_file_times(Path(t.path.value), rule_timings, t.run_time)
 
     def _add_max_memory_bytes(
         self, profiling_data: ProfilingData, max_memory_bytes: int
@@ -1096,13 +1096,13 @@ class CoreRunner:
                 if isinstance(err.error_type.value, core.Timeout):
                     assert err.location.path is not None
 
-                    file_timeouts[Path(err.location.path)] += 1
+                    file_timeouts[Path(err.location.path.value)] += 1
                     if (
                         self._timeout_threshold != 0
-                        and file_timeouts[Path(err.location.path)]
+                        and file_timeouts[Path(err.location.path.value)]
                         >= self._timeout_threshold
                     ):
-                        max_timeout_files.add(Path(err.location.path))
+                        max_timeout_files.add(Path(err.location.path.value))
                 if isinstance(
                     err.error_type.value,
                     (

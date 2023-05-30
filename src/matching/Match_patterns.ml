@@ -14,17 +14,17 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module V = Visitor_AST
 module MR = Mini_rule
 module Eq = Equivalence
 module PM = Pattern_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
-module Config = Config_semgrep_t
+module Options = Rule_options_t
 module MG = Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
+let profile_mini_rules = ref false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -51,7 +51,11 @@ let set_last_matched_rule rule f =
   (* note that if this raise an exn, last_matched_rule will not be
    * reset to None and that's what we want!
    *)
-  let res = f () in
+  let res =
+    if !profile_mini_rules then
+      Profiling.profile_code ("rule:" ^ (rule.MR.id :> string)) f
+    else f ()
+  in
   last_matched_rule := None;
   res
 
@@ -60,83 +64,71 @@ let set_last_matched_rule rule f =
 (*****************************************************************************)
 
 let match_e_e rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_expr_root a b env))
+  set_last_matched_rule rule (fun () -> GG.m_expr_root a b env)
   [@@profiling]
 
 let match_st_st rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
+  set_last_matched_rule rule (fun () -> GG.m_stmt a b env)
   [@@profiling]
 
 let match_sts_sts rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () ->
-          (* When matching statements, we need not only to report whether
-           * there is match, but also the actual statements that were matched.
-           * Indeed, even if we want the implicit '...' at the end of
-           * a sequence of statements pattern (AST_generic.Ss) to match all
-           * the rest, we don't want to report the whole Ss as a match but just
-           * the actually matched subset.
-           *
-           * TODO? do we need to generate unique key? we don't want
-           * nested calls to m_stmts_deep to pollute our metavar? We need
-           * to pass the key to m_stmts_deep?
-           *)
-          let env =
-            match b with
-            | [] -> env
-            | stmt :: _ -> MG.extend_stmts_match_span stmt env
-          in
-          GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env))
+  set_last_matched_rule rule (fun () ->
+      (* When matching statements, we need not only to report whether
+       * there is match, but also the actual statements that were matched.
+       * Indeed, even if we want the implicit '...' at the end of
+       * a sequence of statements pattern (AST_generic.Ss) to match all
+       * the rest, we don't want to report the whole Ss as a match but just
+       * the actually matched subset.
+       *
+       * TODO? do we need to generate unique key? we don't want
+       * nested calls to m_stmts_deep to pollute our metavar? We need
+       * to pass the key to m_stmts_deep?
+       *)
+      let env =
+        match b with
+        | [] -> env
+        | stmt :: _ -> MG.extend_stmts_match_span stmt env
+      in
+      GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
   [@@profiling]
 
 (* for unit testing *)
 let match_any_any pattern e env = GG.m_any pattern e env
 
 let match_t_t rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_type_ a b env))
+  set_last_matched_rule rule (fun () -> GG.m_type_ a b env)
   [@@profiling]
 
 let match_p_p rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_pattern a b env))
+  set_last_matched_rule rule (fun () -> GG.m_pattern a b env)
   [@@profiling]
 
 let match_partial_partial rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_partial a b env))
+  set_last_matched_rule rule (fun () -> GG.m_partial a b env)
   [@@profiling]
 
 let match_at_at rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_attribute a b env))
+  set_last_matched_rule rule (fun () -> GG.m_attribute a b env)
   [@@profiling]
 
 let match_fld_fld rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_field a b env))
+  set_last_matched_rule rule (fun () -> GG.m_field a b env)
   [@@profiling]
 
 let match_flds_flds rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_fields a b env))
+  set_last_matched_rule rule (fun () -> GG.m_fields a b env)
   [@@profiling]
 
 let match_name_name rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_name a b env))
+  set_last_matched_rule rule (fun () -> GG.m_name a b env)
   [@@profiling]
 
 let match_xml_attribute_xml_attribute rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env))
+  set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env)
   [@@profiling]
 
 let match_raw_raw rule a b env =
-  Profiling.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env))
+  set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env)
   [@@profiling]
 
 (*****************************************************************************)
@@ -144,13 +136,13 @@ let match_raw_raw rule a b env =
 (*****************************************************************************)
 
 let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
- fun mr ->
+ fun (mr : Mini_rule.t) ->
   {
-    PM.id = mr.Mini_rule.id;
-    message = mr.Mini_rule.message;
-    pattern_string = mr.Mini_rule.pattern_string;
-    fix = mr.Mini_rule.fix;
-    languages = mr.Mini_rule.languages;
+    PM.id = mr.id;
+    message = mr.message;
+    pattern_string = mr.pattern_string;
+    fix = mr.fix;
+    languages = mr.languages;
   }
 
 let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
@@ -164,7 +156,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
                   let env = env.mv.full_env in
-                  match V.range_of_any_opt (any x) with
+                  match AST_generic_helpers.range_of_any_opt (any x) with
                   | None ->
                       (* TODO: Report a warning to the user? *)
                       logger#error
@@ -172,7 +164,9 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                         (show_any (any x));
                       ()
                   | Some range_loc ->
-                      let tokens = lazy (V.ii_of_any (any x)) in
+                      let tokens =
+                        lazy (AST_generic_helpers.ii_of_any (any x))
+                      in
                       let rule_id = rule_id_of_mini_rule rule in
                       let pm =
                         {
@@ -193,23 +187,6 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
   (* try the rules on substatements and subexpressions *)
   k x
 
-let must_analyze_statement_bloom_opti_failed pattern_strs
-    (st : AST_generic.stmt) =
-  (* if it's empty, meaning we were not able to extract any useful specific
-   * identifiers or strings from the pattern, then the pattern is too general
-   * and we must analyze the stmt
-   *)
-  match st.s_strings with
-  (* No bloom filter, expected if -bloom_filter is not used *)
-  | None -> true
-  (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some strs ->
-      Set_.subset pattern_strs strs
-      |> Common.before_return (fun b ->
-             if not b then
-               logger#debug "skipping pattern on stmt %d"
-                 (AST_utils.Node_ID.to_int st.s_id))
-
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -227,7 +204,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
   logger#trace "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
-    (* simple opti using regexps; the bloom filter opti might supersede this *)
+    (* simple opti using regexps *)
     if !Flag.filter_irrelevant_patterns then
       Mini_rules_filter.filter_mini_rules_relevant_to_file_using_regexp rules
         lang file
@@ -272,13 +249,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
              else None
            in
            (* Annotate exp, stmt, stmts patterns with the rule strings *)
-           let push_with_annotation any pattern rules =
-             let strs =
-               if !Flag.use_bloom_filter then
-                 Bloom_annotation.set_of_pattern_strings any
-               else Set_.empty
-             in
-             Common.push (pattern, strs, rule, cache) rules
+           let push_with_annotation _any pattern rules =
+             Common.push (pattern, rule, cache) rules
            in
            match any with
            | E pattern -> push_with_annotation any pattern expr_rules
@@ -331,8 +303,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            * against an expression recursively
            *)
           !expr_rules
-          |> List.iter (fun (pattern, _bf, rule, cache) ->
-                 match V.range_of_any_opt (E x) with
+          |> List.iter (fun (pattern, rule, cache) ->
+                 match AST_generic_helpers.range_of_any_opt (E x) with
                  | None ->
                      logger#error "Skipping because we lack range info: %s"
                        (show_expr_kind x.e);
@@ -347,7 +319,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
                               let env = env.mv.full_env in
-                              let tokens = lazy (V.ii_of_any (E x)) in
+                              let tokens =
+                                lazy (AST_generic_helpers.ii_of_any (E x))
+                              in
                               let rule_id = rule_id_of_mini_rule rule in
                               let pm =
                                 {
@@ -381,10 +355,11 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            *   match_rules_and_recurse (file, hook, matches)
            *   !stmt_rules match_st_st k (fun x -> S x) x
            * but inlined to handle specially Bloom filter in stmts for now.
+           * TODO: bloom filter was removed, undo this inlining?
            *)
           let visit_stmt () =
             !stmt_rules
-            |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+            |> List.iter (fun (pattern, rule, cache) ->
                    let env = MG.empty_environment cache lang config in
                    let matches_with_env = match_st_st rule pattern x env in
                    if matches_with_env <> [] then
@@ -392,7 +367,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
                             let env = env.mv.full_env in
-                            match V.range_of_any_opt (S x) with
+                            match
+                              AST_generic_helpers.range_of_any_opt (S x)
+                            with
                             | None ->
                                 (* TODO: Report a warning to the user? *)
                                 logger#error
@@ -401,7 +378,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   (show_stmt x);
                                 ()
                             | Some range_loc ->
-                                let tokens = lazy (V.ii_of_any (S x)) in
+                                let tokens =
+                                  lazy (AST_generic_helpers.ii_of_any (S x))
+                                in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =
                                   {
@@ -418,29 +397,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 hook pm));
             super#visit_stmt env x
           in
-          (* If bloom_filter is not enabled, always visit the statement *)
-          (* Otherwise, filter rules first *)
-          if not !Flag.use_bloom_filter then visit_stmt ()
-          else
-            let new_stmt_rules =
-              !stmt_rules
-              |> List.filter (fun (_, pattern_strs, _, _cache) ->
-                     must_analyze_statement_bloom_opti_failed pattern_strs x)
-            in
-            let new_stmts_rules =
-              !stmts_rules
-              |> List.filter (fun (_, pattern_strs, _, _cache) ->
-                     must_analyze_statement_bloom_opti_failed pattern_strs x)
-            in
-            let new_expr_rules =
-              !expr_rules
-              |> List.filter (fun (_, pattern_strs, _, _cache) ->
-                     must_analyze_statement_bloom_opti_failed pattern_strs x)
-            in
-            Common.save_excursion stmt_rules new_stmt_rules (fun () ->
-                Common.save_excursion stmts_rules new_stmts_rules (fun () ->
-                    Common.save_excursion expr_rules new_expr_rules (fun () ->
-                        visit_stmt ())))
+          visit_stmt ()
 
         method! v_stmts env x =
           (* this is potentially slower than what we did in Coccinelle with
@@ -453,7 +410,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            * in matches_with_env here.
            *)
           !stmts_rules
-          |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
+          |> List.iter (fun (pattern, rule, cache) ->
                  Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
                      let env = MG.empty_environment cache lang config in
                      let matches_with_env = match_sts_sts rule pattern x env in
@@ -546,9 +503,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
       end
     in
     let visitor_env =
-      let vardef_assign = config.Config.vardef_assign in
-      let flddef_assign = config.Config.flddef_assign in
-      let attr_expr = config.Config.attr_expr in
+      let vardef_assign = config.Options.vardef_assign in
+      let flddef_assign = config.Options.flddef_assign in
+      let attr_expr = config.Options.attr_expr in
       Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ()
     in
     (* later: opti: dont analyze certain ASTs if they do not contain

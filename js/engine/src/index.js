@@ -4,6 +4,13 @@ import { getDirname } from "cross-dirname";
 
 const WASM_FILENAME = "semgrep-engine.wasm";
 
+export class MissingParserError extends Error {
+  constructor(lang) {
+    super(`No parser initialized for language: ${lang}`);
+    this.lang = lang;
+  }
+}
+
 export const EngineFactory = async (wasmUri) => {
   if (!wasmUri) {
     wasmUri = `${getDirname()}/${WASM_FILENAME}`;
@@ -29,10 +36,13 @@ export const EngineFactory = async (wasmUri) => {
 
   const languages = new Map();
 
+  const missingLanguages = new Set();
+
   const parsePattern = (printErrors, lang, pattern) => {
     const parser = languages.get(lang);
     if (!parser) {
-      throw new Error("No parser initialized for " + lang);
+      missingLanguages.add(lang);
+      throw new MissingParserError(lang);
     }
     return parser.parsePattern(printErrors, lang, pattern);
   };
@@ -40,7 +50,8 @@ export const EngineFactory = async (wasmUri) => {
   const parseFile = (lang, str) => {
     const parser = languages.get(lang);
     if (!parser) {
-      throw new Error("No parser initialized for " + lang);
+      missingLanguages.add(lang);
+      throw new MissingParserError(lang);
     }
     return parser.parseTarget(lang, str);
   };
@@ -54,9 +65,13 @@ export const EngineFactory = async (wasmUri) => {
       parser.setMountpoints(getMountpoints());
       parser.getLangs().forEach((lang) => {
         languages.set(lang, parser);
+        missingLanguages.delete(lang);
       });
     },
     hasParser: (lang) => languages.has(lang),
+    isMissingLanguages: () => missingLanguages.size > 0,
+    getMissingLanguages: () => Array.from(missingLanguages),
+    clearMissingLanguages: () => missingLanguages.clear(),
     execute,
     writeFile,
     deleteFile,

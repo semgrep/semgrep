@@ -85,7 +85,6 @@ build:
 core:
 	rm -f bin
 	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
@@ -121,9 +120,11 @@ symlink-core-for-cli:
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
+# Builds only the two main binaries needed for development.
+# If you need other binaries, look at the rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build
+	dune build _build/install/default/bin/semgrep-core _build/install/default/bin/osemgrep
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -137,6 +138,34 @@ build-docker:
 build-otarzan:
 	rm -f bin
 	dune build _build/install/default/bin/otarzan
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-pfff
+build-pfff:
+	rm -f bin
+	dune build _build/install/default/bin/pfff
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-parse-cairo
+build-parse-cairo:
+	rm -f bin
+	dune build _build/install/default/bin/parse-cairo
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-spacegrep
+build-spacegrep:
+	rm -f bin
+	dune build _build/install/default/bin/spacegrep
+	test -e bin || ln -s _build/install/default/bin .
+
+# Build just this executable
+.PHONY: build-oncall
+build-oncall:
+	rm -f bin
+	dune build _build/install/default/bin/oncall
 	test -e bin || ln -s _build/install/default/bin .
 
 # Build the js_of_ocaml portion of the semgrep javascript packages
@@ -156,9 +185,10 @@ clean:
 core-clean:
 	dune clean
 	rm -f bin
-	# we still need to keep the nonempty opam files in git for
+	# We still need to keep the nonempty opam files in git for
 	# 'make setup', so we should only remove the empty opam files.
-	#rm -f *.opam
+	# This removes the gitignored opam files.
+	git clean -fX *.opam
 
 ###############################################################################
 # Install targets
@@ -204,22 +234,25 @@ core-uninstall:
 # Test target
 ###############################################################################
 
+# Note that this target is actually not used in CI; it's only for local dev
 .PHONY: test
 test:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
+	$(MAKE) -C cli osempass
 
 # I put 'all' as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
 # the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core
+core-test: core build-spacegrep
 	# The test executable has a few options that can be useful
 	# in some contexts.
+	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
-	# without having to chdir into the test data folder.
-	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	# from the directory of the checkou
+	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
 
@@ -444,25 +477,21 @@ report-perf-matching:
 SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
-DOCKER_IMAGE=returntocorp/semgrep:develop
-
-# You need to have semgrep in your PATH! do 'cd cli; pipenv shell' before
-# if needed.
+#Dogfooding osemgrep!
 .PHONY: check
 check:
-	semgrep $(SEMGREP_ARGS)
+	./bin/osemgrep $(SEMGREP_ARGS)
+
+check_for_emacs:
+	./bin/osemgrep $(SEMGREP_ARGS) --emacs --quiet
+
+DOCKER_IMAGE=returntocorp/semgrep:develop
 
 # If you get semgrep-core parsing errors while running this command, maybe you
 # have an old cached version of the docker image.
 # You can invalidate the cache with 'docker rmi returntocorp/semgrep:develop`
 check_with_docker:
 	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
-
-# I use the docker here instead of directly semgrep, because semgrep is not always
-# in my PATH.
-#TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
-check_for_emacs:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs --quiet
 
 ###############################################################################
 # Martin's targets

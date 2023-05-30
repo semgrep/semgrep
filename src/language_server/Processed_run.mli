@@ -5,7 +5,7 @@ val of_matches :
   ?only_git_dirty:bool ->
   Pattern_match.t list ->
   Rule.hrules ->
-  Common.filename list ->
-  (t list * Common.filename list) Lwt.t
+  Fpath.t list ->
+  t list * Fpath.t list
 (** Postprocess semgrep run results given rules and files scanned, populating
     fixes, and messages. Filters out matches depending on git status. *)

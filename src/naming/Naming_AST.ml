@@ -15,7 +15,6 @@
 open Common
 open AST_generic
 open Naming_utils
-module V = Visitor_AST
 module H = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]

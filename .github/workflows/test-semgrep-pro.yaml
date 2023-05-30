@@ -29,7 +29,7 @@ jobs:
     outputs:
       docker-tag: ${{ steps.setup-docker-tag.outputs.docker-tag }}
     steps:
-      - name:
+      - name: Setup Docker Tag
         id: setup-docker-tag
         run: |
           echo "Github event is ${{ github.event_name }}"
@@ -42,7 +42,6 @@ jobs:
           fi
   test-semgrep-pro:
     name: Test Semgrep Pro Engine
-    if: github.repository_owner == 'returntocorp' # only returntocorp has the necessary credentials to access semgrep pro
     runs-on: ubuntu-22.04
     permissions:
       id-token: write

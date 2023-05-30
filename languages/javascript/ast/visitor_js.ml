@@ -54,7 +54,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   let rec v_info x =
     let k x =
       match x with
-      | { Tok.token = _v_pinfox; transfo = _v_transfo } ->
+      | _ ->
           (*
     let arg = Parse_info.v_pinfo v_pinfox in
     let arg = v_unit v_comments in
@@ -243,6 +243,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | Conditional (v1, v2, v3) ->
           let v1 = v_expr v1 and v2 = v_expr v2 and v3 = v_expr v3 in
           ()
+      | ParenExpr (v1, v2, v3) ->
+          v_tok v1;
+          v_expr v2;
+          v_tok v3
     in
     vin.kexpr (k, all_functions) x
   and v_stmt x =

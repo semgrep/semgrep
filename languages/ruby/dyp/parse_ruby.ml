@@ -60,20 +60,16 @@ let mk_lexer filename input_source =
   in
 
   let adjust_info (ii : Tok.t) =
-    {
-      ii with
-      Tok.token =
-        (* could assert pinfo.filename = file ? *)
-        (match ii.token with
-        | Tok.OriginTok pi -> (
-            try Tok.OriginTok (Tok.complete_location filename table pi) with
-            | Invalid_argument "index out of bounds" ->
-                (* TODO: fix! *)
-                (* pr2_gen pi *)
-                pr2_once (spf "TODO:%s: adjust info out-of-bounds" filename);
-                Tok.OriginTok pi)
-        | _ -> failwith "adjust_info: no an OriginTok");
-    }
+    (* could assert pinfo.filename = file ? *)
+    match ii with
+    | Tok.OriginTok pi -> (
+        try Tok.OriginTok (Tok.complete_location filename table pi) with
+        | Invalid_argument "index out of bounds" ->
+            (* TODO: fix! *)
+            (* pr2_gen pi *)
+            pr2_once (spf "TODO:%s: adjust info out-of-bounds" filename);
+            Tok.OriginTok pi)
+    | _ -> failwith "adjust_info: no an OriginTok"
   in
   let toks = ref [] in
 

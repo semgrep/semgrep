@@ -11,6 +11,7 @@ from typing import Set
 from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -110,7 +111,7 @@ def parse_dependencies_field(
 def parse_package_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
+    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName.jsondoc)
     if not lockfile_json_opt:
         return []
 
@@ -136,7 +137,7 @@ def parse_package_lock(
             logger.debug("Found package-lock with no 'dependencies'")
             return []
 
-        manifest_json_opt = safe_path_parse(manifest_path, json_doc)
+        manifest_json_opt = safe_path_parse(manifest_path, json_doc, ParserName.jsondoc)
         if not manifest_json_opt:
             manifest_deps = None
         else:

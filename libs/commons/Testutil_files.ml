@@ -2,7 +2,7 @@
    Utilities for creating, scanning, and deleting a hierarchy
    of test files.
 *)
-
+open File.Operators
 open Printf
 
 let ( / ) = Fpath.( / )
@@ -12,6 +12,11 @@ type t =
   | Dir of string * t list
   | File of string * string
   | Symlink of string * string
+
+(* if you prefer a curried syntax *)
+let file name : t = File (name, "")
+let dir name entries : t = Dir (name, entries)
+let symlink name dest : t = Symlink (name, dest)
 
 let get_name = function
   | Dir (name, _)
@@ -193,6 +198,20 @@ let with_tempfiles ?persist ?chdir files func =
       (* files are automatically deleted as part of the cleanup done by
          'with_tempdir'. *)
       write root files;
+      func root)
+
+let print_files files =
+  flatten files |> List.iter (fun path -> printf "%s\n" !!path)
+
+let with_tempfiles_verbose (files : t list) func =
+  with_tempdir ~chdir:true (fun root ->
+      let files = sort files in
+      printf "Input files:\n";
+      print_files files;
+      write root files;
+      (* Nice listing of the real file tree.
+         Don't care if the 'tree' command is unavailable. *)
+      Sys.command (sprintf "tree -a '%s'" !!root) |> ignore;
       func root)
 
 let () =

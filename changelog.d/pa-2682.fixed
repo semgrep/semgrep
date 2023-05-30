@@ -1,1 +1,0 @@
-Taint: Fixed a bug where the new labeled propagators would sometimes not behave properly

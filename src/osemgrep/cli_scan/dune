@@ -6,6 +6,7 @@
   (libraries
     cmdliner
     logs
+    bos
     commons
 
     semgrep_core_cli
@@ -15,6 +16,10 @@
     osemgrep_core
     osemgrep_configuring
     osemgrep_reporting
+
+    ; ugly, should not depend at some point when --dump, --validate are deprecated
+    osemgrep_cli_dump
+    osemgrep_cli_test
   )
  (preprocess
    (pps

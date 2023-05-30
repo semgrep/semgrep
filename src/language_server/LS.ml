@@ -65,10 +65,9 @@ module Server = struct
     | None -> Lwt.return ()
 
   let request server request =
-    let id = server.session.next_id in
+    let id = Uuidm.v `V4 |> Uuidm.to_string in
     (* Yea mutable variables are lame but whatever *)
-    server.session.next_id <- id + 1;
-    let request = SR.to_jsonrpc_request request (`Int id) in
+    let request = SR.to_jsonrpc_request request (`String id) in
     let packet = Packet.Request request in
     let _ =
       Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
@@ -85,7 +84,8 @@ module Server = struct
 
   (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
   let create_progresss server title message =
-    let token = ProgressToken.t_of_yojson (`Int server.session.next_id) in
+    let id = Uuidm.v `V4 |> Uuidm.to_string in
+    let token = ProgressToken.t_of_yojson (`String id) in
     let progress =
       SR.WorkDoneProgressCreate (WorkDoneProgressCreateParams.create token)
     in
@@ -115,7 +115,7 @@ module Server = struct
       | Some file -> Some (Uri.to_path file)
       | None -> None
     in
-    let%lwt targets = Session.targets server.session in
+    let targets = Session.targets server.session in
     let targets =
       match single_file with
       | Some file ->
@@ -135,13 +135,13 @@ module Server = struct
       Run_semgrep.semgrep_with_raw_results_and_exn_handler config
     in
     let only_git_dirty = server.session.only_git_dirty in
-    let%lwt final_results, files =
+    let final_results, files =
       Processed_run.of_matches ~only_git_dirty res.matches
         (Session.hrules server.session)
         files
     in
     let files = Common2.uniq files in
-    Lwt.return (final_results, files)
+    (final_results, files)
 
   let search_semgrep server pattern_string language =
     (* We should use Session.targets here, but that uses the LWT monad, so once the git commands use Bos the below can become simpler *)
@@ -213,7 +213,7 @@ module Server = struct
       let token =
         create_progresss server "Semgrep Scan in Progress" "Scanning Workspace"
       in
-      let%lwt results, files = run_semgrep server in
+      let results, files = run_semgrep server in
       Session.record_results server.session results files;
       (* LSP expects empty diagnostics to clear problems *)
       let files = Session.scanned_files server.session in
@@ -222,7 +222,7 @@ module Server = struct
       batch_notify server diagnostics
     in
     let scan_file server uri =
-      let%lwt results, files = run_semgrep server ~single_file:(Some uri) in
+      let results, files = run_semgrep server ~single_file:(Some uri) in
       Session.record_results server.session results files;
       batch_notify server
         (Diagnostics.diagnostics_of_results results [ Uri.to_path uri ])

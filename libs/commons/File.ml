@@ -3,6 +3,10 @@
 
    For now, this is a thin layer on top of Common. Eventually, we want
    to get rid of the interface exposed by Common.
+
+   related libraries:
+    - Bos.OS.File, Bos.OS.Dir, Bos.OS.Path, which we should probably use
+     (ex: https://erratique.ch/software/bos/doc/Bos/OS/Dir/index.html )
 *)
 
 module Path = struct
@@ -39,6 +43,10 @@ let erase_temp_files = Common.erase_temp_files
 let erase_this_temp_file path = Common.erase_this_temp_file !!path
 let is_executable path = Common2.is_executable !!path
 let filesize path = Common2.filesize !!path
+
+let filemtime file =
+  if !Common.jsoo then failwith "JSOO: File.filemtime"
+  else (Unix.stat !!file).Unix.st_mtime
 
 (* TODO? slow, and maybe we should cache it to avoid rereading
  * each time the same file for each match.

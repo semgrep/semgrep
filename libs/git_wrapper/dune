@@ -5,6 +5,7 @@
   (wrapped false)
   (libraries
      fpath
+     bos
 
      commons
   )

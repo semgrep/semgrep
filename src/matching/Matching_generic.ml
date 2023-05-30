@@ -79,7 +79,7 @@ type tin = {
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   deref_sym_vals : int;
 }
 
@@ -209,7 +209,7 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let rec equal_ast_bound_code (config : Config_semgrep.t) (a : MV.mvalue)
+let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
     match (a, b) with
@@ -717,7 +717,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
               };
           }
         in
-        let info = { Tok.transfo = Tok.NoTransfo; token = Tok.OriginTok loc } in
+        let info = Tok.OriginTok loc in
         (s, info)
       with
       | Not_found ->

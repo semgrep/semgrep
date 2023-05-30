@@ -1,9 +1,14 @@
-(* content of the the ~/.semgrep/settings.yml file. See also Semgrep_envvars.user_settings_file *)
+(* Content of the the ~/.semgrep/settings.yml file.
+ * See also Semgrep_envvars.user_settings_file
+ *)
 type t = {
   has_shown_metrics_notification : bool option;
-  api_token : string option;
+  api_token : Auth.token option;
   anonymous_user_id : Uuidm.t;
 }
 
-val save : t -> unit
-val get : unit -> t
+(* loading the ~/.semgrep/settings.yml in memory *)
+val load : ?legacy:bool -> unit -> t
+
+(* returns whether the save was successful *)
+val save : t -> bool

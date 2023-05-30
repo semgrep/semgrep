@@ -15,16 +15,33 @@ let make_login_url () =
   let session_id = Uuidm.v `V4 in
   ( session_id,
     Uri.(
-      add_query_params
+      add_query_params'
         (with_path Semgrep_envvars.env.semgrep_url "login")
         [
-          ("cli-token", [ Uuidm.to_string session_id ]);
-          ( "docker",
-            [ (if Semgrep_envvars.env.in_docker then "True" else "False") ] );
-          ( "gha",
-            [ (if Semgrep_envvars.env.in_gh_action then "True" else "False") ]
-          );
+          ("cli-token", Uuidm.to_string session_id);
+          ("docker", if Semgrep_envvars.env.in_docker then "True" else "False");
+          ("gha", if Semgrep_envvars.env.in_gh_action then "True" else "False");
         ]) )
+
+(* from login.py *)
+let save_token ~echo_token settings token =
+  if Semgrep_App.get_deployment_from_token token <> None then
+    let settings = Semgrep_settings.{ settings with api_token = Some token } in
+    if Semgrep_settings.save settings then (
+      Logs.app (fun m ->
+          m "Saved login token@.@.\t%s@.@.in %a"
+            (if echo_token then token else "<redacted>")
+            Fpath.pp Semgrep_envvars.env.user_settings_file);
+      Logs.app (fun m ->
+          m
+            "Note: You can always generate more tokens at \
+             %s/orgs/-/settings/tokens"
+            (Uri.to_string Semgrep_envvars.env.semgrep_url));
+      true)
+    else false
+  else (
+    Logs.err (fun m -> m "Login token is not valid. Please try again.");
+    false)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -36,17 +53,14 @@ let max_retries = 30 (* Give users 3 minutes to log in / open link *)
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Login_CLI.conf) : Exit_code.t =
-  Logs_helpers.setup_logging ~force_color:false ~level:conf.logging_level;
-  let settings = Semgrep_settings.get () in
+  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
       match Semgrep_envvars.env.app_token with
       | Some token when String.length token > 0 ->
-          let settings =
-            Semgrep_settings.{ settings with api_token = Some token }
-          in
-          Semgrep_settings.save settings;
-          Exit_code.ok
+          if save_token ~echo_token:false settings token then Exit_code.ok
+          else Exit_code.fatal
       | None
       | Some _ ->
           if not Unix.(isatty stdin) then (
@@ -82,20 +96,16 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                     {|{"token_request_key": "|} ^ Uuidm.to_string session_id
                     ^ {|"}|}
                   in
-                  match Network.post ~body url with
+                  match Http_helpers.post ~body url with
                   | Ok body -> (
                       try
                         match Yojson.Basic.from_string body with
                         | `Assoc e -> (
                             match List.assoc_opt "token" e with
                             | Some (`String token) ->
-                                let settings =
-                                  Semgrep_settings.
-                                    { settings with api_token = Some token }
-                                in
-                                Semgrep_settings.save settings;
-                                (* TODO if save failed, Exit_code.fatal *)
-                                Exit_code.ok
+                                if save_token ~echo_token:true settings token
+                                then Exit_code.ok
+                                else Exit_code.fatal
                             | None
                             | Some _ ->
                                 Logs.debug (fun m ->

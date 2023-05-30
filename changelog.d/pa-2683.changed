@@ -1,6 +1,0 @@
-Partially analyzed files are no longer reported as skipped by --verbose. And if we
-lack info about what lines have been skipped we no longer report that all lines have
-been skipped. That was not accurate. For example, an error while evaluating a
-`metavariable-pattern` operator in one rule may cause a finding to be missed, and
-the file being reported as partially analyzed. However, that error did not affect
-any other rules, and even the affected rule may be able to produce some findings.

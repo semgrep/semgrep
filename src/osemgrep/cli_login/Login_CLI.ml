@@ -5,21 +5,13 @@ open Cmdliner
 (* Prelude *)
 (*****************************************************************************)
 (*
-   'semgrep login' command-line arguments processing.
+   'semgrep login/logout' command-line arguments processing.
 *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 type conf = { logging_level : Logs.level option } [@@deriving show]
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(*************************************************************************)
-(* Command-line flags *)
-(*************************************************************************)
 
 (*****************************************************************************)
 (* Login subcommand *)
@@ -64,7 +56,7 @@ let logout_cmdline_info : Cmd.info =
 
 let term =
   let combine logging_level = { logging_level } in
-  Term.(const combine $ CLI_common.logging_term)
+  Term.(const combine $ CLI_common.o_logging)
 
 let parse_argv (cmd_info : Cmd.info) (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmd_info term in

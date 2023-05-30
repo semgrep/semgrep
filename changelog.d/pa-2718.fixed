@@ -1,2 +1,0 @@
-Swift: Made it so that taint correctly propagates into
-the bodies of lambdas

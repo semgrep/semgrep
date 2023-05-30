@@ -1,6 +1,8 @@
 (*
    Shared utilities to help with command-line parsing and handling
    (relies on the cmdliner library)
+
+   The o_ below stands for option (as in command-line argument option).
 *)
 
 val help_page_bottom : Cmdliner.Manpage.block list
@@ -9,19 +11,10 @@ val help_page_bottom : Cmdliner.Manpage.block list
 val eval_value : argv:string array -> 'a Cmdliner.Cmd.t -> 'a
 
 (* handles logging arguments (--quiet/--verbose/--debug) *)
-val logging_term : Logs.level option Cmdliner.Term.t
+val o_logging : Logs.level option Cmdliner.Term.t
 
-(* TODO: parser+printer for file path so we can write things like:
+(* small wrapper around Logs_helper.setup_logging and Logging_helpers.setup *)
+val setup_logging : force_color:bool -> level:Logs.level option -> unit
 
-        Arg.value (Arg.opt (Arg.some CLI_common.fpath) None info)
-
-      instead of
-
-        Arg.value (Arg.opt (Arg.some Arg.string) None info)
-        (* + having to convert the string to an fpath by hand *)
-
-      The main benefit would be to clarify error messages by having Fpath.t
-      instead of string.
-
-   val fpath : Fpath.t Cmdliner.conv????
-*)
+(* for --profile *)
+val o_profile : bool Cmdliner.Term.t

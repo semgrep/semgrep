@@ -654,6 +654,7 @@ def test_baseline_has_head_untracked(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.no_semgrep_cli
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)

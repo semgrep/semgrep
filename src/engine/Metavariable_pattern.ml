@@ -80,7 +80,7 @@ let filter_new_mvars_by_range range mvars =
 *)
 let get_persistent_bindings revert_loc r nested_matches =
   let reverting_visitor =
-    Map_AST.fix_token_locations_visitor#visit_any revert_loc
+    AST_generic_helpers.fix_token_locations_any revert_loc
   in
   nested_matches
   |> Common.map (fun nested_match ->
@@ -107,7 +107,7 @@ let get_persistent_bindings revert_loc r nested_matches =
 (* Entry point *)
 (*****************************************************************************)
 let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
-    opt_xlang formula =
+    (opt_xlang : Xlang.t option) formula =
   let bindings = r.RM.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
@@ -140,7 +140,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           (* We don't want having to re-parse `content', but then we
            * need to fix the token locations in `mast`. *)
           let mast_start_loc =
-            mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
+            mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens |> fst
             |> Tok.unsafe_loc_of_tok
           in
           let fix_loc file loc =
@@ -207,7 +207,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
                       let mast' =
-                        Map_AST.fix_token_locations_visitor#visit_program
+                        AST_generic_helpers.fix_token_locations_program
                           (fix_loc file) mast
                       in
                       let xtarget =
@@ -245,7 +245,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 | _, MV.Xmls [ XmlText (content, _tok) ]
                 | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
                     Some content
-                | Xlang.LGeneric, _else_ ->
+                | (LSpacegrep | LAliengrep), _ ->
                     Some (Range.content_at_range mval_file mval_range)
                 | _else_ -> None
               in
@@ -289,17 +289,20 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                   (spf
                                      "rule %s: metavariable-pattern: failed to \
                                       fully parse the content of %s"
-                                     (fst env.rule.Rule.id) mvar);
+                                     (fst env.rule.Rule.id :> string)
+                                     mvar);
                               Ok (lazy (ast, skipped_tokens))
                             with
                             | Parsing_error.Syntax_error tk ->
                                 Error (Tok.content_of_tok tk))
                         | LRegex
-                        | LGeneric ->
+                        | LSpacegrep
+                        | LAliengrep ->
                             Ok
                               (lazy
                                 (failwith
-                                   "requesting generic AST for LRegex|LGeneric"))
+                                   "requesting generic AST for \
+                                    LRegex|LSpacegrep|LAliengrep"))
                       in
                       match ast_and_errors_res with
                       | Error msg ->
@@ -307,8 +310,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                             (Common.spf
                                "rule %s: metavariable-pattern failed when \
                                 parsing %s's content as %s: %s"
-                               (fst env.rule.Rule.id) mvar
-                               (Xlang.to_string xlang) msg);
+                               (fst env.rule.Rule.id :> string)
+                               mvar (Xlang.to_string xlang) msg);
                           []
                       | Ok lazy_ast_and_errors ->
                           let xtarget =

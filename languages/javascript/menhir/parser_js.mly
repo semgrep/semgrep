@@ -1410,7 +1410,7 @@ primary_expr_no_braces:
  | array_literal                { $1 }
 
  (* simple! ECMA mixes this rule with arrow parameters (bad) *)
- | "(" expr ")" { $2 }
+ | "(" expr ")" { ParenExpr ($1, $2, $3) }
  | "(" id ":" type_ ")" { TypedMetavar ($2, $3, $4) }
 
  (* xhp: do not put in 'expr', otherwise can't have xhp in function arg *)

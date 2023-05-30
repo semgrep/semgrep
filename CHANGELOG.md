@@ -6,6 +6,150 @@
 
 <!-- insertion point -->
 
+## [1.23.0](https://github.com/returntocorp/semgrep/releases/tag/v1.23.0) - 2023-05-24
+
+### Added
+
+- On scan complete during logged in `semgrep ci` scans, check returned exit code to
+  see if should block scans. This is to support incoming features that requires
+  information from semgrep.dev (complete)
+- Extract mode: users can now choose to include or exclude rules to run on, similar to `paths:`. For example,
+  to only run on the rules `example-1` and `example-2`, you would write
+
+  ```
+  rules:
+     - id: test-rule
+       mode: extract
+       rules:
+          include:
+          - example-1
+          - example-2
+  ```
+
+  To run on everything except `example-1` and `example-2`, you would write
+
+  ````
+  rules:
+     - id: test-rule
+       mode: extract
+       rules:
+          exclude:
+          - example-1
+          - example-2
+  ``` (gh-7858)
+  ````
+
+- Kotlin: Added literal metavariables, from patterns like `"$FOO"`.
+  You can still match strings that only contain a single interpolated
+  ident by using the brace notation, e.g. `"${FOO}"`. (pa-2755)
+- Increase timeout of `semgrep ci` upload findings network calls
+  and make said timeout configurable with env var SEMGREP_UPLOAD_FINDINGS_TIMEOUT (timeout)
+
+### Changed
+
+- Relaxed restrictions on symbolic propagation so that symbolic values survive
+  branching statements. Now (with symbolic-propagation enabled) `foo(bar())` will
+  match match the following code:
+
+  ```python
+  def test():
+    x = bar()
+    if cond:
+      exit()
+    foo(x)
+  ```
+
+  Previously any symbolically propagated value was lost after any kind of branching
+  statement. (pa-2739)
+
+### Fixed
+
+- swift: support ellipsis metavariable (gh-7666)
+- Scala: You can now put an ellipsis inside of a `catch`, to
+  write a pattern like:
+  try {
+  ...
+  } catch {
+  ...
+  }
+  which will match every kind of try-catch. (gh-7807)
+- When scanning with `-l dockerfile`, files named `dockerfile` as well as `Dockerfile` will be scanned. (gh-7824)
+- Fix for very long runtimes that could happen due to one of our optimizations. We now detect when that might
+  happen and skip the optimization. (gh-7839)
+- Improve type inference for some simple arithmetic expressions (inference)
+- Fixed bug introduced in 1.19.0 that was causing some stack overflows. (pa-2740)
+
+## [1.22.0](https://github.com/returntocorp/semgrep/releases/tag/v1.22.0) - 2023-05-15
+
+### Added
+
+- Add support for language Cairo 1.0 (develop). Thanks to Frostweeds (Romain Jufer) for his contribution! (gh-7757)
+- On logged in `semgrep ci` scans, report lockfile parse errors to display in webUI (lockfileparse)
+- Pro: Java: Taint-mode can now do field-sensitive analysis of class constructors.
+  For example, if the default constructor of a class `C` sets its field `x` to a
+  tainted value, given `o = new C()`, Semgrep will know that `o.getX()` is tainted. (pa-2570)
+- Kotlin: Added named ellipses, like $...X (pa-2710)
+- Kotlin: Interpolated identifiers in strings, such as "$foo", are now properly
+  able to match explicitly interpolated expressions, like "${...}". (pa-2711)
+
+### Changed
+
+- Cleanup: Removed Bloom filter optimization. This optimization had been turned off by
+  default since September 2022 (release 0.116.0) without any noticeable effect. It had
+  its role in the past when it was first introduced, but now it's time for it to go! (cleanup-1)
+- engine: The use of a matching cache for statements is now disabled by default,
+  please let us know if you notice any performance degradation. We plan to remove
+  this optimization in a few weeks. (cleanup-2)
+
+### Fixed
+
+- Enable automatic removal of matched codes by allowing an empty string in the fix field. (gh-6318)
+- Updated SARIF to use nested levels, added confidence to tags and included references with markdown links. (gh-7317)
+- taint-mode: Fixed bug in taint labels that was causing some fatal errors:
+  > Failure "Call AST_utils.with_xxx_equal to avoid this error." (gh-7694)
+
+## [1.21.0](https://github.com/returntocorp/semgrep/releases/tag/v1.21.0) - 2023-05-04
+
+### Added
+
+- Scala: Most Scala 3 features can now be parsed (pa-2748)
+
+### Fixed
+
+- Fixed an issue where parentheses were incorrectly removed when autofixing JS/TS code. (gh-6233)
+- Fixed issue where the semgrep language server would crash with "No such file or directory: 'semgrep-core'" (pa-2745)
+
+## [1.20.0](https://github.com/returntocorp/semgrep/releases/tag/v1.20.0) - 2023-04-28
+
+### Added
+
+- Pro: Taint: Added support for simple cases of interprocedural taint labels (pa-2708)
+- Language Server has been moved to OCaml core, with major speed improvements (pa-lsp)
+
+### Changed
+
+- Pro: `semgrep --pro` still requires a single target, but this target no longer
+  needs to be a directory, it can be an individual file too. (misc-1)
+- Partially analyzed files are no longer reported as skipped by --verbose. And if we
+  lack info about what lines have been skipped we no longer report that all lines have
+  been skipped. That was not accurate. For example, an error while evaluating a
+  `metavariable-pattern` operator in one rule may cause a finding to be missed, and
+  the file being reported as partially analyzed. However, that error did not affect
+  any other rules, and even the affected rule may be able to produce some findings. (pa-2683)
+
+### Fixed
+
+- CLI: Fixed a bug where Git projects with URLs with subgroups would not parse correctly,
+  and produce non-clickable links in Semgrep App. These are such as:
+  https://gitlab.com/example/group2/group3/test-case.git (pa-2669)
+- Taint: Fixed a bug where the new labeled propagators would sometimes not behave properly (pa-2682)
+- Swift: Made it so that taint correctly propagates into
+  the bodies of lambdas (pa-2718)
+- Pro Engine: Fixed a bug where dataflow analysis would sometimes
+  loop when analyzing interprocedural `get<name>` methods in a
+  loop. (pro-56)
+- The scan progress bar no longer gets stuck displaying 0% (zero-progress)
+
 ## [1.19.0](https://github.com/returntocorp/semgrep/releases/tag/v1.19.0) - 2023-04-21
 
 ### Added

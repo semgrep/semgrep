@@ -2,10 +2,7 @@
  * across Semgrep.
  *
  * The types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens. We also want to
- * annotate tokens with transformation (for Spatch).
- *
- * The main type below is 't', which represents a token (real or fake).
+ * to represent "fake" and "expanded" tokens.
  *)
 
 (*****************************************************************************)
@@ -18,7 +15,7 @@ type location = {
 }
 [@@deriving show, eq]
 
-type kind =
+type t =
   (* Token found in the original file *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -54,30 +51,6 @@ type kind =
   | Ab
 [@@deriving show, eq]
 
-(* for Spatch *)
-type transformation =
-  | NoTransfo
-  | Remove
-  | AddBefore of add
-  | AddAfter of add
-  | Replace of add
-  | AddArgsBefore of string list
-
-and add = AddStr of string | AddNewlineAndIdent [@@deriving show, eq]
-
-type t = {
-  (* contains among other things the position of the token through
-   * the 'location' embedded inside the kind type.
-   *)
-  token : kind;
-  (* The transfo field as its name suggests is to allow source to source
-   * transformations via token "annotations". See the documentation for Spatch.
-   * TODO: remove now that we use AST-based autofix in Semgrep.
-   *)
-  mutable transfo : transformation;
-}
-[@@deriving show, eq]
-
 (* To customize show() dynamically. If you set this to true, AST
  * dumper will display the full token information instead of just a '()'
  *)
@@ -87,7 +60,7 @@ val pp_full_token_info : bool ref
  * are actually not automatically derived; Tok.ml provides customized
  * behavior where we assume all tokens are equal.
  * This is used by Semgrep in AST_generic and Raw_tree to be able to
- * check for equality of big AST constructs (e.g., complex expressions) by not
+q * check for equality of big AST constructs (e.g., complex expressions) by not
  * caring about differences in token positions.
  *)
 type t_always_equal = t [@@deriving show, eq, hash]
@@ -191,6 +164,9 @@ val tok_add_s : string -> t -> t
 (*****************************************************************************)
 val fix_location : (location -> location) -> t -> t
 (** adjust the location in a token *)
+
+val fix_pos : (Pos.t -> Pos.t) -> location -> location
+(** adjust the position in a location *)
 
 val adjust_tok_wrt_base : location -> t -> t
 (** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location

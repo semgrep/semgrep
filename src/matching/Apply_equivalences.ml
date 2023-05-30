@@ -18,7 +18,6 @@ module G = AST_generic
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module MV = Metavariable
-module M = Map_AST
 module Eq = Equivalence
 module Env = Metavariable_capture
 
@@ -30,7 +29,7 @@ let match_e_e_for_equivalences _ruleid lang a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
       let config =
         {
-          Config_semgrep.default_config with
+          Rule_options.default_config with
           go_deeper_expr = false;
           go_deeper_stmt = false;
         }

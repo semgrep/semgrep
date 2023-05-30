@@ -6,11 +6,12 @@
 (library
   (public_name osemgrep_targeting)
   (name osemgrep_targeting)
+  (wrapped false)
   (libraries
     stdcompat
     commons
     fpath
-    globbing
+    glob
     gitignore
   )
   (preprocess (pps ppx_deriving.show))
