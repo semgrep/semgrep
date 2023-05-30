@@ -14,7 +14,7 @@
  *)
 open Common
 module CST = Tree_sitter_elixir.CST
-open AST_generic
+open AST_elixir
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
@@ -22,20 +22,8 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Elixir parser using tree-sitter-lang/semgrep-elixir and converting
- * (mostly directly) to AST_generic.ml
- *
- * alt:
- *  - define an intermediate AST_elixir.ml and convert to that instead
- *    of directly to AST_generic.ml (like we do for Bash, Ruby, etc.).
- *    Elixir is quite an unusual language
- *    with a very flexibly syntax and macro system. For example, there
- *    are no 'definition' or 'declaration' grammar rules. Instead a
- *    definition looks really like a function call. This is a bit
- *    similar to LISP.
- *  - define a few intermediate AST constructs below and convert
- *    eventually them to AST_generic.ml (we do that for a few C#
- *    constructs for example)
+(* Elixir parser using tree-sitter-lang/semgrep-elixir and converting to
+ * AST_elixir.ml
  *
  * references:
  * - https://hexdocs.pm/elixir/syntax-reference.html
@@ -45,194 +33,6 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* A few intermediate AST constructs or aliases corresponding to
- * Elixir constructs, eventually converted to AST_generic constructs.
- *
- * We try to follow the naming conventions in
- * https://hexdocs.pm/elixir/syntax-reference.html
- *)
-
-(* lowercase ident *)
-type ident = G.ident
-
-(* uppercase ident *)
-type alias = G.ident
-
-(* there is no 'name' below. They use the term 'remote' for qualified calls
- * with lowercase ident.
- * Note that the alias can actually also contain some dots
- * and be also kinda of a name.
- *)
-
-(* exprs separated by terminators (newlines or semicolons)
- * can be empty.
- *)
-type body = expr list
-
-(* less: restrict with special arg? *)
-type call = expr
-
-(* Ideally we would want just 'type keyword = ident * tok (*:*)',
- * but Elixir allows also "interpolated{ x }string": keywords.
- *)
-type keyword = expr
-
-(* note that Elixir supports also pairs using the (:atom => expr) syntax *)
-type pair = keyword * expr
-
-(* inside containers (list, bits, maps, tuples), separated by commas *)
-type item = expr
-
-(* Ideally it should be pattern list * tok * body option, but Elixir
- * is more general and use '->' also for type declarations in typespecs,
- * or for parameters (kind of patterns though).
- *)
-type stab_clause =
-  (argument list * (tok (*'when'*) * expr) option) * tok (* '->' *) * body
-
-type clauses = stab_clause list
-
-(* in after/rescue/catch/else and do blocks *)
-type body_or_clauses = (body, clauses) either
-
-(* the bracket here are do/end *)
-type do_block =
-  (body_or_clauses
-  * (ident (* 'after/rescue/catch/else' *) * body_or_clauses) list)
-  bracket
-
-(* the bracket here are () *)
-type block = body_or_clauses bracket
-
-(*****************************************************************************)
-(* Intermediate AST constructs to AST_generic *)
-(*****************************************************************************)
-
-let fb = Tok.unsafe_fake_bracket
-let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
-let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
-let body_to_stmts es = es |> Common.map G.exprstmt
-
-(* TODO: lots of work here to detect when args is really a single
- * pattern, or tuples *)
-let pat_of_args_and_when (args, when_opt) : pattern =
-  let rest =
-    match when_opt with
-    | None -> []
-    | Some (_tok, e) -> [ E e ]
-  in
-  OtherPat (("ArgsAndWhenOpt", G.fake ""), Args args :: rest) |> G.p
-
-let case_and_body_of_stab_clause (x : stab_clause) : case_and_body =
-  (* body can be empty *)
-  let args_and_when, _tarrow, body = x in
-  let pat = pat_of_args_and_when args_and_when in
-  let stmts = body_to_stmts body in
-  let stmt = G.stmt1 stmts in
-  G.case_of_pat_and_stmt (pat, stmt)
-
-(* TODO: if the list contains just one element, can be a simple lambda
- * as in 'fn (x, y) -> x + y end'. Otherwise it can be a multiple-cases
- * switch/match.
- * The first tk parameter corresponds to 'fn' for lambdas and 'do' when
- * used in a do_block.
- *)
-let stab_clauses_to_function_definition tk (xs : stab_clause list) :
-    function_definition =
-  (* mostly a copy-paste of code to handle Function in ml_to_generic *)
-  let xs = xs |> Common.map case_and_body_of_stab_clause in
-  let id = G.implicit_param_id tk in
-  let params = [ G.Param (G.param_of_id id) ] in
-  let body_stmt =
-    G.Switch (tk, Some (G.Cond (G.N (H2.name_of_id id) |> G.e)), xs) |> G.s
-  in
-  {
-    G.fparams = fb params;
-    frettype = None;
-    fkind = (G.Function, tk);
-    fbody = G.FBStmt body_stmt;
-  }
-
-(* following Elixir semantic (unsugaring pairs) *)
-let list_container_of_kwds xs =
-  let es = xs |> Common.map keyval_of_kwd in
-  Container (List, fb es) |> G.e
-
-let args_of_exprs_and_keywords (es : expr list) (kwds : pair list) :
-    argument list =
-  let rest =
-    match kwds with
-    | [] -> []
-    | kwds -> [ list_container_of_kwds kwds ]
-  in
-  Common.map G.arg (es @ rest)
-
-let items_of_exprs_and_keywords (es : expr list) (kwds : pair list) : item list
-    =
-  es @ (kwds |> Common.map keyval_of_kwd)
-
-let expr_of_body_or_clauses tk (x : body_or_clauses) : expr =
-  match x with
-  | Left [ e ] -> e
-  | Left xs ->
-      let stmts = body_to_stmts xs in
-      (* less: use G.stmt1 instead? or get rid of fake_bracket here
-       * passed down from caller? *)
-      let block = Block (fb stmts) |> G.s in
-      G.stmt_to_expr block
-  | Right clauses ->
-      let fdef = stab_clauses_to_function_definition tk clauses in
-      Lambda fdef |> G.e
-
-(* following Elixir semantic (unsugaring do/end block in keywords) *)
-let kwds_of_do_block (bl : do_block) : pair list =
-  let tdo, (body_or_clauses, extras), _tend = bl in
-  let dokwd = kwd_of_id ("do:", tdo) in
-  let e = expr_of_body_or_clauses tdo body_or_clauses in
-  let pair1 = (dokwd, e) in
-  let rest =
-    extras
-    |> Common.map (fun ((s, t), body_or_clauses) ->
-           let kwd = kwd_of_id (s ^ ":", t) in
-           let e = expr_of_body_or_clauses t body_or_clauses in
-           (kwd, e))
-  in
-  pair1 :: rest
-
-let expr_of_block (blk : block) : expr =
-  (* TODO: could pass a 'body_or_clauses bracket' to
-   * expr_of_body_or_clauses to avoid the fake_bracket above
-   *)
-  let l, body_or_clauses, _r = blk in
-  expr_of_body_or_clauses l body_or_clauses
-
-let args_of_do_block_opt (blopt : do_block option) : argument list =
-  match blopt with
-  | None -> []
-  | Some bl ->
-      let kwds = kwds_of_do_block bl in
-      args_of_exprs_and_keywords [] kwds
-
-let mk_call_no_parens (e : expr) (args : argument list)
-    (blopt : do_block option) : call =
-  Call (e, fb (args @ args_of_do_block_opt blopt)) |> G.e
-
-let mk_call_parens (e : expr) (args : argument list bracket)
-    (blopt : do_block option) : call =
-  let l, xs, r = args in
-  Call (e, (l, xs @ args_of_do_block_opt blopt, r)) |> G.e
-
-let binary_call (e1 : expr) op_either (e2 : expr) : expr =
-  match op_either with
-  | Left id ->
-      let n = N (H2.name_of_id id) |> G.e in
-      Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e
-  | Right op -> G.opcall op [ e1; e2 ]
-
-let expr_of_e_or_kwds (x : (expr, pair list) either) : expr =
-  match x with
-  | Left e -> e
-  | Right kwds -> list_container_of_kwds kwds
 
 (*****************************************************************************)
 (* Helpers *)
@@ -241,9 +41,10 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
+let fb = Tok.unsafe_fake_bracket
 
 (* helper to factorize code *)
-let map_trailing_comma env v1 : tok option =
+let map_trailing_comma env v1 : Tok.t option =
   match v1 with
   | Some tok -> Some ((* "," *) token env tok)
   | None -> None
@@ -276,7 +77,7 @@ let map_anon_choice_PLUS_8019319 (env : env) (x : CST.anon_choice_PLUS_8019319)
   | `TILDETILDETILDE tok -> (* "~~~" *) str env tok
   | `Not tok -> (* "not" *) str env tok
 
-let map_terminator (env : env) (x : CST.terminator) : tok list =
+let map_terminator (env : env) (x : CST.terminator) : Tok.t list =
   match x with
   | `Rep_pat_509ec78_SEMI (v1, v2) ->
       let v1 = Common.map (token env (* pattern \r?\n *)) v1 in
@@ -285,7 +86,7 @@ let map_terminator (env : env) (x : CST.terminator) : tok list =
   | `Rep1_pat_509ec78 xs -> Common.map (token env (* pattern \r?\n *)) xs
 
 (* helper to factorize code *)
-let map_terminator_opt env v1 : tok list option =
+let map_terminator_opt env v1 : Tok.t list option =
   match v1 with
   | Some x -> Some (map_terminator env x)
   | None -> None
@@ -516,7 +317,7 @@ and map_anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e (env : env)
         v2
     | None -> []
   in
-  args_of_exprs_and_keywords (v1 :: v2) v3
+  Elixir_to_generic.args_of_exprs_and_keywords (v1 :: v2) v3
 
 and map_anon_opt_opt_nl_before_do_do_blk_3eff85f (env : env)
     (opt : CST.anon_opt_opt_nl_before_do_do_blk_3eff85f) : do_block option =
@@ -552,9 +353,9 @@ and map_anon_term_choice_stab_clause_70647b7 (env : env)
 and map_anonymous_call (env : env) ((v1, v2) : CST.anonymous_call) : call =
   let e, tdot = map_anonymous_dot env v1 in
   let args = map_call_arguments_with_parentheses env v2 in
-  let anon_fld = FDynamic (OtherExpr (("AnonDotField", tdot), []) |> G.e) in
-  let e = DotAccess (e, tdot, anon_fld) |> G.e in
-  mk_call_parens e args None
+  let anon_fld = G.FDynamic (G.OtherExpr (("AnonDotField", tdot), []) |> G.e) in
+  let e = G.DotAccess (e, tdot, anon_fld) |> G.e in
+  Elixir_to_generic.mk_call_parens e args None
 
 and map_anonymous_dot (env : env) ((v1, v2) : CST.anonymous_dot) =
   let v1 = map_expression env v1 in
@@ -566,11 +367,11 @@ and map_atom (env : env) (x : CST.atom) : expr =
   | `Atom_ tok ->
       (* less: should remove the leading ':' from x *)
       let x = (* atom_ *) str env tok in
-      L (Atom (G.fake ":", x)) |> G.e
+      G.L (G.Atom (G.fake ":", x)) |> G.e
   | `Quoted_atom (v1, v2) ->
       let t = (* quoted_atom_start *) token env v1 in
       let str = map_anon_choice_quoted_i_double_d7d5f65 env v2 in
-      OtherExpr (("AtomExpr", t), [ E str ]) |> G.e
+      G.OtherExpr (("AtomExpr", t), [ E str ]) |> G.e
 
 and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
   match x with
@@ -583,31 +384,35 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
         | `BSLASHBSLASH tok -> (* "\\\\" *) str env tok
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_when_choice_exp (v1, v2, v3) ->
       let e1 = map_expression env v1 in
       let twhen = (* "when" *) token env v2 in
       let e_or_kwds = map_anon_choice_exp_0094635 env v3 in
-      OtherExpr (("When", twhen), [ E e1; E (expr_of_e_or_kwds e_or_kwds) ])
+      OtherExpr
+        ( ("When", twhen),
+          [ E e1; E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
       |> G.e
   | `Exp_COLONCOLON_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "::" *) str env v2 in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_BAR_choice_exp (v1, v2, v3) ->
       let e1 = map_expression env v1 in
       (* join operator (=~ "::" in OCaml, comes from Prolog/Erlang) *)
       let tbar = (* "|" *) token env v2 in
       let e_or_kwds = map_anon_choice_exp_0094635 env v3 in
-      OtherExpr (("Join", tbar), [ E e1; E (expr_of_e_or_kwds e_or_kwds) ])
+      G.OtherExpr
+        ( ("Join", tbar),
+          [ G.E e1; G.E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
       |> G.e
   | `Exp_EQGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       (* less: used in Maps, should convert in 'pair'? *)
       let v2 = (* "=>" *) str env v2 in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_EQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "=" *) token env v2 in
@@ -617,45 +422,45 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `BARBAR tok -> Right (Or, (* "||" *) token env tok)
+        | `BARBAR tok -> Right (G.Or, (* "||" *) token env tok)
         | `BARBARBAR tok -> Left ((* "|||" *) str env tok)
         | `Or tok -> Left ((* "or" *) str env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 v2 v3
+      Elixir_to_generic.binary_call v1 v2 v3
   | `Exp_choice_AMPAMP_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `AMPAMP tok -> Right (And, (* "&&" *) token env tok)
+        | `AMPAMP tok -> Right (G.And, (* "&&" *) token env tok)
         | `AMPAMPAMP tok -> Left ((* "&&&" *) str env tok)
         | `And tok -> Left ((* "and" *) str env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 v2 v3
+      Elixir_to_generic.binary_call v1 v2 v3
   | `Exp_choice_EQEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `EQEQ tok -> Right (Eq, (* "==" *) token env tok)
-        | `BANGEQ tok -> Right (NotEq, (* "!=" *) token env tok)
-        | `EQTILDE tok -> Right (RegexpMatch, (* "=~" *) token env tok)
-        | `EQEQEQ tok -> Right (PhysEq, (* "===" *) token env tok)
-        | `BANGEQEQ tok -> Right (NotPhysEq, (* "!==" *) token env tok)
+        | `EQEQ tok -> Right (G.Eq, (* "==" *) token env tok)
+        | `BANGEQ tok -> Right (G.NotEq, (* "!=" *) token env tok)
+        | `EQTILDE tok -> Right (G.RegexpMatch, (* "=~" *) token env tok)
+        | `EQEQEQ tok -> Right (G.PhysEq, (* "===" *) token env tok)
+        | `BANGEQEQ tok -> Right (G.NotPhysEq, (* "!==" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 v2 v3
+      Elixir_to_generic.binary_call v1 v2 v3
   | `Exp_choice_LT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `LT tok -> (* "<" *) (Lt, token env tok)
-        | `GT tok -> (* ">" *) (Gt, token env tok)
-        | `LTEQ tok -> (* "<=" *) (LtE, token env tok)
-        | `GTEQ tok -> (* ">=" *) (GtE, token env tok)
+        | `LT tok -> (* "<" *) (G.Lt, token env tok)
+        | `GT tok -> (* ">" *) (G.Gt, token env tok)
+        | `LTEQ tok -> (* "<=" *) (G.LtE, token env tok)
+        | `GTEQ tok -> (* ">=" *) (G.GtE, token env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Right v2) v3
+      Elixir_to_generic.binary_call v1 (Right v2) v3
   | `Exp_choice_BARGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
@@ -671,26 +476,26 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
         | `LTBARGT tok -> (* "<|>" *) str env tok
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_choice_in_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `In tok -> (* "in" *) (In, token env tok)
-        | `Not_in tok -> (* not_in *) (NotIn, token env tok)
+        | `In tok -> (* "in" *) (G.In, token env tok)
+        | `Not_in tok -> (* not_in *) (G.NotIn, token env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Right v2) v3
+      Elixir_to_generic.binary_call v1 (Right v2) v3
   | `Exp_HATHATHAT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "^^^" *) str env v2 in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_SLASHSLASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "//" *) str env v2 in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_choice_PLUSPLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
@@ -703,36 +508,36 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
         | `LTGT tok -> (* "<>" *) str env tok
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Left v2) v3
+      Elixir_to_generic.binary_call v1 (Left v2) v3
   | `Exp_choice_PLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `PLUS tok -> (Plus, (* "+" *) token env tok)
-        | `DASH tok -> (Minus, (* "-" *) token env tok)
+        | `PLUS tok -> (G.Plus, (* "+" *) token env tok)
+        | `DASH tok -> (G.Minus, (* "-" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Right v2) v3
+      Elixir_to_generic.binary_call v1 (Right v2) v3
   | `Exp_choice_STAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `STAR tok -> (Mult, (* "*" *) token env tok)
-        | `SLASH tok -> (Div, (* "/" *) token env tok)
+        | `STAR tok -> (G.Mult, (* "*" *) token env tok)
+        | `SLASH tok -> (G.Div, (* "/" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      binary_call v1 (Right v2) v3
+      Elixir_to_generic.binary_call v1 (Right v2) v3
   | `Exp_STARSTAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "**" *) (Pow, token env v2) in
+      let v2 = (* "**" *) (G.Pow, token env v2) in
       let v3 = map_expression env v3 in
-      binary_call v1 (Right v2) v3
+      Elixir_to_generic.binary_call v1 (Right v2) v3
   | `Op_id_SLASH_int (v1, v2, v3) ->
       let id = map_operator_identifier env v1 in
       let tslash = (* "/" *) token env v2 in
       let s, t = (* integer *) str env v3 in
-      let e = L (Int (int_of_string_opt s, t)) |> G.e in
-      OtherExpr (("OpSlashInt", tslash), [ I id; E e ]) |> G.e
+      let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
+      G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
 
 and map_body (env : env) ((v1, v2, v3, v4) : CST.body) : body =
   let _v1 = map_terminator_opt env v1 in
@@ -798,10 +603,10 @@ and map_call_arguments_with_trailing_separator (env : env)
             v2
         | None -> []
       in
-      args_of_exprs_and_keywords (v1 :: v2) v3
+      Elixir_to_generic.args_of_exprs_and_keywords (v1 :: v2) v3
   | `Keywos_with_trai_sepa x ->
       let xs = map_keywords_with_trailing_separator env x in
-      args_of_exprs_and_keywords [] xs
+      Elixir_to_generic.args_of_exprs_and_keywords [] xs
 
 and map_call_arguments_without_parentheses (env : env)
     (x : CST.call_arguments_without_parentheses) : argument list =
@@ -810,7 +615,7 @@ and map_call_arguments_without_parentheses (env : env)
       map_anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e env x
   | `Keywos x ->
       let xs = map_keywords env x in
-      args_of_exprs_and_keywords [] xs
+      Elixir_to_generic.args_of_exprs_and_keywords [] xs
 
 and map_call_with_parentheses (env : env) (x : CST.call_with_parentheses) : call
     =
@@ -827,7 +632,7 @@ and map_call_with_parentheses (env : env) (x : CST.call_with_parentheses) : call
       in
       let args = map_call_arguments_with_parentheses env v2 in
       let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-      mk_call_parens call1 args blopt
+      Elixir_to_generic.mk_call_parens call1 args blopt
 
 and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
     : call =
@@ -836,13 +641,13 @@ and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
       let id = map_identifier env v1 in
       let args = map_call_arguments_without_parentheses env v2 in
       let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-      let e = N (H2.name_of_id id) |> G.e in
-      mk_call_no_parens e args blopt
+      let e = G.N (H2.name_of_id id) |> G.e in
+      Elixir_to_generic.mk_call_no_parens e args blopt
   | `Local_call_just_do_blk (v1, v2) ->
       let id = map_identifier env v1 in
       let bl = map_do_block env v2 in
-      let e = N (H2.name_of_id id) |> G.e in
-      mk_call_no_parens e [] (Some bl)
+      let e = G.N (H2.name_of_id id) |> G.e in
+      Elixir_to_generic.mk_call_no_parens e [] (Some bl)
   | `Remote_call_with_parens (v1, v2, v3) ->
       let e = map_remote_dot env v1 in
       let args =
@@ -851,7 +656,7 @@ and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
         | None -> []
       in
       let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-      mk_call_no_parens e args blopt
+      Elixir_to_generic.mk_call_no_parens e args blopt
 
 and map_capture_expression (env : env) (x : CST.capture_expression) : expr =
   match x with
@@ -950,7 +755,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       in
       let r = (* ")" *) token env v4 in
       let blk : block = (l, xs, r) in
-      expr_of_block blk
+      Elixir_to_generic.expr_of_block blk
   | `Id x -> map_identifier_or_ellipsis env x
   | `Alias tok ->
       let al = map_alias env tok in
@@ -993,7 +798,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
               | `Quoted_i_bar x -> map_quoted_i_bar env x
               | `Quoted_i_slash x -> map_quoted_i_slash env x
             in
-            (lower, E quoted)
+            (lower, G.E quoted)
         | `Imm_tok_pat_562b724_choice_quoted_double (v1, v2) ->
             let upper = (* pattern [A-Z] *) str env v1 in
             let quoted =
@@ -1013,10 +818,10 @@ and map_expression (env : env) (x : CST.expression) : expr =
       in
       let idopt =
         match v3 with
-        | Some tok -> [ I ((* pattern [a-zA-Z0-9]+ *) str env tok) ]
+        | Some tok -> [ G.I ((* pattern [a-zA-Z0-9]+ *) str env tok) ]
         | None -> []
       in
-      OtherExpr (("Sigil", ttilde), [ I letter; any ] @ idopt) |> G.e
+      G.OtherExpr (("Sigil", ttilde), [ G.I letter; any ] @ idopt) |> G.e
   | `List (v1, v2, v3) ->
       let l = (* "[" *) token env v1 in
       let xs =
@@ -1025,10 +830,10 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | None -> []
       in
       let r = (* "]" *) token env v3 in
-      Container (List, (l, xs, r)) |> G.e
+      G.Container (G.List, (l, xs, r)) |> G.e
   | `Tuple x ->
       let l, xs, r = map_tuple env x in
-      Container (Tuple, (l, xs, r)) |> G.e
+      G.Container (G.Tuple, (l, xs, r)) |> G.e
   | `Bits (v1, v2, v3) ->
       let l = (* "<<" *) token env v1 in
       let xs =
@@ -1037,8 +842,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | None -> []
       in
       let r = (* ">>" *) token env v3 in
-      OtherExpr
-        (("ContainerBits", l), (xs |> Common.map (fun e -> E e)) @ [ Tk r ])
+      G.OtherExpr
+        (("ContainerBits", l), (xs |> Common.map (fun e -> G.E e)) @ [ G.Tk r ])
       |> G.e
   | `Map (v1, v2, v3, v4, v5) -> (
       let tpercent = (* "%" *) token env v1 in
@@ -1054,15 +859,15 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | None -> []
       in
       let r = (* "}" *) token env v5 in
-      let container = Container (Dict, (l, xs, r)) |> G.e in
+      let container = G.Container (G.Dict, (l, xs, r)) |> G.e in
       match struct_opt with
       | None -> container
       | Some (Left id) ->
           let n = H2.name_of_id id in
-          let ty = TyN n |> G.t in
-          New (tpercent, ty, empty_id_info (), (l, Common.map G.arg xs, r))
+          let ty = G.TyN n |> G.t in
+          G.New (tpercent, ty, G.empty_id_info (), (l, Common.map G.arg xs, r))
           |> G.e
-      | Some (Right e) -> Call (e, (l, Common.map G.arg xs, r)) |> G.e)
+      | Some (Right e) -> G.Call (e, (l, Common.map G.arg xs, r)) |> G.e)
   | `Un_op x -> map_unary_operator env x
   | `Bin_op x -> map_binary_operator env x
   | `Dot x -> map_dot env x
@@ -1088,7 +893,9 @@ and map_expression (env : env) (x : CST.expression) : expr =
       in
       let _v5TODO = (* "end" *) token env v5 in
       let clauses = x :: xs in
-      let fdef = stab_clauses_to_function_definition tfn clauses in
+      let fdef =
+        Elixir_to_generic.stab_clauses_to_function_definition tfn clauses
+      in
       let fdef = { fdef with fkind = (LambdaKind, tfn) } in
       Lambda fdef |> G.e
 
@@ -1132,7 +939,7 @@ and map_items_with_trailing_separator (env : env)
         | None -> []
       in
       let xs = map_keywords_with_trailing_separator env v2 in
-      items_of_exprs_and_keywords v1 xs
+      Elixir_to_generic.items_of_exprs_and_keywords v1 xs
 
 and map_keyword (env : env) (x : CST.keyword) : keyword =
   match x with
@@ -1177,7 +984,7 @@ and map_local_call_with_parentheses (env : env)
   let args = map_call_arguments_with_parentheses_immediate env v2 in
   let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
   let e = N (H2.name_of_id id) |> G.e in
-  mk_call_parens e args blopt
+  Elixir_to_generic.mk_call_parens e args blopt
 
 and map_pair (env : env) ((v1, v2) : CST.pair) : pair =
   let v1 = map_keyword env v1 in
@@ -1222,12 +1029,12 @@ and map_remote_call_with_parentheses (env : env)
   let e = map_remote_dot env v1 in
   let args = map_call_arguments_with_parentheses_immediate env v2 in
   let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-  mk_call_parens e args blopt
+  Elixir_to_generic.mk_call_parens e args blopt
 
 and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) : expr =
   let e = map_expression env v1 in
   let tdot = (* "." *) token env v2 in
-  let fld : field_name =
+  let fld : G.field_name =
     match v3 with
     | `Id x ->
         let id = map_identifier env x in
@@ -1310,11 +1117,11 @@ and map_stab_clause_arguments_without_parentheses (env : env)
       xs
   | `Keywos x ->
       let xs = map_keywords env x in
-      args_of_exprs_and_keywords [] xs
+      Elixir_to_generic.args_of_exprs_and_keywords [] xs
 
 (* we would prefer pattern list, but elixir is more general *)
 and map_stab_clause_left (env : env) (x : CST.stab_clause_left) :
-    argument list * (tok * expr) option =
+    argument list * (Tok.t * expr) option =
   match x with
   | `Stab_clause_args_with_parens_bf4a580 x ->
       let _, xs, _ = map_stab_clause_arguments_with_parentheses env x in
@@ -1382,7 +1189,7 @@ and map_unary_operator (env : env) (x : CST.unary_operator) : expr =
       let id = map_anon_choice_PLUS_8019319 env v2 in
       let e2 = map_expression env v3 in
       let e1 = N (H2.name_of_id id) |> G.e in
-      mk_call_no_parens e1 [ G.arg e2 ] None
+      Elixir_to_generic.mk_call_no_parens e1 [ G.arg e2 ] None
   | `Opt_before_un_op_AT_exp (v1, v2, v3) ->
       let _v1 = map_before_unary_op_opt env v1 in
       (* TODO: attributes *)
@@ -1427,7 +1234,7 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let es = map_source env cst in
-      body_to_stmts es)
+      Elixir_to_generic.body_to_stmts es)
 
 let parse_pattern str =
   H.wrap_parser
@@ -1436,4 +1243,4 @@ let parse_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       let es = map_source env cst in
-      G.Ss (body_to_stmts es))
+      G.Ss (Elixir_to_generic.body_to_stmts es))
