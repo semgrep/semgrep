@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    severity: WARNING
+    message: test
+    languages:
+      - xml
+    metadata:
+      category: security
+    patterns:
+      - pattern: <tag a="$X" />
+      - metavariable-comparison:
+          comparison: int($X) < 4
