@@ -148,7 +148,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
   | Lang.Csharp ->
       Tree_sitter_c_sharp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree

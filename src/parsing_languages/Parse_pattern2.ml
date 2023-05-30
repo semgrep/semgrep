@@ -165,7 +165,7 @@ let dump_tree_sitter_pattern_cst lang file =
   match lang with
   | Lang.Csharp ->
       Tree_sitter_c_sharp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
       |> dump_and_print_errors Tree_sitter_lua.Boilerplate.dump_tree
