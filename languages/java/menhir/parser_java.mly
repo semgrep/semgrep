@@ -246,6 +246,11 @@ let mk_stmt_or_stmts = function
  ENUM
  TRUE FALSE NULL
  VAR
+ (* This terminal is currently not used but lexed so that we generate parse
+  * errors on code using records so that we switch to the tree-sitter
+  * parser for files using this construct.
+  *)
+ RECORD
 
 (*-----------------------------------------*)
 (* Extra tokens: *)

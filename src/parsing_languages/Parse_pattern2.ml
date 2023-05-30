@@ -72,8 +72,8 @@ let parse_pattern print_errors lang str =
         str
         |> run_pattern ~print_errors
              [
-               PfffPat Parse_java.any_of_string;
                TreeSitterPat Parse_java_tree_sitter.parse_pattern;
+               PfffPat Parse_java.any_of_string;
              ]
       in
       Java_to_generic.any any
