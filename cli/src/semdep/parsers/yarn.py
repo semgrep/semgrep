@@ -44,8 +44,8 @@ A = TypeVar("A")
 # bad-lib@0.0.8:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-part1 = regex("\"?@?([^@:]*)", flags=0, group=1)
-part2 = regex("@?([^:,\"]*:?(?!\n))", flags=0, group=1)
+part1 = regex('"?@?([^@:]*)', flags=0, group=1)
+part2 = regex('@?([^:,"]*:?(?!\n))', flags=0, group=1)
 source1 = pair(part1, part2)
 
 # Examples:
