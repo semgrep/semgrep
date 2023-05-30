@@ -280,6 +280,30 @@ var e = "xx";
       Capture_value ((Metavariable, "COPY"), "d");
     ]
 
+let test_left_anchored_ellipses () =
+  check uconf "... $A" "!!!\n!!!hello world"
+    [ Num_matches 1; Match_value "!!!hello" ];
+  check uconf ".... $A" "!!!\n!!!hello world"
+    [ Num_matches 1; Match_value "!!!\n!!!hello" ];
+  check mconf "... $A" "!!!\n!!!hello world"
+    [ Num_matches 1; Match_value "!!!\n!!!hello" ]
+
+let test_right_anchored_ellipses () =
+  check uconf "$A ..." "hello!!!\n!!!" [ Num_matches 1; Match_value "hello!!!" ];
+  check uconf "$A ...." "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!\n!!!" ];
+  check mconf "... $A" "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!\n!!!" ];
+  check mconf "... $A" "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!\n!!!" ]
+
+let test_pure_ellipsis () =
+  check uconf "..." "hello\nworld"
+    [ Num_matches 2; Match_value "hello"; Match_value "world" ];
+  check uconf "...." "hello\nworld"
+    [ Num_matches 1; Match_value "hello\nworld" ];
+  check mconf "..." "hello\nworld" [ Num_matches 1; Match_value "hello\nworld" ]
+
 let tests =
   [
     ("word", test_word);
@@ -292,4 +316,7 @@ let tests =
     ("backreferences", test_backreferences);
     ("ellipsis metavariable", test_ellipsis_metavariable);
     ("skip lines", test_skip_lines);
+    ("left-anchored ellipses", test_left_anchored_ellipses);
+    ("right-anchored ellipses", test_right_anchored_ellipses);
+    ("pure ellipsis", test_pure_ellipsis);
   ]
