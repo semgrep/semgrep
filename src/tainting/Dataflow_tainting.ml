@@ -733,7 +733,8 @@ let fix_poly_taint_with_field env lval st =
                                 * TODO: This is way less likely to happen if we had better
                                 *   type info and we used to remove taint, e.g. if Boolean
                                 *   and integer expressions didn't propagate taint. *)
-                            List.length offset <= 1 ->
+                            List.length offset
+                            < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
                          let arg' = { arg with offset = arg.offset @ [ n ] } in
                          { taint with orig = Arg arg' }
                      | Arg _

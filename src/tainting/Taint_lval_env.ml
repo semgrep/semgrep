@@ -27,22 +27,6 @@ module LvalSet = Set.Make (LV.LvalOrdered)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(* We need to set some limits to prevent taint from exploding in some cases. As
- * we root cause these problems and fix them properly, we may be able to raise
- * these limits.
- *
- * These problems used to be pretty rare but with field-sensitivity they seem
- * to have become more common. (Where previously we would just track taint for
- * `x`, now we track taint for `x.a`, `x.b` and `x.c`.)
- *
- * In the case of 'WebGoat/src/main/resources/webgoat/static/js/libs/ace.js',
- * for example, it seems that this problem would be greatly reduced if we did
- * not propagate taint for data with Boolean and integer type. Improving some
- * of the data structures involved may help too.
- *)
-let max_TAINTED_LVALS = 100
-let max_TAINT_SET_SIZE = 50
-
 type t = {
   tainted : T.taints LvalMap.t;
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
@@ -141,7 +125,7 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
       lval_env
   | Some _
     when (not (LvalMap.mem lval tainted))
-         && LvalMap.cardinal tainted > max_TAINTED_LVALS ->
+         && LvalMap.cardinal tainted > Limits_semgrep.taint_MAX_TAINTED_LVALS ->
       logger#warning
         "Already tracking too many tainted l-values, will not track %s"
         (Display_IL.string_of_lval lval);
@@ -168,8 +152,10 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
                 | None -> Some taints
                 (* THINK: couldn't we just replace the existing taints? *)
                 | Some taints' ->
-                    if Taints.cardinal taints' < max_TAINT_SET_SIZE then
-                      Some (Taints.union taints taints')
+                    if
+                      Taints.cardinal taints'
+                      < Limits_semgrep.taint_MAX_TAINT_SET_SIZE
+                    then Some (Taints.union taints taints')
                     else (
                       logger#warning
                         "Already tracking too many taint sources for %s, will \
