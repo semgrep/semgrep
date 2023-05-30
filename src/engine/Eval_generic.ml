@@ -236,8 +236,8 @@ and eval_op op values code =
   match (op, values) with
   | _op, [ AST _; _ ]
   | _op, [ _; AST _ ] ->
-      (* To compare `AST` values one needs to explicitly use the `str()` function!
-       * Otherwise we would introduce regressions. *)
+      (* To compare `AST` values one needs to explicitly use the `str()`
+       * function! Otherwise we would introduce regressions. *)
       raise (NotHandled code)
   | G.And, [ Bool b1; Bool b2 ] -> Bool (b1 && b2)
   | G.Not, [ Bool b1 ] -> Bool (not b1)
@@ -400,6 +400,7 @@ let bindings_to_env (config : Rule_options.t) bindings =
            | MV.Id (i, Some id_info) ->
                try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
            | MV.E e -> try_bind_to_exp e
+           | MV.Text (s, _, _) -> Some (mvar, String s)
            | x -> string_of_binding mvar x)
     |> Common.hash_of_list
   in
