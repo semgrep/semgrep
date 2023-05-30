@@ -84,7 +84,7 @@ let just_parse_with_lang lang file =
       run file
         [
           (* we used to start with the pfff one; it was quite good and faster
-           * than tree-sitter (because we need to wrap tree-sitter inside
+           * than tree-sitter (because we used to wrap tree-sitter inside
            * an invoke because of a segfault/memory-leak), but when both parsers
            * fail, it's better to give the tree-sitter parsing error now.
            *)
