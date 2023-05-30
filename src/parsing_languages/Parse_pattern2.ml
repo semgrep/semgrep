@@ -72,8 +72,12 @@ let parse_pattern print_errors lang str =
         str
         |> run_pattern ~print_errors
              [
-               TreeSitterPat Parse_java_tree_sitter.parse_pattern;
+               (* TODO: we should switch to TreeSitterPat first, but
+                * we get regressions on generic_args.sgrep because
+                * typed metavariables are not parsed correctly then
+                *)
                PfffPat Parse_java.any_of_string;
+               TreeSitterPat Parse_java_tree_sitter.parse_pattern;
              ]
       in
       Java_to_generic.any any
