@@ -3,7 +3,7 @@ rules:
     message: "found use of secret"
     languages: [python]
     severity: WARNING
-    mode: join
+    mode: step
     steps:
         - languages: [python]
           patterns:

@@ -3,7 +3,7 @@ rules:
     message: "foo"
     languages: [java]
     severity: WARNING
-    mode: join
+    mode: step
     steps:
         - languages: [java]
           patterns:
