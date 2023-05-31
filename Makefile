@@ -254,7 +254,7 @@ core-test: core build-spacegrep
 	# from the directory of the checkou
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
-	dune runtest -f --no-buffer
+	./scripts/run-core-test.sh
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
