@@ -1,41 +1,59 @@
 (*
    Abstract type for a file path within a project.
 
-   This avoids issues of Unix-style vs. Windows-style paths. All
+   This avoids issues of Unix-style vs. Windows-style paths; All
    paths use '/' as a separator.
 
    The name of the module imitates Fpath.ml, but use Ppath.ml for
    Project path (instead of File path).
 *)
 
-type t = private {
-  (* path segments within the project root *)
-  segments : string list;
-  (* internal *)
-  string : string;
-}
+(* All project paths are *absolute* and *normalized* *)
+type t
 
 (*
-   Return an absolute, normalized path relative to the project root.
-   This is purely syntactic. It is recommended to work on physical paths
-   as returned by 'realpath' to ensure that both paths share the longest
-   common prefix.
+   Returns an absolute, normalized path relative to the project root.
+   This is purely syntactic.
+   It is recommended to work on physical paths as returned by 'realpath()'
+   to ensure that both paths below share the longest common prefix.
 
-     in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
+   Example of use:
 
-   equals
+     let* ppath = in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c") in
+     Ok (segments ppath, to_string ppath)
 
-     Ok (of_string "/b/c")
+   equals to
+
+     Ok ([""; "b"; "c"], "/b/c" )
 *)
 val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
 
-(* A slash-separated path. *)
-val of_string : string -> t
+(* Creates a ppath from a list of segments. Segments may not contain
+   slashes. The first segment must be "" because ppath must be
+   absolute paths.
+
+   Fail if the resulting path is absolute but refers to a file above the
+   root e.g. '/..' or '/../..'.
+   Example of syntactic path normalization:
+   foo/../bar -> bar  (even if 'foo/' doesn't exist)
+
+   Example of use: from_segments ["";"a";"b";"..";"c"] should
+   return a ppath whose final segments are ["";"a";"c"].
+*)
+val from_segments : string list -> (t, string) result
+
+(* Convert back to a system path. *)
+val to_fpath : root:Fpath.t -> t -> Fpath.t
+
+(* /, useful as a folding starting point *)
+val root : t
+
+(* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
 val to_string : t -> string
 
-(* Create a path from the list of segments. Segments may not contain
-   slashes. *)
-val create : string list -> t
+(* The first element returned will always be "", because ppaths are always
+ * absolute paths
+ *)
 val segments : t -> string list
 
 (* Append a segment to a path. *)
@@ -47,27 +65,7 @@ module Operators : sig
   val ( / ) : t -> string -> t
 end
 
-val is_absolute : t -> bool
-val is_relative : t -> bool
+(* internals *)
 
-(* Turn foo/bar into /foo/bar *)
-val make_absolute : t -> t
-
-(*
-   Syntactic path normalization.
-   e.g. foo/../bar -> bar  (even if 'foo/' doesn't exist)
-
-   Fail if the resulting path is absolute and refers to a file above the
-   root e.g. '/..' or '/../..'.
-
-   TODO: use filesystem path to the project root to perform a correct
-   normalization.
-*)
-val normalize : t -> (t, string) result
-val of_fpath : Fpath.t -> t
-
-(* Convert back to a system path. *)
-val to_fpath : root:Fpath.t -> t -> Fpath.t
-
-(* / *)
-val root : t
+(* A slash-separated path. *)
+val of_string_for_tests : string -> t
