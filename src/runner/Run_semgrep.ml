@@ -880,13 +880,10 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
 
 let semgrep_with_raw_results_and_exn_handler config =
   try
-    let (join_rules_map, rules), time =
-      Common.with_time (fun () ->
-          let rules = rules_from_rule_source config in
-          Join_util.extract_join_rules config rules)
+    let timed_rules =
+      Common.with_time (fun () -> rules_from_rule_source config)
     in
-    let res, files = semgrep_with_rules config (rules, time) in
-    let res = Join_util.unify_results config print_match join_rules_map res in
+    let res, files = semgrep_with_rules config timed_rules in
     sanity_check_invalid_patterns res files
   with
   | exn when not !Flag_semgrep.fail_fast ->
