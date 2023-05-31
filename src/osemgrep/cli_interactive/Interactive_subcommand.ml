@@ -500,28 +500,33 @@ let render_preview_no_matches ~has_changed state =
 (* This just pretty-prints out the patterns we currently have in
    our tree.
 *)
-let rec render_patterns = function
-  | IPat ({ Xpattern.pstr = s, _; _ }, b) ->
-      if b then I.(string A.empty (Common.spf "%s" s))
-      else I.(string A.(fg lightblue) "not: " <|> string A.empty s)
-  | IAll pats ->
-      I.(
-        let patterns =
-          pats |> Common.map render_patterns
-          |> Common.map (fun img -> I.(string A.empty "- " <|> img))
-          |> vcat |> hpad 2 0
-        in
-        hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "all:")
-        <-> patterns)
-  | IAny pats ->
-      I.(
-        let patterns =
-          pats |> Common.map render_patterns
-          |> Common.map (fun img -> I.(string A.empty "- " <|> img))
-          |> vcat |> hpad 2 0
-        in
-        hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "any:")
-        <-> patterns)
+let render_patterns iformula =
+  let rec loop = function
+    | IPat ({ Xpattern.pstr = s, _; _ }, b) ->
+        if b then I.(string A.empty (Common.spf "%s" s))
+        else I.(string A.(fg lightblue) "not: " <|> string A.empty s)
+    | IAll pats ->
+        I.(
+          let patterns =
+            pats |> Common.map loop
+            |> Common.map (fun img -> I.(string A.empty "- " <|> img))
+            |> vcat |> hpad 2 0
+          in
+          hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "all:")
+          <-> patterns)
+    | IAny pats ->
+        I.(
+          let patterns =
+            pats |> Common.map loop
+            |> Common.map (fun img -> I.(string A.empty "- " <|> img))
+            |> vcat |> hpad 2 0
+          in
+          hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "any:")
+          <-> patterns)
+  in
+  match iformula with
+  | IPat (_, true) -> I.(string A.(fg lightblue) "pattern: " <|> loop iformula)
+  | _ -> loop iformula
 
 (* This differs based on our mode. In Turbo Mode, this is just the
    list of files.
