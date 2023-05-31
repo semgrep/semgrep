@@ -85,7 +85,7 @@ let show f t =
   in
   let contents =
     after_padded
-    |> List.mapi (fun i x ->
+    |> Common.mapi (fun i x ->
            let element =
              match x with
              | None -> "<NONE>"
