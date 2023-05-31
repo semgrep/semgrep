@@ -43,6 +43,8 @@ let root = { string = "/"; segments = [ ""; "" ] }
 
 (* Useful to debug, to use in error messages, or when passing the ppath
  * to a regexp matcher (e.g., Glob.Match.run()).
+ * However, you should prefer to_fpath() most of the time, and then
+ * Fpath.to_string() if needed.
  *)
 let to_string x = x.string
 

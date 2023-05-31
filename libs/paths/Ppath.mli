@@ -30,10 +30,12 @@ val to_fpath : root:Fpath.t -> t -> Fpath.t
 (* /, useful as a folding starting point *)
 val root : t
 
-(* Useful to debug, to use in error messages, or when passing the ppath
- * to a regexp matcher (e.g., Glob.Match.run()).
- * However, you should prefer to_fpath() most of the time *)
+(* Deprecated: you should use to_fpath (and then Fpath.to_string if needed) *)
 val to_string : t -> string
+
+(* The first element returned will always be "", because ppaths are always
+ * absolute paths
+ *)
 val segments : t -> string list
 
 (* Append a segment to a path. *)
