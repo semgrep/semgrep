@@ -8,7 +8,7 @@
    Project path (instead of File path).
 *)
 
-(* All file paths are *absolute* and *normalized* *)
+(* All project paths are *absolute* and *normalized* *)
 type t
 
 (*
@@ -67,14 +67,9 @@ end
 
 (* ------------- TO DELETE *)
 
-val of_fpath : Fpath.t -> t
-
 (* Create a path from the list of segments. Segments may not contain
    slashes. *)
 val create : string list -> t
-
-(* Turn foo/bar into /foo/bar *)
-val make_absolute : t -> t
 
 (* internals *)
 
