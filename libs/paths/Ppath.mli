@@ -1,7 +1,7 @@
 (*
    Abstract type for a file path within a project.
 
-   This avoids issues of Unix-style vs. Windows-style paths. All
+   This avoids issues of Unix-style vs. Windows-style paths; all
    paths use '/' as a separator.
 
    The name of the module imitates Fpath.ml, but use Ppath.ml for
@@ -16,27 +16,27 @@ type t = private {
 }
 
 (*
-   Return an absolute, normalized path relative to the project root.
-   This is purely syntactic. It is recommended to work on physical paths
-   as returned by 'realpath' to ensure that both paths share the longest
-   common prefix.
+   Returns an *absolute*, *normalized* path relative to the project root.
+   This is purely syntactic.
+   It is recommended to work on physical paths as returned by 'realpath'
+   to ensure that both paths below share the longest common prefix.
 
      in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
 
    equals
 
-     Ok (of_string "/b/c")
+     Ok { segments = [""; "b"; "c"]; string = "/b/c" }
 *)
 val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
 
-(* A slash-separated path. *)
-val of_string : string -> t
-val to_string : t -> string
+(* Convert back to a system path. *)
+val to_fpath : root:Fpath.t -> t -> Fpath.t
 
-(* Create a path from the list of segments. Segments may not contain
-   slashes. *)
-val create : string list -> t
-val segments : t -> string list
+(* /, useful as a folding starting point *)
+val root : t
+
+(* to debug *)
+val to_string : t -> string
 
 (* Append a segment to a path. *)
 val add_seg : t -> string -> t
@@ -47,6 +47,12 @@ module Operators : sig
   val ( / ) : t -> string -> t
 end
 
+(* ------------- TO DELETE *)
+
+(* Create a path from the list of segments. Segments may not contain
+   slashes. *)
+val create : string list -> t
+val segments : t -> string list
 val is_absolute : t -> bool
 val is_relative : t -> bool
 
@@ -64,10 +70,8 @@ val make_absolute : t -> t
    normalization.
 *)
 val normalize : t -> (t, string) result
-val of_fpath : Fpath.t -> t
 
-(* Convert back to a system path. *)
-val to_fpath : root:Fpath.t -> t -> Fpath.t
+(* internals *)
 
-(* / *)
-val root : t
+(* A slash-separated path. *)
+val of_string_for_tests : string -> t

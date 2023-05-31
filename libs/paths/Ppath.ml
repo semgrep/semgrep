@@ -1,4 +1,3 @@
-open Printf
 open File.Operators
 
 (*****************************************************************************)
@@ -34,7 +33,7 @@ type t = {
 (* Helpers *)
 (*****************************************************************************)
 
-let of_string string =
+let of_string_for_tests string =
   let segments =
     match String.split_on_char '/' string with
     | [ "" ] -> (* should be an error? *) [ "." ]
@@ -43,7 +42,8 @@ let of_string string =
   in
   { string; segments }
 
-let root = of_string "/"
+(* old: was of_string_for_tests "/" *)
+let root = { string = "/"; segments = [ ""; "" ] }
 let to_string x = x.string
 
 let check_segment str =
@@ -187,7 +187,8 @@ let in_project ~root path =
   match remove_prefix root path with
   | None ->
       Error
-        (sprintf "cannot make path %S relative to project root %S" !!path !!root)
+        (Common.spf "cannot make path %S relative to project root %S" !!path
+           !!root)
   | Some path -> path |> of_fpath |> make_absolute |> normalize
 
 (*****************************************************************************)
@@ -199,19 +200,19 @@ let () =
       let test_str f input expected_output =
         Alcotest.(check string) "equal" expected_output (f input)
       in
-      let rewrite str = to_string (of_string str) in
+      let rewrite str = to_string (of_string_for_tests str) in
       test_str rewrite "/" "/";
       test_str rewrite "//" "//";
       test_str rewrite "" "";
       test_str rewrite "a/" "a/";
 
       let norm str =
-        match of_string str |> normalize with
+        match of_string_for_tests str |> normalize with
         | Ok x -> to_string x
         | Error s -> failwith s
       in
       let norm_err str =
-        match of_string str |> normalize with
+        match of_string_for_tests str |> normalize with
         | Ok _ -> false
         | Error _ -> true
       in
@@ -237,7 +238,9 @@ let () =
       test_str norm "/a/b/" "/a/b/";
 
       let test_add_seg a b ab =
-        Alcotest.(check string) "equal" ab (add_seg (of_string a) b |> to_string)
+        Alcotest.(check string)
+          "equal" ab
+          (add_seg (of_string_for_tests a) b |> to_string)
       in
       test_add_seg "/" "a" "/a";
       test_add_seg "/a" "b" "/a/b";
