@@ -74,3 +74,24 @@ let is_empty m = List.length m.after + List.length m.before_rev = 0
 
 let empty_with_max_len max_len =
   { before_rev = []; after = []; pointer = 0; max_len }
+
+let show f t =
+  let after_padded =
+    if List.length t.after >= t.max_len then
+      Common2.take t.max_len (Common.map Option.some t.after)
+    else
+      Common.map Option.some t.after
+      @ List.init (t.max_len - List.length t.after) (fun _ -> None)
+  in
+  let contents =
+    after_padded
+    |> List.mapi (fun i x ->
+           let element =
+             match x with
+             | None -> "<NONE>"
+             | Some x -> f x
+           in
+           if i = t.pointer then Common.(spf "(%s)" element) else element)
+    |> String.concat ", "
+  in
+  Common.(spf "[%d | %s]" t.max_len contents)
