@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# This has been isolated into a separate testing script because we want to
+# be able to test the output of running the src/osemgrep tests. We also want
+# to run the osemgrep tests separately, because otherwise the output tends to
+# get drowned in our other tests.
+
 # fail on any failure
 set -e
 
