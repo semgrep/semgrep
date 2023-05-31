@@ -91,10 +91,16 @@
  * `Common.map`, which is tail-recursive, instead of `List.map`.
  *****************************************************************************)
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
 val semgrep_dispatch : Runner_config.t -> unit
 (** Main entry point to the semgrep-core engine. This is called from Main.ml *)
 
-(* engine functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
+(* Engine functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 val semgrep_with_one_pattern : Runner_config.t -> unit
 (** this is the function used when running semgrep-core with -e or -f *)
@@ -136,7 +142,9 @@ val semgrep_with_rules :
   (Rule.t list * Rule.invalid_rule_error list) * float ->
   Report.final_result * Fpath.t list
 
-(* utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
+(* Utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
@@ -170,7 +178,8 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table : Rule.t list -> Rule.rule_id list -> (int, Rule.t) Hashtbl.t
+val mk_rule_table :
+  Rule.t list -> string list (* rule IDs *) -> (int, Rule.t) Hashtbl.t
 (** Helper to create the table of rules to run for each file **)
 
 val extracted_targets_of_config :
@@ -207,5 +216,14 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Semgrep_error_code.error list
   * Output_from_core_j.skipped_target list
 
+(* TODO: This is used by semgrep-pro and not by semgrep. What is it?
+   TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
 val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
+
+(*
+   Sort targets by decreasing size. This is meant for optimizing
+   CPU usage when processing targets in parallel on a fixed number of cores.
+*)
+val sort_targets_by_decreasing_size :
+  Input_to_core_t.target list -> Input_to_core_t.target list

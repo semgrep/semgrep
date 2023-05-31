@@ -104,6 +104,10 @@ a few other projects developed at r2c.
   )
 )
 
+(package (name concurrency)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package (name gitignore)
   (synopsis "XXX")
   (description "XXX")
@@ -410,6 +414,7 @@ For more information see https://semsgrep.dev
     emile
     bos
     (digestif (>= 1.0.0))
+    notty
   )
 )
 

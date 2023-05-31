@@ -52,7 +52,8 @@ let convert_engine_kind ek =
   | OSS -> `OSS
   | Pro -> `PRO
 
-let convert_rule (s, ek) = (s, convert_engine_kind ek)
+let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
+  ((id :> string), convert_engine_kind ek)
 
 (*****************************************************************************)
 (* JSON *)
@@ -260,7 +261,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.rule_id = x.rule_id.id;
+    Out.rule_id = (x.rule_id.id :> string);
     location = { path = file; start = startp; end_ = endp };
     extra =
       {
@@ -298,7 +299,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
 let error_to_error err =
   let file = err.E.loc.pos.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
-  let rule_id = err.E.rule_id in
+  let rule_id = Option.map Rule.ID.to_string err.E.rule_id in
   let error_type = err.E.typ in
   let severity = E.severity_of_error err.E.typ in
   let message = err.E.msg in
@@ -327,7 +328,7 @@ let json_time_of_profiling_data profiling_data =
   let json_time_of_rule_times rule_times =
     rule_times
     |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
-           { Out.rule_id; parse_time; match_time })
+           { Out.rule_id = (rule_id :> string); parse_time; match_time })
   in
   {
     Out.targets =
@@ -338,7 +339,10 @@ let json_time_of_profiling_data profiling_data =
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
-    rules = Common.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
+    rules =
+      Common.map
+        (fun rule -> (fst rule.Rule.id :> string))
+        profiling_data.RP.rules;
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
     max_memory_bytes = profiling_data.max_memory_bytes;
   }
@@ -369,10 +373,10 @@ let match_results_of_matches_and_errors render_fix nfiles res =
     skipped_targets;
     skipped_rules =
       ( res.RP.skipped_rules
-      |> Common.map (fun (kind, rule_id, tk) ->
+      |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
-               Out.rule_id;
+               Out.rule_id = (rule_id :> string);
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = OutH.position_of_token_location loc;
              })

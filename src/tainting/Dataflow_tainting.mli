@@ -28,7 +28,7 @@ type a_propagator = {
 
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
-  rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
+  rule_id : Rule.rule_id;  (** Taint rule id, for Deep Semgrep. *)
   is_source : AST_generic.any -> Rule.taint_source tmatch list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
@@ -91,7 +91,6 @@ type fun_env = (var, Taint.Taint_set.t) Hashtbl.t
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
 val str_of_name : IL.name -> var
-val taints_satisfy_requires : Taint.taints -> AST_generic.expr -> bool
 
 val hook_function_taint_signature :
   (config ->

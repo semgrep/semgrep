@@ -21,6 +21,7 @@
    semgrep_configuring
 
    spacegrep ; Rule.ml references Spacegrep.Pattern_AST.t
+   aliengrep
  )
  (preprocess
    (pps
@@ -30,36 +31,4 @@
      ppx_hash
    )
  )
-)
-
-; Handle jinja2 generation of Lang.ml and Lang.mli
-(data_only_dirs lang)
-(rule
-
-  ; bugfix: You need also the Pipfile and Pipfile.lock below in the list
-  ; of dependencies! Otherwise, in a fresh environment where there is not yet
-  ; any ~/.local/share/virtualenvs cached, the command
-  ;    dune build src/core/ast/Lang.ml
-  ; may fail because dune would only copy the .j2 and gen_lang.py
-  ; in the _build/default/src/core/ast directory without
-  ; the Pipfile. Then the 'pipenv install' command below would create an
-  ; empty Pipfile without jinja2, which would lead to building errors when
-  ; executing gen_lang.py after.
-  ; Note that if you run 'dune build' from the top directory the first time
-  ; it will fail (just like dune build src/core/ast/Lang.ml), but the
-  ; second time it will work, and after that it will always work because
-  ; the ~/.local/share/virtualenvs/ast-xxx will be cached with the correct
-  ; dependencies and not be regenerated. I have no idea why it works though
-  ; even the first time on macOS and in docker.yml CI workflow?!
-
-  (deps (source_tree lang) Lang.ml.j2 Lang.mli.j2 Pipfile Pipfile.lock gen_lang.py)
-  (targets Lang.ml Lang.mli)
-  (action
-    (no-infer
-      (progn
-        (run pipenv install)
-        (run pipenv run python3 gen_lang.py)
-      )
-    )
-  )
 )

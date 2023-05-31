@@ -136,7 +136,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_clojure.Boilerplate.dump_tree
   | Lang.R ->
       Tree_sitter_r.Parse.file file
-      |> dump_and_print_errors Tree_sitter_r.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_r.Boilerplate.dump_tree
   | Lang.Ruby ->
       Tree_sitter_ruby.Parse.file file
       |> dump_and_print_errors Tree_sitter_ruby.Boilerplate.dump_tree
@@ -148,7 +148,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
   | Lang.Csharp ->
       Tree_sitter_c_sharp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
@@ -171,19 +171,19 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
-      |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_lua.Boilerplate.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
-      |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_ocaml.Boilerplate.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
   | Lang.Cpp ->
       Tree_sitter_cpp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_cpp.Boilerplate.dump_tree
   | Lang.Html ->
       Tree_sitter_html.Parse.file file
       |> dump_and_print_errors Tree_sitter_html.Boilerplate.dump_tree
@@ -192,13 +192,13 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
   | Lang.Php ->
       Tree_sitter_php.Parse.file file
-      |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_php.Boilerplate.dump_tree
   | Lang.Terraform ->
       Tree_sitter_hcl.Parse.file file
-      |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_hcl.Boilerplate.dump_tree
   | Lang.Elixir ->
       Tree_sitter_elixir.Parse.file file
-      |> dump_and_print_errors Tree_sitter_elixir.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_elixir.Boilerplate.dump_tree
   | Lang.Julia ->
       Tree_sitter_julia.Parse.file file
       |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
@@ -212,13 +212,13 @@ let dump_tree_sitter_cst lang file =
   | Lang.Python3
   | Lang.Python ->
       Tree_sitter_python.Parse.file file
-      |> dump_and_print_errors Tree_sitter_python.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_python.Boilerplate.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
   let paths = Common.map Common.fullpath root_paths |> File.Path.of_strings in
   let paths, _skipped_paths =
-    Find_targets.files_of_dirs_or_files (Some lang) paths
+    Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
   paths |> File.Path.to_strings
@@ -335,7 +335,9 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     (* = absolute paths *)
     Common.map Common.fullpath files_or_dirs |> File.Path.of_strings
   in
-  let paths, skipped = Find_targets.files_of_dirs_or_files (Some lang) paths in
+  let paths, skipped =
+    Find_targets_old.files_of_dirs_or_files (Some lang) paths
+  in
   let stats =
     paths |> File.Path.to_strings
     |> List.rev_map (fun file ->
@@ -550,7 +552,7 @@ let diff_pfff_tree_sitter xs =
 let test_parse_rules roots =
   let roots = File.Path.of_strings roots in
   let targets, _skipped_paths =
-    Find_targets.files_of_dirs_or_files (Some Lang.Yaml) roots
+    Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->

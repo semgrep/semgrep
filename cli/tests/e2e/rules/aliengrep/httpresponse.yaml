@@ -1,0 +1,15 @@
+rules:
+  - id: content-type-text-html
+    severity: INFO
+    message: Detected text/html
+    languages: [generic]
+    options:
+      generic_engine: aliengrep
+    patterns:
+      - pattern-inside: |
+          HTTP/1.1 $STATUS $READABLE
+          ...
+      - pattern-either:
+          - pattern: "Content-Type: text/html"
+          - pattern: "Content-type: text/html"
+          - pattern: "content-type: text/html"

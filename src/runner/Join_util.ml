@@ -5,7 +5,6 @@ module RP = Report
 module C = Common2
 module P = Pattern_match
 module M = Metavariable
-module JoinRuleMap = Map.Make (String)
 module MvarMap = Map.Make (String)
 
 module MvarSet = Set.Make (struct
@@ -14,22 +13,29 @@ module MvarSet = Set.Make (struct
   let compare a b = if M.Syntactic.equal_mvalue a b then 0 else compare a b
 end)
 
+module JoinRuleMap = Map.Make (struct
+  type t = R.rule_id
+
+  let compare a b = compare (R.ID.to_string a) (R.ID.to_string b)
+end)
+
 (* Functions for Join Mode
    Conservatively does not require that the order of the results match the order
    of the rules. Making that assumption might give us a small speedup but would
    be more fragile *)
 
-type matches_by_step = { step_id : string; matches : P.t list }
+type matches_by_step = { step_id : R.rule_id; matches : P.t list }
 [@@deriving show]
 
 let join_rule_to_rules rule join_info table =
   let n = List.length join_info in
-  let step_to_rule i (step : R.step_info) =
-    let step_id = (spf "%s__step_%d" (fst rule.R.id) i, snd rule.R.id) in
+  let step_to_rule i (step : R.step) =
+    let id_str = spf "%s__step_%d" (fst rule.R.id :> string) i in
+    let step_id = (R.ID.of_string id_str, snd rule.R.id) in
     let mode =
-      match step.R.step_formula with
-      | R.Step_taint t -> `Taint t
-      | R.Step_search s -> `Search s
+      match step.R.step_mode with
+      | `Taint t -> `Taint t
+      | `Search s -> `Search s
     in
     let languages = step.R.step_languages in
     let paths = step.R.step_paths in
@@ -46,11 +52,10 @@ let extract_join_rules config parsed_rules =
     rules
     |> List.concat_map (fun r ->
            match r.R.mode with
-           | `Join join_info -> join_rule_to_rules r join_info join_rules_table
-           | `Taint _
-           | `Search _
-           | `Extract _ ->
-               [ r ])
+           | `Step join_info -> join_rule_to_rules r join_info join_rules_table
+           | `Taint t -> [ { r with mode = `Taint t } ]
+           | `Search s -> [ { r with mode = `Search s } ]
+           | `Extract e -> [ { r with mode = `Extract e } ])
   in
   if Hashtbl.length join_rules_table > 0 && config.target_source <> None then
     failwith "join mode experiment does not work with targets file yet";
@@ -95,7 +100,7 @@ let print_updated_matches config print_match has_join_steps matches =
     matches
 
 let unify_join_results config print_match join_rule_map res =
-  let rule_for_step_id id =
+  let rule_for_step_id (id : Rule.rule_id) =
     match JoinRuleMap.find_opt id join_rule_map with
     | Some (rule, _i, _n) -> Some (fst rule.R.id)
     | None -> None
@@ -103,14 +108,16 @@ let unify_join_results config print_match join_rule_map res =
   (* TODO this currently just fixes the matches, but we probably also want to adjust
      the errors, etc *)
   let matches_by_step =
-    C.group (fun a b -> a.P.rule_id.id = b.P.rule_id.id) res.RP.matches
+    C.group
+      (fun a b -> R.equal_rule_id a.P.rule_id.id b.P.rule_id.id)
+      res.RP.matches
     |> Common.map (fun (C.Nonempty (m, _) as matches) ->
            { step_id = m.P.rule_id.id; matches = C.nonempty_to_list matches })
   in
   let matches_by_rule =
     C.group
       (fun a b ->
-        Option.equal String.equal
+        Option.equal R.equal_rule_id
           (rule_for_step_id a.step_id)
           (rule_for_step_id b.step_id))
       matches_by_step
@@ -172,7 +179,8 @@ let unify_join_results config print_match join_rule_map res =
               {
                 rule_id with
                 id = fst rule.R.id;
-                languages = Xlang.to_langs rule.R.languages;
+                languages =
+                  Option.value ~default:[] rule.R.languages.target_selector;
               }
             in
             { m with P.rule_id })

@@ -30,6 +30,8 @@ let exp_of_arg arg =
 
 let rexps_of_instr x =
   match x.i with
+  | Assign (({ base = Var _; rev_offset = _ :: _ } as lval), exp) ->
+      [ { e = Fetch { lval with rev_offset = [] }; eorig = NoOrig }; exp ]
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
   | Call (_, e1, args) -> e1 :: Common.map exp_of_arg args
@@ -74,7 +76,7 @@ and lvals_in_lval lval =
 
 and lvals_of_exps xs = xs |> List.concat_map lvals_of_exp
 
-(** The lvals in the RHS of the instruction. *)
+(** The lvals in the rvals of the instruction. *)
 let rlvals_of_instr x =
   let exps = rexps_of_instr x in
   lvals_of_exps exps

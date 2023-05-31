@@ -15,6 +15,15 @@ let is_git_root (path : Fpath.t) : bool =
          ENOENT: path/.git doesn't exist *)
       false
 
+let is_git_submodule_root (path : Fpath.t) : bool =
+  match (Unix.stat !!(path / ".git")).st_kind with
+  | S_REG -> true
+  | _ -> false
+  | exception Unix.Unix_error ((ENOTDIR | ENOENT), _, _) ->
+      (* ENOTDIR: path is not a directory
+         ENOENT: path/.git doesn't exist *)
+      false
+
 (*
    Split a target path into project root and git path relative to the project
    root.
@@ -26,7 +35,11 @@ let is_git_root (path : Fpath.t) : bool =
 *)
 let find_git_project_root_abs (start_dir, start_git_segments) =
   let rec loop acc dir =
-    if is_git_root dir then Some (dir, Ppath.create ("" :: acc))
+    if is_git_root dir then
+      let ppath = Ppath.create ("" :: acc) in
+      match Ppath.normalize ppath with
+      | Ok ppath -> Some (dir, ppath)
+      | Error _s -> None
     else
       let name = Fpath.basename dir in
       let parent = Fpath.parent dir |> Fpath.rem_empty_seg in

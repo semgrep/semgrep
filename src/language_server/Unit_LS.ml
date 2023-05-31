@@ -16,7 +16,8 @@ let mock_session () =
 let set_session_targets (session : Session.t) files =
   let target_mappings =
     Common.map
-      (fun file -> { In.path = file; language = "python"; rule_nums = [] })
+      (fun file ->
+        { In.path = file; language = L (Python, []); rule_nums = [] })
       files
   in
   let targets : In.targets = { target_mappings; rule_ids = [] } in
@@ -34,7 +35,7 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (lazy pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
-  let rule = { rule with id = ("print", fk) } in
+  let rule = { rule with id = (Rule.ID.of_string "print", fk) } in
   let rule_id =
     {
       Pattern_match.id = fst rule.id;

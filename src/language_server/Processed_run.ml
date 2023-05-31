@@ -101,7 +101,7 @@ let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
 (* Entry point *)
 (*************************************************************************)
 
-let of_matches ?(only_git_dirty = true) matches hrules files =
+let of_matches ?(only_git_dirty = true) matches (hrules : Rule.hrules) files =
   let matches, _ =
     Common.partition_either
       (JSON_report.match_to_match (Some Autofix.render_fix))
@@ -111,7 +111,7 @@ let of_matches ?(only_git_dirty = true) matches hrules files =
   let matches =
     Common.map
       (fun (m : Semgrep_output_v1_t.core_match) ->
-        let rule = Hashtbl.find_opt hrules m.rule_id in
+        let rule = Hashtbl.find_opt hrules (Rule.ID.of_string m.rule_id) in
         let rule =
           match rule with
           | Some rule -> rule

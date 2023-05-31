@@ -452,7 +452,7 @@ class StreamingSemgrepCore:
 @frozen
 class Task:
     path: str = field(converter=str)
-    language: Language
+    language: Language  # Xlang; see Xlang.mli
     # a rule_num is the rule's index in the rule ID list
     rule_nums: Tuple[int, ...]
 
@@ -460,8 +460,8 @@ class Task:
     def language_label(self) -> str:
         return (
             "<multilang>"
-            if self.language in {Language("regex"), Language("generic")}
-            else self.language
+            if not self.language.definition.is_target_language
+            else self.language.definition.id
         )
 
 

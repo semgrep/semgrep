@@ -102,7 +102,7 @@ let wrap ~indent ~width s =
   let pre = String.make indent ' ' in
   let rec go indent width pre s acc =
     let real_width = width - indent in
-    if String.length s <= real_width then List.rev ((pre ^ s) :: acc)
+    if String.length s <= real_width then List.rev ((pre, s) :: acc)
     else
       let cut =
         let prev_ws =
@@ -118,7 +118,7 @@ let wrap ~indent ~width s =
       let e, s =
         (Str.first_chars s cut, String.(trim (sub s cut (length s - cut))))
       in
-      go indent width pre s ((pre ^ e) :: acc)
+      go indent width pre s ((pre, e) :: acc)
   in
   go indent width pre s []
 
@@ -187,12 +187,17 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
                   (if m.start.line = m.end_.line then
                    start_color + (m.end_.col - m.start.col)
                   else col m.end_.col - ellipsis_len true)
-                  (String.length line - 1 - ellipsis_len true)
-               else String.length line - 1)
+                  (String.length line - ellipsis_len true)
+               else String.length line)
            in
            let a, b, c = cut line start_color end_color in
+           (* The 24m is "no underline", and for python compatibility *)
+           let esc =
+             if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
+             else Fmt.any ""
+           in
            Fmt.pf ppf "%s%s┆ %s%a%s@." pad line_number_str a
-             Fmt.(styled `Bold string)
+             Fmt.(styled `Bold (esc ++ string))
              b c;
            (stripped' || stripped, succ line_number))
          (false, start_line)
@@ -225,25 +230,36 @@ let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
             if m.path = cur.path then (false, Some m.extra.message)
             else (true, None)
       in
-      if print then
-        Fmt.pf ppf "  %a@."
-          Fmt.(styled (`Fg `Cyan) (any "  " ++ string ++ any " "))
-          cur.path;
+      (if print then
+       (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+       let esc =
+         if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[22m\027[24m  "
+         else Fmt.any "  "
+       in
+       Fmt.pf ppf "  %a@."
+         Fmt.(styled (`Fg `Cyan) (esc ++ string ++ any " "))
+         cur.path);
       msg
     in
     let print =
-      cur.check_id <> Constants.rule_id_for_dash_e
+      cur.check_id <> (Constants.rule_id_for_dash_e :> string)
       &&
       match last_message with
       | None -> true
       | Some m -> m <> cur.extra.message
     in
     if print then (
+      (* The 24m is "no underline", and for python compatibility *)
+      let esc =
+        if Fmt.style_renderer ppf = `Ansi_tty then Fmt.any "\027[24m"
+        else Fmt.any ""
+      in
       List.iter
-        (fun l -> Fmt.pf ppf "%a@." Fmt.(styled `Bold string) l)
+        (fun (sp, l) ->
+          Fmt.pf ppf "%s%a@." sp Fmt.(styled `Bold (esc ++ string)) l)
         (wrap ~indent:7 ~width:text_width cur.check_id);
       List.iter
-        (fun l -> Fmt.pf ppf "%s@." l)
+        (fun (sp, l) -> Fmt.pf ppf "%s%s@." sp l)
         (wrap ~indent:10 ~width:text_width cur.extra.message);
       (match Yojson.Basic.Util.member "shortlink" cur.extra.metadata with
       | `String s -> Fmt.pf ppf "%sDetails: %s@." base_indent s

@@ -141,6 +141,34 @@ def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
+def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/python_jupyter_paths_exclude.yaml",
+            target_name="extract/python_jupyter_paths_exclude.ipynb",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_extract_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/python_jupyter_paths_include.yaml",
+            target_name="extract/python_jupyter_paths_include.ipynb",
+        ).stdout,
+        "results.json",
+    )
+
+
 @pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
@@ -150,6 +178,7 @@ def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
 def test_terminal_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Have shared settings file to test second run doesnt show metric output
@@ -173,6 +202,7 @@ def test_terminal_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(results.as_snapshot(), "results_second.txt")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """

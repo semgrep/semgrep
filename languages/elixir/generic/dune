@@ -6,6 +6,7 @@
    commons
    lib_parsing lib_parsing_tree_sitter
    tree-sitter-lang.elixir
+   parser_elixir.ast
    ast_generic
  )
  (preprocess (pps ppx_deriving.show))

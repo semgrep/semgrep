@@ -126,7 +126,7 @@ let render_fix (env : env) (x : Out.core_match) : string option =
   match x with
   | { rule_id; location; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
-        try Hashtbl.find env.hrules rule_id with
+        try Hashtbl.find env.hrules (Rule.ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let path = location.path in
@@ -321,7 +321,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
      };
   } ->
       let rule =
-        try Hashtbl.find env.hrules rule_id with
+        try Hashtbl.find env.hrules (Rule.ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let path = location.path in

@@ -15,46 +15,10 @@ module RP = Report
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
-(* ugly: also partially done in CLI.ml *)
 let setup_logging (conf : Scan_CLI.conf) =
-  (* For osemgrep we use the Logs library instead of the Logger
-   * library in pfff. We had a few issues with Logger (which is a small
-   * wrapper around the easy_logging library), and we don't really want
-   * the logging in semgrep-core to interfere with the proper
-   * logging/output we want in osemgrep, so this is a good opportunity
-   * to evaluate a new logging library.
-   *)
-  Logs_helpers.setup_logging ~force_color:conf.force_color
+  CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.logging_level;
-  (* TOPORT
-        # Setup file logging
-        # env.user_log_file dir must exist
-        env.user_log_file.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(env.user_log_file, "w")
-        file_formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
-  *)
-  Logs.debug (fun m -> m "Logging setup for semgrep scan");
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
-  Logs.debug (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
-
-  (* Easy_logging setup. We should avoid to use Logger in osemgrep/
-   * and use Logs instead, but it is still useful to get the semgrep-core
-   * logging information at runtime, hence this call.
-   *)
-  let debug =
-    match conf.logging_level with
-    | Some Logs.Debug -> true
-    | _else_ -> false
-  in
-  Logging_helpers.setup ~debug
-    ~log_config_file:(Fpath.v "log_config.json")
-    ~log_to_file:None;
   ()
 
 (* ugly: also partially done in CLI.ml *)
@@ -205,7 +169,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
   Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load () in
+  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -236,6 +200,30 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
+      (* step0: potentially notify user about metrics *)
+      if not (settings.has_shown_metrics_notification = Some true) then (
+        (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
+        let esc =
+          if Fmt.style_renderer Fmt.stderr = `Ansi_tty then "\027[22m\027[24m"
+          else ""
+        in
+        Logs.warn (fun m ->
+            m
+              "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
+               reports pseudonymous rule metrics to semgrep.dev.@.To disable \
+               Registry rule metrics, use \"--metrics=off\".@.Using configs \
+               only from local files (like --config=xyz.yml) does not enable \
+               metrics.@.@.More information: https://semgrep.dev/docs/metrics"
+              esc);
+        Logs.app (fun m -> m "");
+        let settings =
+          {
+            settings with
+            Semgrep_settings.has_shown_metrics_notification = Some true;
+          }
+        in
+        ignore (Semgrep_settings.save settings));
+
       (* step1: getting the rules *)
 
       (* Rule_fetching.rules_and_origin record also contain errors *)
@@ -250,7 +238,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* TODO: we should probably warn the user about rules using the same id *)
       let rules =
         Common.uniq_by
-          (fun r1 r2 -> String.equal (fst r1.Rule.id) (fst r2.Rule.id))
+          (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
           rules
       in
       if Common.null rules then Exit_code.missing_config
@@ -333,9 +321,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
                 other_ignored,
                 errors_skipped ));
         Logs.app (fun m ->
-            m "Ran %s on %s: %s@."
+            m "Ran %s on %s: %s."
               (String_utils.unit_str (List.length filtered_rules) "rule")
-              (String_utils.unit_str (List.length targets) "file")
+              (String_utils.unit_str
+                 (List.length cli_output.paths.scanned)
+                 "file")
               (String_utils.unit_str (List.length cli_output.results) "finding"));
 
         (* TOPORT? was in formater/base.py
