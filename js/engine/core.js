@@ -24,7 +24,7 @@ function get_jsoo_mount_point() {
   return jsoo_mount_point;
 }
 
-//Provides: override_yaml_ctypes_field_offset
-function override_yaml_ctypes_field_offset(field, newOffset) {
+//Provides: override_yaml_ctypes_field_offset_bytes
+function override_yaml_ctypes_field_offset_bytes(field, newOffset) {
   field[2] = newOffset;
 }
