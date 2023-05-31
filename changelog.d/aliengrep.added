@@ -1,2 +1,0 @@
-New experimental aliengrep engine that can be used as an alternative to the
-default spacegrep engine with `options.generic_engine: aliengrep`.

@@ -1,2 +1,0 @@
-Pro: Taint labels now mostly work interprocedurally, except for labeled propagators.
-Note that taint labels are experimental!
