@@ -59,7 +59,7 @@ let to_string x = x.string
 let segments x = x.segments
 
 (*****************************************************************************)
-(* Raw builder *)
+(* Builder helpers (not exposed in Ppath.mli) *)
 (*****************************************************************************)
 
 let check_segment str =
@@ -68,6 +68,10 @@ let check_segment str =
 
 let unsafe_create segments = { string = String.concat "/" segments; segments }
 
+(* Note that this does not ensure the segments represent an absolute path
+ * and this does not normalize either those segments.
+ * Use from_segments( or in_project() instead.
+ *)
 let create segments =
   List.iter check_segment segments;
   unsafe_create segments
@@ -85,6 +89,7 @@ let append_segment xs x =
   in
   match xs with
   | "" :: xs -> "" :: loop xs
+  (* TODO: this case should not happen anymore now *)
   | xs -> loop xs
 
 (* use same terminology than in Fpath *)
@@ -107,20 +112,23 @@ let to_fpath ~root path =
       |> (* remove leading "./" typically occuring when the project root
             is "." *)
       Fpath.normalize
-  | __ -> assert false
+  | _else_ -> assert false
 
 (*****************************************************************************)
 (* Project Builder *)
 (*****************************************************************************)
 
+(* TODO: delete *)
 (* A ppath should always be absolute! *)
 let is_absolute x =
   match x.segments with
   | "" :: _ -> true
   | __else__ -> false
 
+(* TODO: delete *)
 let is_relative x = not (is_absolute x)
 
+(* TODO: delete *)
 let make_absolute x =
   if is_relative x then { string = "/" ^ x.string; segments = "" :: x.segments }
   else x
@@ -146,6 +154,7 @@ let normalize_ppath x =
       | ".." :: _ -> Error ("invalid git path: " ^ x.string)
       | [] -> Ok (create [ ""; "" ])
       | segments -> Ok (create ("" :: segments)))
+  (* TODO: delete, this should not happen anymore *)
   | xs ->
       let segments =
         match normalize xs with
@@ -217,12 +226,12 @@ let in_project ~root path =
            !!root)
   | Some path -> path |> of_fpath |> make_absolute |> normalize_ppath
 
-(* TODO: make more verification, ensure it's an absolute path, as
- * opposed to normalize_ppath which accepts relative paths
- *)
 let from_segments segs =
-  let ppath = create segs in
-  normalize_ppath ppath
+  match segs with
+  | "" :: _ ->
+      let ppath = create segs in
+      normalize_ppath ppath
+  | _ -> Error "segments do not represent an absolute path"
 
 (*****************************************************************************)
 (* Tests helpers *)

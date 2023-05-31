@@ -65,12 +65,6 @@ module Operators : sig
   val ( / ) : t -> string -> t
 end
 
-(* ------------- TO DELETE *)
-
-(* Create a path from the list of segments. Segments may not contain
-   slashes. *)
-val create : string list -> t
-
 (* internals *)
 
 (* A slash-separated path. *)
