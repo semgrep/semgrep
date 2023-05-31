@@ -42,6 +42,7 @@ A = TypeVar("A")
 # Examples:
 # "@ampproject/remapping@^2.0.0":
 # bad-lib@0.0.8:
+# my-package-without-version-constraint:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
 part1 = regex('"?@?([^@:]*)', flags=0, group=1)
