@@ -3,7 +3,7 @@ rules:
     mode: extract
     languages:
     - json
-    rules:
+    dest-rules:
       exclude:
         - check-for-data
     pattern: |

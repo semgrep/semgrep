@@ -1565,7 +1565,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
       let extract_rule_ids =
-        take_opt rule_dict env parse_rules_to_run_with_extract "rules"
+        take_opt rule_dict env parse_rules_to_run_with_extract "dest-rules"
       in
       let transform =
         take_opt rule_dict env parse_string_wrap "transform"
