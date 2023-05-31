@@ -75,7 +75,6 @@ val create : string list -> t
 
 (* Turn foo/bar into /foo/bar *)
 val make_absolute : t -> t
-val normalize_ppath : t -> (t, string) result
 
 (* internals *)
 

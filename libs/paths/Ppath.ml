@@ -217,7 +217,12 @@ let in_project ~root path =
            !!root)
   | Some path -> path |> of_fpath |> make_absolute |> normalize_ppath
 
-let from_segments _segs = failwith "TODO"
+(* TODO: make more verification, ensure it's an absolute path, as
+ * opposed to normalize_ppath which accepts relative paths
+ *)
+let from_segments segs =
+  let ppath = create segs in
+  normalize_ppath ppath
 
 (*****************************************************************************)
 (* Tests helpers *)
