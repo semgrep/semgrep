@@ -23,9 +23,14 @@ open File.Operators
     will return { segments = [""; "b"; "c"]; string = "/b/c"; }
  *)
 type t = {
-  (* path segments within the project root *)
+  (* Path segments within the project root.
+   * Invariant: the first element of the list should always be "",
+   * because all ppaths are absolute paths.
+   *)
   segments : string list;
-  (* original string passed to of_string *)
+  (* String.concat "/" segments
+   * TODO: get rid of it? just compute it dynamically?
+   *)
   string : string;
 }
 
@@ -36,7 +41,9 @@ let root = { string = "/"; segments = [ ""; "" ] }
 (* Accessors *)
 (*****************************************************************************)
 
-(* for debugging *)
+(* Useful to debug, to use in error messages, or when passing the ppath
+ * to a regexp matcher (e.g., Glob.Match.run()).
+ *)
 let to_string x = x.string
 
 (* TODO: make a rel_segments function so the caller does not have to do
@@ -89,6 +96,18 @@ module Operators = struct
 end
 
 (*****************************************************************************)
+(* Converter *)
+(*****************************************************************************)
+let to_fpath ~root path =
+  match path.segments with
+  | "" :: segments ->
+      List.fold_left Fpath.add_seg root segments
+      |> (* remove leading "./" typically occuring when the project root
+            is "." *)
+      Fpath.normalize
+  | __ -> assert false
+
+(*****************************************************************************)
 (* Project Builder *)
 (*****************************************************************************)
 
@@ -134,15 +153,6 @@ let normalize x =
       Ok (create segments)
 
 let of_fpath path = Fpath.segs path |> create
-
-let to_fpath ~root path =
-  match path.segments with
-  | "" :: segments ->
-      List.fold_left Fpath.add_seg root segments
-      |> (* remove leading "./" typically occuring when the project root
-            is "." *)
-      Fpath.normalize
-  | __ -> assert false
 
 (*
    Prepend "./" to relative paths so as to make "." a prefix.

@@ -1,7 +1,7 @@
 (*
    Abstract type for a file path within a project.
 
-   This avoids issues of Unix-style vs. Windows-style paths; all
+   This avoids issues of Unix-style vs. Windows-style paths; All
    paths use '/' as a separator.
 
    The name of the module imitates Fpath.ml, but use Ppath.ml for
