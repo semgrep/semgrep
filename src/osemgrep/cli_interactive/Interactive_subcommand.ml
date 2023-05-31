@@ -198,7 +198,7 @@ let should_refresh = ref false
 (* UI Helpers *)
 (*****************************************************************************)
 
-let height_of_files term = snd (Term.size term) - 3
+let height_of_preview term = snd (Term.size term) - 3
 let width_of_files _term = files_width
 let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
@@ -206,7 +206,8 @@ let init_state turbo xlang xtargets term =
   {
     xlang;
     xtargets;
-    file_zipper = ref (Pointed_zipper.empty_with_max_len (height_of_files term));
+    file_zipper =
+      ref (Pointed_zipper.empty_with_max_len (height_of_preview term));
     should_continue_iterating_targets = ref true;
     cur_line_rev = [];
     formula = None;
@@ -345,7 +346,7 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
            { file; matches = Pointed_zipper.of_list 1 sorted_pms })
     |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
-  Pointed_zipper.of_list (height_of_files state.term) res_by_file
+  Pointed_zipper.of_list (height_of_preview state.term) res_by_file
 
 let parse_pattern_opt s state =
   try
@@ -401,7 +402,7 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let lines = Common2.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
-  let max_height = height_of_files state.term in
+  let max_height = height_of_preview state.term in
   let match_height = end_line - start_line in
   (* We want the appropriate amount of lines that will fit within
      our terminal window.
@@ -465,7 +466,7 @@ let default_screen_img s state =
       ]
     |> Common.map (hsnap (width_of_preview state.term))
     |> vcat
-    |> I.vsnap (height_of_files state.term))
+    |> I.vsnap (height_of_preview state.term))
 
 let no_matches_found_img state =
   I.(
@@ -473,9 +474,9 @@ let no_matches_found_img state =
     @ [ vpad 2 0 (string A.empty "no matches found") ]
     |> Common.map (hsnap (width_of_preview state.term))
     |> vcat
-    |> I.vsnap (height_of_files state.term))
+    |> I.vsnap (height_of_preview state.term))
 
-let render_preview_no_matches ~has_changed state =
+let render_preview_no_matches ~has_changed_query state =
   if state.turbo then
     (* In Turbo Mode, what we display here is dependent on two
         things, the current state of the buffer and whether we
@@ -483,7 +484,7 @@ let render_preview_no_matches ~has_changed state =
     *)
     if String.equal (get_current_line state) "" then
       default_screen_img "(type a pattern to get started!)" state
-    else if has_changed then default_screen_img "thinking..." state
+    else if has_changed_query then default_screen_img "thinking..." state
     else no_matches_found_img state
   else if
     (* In regular mode, we don't care about those things, but we
@@ -543,7 +544,8 @@ let render_top_left_pane file_zipper state =
   let intermediary_bar =
     String.make (width_of_files state.term) '-' |> I.string (A.fg (A.gray 12))
   in
-  let lines_of_files = height_of_files state.term - I.height patterns - 1 in
+  let lines_of_files = height_of_preview state.term - I.height patterns - 1 in
+  (* TODO: change file_zipper to have certain frame length *)
   let files =
     Pointed_zipper.take lines_of_files file_zipper
     |> Common.mapi (fun idx { file; _ } ->
@@ -560,7 +562,7 @@ let render_top_left_pane file_zipper state =
 (* User Interface (Screen) *)
 (*****************************************************************************)
 
-let render_screen ?(has_changed = false) state =
+let render_screen ?(has_changed_query = false) state =
   let w, _h = Term.size state.term in
   (* Minus two, because one for the line, and one for
      the input line.
@@ -573,7 +575,7 @@ let render_screen ?(has_changed = false) state =
   let top_left_pane = render_top_left_pane file_zipper state in
   let preview_pane =
     if Pointed_zipper.is_empty file_zipper then
-      render_preview_no_matches ~has_changed state
+      render_preview_no_matches ~has_changed_query state
     else
       let { file; matches = matches_zipper } =
         Pointed_zipper.get_current file_zipper
@@ -591,7 +593,7 @@ let render_screen ?(has_changed = false) state =
       let pm = Pointed_zipper.get_current matches_zipper in
       I.(match_position_img </> preview_of_match pm file state)
   in
-  let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
+  let vertical_bar = I.char A.empty '|' 1 (height_of_preview state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let mode =
     if state.turbo then I.void 0 0
@@ -709,7 +711,8 @@ let spawn_thread_if_turbo state =
             (* When we go back to the empty line, reset the view to default. *)
             should_refresh := true;
             state.file_zipper :=
-              Pointed_zipper.empty_with_max_len (height_of_files state.term)
+              (* TODO? *)
+              Pointed_zipper.empty_with_max_len (height_of_preview state.term)
         | _, None -> ()
         | _, Some pat ->
             let new_iformula = IPat (pat, true) in
@@ -727,8 +730,8 @@ let stop_thread_if_turbo state =
 (*****************************************************************************)
 
 let interactive_loop ~turbo xlang xtargets =
-  let rec render_and_loop ?(has_changed = false) (t : Term.t) state =
-    Term.image t (render_screen ~has_changed state);
+  let rec render_and_loop ?(has_changed_query = false) (t : Term.t) state =
+    Term.image t (render_screen ~has_changed_query state);
     loop t state
   and loop t state =
     if !should_refresh then (
@@ -771,7 +774,7 @@ let interactive_loop ~turbo xlang xtargets =
                   stop_thread_if_turbo state;
                   let state = fresh_state { state with cur_line_rev = cs } in
                   spawn_thread_if_turbo state;
-                  render_and_loop ~has_changed:true t state)
+                  render_and_loop ~has_changed_query:true t state)
           | `Key (`ASCII c, _) ->
               stop_thread_if_turbo state;
               let state =
@@ -779,7 +782,7 @@ let interactive_loop ~turbo xlang xtargets =
                   { state with cur_line_rev = c :: state.cur_line_rev }
               in
               spawn_thread_if_turbo state;
-              render_and_loop ~has_changed:true t state
+              render_and_loop ~has_changed_query:true t state
           | `Key (`Arrow `Left, _) ->
               let file_zipper = !(state.file_zipper) in
               state.file_zipper :=

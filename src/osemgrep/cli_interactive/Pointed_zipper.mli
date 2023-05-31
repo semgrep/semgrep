@@ -36,6 +36,7 @@
 
 type 'a t
 
+(* creators *)
 (* A move necessitates a pointer move, which may or may
    not cause a frame move, depending on if the pointer is
    at the boundaries of the frame.
@@ -44,9 +45,13 @@ val move_left : 'a t -> 'a t
 val move_right : 'a t -> 'a t
 val of_list : int -> 'a list -> 'a t
 val empty_with_max_len : int -> 'a t
+val change_max_len : 'a t -> int -> 'a t
+val map_current : ('a -> 'a) -> 'a t -> 'a t
+
+(* destructors *)
+
 val take : int -> 'a t -> 'a list
 val get_current : 'a t -> 'a
-val map_current : ('a -> 'a) -> 'a t -> 'a t
 val is_empty : 'a t -> bool
 val length : 'a t -> int
 val absolute_position : 'a t -> int

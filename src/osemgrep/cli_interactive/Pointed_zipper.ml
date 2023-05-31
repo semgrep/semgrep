@@ -53,6 +53,7 @@ let move_right m =
     { (shift_frame_right m) with pointer = m.max_len - 1 }
   else { m with pointer = m.pointer + 1 }
 
+let change_max_len t len = { t with max_len = len }
 let take n m = Common2.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
 let relative_position m = m.pointer
