@@ -78,8 +78,8 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
       | Some s -> (true, s)
     in
     let pattern = parse_pattern ~source:loc ~anchor pattern_str in
-    let matcher (path : Ppath.t) =
-      match M.run pattern path.string with
+    let matcher (ppath : Ppath.t) =
+      match M.run pattern (Ppath.to_string ppath) with
       | true ->
           if is_negated then Some (Deselected loc) else Some (Selected loc)
       | false -> None

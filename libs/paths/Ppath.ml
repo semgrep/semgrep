@@ -15,8 +15,8 @@ open File.Operators
 (*****************************************************************************)
 
 (*
-   Type to represent an absolute, normalized path relative to a project root.
-   This is purely syntactic. For example,
+   Type to represent an *absolute*, *normalized* path relative to a project
+   root. This is purely syntactic. For example,
 
      in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
 
@@ -29,24 +29,29 @@ type t = {
   string : string;
 }
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let of_string_for_tests string =
-  let segments =
-    match String.split_on_char '/' string with
-    | [ "" ] -> (* should be an error? *) [ "." ]
-    | [] -> assert false
-    | x -> x
-  in
-  { string; segments }
-
 (* old: was of_string_for_tests "/" *)
 let root = { string = "/"; segments = [ ""; "" ] }
 
+(*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
+
 (* for debugging *)
 let to_string x = x.string
+
+(* TODO: make a rel_segments function so the caller does not have to do
+   let rel_segments =
+      match Ppath.segments full_git_path with
+      | "" :: xs -> xs
+      | __else__ -> assert false
+    in
+*)
+
+let segments x = x.segments
+
+(*****************************************************************************)
+(* Raw builder *)
+(*****************************************************************************)
 
 let check_segment str =
   if String.contains str '/' then
@@ -57,6 +62,10 @@ let unsafe_create segments = { string = String.concat "/" segments; segments }
 let create segments =
   List.iter check_segment segments;
   unsafe_create segments
+
+(*****************************************************************************)
+(* Append *)
+(*****************************************************************************)
 
 let append_segment xs x =
   let rec loop xs =
@@ -79,7 +88,9 @@ module Operators = struct
   let ( / ) = add_seg
 end
 
-let segments x = x.segments
+(*****************************************************************************)
+(* Project Builder *)
+(*****************************************************************************)
 
 (* A ppath should always be absolute! *)
 let is_absolute x =
@@ -193,6 +204,19 @@ let in_project ~root path =
         (Common.spf "cannot make path %S relative to project root %S" !!path
            !!root)
   | Some path -> path |> of_fpath |> make_absolute |> normalize
+
+(*****************************************************************************)
+(* Tests helpers *)
+(*****************************************************************************)
+
+let of_string_for_tests string =
+  let segments =
+    match String.split_on_char '/' string with
+    | [ "" ] -> (* should be an error? *) [ "." ]
+    | [] -> assert false
+    | x -> x
+  in
+  { string; segments }
 
 (*****************************************************************************)
 (* Inline tests *)
