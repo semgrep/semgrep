@@ -20,7 +20,7 @@ open File.Operators
 
      in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
 
-   will return { string = "/b/c"; segments = ["b"; "c"] }
+    will return { segments = [""; "b"; "c"]; string = "/b/c"; }
  *)
 type t = {
   (* path segments within the project root *)
@@ -44,6 +44,8 @@ let of_string_for_tests string =
 
 (* old: was of_string_for_tests "/" *)
 let root = { string = "/"; segments = [ ""; "" ] }
+
+(* for debugging *)
 let to_string x = x.string
 
 let check_segment str =
@@ -79,6 +81,7 @@ end
 
 let segments x = x.segments
 
+(* A ppath should always be absolute! *)
 let is_absolute x =
   match x.segments with
   | "" :: _ -> true

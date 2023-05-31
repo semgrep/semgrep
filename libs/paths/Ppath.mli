@@ -35,7 +35,7 @@ val to_fpath : root:Fpath.t -> t -> Fpath.t
 (* /, useful as a folding starting point *)
 val root : t
 
-(* to debug *)
+(* To debug or error messages. You should use to_fpath() most of the time *)
 val to_string : t -> string
 
 (* Append a segment to a path. *)
@@ -49,11 +49,12 @@ end
 
 (* ------------- TO DELETE *)
 
+val of_fpath : Fpath.t -> t
+
 (* Create a path from the list of segments. Segments may not contain
    slashes. *)
 val create : string list -> t
 val segments : t -> string list
-val is_absolute : t -> bool
 val is_relative : t -> bool
 
 (* Turn foo/bar into /foo/bar *)
