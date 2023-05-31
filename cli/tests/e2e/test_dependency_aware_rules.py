@@ -32,6 +32,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/yarn",
         ),
         (
+            "rules/dependency_aware/no-pattern.yaml",
+            "dependency_aware/yarn-v1-without-version-constraint",
+        ),
+        (
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn",
         ),
