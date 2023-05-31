@@ -107,7 +107,26 @@ let bg_match = A.(bg (A.rgb_888 ~r:128 ~g:83 ~b:0))
 let bg_match_position = A.(bg light_green ++ fg (gray 3))
 let fg_line_num = A.(fg neutral_yellow)
 
-let default_screen_lines =
+(* This ref indicates whether or not the interactive loop should refresh.
+   This can happen if a thread has completed its computation, and the state
+   has been replenished with new matches. We don't want to constantly
+   redraw the screen, so we only redraw when this condition is true.
+*)
+let should_refresh = ref false
+
+(*****************************************************************************)
+(* ASCII art *)
+(*****************************************************************************)
+
+(* All these images are annotated with their width, which is what was used
+   with the ASCII image generator to generate them.
+
+   For the Semgrep logos, width is the more important factor, so we use that
+   as the primary constraint for resizing. For the ghosts, height is, so we
+   constrain primarily by that metric.
+*)
+
+let default_screen_lines_100 =
   [
     "                 ((((((                         \
      (((((                         ((((((                ";
@@ -143,7 +162,27 @@ let default_screen_lines =
      ((((((((((((((            ";
   ]
 
-let ghost_lines =
+let default_screen_lines_65 =
+  [
+    "             ((((                ((((                (((#            ";
+    "       ((((((((((((((((    ((((((((((((((((    ((((((((((((((((      ";
+    "     ((((((((((((((((((( (((((((((((((((((((( (((((((((((((((((((    ";
+    "   (((((((          ((((((((((          ((((((((((          (((((((  ";
+    "   (((((#             ((((((              ((((((             ((((((  ";
+    "  ((((((              ((((((              ((((((              (((((  ";
+    "   ((((((             ((((((&            (((((((             ((((((  ";
+    "   (((((((          ((((((((((          ((((((((((          ((((((   ";
+    "     (((((((((((((((((((( (((((((((((((((((( ((((((((((((((((((((    ";
+    "       &(((((((((((((((    ((((((((((((((((    (((((((((((((((       ";
+  ]
+
+let get_default_screen_lines width =
+  if width > 105 then default_screen_lines_100
+  else if width > 70 then default_screen_lines_65
+  else []
+
+(* about 40 lines tall *)
+let ghost_lines_80 =
   [
     "                       .-=*#%%@@@@@@%%#*+-.                       ";
     "                   -+#@@@@@@@@@@@@@@@@@@@@@@%*-.                  ";
@@ -187,12 +226,45 @@ let ghost_lines =
     "#@@#-               -%@@*.             +@@%+               :#@@#. ";
   ]
 
-(* This ref indicates whether or not the interactive loop should refresh.
-   This can happen if a thread has completed its computation, and the state
-   has been replenished with new matches. We don't want to constantly
-   redraw the screen, so we only redraw when this condition is true.
-*)
-let should_refresh = ref false
+(* about 25 lines tall *)
+let ghost_lines_50 =
+  [
+    "             .-+#%@@@@@@%#+=:             ";
+    "          -*@@@@@%#****##@@@@@#=          ";
+    "       .*@@@%+-.           :+%@@@*:       ";
+    "     .*@@@+.                  .+@@@#.     ";
+    "    -@@@+                        +@@@=    ";
+    "   =@@%:                          .%@@*   ";
+    "  =@@%.                             #@@+  ";
+    " :@@@.                               %@@- ";
+    " #@@=       --:            .--.      -@@% ";
+    " @@@.     =@@@@%.         %@@@@+      @@@.";
+    ":@@@      #@@@@@:        .@@@@@%      %@@-";
+    ":@@@       =*#*:          .+##=       %@@-";
+    ":@@@                                  %@@-";
+    ":@@@                                  %@@-";
+    ":@@@                                  %@@-";
+    ":@@@                                  %@@-";
+    ":@@@                                  %@@-";
+    ":@@@                                  %@@-";
+    ":@@@                                  %@@-";
+    ":@@@    :=:         ==.        .=-    %@@-";
+    ":@@@  :#@@@*      :%@@@=      +@@@%-  %@@-";
+    ":@@@.*@@@#@@@:   *@@@%@@#.  .%@@#%@@#:%@@-";
+    ":@@@@@@+  -%@@+:%@@*. +@@@-=@@@=  =@@@@@@-";
+    ":@@@@*.     *@@@@@-    :%@@@@#.     +@@@@-";
+    ".%@#:        -%@*        +@@+        .*@@:";
+  ]
+
+let get_ghost_lines height =
+  (* The ghost lines are annotated with width, but we actually want
+     to use height, because they're taller than they are wide.
+
+     This means height is more likely to be a limiting factor than width.
+  *)
+  if height > 50 then ghost_lines_80
+  else if height > 30 then ghost_lines_50
+  else []
 
 (*****************************************************************************)
 (* UI Helpers *)
@@ -455,21 +527,23 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   I.(line_num_imgs_aligned_and_padded <|> vcat line_imgs)
 
 let default_screen_img s state =
+  let w = width_of_preview state.term in
   I.(
-    (default_screen_lines |> Common.map (I.string (A.fg semgrep_green)))
+    (get_default_screen_lines w |> Common.map (I.string (A.fg semgrep_green)))
     @ [
         vpad 1 0
           (string A.(fg semgrep_green ++ st bold) "Semgrep Interactive Mode");
         vpad 1 1 (string A.empty "powered by Semgrep Open-Source Engine");
         string A.empty s;
       ]
-    |> Common.map (hsnap (width_of_preview state.term))
+    |> Common.map (hsnap w)
     |> vcat
     |> I.vsnap (height_of_files state.term))
 
 let no_matches_found_img state =
+  let h = height_of_files state.term in
   I.(
-    (ghost_lines |> Common.map (I.string (A.fg light_blue)))
+    (get_ghost_lines h |> Common.map (I.string (A.fg light_blue)))
     @ [ vpad 2 0 (string A.empty "no matches found") ]
     |> Common.map (hsnap (width_of_preview state.term))
     |> vcat
