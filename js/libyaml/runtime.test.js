@@ -4,8 +4,10 @@ const EXPECTED_LIBYAML_VERSION = [0, 1, 7];
 const EXPECTED_LIBYAML_VERSION_STRING = "0.1.7";
 const SIZEOF_YAML_PARSER_T = 248;
 const SIZEOF_YAML_EVENT_T = 56;
-const TEST_YAML_STRING = '{"foo": "bar"}';
+const TEST_YAML_STRING = "foo: bar";
 const EXPECTED_EVENT_TYPE_STREAM = [1, 3, 9, 6, 6, 10, 4, 2];
+
+globalThis.caml_string_of_jsstring = (x) => x;
 
 describe("libyaml", () => {
   const libyamlPromise = LibYamlFactory();

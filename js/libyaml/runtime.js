@@ -30,8 +30,14 @@ function ctypes_write(primType, v, buffer) {
   }
 }
 
+//Provides: ctypes_string_of_cstring
+//Requires: libyaml, caml_string_of_jsstring
+function ctypes_string_of_cstring(ptr) {
+  return caml_string_of_jsstring(libyaml.UTF8ToString(ptr[2]));
+}
+
 //Provides: ctypes_read
-//Requires: libyaml
+//Requires: libyaml, UInt32
 function ctypes_read(primType, buffer) {
   switch (primType) {
     case 0:
@@ -41,21 +47,24 @@ function ctypes_read(primType, buffer) {
     case 13: // Ctypes_Size_t
       return libyaml.getValue(buffer[2], "i32");
     case 20: // Ctypes_Uint32_t
-      return libyaml.getValue(buffer[2], "i32") >>> 0;
+      return new UInt32(libyaml.getValue(buffer[2], "i32"));
     default:
-      throw new Error(`how to read prim ${primType}`);
+      throw new Error(`Don't know how to read prim ${primType}`);
   }
 }
 
 //Provides: ctypes_read_pointer
+//Requires: libyaml
 function ctypes_read_pointer(ptr) {
-  return ptr[2];
+  return libyaml.getValue(ptr[2], "i32");
 }
 
 //Provides: yaml_stub_1_yaml_get_version_string const
-//Requires: libyaml
+//Requires: libyaml, caml_string_of_jsstring
 function yaml_stub_1_yaml_get_version_string() {
-  return libyaml.UTF8ToString(libyaml._yaml_get_version_string());
+  return caml_string_of_jsstring(
+    libyaml.UTF8ToString(libyaml._yaml_get_version_string())
+  );
 }
 
 //Provides: yaml_stub_2_yaml_get_version
@@ -87,8 +96,8 @@ function yaml_stub_5_yaml_parser_delete(parser_ptr) {
 //Requires: libyaml
 function yaml_stub_6_yaml_parser_set_input_string(parser_ptr, input_ptr, size) {
   libyaml._yaml_parser_set_input_string(
-    parser_ptr[parser_ptr.length - 1][1],
-    input_ptr[3][1],
+    parser_ptr[2],
+    input_ptr[2],
     size.value
   );
 }

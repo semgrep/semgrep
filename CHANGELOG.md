@@ -6,6 +6,46 @@
 
 <!-- insertion point -->
 
+## [1.24.0](https://github.com/returntocorp/semgrep/releases/tag/v1.24.0) - 2023-05-31
+
+### Added
+
+- New experimental aliengrep engine that can be used as an alternative to the
+  default spacegrep engine with `options.generic_engine: aliengrep`. (aliengrep)
+- Pro: Taint labels now mostly work interprocedurally, except for labeled propagators.
+  Note that taint labels are experimental! (pa-2507)
+- Pro: Taint-mode now supports inter-procedural field-sensitivity for JS/TS.
+
+  For example, given this class:
+
+  ```javascript
+  class Obj {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  }
+  ```
+
+  Semgrep knows that an object constructed by `new Obj("tainted", "safe")` has its
+  `x` attribute tainted, whereas its `y` attribute is safe. (pa-2570)
+
+### Changed
+
+- Set limits to the amount of taint that is tracked by Semgrep to prevent perf
+  issues. (pa-2570)
+
+### Fixed
+
+- Allow symbolic propagation for rvals in lhs of assignments. (gh-6780)
+- XML: you can now use metavariable-comparison on XML attributes or XML text body (gh-7709)
+- Java: support for record patterns (gh-7911)
+- C#: support ellipsis in enum declarations (gh-7914)
+- Fixed a recent regression which caused typed metavariables to fail to match when
+  the type itself also contained a metavariable, and the target was a builtin
+  type. For example, the pattern `(List<$T> $X)` would fail to match a value of
+  type `List<String>`. (typed-mvar)
+
 ## [1.23.0](https://github.com/returntocorp/semgrep/releases/tag/v1.23.0) - 2023-05-24
 
 ### Added

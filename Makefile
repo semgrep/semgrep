@@ -221,7 +221,7 @@ core-install: copy-core-for-cli
 	# causing an error when running a straight cp if a file is already
 	# there.
 	# Known alternative: use 'install -m 0644 ...' instead of cp
-	$(MAKE) uninstall
+	$(MAKE) core-uninstall
 	cp bin/semgrep-core "$$(opam var bin)"/
 
 # Try to uninstall what was installed by 'make core-install'.

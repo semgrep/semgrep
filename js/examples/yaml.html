@@ -1,0 +1,39 @@
+<html>
+  <body>
+    <pre id="result">Loading...</pre>
+  </body>
+  <script>
+    window.module = { exports: {} };
+  </script>
+  <script src="../engine/dist/index.cjs"></script>
+  <script>
+    window.EngineFactory = module.exports.EngineFactory;
+  </script>
+  <script>
+    const rules = JSON.stringify({
+      rules: [
+        {
+          id: "test",
+          languages: ["yaml"],
+          message: "test",
+          pattern: "foo: $Y",
+          severity: "ERROR",
+        },
+      ],
+    });
+
+    (async () => {
+      const engine = await EngineFactory();
+
+      engine.writeFile("/static/rules.json", rules);
+      engine.writeFile("/static/test.py", `foo: bar`);
+      document.getElementById("result").innerHTML = JSON.stringify(
+        JSON.parse(
+          engine.execute("yaml", "/static/rules.json", "/static/test.py")
+        ),
+        null,
+        2
+      );
+    })();
+  </script>
+</html>

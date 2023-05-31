@@ -36,8 +36,7 @@ let is_git_submodule_root (path : Fpath.t) : bool =
 let find_git_project_root_abs (start_dir, start_git_segments) =
   let rec loop acc dir =
     if is_git_root dir then
-      let ppath = Ppath.create ("" :: acc) in
-      match Ppath.normalize ppath with
+      match Ppath.from_segments ("" :: acc) with
       | Ok ppath -> Some (dir, ppath)
       | Error _s -> None
     else

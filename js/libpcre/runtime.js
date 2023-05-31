@@ -80,7 +80,6 @@ function pcre_ocaml_init() {
 function pcre_version_stub() {
   var ptr = libpcre._pcre_version();
   var value = libpcre.UTF8ToString(ptr);
-  libpcre._free(ptr);
   return value;
 }
 
