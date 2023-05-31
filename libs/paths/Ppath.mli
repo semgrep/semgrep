@@ -15,12 +15,14 @@ type t
    This is purely syntactic.
    It is recommended to work on physical paths as returned by 'realpath'
    to ensure that both paths below share the longest common prefix.
+   For example,
 
-     in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c")
+     let* ppath = in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c") in
+     (segments ppath, to_string ppath)
 
-   equals
+   equals to
 
-     Ok { segments = [""; "b"; "c"]; string = "/b/c" }
+     Ok ([""; "b"; "c"], "/b/c" )
 *)
 val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
 
@@ -54,7 +56,6 @@ val of_fpath : Fpath.t -> t
 (* Create a path from the list of segments. Segments may not contain
    slashes. *)
 val create : string list -> t
-val is_relative : t -> bool
 
 (* Turn foo/bar into /foo/bar *)
 val make_absolute : t -> t
