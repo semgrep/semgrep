@@ -8,23 +8,39 @@
    Project path (instead of File path).
 *)
 
+(* All file paths are *absolute* and *normalized* *)
 type t
 
 (*
-   Returns an *absolute*, *normalized* path relative to the project root.
+   Returns an absolute, normalized path relative to the project root.
    This is purely syntactic.
-   It is recommended to work on physical paths as returned by 'realpath'
+   It is recommended to work on physical paths as returned by 'realpath()'
    to ensure that both paths below share the longest common prefix.
-   For example,
+
+   Example of use:
 
      let* ppath = in_project ~root:(Fpath.v "/a") (Fpath.v "/a/b/c") in
-     (segments ppath, to_string ppath)
+     Ok (segments ppath, to_string ppath)
 
    equals to
 
      Ok ([""; "b"; "c"], "/b/c" )
 *)
 val in_project : root:Fpath.t -> Fpath.t -> (t, string) result
+
+(* Creates a ppath from a list of segments. Segments may not contain
+   slashes. The first segment must be "" because ppath must be
+   absolute paths.
+
+   Fail if the resulting path is absolute but refers to a file above the
+   root e.g. '/..' or '/../..'.
+   Example of syntactic path normalization:
+   foo/../bar -> bar  (even if 'foo/' doesn't exist)
+
+   Example of use: from_segments ["";"a";"b";"..";"c"] should
+   return a ppath whose final segments are ["";"a";"c"].
+*)
+val from_segments : string list -> (t, string) result
 
 (* Convert back to a system path. *)
 val to_fpath : root:Fpath.t -> t -> Fpath.t
@@ -59,18 +75,7 @@ val create : string list -> t
 
 (* Turn foo/bar into /foo/bar *)
 val make_absolute : t -> t
-
-(*
-   Syntactic path normalization.
-   e.g. foo/../bar -> bar  (even if 'foo/' doesn't exist)
-
-   Fail if the resulting path is absolute and refers to a file above the
-   root e.g. '/..' or '/../..'.
-
-   TODO: use filesystem path to the project root to perform a correct
-   normalization.
-*)
-val normalize : t -> (t, string) result
+val normalize_ppath : t -> (t, string) result
 
 (* internals *)
 

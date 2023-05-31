@@ -125,21 +125,21 @@ let make_absolute x =
   if is_relative x then { string = "/" ^ x.string; segments = "" :: x.segments }
   else x
 
-let normalize x =
-  let rec normalize xs =
-    match xs with
-    | ".." :: xs -> ".." :: normalize xs
-    | [ "" ] as xs (* preserve trailing slash *) -> xs
-    | ("." | "") :: xs -> normalize xs
-    | _ :: ".." :: xs -> normalize xs
-    | x :: xs as orig ->
-        let res = normalize xs in
-        (* If nothing changes via normalization, return the original list *)
-        if Stdlib.( == ) res xs then orig
-        else (* Something changed, make another pass *)
-          normalize (x :: res)
-    | [] -> []
-  in
+let rec normalize (xs : string list) : string list =
+  match xs with
+  | ".." :: xs -> ".." :: normalize xs
+  | [ "" ] as xs (* preserve trailing slash *) -> xs
+  | ("." | "") :: xs -> normalize xs
+  | _ :: ".." :: xs -> normalize xs
+  | x :: xs as orig ->
+      let res = normalize xs in
+      (* If nothing changes via normalization, return the original list *)
+      if Stdlib.( == ) res xs then orig
+      else (* Something changed, make another pass *)
+        normalize (x :: res)
+  | [] -> []
+
+let normalize_ppath x =
   match x.segments with
   | "" :: xs -> (
       match normalize xs with
@@ -206,7 +206,7 @@ let remove_prefix root path =
       Some rel_path
 
 (*****************************************************************************)
-(* Entry point *)
+(* Builder entry points *)
 (*****************************************************************************)
 
 let in_project ~root path =
@@ -215,7 +215,9 @@ let in_project ~root path =
       Error
         (Common.spf "cannot make path %S relative to project root %S" !!path
            !!root)
-  | Some path -> path |> of_fpath |> make_absolute |> normalize
+  | Some path -> path |> of_fpath |> make_absolute |> normalize_ppath
+
+let from_segments _segs = failwith "TODO"
 
 (*****************************************************************************)
 (* Tests helpers *)
@@ -246,12 +248,12 @@ let () =
       test_str rewrite "a/" "a/";
 
       let norm str =
-        match of_string_for_tests str |> normalize with
+        match of_string_for_tests str |> normalize_ppath with
         | Ok x -> to_string x
         | Error s -> failwith s
       in
       let norm_err str =
-        match of_string_for_tests str |> normalize with
+        match of_string_for_tests str |> normalize_ppath with
         | Ok _ -> false
         | Error _ -> true
       in
