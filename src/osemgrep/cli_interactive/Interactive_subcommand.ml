@@ -546,8 +546,7 @@ let no_matches_found_img state =
     (get_ghost_lines h |> Common.map (I.string (A.fg light_blue)))
     @ [ vpad 2 0 (string A.empty "no matches found") ]
     |> Common.map (hsnap (width_of_preview state.term))
-    |> vcat
-    |> I.vsnap (height_of_files state.term))
+    |> vcat |> I.vsnap h)
 
 let render_preview_no_matches ~has_changed state =
   if state.turbo then
