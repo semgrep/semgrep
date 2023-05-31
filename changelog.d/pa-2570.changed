@@ -1,2 +1,0 @@
-Set limits to the amount of taint that is tracked by Semgrep to prevent perf
-issues.
