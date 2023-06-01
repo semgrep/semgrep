@@ -143,65 +143,6 @@ module Server = struct
     let files = Common2.uniq files in
     (final_results, files)
 
-  let search_semgrep server pattern_string language =
-    (* We should use Session.targets here, but that uses the LWT monad, so once the git commands use Bos the below can become simpler *)
-    let config = server.session.config in
-    let targets =
-      match config.target_source with
-      | Some (Targets targets) -> targets
-      | Some (Target_file _) ->
-          let targets, _ = Run_semgrep.targets_of_config config [] in
-          targets
-      | None -> failwith "No targets provided"
-    in
-    let target_mappings = targets.target_mappings in
-    let target_mappings =
-      Common.map (fun t -> { t with In.rule_nums = [ 0 ] }) target_mappings
-    in
-    let target_mappings =
-      List.filter (fun t -> t.In.language = language) target_mappings
-    in
-    let lang = Lang.of_string language in
-    let pattern =
-      Parse_pattern.parse_pattern ~print_errors:false lang pattern_string
-    in
-    let rule, _ =
-      Common.with_time (fun () ->
-          let fk = Tok.unsafe_fake_tok "" in
-          let xlang = Xlang.L (lang, []) in
-          let xpat =
-            Xpattern.mk_xpat
-              (Xpattern.Sem (lazy pattern, lang))
-              (pattern_string, fk)
-          in
-          Rule.rule_of_xpattern xlang xpat)
-    in
-    let config =
-      {
-        config with
-        target_source =
-          Some
-            (Runner_config.Targets
-               { target_mappings; rule_ids = [ fst rule.id ] });
-      }
-    in
-    let config = { config with rule_source = Some (Rules [ rule ]) } in
-    let _, res, _ =
-      Run_semgrep.semgrep_with_raw_results_and_exn_handler config
-    in
-    let matches, _ =
-      Common.partition_either
-        (JSON_report.match_to_match (Some Autofix.render_fix))
-        res.matches
-    in
-    let files_found =
-      Common.map (fun (m : Out.core_match) -> m.location) matches
-    in
-    let found =
-      Common.group_by (fun (m : Out.location) -> m.path) files_found
-    in
-    found
-
   let initialize_session server root only_git_dirty =
     {
       session = { server.session with root; only_git_dirty };
@@ -286,6 +227,18 @@ module Server = struct
     in
     server
 
+  let handle_custom_request server (meth : string)
+      (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * t =
+    let search_handler =
+      Search.on_request server.session.config
+        (Session.targets { server.session with only_git_dirty = false })
+    in
+    match [ (Search.meth, search_handler) ] |> List.assoc_opt meth with
+    | None ->
+        logger#warning "Unhandled custom request %s" meth;
+        (None, server)
+    | Some handler -> (handler params, server)
+
   let on_request (type r) (request : r CR.t) server =
     let to_yojson r = Some (CR.yojson_of_result request r) in
     let resp, server =
@@ -347,27 +300,11 @@ module Server = struct
             CodeActions.code_actions_of_core_matches matches [ file ]
           in
           (to_yojson (Some actions), server)
-      | CR.UnknownRequest { meth = "semgrep/search"; params = Some params } ->
-          let params = Structured.yojson_of_t params in
-          let pattern = params |> member "pattern" |> to_string in
-          let lang = params |> member "language" |> to_string in
-          logger#info "Searching for pattern %s w/ language %s" pattern lang;
-          let locations = search_semgrep server pattern lang in
-          let json =
-            Common.map
-              (fun (file, matches) ->
-                let uri = file |> Uri.of_path |> Uri.to_string in
-                let ranges =
-                  matches
-                  |> Common.map Conv.range_of_location
-                  |> Common.map Range.yojson_of_t
-                in
-                `Assoc [ ("uri", `String uri); ("ranges", `List ranges) ])
-              locations
-          in
-          let json = `Assoc [ ("locations", `List json) ] in
-          (Some json, server)
-      | CR.Shutdown -> (None, { server with state = State.Stopped })
+      | CR.UnknownRequest { meth; params } ->
+          handle_custom_request server meth params
+      | CR.Shutdown ->
+          logger#info "Shutting down";
+          (None, { server with state = State.Stopped })
       | CR.DebugEcho params -> (to_yojson params, server)
       | _ ->
           logger#warning "Unhandled request: %s" (Common2.dump request);
@@ -394,15 +331,19 @@ module Server = struct
     Lwt.return server
 
   let rec rpc_loop server () =
-    let%lwt client_msg = Io.read server.session.incoming in
-    match (client_msg, server.state) with
-    | None, _
-    | _, State.Stopped ->
+    match server.state with
+    | State.Stopped ->
         logger#info "Server stopped";
         Lwt.return ()
-    | Some msg, _ ->
-        let%lwt server = handle_client_message msg server in
-        rpc_loop server ()
+    | _ -> (
+        let%lwt client_msg = Io.read server.session.incoming in
+        match client_msg with
+        | Some msg ->
+            let%lwt server = handle_client_message msg server in
+            rpc_loop server ()
+        | None ->
+            logger#warning "Client disconnected";
+            Lwt.return ())
 
   let start server = Lwt_main.run (rpc_loop server ())
 
@@ -430,4 +371,5 @@ end
 let start config =
   logger#info "Starting server";
   let server = Server.create config in
-  Server.start server
+  Server.start server;
+  exit 0

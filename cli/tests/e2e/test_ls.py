@@ -282,14 +282,14 @@ def send_semgrep_refresh_rules(server):
     send_msg(server, "semgrep/refreshRules", notif=True)
 
 
-def send_semgrep_search(server, language, pattern):
+def send_semgrep_search(server, pattern, language=None):
+    params = {"pattern": pattern}
+    if language:
+        params["language"] = language
     send_msg(
         server,
         "semgrep/search",
-        {
-            "language": language,
-            "pattern": pattern,
-        },
+        params,
     )
 
 
@@ -489,7 +489,9 @@ def test_ls_full(
         assert "eqeq-five" in ids
         assert "eqeq-four" not in ids
 
-    send_semgrep_search(server, "python", "print(...)")
+    send_semgrep_search(server, "print(...)")
     response = next(responses)
     results = response["result"]
     assert len(results["locations"]) == 3
+
+    send_exit(server)
