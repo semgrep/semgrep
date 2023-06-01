@@ -22,6 +22,7 @@ type token =
   | WORD of string
   | OPEN of char * char
   | CLOSE of char
+  | NEWLINE (* only exists in single-line mode *)
   | OTHER of string
 
 let pattern_error source_name msg =
@@ -49,7 +50,8 @@ let compile conf =
   in
   let open_7 = sprintf {|(%s)|} (Pcre_util.char_class_of_list open_chars) in
   let close_8 = sprintf {|(%s)|} (Pcre_util.char_class_of_list close_chars) in
-  let other_9 = sprintf {|(.|\n)|} in
+  let newline_9 = sprintf {|(\r?\n)|} in
+  let other_10 = sprintf {|(.)|} in
   let pat =
     String.concat "|"
       [
@@ -62,7 +64,8 @@ let compile conf =
         word_6;
         open_7;
         close_8;
-        other_9;
+        newline_9;
+        other_10;
       ]
   in
   let pcre_regexp =
@@ -120,5 +123,6 @@ let read_string ?(source_name = "<pattern>") conf str =
                      in
                      OPEN (opening_brace, expected_closing_brace)
                  | 8 -> CLOSE (char_of_string capture)
-                 | 9 -> OTHER capture
+                 | 9 -> NEWLINE
+                 | 10 -> OTHER capture
                  | _ -> assert false))

@@ -65,64 +65,65 @@ let check conf pat_string target_string expectations =
         failwith ("failed expectation: " ^ show_expectation expectation))
     expectations
 
-let uconf = Conf.default_uniline_conf
-let mconf = Conf.default_multiline_conf
+let slconf = Conf.default_singleline_conf
+let mlconf = Conf.default_multiline_conf
 
 let test_word () =
-  check uconf {|a|} {|a b c|} [ Num_matches 1; Match_value "a" ];
-  check uconf {|ab|} {|ab abc|} [ Num_matches 1; Match_value "ab" ];
-  check uconf {|ab|} {|ab c ab|} [ Num_matches 2; Match_value "ab" ];
-  check uconf {|ab|} {|xabx|} [ Num_matches 0 ]
+  check slconf {|a|} {|a b c|} [ Num_matches 1; Match_value "a" ];
+  check slconf {|ab|} {|ab abc|} [ Num_matches 1; Match_value "ab" ];
+  check slconf {|ab|} {|ab c ab|} [ Num_matches 2; Match_value "ab" ];
+  check slconf {|ab|} {|xabx|} [ Num_matches 0 ]
 
 let test_whitespace () =
-  check uconf {|a b|} {|a  b|} [ Num_matches 1; Match_value "a  b" ];
-  check uconf {|a  b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
-  check uconf "a\nb" "a b" [ Num_matches 0 ];
-  check uconf "a b" "a\nb" [ Num_matches 0 ];
-  check mconf "a\nb" "a b" [ Num_matches 1; Match_value "a b" ];
-  check mconf "a b" "a\nb" [ Num_matches 1; Match_value "a\nb" ]
+  check slconf {|a b|} {|a  b|} [ Num_matches 1; Match_value "a  b" ];
+  check slconf {|a  b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
+  check slconf "a\nb" "a b" [ Num_matches 0 ];
+  check slconf "a b" "a\nb" [ Num_matches 0 ];
+  check mlconf "a\nb" "a b" [ Num_matches 1; Match_value "a b" ];
+  check mlconf "a b" "a\nb" [ Num_matches 1; Match_value "a\nb" ]
 
 let test_ellipsis () =
   (* test behavior shared with long ellipsis *)
-  check uconf {|a...b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
-  check uconf {|a...b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
-  check uconf {|a...b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
-  check uconf {|a...b|} {|a b b|} [ Num_matches 1; Match_value "a b" ];
-  check uconf {|a...b b c|} {|a b b b c|}
+  check slconf {|a...b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
+  check slconf {|a...b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
+  check slconf {|a...b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
+  check slconf {|a...b|} {|a b b|} [ Num_matches 1; Match_value "a b" ];
+  check slconf {|a...b b c|} {|a b b b c|}
     [ Num_matches 1; Match_value "a b b b c" ];
   (* test behavior specific to regular ellipsis *)
-  check uconf {|a...b|} "a\nb" [ Num_matches 0 ];
+  check slconf {|a...b|} "a\nb" [ Num_matches 0 ];
   (* in multiline mode, a regular ellipsis matches newlines *)
-  check mconf {|a...b|} "a\nx\nx\nb" [ Num_matches 1; Match_value "a\nx\nx\nb" ]
+  check mlconf {|a...b|} "a\nx\nx\nb"
+    [ Num_matches 1; Match_value "a\nx\nx\nb" ]
 
 let test_long_ellipsis () =
   (* test behavior shared with regular ellipsis *)
-  check uconf {|a....b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
-  check uconf {|a....b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
-  check uconf {|a....b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
-  check uconf {|a....b|} {|a b b|} [ Num_matches 1; Match_value "a b" ];
-  check uconf {|a....b b c|} {|a b b b c|}
+  check slconf {|a....b|} {|a b|} [ Num_matches 1; Match_value "a b" ];
+  check slconf {|a....b|} {|a/b|} [ Num_matches 1; Match_value "a/b" ];
+  check slconf {|a....b|} {|a x y b|} [ Num_matches 1; Match_value "a x y b" ];
+  check slconf {|a....b|} {|a b b|} [ Num_matches 1; Match_value "a b" ];
+  check slconf {|a....b b c|} {|a b b b c|}
     [ Num_matches 1; Match_value "a b b b c" ];
   (* test behavior specific to long ellipsis *)
-  check uconf {|a....b|} "a\nb" [ Num_matches 1; Match_value "a\nb" ];
-  check mconf {|a....b|} "a\nx\nx\nb"
+  check slconf {|a....b|} "a\nb" [ Num_matches 1; Match_value "a\nb" ];
+  check mlconf {|a....b|} "a\nx\nx\nb"
     [ Num_matches 1; Match_value "a\nx\nx\nb" ]
 
 let test_metavariables () =
-  check uconf {|a $X b|} {|a xy b|}
+  check slconf {|a $X b|} {|a xy b|}
     [
       Num_matches 1;
       Match_value "a xy b";
       Capture (Metavariable, "X");
       Capture_value ((Metavariable, "X"), "xy");
     ];
-  check uconf {|a $AB_4! b|} {|a xy! b|}
+  check slconf {|a $AB_4! b|} {|a xy! b|}
     [
       Num_matches 1;
       Match_value "a xy! b";
       Capture_value ((Metavariable, "AB_4"), "xy");
     ];
-  check uconf {|$ X|} {|$ X|}
+  check slconf {|$ X|} {|$ X|}
     [
       Num_matches 1;
       Match_value "$ X";
@@ -130,7 +131,7 @@ let test_metavariables () =
       Not (Capture (Metavariable, ""));
       Not (Capture (Metavariable, "$"));
     ];
-  check uconf {|$A $B|} {|1 2 3 4|}
+  check slconf {|$A $B|} {|1 2 3 4|}
     [
       (* at the moment, matches don't overlap -> no match on "2 3" *)
       Num_matches 2;
@@ -145,43 +146,43 @@ let test_metavariables () =
     ]
 
 let test_ellipsis_brackets () =
-  check uconf {|x...x|} {|x [x] x|} [ Num_matches 1; Match_value {|x [x] x|} ];
+  check slconf {|x...x|} {|x [x] x|} [ Num_matches 1; Match_value {|x [x] x|} ];
   (* unexpected closing parenthesis is treated as an ordinary character *)
-  check uconf {|x...x|} {|x ([)x])x|}
+  check slconf {|x...x|} {|x ([)x])x|}
     [ Num_matches 1; Match_value {|x ([)x])x|} ];
   (* nested parentheses *)
-  check uconf {|f(...)|} {|f(((x)))|}
+  check slconf {|f(...)|} {|f(((x)))|}
     [ Num_matches 1; Match_value {|f(((x)))|} ];
   (* quotes *)
-  check uconf {|"..."|} {|"("")"|} [ Num_matches 1; Match_value {|"("")"|} ];
-  check uconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")")|} ];
-  check uconf {|x...x|} {|x "'x' x" x x|}
+  check slconf {|"..."|} {|"("")"|} [ Num_matches 1; Match_value {|"("")"|} ];
+  check slconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")")|} ];
+  check slconf {|x...x|} {|x "'x' x" x x|}
     [ Num_matches 1; Match_value {|x "'x' x" x|} ];
   (* default multiline config doesn't treat quotes as brackets *)
-  check mconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
+  check mlconf {|(...)|} {|(")")|} [ Num_matches 1; Match_value {|(")|} ]
 
 let test_explicit_brackets () =
-  check uconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ];
+  check slconf {|(...)|} {|())|} [ Num_matches 1; Match_value {|()|} ];
   (* Since parentheses are defined as brackets, we're not allowed to reject
      a closing parenthesis that matches the opening parenthesis. *)
-  check uconf {|(... x)|} {|()x)|} [ Num_matches 0 ];
-  check uconf {|(...)|} {|([])|} [ Num_matches 1; Match_value {|([])|} ];
+  check slconf {|(... x)|} {|()x)|} [ Num_matches 0 ];
+  check slconf {|(...)|} {|([])|} [ Num_matches 1; Match_value {|([])|} ];
   (* The behavior of the following test cases is subject to change.
      There's only so much we can do when braces are mismatched. *)
-  check uconf {|(...)|} {|([)|} [ Num_matches 1; Match_value {|([)|} ];
-  check uconf {|(...)|} {|(])|} [ Num_matches 1; Match_value {|(])|} ];
-  check uconf {|(...)|} {|([)]|} [ Num_matches 0 ];
-  check uconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
+  check slconf {|(...)|} {|([)|} [ Num_matches 1; Match_value {|([)|} ];
+  check slconf {|(...)|} {|(])|} [ Num_matches 1; Match_value {|(])|} ];
+  check slconf {|(...)|} {|([)]|} [ Num_matches 0 ];
+  check slconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
 let test_backreferences () =
-  check uconf {|$A ... $A|} {|a, b, c, a, d|}
+  check slconf {|$A ... $A|} {|a, b, c, a, d|}
     [
       Num_matches 1;
       Match_value {|a, b, c, a|};
       Capture_value ((Metavariable, "A"), "a");
     ];
   (* no overlaps -> only 2 matches *)
-  check uconf {|$A ... $A ... $A|} {|a x x x a x x x a x x x x a|}
+  check slconf {|$A ... $A ... $A|} {|a x x x a x x x a x x x x a|}
     [
       Num_matches 2;
       Match_value {|a x x x a x x x a|};
@@ -190,74 +191,61 @@ let test_backreferences () =
       Capture_value ((Metavariable, "A"), "x");
     ];
   (* back-references should not end in the middle of a word *)
-  check uconf {|$A ... $A|} {|ab abc|} [ Num_matches 0 ];
+  check slconf {|$A ... $A|} {|ab abc|} [ Num_matches 0 ];
   (* word matches should not start in the middle of a word *)
-  check uconf {|$A ... $A|} {|abc bc|} [ Num_matches 0 ];
+  check slconf {|$A ... $A|} {|abc bc|} [ Num_matches 0 ];
   (* ellipsis extremities that are not words may touch words *)
-  check uconf {|$...A : $...A|} {|x+ : +x|}
-    [ Num_matches 1; Match_value {|+ : +|} ];
+  check slconf {|... $...A : $...A ...|} {|x+ : +x|}
+    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "+") ];
   (* ellipsis extremities that are not words may touch [specific] words *)
-  check uconf {|x $...A : $...A x|} {|x+ : +x|}
+  check slconf {|x $...A : $...A x|} {|x+ : +x|}
     [ Num_matches 1; Match_value {|x+ : +x|} ];
   (* ellipsis extremities that are words may not touch words *)
-  check uconf {|$...A : $...A|} {|xy : yx|}
-    [
-      Num_matches 1;
-      (* not {|y : y|} *)
-      Match_value {| : |};
-      Capture_value ((Metavariable_ellipsis, "A"), "");
-    ];
+  check slconf {|... $...A : $...A ...|} {|xy : yx|}
+    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "") ];
   (* ellipsis extremities that are words may not touch [specific] words *)
-  check uconf {|x $...A : $...A x|} {|x+ : +x|}
+  check slconf {|x $...A : $...A x|} {|x+ : +x|}
     [
       Num_matches 1;
       Match_value {|x+ : +x|};
       Capture_value ((Metavariable_ellipsis, "A"), "+");
     ];
   (* word extremities of ellipsis back-references may not touch words *)
-  check uconf {|$...A : $...A|} {|x : xx|}
-    [
-      Num_matches 1;
-      Match_value {| : |};
-      Capture_value ((Metavariable_ellipsis, "A"), "");
-    ];
+  check slconf {|... $...A : $...A ...|} {|x : xx|}
+    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "") ];
   (* nonword extremities of ellipsis back-references may touch words *)
-  check uconf {|$...A : $...A|} {|+ : ++|}
-    [
-      Num_matches 1;
-      Match_value {|+ : +|};
-      Capture_value ((Metavariable_ellipsis, "A"), "+");
-    ]
+  check slconf {|... $...A : $...A ...|} {|+ : ++|}
+    [ Num_matches 1; Capture_value ((Metavariable_ellipsis, "A"), "+") ]
 
 let test_ellipsis_metavariable () =
-  check uconf {|[$...ITEMS]|} {|a, [ b, c ], d|}
+  check slconf {|[$...ITEMS]|} {|a, [ b, c ], d|}
     [
       Num_matches 1;
       Match_value {|[ b, c ]|};
       Capture_value ((Metavariable_ellipsis, "ITEMS"), {|b, c|});
     ];
-  (* regular vs. long ellipsis in uniline mode *)
-  check uconf {|[$...ITEMS]|} "a, [ b,\nc ], d" [ Num_matches 0 ];
-  check uconf {|[$....ITEMS]|} "a, [ b,\nc ], d"
+  (* regular vs. long ellipsis in single-line mode *)
+  check slconf {|[$...ITEMS]|} "a, [ b,\nc ], d" [ Num_matches 0 ];
+  check slconf {|[$....ITEMS]|} "a, [ b,\nc ], d"
     [
       Num_matches 1;
       Match_value "[ b,\nc ]";
       Capture_value ((Metavariable_ellipsis, "ITEMS"), "b,\nc");
     ];
   (* backtracking and back-references *)
-  check uconf {|[$...A $...A]|} "[a b a b]"
+  check slconf {|[$...A $...A]|} "[a b a b]"
     [
       Num_matches 1;
       Match_value "[a b a b]";
       Capture_value ((Metavariable_ellipsis, "A"), "a b");
     ];
   (* back-references require exact whitespace match, unfortunately *)
-  check uconf {|[$...A $...A]|} "[a b a  b]" [ Num_matches 0 ]
+  check slconf {|[$...A $...A]|} "[a b a  b]" [ Num_matches 0 ]
 
 (* Demonstrate the use of long ellipsis to match multiple lines
-   in uniline mode. *)
+   in single-line mode. *)
 let test_skip_lines () =
-  check uconf "\na\nb\n" "\na\nb\n" [ Num_matches 1; Match_value "\na\nb\n" ];
+  check slconf "\na\nb\n" "\na\nb\n" [ Num_matches 1; Match_value "\na\nb\n" ];
   let pat = {|
 var $ORIG = ...;
 ....
@@ -273,12 +261,41 @@ var d = b;
 var e = "xx";
 |}
   in
-  check uconf pat target
+  check slconf pat target
     [
       Num_matches 1;
       Capture_value ((Metavariable, "ORIG"), "b");
       Capture_value ((Metavariable, "COPY"), "d");
     ]
+
+let test_left_anchored_ellipses () =
+  check slconf "... $A" "!!!\n!!!hello world"
+    [ Num_matches 1; Match_value "!!!hello" ];
+  check slconf ".... $A" "!!!\n!!!hello world"
+    [ Num_matches 1; Match_value "!!!\n!!!hello" ];
+  check mlconf "... $A" "!!!\n!!!hello world"
+    [ Num_matches 1; Match_value "!!!\n!!!hello" ]
+
+let test_right_anchored_ellipses () =
+  check slconf "$A ..." "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!" ];
+  check slconf "$A ...." "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!\n!!!" ];
+  check mlconf "$A ..." "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!\n!!!" ];
+  check mlconf "$A ..." "hello!!!\n!!!"
+    [ Num_matches 1; Match_value "hello!!!\n!!!" ]
+
+let test_pure_ellipsis () =
+  check slconf "..." "hello\nworld"
+    [ Num_matches 2; Match_value "hello"; Match_value "world" ];
+  check slconf "...." "hello\nworld"
+    [ Num_matches 1; Match_value "hello\nworld" ];
+  check mlconf "..." "hello\nworld"
+    [ Num_matches 1; Match_value "hello\nworld" ];
+  check slconf "...\n..." "a\nb" [ Num_matches 1; Match_value "a\nb" ];
+  check slconf "...\n..." "a\nb\nc\n"
+    [ Num_matches 2; Match_value "a\nb"; Match_value "c\n" ]
 
 let tests =
   [
@@ -292,4 +309,7 @@ let tests =
     ("backreferences", test_backreferences);
     ("ellipsis metavariable", test_ellipsis_metavariable);
     ("skip lines", test_skip_lines);
+    ("left-anchored ellipses", test_left_anchored_ellipses);
+    ("right-anchored ellipses", test_right_anchored_ellipses);
+    ("pure ellipsis", test_pure_ellipsis);
   ]

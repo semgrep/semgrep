@@ -81,7 +81,7 @@ let default_multiline_conf =
     brackets = [ ('(', ')'); ('[', ']'); ('{', '}') ];
   }
 
-let default_uniline_conf =
+let default_singleline_conf =
   {
     multiline = false;
     word_chars = default_multiline_conf.word_chars;

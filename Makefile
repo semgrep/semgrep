@@ -249,12 +249,20 @@ test:
 core-test: core build-spacegrep
 	# The test executable has a few options that can be useful
 	# in some contexts.
+	$(MAKE) build-core-test
 	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
-	# from the directory of the checkou
+	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
+
+# This is useful when working on one or a few specific test cases.
+# It rebuilds the test executable which can then be called with
+# './test <filter>' where <filter> selects the tests to run.
+.PHONY: build-core-test
+build-core-test:
+	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
