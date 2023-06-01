@@ -54,6 +54,7 @@ let parse (tokens : Pat_lexer.token list) : Pat_AST.node list =
                normal text *)
             let acc = A.Other (String.make 1 close) :: acc in
             parse_seq_until acc expected_close xs)
+    | NEWLINE :: xs -> parse_seq_until (Newline :: acc) expected_close xs
     | OTHER str :: xs -> parse_seq_until (Other str :: acc) expected_close xs
   in
   let ast =

@@ -16,6 +16,7 @@ and node =
   | Long_metavar_ellipsis of string (* same *)
   | Bracket of char * t * char
   | Word of string
+  | Newline
   | Other of string
 [@@deriving show]
 
@@ -41,6 +42,7 @@ let check ast =
         add name kind
     | Bracket (_open, seq, _close) -> check_seq seq
     | Word _str -> ()
+    | Newline -> ()
     | Other _str -> ()
   and check_seq seq = List.iter check_node seq in
   check_seq ast
