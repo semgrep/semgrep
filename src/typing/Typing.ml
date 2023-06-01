@@ -53,14 +53,26 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       let t2, _id = type_of_expr lang e2 in
       let t =
         match (t1, op, t2) with
+        | Type.Builtin Type.Int, (G.Plus | G.Minus (* TODO more *)), _
+        | _, (G.Plus | G.Minus (* TODO more *)), Type.Builtin Type.Int
+          when not (Lang.is_js lang) ->
+            (* THINK: Is this correct in every other language that we support? *)
+            Type.Builtin Type.Int
         | ( Type.Builtin Type.Int,
             (G.Plus | G.Minus (* TODO more *)),
             Type.Builtin Type.Int ) ->
             Type.Builtin Type.Int
         | ( _,
             ( G.Eq | G.PhysEq | G.NotEq | G.NotPhysEq | G.Lt | G.LtE | G.Gt
-            | G.GtE | G.And | G.Or ),
+            | G.GtE | G.In | G.NotIn | G.Is | G.NotIs | G.And ),
             _ ) ->
+            Type.Builtin Type.Bool
+        | Type.Builtin Type.Bool, G.Or, _
+        | _, G.Or, Type.Builtin Type.Bool ->
+            Type.Builtin Type.Bool
+        | _, G.Or, _ when lang =*= Lang.Java ->
+            (* E.g. in Python you can write `x or ""` to mean `""` in case `x` is `None`.
+             * THINK: Is there a similar idiom involving `and`/`&&` ? *)
             Type.Builtin Type.Bool
         | Type.Builtin Type.Bool, (G.BitOr | G.BitAnd | G.BitXor), _
         | _, (G.BitOr | G.BitAnd | G.BitXor), Type.Builtin Type.Bool

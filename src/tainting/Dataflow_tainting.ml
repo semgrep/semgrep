@@ -458,6 +458,33 @@ let partition_mutating_sources sources_matches =
          m.spec.source_by_side_effect && is_exact m)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+let type_of_expr env e =
+  match e.eorig with
+  | SameAs eorig -> Typing.type_of_expr env.lang eorig |> fst
+  | _else -> Type.NoType
+
+(* We only check this at a few key places to avoid calling `type_of_expr` too
+ * many times which could be bad for perf (but haven't properly benchmarked):
+ * - assignments
+ * - return's
+ * - function calls
+ * TODO: Ideally we add an `e_type` field and have a type-inference pass to
+ *  fill it in, so that every expression has its known type available without
+ *  extra cost.
+ *)
+let drop_taints_if_bool_or_number env taints ty =
+  match ty with
+  | Type.(Builtin Bool) when env.options.taint_assume_safe_booleans ->
+      Taints.empty
+  | Type.(Builtin (Int | Float | Number))
+    when env.options.taint_assume_safe_numbers ->
+      Taints.empty
+  | __else__ -> taints
+
+(*****************************************************************************)
 (* Labels *)
 (*****************************************************************************)
 
@@ -586,11 +613,14 @@ let findings_of_tainted_sinks env taints sinks : T.finding list =
            in
            findings_of_tainted_sink env taints_with_traces sink)
 
-let finding_of_tainted_return taints return_tok : T.finding =
-  let taints = taints |> Taints.elements in
-  T.ToReturn
-    ( taints |> Common.map (fun t -> { t with T.tokens = List.rev t.T.tokens }),
-      return_tok )
+let findings_of_tainted_return taints return_tok : T.finding list =
+  if Taints.is_empty taints then []
+  else
+    let taint_list =
+      taints |> Taints.elements
+      |> Common.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
+    in
+    [ T.ToReturn (taint_list, return_tok) ]
 
 let check_orig_if_sink env ?filter_sinks orig taints =
   let sinks = orig_is_best_sink env orig in
@@ -705,43 +735,60 @@ let fix_poly_taint_with_field env lval st =
         | `Clean
         | `None ->
             st
-        | `Tainted taints ->
-            let taints' =
-              taints
-              |> Taints.map (fun taint ->
-                     match taint.orig with
-                     | Arg ({ offset; _ } as arg)
-                       when (* If the offset we are trying to take is already in the
-                               list of offsets, don't append it! This is so we don't
-                               never-endingly loop the dataflow and make it think the
-                               Arg taint is never-endingly changing.
+        | `Tainted taints -> (
+            match !(n.id_info.id_type) with
+            | Some { t = TyFun _; _ }
+              when env.lang <> Lang.Java
+                   || Option.is_some !(n.id_info.id_resolved)
+                   || not
+                        (Stdcompat.String.starts_with ~prefix:"get"
+                           (fst n.ident)) ->
+                (* We have an l-value like `o.f` where `f` is has a function type,
+                 * so it's a method call. We will only fix poly-taint in such case
+                 * when it's an unresolved Java `getX` method. In any other case,
+                 * we do nothing here. *)
+                st
+            | __else__ ->
+                (* Not a method call (to the best of our knowledge) or
+                 * an unresolved Java `getX` method. *)
+                let taints' =
+                  taints
+                  |> Taints.map (fun taint ->
+                         match taint.orig with
+                         | Arg ({ offset; _ } as arg)
+                           when (* If the offset we are trying to take is already in the
+                                   list of offsets, don't append it! This is so we don't
+                                   never-endingly loop the dataflow and make it think the
+                                   Arg taint is never-endingly changing.
 
-                               For instance, this code example would previously loop,
-                               if `x` started with an `Arg` taint:
-                               while (true) { x = x.getX(); }
-                            *)
-                            (not (List.mem n offset))
-                            && (* For perf reasons we don't allow offsets to get too long.
-                                * Otherwise in a long chain of function calls where each
-                                * function adds some offset, we could end up a very large
-                                * amount of polymorphic taint.
-                                * This actually happened with rule
-                                * semgrep.perf.rules.express-fs-filename from the Pro
-                                * benchmarks, and file
-                                * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
-                                *
-                                * TODO: This is way less likely to happen if we had better
-                                *   type info and we used to remove taint, e.g. if Boolean
-                                *   and integer expressions didn't propagate taint. *)
-                            List.length offset
-                            < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
-                         let arg' = { arg with offset = arg.offset @ [ n ] } in
-                         { taint with orig = Arg arg' }
-                     | Arg _
-                     | Src _ ->
-                         taint)
-            in
-            `Tainted taints')
+                                   For instance, this code example would previously loop,
+                                   if `x` started with an `Arg` taint:
+                                   while (true) { x = x.getX(); }
+                                *)
+                                (not (List.mem n offset))
+                                && (* For perf reasons we don't allow offsets to get too long.
+                                    * Otherwise in a long chain of function calls where each
+                                    * function adds some offset, we could end up a very large
+                                    * amount of polymorphic taint.
+                                    * This actually happened with rule
+                                    * semgrep.perf.rules.express-fs-filename from the Pro
+                                    * benchmarks, and file
+                                    * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
+                                    *
+                                    * TODO: This is way less likely to happen if we had better
+                                    *   type info and we used to remove taint, e.g. if Boolean
+                                    *   and integer expressions didn't propagate taint. *)
+                                List.length offset
+                                < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
+                             let arg' =
+                               { arg with offset = arg.offset @ [ n ] }
+                             in
+                             { taint with orig = Arg arg' }
+                         | Arg _
+                         | Src _ ->
+                             taint)
+                in
+                `Tainted taints'))
     | _ :: _
     | [] ->
         st
@@ -1443,7 +1490,12 @@ let check_function_call_arguments env args =
 let check_tainted_instr env instr : Taints.t * Lval_env.t =
   let check_expr env = check_tainted_expr env in
   let check_instr = function
-    | Assign (_, e) -> check_expr env e
+    | Assign (_, e) ->
+        let taints, lval_env = check_expr env e in
+        let taints =
+          drop_taints_if_bool_or_number env taints (type_of_expr env e)
+        in
+        (taints, lval_env)
     | AssignAnon _ -> (Taints.empty, env.lval_env) (* TODO *)
     | Call (_, e, args) ->
         let args_taints, all_args_taints, lval_env =
@@ -1463,7 +1515,14 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           match
             check_function_signature { env with lval_env } e args args_taints
           with
-          | Some (call_taints, lval_env) -> (call_taints, lval_env)
+          | Some (call_taints, lval_env) ->
+              let call_taints =
+                match type_of_expr env e with
+                | Type.Function (_, return_ty) ->
+                    drop_taints_if_bool_or_number env call_taints return_ty
+                | __else__ -> call_taints
+              in
+              (call_taints, lval_env)
           | None ->
               let call_taints =
                 if not (propagate_through_functions env) then Taints.empty
@@ -1536,6 +1595,7 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
     |> Common.map sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
+  let taints = drop_taints_if_bool_or_number env taints (type_of_expr env e) in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings;
   (taints, var_env')
@@ -1657,8 +1717,8 @@ let transfer :
     | NReturn (tok, e) ->
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, lval_env' = check_tainted_return env tok e in
-        let finding = finding_of_tainted_return taints tok in
-        report_findings env [ finding ];
+        let findings = findings_of_tainted_return taints tok in
+        report_findings env findings;
         lval_env'
     | NLambda params ->
         params

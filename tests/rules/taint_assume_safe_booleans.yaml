@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    message: Test
+    languages: [python]
+    options:
+      taint_assume_safe_booleans: true
+    mode: taint
+    pattern-sources:
+    - pattern: |
+        "tainted"
+    pattern-sinks:
+    - pattern: sink(...)
+    severity: ERROR
