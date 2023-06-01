@@ -20,7 +20,7 @@ module PM = Pattern_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
-module Config = Config_semgrep_t
+module Options = Rule_options_t
 module MG = Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -52,7 +52,8 @@ let set_last_matched_rule rule f =
    * reset to None and that's what we want!
    *)
   let res =
-    if !profile_mini_rules then Profiling.profile_code ("rule:" ^ rule.MR.id) f
+    if !profile_mini_rules then
+      Profiling.profile_code ("rule:" ^ (rule.MR.id :> string)) f
     else f ()
   in
   last_matched_rule := None;
@@ -135,13 +136,13 @@ let match_raw_raw rule a b env =
 (*****************************************************************************)
 
 let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
- fun mr ->
+ fun (mr : Mini_rule.t) ->
   {
-    PM.id = mr.Mini_rule.id;
-    message = mr.Mini_rule.message;
-    pattern_string = mr.Mini_rule.pattern_string;
-    fix = mr.Mini_rule.fix;
-    languages = mr.Mini_rule.languages;
+    PM.id = mr.id;
+    message = mr.message;
+    pattern_string = mr.pattern_string;
+    fix = mr.fix;
+    languages = mr.languages;
   }
 
 let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
@@ -502,9 +503,9 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
       end
     in
     let visitor_env =
-      let vardef_assign = config.Config.vardef_assign in
-      let flddef_assign = config.Config.flddef_assign in
-      let attr_expr = config.Config.attr_expr in
+      let vardef_assign = config.Options.vardef_assign in
+      let flddef_assign = config.Options.flddef_assign in
+      let attr_expr = config.Options.attr_expr in
       Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ()
     in
     (* later: opti: dont analyze certain ASTs if they do not contain

@@ -100,7 +100,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -192,7 +192,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -235,7 +235,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
@@ -269,7 +269,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"

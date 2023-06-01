@@ -4,7 +4,8 @@ module R = Rule
 module E = Semgrep_error_code
 module Out = Output_from_core_t
 
-let test_path = "../../../tests/synthesizing/targets/"
+(* ran from the root of the semgrep repository *)
+let test_path = "tests/synthesizing/targets/"
 
 (* Format: file, list of target ranges, expected pattern line. *)
 let stmt_tests =
@@ -58,7 +59,7 @@ let ranges_matched lang file pattern : Range.t list =
   let ast = parse_file lang file in
   let rule =
     {
-      Mini_rule.id = "unit testing";
+      Mini_rule.id = Rule.ID.of_string "unit testing";
       pattern;
       inside = false;
       message = "";
@@ -76,15 +77,17 @@ let ranges_matched lang file pattern : Range.t list =
         let toks = xs |> List.filter Tok.is_origintok in
         let minii, _maxii = Tok_range.min_max_toks_by_pos toks in
         let minii_loc = Tok.unsafe_loc_of_tok minii in
-        E.error "Synthesizier tests" minii_loc "" Out.SemgrepMatchFound)
-      (Config_semgrep.default_config, equiv)
+        E.error
+          (Rule.ID.of_string "Synthesizer tests")
+          minii_loc "" Out.SemgrepMatchFound)
+      (Rule_options.default_config, equiv)
       [ rule ] (file, lang, ast)
   in
   Common.map extract_range matches
 
 let run_single_test file linecols expected_pattern =
   let lang, _, inferred_pattern =
-    Synthesizer.generate_pattern_from_targets Config_semgrep.default_config
+    Synthesizer.generate_pattern_from_targets Rule_options.default_config
       (linecols @ [ file ])
   in
   let actual_pattern =

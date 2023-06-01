@@ -47,7 +47,7 @@ exception UnsupportedTargetType
 type stage = DONE | ANY of any | LN (* literal name *) of any
 
 type env = {
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   prev : any;
   count : int;
   mapping : (expr * expr) list;

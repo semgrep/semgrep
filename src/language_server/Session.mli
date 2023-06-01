@@ -24,7 +24,7 @@ val load_rules : t -> t
 val hrules : t -> Rule.hrules
 (** Get the hashtable of cached rules *)
 
-val record_results : t -> Processed_run.t list -> string list -> unit
+val record_results : t -> Processed_run.t list -> Fpath.t list -> unit
 (** Saves scan results for a file for later, such as when we need to generate code actions*)
 
 val scanned_files : t -> string list

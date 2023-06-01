@@ -12,7 +12,7 @@ a =\
     "foo"
 
 #OK:
-a[b] = 1
+a = "bar"
 
 def f():
     #OK:

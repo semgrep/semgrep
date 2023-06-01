@@ -589,16 +589,6 @@ let map_identifier (env : env) ((v1, v2) : CST.identifier) =
   in
   v1 :: v2
 
-let map_navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) :
-    G.tok * G.field_name =
-  let v1 = (* dot_custom *) token env v1 in
-  let v2 =
-    match v2 with
-    | `Simple_id x -> G.FN (map_simple_identifier env x |> H2.name_of_id)
-    | `Int_lit tok -> G.FDynamic (G.L (map_integer_literal env tok) |> G.e)
-  in
-  (v1, v2)
-
 let map_precedence_group_attribute (env : env)
     ((v1, v2, v3) : CST.precedence_group_attribute) =
   let name = map_simple_identifier env v1 |> H2.name_of_id in
@@ -1443,6 +1433,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
+  | `Semg_ellips_meta tok -> G.N (Id (str env tok, G.empty_id_info ())) |> G.e
   | `Semg_deep_ellips (v1, v2, v3) ->
       let l = (* "<..." *) token env v1 in
       let e = map_expression env v2 in
@@ -2222,8 +2213,18 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
         G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ]) |> G.e
     | `Exp x -> map_expression env x
   in
-  let dot, suffix = map_navigation_suffix env v2 in
-  G.DotAccess (v1, dot, suffix) |> G.e
+  match v2 with
+  | `Dot_choice_simple_id (s1, s2) ->
+      let s1 = (* dot_custom *) token env s1 in
+      let s2 =
+        match s2 with
+        | `Simple_id x -> G.FN (map_simple_identifier env x |> H2.name_of_id)
+        | `Int_lit tok -> G.FDynamic (G.L (map_integer_literal env tok) |> G.e)
+      in
+      G.DotAccess (v1, s1, s2) |> G.e
+  | `Dot_semg_ellips (s1, _) ->
+      let s1 = (* dot_custom *) token env s1 in
+      G.DotAccessEllipsis (v1, s1) |> G.e
 
 and map_tuple_pattern_item (env : env) (x : CST.tuple_pattern_item) : G.pattern
     =

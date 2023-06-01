@@ -25,9 +25,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 (* TODO: move these to the "main" for the test suite. *)
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../tests"
-let tests_path_patterns = Fpath.v "../../../tests/patterns"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
+let tests_path_patterns = tests_path / "patterns"
 let polyglot_pattern_path = tests_path_patterns / "POLYGLOT"
 
 (*****************************************************************************)
@@ -283,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = "unit testing";
+      MR.id = Rule.ID.of_string "unit testing";
       pattern;
       inside = false;
       message = "";
@@ -301,7 +301,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let equiv = [] in
   Match_patterns.check ~hook
-    (Config_semgrep.default_config, equiv)
+    (Rule_options.default_config, equiv)
     [ rule ] (!!file, lang, ast)
 
 (*
@@ -349,7 +349,9 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
                    match_pattern ~lang
                      ~hook:(fun { Pattern_match.range_loc; _ } ->
                        let start_loc, _end_loc = range_loc in
-                       E.error "test pattern" start_loc "" Out.SemgrepMatchFound)
+                       E.error
+                         (Rule.ID.of_string "test pattern")
+                         start_loc "" Out.SemgrepMatchFound)
                      ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with
@@ -483,14 +485,16 @@ let test_irrelevant_rule rule_file target_file =
          match Analyze_rule.regexp_prefilter_of_rule rule with
          | None ->
              Alcotest.fail
-               (spf "Rule %s: no regex prefilter formula" (fst rule.id))
+               (spf "Rule %s: no regex prefilter formula"
+                  (fst rule.id :> string))
          | Some (f, func) ->
              let content = File.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id) s))
+                    (fst rule.id :> string)
+                    s))
 
 let test_irrelevant_rule_file target_file =
   ( Fpath.basename target_file,
@@ -531,20 +535,21 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules = R.partition_rules rules in
+  let _, _, erules, _ = R.partition_rules rules in
   let erule_langs =
     erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
   in
   match erule_langs with
   | [] -> failwith (spf "no language for extract rule found in %s" !!file)
-  | [ x ] -> x
+  | [ x ] -> x.target_analyzer
   | x :: _ ->
+      let xlang = x.target_analyzer in
       pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
             first one: %s"
-           !!file (Xlang.show x));
-      x
+           !!file (Xlang.show xlang));
+      xlang
 
 let extract_tests () =
   let path = tests_path / "extract" in
@@ -576,13 +581,16 @@ let tainting_test lang rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages with
+           match r.Rule.languages.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let search_rules, taint_rules, extract_rules = Rule.partition_rules rules in
+  let search_rules, taint_rules, extract_rules, join_rules =
+    Rule.partition_rules rules
+  in
   assert (search_rules =*= []);
   assert (extract_rules =*= []);
+  assert (join_rules =*= []);
   let xconf = Match_env.default_xconfig in
 
   let matches =

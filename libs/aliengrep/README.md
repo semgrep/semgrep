@@ -48,10 +48,12 @@ The major differences with Spacegrep are:
 - Indentation in patterns or target code doesn't matter. All
   whitespace is treated as optional.
 - The sets of characters that make up words and braces are customizable.
-- There's no limit on how many lines a long ellipsis (`....`) can match.
-- [experimental] Long ellipsis `....` or `$....FOO`.
-  While a regular ellipsis `...` doesn't match newlines, a long
-  ellipsis `....` will.
+- There's no limit on how many lines an ellipsis can match (`...` in
+  multiline mode or `....` in single-line mode).
+- In single-line mode, newlines in patterns are matched literally and
+  regular ellipses (three dots) will not match newlines.
+- [experimental] In single-line mode, a long ellipsis `....` (four dots) or
+  `$....FOO` allows matching newlines as ordinary whitespace.
 
 Other features:
 
@@ -74,3 +76,9 @@ To allow for custom word characters and custom braces, the
 implementation doesn't use ocamllex. Patterns are parsed with a custom
 parser and translated into a PCRE pattern. Target code is not parsed
 per se but directly used to scan target code.
+
+## Semgrep integration
+
+In a Semgrep rule, aliengrep is a specific engine for analyzing
+generic targets. It's specified as an option in the `options`
+section.

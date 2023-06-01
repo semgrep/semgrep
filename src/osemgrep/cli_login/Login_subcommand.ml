@@ -53,7 +53,7 @@ let max_retries = 30 (* Give users 3 minutes to log in / open link *)
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Login_CLI.conf) : Exit_code.t =
-  Logs_helpers.setup_logging ~force_color:false ~level:conf.logging_level;
+  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (

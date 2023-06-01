@@ -5,6 +5,52 @@ open Js_of_ocaml
    (see companion setter in Semgrep_js_shared.ml) *)
 external get_jsoo_mount_point : unit -> 'any list = "get_jsoo_mount_point"
 
+(* semgrep uses ocaml-yaml, which uses ocaml-ctypes to use the libyaml C library
+   this is problematic for webassembly because it doesn't match the architecture
+   of the build machine (e.g. most computers these days have a 64-bit address space,
+   but WASM is currently 32-bit). cross-compilation ended up being too much work, so
+   instead we exploit javascript's mutability to correct some memory offsets for WASM *)
+external override_yaml_ctypes_field_offset :
+  ('a, 'b) Yaml_bindings.T.field -> int -> unit
+  = "override_yaml_ctypes_field_offset"
+
+let fix_libyaml_field_offsets_for_wasm () =
+  (* mark *)
+  override_yaml_ctypes_field_offset Yaml_types.M.Mark.line 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Mark.column 8;
+
+  (* event *)
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.data 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.start_mark 32;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.start_mark 44;
+
+  (* version_directive *)
+  override_yaml_ctypes_field_offset Yaml_types.M.Version_directive.minor 4;
+
+  (* event_sequence_start *)
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Sequence_start.tag 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Sequence_start.implicit 8;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Sequence_start.style 12;
+
+  (* event_scalar *)
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Scalar.tag 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Scalar.value 8;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Scalar.length 12;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Scalar.plain_implicit 16;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Scalar.quoted_implicit 20;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Scalar.style 24;
+
+  (* event_mapping_start *)
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Mapping_start.tag 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Mapping_start.implicit 8;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Mapping_start.style 12;
+
+  (* event_document_start *)
+  override_yaml_ctypes_field_offset
+    Yaml_types.M.Event.Document_start.tag_directives 4;
+  override_yaml_ctypes_field_offset Yaml_types.M.Event.Document_start.implicit
+    12
+
 type jbool = bool Js.t
 type jstring = Js.js_string Js.t
 
@@ -17,6 +63,8 @@ let _ =
      from the web on demand when one select a language in the playground.
      old: Parsing_init.init ();
   *)
+  fix_libyaml_field_offsets_for_wasm ();
+
   Js.export_all
     (object%js
        (*

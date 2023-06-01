@@ -98,7 +98,7 @@ def generate_unreachable_sca_findings(
                     match=core.CoreMatch(
                         rule_id=core.RuleId(rule.id),
                         location=core.Location(
-                            path=str(lockfile_path),
+                            path=core.Fpath(str(lockfile_path)),
                             start=core.Position(found_dep.line_number or 0, 0, 0),
                             end=core.Position(
                                 (

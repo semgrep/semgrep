@@ -756,7 +756,7 @@ let filename_without_leading_path prj_path s =
   else
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
 
-(* Deprecated: use the ppath library instead! *)
+(* Deprecated: use the Ppath.ml module instead! *)
 let readable ~root s =
   match root with
   | "/" -> s

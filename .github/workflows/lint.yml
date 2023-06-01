@@ -26,7 +26,7 @@ jobs:
       # runs as part of pre-commit to check our Python code.
       # alt: we could also use 'submodules: recursive' instead, but that would be a bit slower
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       # pre-commit is a Python script, this speedup things from Xmin to Ymin?
       - uses: actions/setup-python@v4
         with:

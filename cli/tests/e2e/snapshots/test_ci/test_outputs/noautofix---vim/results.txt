@@ -19,33 +19,33 @@ poetry.lock:1:0:E:supply-chain1:found a dependency
 === end of stdout - plain
 
 === stderr - plain
-                  
-                  
+
+
 ┌────────────────┐
 │ Debugging Info │
 └────────────────┘
-                  
+
   SCAN ENVIRONMENT
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown
-            
+
   CONNECTION
-  Reporting start of scan for deployment_name         
-  Fetching configuration from Semgrep Cloud Platform                 
-               
+  Reporting start of scan for deployment_name
+  Fetching configuration from Semgrep Cloud Platform
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
-            
-            
+
+
   CODE RULES
   Scanning 1 file with 4 python rules.
-                    
+
   SUPPLY CHAIN RULES
   Scanning 1 file.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
@@ -59,5 +59,6 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stderr - plain

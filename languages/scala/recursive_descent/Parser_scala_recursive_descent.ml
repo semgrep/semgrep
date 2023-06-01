@@ -2716,6 +2716,19 @@ and parseReturn in_ : stmt =
   (* ast: Return(x) *)
   Return (ii, x)
 
+(* use this to determine if we are in
+   catch { ... }
+         ^
+   where we are currently after the `catch`
+*)
+and isEllipsisCase in_ =
+  in_.token =~= LBRACE ab
+  && lookingAhead
+       (fun in_ ->
+         in_.token =~= Ellipsis ab
+         && lookingAhead (fun in_ -> in_.token =~= RBRACE ab) in_)
+       in_
+
 (** {{{
  *  ExprCaseClause ::= ‘case’ Pattern [Guard] ‘=>’ Expr
  *  }}}
@@ -2730,6 +2743,15 @@ and parseTry in_ : stmt =
     | Kcatch ii -> (
         nextToken in_;
         match in_.token with
+        | LBRACE _ when isEllipsisCase in_ ->
+            let l = TH.info_of_tok in_.token in
+            accept (LBRACE ab) in_;
+            let ii = TH.info_of_tok in_.token in
+            accept (Ellipsis ab) in_;
+            let r = TH.info_of_tok in_.token in
+            accept (RBRACE ab) in_;
+            Flag_parsing.sgrep_guard
+              (Some (ii, CatchCases (l, [ CaseEllipsis ii ], r)))
         | Kcase ab ->
             skipToken in_;
             let cc = exprCaseClause ab in_ in

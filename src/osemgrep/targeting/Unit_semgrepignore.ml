@@ -34,7 +34,7 @@ let test_filter ?includes:include_patterns ?excludes:cli_patterns
       let error = ref false in
       selection
       |> List.iter (fun (path, should_be_selected) ->
-             let path = Ppath.of_string path in
+             let path = Ppath.of_string_for_tests path in
              let status, selection_events =
                Common.save_excursion Glob.Match.debug true (fun () ->
                    Semgrepignore.select filter path)

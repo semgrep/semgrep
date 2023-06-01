@@ -327,7 +327,10 @@ let prefilter_of_rules file =
              Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
            in
            let id = r.Rule.id |> fst in
-           { Semgrep_prefilter_t.rule_id = id; filter = pre_atd_opt })
+           {
+             Semgrep_prefilter_t.rule_id = (id :> string);
+             filter = pre_atd_opt;
+           })
   in
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s
@@ -350,7 +353,6 @@ let mk_config () =
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
     rule_source = !rule_source;
-    lang_job = None;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* not part of CLI *)
     equivalences_file = !equivalences_file;
@@ -795,6 +797,22 @@ let main (sys_argv : string array) : unit =
 (*****************************************************************************)
 
 (*
+   Restore reasonable exception printers for the exceptions of the
+   OCaml standard library.
+*)
+let override_janestreet_exn_printers () =
+  Printexc.register_printer (function
+    | Failure msg -> Some ("Failure: " ^ msg)
+    | Invalid_argument msg -> Some ("Invalid_argument: " ^ msg)
+    | _ -> None)
+
+let register_unix_exn_printers () =
+  Printexc.register_printer (function
+    | Unix.Unix_error (e, fm, argm) ->
+        Some (spf "Unix_error: %s %s %s" (Unix.error_message e) fm argm)
+    | _ -> None)
+
+(*
    Register global exception printers defined by the various libraries
    and modules.
 
@@ -807,14 +825,26 @@ let main (sys_argv : string array) : unit =
    can be tricky.
 *)
 let register_exception_printers () =
+  override_janestreet_exn_printers ();
+  register_unix_exn_printers ();
   Parsing_error.register_exception_printer ();
   SPcre.register_exception_printer ();
   Rule.register_exception_printer ()
 
+let with_exception_trace f =
+  Printexc.record_backtrace true;
+  try f () with
+  | exn ->
+      let e = Exception.catch exn in
+      Printf.eprintf "Exception: %s\n%!" (Exception.to_string e);
+      raise (UnixExit 1)
+
 (* Entry point from either the executable or the shared library. *)
 let main (argv : string array) : unit =
+  (* It's really not clear what Common.main_boilerplate does.
+     Hoping for the best. *)
   Common.main_boilerplate (fun () ->
       register_exception_printers ();
       Common.finalize
-        (fun () -> main argv)
+        (fun () -> with_exception_trace (fun () -> main argv))
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))

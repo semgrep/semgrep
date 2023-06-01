@@ -7,7 +7,7 @@ type tin = {
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
     * values. This is bound to prevent potential infinite loops. *)
@@ -54,7 +54,7 @@ val empty_environment :
   ?mvar_context:Metavariable.bindings option ->
   tout Caching.Cache.t option ->
   Lang.t ->
-  Config_semgrep.t ->
+  Rule_options.t ->
   tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
@@ -67,7 +67,7 @@ val envf :
   Metavariable.mvar AST_generic.wrap -> Metavariable.mvalue -> tin -> tout
 
 val if_config :
-  (Config_semgrep.t -> bool) ->
+  (Rule_options.t -> bool) ->
   then_:(tin -> tout) ->
   else_:(tin -> tout) ->
   tin ->
@@ -92,7 +92,7 @@ val lazy_rest_of_list : 'a Lazy.t -> 'a
 val regexp_matcher_of_regexp_string : string -> string -> bool
 
 val equal_ast_bound_code :
-  Config_semgrep.t -> Metavariable.mvalue -> Metavariable.mvalue -> bool
+  Rule_options.t -> Metavariable.mvalue -> Metavariable.mvalue -> bool
 
 (* generic matchers *)
 val m_option : 'a matcher -> 'a option matcher
@@ -101,7 +101,7 @@ val m_option_ellipsis_ok :
   AST_generic.expr matcher -> AST_generic.expr option matcher
 
 val m_option_none_can_match_some : 'a matcher -> 'a option matcher
-val m_list : 'a matcher -> 'a list matcher
+val m_list : ('a, 'b) general_matcher -> ('a list, 'b list) general_matcher
 val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*

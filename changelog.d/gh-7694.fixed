@@ -1,2 +1,0 @@
-taint-mode: Fixed bug in taint labels that was causing some fatal errors:
-> Failure "Call AST_utils.with_xxx_equal to avoid this error."

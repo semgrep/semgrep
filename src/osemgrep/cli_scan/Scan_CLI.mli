@@ -13,7 +13,7 @@ type conf = {
   target_roots : Fpath.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
-  targeting_conf : Find_target.conf;
+  targeting_conf : Find_targets.conf;
   (* Other configuration options *)
   nosem : bool;
   autofix : bool;
@@ -64,3 +64,10 @@ val parse_argv : string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
 val cmdline_term : conf Cmdliner.Term.t
+
+(* exported because used by Interactive_CLI.ml too *)
+val o_lang : string option Cmdliner.Term.t
+val o_target_roots : string list Cmdliner.Term.t
+val o_include : string list Cmdliner.Term.t
+val o_exclude : string list Cmdliner.Term.t
+val o_ast_caching : bool Cmdliner.Term.t

@@ -2481,12 +2481,14 @@ let constructor_initializer (env : env)
   let v3 = argument_list env v3 in
   ExprStmt (Call (v2, v3) |> G.e, sc) |> G.s
 
-let enum_member_declaration (env : env)
-    ((v1, v2, v3) : CST.enum_member_declaration) =
-  let _v1TODO = List.concat_map (attribute_list env) v1 in
-  let v2 = identifier env v2 (* identifier *) in
-  let v3 = Option.map (equals_value_clause env) v3 in
-  OrEnum (v2, v3)
+let enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
+  match x with
+  | `Rep_attr_list_id_opt_EQ_exp (v1, v2, v3) ->
+      let _v1TODO = List.concat_map (attribute_list env) v1 in
+      let v2 = identifier env v2 (* identifier *) in
+      let v3 = Option.map (equals_value_clause env) v3 in
+      OrEnum (v2, v3)
+  | `Ellips tok -> OrEllipsis (token env tok)
 
 let base_list (env : env) ((v1, v2, v3) : CST.base_list) : G.class_parent list =
   let _v1 = token env v1 (* ":" *) in

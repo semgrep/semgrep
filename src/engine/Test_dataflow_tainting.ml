@@ -63,11 +63,13 @@ let test_dfg_tainting rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages with
+           match r.Rule.languages.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
+  let _search_rules, taint_rules, _extract_rules, _join_rules =
+    Rule.partition_rules rules
+  in
   let rule = Common.hd_exn "unexpected empty list" taint_rules in
   pr2 "Tainting";
   pr2 "========";

@@ -14,7 +14,7 @@ type conf = {
 type result = {
   core : Semgrep_output_v1_t.core_match_results;
   hrules : Rule.hrules;
-  scanned : Common.filename Set_.t;
+  scanned : Fpath.t Set_.t;
 }
 
 (*

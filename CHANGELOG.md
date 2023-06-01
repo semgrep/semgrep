@@ -6,6 +6,154 @@
 
 <!-- insertion point -->
 
+## [1.24.1](https://github.com/returntocorp/semgrep/releases/tag/v1.24.1) - 2023-06-01
+
+### Fixed
+
+- Yarn v1: fix parsing for package headers without version constraints (sc-749)
+
+## [1.24.0](https://github.com/returntocorp/semgrep/releases/tag/v1.24.0) - 2023-05-31
+
+### Added
+
+- New experimental aliengrep engine that can be used as an alternative to the
+  default spacegrep engine with `options.generic_engine: aliengrep`. (aliengrep)
+- Pro: Taint labels now mostly work interprocedurally, except for labeled propagators.
+  Note that taint labels are experimental! (pa-2507)
+- Pro: Taint-mode now supports inter-procedural field-sensitivity for JS/TS.
+
+  For example, given this class:
+
+  ```javascript
+  class Obj {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  }
+  ```
+
+  Semgrep knows that an object constructed by `new Obj("tainted", "safe")` has its
+  `x` attribute tainted, whereas its `y` attribute is safe. (pa-2570)
+
+### Changed
+
+- Set limits to the amount of taint that is tracked by Semgrep to prevent perf
+  issues. (pa-2570)
+
+### Fixed
+
+- Allow symbolic propagation for rvals in lhs of assignments. (gh-6780)
+- XML: you can now use metavariable-comparison on XML attributes or XML text body (gh-7709)
+- Java: support for record patterns (gh-7911)
+- C#: support ellipsis in enum declarations (gh-7914)
+- Fixed a recent regression which caused typed metavariables to fail to match when
+  the type itself also contained a metavariable, and the target was a builtin
+  type. For example, the pattern `(List<$T> $X)` would fail to match a value of
+  type `List<String>`. (typed-mvar)
+
+## [1.23.0](https://github.com/returntocorp/semgrep/releases/tag/v1.23.0) - 2023-05-24
+
+### Added
+
+- On scan complete during logged in `semgrep ci` scans, check returned exit code to
+  see if should block scans. This is to support incoming features that requires
+  information from semgrep.dev (complete)
+- Extract mode: users can now choose to include or exclude rules to run on, similar to `paths:`. For example,
+  to only run on the rules `example-1` and `example-2`, you would write
+
+  ```
+  rules:
+     - id: test-rule
+       mode: extract
+       rules:
+          include:
+          - example-1
+          - example-2
+  ```
+
+  To run on everything except `example-1` and `example-2`, you would write
+
+  ````
+  rules:
+     - id: test-rule
+       mode: extract
+       rules:
+          exclude:
+          - example-1
+          - example-2
+  ``` (gh-7858)
+  ````
+
+- Kotlin: Added literal metavariables, from patterns like `"$FOO"`.
+  You can still match strings that only contain a single interpolated
+  ident by using the brace notation, e.g. `"${FOO}"`. (pa-2755)
+- Increase timeout of `semgrep ci` upload findings network calls
+  and make said timeout configurable with env var SEMGREP_UPLOAD_FINDINGS_TIMEOUT (timeout)
+
+### Changed
+
+- Relaxed restrictions on symbolic propagation so that symbolic values survive
+  branching statements. Now (with symbolic-propagation enabled) `foo(bar())` will
+  match match the following code:
+
+  ```python
+  def test():
+    x = bar()
+    if cond:
+      exit()
+    foo(x)
+  ```
+
+  Previously any symbolically propagated value was lost after any kind of branching
+  statement. (pa-2739)
+
+### Fixed
+
+- swift: support ellipsis metavariable (gh-7666)
+- Scala: You can now put an ellipsis inside of a `catch`, to
+  write a pattern like:
+  try {
+  ...
+  } catch {
+  ...
+  }
+  which will match every kind of try-catch. (gh-7807)
+- When scanning with `-l dockerfile`, files named `dockerfile` as well as `Dockerfile` will be scanned. (gh-7824)
+- Fix for very long runtimes that could happen due to one of our optimizations. We now detect when that might
+  happen and skip the optimization. (gh-7839)
+- Improve type inference for some simple arithmetic expressions (inference)
+- Fixed bug introduced in 1.19.0 that was causing some stack overflows. (pa-2740)
+
+## [1.22.0](https://github.com/returntocorp/semgrep/releases/tag/v1.22.0) - 2023-05-15
+
+### Added
+
+- Add support for language Cairo 1.0 (develop). Thanks to Frostweeds (Romain Jufer) for his contribution! (gh-7757)
+- On logged in `semgrep ci` scans, report lockfile parse errors to display in webUI (lockfileparse)
+- Pro: Java: Taint-mode can now do field-sensitive analysis of class constructors.
+  For example, if the default constructor of a class `C` sets its field `x` to a
+  tainted value, given `o = new C()`, Semgrep will know that `o.getX()` is tainted. (pa-2570)
+- Kotlin: Added named ellipses, like $...X (pa-2710)
+- Kotlin: Interpolated identifiers in strings, such as "$foo", are now properly
+  able to match explicitly interpolated expressions, like "${...}". (pa-2711)
+
+### Changed
+
+- Cleanup: Removed Bloom filter optimization. This optimization had been turned off by
+  default since September 2022 (release 0.116.0) without any noticeable effect. It had
+  its role in the past when it was first introduced, but now it's time for it to go! (cleanup-1)
+- engine: The use of a matching cache for statements is now disabled by default,
+  please let us know if you notice any performance degradation. We plan to remove
+  this optimization in a few weeks. (cleanup-2)
+
+### Fixed
+
+- Enable automatic removal of matched codes by allowing an empty string in the fix field. (gh-6318)
+- Updated SARIF to use nested levels, added confidence to tags and included references with markdown links. (gh-7317)
+- taint-mode: Fixed bug in taint labels that was causing some fatal errors:
+  > Failure "Call AST_utils.with_xxx_equal to avoid this error." (gh-7694)
+
 ## [1.21.0](https://github.com/returntocorp/semgrep/releases/tag/v1.21.0) - 2023-05-04
 
 ### Added

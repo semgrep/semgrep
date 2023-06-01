@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -83,7 +84,7 @@ let is_git_repo () =
 
 let dirty_lines_of_file file =
   (* In the future we can make the HEAD part a parameter, and allow users to scan against other branches *)
-  let cmd = Bos.Cmd.(v "git" % "diff" % "-U0" % "HEAD" % file) in
+  let cmd = Bos.Cmd.(v "git" % "diff" % "-U0" % "HEAD" % !!file) in
   let run = Bos.OS.Cmd.run_out cmd in
   let lines_r = Bos.OS.Cmd.out_string ~trim:true run in
   let lines =
@@ -133,5 +134,5 @@ let dirty_files () =
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   let files = List.filter (fun f -> not (String.trim f = "")) lines in
-  let files = Common.map (fun l -> Str.string_after l 3) files in
+  let files = Common.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files

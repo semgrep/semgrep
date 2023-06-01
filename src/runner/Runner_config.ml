@@ -11,6 +11,7 @@ type output_format = Text | Json of bool (* dots *) [@@deriving show]
     preparsed.
 *)
 type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
+[@@deriving show]
 
 (*
    'Target_file' is for the semgrep-core CLI which gets a list of
@@ -23,6 +24,7 @@ type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 type target_source =
   | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
+[@@deriving show]
 
 (* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)
 type t = {
@@ -40,7 +42,6 @@ type t = {
   pattern_string : string option;
   pattern_file : Fpath.t option;
   rule_source : rule_source option;
-  lang_job : Lang_job.t option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
   roots : Fpath.t list;
@@ -71,6 +72,7 @@ type t = {
   (* Other *)
   version : string;
 }
+[@@deriving show]
 
 (*
    Default values for all the semgrep-core command-line arguments and options.
@@ -99,7 +101,6 @@ let default =
     pattern_string = None;
     pattern_file = None;
     rule_source = None;
-    lang_job = None;
     equivalences_file = None;
     lang = None;
     roots = [];

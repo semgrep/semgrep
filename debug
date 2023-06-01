@@ -16,6 +16,6 @@
 set -eu
 
 # so can use dune build in run-ocamldebug.sh
-source src/ocaml-tree-sitter-core/tree-sitter-config.sh
+source libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 
 ./scripts/run-ocamldebug.sh ./_build/default/src/osemgrep/main/Main.bc

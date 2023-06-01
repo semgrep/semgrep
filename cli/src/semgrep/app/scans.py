@@ -10,6 +10,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
@@ -249,7 +250,7 @@ class ScanHandler:
         lockfile_dependencies: Dict[str, List[FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
-    ) -> None:
+    ) -> Tuple[bool, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
@@ -357,7 +358,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
-            return
+            return (False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -366,6 +367,7 @@ class ScanHandler:
 
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
 
@@ -383,6 +385,7 @@ class ScanHandler:
         # mark as complete
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+            timeout=state.env.upload_findings_timeout,
             json=complete,
         )
 
@@ -392,3 +395,6 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
+        ret = response.json()
+        return (ret.get("app_block_override", False), ret.get("app_block_reason", ""))

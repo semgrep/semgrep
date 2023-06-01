@@ -268,7 +268,15 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+        run: |
+          TAG=${GITHUB_REF/refs\/tags\//}
+          if [ "${{ needs.dry-run.outputs.dry-run }}" = "true" ]; then
+            TAG=v99.99.99
+          fi
+          echo "Using TAG=${TAG}"
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using VERSION=${TAG#v}"
+          echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       - uses: actions/setup-python@v4
         id: python-setup
         with:
@@ -290,7 +298,7 @@ jobs:
         if: ${{ contains(github.ref, '-test-release') || needs.dry-run.outputs.dry-run == 'true' }}
         run: |
           brew bump-formula-pr --force --no-audit --no-browse --write-only \
-            --message="Bump semgrep to version v99.99.99" \
+            --message="semgrep 99.99.99" \
             --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
       - name: Open Brew PR
         if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
@@ -298,8 +306,8 @@ jobs:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         run: |
           brew bump-formula-pr --force --no-audit --no-browse --write-only \
-            --message="Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}" \
-            --tag="${{ steps.get-version.outputs.VERSION }}" semgrep
+            --message="semgrep ${{ steps.get-version.outputs.VERSION }}" \
+            --tag="${{ steps.get-version.outputs.TAG }}" semgrep
       - name: Prepare Branch
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
@@ -314,7 +322,7 @@ jobs:
           git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
           git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}
           git add Formula/semgrep.rb
-          git commit -m "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"
+          git commit -m "semgrep ${{ steps.get-version.outputs.VERSION }}"
       - name: Push Branch to Fork
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}

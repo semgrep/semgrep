@@ -101,7 +101,8 @@ let dispatch_output_format (output_format : Output_format.t)
              } ->
                  let severity = String.lowercase_ascii severity in
                  let severity_and_ruleid =
-                   if check_id = Constants.rule_id_for_dash_e then severity
+                   if check_id = (Constants.rule_id_for_dash_e :> string) then
+                     severity
                    else
                      let xs =
                        check_id |> Str.split (Str.regexp_string ".") |> List.rev
@@ -156,7 +157,7 @@ let dispatch_output_format (output_format : Output_format.t)
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
 let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
-    Out.cli_error list =
+    Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -178,5 +179,5 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;
-  cli_output.errors
+  cli_output
   [@@profiling]

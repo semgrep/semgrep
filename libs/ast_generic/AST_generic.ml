@@ -2420,11 +2420,6 @@ class virtual ['self] map_legacy =
     inherit [_] map
     method! visit_tok _env v = v
 
-    method! visit_expr env x =
-      let ekind = self#visit_expr_kind env x.e in
-      (* TODO? reuse the e_id or create a new one? *)
-      e ekind
-
     (* For convenience, so clients don't need to override visit_arguments and
      * deal with the bracket type. *)
     method visit_argument_list env v = self#visit_list self#visit_argument env v
