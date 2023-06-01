@@ -6,6 +6,12 @@
 
 <!-- insertion point -->
 
+## [1.24.1](https://github.com/returntocorp/semgrep/releases/tag/v1.24.1) - 2023-06-01
+
+### Fixed
+
+- Yarn v1: fix parsing for package headers without version constraints (sc-749)
+
 ## [1.24.0](https://github.com/returntocorp/semgrep/releases/tag/v1.24.0) - 2023-05-31
 
 ### Added
