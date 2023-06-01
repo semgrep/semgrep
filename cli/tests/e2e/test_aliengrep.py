@@ -11,8 +11,7 @@ from tests.fixtures import RunSemgrep
         # Various real-world tests adapted from spacegrep tests.
         ("rules/aliengrep/html.yaml", "aliengrep/html.mustache"),
         ("rules/aliengrep/markdown.yaml", "aliengrep/markdown.md"),
-        # TODO: make leading/trailing ellipses anchored
-        # ("rules/aliengrep/httpresponse.yaml", "aliengrep/httpresponse.txt"),
+        ("rules/aliengrep/httpresponse.yaml", "aliengrep/httpresponse.txt"),
         ("rules/aliengrep/dockerfile.yaml", "aliengrep/dockerfile"),
         ("rules/aliengrep/multi-lines.yaml", "aliengrep/multi-lines.java"),
         # Aliengrep-specific tests
