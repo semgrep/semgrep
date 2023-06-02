@@ -297,6 +297,13 @@ let test_pure_ellipsis () =
   check slconf "...\n..." "a\nb\nc\n"
     [ Num_matches 2; Match_value "a\nb"; Match_value "c\n" ]
 
+let test_caseless () =
+  check mlconf "hello" "HeLLo, world" [ Num_matches 0 ];
+  check
+    { mlconf with caseless = true }
+    "hello" "HeLLo, world"
+    [ Num_matches 1; Match_value "HeLLo" ]
+
 let tests =
   [
     ("word", test_word);
@@ -312,4 +319,5 @@ let tests =
     ("left-anchored ellipses", test_left_anchored_ellipses);
     ("right-anchored ellipses", test_right_anchored_ellipses);
     ("pure ellipsis", test_pure_ellipsis);
+    ("caseless", test_caseless);
   ]

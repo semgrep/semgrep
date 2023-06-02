@@ -3,6 +3,8 @@
 *)
 
 type t = {
+  (* Use case-insensitive matching. Rely on PCRE to do this well. *)
+  caseless : bool;
   (* multiline = newlines are treated as ordinary whitespace *)
   multiline : bool;
   (* TODO: support UTF-8 word characters *)
