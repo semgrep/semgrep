@@ -162,11 +162,13 @@ and type_of_ast_generic_type lang t : G.name Type.t =
   match t.G.t with
   (* TODO Check language? Someone could make a user type named `nil` in Java,
    * for example. *)
-  | G.TyN (Id ((("null" | "nil"), _), _)) -> Type.Null
+  | G.TyN (Id ((("null" | "nil" | "NULL"), _), _)) -> Type.Null
   | G.TyN (Id ((str, _), _) as name) -> (
       match Type.builtin_type_of_string lang str with
       | Some t -> Type.Builtin t
       | None -> Type.N ((name, []), []))
+  (* Pick up IdQualified as well *)
+  | G.TyN name -> Type.N ((name, []), [])
   | G.TyApply ({ G.t = G.TyN name; _ }, (_l, args, _r)) ->
       let args =
         args
