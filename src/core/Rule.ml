@@ -329,33 +329,7 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 [@@deriving show]
 
 (*****************************************************************************)
-(* Shared mode definitions *)
-(*****************************************************************************)
-
-(* Polymorhic variants used to improve type checking of rules (see below) *)
-type search_mode = [ `Search of formula ] [@@deriving show]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-
-(*****************************************************************************)
-(* Step mode *)
-(*****************************************************************************)
-
-type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
-
-type step = {
-  step_mode : mode_for_step;
-  (* TODO: should the type be 'languages' like for the main rule?
-     Yes if it's concerned with target selection, no otherwise. *)
-  step_languages : Xlang.t;
-  step_paths : paths option;
-}
-[@@deriving show]
-
-type steps = step list [@@deriving show]
-
-(*****************************************************************************)
-(* The rule *)
+(* Languages definition *)
 (*****************************************************************************)
 
 (*
@@ -418,6 +392,34 @@ type languages = {
   target_analyzer : Xlang.t;
 }
 [@@deriving show]
+
+(*****************************************************************************)
+(* Shared mode definitions *)
+(*****************************************************************************)
+
+(* Polymorhic variants used to improve type checking of rules (see below) *)
+type search_mode = [ `Search of formula ] [@@deriving show]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
+
+(*****************************************************************************)
+(* Step mode *)
+(*****************************************************************************)
+
+type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
+
+type step = {
+  step_mode : mode_for_step;
+  step_languages : languages;
+  step_paths : paths option;
+}
+[@@deriving show]
+
+type steps = step list [@@deriving show]
+
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
 
 type 'mode rule_info = {
   (* MANDATORY fields *)

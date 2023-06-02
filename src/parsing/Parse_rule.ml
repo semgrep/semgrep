@@ -1533,7 +1533,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
              "Unexpected value for mode, should be 'search' or 'taint', not %s"
              (fst key))
   in
-  { step_languages = step_languages.target_analyzer; step_paths; step_mode }
+  { step_languages; step_paths; step_mode }
 
 let parse_steps env key (value : G.expr) : R.steps =
   let parse_step step = parse_step_fields env key step in
