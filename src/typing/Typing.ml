@@ -53,11 +53,13 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       let t2, _id = type_of_expr lang e2 in
       let t =
         match (t1, op, t2) with
-        | Type.Builtin Type.Int, (G.Plus | G.Minus (* TODO more *)), _
-        | _, (G.Plus | G.Minus (* TODO more *)), Type.Builtin Type.Int
-          when not (Lang.is_js lang) ->
-            (* THINK: Is this correct in every other language that we support? *)
-            Type.Builtin Type.Int
+        | Type.(Builtin (Int | Float)), (G.Plus | G.Minus (* TODO more *)), _
+        | _, (G.Plus | G.Minus (* TODO more *)), Type.(Builtin (Int | Float))
+        (* Note that `+` is overloaded in many languages and may also be
+         * string concatenation, and unfortunately some languages such
+         * as Java and JS/TS have implicit coercions to string. *)
+          when lang =*= Lang.Python (* TODO more *) ->
+            Type.Builtin Type.Number
         | ( Type.Builtin Type.Int,
             (G.Plus | G.Minus (* TODO more *)),
             Type.Builtin Type.Int ) ->

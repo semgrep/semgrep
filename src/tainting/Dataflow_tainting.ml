@@ -743,7 +743,7 @@ let fix_poly_taint_with_field env lval st =
                    || not
                         (Stdcompat.String.starts_with ~prefix:"get"
                            (fst n.ident)) ->
-                (* We have an l-value like `o.f` where `f` is has a function type,
+                (* We have an l-value like `o.f` where `f` has a function type,
                  * so it's a method call. We will only fix poly-taint in such case
                  * when it's an unresolved Java `getX` method. In any other case,
                  * we do nothing here. *)
