@@ -134,6 +134,13 @@ type t = {
      a dash to the word characters, allowing '$FOO' to match 'e-mail'. *)
   ~generic_extra_word_characters: string list;
 
+  (* Perform case-insensitive matching according to Unicode rules.
+     The default is false.
+     This is supported only by the aliengrep engine.
+     Back-references, however, must still respect the case of the first
+     match e.g. "$A $A" matches "Hello Hello" but not "Hello hello". *)
+  ~generic_caseless: bool;
+
   (* Maximum number of newlines that an ellipsis can match with the spacegrep
      engine. Use 0 to contain the match within a single line. *)
   ~generic_ellipsis_max_span <ocaml default="10">: int;

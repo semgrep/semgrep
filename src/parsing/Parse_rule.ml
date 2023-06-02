@@ -575,6 +575,7 @@ let brace_pairs_of_string_pairs env xs =
 let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
   let options = Option.value env.options ~default:Rule_options.default_config in
   let default = Aliengrep.Conf.default_multiline_conf in
+  let caseless = options.generic_caseless in
   let multiline = options.generic_multiline in
   let word_chars =
     default.word_chars
@@ -591,7 +592,7 @@ let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
     in
     base_set @ extra_braces
   in
-  { multiline; word_chars; brackets }
+  { caseless; multiline; word_chars; brackets }
 
 let parse_options rule_id (key : key) value =
   let s = J.string_of_json (generic_to_json rule_id key value) in

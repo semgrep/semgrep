@@ -257,6 +257,7 @@ let must_match_end_of_input conf ~(next : Pat_AST.node option) node =
    of this file).
 *)
 let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
+  let options = if conf.caseless then [ "(?i)" ] else [] in
   let param = param_of_conf conf in
   let new_capturing_group =
     let n = ref 0 in
@@ -424,7 +425,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
 # entry point
 %s
 |}
-      (String.concat "\n" definitions)
+      (String.concat "\n" (options @ definitions))
       entrypoint
   in
   (root, get_capturing_group_array ())
