@@ -31,10 +31,6 @@ module H2 = AST_generic_helpers
  *)
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 type env = unit H.env
@@ -249,7 +245,8 @@ let map_operator_identifier (env : env) (x : CST.operator_identifier) : ident =
   | `DASHGT tok -> (* "->" *) str env tok
   | `DOT tok -> (* "." *) str env tok
 
-let rec map_after_block (env : env) ((v1, v2, v3) : CST.after_block) =
+let rec map_after_block (env : env) ((v1, v2, v3) : CST.after_block) :
+    string wrap * body_or_clauses =
   let v1 = (* "after" *) str env v1 in
   let _v2 = map_terminator_opt env v2 in
   let v3 =
@@ -1204,7 +1201,7 @@ and map_unary_operator (env : env) (x : CST.unary_operator) : expr =
       let e = L (Int (int_of_string_opt s, t)) |> G.e in
       OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
 
-let map_source (env : env) ((v1, v2) : CST.source) : body =
+let map_source (env : env) ((v1, v2) : CST.source) : program =
   let _v1 = map_terminator_opt env v1 in
   let v2 =
     match v2 with

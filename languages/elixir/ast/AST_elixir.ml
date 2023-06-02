@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -31,10 +32,6 @@ open Common
  *  - TODO: phase 2, we analyze those raw constructs and try to infer higher-level
  *    constructs like module definitions or function definitions that
  *    are standard in Elixir
- * Note that because our aim is ultimately to transform Elixir code
- * in the generic ASTs, we didn't define an Elixir 'expr' type but
- * instead reuse the one from the generic AST, which makes it
- * easier later in Elixir_to_generic.ml to get back a full generic AST.
  *
  * references:
  * - https://hexdocs.pm/elixir/syntax-reference.html
@@ -49,14 +46,26 @@ open Common
  * https://hexdocs.pm/elixir/syntax-reference.html
  *)
 
-type 'a wrap = 'a AST_generic.wrap
-type 'a bracket = 'a AST_generic.bracket
+(* ------------------------------------------------------------------------- *)
+(* Tokens *)
+(* ------------------------------------------------------------------------- *)
+
+type 'a wrap = 'a G.wrap
+type 'a bracket = 'a G.bracket
+
+(* ------------------------------------------------------------------------- *)
+(* Names *)
+(* ------------------------------------------------------------------------- *)
 
 (* lowercase ident *)
 type ident = string wrap
 
-(* uppercase ident *)
+(* uppercase ident; constructs that expand to atoms at compile-time *)
 type alias = string wrap
+
+(* ------------------------------------------------------------------------- *)
+(* Expressions *)
+(* ------------------------------------------------------------------------- *)
 
 (* there is no 'name' below. They use the term 'remote' for qualified calls
  * with lowercase ident.
@@ -64,8 +73,8 @@ type alias = string wrap
  * and be also kinda of a name.
  *)
 
-type expr = AST_generic.expr
-type argument = AST_generic.argument
+type expr = G.expr
+type argument = G.argument
 
 (* exprs separated by terminators (newlines or semicolons)
  * can be empty.
@@ -86,6 +95,10 @@ type pair = keyword * expr
 (* inside containers (list, bits, maps, tuples), separated by commas *)
 type item = expr
 
+(* ------------------------------------------------------------------------- *)
+(* Clauses *)
+(* ------------------------------------------------------------------------- *)
+
 (* Ideally it should be pattern list * tok * body option, but Elixir
  * is more general and use '->' also for type declarations in typespecs,
  * or for parameters (kind of patterns though).
@@ -98,6 +111,10 @@ type clauses = stab_clause list
 (* in after/rescue/catch/else and do blocks *)
 type body_or_clauses = (body, clauses) either
 
+(* ------------------------------------------------------------------------- *)
+(* Blocks *)
+(* ------------------------------------------------------------------------- *)
+
 (* the bracket here are do/end *)
 type do_block =
   (body_or_clauses
@@ -106,6 +123,7 @@ type do_block =
 
 (* the bracket here are () *)
 type block = body_or_clauses bracket
+type program = body
 
 (*****************************************************************************)
 (* Refined constructs *)
