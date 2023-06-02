@@ -49,8 +49,8 @@ module G = AST_generic
 (* ------------------------------------------------------------------------- *)
 (* Tokens *)
 (* ------------------------------------------------------------------------- *)
-type 'a wrap = 'a G.wrap
-type 'a bracket = 'a G.bracket
+type 'a wrap = 'a * Tok.t
+type 'a bracket = Tok.t * 'a * Tok.t
 
 (* ------------------------------------------------------------------------- *)
 (* Names *)
@@ -90,7 +90,9 @@ type operator =
   | O of G.operator
   | OOther of string
 
-(* start of recursive type because atoms can contain interpolated exprs *)
+type ident_or_operator = (ident, operator wrap) Common.either
+
+(* start of BIG recursive type because atoms can contain interpolated exprs *)
 
 (* TODO: need extract ':' for simple ident case *)
 type atom = Tok.t (* ':' *) * string wrap or_quoted
@@ -112,37 +114,103 @@ and quoted = expr bracket
 (* ------------------------------------------------------------------------- *)
 
 (* TODO
-   when binaryop:
-         OtherExpr
-           ( ("When", twhen),
-             [ E e1; E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
-         |> G.e
-   consbinaryop:
-         G.OtherExpr
-           ( ("Join", tbar),
-             [ G.E e1; G.E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
-         |> G.e
+      when binaryop:
+            OtherExpr
+              ( ("When", twhen),
+                [ E e1; E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
+            |> G.e
+      consbinaryop:
+            G.OtherExpr
+              ( ("Join", tbar),
+                [ G.E e1; G.E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
+            |> G.e
 
-         let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
-         G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
-   /int binaryop:
-         let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
-         G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
+            let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
+            G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
+      /int binaryop:
+            let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
+            G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
+
+   for Capture:
+         AST_generic_helpers.set_e_range v1 v3 v2;
+
+   map_dot:
+       match v3 with
+       | `Alias tok ->
+           let al = map_alias env tok in
+           DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e
+       | `Tuple x ->
+           let l, xs, r = map_tuple env x in
+           let tuple = Container (Tuple, (l, xs, r)) |> G.e in
+           DotAccess (e, tdot, FDynamic tuple) |> G.e
+
+   map_unary_operator:
+   plus
+         let e1 = N (H2.name_of_id id) |> G.e in
+         Elixir_to_generic.mk_call_no_parens e1 [ G.arg e2 ] None
+   @
+         OtherExpr (("AttrExpr", tat), [ E e ]) |> G.e
+   &1
+         let e = L (Int (int_of_string_opt s, t)) |> G.e in
+         OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
 *)
 and expr =
   | I of ident
   | L of G.literal
+  | A of atom
+  (*  G.OtherExpr (("Sigil", ttilde), [ G.I letter; any ] @ idopt) |> G.e *)
+  | Sigil (* TODO *)
+  | List of item list bracket
+  | Tuple of item list bracket
+  (* G.OtherExpr
+     (("ContainerBits", l), (xs |> Common.map (fun e -> G.E e)) @ [ G.Tk r ]) *)
+  | Bits of item list bracket
+  | Map of Tok.t (* "%" *) * struct_ option * item list bracket
   | Alias of alias
   | Block of block
+  (* ... DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e ... *)
+  | DotAlias of expr * Tok.t * alias
+  (* ...
+        let tuple = Container (Tuple, (l, xs, r)) |> G.e in
+        DotAccess (e, tdot, FDynamic tuple) |> G.e
+  *)
+  | DotTuple of expr * Tok.t * item list bracket
+  | ModuleVarAccess of Tok.t (* @ *) * expr
+  | ArrayAccess of expr * expr bracket
+  | Call of call
+  | UnaryOp of operator wrap * expr
+  | BinaryOp of expr * operator wrap * expr
+  (* let fdef =
+       Elixir_to_generic.stab_clauses_to_function_definition tfn clauses
+     in
+     let fdef = { fdef with fkind = (LambdaKind, tfn) } in
+     Lambda fdef |> G.e
+  *)
+  | Lambda of Tok.t (* 'fn' *) * clauses * Tok.t (* 'end' *)
+  (*
+      OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
+*)
+  | Capture of Tok.t (* '&' *) * expr
+  | ShortLambda of Tok.t (* '&' *) * expr bracket
+  | PlaceHolder of Tok.t (* & *) * int option wrap
   (* semgrep-ext: *)
   | DeepEllipsis of expr bracket
 
+(* TODO
+      match struct_opt with
+      | None -> container
+      | Some (Left id) ->
+          let n = H2.name_of_id id in
+          let ty = G.TyN n |> G.t in
+          G.New (tpercent, ty, G.empty_id_info (), (l, Common.map G.arg xs, r))
+          |> G.e
+      | Some (Right e) -> G.Call (e, (l, Common.map G.arg xs, r)) |> G.e)
+*)
+and struct_ = unit
 and argument = G.argument
 
-(* Ideally we would want just 'type keyword = ident * tok (*:*)',
- * but Elixir allows also "interpolated{ x }string": keywords.
- *)
-and keyword = expr
+(* TODO: need to extract the ':' for the ident case *)
+and keyword = string wrap or_quoted * Tok.t (* : *)
 
 (* note that Elixir supports also pairs using the (:atom => expr) syntax *)
 and pair = keyword * expr
@@ -154,7 +222,16 @@ and body = expr list
 
 (* less: restrict with special arg? *)
 and call = expr
-and remote_dot = expr * Tok.t (* '.' *) * ident or_quoted
+
+(* TODO
+   map_remote_dor:
+           FN (H2.name_of_id id)
+   ...
+           FDynamic x
+   ...
+     DotAccess (e, tdot, fld) |> G.e
+*)
+and remote_dot = expr * Tok.t (* '.' *) * ident_or_operator or_quoted
 
 (* TODO
    map_anonymous_call:
@@ -198,6 +275,7 @@ and exn_clause_kind = After | Rescue | Catch | Else
 and block = body_or_clauses bracket
 
 type program = body
+type any = Pr of program
 
 (*****************************************************************************)
 (* Kernel constructs *)
