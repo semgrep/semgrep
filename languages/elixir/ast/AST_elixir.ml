@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 module G = AST_generic
 
 (*****************************************************************************)
@@ -35,6 +34,7 @@ module G = AST_generic
  *
  * references:
  * - https://hexdocs.pm/elixir/syntax-reference.html
+ * - https://hexdocs.pm/elixir/Kernel.html
  *)
 
 (*****************************************************************************)
@@ -49,7 +49,6 @@ module G = AST_generic
 (* ------------------------------------------------------------------------- *)
 (* Tokens *)
 (* ------------------------------------------------------------------------- *)
-
 type 'a wrap = 'a G.wrap
 type 'a bracket = 'a G.bracket
 
@@ -57,43 +56,114 @@ type 'a bracket = 'a G.bracket
 (* Names *)
 (* ------------------------------------------------------------------------- *)
 
-(* lowercase ident *)
-type ident = string wrap
+type ident =
+  (* lowercase ident *)
+  | Id of string wrap
+  (* actually part of Elixir! *)
+  | IdEllipsis of Tok.t (* '...' *)
+  (* semgrep-ext: *)
+  | IdMetavar of string wrap
 
 (* uppercase ident; constructs that expand to atoms at compile-time *)
 type alias = string wrap
+
+(* ref: https://hexdocs.pm/elixir/operators.html *)
+type operator =
+  (* special forms operators that cannot be overriden *)
+  | OPin (* ^ *)
+  | ODot (* . *)
+  | OMatch (* = *)
+  | OCapture (* & *)
+  | OType (* :: *)
+  (* strict boolean variants *)
+  | OStrictAnd
+  | OStrictOr
+  | OStrictNot
+  (* other operators *)
+  | OPipeline (* |> *)
+  | OModuleAttr (* @ *)
+  | OLeftArrow (* <-, used with 'for' and 'with'  *)
+  | ODefault (* \\, default argument *)
+  | ORightArrow (* -> *)
+  | OCons (* |, =~ "::" in OCaml (comes from Erlang/Prolog) *)
+  | OWhen (* when, in guards *)
+  | O of G.operator
+  | OOther of string
+
+(* start of recursive type because atoms can contain interpolated exprs *)
+
+(* TODO: need extract ':' for simple ident case *)
+type atom = Tok.t (* ':' *) * string wrap or_quoted
+
+(* TODO
+         G.L (G.Atom (G.fake ":", x)) |> G.e
+   ...
+         let str = map_anon_choice_quoted_i_double_d7d5f65 env v2 in
+         G.OtherExpr (("AtomExpr", t), [ E str ]) |> G.e
+*)
+and 'a or_quoted = X of 'a | Quoted of quoted
+and quoted = expr bracket
+
+(* TODO: They use the term 'remote' for qualified calls with lowercase ident *)
+(* TODO: remote *)
 
 (* ------------------------------------------------------------------------- *)
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 
-(* there is no 'name' below. They use the term 'remote' for qualified calls
- * with lowercase ident.
- * Note that the alias can actually also contain some dots
- * and be also kinda of a name.
- *)
+(* TODO
+   when binaryop:
+         OtherExpr
+           ( ("When", twhen),
+             [ E e1; E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
+         |> G.e
+   consbinaryop:
+         G.OtherExpr
+           ( ("Join", tbar),
+             [ G.E e1; G.E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
+         |> G.e
 
-type expr = G.expr
-type argument = G.argument
+         let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
+         G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
+   /int binaryop:
+         let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
+         G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
+*)
+and expr =
+  | I of ident
+  | L of G.literal
+  | Alias of alias
+  | Block of block
+  (* semgrep-ext: *)
+  | DeepEllipsis of expr bracket
 
-(* exprs separated by terminators (newlines or semicolons)
- * can be empty.
- *)
-type body = expr list
-
-(* less: restrict with special arg? *)
-type call = expr
+and argument = G.argument
 
 (* Ideally we would want just 'type keyword = ident * tok (*:*)',
  * but Elixir allows also "interpolated{ x }string": keywords.
  *)
-type keyword = expr
+and keyword = expr
 
 (* note that Elixir supports also pairs using the (:atom => expr) syntax *)
-type pair = keyword * expr
+and pair = keyword * expr
+and keywords = pair list
+and expr_or_kwds = E of expr | Kwds of keywords
+
+(* exprs separated by terminators (newlines or semicolons) *)
+and body = expr list
+
+(* less: restrict with special arg? *)
+and call = expr
+and remote_dot = expr * Tok.t (* '.' *) * ident or_quoted
+
+(* TODO
+   map_anonymous_call:
+     let anon_fld = G.FDynamic (G.OtherExpr (("AnonDotField", tdot), []) |> G.e) in
+     let e = G.DotAccess (e, tdot, anon_fld) |> G.e in
+*)
 
 (* inside containers (list, bits, maps, tuples), separated by commas *)
-type item = expr
+and item = expr
 
 (* ------------------------------------------------------------------------- *)
 (* Clauses *)
@@ -103,29 +173,33 @@ type item = expr
  * is more general and use '->' also for type declarations in typespecs,
  * or for parameters (kind of patterns though).
  *)
-type stab_clause =
+and stab_clause =
   (argument list * (Tok.t (*'when'*) * expr) option) * Tok.t (* '->' *) * body
 
-type clauses = stab_clause list
+and clauses = stab_clause list
 
 (* in after/rescue/catch/else and do blocks *)
-type body_or_clauses = (body, clauses) either
+and body_or_clauses =
+  | Body of body
+  (* can be empty *)
+  | Clauses of clauses
 
 (* ------------------------------------------------------------------------- *)
 (* Blocks *)
 (* ------------------------------------------------------------------------- *)
 
 (* the bracket here are do/end *)
-type do_block =
-  (body_or_clauses
-  * (ident (* 'after/rescue/catch/else' *) * body_or_clauses) list)
-  bracket
+and do_block =
+  (body_or_clauses * (exn_clause_kind wrap * body_or_clauses) list) bracket
+
+and exn_clause_kind = After | Rescue | Catch | Else
 
 (* the bracket here are () *)
-type block = body_or_clauses bracket
+and block = body_or_clauses bracket
+
 type program = body
 
 (*****************************************************************************)
-(* Refined constructs *)
+(* Kernel constructs *)
 (*****************************************************************************)
-(* TODO *)
+(* ref: https://hexdocs.pm/elixir/Kernel.html *)
