@@ -60,7 +60,7 @@ let expr_of_block blk = Block blk
 let mk_call_parens _e _tdot _args _xxx = failwith "TODO"
 let mk_call_no_parens _id_or_remote _args _blopt = failwith "TODO"
 let items_of_exprs_and_keywords _es _kwds = failwith "TODO"
-let body_to_stmts _xs = failwith "TODO"
+let body_to_program xs = xs
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -374,16 +374,16 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       match v2 with
       | `LTDASH tok ->
           let t = (* "<-" *) token env tok in
-          failwith "TODO"
+          binary_call v1 (OLeftArrow, t) v3
       (* default parameter syntax *)
       | `BSLASHBSLASH tok ->
-          let t = (* "\\\\" *) str env tok in
-          failwith "TODO")
+          let t = (* "\\\\" *) token env tok in
+          binary_call v1 (ODefault, t) v3)
   | `Exp_when_choice_exp (v1, v2, v3) ->
       let e1 = map_expression env v1 in
       let twhen = (* "when" *) token env v2 in
       let e_or_kwds = map_anon_choice_exp_0094635 env v3 in
-      failwith "TODO"
+      When (e1, twhen, e_or_kwds)
   | `Exp_COLONCOLON_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "::" *) token env v2 in
@@ -394,7 +394,7 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       (* join operator (=~ "::" in OCaml, comes from Prolog/Erlang) *)
       let tbar = (* "|" *) token env v2 in
       let e_or_kwds = map_anon_choice_exp_0094635 env v3 in
-      failwith "TODO"
+      Join (e1, tbar, e_or_kwds)
   | `Exp_EQGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       (* less: used in Maps, should convert in 'pair'? *)
@@ -405,7 +405,7 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       let v1 = map_expression env v1 in
       let v2 = (* "=" *) token env v2 in
       let v3 = map_expression env v3 in
-      failwith "TODO"
+      binary_call v1 (OMatch, v2) v3
   | `Exp_choice_BARBAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
@@ -521,10 +521,10 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       let v3 = map_expression env v3 in
       binary_call v1 v2 v3
   | `Op_id_SLASH_int (v1, v2, v3) ->
-      let id = map_operator_identifier env v1 in
+      let op = map_operator_identifier env v1 in
       let tslash = (* "/" *) token env v2 in
       let s, t = (* integer *) str env v3 in
-      failwith "TODO"
+      OpArity (op, tslash, (int_of_string_opt s, t))
 
 and map_body (env : env) ((v1, v2, v3, v4) : CST.body) : body =
   let _v1 = map_terminator_opt env v1 in
@@ -763,10 +763,10 @@ and map_expression (env : env) (x : CST.expression) : expr =
       A a
   | `Str x ->
       let x = map_string_ env x in
-      failwith "TODO"
+      String x
   | `Char_a593f90 x ->
       let x = map_charlist env x in
-      failwith "TODO"
+      Charlist x
   | `Sigil (v1, v2, v3) ->
       let ttilde = (* "~" *) token env v1 in
       let letter, any =
@@ -957,11 +957,7 @@ and map_local_call_with_parentheses (env : env)
   let id = map_identifier env v1 in
   let args = map_call_arguments_with_parentheses_immediate env v2 in
   let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-  (*
-  let e = N (H2.name_of_id id) |> G.e in
-  Elixir_to_generic.mk_call_parens e args blopt
-*)
-  failwith "TODO"
+  mk_call_parens (I id) None args blopt
 
 and map_pair (env : env) ((v1, v2) : CST.pair) : pair =
   let v1 = map_keyword env v1 in
@@ -1013,7 +1009,7 @@ and map_quoted_i_square (env : env) ((v1, v2, v3) : CST.quoted_i_square) =
 
 and map_remote_call_with_parentheses (env : env)
     ((v1, v2, v3) : CST.remote_call_with_parentheses) : call =
-  let e = map_remote_dot env v1 in
+  let e, tdot, fld = map_remote_dot env v1 in
   let args = map_call_arguments_with_parentheses_immediate env v2 in
   let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
   (* Elixir_to_generic.mk_call_parens e args blopt *)
@@ -1138,23 +1134,18 @@ and map_struct_ (env : env) (x : CST.struct_) : struct_ =
   match x with
   | `Alias tok ->
       let al = map_alias env tok in
-      failwith "TODO"
+      Alias al
   | `Atom x ->
       let at = map_atom env x in
-      failwith "TODO"
+      A at
   | `Id x ->
-      (* less: map_identifier_or_ellipsis? *)
       let id = map_identifier env x in
-      failwith "TODO"
-  | `Un_op x ->
-      let op = map_unary_operator env x in
-      failwith "TODO"
-  | `Dot x ->
-      let d = map_dot env x in
-      failwith "TODO"
+      I id
+  | `Un_op x -> map_unary_operator env x
+  | `Dot x -> map_dot env x
   | `Call_with_parens x ->
       let call = map_call_with_parentheses env x in
-      failwith "TODO"
+      Call call
 
 and map_tuple (env : env) ((v1, v2, v3) : CST.tuple) : item list bracket =
   let l = (* "{" *) token env v1 in
@@ -1221,7 +1212,7 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let es = map_source env cst in
-      body_to_stmts es)
+      body_to_program es)
 
 let parse_pattern str =
   H.wrap_parser
@@ -1230,4 +1221,4 @@ let parse_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       let es = map_source env cst in
-      Pr (body_to_stmts es))
+      Pr (body_to_program es))

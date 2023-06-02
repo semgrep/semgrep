@@ -171,6 +171,8 @@ and expr =
   | I of ident
   | L of G.literal
   | A of atom
+  | String of quoted
+  | Charlist of quoted
   (*  G.OtherExpr (("Sigil", ttilde), [ G.I letter; any ] @ idopt) |> G.e *)
   | Sigil (* TODO *)
   | List of item list bracket
@@ -193,6 +195,9 @@ and expr =
   | Call of call
   | UnaryOp of operator wrap * expr
   | BinaryOp of expr * operator wrap * expr
+  | OpArity of operator wrap * Tok.t (* '/' *) * int option wrap
+  | When of expr * Tok.t (* 'when' *) * expr_or_kwds
+  | Join of expr * Tok.t (* '|' *) * expr_or_kwds
   (* let fdef =
        Elixir_to_generic.stab_clauses_to_function_definition tfn clauses
      in
@@ -219,7 +224,8 @@ and expr =
           |> G.e
       | Some (Right e) -> G.Call (e, (l, Common.map G.arg xs, r)) |> G.e)
 *)
-and struct_ = unit
+(* restricted to Alias/A/I/DotAlias/DotTuple and all unary op *)
+and struct_ = expr
 
 (* exprs separated by terminators (newlines or semicolons) *)
 and body = expr list
