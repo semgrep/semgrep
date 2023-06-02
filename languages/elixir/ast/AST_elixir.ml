@@ -97,6 +97,9 @@ type ident_or_operator = (ident, operator wrap) Common.either
 (* TODO: need extract ':' for simple ident case *)
 type atom = Tok.t (* ':' *) * string wrap or_quoted
 
+(* TODO: need to extract the ':' for the ident case *)
+and keyword = string wrap or_quoted * Tok.t (* : *)
+
 (* TODO
          G.L (G.Atom (G.fake ":", x)) |> G.e
    ...
@@ -108,6 +111,16 @@ and quoted = expr bracket
 
 (* TODO: They use the term 'remote' for qualified calls with lowercase ident *)
 (* TODO: remote *)
+
+(* ------------------------------------------------------------------------- *)
+(* Keywords and arguments *)
+(* ------------------------------------------------------------------------- *)
+and arguments = expr list * keywords
+and keywords = pair list
+
+(* note that Elixir supports also pairs using the (:atom => expr) syntax *)
+and pair = keyword * expr
+and expr_or_kwds = E of expr | Kwds of keywords
 
 (* ------------------------------------------------------------------------- *)
 (* Expressions *)
@@ -207,15 +220,6 @@ and expr =
       | Some (Right e) -> G.Call (e, (l, Common.map G.arg xs, r)) |> G.e)
 *)
 and struct_ = unit
-and argument = G.argument
-
-(* TODO: need to extract the ':' for the ident case *)
-and keyword = string wrap or_quoted * Tok.t (* : *)
-
-(* note that Elixir supports also pairs using the (:atom => expr) syntax *)
-and pair = keyword * expr
-and keywords = pair list
-and expr_or_kwds = E of expr | Kwds of keywords
 
 (* exprs separated by terminators (newlines or semicolons) *)
 and body = expr list
@@ -251,7 +255,7 @@ and item = expr
  * or for parameters (kind of patterns though).
  *)
 and stab_clause =
-  (argument list * (Tok.t (*'when'*) * expr) option) * Tok.t (* '->' *) * body
+  (arguments * (Tok.t (*'when'*) * expr) option) * Tok.t (* '->' *) * body
 
 and clauses = stab_clause list
 
@@ -274,7 +278,16 @@ and exn_clause_kind = After | Rescue | Catch | Else
 (* the bracket here are () *)
 and block = body_or_clauses bracket
 
+(* ------------------------------------------------------------------------- *)
+(* Program *)
+(* ------------------------------------------------------------------------- *)
+
 type program = body
+
+(* ------------------------------------------------------------------------- *)
+(* Any *)
+(* ------------------------------------------------------------------------- *)
+
 type any = Pr of program
 
 (*****************************************************************************)

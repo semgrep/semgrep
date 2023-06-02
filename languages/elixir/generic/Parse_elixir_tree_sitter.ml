@@ -19,6 +19,9 @@ module G = AST_generic
 module H = Parse_tree_sitter_helpers
 module H2 = AST_generic_helpers
 
+(* TODO: remove! *)
+[@@@warning "-26"]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -37,7 +40,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = Tok.unsafe_fake_bracket
+let _fb = Tok.unsafe_fake_bracket
 let fk = Tok.unsafe_fake_tok
 
 (* helper to factorize code *)
@@ -51,11 +54,11 @@ let map_before_unary_op_opt env v1 =
   | Some tok -> Some ((* before_unary_op *) token env tok)
   | None -> None
 
-let args_of_exprs_and_keywords _exprs _kwds = failwith "TODO"
-let mk_call_parens _e _tdot _args _xxx = failwith "TODO"
-let binary_call _e1 _op _e2 = failwith "TODO"
-let mk_call_no_parens _id_or_remote _args _blopt = failwith "TODO"
+let args_of_exprs_and_keywords exprs kwds = (exprs, kwds)
+let binary_call e1 op e2 = BinaryOp (e1, op, e2)
 let expr_of_block blk = Block blk
+let mk_call_parens _e _tdot _args _xxx = failwith "TODO"
+let mk_call_no_parens _id_or_remote _args _blopt = failwith "TODO"
 let items_of_exprs_and_keywords _es _kwds = failwith "TODO"
 let body_to_stmts _xs = failwith "TODO"
 
@@ -291,7 +294,7 @@ and map_anon_choice_quoted_i_double_d7d5f65 (env : env)
 
 and map_anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e (env : env)
     ((v1, v2, v3) : CST.anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e) :
-    argument list =
+    arguments =
   let v1 = map_expression env v1 in
   let v2 =
     Common.map
@@ -543,31 +546,30 @@ and map_call (env : env) (x : CST.call) : call =
   | `Call_with_parens_403315d x -> map_call_with_parentheses env x
 
 and map_call_arguments_with_parentheses (env : env)
-    ((v1, v2, v3) : CST.call_arguments_with_parentheses) : argument list bracket
-    =
+    ((v1, v2, v3) : CST.call_arguments_with_parentheses) : arguments bracket =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
     | Some x -> map_call_arguments_with_trailing_separator env x
-    | None -> []
+    | None -> ([], [])
   in
   let v3 = (* ")" *) token env v3 in
   (v1, v2, v3)
 
 and map_call_arguments_with_parentheses_immediate (env : env)
     ((v1, v2, v3) : CST.call_arguments_with_parentheses_immediate) :
-    argument list bracket =
+    arguments bracket =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
     | Some x -> map_call_arguments_with_trailing_separator env x
-    | None -> []
+    | None -> ([], [])
   in
   let v3 = (* ")" *) token env v3 in
   (v1, v2, v3)
 
 and map_call_arguments_with_trailing_separator (env : env)
-    (x : CST.call_arguments_with_trailing_separator) : argument list =
+    (x : CST.call_arguments_with_trailing_separator) : arguments =
   match x with
   | `Exp_rep_COMMA_exp_opt_COMMA_keywos_with_trai_sepa (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -593,7 +595,7 @@ and map_call_arguments_with_trailing_separator (env : env)
       args_of_exprs_and_keywords [] xs
 
 and map_call_arguments_without_parentheses (env : env)
-    (x : CST.call_arguments_without_parentheses) : argument list =
+    (x : CST.call_arguments_without_parentheses) : arguments =
   match x with
   | `Exp_rep_COMMA_exp_opt_COMMA_keywos x ->
       map_anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e env x
@@ -632,10 +634,10 @@ and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
       mk_call_no_parens (Left id) [] (Some bl)
   | `Remote_call_with_parens (v1, v2, v3) ->
       let rdot = map_remote_dot env v1 in
-      let args =
+      let args : arguments =
         match v2 with
         | Some x -> map_call_arguments_without_parentheses env x
-        | None -> []
+        | None -> ([], [])
       in
       let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
       mk_call_no_parens (Right rdot) args blopt
@@ -1075,7 +1077,7 @@ and map_stab_clause (env : env) ((v1, v2, v3) : CST.stab_clause) : stab_clause =
   let v1 =
     match v1 with
     | Some x -> map_stab_clause_left env x
-    | None -> ([], None)
+    | None -> (([], []), None)
   in
   let v2 = (* "->" *) token env v2 in
   let v3 =
@@ -1087,18 +1089,18 @@ and map_stab_clause (env : env) ((v1, v2, v3) : CST.stab_clause) : stab_clause =
 
 and map_stab_clause_arguments_with_parentheses (env : env)
     ((v1, v2, v3) : CST.stab_clause_arguments_with_parentheses) :
-    argument list bracket =
+    arguments bracket =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
     | Some x -> map_stab_clause_arguments_without_parentheses env x
-    | None -> []
+    | None -> ([], [])
   in
   let v3 = (* ")" *) token env v3 in
   (v1, v2, v3)
 
 and map_stab_clause_arguments_without_parentheses (env : env)
-    (x : CST.stab_clause_arguments_without_parentheses) : argument list =
+    (x : CST.stab_clause_arguments_without_parentheses) : arguments =
   match x with
   | `Exp_rep_COMMA_exp_opt_COMMA_keywos x ->
       let xs = map_anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e env x in
@@ -1109,7 +1111,7 @@ and map_stab_clause_arguments_without_parentheses (env : env)
 
 (* we would prefer pattern list, but elixir is more general *)
 and map_stab_clause_left (env : env) (x : CST.stab_clause_left) :
-    argument list * (Tok.t * expr) option =
+    arguments * (Tok.t * expr) option =
   match x with
   | `Stab_clause_args_with_parens_bf4a580 x ->
       let _, xs, _ = map_stab_clause_arguments_with_parentheses env x in
