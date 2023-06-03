@@ -1,0 +1,2 @@
+Fix regexp potentially vulnerable to ReDoS attacks in Python code for parsing
+git URLs. Reported by Sebastian Chnelik, PyUp.io.
