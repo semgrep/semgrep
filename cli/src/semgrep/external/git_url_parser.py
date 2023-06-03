@@ -21,6 +21,10 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 
+#
+# 2023-06-02 patched by Martin Jambon to avoid potential ReDoS attacks
+#
+
 import collections
 import re
 from typing import List
@@ -39,7 +43,7 @@ Parsed = collections.namedtuple('Parsed', [
 
 POSSIBLE_REGEXES = (
     re.compile(r'^(?P<protocol>https?|git|ssh|rsync)\://'
-               r'(?:(?P<user>.+)@)*'
+               r'(?:(?P<user>[^\n@]+)@)*'
                r'(?P<resource>[a-z0-9_.-]*)'
                r'[:/]*'
                r'(?P<port>[\d]+){0,1}'
@@ -52,7 +56,7 @@ POSSIBLE_REGEXES = (
                r'(:(?P<port>\d+))?'
                r'(?P<pathname>(\/(?P<owner>\w+)/)?'
                r'(\/?(?P<name>[\w\-]+)(\.git|\/)?)?)$'),
-    re.compile(r'^(?:(?P<user>.+)@)*'
+    re.compile(r'^(?:(?P<user>[^\n@]+)@)*'
                r'(?P<resource>[a-z0-9_.-]*)[:]*'
                r'(?P<port>[\d]+){0,1}'
                r'(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+).git)$'),
