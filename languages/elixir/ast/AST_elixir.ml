@@ -115,7 +115,11 @@ and quoted = expr bracket
 (* ------------------------------------------------------------------------- *)
 (* Keywords and arguments *)
 (* ------------------------------------------------------------------------- *)
+(* inside calls *)
 and arguments = expr list * keywords
+
+(* inside containers (list, bits, maps, tuples), separated by commas *)
+and items = expr list * keywords
 and keywords = pair list
 
 (* note that Elixir supports also pairs using the (:atom => expr) syntax *)
@@ -175,12 +179,12 @@ and expr =
   | Charlist of quoted
   (*  G.OtherExpr (("Sigil", ttilde), [ G.I letter; any ] @ idopt) |> G.e *)
   | Sigil (* TODO *)
-  | List of item list bracket
-  | Tuple of item list bracket
+  | List of items bracket
+  | Tuple of items bracket
   (* G.OtherExpr
      (("ContainerBits", l), (xs |> Common.map (fun e -> G.E e)) @ [ G.Tk r ]) *)
-  | Bits of item list bracket
-  | Map of Tok.t (* "%" *) * struct_ option * item list bracket
+  | Bits of items bracket
+  | Map of Tok.t (* "%" *) * struct_ option * items bracket
   | Alias of alias
   | Block of block
   (* ... DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e ... *)
@@ -189,7 +193,7 @@ and expr =
         let tuple = Container (Tuple, (l, xs, r)) |> G.e in
         DotAccess (e, tdot, FDynamic tuple) |> G.e
   *)
-  | DotTuple of expr * Tok.t * item list bracket
+  | DotTuple of expr * Tok.t * items bracket
   | ModuleVarAccess of Tok.t (* @ *) * expr
   | ArrayAccess of expr * expr bracket
   | Call of call
@@ -248,9 +252,6 @@ and remote_dot = expr * Tok.t (* '.' *) * ident_or_operator or_quoted
      let anon_fld = G.FDynamic (G.OtherExpr (("AnonDotField", tdot), []) |> G.e) in
      let e = G.DotAccess (e, tdot, anon_fld) |> G.e in
 *)
-
-(* inside containers (list, bits, maps, tuples), separated by commas *)
-and item = expr
 
 (* ------------------------------------------------------------------------- *)
 (* Clauses *)

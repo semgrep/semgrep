@@ -59,7 +59,7 @@ let binary_call e1 op e2 = BinaryOp (e1, op, e2)
 let expr_of_block blk = Block blk
 let mk_call_parens _e _tdot _args _xxx = failwith "TODO"
 let mk_call_no_parens _id_or_remote _args _blopt = failwith "TODO"
-let items_of_exprs_and_keywords _es _kwds = failwith "TODO"
+let items_of_exprs_and_keywords es kwds = (es, kwds)
 let body_to_program xs = xs
 
 (*****************************************************************************)
@@ -815,7 +815,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let xs =
         match v2 with
         | Some x -> map_items_with_trailing_separator env x
-        | None -> []
+        | None -> ([], [])
       in
       let r = (* "]" *) token env v3 in
       List (l, xs, r)
@@ -827,7 +827,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let xs =
         match v2 with
         | Some x -> map_items_with_trailing_separator env x
-        | None -> []
+        | None -> ([], [])
       in
       let r = (* ">>" *) token env v3 in
       Bits (l, xs, r)
@@ -842,7 +842,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let xs =
         match v4 with
         | Some x -> map_items_with_trailing_separator env x
-        | None -> []
+        | None -> ([], [])
       in
       let r = (* "}" *) token env v5 in
       Map (tpercent, struct_opt, (l, xs, r))
@@ -881,7 +881,7 @@ and map_interpolation (env : env) ((v1, v2, v3) : CST.interpolation) :
   (v1, v2, v3)
 
 and map_items_with_trailing_separator (env : env)
-    (v1 : CST.items_with_trailing_separator) : item list =
+    (v1 : CST.items_with_trailing_separator) : items =
   match v1 with
   | `Exp_rep_COMMA_exp_opt_COMMA (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -894,7 +894,7 @@ and map_items_with_trailing_separator (env : env)
           v2
       in
       let _v3 = map_trailing_comma env v3 in
-      v1 :: v2
+      items_of_exprs_and_keywords (v1 :: v2) []
   | `Opt_exp_rep_COMMA_exp_COMMA_keywos_with_trai_sepa (v1, v2) ->
       let v1 =
         match v1 with
@@ -1147,12 +1147,12 @@ and map_struct_ (env : env) (x : CST.struct_) : struct_ =
       let call = map_call_with_parentheses env x in
       Call call
 
-and map_tuple (env : env) ((v1, v2, v3) : CST.tuple) : item list bracket =
+and map_tuple (env : env) ((v1, v2, v3) : CST.tuple) : items bracket =
   let l = (* "{" *) token env v1 in
   let xs =
     match v2 with
     | Some x -> map_items_with_trailing_separator env x
-    | None -> []
+    | None -> ([], [])
   in
   let r = (* "}" *) token env v3 in
   (l, xs, r)
