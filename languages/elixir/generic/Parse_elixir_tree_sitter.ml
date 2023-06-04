@@ -769,11 +769,11 @@ and map_expression (env : env) (x : CST.expression) : expr =
       Charlist x
   | `Sigil (v1, v2, v3) ->
       let ttilde = (* "~" *) token env v1 in
-      let letter, any =
+      let sigil_kind =
         match v2 with
         | `Imm_tok_pat_0db2d54_choice_quoted_i_double (v1, v2) ->
-            let lower = (* pattern [a-z] *) str env v1 in
-            let quoted =
+            let lower, t = (* pattern [a-z] *) str env v1 in
+            let quoted : quoted =
               match v2 with
               | `Quoted_i_double x -> map_quoted_i_double env x
               | `Quoted_i_single x -> map_quoted_i_single env x
@@ -786,10 +786,10 @@ and map_expression (env : env) (x : CST.expression) : expr =
               | `Quoted_i_bar x -> map_quoted_i_bar env x
               | `Quoted_i_slash x -> map_quoted_i_slash env x
             in
-            (lower, Left quoted)
+            Lower ((String.get lower 0, t), quoted)
         | `Imm_tok_pat_562b724_choice_quoted_double (v1, v2) ->
-            let upper = (* pattern [A-Z] *) str env v1 in
-            let quoted =
+            let upper, t = (* pattern [A-Z] *) str env v1 in
+            let str : string wrap bracket =
               match v2 with
               | `Quoted_double x -> map_quoted_double env x
               | `Quoted_single x -> map_quoted_single env x
@@ -802,14 +802,14 @@ and map_expression (env : env) (x : CST.expression) : expr =
               | `Quoted_bar x -> map_quoted_bar env x
               | `Quoted_slash x -> map_quoted_slash env x
             in
-            (upper, Right quoted)
+            Upper ((String.get upper 0, t), str)
       in
       let idopt =
         match v3 with
         | Some tok -> Some ((* pattern [a-zA-Z0-9]+ *) str env tok)
         | None -> None
       in
-      failwith "TODO"
+      Sigil (ttilde, sigil_kind, idopt)
   | `List (v1, v2, v3) ->
       let l = (* "[" *) token env v1 in
       let xs =

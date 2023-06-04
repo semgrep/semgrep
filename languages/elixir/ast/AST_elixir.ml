@@ -178,7 +178,7 @@ and expr =
   | String of quoted
   | Charlist of quoted
   (*  G.OtherExpr (("Sigil", ttilde), [ G.I letter; any ] @ idopt) |> G.e *)
-  | Sigil (* TODO *)
+  | Sigil of Tok.t (* '~' *) * sigil_kind * string wrap option
   | List of items bracket
   | Tuple of items bracket
   (* G.OtherExpr
@@ -230,6 +230,10 @@ and expr =
 *)
 (* restricted to Alias/A/I/DotAlias/DotTuple and all unary op *)
 and struct_ = expr
+
+and sigil_kind =
+  | Lower of char wrap * quoted
+  | Upper of char wrap * string wrap bracket
 
 (* exprs separated by terminators (newlines or semicolons) *)
 and body = expr list
