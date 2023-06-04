@@ -11,7 +11,7 @@ let parse_target lang file =
           Pfff (Pfff_or_tree_sitter.throw_tokens Parse_js.parse);
         ]
         Js_to_generic.program
-  | _ -> failwith "no"
+  | _ -> failwith ("This parser cannot parse lang: " ^ Lang.to_string lang)
 
 let parse_pattern print_errors _ str =
   let js_ast =
