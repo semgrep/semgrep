@@ -1,22 +1,28 @@
-let get_dialect_from_lang lang =
-  match lang with
-  | Lang.Js -> Some `TSX
-  | Lang.Ts -> None
-  | s ->
-      failwith (Printf.sprintf "not a javascript languge:%s" (Lang.to_string s))
-
 let parse_target lang file =
-  let dialect = get_dialect_from_lang lang in
-  Pfff_or_tree_sitter.run file
-    [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect) ]
-    Js_to_generic.program
-
-(* TODO: understand what we use conv for *)
-(* let conv x = Js_to_generic.program x *)
+  match lang with
+  | Lang.Ts ->
+      Pfff_or_tree_sitter.run file
+        [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None) ]
+        Js_to_generic.program
+  | Lang.Js ->
+      Pfff_or_tree_sitter.run file
+        [
+          TreeSitter (Parse_typescript_tree_sitter.parse ~dialect:`TSX);
+          Pfff (Pfff_or_tree_sitter.throw_tokens Parse_js.parse);
+        ]
+        Js_to_generic.program
+  | _ -> failwith "no"
 
 let parse_pattern print_errors _ str =
-  let res = Parse_typescript_tree_sitter.parse_pattern str in
-  Pfff_or_tree_sitter.extract_pattern_from_tree_sitter_result res print_errors
+  let js_ast =
+    str
+    |> Pfff_or_tree_sitter.run_pattern ~print_errors
+         [
+           PfffPat Parse_js.any_of_string;
+           TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;
+         ]
+  in
+  Js_to_generic.any js_ast
 
 let _ =
   Common.jsoo := true;
