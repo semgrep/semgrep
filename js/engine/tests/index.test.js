@@ -28,3 +28,34 @@ describe("engine", () => {
     expect(engine.isMissingLanguages()).toBe(false);
   });
 });
+
+describe("yaml parser", () => {
+  test("parses a pattern", async () => {
+    const engine = await enginePromise;
+    const result = JSON.parse(
+      engine.execute(
+        "yaml",
+        `${__dirname}/test-rule-yaml.json`,
+        `${__dirname}/test.yaml`
+      )
+    );
+
+    // it took a lot of work to get libyaml working, so let's confirm start/end locations are correct
+    expect(result.stats.okfiles).toBe(1);
+    expect(result.matches.length).toBe(1);
+    const match = result.matches[0];
+    expect(match.location.start).toEqual(
+      expect.objectContaining({ offset: 0, line: 1, col: 1 })
+    );
+    expect(match.location.end).toEqual(
+      expect.objectContaining({ offset: 8, line: 1, col: 9 })
+    );
+    expect(match.extra.metavars["$X"].start).toEqual(
+      expect.objectContaining({ offset: 5, line: 1, col: 6 })
+    );
+    expect(match.extra.metavars["$X"].end).toEqual(
+      expect.objectContaining({ offset: 8, line: 1, col: 9 })
+    );
+    expect(match.extra.metavars["$X"].abstract_content).toEqual("bar");
+  });
+});
