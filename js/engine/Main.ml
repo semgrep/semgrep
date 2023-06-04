@@ -34,6 +34,9 @@ let _ =
              (* The Yaml and JSON parsers are embedded in the engine because it's a
                 core component needed to parse rules *)
              | Lang.Yaml -> Yaml_to_generic.any pattern
+             | Lang.Json ->
+                 let any = Parse_json.any_of_string pattern in
+                 Json_to_generic.any any
              | _ ->
                  func (Js.bool print_error)
                    (Js.string (Lang.to_lowercase_alnum lang))
@@ -52,6 +55,15 @@ let _ =
                    skipped_tokens = [];
                    stat = Parsing_stat.default_stat filename;
                  }
+             | Lang.Json ->
+                 Pfff_or_tree_sitter.run filename
+                   [
+                     Pfff
+                       (fun file ->
+                         ( Parse_json.parse_program file,
+                           Parsing_stat.correct_stat file ));
+                   ]
+                   Json_to_generic.program
              | _ ->
                  func
                    (Js.string (Lang.to_lowercase_alnum lang))
