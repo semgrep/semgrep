@@ -149,8 +149,8 @@ let on_request config targets params =
   | Some params ->
       let params = Structured.yojson_of_t params in
       let pattern = params |> member "pattern" |> to_string in
-      let* lang_opt = params |> member "language" |> to_string_option in
-      let lang_opt = Lang.of_string_opt lang_opt in
+      let lang_opt = params |> member "language" |> to_string_option in
+      let lang_opt = Option.bind lang_opt Lang.of_string_opt in
       logger#info "Searching for pattern %s" pattern;
       let locations = search_semgrep config targets pattern lang_opt in
       let json =
