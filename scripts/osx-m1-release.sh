@@ -10,7 +10,7 @@ set -eux
 
 # Because we're running this on a remote machine, we don't want to reinstall
 # everything every time
-brew install opam pkg-config coreutils pcre gettext
+brew install opam pkg-config coreutils pcre gmp gettext
 brew update # Needed to sidestep bintray brownout
 
 #coupling: this should be the same version than in our Dockerfile
@@ -28,10 +28,12 @@ eval "$(opam env)"
 # Needed so we don't make config w/ sudo
 export HOMEBREW_SYSTEM=1
 
-# Remove pcre dynamically linked to force MacOS to use static
-# This needs to be done before make setup since it is used there
+# Remove libraries dynamically linked to force MacOS to use static.
+# This needs to be done before make setup since it is used there.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
+ls -l "$(brew --prefix)"/opt/gmp/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
+rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 
 make setup
 
