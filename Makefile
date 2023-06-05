@@ -87,6 +87,7 @@ core:
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
+	ln -s semgrep-core bin/osemgrep
 
 # Make binaries available to pysemgrep
 #
