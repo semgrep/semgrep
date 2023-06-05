@@ -45,7 +45,7 @@ function ctypes_read(primType, buffer) {
     case 5: // Ctypes_Int
       return libyaml.getValue(buffer[2], "i32");
     case 13: // Ctypes_Size_t
-      return libyaml.getValue(buffer[2], "i32");
+      return new UInt32(libyaml.getValue(buffer[2], "i32"));
     case 20: // Ctypes_Uint32_t
       return new UInt32(libyaml.getValue(buffer[2], "i32"));
     default:
