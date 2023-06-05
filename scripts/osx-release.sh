@@ -3,7 +3,7 @@
 set -eux
 
 brew update # Needed to sidestep bintray brownout
-brew install opam pkg-config coreutils pcre gettext
+brew install opam pkg-config coreutils pcre gmp gettext
 brew update
 opam init --no-setup --bare;
 #coupling: this should be the same version than in our Dockerfile
