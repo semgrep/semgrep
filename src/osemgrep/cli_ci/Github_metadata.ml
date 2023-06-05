@@ -230,7 +230,7 @@ let rec _find_branchoff_point ?(attempt_count = 0) env =
   and head_branch_name = Option.get (_get_head_branch_ref env) in
 
   let fetch_depth = 4. ** Float.of_int attempt_count |> Float.to_int in
-  let fetch_depth = fetch_depth + Semgrep_envvars.env.min_fetch_depth in
+  let fetch_depth = fetch_depth + Semgrep_envvars.v.min_fetch_depth in
   let fetch_depth =
     if attempt_count > _MAX_FETCH_ATTEMPT_COUNT then
       Float.to_int (2. ** 31.) - 1

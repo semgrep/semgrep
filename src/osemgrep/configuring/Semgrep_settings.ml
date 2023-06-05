@@ -21,7 +21,7 @@ let default_settings =
     anonymous_user_id = Uuidm.v `V4;
   }
 
-let settings = Semgrep_envvars.env.user_settings_file
+let settings = Semgrep_envvars.v.user_settings_file
 
 (*****************************************************************************)
 (* Helpers *)

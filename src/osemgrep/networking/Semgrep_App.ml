@@ -20,7 +20,7 @@ let get_deployment_id ~token_opt =
       match
         Http_helpers.get
           ~headers:[ ("authorization", "Bearer " ^ token) ]
-          (Uri.with_path Semgrep_envvars.env.semgrep_url
+          (Uri.with_path Semgrep_envvars.v.semgrep_url
              "api/agent/deployments/current")
       with
       | Error msg ->
@@ -47,7 +47,7 @@ let get_deployment_from_token ~token =
   match
     Http_helpers.get
       ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path Semgrep_envvars.env.semgrep_url
+      (Uri.with_path Semgrep_envvars.v.semgrep_url
          "api/agent/deployments/current")
   with
   | Error msg ->
@@ -85,7 +85,7 @@ let url_for_policy ~token_opt =
       | Some repo_name ->
           Uri.(
             add_query_params'
-              (with_path Semgrep_envvars.env.semgrep_url
+              (with_path Semgrep_envvars.v.semgrep_url
                  default_semgrep_app_config_url)
               [
                 ("sca", "False");

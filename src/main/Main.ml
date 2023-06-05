@@ -53,7 +53,7 @@ let register_stdlib_exception_printers () =
     | Failure msg ->
         (* Avoid unnecessary quoting of the error message *)
         Some ("Failure: " ^ msg)
-    | __ -> None)
+    | _else_ -> None)
 
 let osemgrep () =
   register_stdlib_exception_printers ();
