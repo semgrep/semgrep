@@ -43,13 +43,13 @@ jobs:
           make build-semgrep-jsoo
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-js-ocaml-build
+          name: semgrep-js-ocaml-build-${{ github.sha }}
           retention-days: 1
           path: |
             _build/default/js/engine/*.bc.js
             _build/default/js/languages/*/*.bc.js
 
-  build-test-npm-packages:
+  build-test-js-packages:
     needs: [build-semgrep-js-ocaml]
     runs-on: ubuntu-latest-16-core
     container: emscripten/emsdk:3.1.36
@@ -75,23 +75,26 @@ jobs:
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
       - uses: actions/download-artifact@v3
         with:
-          name: semgrep-js-ocaml-build
+          name: semgrep-js-ocaml-build-${{ github.sha }}
           path: _build/default/js
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Build and test NPM packages
+      - name: Build and test JS packages
         run: |
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           make -C js -j $(nproc) test
 
-          echo "Creating NPM packages..."
-          make -C js -j $(nproc) package
-      - name: Upload NPM artifacts
+          tar -cvf semgrep-js-artifacts.tar.gz \
+            js/engine/dist/index.cjs \
+            js/engine/dist/index.mjs \
+            js/engine/dist/semgrep-engine.wasm \
+            js/languages/*/dist/index.cjs \
+            js/languages/*/dist/index.mjs \
+            js/languages/*/dist/semgrep-parser.wasm
+      - name: Upload JS artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: semgrep-js-npm-packages
-          retention-days: 7
-          path: |
-            js/languages/*/semgrep-lang-*.tgz
-            js/engine/semgrep-engine-*.tgz
+          name: semgrep-js-artifacts-${{ github.sha }}
+          retention-days: 2
+          path: semgrep-js-artifacts.tar.gz
