@@ -23,6 +23,7 @@
 
 #
 # 2023-06-02 patched by Martin Jambon to avoid potential ReDoS attacks
+# 2023-06-05 patched further by Martin Jambon to avoid potential ReDoS attacks
 #
 
 import collections
