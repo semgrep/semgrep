@@ -49,7 +49,7 @@ jobs:
             _build/default/js/engine/*.bc.js
             _build/default/js/languages/*/*.bc.js
 
-  build-test-js-packages:
+  build-test-js-artifacts:
     needs: [build-semgrep-js-ocaml]
     runs-on: ubuntu-latest-16-core
     container: emscripten/emsdk:3.1.36
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18"
-      - name: Build and test JS packages
+      - name: Build and test JS artifacts
         run: |
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           make -C js -j $(nproc) test
