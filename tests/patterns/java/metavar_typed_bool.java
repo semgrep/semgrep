@@ -1,3 +1,5 @@
+import java.util.*;
+
 public class metavar_typed_bool {
   public static void main(String[] args) {
     boolean x = true;
@@ -34,6 +36,7 @@ public class metavar_typed_bool {
     System.out.println(!(1 == 2));
 
     metavar_typed_bool.overloaded();
+    metavar_typed_bool.stdlib();
   }
 
   public static void overloaded() {
@@ -67,5 +70,41 @@ public class metavar_typed_bool {
     System.out.println(3 | 4);
     // OK:
     System.out.println(3 & 4);
+  }
+
+  public static void stdlib() {
+    String x = "test";
+    // OK:
+    System.out.println(x);
+    // MATCH:
+    System.out.println(x.equals("y"));
+
+    List<String> y1 = new ArrayList<>();
+    y1.add("test");
+    // OK:
+    System.out.println(y1.get(0));
+    List<Boolean> z1 = new ArrayList<>();
+    z1.add(true);
+    // MATCH:
+    System.out.println(z1.get(0));
+
+    java.util.List<String> y2 = new ArrayList<>();
+    y2.add("test");
+    // OK:
+    System.out.println(y2.get(0));
+    java.util.List<Boolean> z2 = new ArrayList<>();
+    z2.add(true);
+    // MATCH:
+    System.out.println(z2.get(0));
+
+    Map<String, String> m1 = new HashMap<>();
+    m1.put("x", "y");
+    // OK:
+    System.out.println(m1.get("x"));
+
+    Map<String, Boolean> m2 = new HashMap<>();
+    m1.put("x", false);
+    // MATCH:
+    System.out.println(m2.get("x"));
   }
 }
