@@ -159,7 +159,8 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Profiling.profile =*= Profiling.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
-    Lazy.force lazy_ast_and_errors |> ignore);
+    try Lazy.force lazy_ast_and_errors |> ignore with
+    | _exn -> ());
 
   let per_rule_boilerplate_fn =
     per_rule_boilerplate_fn ~timeout ~timeout_threshold file
