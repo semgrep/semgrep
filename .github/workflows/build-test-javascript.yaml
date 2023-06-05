@@ -85,7 +85,7 @@ jobs:
           . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
           make -C js -j $(nproc) test
 
-          tar -cvf semgrep-js-artifacts.tar.gz \
+          tar cvzf semgrep-js-artifacts.tar.gz \
             js/engine/dist/index.cjs \
             js/engine/dist/index.mjs \
             js/engine/dist/semgrep-engine.wasm \
