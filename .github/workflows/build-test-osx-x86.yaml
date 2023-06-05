@@ -77,7 +77,7 @@ jobs:
       - name: test version
         run: semgrep --version
       - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+        run: echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -
       - name: e2e spacegrep test
         run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
       - name: test dynamically linked libraries are in /usr/lib/
