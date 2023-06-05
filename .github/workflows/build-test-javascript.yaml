@@ -98,3 +98,26 @@ jobs:
           name: semgrep-js-artifacts-${{ github.sha }}
           retention-days: 2
           path: semgrep-js-artifacts.tar.gz
+
+  upload-javascript-artifacts:
+    needs: [build-test-js-artifacts]
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role
+          role-duration-seconds: 900
+          role-session-name: "semgrep-s3-access"
+          aws-region: us-west-2
+      - uses: actions/download-artifact@v3
+        with:
+          name: semgrep-js-artifacts-${{ github.sha }}
+          path: /tmp/semgrep
+      - name: Upload to S3
+        run: |
+          aws s3 cp /tmp/semgrep/semgrep-js-artifacts.tar.gz "s3://semgrep-oss-js-artifacts/sha/${{ github.sha }}/semgrep-js-artifacts.tar.gz"
