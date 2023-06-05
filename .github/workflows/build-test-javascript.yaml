@@ -120,4 +120,7 @@ jobs:
           path: /tmp/semgrep
       - name: Upload to S3
         run: |
-          aws s3 cp /tmp/semgrep/semgrep-js-artifacts.tar.gz "s3://semgrep-oss-js-artifacts/sha/${{ github.sha }}/semgrep-js-artifacts.tar.gz"
+          branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          urlencoded_branch_name=$(printf %s $branch_name | jq -sRr @uri)
+          current_datetime=$(date +"%Y-%m-%dT%H:%M:%S")
+          aws s3 cp /tmp/semgrep/semgrep-js-artifacts.tar.gz "s3://semgrep-oss-js-artifacts/branch/${urlencoded_branch_name}/sha/${{ github.sha }}/semgrep-js-artifacts_${current_datetime}.tar.gz"
