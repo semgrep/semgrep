@@ -107,6 +107,11 @@ class Parser(str):
             'name': None,
             'owner': None,
         }
+        # Parsing is super slow even after fixing obvious problems in regexps.
+        # This mitigates the damage of quadratic behavior.
+        if len(self._url) > 1024:
+            msg = f"URL exceeds maximum supported length of 1024: {self._url}"
+            raise ParserError(msg)
         for regex in POSSIBLE_REGEXES:
             match = regex.search(self._url)
             if match:
