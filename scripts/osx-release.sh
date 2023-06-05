@@ -18,10 +18,12 @@ git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
 
-# Remove pcre dynamically linked to force MacOS to use static
-# This needs to be done before make setup since it is used there
+# Remove libraries dynamically linked to force MacOS to use static.
+# This needs to be done before make setup since it is used there.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
+ls -l "$(brew --prefix)"/opt/gmp/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
+rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 
 make setup
 
