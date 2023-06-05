@@ -10,17 +10,8 @@
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* A semantic grep.
+(* A SEMantic GREP.
  * See https://semgrep.dev/ for more information.
- *
- * Right now there is:
- *  - good support for: Python, Java, C#, Go, Ruby,
- *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: C, C++, PHP, OCaml, Kotlin, Scala, Rust, Lua,
- *    YAML, HTML, Vue, Bash, Docker
- *  - almost support for: R
- *
- * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
  * related:
  *  - Structural Search and Replace (SSR) in Jetbrains IDE
@@ -45,15 +36,39 @@
  *)
 
 (*****************************************************************************)
+(* Semgrep-core *)
+(*****************************************************************************)
+
+let semgrep_core () = Core_CLI.main Sys.argv
+
+(*****************************************************************************)
+(* Osemgrep *)
+(*****************************************************************************)
+(* Translated from __main__.py *)
+
+let register_stdlib_exception_printers () =
+  (* Needs to take place after JaneStreet Base does its own registration.
+     https://github.com/janestreet/base/issues/146 *)
+  Printexc.register_printer (function
+    | Failure msg ->
+        (* Avoid unnecessary quoting of the error message *)
+        Some ("Failure: " ^ msg)
+    | __ -> None)
+
+let osemgrep () =
+  register_stdlib_exception_printers ();
+  let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
+  (* TODO: remove or make debug-only *)
+  if exit_code <> 0 then
+    Printf.eprintf "exiting with error status %i: %s\n%!" exit_code
+      (String.concat " " (Array.to_list Sys.argv));
+  exit exit_code
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-(* This is the entry point for semgrep-core stand-alone program.
- *
- * Most of the code in this file has been moved to core_cli/Core_CLI.ml,
- * which contains the main command line parsing logic. The code
- * was moved to Cli_lib, a library, so it can be used both for
- * the stand-alone semgrep-core binary as well as the semgrep_bridge.so
- * shared library.
- *)
 
-let () = Core_CLI.main Sys.argv
+let () =
+  match Filename.basename Sys.argv.(0) with
+  | "osemgrep" -> osemgrep ()
+  | _else_ -> semgrep_core ()

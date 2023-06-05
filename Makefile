@@ -88,35 +88,18 @@ core:
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 
-# Make binaries available to 'semgrep', the Python wrapper.
+# Make binaries available to pysemgrep
 #
 # TODO: find out and explain why we can't use symlinks
-# (symlink-core-for-cli) which is faster, clearer, and less wasteful
-# than full copies. It may have something to do with how we do Python
-# or Homebrew packaging.
+# which is faster, clearer, and less wasteful than full copies.
+# It may have something to do with how we do Python or Homebrew packaging.
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
 	# Executables
 	rm -f cli/src/semgrep/bin/semgrep-core
 	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/osemgrep
-	cp _build/install/default/bin/osemgrep cli/src/semgrep/bin/
-
-# Same as copy-core-for-cli but faster. This is suitable for local testing
-# of semgrep.
-#
-# Creating symlinks is much faster than making full copies with cp
-# (< 100 ms vs. 500 ms), which is significant during development.
-#
-.PHONY: symlink-core-for-cli
-symlink-core-for-cli:
-	# Executables
-	rm -f cli/src/semgrep/bin/semgrep-core
-	ln -s ../../../../bin/semgrep-core \
-	  cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
-	ln -s ../../../../bin/osemgrep \
-	  cli/src/semgrep/bin/osemgrep
+	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
@@ -124,7 +107,7 @@ symlink-core-for-cli:
 # If you need other binaries, look at the rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core _build/install/default/bin/osemgrep
+	dune build _build/install/default/bin/semgrep-core
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -508,17 +491,13 @@ check_with_docker:
 # These are normally copied by '/cli/setup.py' but it doesn't happen if we
 # run only 'dune build'.
 #
-# This is for development purposes only as I'm not sure if a symlink is ok
-# for packaging things up on the Python side.
-#
 # Usage:
 #  $ make dev
 #  $ PIPENV_PIPFILE=~/semgrep/cli/Pipfile pipenv run semgrep ...
-#
 .PHONY: dev
 dev:
 	$(MAKE) core
-	$(MAKE) symlink-core-for-cli
+	$(MAKE) copy-core-for-cli
 
 ###############################################################################
 # Pad's targets
