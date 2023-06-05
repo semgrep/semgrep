@@ -241,6 +241,9 @@ class SemgrepCoreLSServer:
             response = {"id": id, "result": {"loggedIn": self.config.logged_in}}
             self.on_core_message(response)
             return
+        if method == "shutdown" or method == "exit":
+            self.stop()
+            return
 
         self.core_writer.write(msg)
 
@@ -253,7 +256,7 @@ class SemgrepCoreLSServer:
 
     def stop(self) -> None:
         """Stop the language server"""
-        self.core_writer.write({"jsonrpc": "2.0", "method": "exit"})
+        self.core_writer.write({"jsonrpc": "2.0", "method": "shutdown", "id": 1})
         self.core_process.wait()
 
 
