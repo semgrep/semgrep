@@ -53,9 +53,6 @@ rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.dylib
 
-ls -l /usr/local/opt/tree-sitter/lib/
-brew uninstall tree-sitter
-
 make core
 make core-install
 
