@@ -1,3 +1,6 @@
+# This workflow builds and tests the semgrep-core binary for macOS X86
+
+# coupling: if you modify this file, modify also build-test-osx-m1.yaml
 name: build-test-osx-x86
 
 on:
@@ -7,7 +10,7 @@ on:
 jobs:
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: ["self-hosted", "macOS", "X64"]
+    runs-on: [self-hosted, macOS, X64]
     steps:
       # Force hard cleanup of any old checkouts.
       # This is needed when submodules move around, as they are no longer removed by the default clean: true of the checkout step below.
