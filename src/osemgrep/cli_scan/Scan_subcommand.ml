@@ -55,11 +55,6 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
 
-let exit_code_of_cli_errors (errors : Out.cli_error list) : Exit_code.t =
-  match List.rev errors with
-  | [] -> Exit_code.ok
-  | x :: _ -> Exit_code.of_int x.Out.code
-
 (*****************************************************************************)
 (* Incremental display *)
 (*****************************************************************************)
@@ -196,7 +191,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.dump <> None -> Dump_subcommand.run (Common2.some conf.dump)
-  | _else_ -> (
+  | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
@@ -339,11 +334,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         *)
 
         (* step5: exit with the right exit code *)
-        match cli_output.Out.errors with
-        | [] ->
-            (* final result for the shell *)
-            exit_code_of_errors ~strict:conf.strict res.core.errors
-        | errors -> exit_code_of_cli_errors errors)
+        (* final result for the shell *)
+        if conf.error_on_findings && not (Common.null cli_output.results) then
+          Exit_code.findings
+        else exit_code_of_errors ~strict:conf.strict res.core.errors
 
 (*****************************************************************************)
 (* Entry point *)
