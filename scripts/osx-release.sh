@@ -13,6 +13,10 @@ set -eux
 
 brew install opam pkg-config coreutils pcre gettext
 
+#still needed?
+#brew update
+#opam init --no-setup --bare
+
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
     # This happens because the self-hosted CI runners do not
@@ -23,6 +27,7 @@ else
     opam switch create 4.14.0
     opam switch 4.14.0
 fi
+
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
