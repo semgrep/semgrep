@@ -1,11 +1,13 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 # Build semgrep-core for MacOS
 set -eux
 
-brew update # Needed to sidestep bintray brownout
+# Note that this script runs from a self-hosted CI runner which
+# does not reset the environment between each run, so you may
+# need to do more cleanup than usually necessary
+
 brew install opam pkg-config coreutils pcre gettext
-brew update
-opam init --no-setup --bare;
+
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
     echo "Switch 4.14.0 exists, continuing"
@@ -17,6 +19,10 @@ fi
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
+
+#pad:??? What was for?
+# Needed so we don't make config w/ sudo
+#export HOMEBREW_SYSTEM=1
 
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
