@@ -40,7 +40,10 @@ def multi_spec(spec: "Parser[A]") -> "Parser[List[Tuple[A,Optional[str]]]]":
         >> (
             (
                 regex(r"[ \t]*")
-                >> (pair(success(None), comment.result(None)) | pair(spec, comment.optional(None)))
+                >> (
+                    pair(success(None), comment.result(None))
+                    | pair(spec, comment.optional(None))
+                )
             )
             << string("\n")
         ).many()
