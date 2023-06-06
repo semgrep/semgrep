@@ -1,1 +1,0 @@
-Semgrep now includes heuristics based on the Java standard library and common naming patterns. These allow Semgrep to determine the types of more expressions in Java, for use with typed metavariables (https://semgrep.dev/docs/writing-rules/pattern-syntax/#typed-metavariables).
