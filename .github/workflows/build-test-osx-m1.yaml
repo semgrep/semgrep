@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: "recursive"
+          submodules: true
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-m1-${{ github.sha }}
