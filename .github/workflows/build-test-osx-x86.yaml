@@ -40,10 +40,6 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
       - run: unzip artifacts.zip
-      - uses: actions/setup-python@v4
-        with:
-          # This is just the Python version to build the wheels
-          python-version: 3.7
       - env:
           # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
