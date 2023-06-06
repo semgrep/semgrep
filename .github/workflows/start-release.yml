@@ -25,7 +25,7 @@ on:
         required: true
         type: boolean
         description: Check the box for a dry-run - A dry-run will not push any external state (branches, tags, images, or PyPI packages).
-        default: true
+        default: false
 
 jobs:
   get-version:
