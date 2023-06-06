@@ -7,11 +7,23 @@ exception Error of string
 *)
 val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
 
-val is_git_repo : unit -> bool
-(** Returns true if CWD is a git repo*)
+(* precondition: cwd must be a directory *)
+val is_git_repo : Fpath.t -> bool
+(** Returns true if passed directory a git repo*)
 
-val dirty_lines_of_file : Fpath.t -> (int * int) array
-(** Returns a list of (start, end) line numbers for each dirty line in the file. Assumes that you've checked the file (and CWD) is in a git repo *)
+(* precondition: cwd must be a directory *)
+val dirty_lines_of_file : Fpath.t -> (int * int) array option
+(** Returns a list of (start, end) line numbers for each dirty line in the file, or none if file is untracked. Assumes that you've checked the file is in a git repo *)
 
-val dirty_files : unit -> Fpath.t list
-(** Returns a list of files that are dirty in the current git repo *)
+(* precondition: cwd must be a directory *)
+val dirty_files : Fpath.t -> Fpath.t list
+(** Returns a list of files that are dirty in a git repo *)
+
+val init : Fpath.t -> unit
+(** Initialize a git repo in the given directory *)
+
+val add : Fpath.t -> Fpath.t list -> unit
+(** Add the given files to the git repo *)
+
+val commit : Fpath.t -> string -> unit
+(** Commit the given files to the git repo with the given message *)
