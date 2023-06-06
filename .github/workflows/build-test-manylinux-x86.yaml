@@ -21,7 +21,7 @@ jobs:
       - name: Setup Python
         run: |
           rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
+          ln `which python3.7` /usr/bin/python3
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Build the wheels
