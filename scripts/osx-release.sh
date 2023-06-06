@@ -12,6 +12,7 @@ set -eux
 # everything every time
 brew install opam pkg-config coreutils pcre gmp gettext
 brew update # Needed to sidestep bintray brownout
+brew list
 
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
@@ -47,6 +48,8 @@ echo "Deleting all the tree-sitter dynamic libraries to force static linking."
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.dylib
+
+ls -l /usr/local/opt/tree-sitter/lib/
 
 make core
 make core-install
