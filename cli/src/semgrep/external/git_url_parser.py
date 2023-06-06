@@ -23,6 +23,7 @@
 
 #
 # 2023-06-02 patched by Martin Jambon to avoid potential ReDoS attacks
+# 2023-06-05 patched further by Martin Jambon to avoid potential ReDoS attacks
 #
 
 import collections
@@ -46,7 +47,7 @@ POSSIBLE_REGEXES = (
                r'(?:(?P<user>[^\n@]+)@)*'
                r'(?P<resource>[a-z0-9_.-]*)'
                r'[:/]*'
-               r'(?P<port>[\d]+){0,1}'
+               r'(?P<port>(?<=:)[\d]+){0,1}'
                r'(?P<pathname>\/((?P<owner>[\w\-\/]+)\/)?'
                r'((?P<name>[\w\-\.]+?)(\.git|\/)?)?)$'),
     re.compile(r'(git\+)?'
@@ -58,13 +59,13 @@ POSSIBLE_REGEXES = (
                r'(\/?(?P<name>[\w\-]+)(\.git|\/)?)?)$'),
     re.compile(r'^(?:(?P<user>[^\n@]+)@)*'
                r'(?P<resource>[a-z0-9_.-]*)[:]*'
-               r'(?P<port>[\d]+){0,1}'
+               r'(?P<port>(?<=:)[\d]+){0,1}'
                r'(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+).git)$'),
     re.compile(r'((?P<user>\w+)@)?'
-                r'((?P<resource>[\w\.\-]+))'
-                r'[\:\/]{1,2}'
-                r'(?P<pathname>((?P<owner>([\w\-]+\/)?\w+)/)?'
-                r'((?P<name>[\w\-]+)(\.git|\/)?)?)$'),
+               r'((?P<resource>[\w\.\-]+))'
+               r'[\:\/]{1,2}'
+               r'(?P<pathname>((?P<owner>([\w\-]+\/)?\w+)/)?'
+               r'((?P<name>[\w\-]+)(\.git|\/)?)?)$'),
     re.compile(r'((?P<user>\w+)@)?'
                r'((?P<resource>[\w\.\-]+))'
                r'[\:\/]{1,2}'
@@ -107,6 +108,11 @@ class Parser(str):
             'name': None,
             'owner': None,
         }
+        # Parsing is super slow even after fixing obvious problems in regexps.
+        # This mitigates the damage of quadratic behavior.
+        if len(self._url) > 1024:
+            msg = f"URL exceeds maximum supported length of 1024: {self._url}"
+            raise ParserError(msg)
         for regex in POSSIBLE_REGEXES:
             match = regex.search(self._url)
             if match:
