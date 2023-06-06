@@ -9,12 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+          submodules: true
+      - uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts-release
       - name: Install artifacts
@@ -22,10 +20,8 @@ jobs:
           tar xf ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
           cp ocaml-build-artifacts/bin/* semgrep-files
-      - name: Run Ubuntu build script
-        run: ./scripts/ubuntu-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - run: ./scripts/ubuntu-release.sh
+      - uses: actions/upload-artifact@v3
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
