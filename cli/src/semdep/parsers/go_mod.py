@@ -13,6 +13,7 @@ from semdep.external.parsy import alt
 from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.external.parsy import success
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import ParserName
@@ -37,7 +38,11 @@ def multi_spec(spec: "Parser[A]") -> "Parser[List[Tuple[A,Optional[str]]]]":
     return (
         regex(r"[ \t]*\(\n")
         >> (
-            (regex(r"[ \t]*") >> (comment.result(None) | pair(spec, comment.optional(None)))) << string("\n")
+            (
+                regex(r"[ \t]*")
+                >> (pair(success(None), comment.result(None)) | pair(spec, comment.optional(None)))
+            )
+            << string("\n")
         ).many()
         << string(")")
     ) | (regex(r"[ \t]*") >> pair(spec, comment.optional()).map(lambda x: [x]))
