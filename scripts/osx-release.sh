@@ -1,11 +1,18 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 # Build semgrep-core for MacOS
+#
+# This script is a quasi-duplicate of osx-release.sh. It looks like maybe
+# these files used to be different but now are identical.
+# TODO: share code with osx-release.sh. Having a command-line option for m1
+# would be preferable over maintaining duplicate code.
+#
 set -eux
 
-brew update # Needed to sidestep bintray brownout
+# Because we're running this on a remote machine, we don't want to reinstall
+# everything every time
 brew install opam pkg-config coreutils pcre gmp gettext
-brew update
-opam init --no-setup --bare;
+brew update # Needed to sidestep bintray brownout
+
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
     echo "Switch 4.14.0 exists, continuing"
@@ -17,6 +24,9 @@ fi
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
+
+# Needed so we don't make config w/ sudo
+export HOMEBREW_SYSTEM=1
 
 # Remove libraries dynamically linked to force MacOS to use static.
 # This needs to be done before make setup since it is used there.
