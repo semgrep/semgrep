@@ -24,6 +24,6 @@ val range_to_pattern_match_adjusted : Rule.rule -> t -> Pattern_match.t
 (* Set functions *)
 
 val intersect_ranges :
-  Config_semgrep_t.t -> bool (* debug_matches *) -> ranges -> ranges -> ranges
+  Rule_options.t -> bool (* debug_matches *) -> ranges -> ranges -> ranges
 
-val difference_ranges : Config_semgrep_t.t -> ranges -> ranges -> ranges
+val difference_ranges : Rule_options.t -> ranges -> ranges -> ranges

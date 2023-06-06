@@ -75,7 +75,4 @@ let parse_pattern ?(print_errors = false) lang str =
   Caching.prepare_pattern any;
   Check_pattern.check lang any;
   any
-
-let parse_pattern ?print_errors a b =
-  Profiling.profile_code "Parse_pattern.parse_pattern" (fun () ->
-      parse_pattern ?print_errors a b)
+  [@@profiling]

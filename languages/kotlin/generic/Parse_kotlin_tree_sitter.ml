@@ -31,12 +31,19 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = unit H.env
+
+type context = Program | Pattern
+type env = context H.env
 
 let token = H.token
 let str = H.str
 let fb = Tok.unsafe_fake_bracket
 let sc tok = Tok.sc tok
+
+let in_pattern env =
+  match env.H.extra with
+  | Program -> false
+  | Pattern -> true
 
 let var_to_pattern (id, ptype) =
   let pat = PatId (id, empty_id_info ()) in
@@ -248,11 +255,6 @@ let bin_literal (env : env) (tok : CST.bin_literal) =
   (* bin_literal *)
   (int_of_string_opt s, t)
 
-let multi_line_string_content (env : env) (x : CST.multi_line_string_content) =
-  match x with
-  | `Multi_line_str_text tok -> str env tok (* pattern "[^\"$]+" *)
-  | `DQUOT tok -> str env tok
-
 (* "\"" *)
 
 let uni_character_literal (env : env) ((v1, v2) : CST.uni_character_literal) =
@@ -319,11 +321,6 @@ let escape_seq (env : env) (x : CST.character_escape_seq) =
 
 (* pattern "\\\\[tbrn'\dq\\\\$]" *)
 
-let line_str_escaped_char (env : env) (x : CST.character_escape_seq) =
-  match x with
-  | `Esca_id tok -> str env tok (* pattern "\\\\[tbrn'\dq\\\\$]" *)
-  | `Uni_char_lit x -> uni_character_literal env x
-
 let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
   Common.map (type_projection_modifier env) xs
 
@@ -336,11 +333,6 @@ let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
   | `Pat_831065d x -> str env x
 
 (* pattern \$[a-zA-Z_][a-zA-Z_0-9]* *)
-
-let line_string_content (env : env) (x : CST.line_string_content) =
-  match x with
-  | `Line_str_text tok -> str env tok (* pattern "[^\\\\\double_quote$]+" *)
-  | `Char_esc_seq x -> line_str_escaped_char env x
 
 let return_at (env : env) ((v1, v2) : CST.return_at) =
   let v1 = token env v1 (* "return@" *) in
@@ -1051,13 +1043,18 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let vdef = { vinit = v7; vtype = typopt } in
       let ent = { name = entname; attrs = v2 :: v1; tparams = v3 } in
       (ent, VarDef vdef)
-  | `Type_alias (v0, v1, v2, v3, v4) ->
+  | `Type_alias (v0, v1, v2, v3, v4, v5) ->
       let attrs = modifiers_opt env v0 in
       let _kwd = token env v1 (* "typealias" *) in
       let id = simple_identifier env v2 in
-      let _eq = token env v3 (* "=" *) in
-      let t = type_ env v4 in
-      let ent = basic_entity ~attrs id in
+      let tparams =
+        match v3 with
+        | None -> []
+        | Some v3 -> type_parameters env v3
+      in
+      let _eq = token env v4 (* "=" *) in
+      let t = type_ env v5 in
+      let ent = basic_entity ~attrs ~tparams id in
       let tdef = { tbody = AliasType t } in
       (ent, TypeDef tdef)
 
@@ -1173,6 +1170,9 @@ and expression (env : env) (x : CST.expression) : expr =
       let v4 = type_ env v4 in
       let _v5 = (* ")" *) token env v5 in
       TypedMetavar (v2, v3, v4) |> G.e
+  | `Semg_named_ellips tok ->
+      (* pattern \$\.\.\.[a-zA-Z_][a-zA-Z_0-9]* *)
+      G.N (Id (str env tok, empty_id_info ())) |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in
@@ -1367,9 +1367,9 @@ and interpolation (env : env) (x : CST.interpolation) =
       let v3 = token env v3 (* "}" *) in
       Right3 (v1, Some v2, v3)
   | `DOLLAR_simple_id (v1, v2) ->
-      let _v1 = token env v1 (* "$" *) in
+      let v1 = token env v1 (* "$" *) in
       let v2 = simple_identifier env v2 in
-      Middle3 (N (Id (v2, empty_id_info ())) |> G.e)
+      Right3 (v1, Some (N (Id (v2, empty_id_info ())) |> G.e), v1)
 
 and jump_expression (env : env) (x : CST.jump_expression) =
   match x with
@@ -1895,37 +1895,36 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   in
   v1 :: v2
 
-and string_literal (env : env) (x : CST.string_literal) : expr =
-  match x with
-  | `Line_str_lit (v1, v2, v3) ->
-      let v1 = token env v1 (* "\dq" *) in
+and string_literal (env : env) (v1, v2, v3) : expr =
+  let l = token env v1 in
+  let r = token env v3 in
+  match v2 with
+  | [ `Interp (`DOLLAR_simple_id (v1, v2)) ] when in_pattern env ->
+      (* This is something of the form "$X". This is interpreted as an interpolated
+         string of a single identifier, but if this is the pattern,
+         it's probably not what the person writing the rule meant.
+         Instead, we interpret it as a string literal containing a metavariable,
+         which allows the existing literal metavariable machinery to run.
+
+         This does not affect Semgrep's expressive power, because a string containing
+         an interpolated identifier `X` can also be expressed in a Semgrep pattern via
+         `"{X}"`.
+      *)
+      let s1, t1 = str env v1 (* "$" *) in
+      let s2, t2 = simple_identifier env v2 in
+      G.L (G.String (l, (s1 ^ s2, Tok.combine_toks l [ t1; t2; r ]), r)) |> G.e
+  | _ ->
       let v2 =
         Common.map
           (fun x ->
             match x with
-            | `Line_str_content x -> Common.Left3 (line_string_content env x)
-            | `Interp x ->
-                let x = interpolation env x in
-                x)
+            | `Str_content tok ->
+                (* string_content *)
+                Left3 (str env tok)
+            | `Interp x -> interpolation env x)
           v2
       in
-      let v3 = token env v3 (* "\dq" *) in
-      G.interpolated (v1, v2, v3)
-  | `Multi_line_str_lit (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"\"\dq" *) in
-      let v2 =
-        Common.map
-          (fun x ->
-            match x with
-            | `Multi_line_str_content x ->
-                Left3 (multi_line_string_content env x)
-            | `Interp x ->
-                let x = interpolation env x in
-                x)
-          v2
-      in
-      let v3 = token env v3 (* "\"\"\dq" *) in
-      G.interpolated (v1, v2, v3)
+      G.interpolated (l, v2, r)
 
 and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
   let v1 =
@@ -2313,7 +2312,7 @@ let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_kotlin.Parse.file file)
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       match source_file env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -2331,5 +2330,5 @@ let parse_pattern str =
     (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
       source_file env cst)

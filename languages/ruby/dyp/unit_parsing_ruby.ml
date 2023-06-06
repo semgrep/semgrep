@@ -4,7 +4,8 @@ open Common
 (* Unit tests *)
 (*****************************************************************************)
 
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let tests =
   Testutil.pack_tests "parsing_ruby"

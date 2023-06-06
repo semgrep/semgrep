@@ -59,9 +59,16 @@ module Operators : sig
 
   (* File.Path.(!!) = Fpath.to_string *)
   val ( !! ) : Fpath.t -> string
+
+  (* TODO? also add this one? or use ++ a bit like we have !! to
+   * avoid collision with known operators?
+   *)
+  (*
+  val ( + ) : Fpath.t -> Fpath.ext -> Fpath.t
+  *)
 end
 
-(* For realpath, use Unix.realpath in OCaml >= 4.13 *)
+(* For realpath, use Unix.realpath in OCaml >= 4.13, or Rpath.mli *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
 *)
@@ -126,6 +133,7 @@ val erase_this_temp_file : Fpath.t -> unit
 (*****************************************************************************)
 val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> int
+val filemtime : Fpath.t -> float
 
 (* [lines_of_file (start_line, end_line) file] returns
  * the list of lines from start_line to end_line included.

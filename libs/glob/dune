@@ -5,8 +5,12 @@
   (libraries
     stdcompat
     commons
+    profiling
   )
-  (preprocess (pps ppx_deriving.show))
+  (preprocess (pps
+     ppx_deriving.show
+     profiling.ppx
+  ))
 )
 
 (ocamllex Lexer)

@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    languages:
+      - python
+    options:
+      symbolic_propagation: true
+    pattern: |
+      p = ...
+      ... 
+    severity: ERROR
+    message: Test

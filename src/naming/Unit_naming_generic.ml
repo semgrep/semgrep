@@ -5,8 +5,8 @@ open File.Operators
 (* Unit tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let tests parse_program =
   Testutil.pack_tests "naming generic"

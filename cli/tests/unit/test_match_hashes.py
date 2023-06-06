@@ -74,7 +74,7 @@ def get_rule_match(
         match=core.CoreMatch(
             rule_id=core.RuleId(rule_id),
             location=core.Location(
-                path=filepath,
+                path=core.Fpath(filepath),
                 start=core.Position(start_line, 0, start_line * 5),
                 end=core.Position(end_line, 5, end_line * 5 + 5),
             ),

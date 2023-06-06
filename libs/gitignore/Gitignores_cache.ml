@@ -42,3 +42,4 @@ let load t dir_path =
       in
       Hashtbl.add tbl key res;
       res
+  [@@profiling]

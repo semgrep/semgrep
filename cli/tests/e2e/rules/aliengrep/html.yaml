@@ -1,0 +1,12 @@
+rules:
+  - id: var-in-script-tag
+    severity: WARNING
+    languages: [generic]
+    options:
+      generic_engine: aliengrep
+    message: |
+      Detected template variable in script tag. This is dangerous because
+      HTML escaping does not prevent injection in script contexts.
+    patterns:
+      - pattern-inside: "<script ...> ... </script>"
+      - pattern: "{{ ... }}"

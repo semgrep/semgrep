@@ -14,8 +14,8 @@
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Login_CLI.conf) : Exit_code.t =
-  Logs_helpers.setup_logging ~force_color:false ~level:conf.logging_level;
-  let settings = Semgrep_settings.get () in
+  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  let settings = Semgrep_settings.load () in
   let settings = Semgrep_settings.{ settings with api_token = None } in
   if Semgrep_settings.save settings then (
     Logs.app (fun m -> m "Logged out (log back in with `semgrep login`)");

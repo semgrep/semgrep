@@ -20,6 +20,7 @@ from boltons.iterutils import partition
 from rich.padding import Padding
 
 from semdep.parse_lockfile import parse_lockfile_path
+from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -123,6 +124,7 @@ def invoke_semgrep(
         output_extra,
         shown_severities,
         _,
+        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -206,7 +208,11 @@ def run_rules(
     dump_command_for_core: bool,
     engine_type: EngineType,
 ) -> Tuple[
-    RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
+    RuleMatchMap,
+    List[SemgrepError],
+    OutputExtra,
+    Dict[str, List[FoundDependency]],
+    List[DependencyParserError],
 ]:
     print_scan_status(filtered_rules, target_manager)
 
@@ -239,6 +245,7 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     dependencies = {}
+    dependency_parser_errors = []
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import (
             generate_unreachable_sca_findings,
@@ -286,13 +293,19 @@ def run_rules(
             for lockfile in target_manager.get_lockfiles(ecosystem):
                 # Add lockfiles as a target that was scanned
                 output_extra.all_targets.add(lockfile)
-                dependencies[str(lockfile)] = parse_lockfile_path(lockfile)
-
+                # Warning temporal assumption: this is the only place we process
+                # parse errors. We silently toss them in other places we call parse_lockfile_path
+                # It doesn't really matter where it gets handled as long as we collect the parse errors somewhere
+                deps, parse_error = parse_lockfile_path(lockfile)
+                dependencies[str(lockfile)] = deps
+                if parse_error:
+                    dependency_parser_errors.append(parse_error)
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
         dependencies,
+        dependency_parser_errors,
     )
 
 
@@ -369,6 +382,7 @@ def main(
     OutputExtra,
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
+    List[DependencyParserError],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -409,6 +423,7 @@ def main(
     metrics = get_state().metrics
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
+        metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
         metrics.add_engine_type(engine_type)
 
@@ -503,7 +518,13 @@ def main(
         for ruleid in sorted(rule.id for rule in experimental_rules):
             logger.verbose(f"- {ruleid}")
 
-    (rule_matches_by_rule, semgrep_errors, output_extra, dependencies) = run_rules(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+        dependencies,
+        dependency_parser_errors,
+    ) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -559,6 +580,7 @@ def main(
                     (
                         baseline_rule_matches_by_rule,
                         baseline_semgrep_errors,
+                        _,
                         _,
                         _,
                     ) = run_rules(
@@ -619,4 +641,5 @@ def main(
         output_extra,
         shown_severities,
         dependencies,
+        dependency_parser_errors,
     )

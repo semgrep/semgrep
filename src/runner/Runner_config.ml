@@ -1,22 +1,17 @@
-open Common
-
-(*
-   Type definitions, mostly.
-*)
-
 (* in JSON mode, we might need to display intermediate '.' in the
- * output for semgrep to track progress as well as extra targets
+ * output for pysemgrep to track progress as well as extra targets
  * found by extract rules.
- * TODO: not needed after osemgrep migration done
+ * LATER: osemgrep: not needed after osemgrep migration done
  *)
 type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
 (*
    'Rule_file' is for the semgrep-core CLI.
-   The 'Rules' case is for an invocation that bypasses the semgrep-core
-   command (osemgrep) or when for some reason the rules had to be preparsed.
+   'Rules' is for osemgrep or when for some reason the rules had to be
+    preparsed.
 *)
 type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
+[@@deriving show]
 
 (*
    'Target_file' is for the semgrep-core CLI which gets a list of
@@ -29,8 +24,9 @@ type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 type target_source =
   | Target_file of Fpath.t
   | Targets of Input_to_core_t.targets
+[@@deriving show]
 
-(* TODO: similar to osemgrep Scan_CLI.conf, should be merged in it *)
+(* TODO: similar to osemgrep Scan_CLI.conf; should be merged with it *)
 type t = {
   (* Debugging/profiling/logging flags *)
   log_config_file : Fpath.t;
@@ -43,10 +39,9 @@ type t = {
   profile_start : float;
   matching_explanations : bool;
   (* Main flags *)
-  pattern_string : string;
-  pattern_file : filename; (* TODO: use Fpath.t option *)
+  pattern_string : string option;
+  pattern_file : Fpath.t option;
   rule_source : rule_source option;
-  lang_job : Lang_job.t option;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
   roots : Fpath.t list;
@@ -62,16 +57,22 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  (* TODO: use Fpath.t option *)
-  parsing_cache_dir : Common.filename; (* "" means no cache *)
+  parsing_cache_dir : Fpath.t option;
   filter_irrelevant_rules : bool;
-  (* Flag used by the semgrep-python wrapper *)
+  (* Hook to display match results incrementally, after a file has been fully
+   * processed. Note that this hook run in a child process of Parmap
+   * in Run_semgrep, so the hook should not rely on shared memory!
+   *)
+  file_match_results_hook :
+    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option;
+  (* Flag used by pysemgrep *)
   target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
   action : string;
   (* Other *)
   version : string;
 }
+[@@deriving show]
 
 (*
    Default values for all the semgrep-core command-line arguments and options.
@@ -97,10 +98,9 @@ let default =
     profile_start = 0.;
     matching_explanations = false;
     (* Main flags *)
-    pattern_string = "";
-    pattern_file = "" (* invalid path! *);
+    pattern_string = None;
+    pattern_file = None;
     rule_source = None;
-    lang_job = None;
     equivalences_file = None;
     lang = None;
     roots = [];
@@ -116,10 +116,10 @@ let default =
     max_memory_mb = 0;
     max_match_per_file = 10_000;
     ncores = 1;
-    parsing_cache_dir = "" (* invalid path! *);
+    parsing_cache_dir = None;
+    (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
-    (* -fast by default *)
-    (* "" means no cache *)
+    file_match_results_hook = None;
     (* Flag used by the semgrep-python wrapper *)
     target_source = None;
     (* Common.ml action for the -dump_xxx *)

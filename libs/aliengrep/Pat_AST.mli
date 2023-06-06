@@ -18,6 +18,7 @@ and node =
   | Long_metavar_ellipsis of string (* same *)
   | Bracket of char * t * char
   | Word of string (* a word may not be adjacent to another word *)
+  | Newline
   | Other of string
 [@@deriving show]
 

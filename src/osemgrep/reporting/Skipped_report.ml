@@ -16,25 +16,19 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 let pp_skipped ppf
-    (( respect_git_ignore,
-       max_target_bytes,
-       semgrep_ignored,
-       include_ignored,
-       exclude_ignored,
-       file_size_ignored,
-       other_ignored,
-       errors ) :
-      bool
-      * int
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list
-      * Out.skipped_target list) =
+    ( respect_git_ignore,
+      legacy,
+      max_target_bytes,
+      semgrep_ignored,
+      include_ignored,
+      exclude_ignored,
+      file_size_ignored,
+      other_ignored,
+      errors ) =
+  (* not sure why but pysemgrep does not use the classic heading for skipped*)
   Fmt.pf ppf "%s@.Files skipped:@.%s@." (String.make 40 '=')
     (String.make 40 '=');
-  Fmt_helpers.pp_heading ppf "Files skipped";
+  (* nope: Fmt_helpers.pp_heading ppf "Files skipped"; *)
   (* TODO: always skipped *)
   Fmt.pf ppf " %a@." Fmt.(styled `Bold string) "Skipped by .gitignore:";
   if respect_git_ignore then (
@@ -93,12 +87,13 @@ let pp_skipped ppf
   pp_list file_size_ignored;
   Fmt.pf ppf "@.";
 
-  Fmt.pf ppf " %a@.@." Fmt.(styled `Bold string) "Skipped for other reasons:";
-  pp_list other_ignored;
-  Fmt.pf ppf "@.";
+  if not legacy then (
+    Fmt.pf ppf " %a@.@." Fmt.(styled `Bold string) "Skipped for other reasons:";
+    pp_list other_ignored;
+    Fmt.pf ppf "@.");
 
   Fmt.pf ppf " %a@.@."
     Fmt.(styled `Bold string)
-    "Skipped by analysis failure due to parsing or internal Semgrep error";
+    "Partially analyzed due to parsing or internal Semgrep errors";
   pp_list errors;
   Fmt.pf ppf "@."

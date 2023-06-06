@@ -1,0 +1,16 @@
+rules:
+  - id: double-root
+    languages:
+      - generic
+    options:
+      generic_engine: aliengrep
+    patterns:
+      - pattern: |
+          USER $ROOT
+      - pattern-inside: |
+          USER $ROOT
+          ...
+          USER $ROOT
+    message: |
+      'USER' is specified twice
+    severity: ERROR

@@ -1,0 +1,8 @@
+rules:
+  - id: begin-end
+    severity: WARNING
+    languages: [generic]
+    options:
+      generic_engine: aliengrep
+    message: "found something"
+    pattern: "begin ... end"

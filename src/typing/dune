@@ -1,0 +1,20 @@
+(library
+ (public_name semgrep.typing)
+ (name semgrep_typing)
+ (wrapped false)
+ (libraries
+   ppx_deriving.runtime
+
+   commons
+   lib_parsing
+
+   semgrep_core
+   ; No dependencies to semgrep_parsing here!
+   ; we use parsers in Unit_matcher.ml but they are passed in
+   ; via a parameter in tests().
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+; restore once can compile semgrep with working ppxlib and
+; bisect_ppx together
+; (instrumentation (backend bisect_ppx))
+)

@@ -23,36 +23,9 @@ let make_login_url () =
           ("gha", if Semgrep_envvars.env.in_gh_action then "True" else "False");
         ]) )
 
-(* from auth.py *)
-let get_deployment_from_token token =
-  match
-    Network.get
-      ~headers:[ ("authorization", "Bearer " ^ token) ]
-      (Uri.with_path Semgrep_envvars.env.semgrep_url
-         "api/agent/deployments/current")
-  with
-  | Error msg ->
-      Logs.debug (fun m -> m "error while retrieving deployment: %s" msg);
-      None
-  | Ok json -> (
-      try
-        match Yojson.Basic.from_string json with
-        | `Assoc e -> (
-            match List.assoc_opt "deployment" e with
-            | Some (`Assoc e) -> (
-                match List.assoc_opt "name" e with
-                | Some (`String s) -> Some s
-                | _else -> None)
-            | _else -> None)
-        | _else -> None
-      with
-      | Yojson.Json_error msg ->
-          Logs.debug (fun m -> m "failed to parse json %s: %s" msg json);
-          None)
-
 (* from login.py *)
 let save_token ~echo_token settings token =
-  if get_deployment_from_token token <> None then
+  if Semgrep_App.get_deployment_from_token token <> None then
     let settings = Semgrep_settings.{ settings with api_token = Some token } in
     if Semgrep_settings.save settings then (
       Logs.app (fun m ->
@@ -80,8 +53,8 @@ let max_retries = 30 (* Give users 3 minutes to log in / open link *)
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Login_CLI.conf) : Exit_code.t =
-  Logs_helpers.setup_logging ~force_color:false ~level:conf.logging_level;
-  let settings = Semgrep_settings.get () in
+  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
       match Semgrep_envvars.env.app_token with
@@ -123,7 +96,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                     {|{"token_request_key": "|} ^ Uuidm.to_string session_id
                     ^ {|"}|}
                   in
-                  match Network.post ~body url with
+                  match Http_helpers.post ~body url with
                   | Ok body -> (
                       try
                         match Yojson.Basic.from_string body with

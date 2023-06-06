@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "test",
+      "languages": ["python"],
+      "pattern": "print(...)",
+      "message": "test",
+      "severity": "ERROR"
+    }
+  ]
+}

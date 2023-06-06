@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "test",
+      "languages": ["yaml"],
+      "pattern": "foo: $X",
+      "message": "test",
+      "severity": "ERROR"
+    }
+  ]
+}

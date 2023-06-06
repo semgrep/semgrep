@@ -30,14 +30,7 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 
 (* environment to pass to the JSON cli_output generator *)
-type env = {
-  hrules : Rule.hrules;
-  (* string to prefix all rule_id with
-   * (e.g., "xxx.tests." if the --config argument
-    * was xxx/tests/osemgrep.yml)
-   *)
-  config_prefix : string;
-}
+type env = { hrules : Rule.hrules }
 
 (* LATER: use Metavariable.bindings directly ! *)
 type metavars = (string * Out.metavar_value) list
@@ -83,20 +76,6 @@ let contents_of_file (range : Out.position * Out.position) (file : filename) :
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* TODO: probably want to use Config_resolver.rules_and_origin to
- * get the prefix
- *)
-let config_prefix_of_rules_source (src : Rule_fetching.rules_source) : string =
-  (* TODO: what if it's a registry rule?
-   * call Semgrep_dashdash_config.config_kind_of_config_str
-   *)
-  match src with
-  | Rule_fetching.Configs (path :: _TODO) ->
-      (*  need to prefix with the dotted path of the config file *)
-      let dir = Filename.dirname path in
-      Str.global_replace (Str.regexp "/") "." dir ^ "."
-  | _else_ -> ""
 
 (* Substitute the metavariables mentioned in a message to their
  * matched content.
@@ -147,7 +126,7 @@ let render_fix (env : env) (x : Out.core_match) : string option =
   match x with
   | { rule_id; location; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
-        try Hashtbl.find env.hrules rule_id with
+        try Hashtbl.find env.hrules (Rule.ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let path = location.path in
@@ -342,7 +321,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
      };
   } ->
       let rule =
-        try Hashtbl.find env.hrules rule_id with
+        try Hashtbl.find env.hrules (Rule.ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let path = location.path in
@@ -355,8 +334,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
         | None -> ""
       in
       let fix = render_fix env m in
-      (*  need to prefix with the dotted path of the config file *)
-      let check_id = env.config_prefix ^ rule_id in
+      let check_id = rule_id in
       let metavars = Some metavars in
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
@@ -427,8 +405,10 @@ let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
   { path = x.path; reason = x.reason }
 
 (* skipping the python intermediate FileTargetingLog for now *)
-let cli_skipped_targets ~(skipped_targets : Out.skipped_target list) :
-    Out.cli_skipped_target list =
+let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
+    Out.cli_skipped_target list option =
+  let* skipped_targets in
+
   (* TODO: skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
    *)
@@ -440,14 +420,14 @@ let cli_skipped_targets ~(skipped_targets : Out.skipped_target list) :
     skipped_targets |> Common.map cli_skipped_target_of_skipped_target
   in
   (* TODO: need to sort *)
-  core_skipped
+  Some core_skipped
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let cli_output_of_core_results ~logging_level ~rules_source
-    (res : Core_runner.result) : Out.cli_output =
+let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
+    Out.cli_output =
   match res.core with
   | {
    matches;
@@ -461,12 +441,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
    rules_by_engine = _;
    engine_requested = _;
   } ->
-      let env =
-        {
-          hrules = res.hrules;
-          config_prefix = config_prefix_of_rules_source rules_source;
-        }
-      in
+      let env = { hrules = res.hrules } in
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches
@@ -477,7 +452,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
        * elements in OCaml compare order (=~ lexicographic for strings)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
-      let scanned = res.scanned |> Set_.elements in
+      let scanned = res.scanned |> Set_.elements |> File.Path.to_strings in
       let (paths : Out.cli_paths) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
@@ -487,7 +462,7 @@ let cli_output_of_core_results ~logging_level ~rules_source
             {
               scanned;
               _comment = Some "<add --verbose for a list of skipped paths>";
-              skipped = [];
+              skipped = None;
             }
       in
       {

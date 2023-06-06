@@ -160,8 +160,6 @@ let subexprs_of_expr with_symbolic_propagation e =
   | RawExpr x -> Raw_tree.anys x |> subexprs_of_any_list
   | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
-  (* TODO? or call recursively on e? *)
-  | ParenExpr (_, e, _) -> [ e ]
   | Xml { xml_attrs; xml_body; _ } ->
       Common.map_filter
         (function
@@ -218,7 +216,6 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
        *)
       e :: subexprs_of_args args
   | Cast (_, _, e)
-  | ParenExpr (_, e, _)
   | Await (_, e) ->
       [ e ]
   | Yield (_, eopt, _) -> Option.to_list eopt

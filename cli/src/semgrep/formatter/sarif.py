@@ -36,7 +36,7 @@ class SarifFormatter(BaseFormatter):
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
             content = "".join(taint_source.value.value[1]).strip()
-            source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+            source_message_text = f"Source: '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             taint_source_location_sarif = {
                 "location": {
@@ -52,7 +52,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": source_message_text},
                         },
                     },
-                }
+                },
+                "nestingLevel": 0,
             }
             return taint_source_location_sarif
 
@@ -68,7 +69,7 @@ class SarifFormatter(BaseFormatter):
         for intermediate_var in intermediate_vars:
             location = intermediate_var.location
             content = "".join(intermediate_var.content).strip()
-            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             intermediate_vars_location_sarif = {
                 "location": {
@@ -84,7 +85,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": propagation_message_text},
                         },
                     },
-                }
+                },
+                "nestingLevel": 0,
             }
             intermediate_var_locations.append(intermediate_vars_location_sarif)
         return intermediate_var_locations
@@ -110,7 +112,8 @@ class SarifFormatter(BaseFormatter):
                         "message": {"text": sink_message_text},
                     },
                 },
-            }
+            },
+            "nestingLevel": 1,
         }
         return sink_location_sarif
 
@@ -165,7 +168,7 @@ class SarifFormatter(BaseFormatter):
             return None
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
-            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+            code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
             code_flow_sarif = {
                 "message": {"text": code_flow_message},
             }
@@ -258,11 +261,12 @@ class SarifFormatter(BaseFormatter):
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
         security_severity = rule.metadata.get("security-severity")
+
         if security_severity is not None:
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {
@@ -275,16 +279,35 @@ class SarifFormatter(BaseFormatter):
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {"precision": "very-high", "tags": tags},
             }
 
         rule_url = rule.metadata.get("source")
+        references = []
+
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
+            references.append(f"[Semgrep Rule]({rule_url})")
 
+        if rule.metadata.get("references"):
+            ref = rule.metadata["references"]
+            # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
+            references.extend(
+                [f"[{r}]({r})" for r in ref]
+                if isinstance(ref, list)
+                else [f"[{ref}]({ref})"]
+            )
+        if references:
+            r = "".join(
+                [f" - {references_markdown}\n" for references_markdown in references]
+            )
+            rule_json["help"] = {
+                "text": rule.message,
+                "markdown": f"{rule.message}\n\n<b>References:</b>\n{r}",
+            }
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
@@ -326,6 +349,9 @@ class SarifFormatter(BaseFormatter):
                 if isinstance(owasp, list)
                 else [f"OWASP-{owasp}"]
             )
+        if rule.metadata.get("confidence"):
+            confidence = rule.metadata["confidence"]
+            result.append(f"{confidence} CONFIDENCE")
         if (
             "semgrep.policy" in rule.metadata
             and "slug" in rule.metadata["semgrep.policy"]

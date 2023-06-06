@@ -658,6 +658,9 @@ def test_full_run(
                 head_commit[:7],
                 base_commit,
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -706,6 +709,103 @@ def test_full_run(
     # TODO: flaky tests (on Linux at least)
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
+    snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+
+
+def test_lockfile_parse_failure_reporting(
+    git_tmp_path_with_commit, run_semgrep: RunSemgrep, snapshot
+):
+    repo_base, base_commit, _ = git_tmp_path_with_commit
+    subprocess.run(
+        ["git", "config", "user.email", AUTHOR_EMAIL],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", AUTHOR_NAME],
+        check=True,
+        capture_output=True,
+    )
+
+    bad_lockfile = repo_base / "Pipfile.lock"
+    bad_lockfile.write_text(
+        dedent(
+            """
+            invalid
+            {
+                "_meta": {
+                    "hash": {
+                        "sha256": "7f7606f08e0544d8d012ef4d097dabdd6df6843a28793eb6551245d4b2db4242"
+                    },
+                    "pipfile-spec": 6,
+                    "requires": {
+                        "python_version": "3.8"
+                    },
+                    "sources": [
+                        {
+                            "name": "pypi",
+                            "url": "https://pypi.org/simple",
+                            "verify_ssl": true
+                        }
+                    ]
+                },
+                "default": {},
+                "develop": {}
+            }
+            """
+        )
+    )
+
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Bad lockfile"],
+        check=True,
+        capture_output=True,
+    )
+
+    head_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                head_commit,
+                head_commit[:7],
+                base_commit,
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
+
+    post_calls = AppSession.post.call_args_list  # type: ignore
+
+    # Check correct metadata
+    findings_and_ignores_json = post_calls[1].kwargs["json"]
+    for f in findings_and_ignores_json["findings"]:
+        assert f["commit_date"] is not None
+        f["commit_date"] = "sanitized"
+    for f in findings_and_ignores_json["ignores"]:
+        assert f["commit_date"] is not None
+        f["commit_date"] = "sanitized"
+    snapshot.assert_match(
+        json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
+    )
+
+    complete_json = post_calls[2].kwargs["json"]
+    complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    complete_json["stats"]["lockfile_scan_info"] = {}
+    assert len(complete_json["dependency_parser_errors"]) > 0
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
 
 
@@ -828,6 +928,7 @@ def test_full_run(
 #        result.as_snapshot(
 #            mask=[
 #                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+#                re.compile(r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)")
 #                # Mask variable debug output
 #                re.compile(r"/(.*)/semgrep-core"),
 #                re.compile(r"loaded 1 configs in(.*)"),
@@ -978,6 +1079,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "bad_results.txt",
@@ -1000,6 +1104,9 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
             ]
         ),
         "results.txt",
@@ -1023,7 +1130,16 @@ def test_config_run(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
     )
-    snapshot.assert_match(result.as_snapshot(), "results.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.kinda_slow
@@ -1042,7 +1158,16 @@ def test_outputs(
         output_format=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(result.as_snapshot(), "results.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
@@ -1057,7 +1182,16 @@ def test_nosem(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
     )
-    snapshot.assert_match(result.as_snapshot(), "output.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "output.txt",
+    )
 
 
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSemgrep):
@@ -1128,6 +1262,8 @@ def test_fail_auth_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osempass
 def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
@@ -1234,6 +1370,8 @@ def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_c
     mock_request_post.assert_not_called()
 
 
+# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osempass
 def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
@@ -1244,6 +1382,22 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
         target_name=None,
         strict=False,
         assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+
+
+def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test backend sending non-zero exit code on complete causes exit 1
+    """
+    mocker.patch.object(
+        ScanHandler, "report_findings", return_value=(1, "some reason to fail")
+    )
+    run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
 
@@ -1266,6 +1420,8 @@ def test_fail_finish_scan_error_handler(
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
+# TODO: pass but for bad reasons I think, because we just don't handle the CLI args
+@pytest.mark.osempass
 def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
@@ -1343,7 +1499,16 @@ def test_query_dependency(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(result.as_snapshot(), "output.txt")
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "output.txt",
+    )
 
     post_calls = AppSession.post.call_args_list
     complete_json = post_calls[2].kwargs["json"]

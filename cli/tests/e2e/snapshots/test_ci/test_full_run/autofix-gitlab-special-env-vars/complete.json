@@ -1,5 +1,6 @@
 {
   "exit_code": 1,
+  "dependency_parser_errors": [],
   "stats": {
     "findings": 9,
     "errors": [],

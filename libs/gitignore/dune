@@ -5,7 +5,11 @@
   (wrapped false)
   (libraries
     glob
-    ppath
+    profiling
+    paths
   )
-  (preprocess (pps ppx_deriving.show))
+  (preprocess (pps
+    ppx_deriving.show
+    profiling.ppx
+  ))
 )

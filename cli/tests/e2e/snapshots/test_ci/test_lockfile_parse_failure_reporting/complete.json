@@ -1,0 +1,31 @@
+{
+  "exit_code": 1,
+  "dependency_parser_errors": [
+    {
+      "path": "Pipfile.lock",
+      "parser": "jsondoc",
+      "reason": "expected one of ['\"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']",
+      "line": 2,
+      "col": 1,
+      "text": "invalid"
+    }
+  ],
+  "stats": {
+    "findings": 10,
+    "errors": [],
+    "total_time": 0.5,
+    "unsupported_exts": {
+      ".txt": 1
+    },
+    "lockfile_scan_info": {},
+    "parse_rate": {
+      "python": {
+        "targets_parsed": 1,
+        "num_targets": 1,
+        "bytes_parsed": 366,
+        "num_bytes": 366
+      }
+    },
+    "engine_requested": "OSS"
+  }
+}

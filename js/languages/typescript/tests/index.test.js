@@ -2,27 +2,33 @@ const { ParserFactory } = require("../dist/index.cjs");
 
 const parserPromise = ParserFactory();
 
-test("it has a lang", async () => {
+const EXPECTED_LANGS = ["js", "ts"];
+
+test("getLangs", async () => {
   const parser = await parserPromise;
-  expect(parser.getLangs()).toEqual([13, 33]);
+  expect(parser.getLangs()).toEqual(EXPECTED_LANGS);
 });
 
 test("it successfully parses a pattern", async () => {
   const parser = await parserPromise;
-  parser.parsePattern(false, "console.log($X)");
+  const pattern = parser.parsePattern(false, "js", "console.log($X)");
+  expect(typeof pattern).toEqual("object");
 });
 
 test("it parses a js file", async () => {
   const parser = await parserPromise;
-  parser.parseTarget(13, "tests/example.ts");
+  const target = parser.parseTarget("js", "tests/example.ts");
+  expect(typeof target).toEqual("object");
 });
 
 test("it parses a ts file", async () => {
   const parser = await parserPromise;
-  parser.parseTarget(33, "tests/example.ts");
+  const target = parser.parseTarget("ts", "tests/example.ts");
+  expect(typeof target).toEqual("object");
 });
 
 test("it parses a tsx file", async () => {
   const parser = await parserPromise;
-  parser.parseTarget(33, "tests/example.tsx");
+  const target = parser.parseTarget("ts", "tests/example.tsx");
+  expect(typeof target).toEqual("object");
 });

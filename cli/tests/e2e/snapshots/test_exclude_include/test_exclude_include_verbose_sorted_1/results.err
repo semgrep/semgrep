@@ -5,8 +5,8 @@ Rules:
 - rules.eqeq-is-bad
 - rules.javascript-basic-eqeq-bad
 - rules.python37-compatability-os-module
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -51,8 +51,8 @@ Files skipped:
 
    • <none>
 
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

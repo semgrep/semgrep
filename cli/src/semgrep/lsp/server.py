@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 import urllib
 from pathlib import PosixPath
 from tempfile import _TemporaryFileWrapper
@@ -19,6 +20,7 @@ from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 from semgrep.app import auth
 from semgrep.commands.login import make_login_url
 from semgrep.core_runner import CoreRunner
+from semgrep.error import SemgrepError
 from semgrep.lsp.config import LSPConfig
 from semgrep.state import get_state
 from semgrep.types import JsonObject
@@ -37,6 +39,8 @@ class SemgrepCoreLSServer:
         self.config = LSPConfig({}, [])
         self.rule_file = rule_file
         self.target_file = target_file
+        self.core_process: Optional[subprocess.Popen] = None
+        self.exit_code: int = 0
 
     def update_targets_file(self) -> None:
         self.config.refresh_target_manager()
@@ -77,6 +81,10 @@ class SemgrepCoreLSServer:
             self.target_file.name,
             "-max_memory",
             str(self.config.max_memory),
+            "-timeout",
+            str(self.config.timeout),
+            "-timeout_threshold",
+            str(self.config.timeout_threshold),
             "-fast",
             "-ls",
         ]
@@ -97,9 +105,30 @@ class SemgrepCoreLSServer:
         def core_handler() -> None:
             self.core_reader.listen(self.on_core_message)
 
+        def core_poller() -> None:
+            while True:
+                self.poll_ls()
+                time.sleep(1)
+
         self.thread = threading.Thread(target=core_handler)
         self.thread.daemon = True
         self.thread.start()
+
+        self.poll_thread = threading.Thread(target=core_poller)
+        self.poll_thread.daemon = True
+        self.poll_thread.start()
+
+    def poll_ls(self) -> None:
+        if not self.core_process:
+            return
+        status = self.core_process.poll()
+        if status is not None and status != 0:
+            self.notify_show_message(
+                1,
+                "Semgrep core process died, exiting...",
+            )
+            self.exit_code = status
+            self.stop()
 
     def notify(self, method: str, params: JsonObject) -> None:
         """Send a notification to the client"""
@@ -141,6 +170,8 @@ class SemgrepCoreLSServer:
             self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
         else:
             self.config = LSPConfig(config, [])
+
+        self.config.send_metrics()
 
     def m_semgrep__login(self, id: str) -> None:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
@@ -235,6 +266,9 @@ class SemgrepCoreLSServer:
             response = {"id": id, "result": {"loggedIn": self.config.logged_in}}
             self.on_core_message(response)
             return
+        if method == "shutdown" or method == "exit":
+            self.stop()
+            return
 
         self.core_writer.write(msg)
 
@@ -247,8 +281,25 @@ class SemgrepCoreLSServer:
 
     def stop(self) -> None:
         """Stop the language server"""
-        self.core_writer.write({"jsonrpc": "2.0", "method": "exit"})
-        self.core_process.wait()
+        exception = sys.exc_info()[1]
+        error = None
+        if exception is not None:
+            self.notify_show_message(
+                1, f"Error running Semgrep Language Server:\t{traceback.format_exc()}"
+            )
+            traceback.print_exc(file=sys.stderr)
+            self.exit_code = 1
+            error = SemgrepError(exception)
+        if self.core_process and self.core_process.poll() is None:
+            self.core_writer.write({"jsonrpc": "2.0", "method": "shutdown", "id": 1})
+            self.core_process.wait()
+        try:
+            self.core_reader.close()
+            self.core_writer.close()
+        except Exception:
+            pass
+
+        self.config.send_metrics(self.exit_code, error)
 
 
 def run_server() -> None:
@@ -258,7 +309,9 @@ def run_server() -> None:
         tempfile.NamedTemporaryFile("w+", suffix=".json")
     )
     target_file = exit_stack.enter_context(tempfile.NamedTemporaryFile("w+"))
+    server = SemgrepCoreLSServer(rule_file, target_file)
+    exit_stack.callback(server.stop)
     with exit_stack:
-        server = SemgrepCoreLSServer(rule_file, target_file)
         server.start()
     log.info("Server stopped!")
+    sys.exit(server.exit_code)

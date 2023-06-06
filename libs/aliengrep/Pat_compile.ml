@@ -13,14 +13,14 @@ open Printf
 type metavariable_kind =
   | Metavariable
   | Metavariable_ellipsis (* regular or long *)
-[@@deriving show]
+[@@deriving show, eq]
 
 (* metavariable kind, bare name *)
-type metavariable = metavariable_kind * string [@@deriving show]
+type metavariable = metavariable_kind * string [@@deriving show, eq]
 
 type t = {
   pcre_pattern : string; [@printer fun fmt -> Format.fprintf fmt "{|%s|}"]
-  pcre : Pcre.regexp; [@opaque]
+  pcre : Pcre.regexp; [@opaque] [@equal fun _ _ -> true]
   (*
      List of the PCRE capturing groups that we care about for extracting
      metavariable values.
@@ -59,7 +59,7 @@ Pcre.extract_all ~rex {|xx ab ab xx|};;
   *)
   metavariable_groups : (int * metavariable) list;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (*
    Parameters used to create patterns for a given definition of whitespace.
@@ -81,20 +81,20 @@ type param = {
   long_ellipsis : spacing_param;
 }
 
-(* uniline mode and regular ellipsis "..." *)
-let uniline_spacing_param =
+(* single-line mode and regular ellipsis "..." *)
+let singleline_spacing_param =
   {
     whitespace_pat = {|[[:blank:]]*+|};
-    bracket_name = "u_bracket";
-    node_name = "u_node";
+    bracket_name = "sl_bracket";
+    node_name = "sl_node";
   }
 
 (* multiline mode and long ellipsis "...." *)
 let multiline_spacing_param =
   {
     whitespace_pat = {|[[:space:]]*+|};
-    bracket_name = "m_bracket";
-    node_name = "m_node";
+    bracket_name = "ml_bracket";
+    node_name = "ml_node";
   }
 
 let param_of_conf (conf : Conf.t) =
@@ -109,10 +109,21 @@ let param_of_conf (conf : Conf.t) =
   else
     {
       multiline_mode = false;
-      spacing = uniline_spacing_param;
-      ellipsis = uniline_spacing_param;
+      spacing = singleline_spacing_param;
+      ellipsis = singleline_spacing_param;
       long_ellipsis = multiline_spacing_param;
     }
+
+let beginning_of_input_pat = {|\A|}
+let end_of_input_pat = {|\z|}
+
+(*
+   For peace of mind, the following definitions are independent of whether
+   PCRE_MULTILINE is set.
+   Alternatively: set PCRE_MULTILINE and use '^' and '$'
+*)
+let beginning_of_line_pat = {|(?:\A|(?<=\n))|}
+let end_of_line_pat = {|(?:\z|(?=\r?\n))|}
 
 (* sequence of any nodes to be captured by a regular ellipsis or by a long
    ellipsis. It uses lazy quantifiers so as to favor shorter matches over
@@ -138,7 +149,7 @@ let ellipsis_pat ~excluded_brace param =
 
 (* In addition to allowing newlines in-between the sequence elements,
    a long ellipsis pattern must allow leading and trailing whitespace
-   containing newlines in uniline mode.
+   containing newlines in single-line mode.
    We try to include as little leading/trailing whitespace as possible,
    though.
 *)
@@ -149,10 +160,87 @@ let long_ellipsis_pat ~excluded_brace param =
        by the ellipsis. *)
     ellipsis_pat_of_spacing_param ~excluded_brace param.ellipsis
   else
-    (* uniline mode *)
+    (* single-line mode *)
     sprintf {|(?:\n %s)?? %s (?:%s \n)??|} param.long_ellipsis.whitespace_pat
       (ellipsis_pat_of_spacing_param ~excluded_brace param.long_ellipsis)
       param.long_ellipsis.whitespace_pat
+
+(* A version of List.iter that passes the previous and next elements
+   if they exist. *)
+let iter3 f ~prev:first_prev ~next:last_next xs =
+  let rec iter prev xs =
+    match xs with
+    | [] -> ()
+    | [ x ] -> f ~prev ~next:last_next x
+    | x :: (next :: _ as xs) ->
+        f ~prev ~next:(Some next) x;
+        iter (Some x) xs
+  in
+  iter first_prev xs
+
+let is_singleline_ellipsis (conf : Conf.t) (x : Pat_AST.node) =
+  match x with
+  | Ellipsis
+  | Metavar_ellipsis _ ->
+      not conf.multiline
+  | Long_ellipsis
+  | Long_metavar_ellipsis _ ->
+      false
+  | Metavar _
+  | Bracket _
+  | Word _
+  | Newline
+  | Other _ ->
+      false
+
+let is_multiline_ellipsis (conf : Conf.t) (x : Pat_AST.node) =
+  match x with
+  | Ellipsis
+  | Metavar_ellipsis _ ->
+      conf.multiline
+  | Long_ellipsis
+  | Long_metavar_ellipsis _ ->
+      true
+  | Metavar _
+  | Bracket _
+  | Word _
+  | Newline
+  | Other _ ->
+      false
+
+let must_match_beginning_of_line conf ~(prev : Pat_AST.node option) node =
+  let starts_line =
+    match prev with
+    | None -> true
+    | Some Newline -> true
+    | Some _ -> false
+  in
+  starts_line && is_singleline_ellipsis conf node
+
+let must_match_beginning_of_input conf ~(prev : Pat_AST.node option) node =
+  let starts_input =
+    match prev with
+    | None -> true
+    | Some _ -> false
+  in
+  starts_input && is_multiline_ellipsis conf node
+
+let must_match_end_of_line conf ~(next : Pat_AST.node option) node =
+  let ends_line =
+    match next with
+    | None -> true
+    | Some Newline -> true
+    | Some _ -> false
+  in
+  ends_line && is_singleline_ellipsis conf node
+
+let must_match_end_of_input conf ~(next : Pat_AST.node option) node =
+  let ends_input =
+    match next with
+    | None -> true
+    | Some _ -> false
+  in
+  ends_input && is_multiline_ellipsis conf node
 
 (* We generate a rather complex PCRE pattern. The syntax assumes the
    so-called extended mode which ignores whitespace and #-comments.
@@ -169,6 +257,7 @@ let long_ellipsis_pat ~excluded_brace param =
    of this file).
 *)
 let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
+  let options = if conf.caseless then [ "(?i)" ] else [] in
   let param = param_of_conf conf in
   let new_capturing_group =
     let n = ref 0 in
@@ -212,7 +301,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
      - must exclude the closing brace character if one is expected.
      - may not match ignorable whitespace (so that $...X doesn't capture
        leading or trailing whitespace).
-     - may not match newline characters in uniline mode (except in
+     - may not match newline characters in single-line mode (except in
        long ellipses)
   *)
   let def_other =
@@ -223,7 +312,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
     define "other" pat
   in
   let def_bracket sparam =
-    define sparam.bracket_name (* = u_bracket or m_bracket *)
+    define sparam.bracket_name (* = sl_bracket or ml_bracket *)
       (conf.brackets
       |> Common.map (fun (open_, close) ->
              sprintf {|%s%s%s|}
@@ -242,7 +331,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
   in
   let definitions =
     [ def_lwb; def_rwb; def_not_in_word; def_ws; def_word; def_other ]
-    @ parametrized_definitions uniline_spacing_param
+    @ parametrized_definitions singleline_spacing_param
     @ parametrized_definitions multiline_spacing_param
   in
   let word str =
@@ -289,8 +378,12 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
        and treated as ordinary punctuation characters ("other") forming
        a node.
     *)
-    let rec of_node ~excluded_brace (node : Pat_AST.node) =
-      match node with
+    let rec of_node ~excluded_brace ~prev ~next (node : Pat_AST.node) =
+      if must_match_beginning_of_input conf ~prev node then
+        add beginning_of_input_pat;
+      if must_match_beginning_of_line conf ~prev node then
+        add beginning_of_line_pat;
+      (match node with
       | Ellipsis -> add (ellipsis_pat ~excluded_brace param)
       | Long_ellipsis -> add (long_ellipsis_pat ~excluded_brace param)
       | Metavar name -> add (capture (Metavariable, name) {|(?&word)|})
@@ -306,12 +399,22 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
                (long_ellipsis_pat ~excluded_brace param))
       | Bracket (open_, seq, close) ->
           add (Pcre_util.quote (String.make 1 open_));
-          of_seq ~excluded_brace:(Some close) seq;
+          let some_node =
+            (* what matters is that it's not None and not (Some Newline) *)
+            Some node
+          in
+          of_seq ~excluded_brace:(Some close) ~prev:some_node ~next:some_node
+            seq;
           add (Pcre_util.quote (String.make 1 close))
       | Word str -> add (word str)
-      | Other str -> add (Pcre_util.quote str)
-    and of_seq ~excluded_brace xs = List.iter (of_node ~excluded_brace) xs in
-    of_seq ~excluded_brace:None ast;
+      | Newline -> add {|\r?\n|}
+      | Other str -> add (Pcre_util.quote str));
+      if must_match_end_of_line conf ~next node then add end_of_line_pat;
+      if must_match_end_of_input conf ~next node then add end_of_input_pat
+    and of_seq ~excluded_brace ~prev ~next xs =
+      iter3 (of_node ~excluded_brace) ~prev ~next xs
+    in
+    of_seq ~excluded_brace:None ~prev:None ~next:None ast;
     let elements = List.rev !acc in
     String.concat ("\n" ^ {|(?&ws)|} ^ "\n") elements
   in
@@ -322,7 +425,7 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
 # entry point
 %s
 |}
-      (String.concat "\n" definitions)
+      (String.concat "\n" (options @ definitions))
       entrypoint
   in
   (root, get_capturing_group_array ())

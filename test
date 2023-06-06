@@ -22,6 +22,6 @@ case "$(basename "$0")" in
     subcommand=list
 esac
 
-cd _build/default/tests
+cd _build/default/src/tests
 ./test.exe "$subcommand" $options "$@"
 echo

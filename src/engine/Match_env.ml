@@ -38,7 +38,7 @@ type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
  * they are not exposed to the user anymore.
  *)
 type xconfig = {
-  config : Config_semgrep.t; (* corresponds to rule `options` key *)
+  config : Rule_options.t; (* corresponds to rule `options` key *)
   equivs : Equivalence.equivalences;
   nested_formula : bool;
   (* ^^^ i.e. we are evaluating a nested formula within `metavariable-pattern`. *)
@@ -82,7 +82,7 @@ let error env msg =
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
   {
-    PM.id = string_of_int id;
+    PM.id = Rule.ID.of_string (string_of_int id);
     pattern_string = str;
     message = "";
     fix = None;
@@ -95,7 +95,7 @@ let adjust_xconfig_with_rule_options xconf options =
 
 let default_xconfig =
   {
-    config = Config_semgrep.default_config;
+    config = Rule_options.default_config;
     equivs = [];
     nested_formula = false;
     matching_explanations = false;

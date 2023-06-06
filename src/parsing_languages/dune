@@ -34,6 +34,7 @@
    parser_jsonnet.tree_sitter parser_jsonnet.ast_generic
    parser_terraform.tree_sitter parser_terraform.ast_generic
    ; directly to generic AST
+   parser_cairo.ast_generic
    parser_lisp.tree_sitter
    parser_solidity.ast_generic
    parser_csharp.ast_generic

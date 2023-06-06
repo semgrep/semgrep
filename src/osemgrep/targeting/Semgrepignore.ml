@@ -81,17 +81,7 @@ let create ?include_patterns ?(cli_patterns = []) ~exclusion_mechanism
   in
   { include_filter; gitignore_filter }
 
-let select t path =
-  (*
-     Syntactic path normalization: 'foo/../bar' becomes 'bar' even if 'foo'
-     doesn't exist. This isn't what we want: ideally, 'foo/..' should result
-     in an error if 'foo' doesn't exist or isn't a readable directory.
-  *)
-  let git_path =
-    match Ppath.make_absolute path |> Ppath.normalize with
-    | Ok x -> x
-    | Error msg -> failwith msg
-  in
+let select t (git_path : Ppath.t) =
   let status, sel_events =
     match t.include_filter with
     | None -> (Gitignore.Not_ignored, [])
@@ -101,3 +91,4 @@ let select t path =
   | Ignored -> (Gitignore.Ignored, sel_events)
   | Not_ignored ->
       Gitignore_filter.select t.gitignore_filter sel_events git_path
+  [@@profiling]

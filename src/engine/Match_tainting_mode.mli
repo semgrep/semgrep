@@ -60,9 +60,10 @@ val taint_config_of_rule :
 
 val check_fundef :
   Lang.t ->
-  Config_semgrep_t.t (** rule options *) ->
+  Rule_options.t ->
   Dataflow_tainting.config ->
   AST_generic.entity option (** entity being analyzed *) ->
+  AST_to_IL.ctx ->
   AST_generic.function_definition ->
   IL.cfg * Dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can

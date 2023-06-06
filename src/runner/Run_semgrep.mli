@@ -1,7 +1,7 @@
 (*****************************************************************************
  * # Notes
  *
- * ## semgrep CLI vs semgrep core
+ * ## semgrep CLI (a.k.a. pysemgrep) vs semgrep core
  *
  * Officially, `semgrep-core` is never run on its own. External users run
  * `semgrep`, which invokes `semgrep-core` with the appropriate rules and targets.
@@ -91,27 +91,40 @@
  * `Common.map`, which is tail-recursive, instead of `List.map`.
  *****************************************************************************)
 
-val semgrep_dispatch : Runner_config.t -> unit
-(** Main entry point to the semgrep engine. This is called from Main.ml *)
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
-(* engine functions used in tests or semgrep-core variants *)
+val semgrep_dispatch : Runner_config.t -> unit
+(** Main entry point to the semgrep-core engine. This is called from Main.ml *)
+
+(*****************************************************************************)
+(* Engine functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 val semgrep_with_one_pattern : Runner_config.t -> unit
-(** this is the function used when running semgrep with -e or -f *)
+(** this is the function used when running semgrep-core with -e or -f *)
 
 val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
 (** [semgrep_with_rules_and_formatted_output config] calls
-    [semgrep_with_raw_results_and_exn_handler] and
+    [semgrep_with_raw_results_and_exn_handler] and then
+    [output_semgrep_results] on the results
+*)
+
+val output_semgrep_results :
+  Exception.t option * Report.final_result * Fpath.t list ->
+  Runner_config.t ->
+  unit
+(** [output_semgrep_results] takes the results of a semgrep run and
     format the results on stdout either in a JSON or Textual format
     (depending on the value in config.output_format)
 
-    This is the function used when running semgrep with -rules.
+    This is the function used when running semgrep-core with -rules.
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Runner_config.t ->
-  Exception.t option * Report.final_result * Common.filename list
-(** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep
+  Runner_config.t -> Exception.t option * Report.final_result * Fpath.t list
+(** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep-core
     engine with a starting list of targets and returns
     (success, result, targets).
     The targets are all the files that were considered valid targets for the
@@ -124,25 +137,14 @@ val semgrep_with_raw_results_and_exn_handler :
     parallel, with some memory limits, and aggregate the results.
 *)
 
-(* Same as semgrep_with_raw_results_and_exn_handler but takes rules
-   and targets already filtered for a specific language.
-   All other options are read from the runner_config object.
-   TODO: we should not need this function because
-   semgrep_with_raw_results_and_exn_handler can take a list of targets
-   in different language (via config.targets set via --targets)
-*)
-val semgrep_with_prepared_rules_and_targets :
-  Runner_config.t ->
-  Lang_job.t ->
-  Exception.t option * Report.final_result * Common.filename list
-
 val semgrep_with_rules :
   Runner_config.t ->
-  (Rule.mode Rule.rule_info Common.stack * Rule.invalid_rule_error Common.stack)
-  * float ->
-  Report.final_result * Common.filename Common.stack
+  (Rule.t list * Rule.invalid_rule_error list) * float ->
+  Report.final_result * Fpath.t list
 
-(* utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
+(* Utilities functions used in tests or semgrep-core variants *)
+(*****************************************************************************)
 
 val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
@@ -153,6 +155,10 @@ val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
    allows easy manual testing.
 *)
 
+(* Old hook to support incremental display of matches for semgrep-core
+ * in text-mode. Deprecated. Use Runner_config.file_match_results_hook instead
+ * now with osemgrep.
+ *)
 val print_match :
   ?str:string ->
   Runner_config.t ->
@@ -160,9 +166,8 @@ val print_match :
   (Metavariable.mvalue -> Tok.t list) ->
   unit
 
-(* This function prints a dot, which is consumed by the Python CLI to update
-   the progress bar.
-   See `core_runner.py`
+(* This function prints a dot, which is consumed by pysemgrep to update
+   the progress bar. See `core_runner.py`
 *)
 val update_cli_progress : Runner_config.t -> unit
 
@@ -173,7 +178,8 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table : Rule.t list -> Rule.rule_id list -> (int, Rule.t) Hashtbl.t
+val mk_rule_table :
+  Rule.t list -> string list (* rule IDs *) -> (int, Rule.t) Hashtbl.t
 (** Helper to create the table of rules to run for each file **)
 
 val extracted_targets_of_config :
@@ -188,6 +194,10 @@ val extracted_targets_of_config :
    The rule ids correspond to the rules to run against the generated
    targets.
 *)
+
+val rules_from_rule_source :
+  Runner_config.t -> Rule.rules * Rule.invalid_rule_error list
+(** Get the rules *)
 
 val targets_of_config :
   Runner_config.t ->
@@ -206,5 +216,14 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Semgrep_error_code.error list
   * Output_from_core_j.skipped_target list
 
+(* TODO: This is used by semgrep-pro and not by semgrep. What is it?
+   TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
 val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
+
+(*
+   Sort targets by decreasing size. This is meant for optimizing
+   CPU usage when processing targets in parallel on a fixed number of cores.
+*)
+val sort_targets_by_decreasing_size :
+  Input_to_core_t.target list -> Input_to_core_t.target list

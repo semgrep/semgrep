@@ -4,7 +4,10 @@ rules:
     r2c-internal-project-depends-on:
         namespace: gem
         package: parallel
-        version: "== 1.21.0"
+        # hilarious anecdote, please never make this version
+        # a version of semgrep to be released or CI will break
+        # from masking the test output
+        version: "== 1.19.0"
     message: oh no
     languages: [ruby]
     severity: WARNING

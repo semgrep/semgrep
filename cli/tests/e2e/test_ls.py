@@ -12,6 +12,7 @@ import json
 import subprocess
 import tempfile
 import time
+import uuid
 from textwrap import dedent
 
 import pytest
@@ -41,7 +42,9 @@ DEFAULT_CAPABILITIES = {
             "onlyGitDirty": True,
         },
         "trace": {"server": "verbose"},
-        "metrics": "on",
+        "metrics": {
+            "enabled": True,
+        },
     },
     "capabilities": {},
 }
@@ -174,7 +177,7 @@ def send_msg(server, method, params=None, notif=False):
         msg["params"] = params
 
     if not notif:
-        msg["id"] = 1
+        msg["id"] = str(uuid.uuid4())
     server.on_std_message(msg)
 
 
@@ -279,6 +282,17 @@ def send_semgrep_refresh_rules(server):
     send_msg(server, "semgrep/refreshRules", notif=True)
 
 
+def send_semgrep_search(server, pattern, language=None):
+    params = {"pattern": pattern}
+    if language:
+        params["language"] = language
+    send_msg(
+        server,
+        "semgrep/search",
+        params,
+    )
+
+
 def check_diagnostics(response, file, expected_ids):
     assert response["method"] == "textDocument/publishDiagnostics"
     assert response["params"]["uri"] == f"file://{file}"
@@ -286,6 +300,9 @@ def check_diagnostics(response, file, expected_ids):
     assert ids == expected_ids
 
 
+# TODO: this is currently passing with osemgrep but should not. it's because we don't
+# call osemgrep. If we were calling osemgrep correctly, we would get failures.
+# Note: This also fails in the 'test osemgrep' CI job with some errors about git
 @pytest.mark.parametrize("logged_in", [True, False])
 @pytest.mark.slow()
 def test_ls_full(
@@ -459,7 +476,6 @@ def test_ls_full(
 
     # Logged out succesfully
     response = next(responses)
-    print(response)
     assert response["method"] == "window/showMessage"
 
     # More progress bars
@@ -472,3 +488,10 @@ def test_ls_full(
         ids = [d["code"] for d in response["params"]["diagnostics"]]
         assert "eqeq-five" in ids
         assert "eqeq-four" not in ids
+
+    send_semgrep_search(server, "print(...)")
+    response = next(responses)
+    results = response["result"]
+    assert len(results["locations"]) == 3
+
+    send_exit(server)

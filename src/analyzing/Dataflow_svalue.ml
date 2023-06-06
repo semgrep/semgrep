@@ -107,7 +107,12 @@ let eq c1 c2 =
   match (c1, c2) with
   | G.Lit l1, G.Lit l2 -> eq_literal l1 l2
   | G.Cst t1, G.Cst t2 -> eq_ctype t1 t2
-  | G.Sym e1, G.Sym e2 -> AST_utils.with_structural_equal G.equal_expr e1 e2
+  | G.Sym e1, G.Sym e2 ->
+      (* We only consider two `Sym`s equal when they are exactly the same. If two
+       * `Sym`s are structuraly equal but their `id_svalue` pointers are different
+       * it may not be safe to use them interchangeably. (TBH I'm not sure if/when
+       * it's safe so I'm erring on the side of caution!) *)
+      phys_equal e1 e2
   | G.NotCst, G.NotCst -> true
   | G.Lit _, _
   | G.Cst _, _
@@ -120,8 +125,11 @@ let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 (* aka merge *)
 let union c1 c2 =
   match (c1, c2) with
-  (* For now we only propagate symbolic expressions through linear sequences
-   * of statements. Note that merging symbolic expressions can be tricky.
+  | _any, G.NotCst
+  | G.NotCst, _any ->
+      G.NotCst
+  | c1, c2 when eq c1 c2 -> c1
+  (* Note that merging symbolic expressions can be tricky.
    *
    * Example: Both branches assign `y = x.foo`, but `x` may have a different
    * value in each branch. When merging symbolic expressions like `x.foo` we
@@ -142,11 +150,8 @@ let union c1 c2 =
    *     }
    *)
   | _any, G.Sym _
-  | G.Sym _, _any
-  | _any, G.NotCst
-  | G.NotCst, _any ->
+  | G.Sym _, _any ->
       G.NotCst
-  | c1, c2 when eq c1 c2 -> c1
   | G.Lit l1, G.Lit l2 ->
       let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
@@ -173,11 +178,6 @@ let refine c1 c2 =
   | G.Sym _, G.Lit _
   | G.Sym _, G.Cst _ ->
       c2
-
-let refine_svalue_ref c_ref c' =
-  match !c_ref with
-  | None -> c_ref := Some c'
-  | Some c -> c_ref := Some (refine c c')
 
 (*****************************************************************************)
 (* Constness evaluation *)
@@ -236,17 +236,17 @@ let eval_unop_int op opt_i =
  * integers have just 63-bits in 64-bit architectures!
  *)
 let eval_binop_int tok op opt_i1 opt_i2 =
-  let sign i = i asr (Sys.int_size - 1) in
+  let sign_bit i = i asr (Sys.int_size - 1) =|= 1 in
   match (op, opt_i1, opt_i2) with
   | G.Plus, Some i1, Some i2 ->
       let r = i1 + i2 in
-      if sign i1 =|= sign i2 && sign r <> sign i1 then
+      if sign_bit i1 =:= sign_bit i2 && sign_bit r <> sign_bit i1 then
         G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 + i2))
   | G.Minus, Some i1, Some i2 ->
       let r = i1 - i2 in
-      if sign i1 <> sign i2 && sign r <> sign i1 then G.Cst G.Cint
-        (* overflow *)
+      if sign_bit i1 <> sign_bit i2 && sign_bit r <> sign_bit i1 then
+        G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 - i2))
   | G.Mult, Some i1, Some i2 ->
       let overflow =
@@ -254,7 +254,7 @@ let eval_binop_int tok op opt_i1 opt_i2 =
         && ((i1 < 0 && i2 =|= min_int) (* >max_int *)
            || (i1 =|= min_int && i2 < 0) (* >max_int *)
            ||
-           if sign i1 * sign i2 =|= 1 then abs i1 > abs (max_int / i2)
+           if sign_bit i1 =:= sign_bit i2 then abs i1 > abs (max_int / i2)
              (* >max_int *)
            else abs i1 > abs (min_int / i2) (* <min_int *))
       in
@@ -370,7 +370,6 @@ let rec is_symbolic_expr expr =
   | G.L _ -> true
   | G.N _ -> true
   | G.IdSpecial _ -> true
-  | G.ParenExpr (_, e, _)
   | G.Cast (_, _, e)
   | G.DotAccess (e, _, FN _) ->
       is_symbolic_expr e
@@ -400,6 +399,59 @@ let eval_or_sym_prop env exp =
   match eval env exp with
   | G.NotCst -> sym_prop exp.eorig
   | c -> c
+
+let no_cycles_in_svalue (id_info : G.id_info) svalue =
+  let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
+    (* Check that all id_info's satisfy a given condition. We use refs so that
+     * we can have a single visitor for all calls, given that the old
+     * `mk_visitor` was pretty expensive, and constructing a visitor object may
+     * be as well. *)
+    let ff = ref (fun _ -> assert false) in
+    let ok = ref true in
+    let vout =
+      object
+        inherit [_] G.iter
+
+        method! visit_id_info _env ii =
+          ok := !ok && !ff ii;
+          if not !ok then raise Exit
+      end
+    in
+    fun f ast ->
+      ff := f;
+      ok := true;
+      try
+        vout#visit_any () ast;
+        !ok
+      with
+      | Exit -> false
+  in
+  (* Check that `c' contains no reference to `var'. It can contain references
+   * to other occurrences of `var', but not to the same occurrence (that would
+   * be a cycle), and each occurence must have its own `id_svalue` ref. This
+   * is not supposed to happen, but if it does happen by accident then it would
+   * cause an infinite loop, stack overflow, or segfault later on. *)
+  match svalue with
+  | G.Sym e ->
+      for_all_id_info
+        (fun ii ->
+          (* Note the use of physical equality, we are looking for the *same*
+           * id_svalue ref, that tells us it's the same variable occurrence. *)
+          not (phys_equal id_info.id_svalue ii.id_svalue))
+        (G.E e)
+  | G.NotCst
+  | G.Cst _
+  | G.Lit _ ->
+      true
+
+let set_svalue_ref id_info c' =
+  if no_cycles_in_svalue id_info c' then
+    match !(id_info.id_svalue) with
+    | None -> id_info.id_svalue := Some c'
+    | Some c -> id_info.id_svalue := Some (refine c c')
+  else
+    logger#error "Cycle check failed for %s := %s" (G.show_id_info id_info)
+      (G.show_svalue c')
 
 (*****************************************************************************)
 (* Transfer *)
@@ -514,6 +566,8 @@ let transfer :
                * call itself as a symbolic expression. *)
               let ccall = sym_prop instr.iorig in
               update_env_with inp' var ccall
+        | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
+            update_env_with inp' var (sym_prop instr.iorig)
         | CallSpecial
             (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
             let args = Common.map IL_helpers.exp_of_arg args in
@@ -568,50 +622,6 @@ let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
     ~forward:true ~flow
 
 let update_svalue (flow : F.cfg) mapping =
-  let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
-    (* Check that all id_info's satisfy a given condition. We use refs so that
-     * we can have a single visitor for all calls, given that the old
-     * `mk_visitor` was pretty expensive, and constructing a visitor object may
-     * be as well. *)
-    let ff = ref (fun _ -> true) in
-    let ok = ref true in
-    let vout =
-      object
-        inherit [_] G.iter
-
-        method! visit_id_info _env ii =
-          ok := !ok && !ff ii;
-          if not !ok then raise Exit
-      end
-    in
-    fun f ast ->
-      ff := f;
-      ok := true;
-      try
-        vout#visit_any () ast;
-        !ok
-      with
-      | Exit -> false
-  in
-  let no_cycles var c =
-    (* Check that `c' contains no reference to `var'. It can contain references
-     * to other occurrences of `var', but not to the same occurrence (that would
-     * be a cycle), and each occurence must have its own `id_svalue` ref. This
-     * is not supposed to happen, but if it does happen by accident then it would
-     * cause an infinite loop, stack overflow, or segfault later on. *)
-    match c with
-    | G.Sym e ->
-        for_all_id_info
-          (fun ii ->
-            (* Note the use of physical equality, we are looking for the *same*
-             * id_svalue ref, that tells us it's the same variable occurrence. *)
-            var.id_info.id_svalue != (* nosemgrep *) ii.id_svalue)
-          (G.E e)
-    | G.NotCst
-    | G.Cst _
-    | G.Lit _ ->
-        true
-  in
   flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in
@@ -624,12 +634,7 @@ let update_svalue (flow : F.cfg) mapping =
               | { base = Var var; _ } -> (
                   match VarMap.find_opt (str_of_name var) ni_info.D.in_env with
                   | None -> ()
-                  | Some c ->
-                      if no_cycles var c then
-                        refine_svalue_ref var.id_info.id_svalue c
-                      else
-                        logger#error "Cycle check failed for %s -> %s"
-                          (str_of_name var) (G.show_svalue c))
+                  | Some c -> set_svalue_ref var.id_info c)
               | ___else___ -> ())
          (* Should not update the LHS svalue since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))

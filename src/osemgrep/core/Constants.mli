@@ -1,2 +1,2 @@
 (* "-", the rule id for interactive rule? via -e ? *)
-val cli_rule_id : string
+val rule_id_for_dash_e : Rule.ID.t

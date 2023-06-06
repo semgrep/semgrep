@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020, 2021 r2c
+ * Copyright (C) 2020, 2021, 2023 Semgrep, Inc
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -23,11 +23,20 @@ open Ast_helper
  * into
  *  let foo frm = ... let foo a = Profiling.profile_code "X.foo" (fun () -> foo a)
  *
+ * News:
+ *  - handle now @@[profiling] on functions using labels!
+ *
+ * TODO:
+ *  - handle wrapped modules (maybe using __FUNCTION__ solves the issue?)
+ *  - transform also functions in nested modules
+ *
  * Usage to test:
  *   $ ocamlfind ppx_tools/rewriter ./ppx_profiling tests/test_profiling.ml
+ *   UPDATE: does not work anymore
  *
  * To get familiar with the OCaml AST you can use:
  *   $ ocamlfind ppx_tools/dumpast tests/test_profiling.ml
+ *  (this still works).
  *
  * Here is its output on tests/test_profiling.ml:
  *   ==>
@@ -66,29 +75,52 @@ open Ast_helper
  *    I followed nathan advice in the issue above and implemented
  *    ppx_profiling via Driver.register_transformation, which was
  *    pretty close to what I had before with ocaml-migrate-parsetree.
+ *
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let rec nb_parameters body =
+let rec parameters body =
   match body with
-  | { pexp_desc = Pexp_fun (_, _, _, body); _ } -> 1 + nb_parameters body
-  | _else_ -> 0
+  | { pexp_desc = Pexp_fun (Nolabel, _, _, body); _ } ->
+      Nolabel :: parameters body
+  | { pexp_desc = Pexp_fun (Labelled name, _, _, body); _ } ->
+      Labelled name :: parameters body
+  | { pexp_desc = Pexp_fun (Optional name, _, _, body); _ } ->
+      Optional name :: parameters body
+  | _else_ -> []
 
-let rec mk_params loc n e =
-  if n = 0 then e
-  else
-    let param = "a" ^ string_of_int n in
-    Exp.fun_ Nolabel None
-      (Pat.var { txt = param; loc })
-      (mk_params loc (n - 1) e)
+let name_of_lbl_opt n lbl_opt =
+  match lbl_opt with
+  | Nolabel -> "a" ^ string_of_int n
+  | Labelled s
+  | Optional s ->
+      s
 
-let rec mk_args loc n =
-  if n = 0 then []
-  else
-    let arg = "a" ^ string_of_int n in
-    (Nolabel, Exp.ident { txt = Lident arg; loc }) :: mk_args loc (n - 1)
+let mk_params loc params e =
+  let rec aux xs n =
+    match xs with
+    | [] -> e
+    | x :: xs ->
+        let param = name_of_lbl_opt n x in
+        Exp.fun_ x None (Pat.var { txt = param; loc }) (aux xs (n + 1))
+  in
+  aux params 0
+
+let mk_args loc params =
+  let rec aux xs n =
+    match xs with
+    | [] -> []
+    | x :: xs ->
+        let arg = name_of_lbl_opt n x in
+        (x, Exp.ident { txt = Lident arg; loc }) :: aux xs (n + 1)
+  in
+  aux params 0
 
 (* copy paste of module_ml.ml *)
 let module_name_of_filename s =
@@ -107,7 +139,7 @@ let impl xs =
   xs
   |> List.map (fun item ->
          match item with
-         (* let <fname> = ... [@@profiling <args_opt> *)
+         (* let <fname> ... = ... [@@profiling <args_opt> *)
          | {
           pstr_desc =
             Pstr_value
@@ -130,7 +162,7 @@ let impl xs =
           _;
          } ->
              (* Common.pr2 (Common.spf "profiling %s" fname); *)
-             let nbparams = nb_parameters body in
+             let params = parameters body in
              (* you can change the action name by specifying an explicit name
               * with [@@profiling "<explicit_name>"]
               *)
@@ -139,6 +171,7 @@ let impl xs =
                | [] ->
                    let pos = loc.Location.loc_start in
                    let file = pos.Lexing.pos_fname in
+                   (* alt: generate simply __FUNCTION__ instead? *)
                    let m = module_name_of_filename file in
                    m ^ "." ^ fname
                | [
@@ -168,7 +201,7 @@ let impl xs =
                  [
                    Vb.mk
                      (Pat.var { txt = fname; loc })
-                     (mk_params loc nbparams
+                     (mk_params loc params
                         (Exp.apply
                            (Exp.ident
                               {
@@ -183,13 +216,14 @@ let impl xs =
                                Exp.fun_ Nolabel None (Pat.any ())
                                  (Exp.apply
                                     (Exp.ident { txt = Lident fname; loc })
-                                    (mk_args loc nbparams)) );
+                                    (mk_args loc params)) );
                            ]));
                  ]
              in
              [ item; item2 ]
          | x -> [ x ])
   |> List.concat
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)

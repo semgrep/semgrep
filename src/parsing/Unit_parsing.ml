@@ -12,9 +12,9 @@ module E = Semgrep_error_code
 (* Constants *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = Fpath.v "../../../tests"
-let tests_path_parsing = Fpath.v "../../../tests/parsing"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
+let tests_path_parsing = tests_path / "parsing"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -64,6 +64,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
       pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
       pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
+      pack_parsing_tests_for_lang Lang.Cairo "cairo" ".cairo";
       pack_parsing_tests_for_lang Lang.Swift "swift" ".swift";
       pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
       pack_parsing_tests_for_lang Lang.Hack "hack" ".hack";

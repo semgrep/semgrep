@@ -40,7 +40,8 @@
                             "startLine": 3
                           }
                         }
-                      }
+                      },
+                      "nestingLevel": 0
                     },
                     {
                       "location": {
@@ -64,7 +65,8 @@
                             "startLine": 3
                           }
                         }
-                      }
+                      },
+                      "nestingLevel": 0
                     },
                     {
                       "location": {
@@ -88,7 +90,8 @@
                             "startLine": 8
                           }
                         }
-                      }
+                      },
+                      "nestingLevel": 0
                     },
                     {
                       "location": {
@@ -112,7 +115,8 @@
                             "startLine": 9
                           }
                         }
-                      }
+                      },
+                      "nestingLevel": 1
                     }
                   ]
                 }
@@ -166,7 +170,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "A user input source() went into a dangerous sink()"
+                "text": "Semgrep Finding: rules.classic"
               }
             }
           ],

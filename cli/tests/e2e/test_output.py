@@ -41,6 +41,7 @@ def _etree_to_dict(t):
     return d
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
@@ -56,6 +57,7 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
@@ -71,6 +73,7 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot)
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 def test_output_highlighting__force_color_and_no_color(
     run_semgrep_in_tmp: RunSemgrep, snapshot
@@ -124,6 +127,7 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.quick
+@pytest.mark.osempass
 def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
@@ -142,10 +146,11 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--emacs", "--vim"],
 )
 def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
@@ -155,6 +160,15 @@ def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
         output_format=OutputFormat.TEXT,  # Not the real output format; just disables JSON parsing
     )
     snapshot.assert_match(stdout, "results.out")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "format",
+    ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
+)
+def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
+    test_output_format(run_semgrep_in_tmp, snapshot, format)
 
 
 @pytest.mark.kinda_slow

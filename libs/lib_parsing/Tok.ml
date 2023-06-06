@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2023 r2c
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,8 +21,13 @@ open Common
 (* Information about tokens (mostly their location).
  *
  * Note that the types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens, as well as annotate tokens
- * with transformation. We use fake tokens because in many of
+ * to represent "fake" and "expanded" tokens. The types used to be even
+ * more complicated to allow to annotate tokens with transformation information
+ * for Spatch in Coccinelle. However, this is not the case anymore because
+ * we use a different approach to transform code
+ * (AST-based autofix in Semgrep).
+ *
+ * We use fake tokens because in many of
  * the ASTs/CSTs in Semgrep (including in AST_generic.ml) we store the
  * tokens in the ASTs/CSTs at the leaves, and sometimes the actual
  * token is optional (e.g., a virtual semicolon in Javascript). Moreover,
@@ -47,13 +52,23 @@ open Common
 (* To report errors, regular position information.
  * Note that Loc.t is now an alias for Tok.location.
  *)
-type location = { str : string; (* the content of the "token" *) pos : Pos.t }
+type location = {
+  (* the content of the "token" *)
+  str : string;
+  (* TODO? the content of Pos.t used to be inlined in this location type.
+   * It is cleaner to factorize things in Pos.t, but this introduces
+   * an extra pointer which actually can have real performance implication
+   * in Semgrep on huge monorepos. It might be worth inlining it back
+   * (and also reduce its number of fields).
+   *)
+  pos : Pos.t;
+}
 [@@deriving show { with_path = false }, eq]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
  *)
-type kind =
+type t =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -101,20 +116,7 @@ type kind =
   | Ab
 [@@deriving show { with_path = false }, eq]
 
-(* poor's man refactoring *)
-type transformation =
-  | NoTransfo
-  | Remove
-  | AddBefore of add
-  | AddAfter of add
-  | Replace of add
-  | AddArgsBefore of string list
-
-and add = AddStr of string | AddNewlineAndIdent
-[@@deriving show { with_path = false }, eq]
-
-type t = kind [@@deriving show { with_path = false }, eq]
-type t_always_equal = kind [@@deriving show]
+type t_always_equal = t [@@deriving show]
 
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
@@ -337,6 +339,8 @@ let fix_location fix ii =
 
 let adjust_tok_wrt_base base_loc ii =
   fix_location (adjust_loc_wrt_base base_loc) ii
+
+let fix_pos fix loc = { loc with pos = fix loc.pos }
 
 (*****************************************************************************)
 (* Adjust line x col *)

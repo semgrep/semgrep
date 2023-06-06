@@ -5,6 +5,7 @@
  (libraries
    pfff-lang_GENERIC-analyze
    semgrep_core
+   semgrep.matching
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

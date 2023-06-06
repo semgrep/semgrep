@@ -10,6 +10,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
@@ -17,6 +18,7 @@ import click
 import requests
 from boltons.iterutils import partition
 
+from semdep.parsers.util import DependencyParserError
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
@@ -247,8 +249,9 @@ class ScanHandler:
         total_time: float,
         commit_date: str,
         lockfile_dependencies: Dict[str, List[FoundDependency]],
+        dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
-    ) -> None:
+    ) -> Tuple[bool, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
@@ -319,6 +322,7 @@ class ScanHandler:
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
+            "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
@@ -353,7 +357,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
-            return
+            return (False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -362,6 +366,7 @@ class ScanHandler:
 
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
 
@@ -379,6 +384,7 @@ class ScanHandler:
         # mark as complete
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+            timeout=state.env.upload_findings_timeout,
             json=complete,
         )
 
@@ -388,3 +394,6 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
+        ret = response.json()
+        return (ret.get("app_block_override", False), ret.get("app_block_reason", ""))

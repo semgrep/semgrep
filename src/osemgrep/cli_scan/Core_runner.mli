@@ -5,6 +5,8 @@ type conf = {
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int;
+  (* osemgrep-only: *)
+  ast_caching : bool;
 }
 [@@deriving show]
 
@@ -12,7 +14,7 @@ type conf = {
 type result = {
   core : Semgrep_output_v1_t.core_match_results;
   hrules : Rule.hrules;
-  scanned : Common.filename Set_.t;
+  scanned : Fpath.t Set_.t;
 }
 
 (*
@@ -24,6 +26,8 @@ type result = {
 *)
 val invoke_semgrep_core :
   ?respect_git_ignore:bool ->
+  ?file_match_results_hook:
+    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option ->
   conf ->
   (* LATER? use Config_resolve.rules_and_origin instead? *)
   Rule.rules ->
