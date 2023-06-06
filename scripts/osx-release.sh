@@ -16,7 +16,10 @@ brew install opam
 #brew update
 #still needed?
 #opam init --no-setup --bare
-#
+
+# Some CI runners have tree-sitter preinstalled which interfere with
+# out static linking plans below so better to remove it.
+brew uninstall --force tree-sitter
 
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
