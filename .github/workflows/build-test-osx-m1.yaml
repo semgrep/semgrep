@@ -38,8 +38,7 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     needs: [build-core-m1]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           submodules: "recursive"
       - name: Download artifacts
@@ -83,7 +82,7 @@ jobs:
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
-          otool -L $(semgrep --dump-engine-path)  > otool.txt
+          otool -L $(semgrep --dump-engine-path) > otool.txt
           if [ $? -ne 0 ]; then
             echo "Failed to list dynamically linked libraries.";
             cat otool.txt;

@@ -7,7 +7,7 @@ on:
 jobs:
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: ["self-hosted", "macOS", "X64"]
+    runs-on: [self-hosted, macOS, X64]
     steps:
       # Force hard cleanup of any old checkouts.
       # This is needed when submodules move around, as they are no longer removed by the default clean: true of the checkout step below.
@@ -18,8 +18,7 @@ jobs:
           rm -rf ./*
           rm -f .gitmodules
           rm -rf .git
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
+      - name: Checkout
       - uses: actions/checkout@v3
         with:
           submodules: true
