@@ -46,9 +46,6 @@ def parse_composer_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
     lockfile_json_opt = safe_path_parse(lockfile_path, json_doc)
-    if not lockfile_json_opt:
-        logger.error("Failed to parse composer.lock file")
-        return []
 
     lockfile_json = lockfile_json_opt.as_dict()
 
