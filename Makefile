@@ -490,11 +490,12 @@ check_for_emacs:
 
 DOCKER_IMAGE=returntocorp/semgrep:develop
 
-# If you get semgrep-core parsing errors while running this command, maybe you
-# have an old cached version of the docker image.
-# You can invalidate the cache with 'docker rmi returntocorp/semgrep:develop`
+# If you get parsing errors while running this command, maybe you have an old
+# cached version of the docker image. You can invalidate the cache with
+#   'docker rmi returntocorp/semgrep:develop`
+# We're dogfooding osemgrep here too! which is now part of the docker image.
 check_with_docker:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) osemgrep $(SEMGREP_ARGS)
 
 ###############################################################################
 # Martin's targets
