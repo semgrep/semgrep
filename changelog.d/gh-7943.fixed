@@ -1,4 +1,0 @@
-Fix regexps potentially vulnerable to ReDoS attacks in Python code for parsing
-git URLs. Sets maximum length of git URLs to 1024 characters since parsing is
-still perceptibly slow on 5000-byte input. Reported by Sebastian Chnelik,
-PyUp.io.

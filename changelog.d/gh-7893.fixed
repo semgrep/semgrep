@@ -1,3 +1,0 @@
-Fixed bug in constant propagation that made Semgrep fail to compute the value of
-an integer constant when this was obtained via the multiplication of two other
-constants.

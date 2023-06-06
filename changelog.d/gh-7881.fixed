@@ -1,4 +1,0 @@
-Aliengrep: ellipsis patterns that would be useless because of being placed
-at the extremity of a pattern (always) or a line (in single-mode) are now
-anchored to the beginning/end of input/line. For example, `...` in multiline
-mode matches the whole input rather than matching nothing many times.
