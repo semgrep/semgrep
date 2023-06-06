@@ -1,0 +1,29 @@
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+  Current version has 2 findings.
+
+Switching repository to baseline commit '4b63ca493df05e223404a80ac5f30d2aa830a704'.
+  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
+
+
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 1 file: 1 finding.
