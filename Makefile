@@ -336,6 +336,17 @@ install-deps-and-build-ALPINE-semgrep-core:
 # macOS (brew)
 # -------------------------------------------------
 
+# Here is why we need those external packages below:
+# - pcre: for ocaml-pcre now used in semgrep-core
+# - TODO gmp: for osemgrep and its use of cohttp
+# - pkg-config?
+# - coreutils?
+# - gettext?
+BREW_DEPS=pkg-config coreutils pcre gettext
+
+install-deps-MACOS-for-semgrep-core:
+	brew install $(BREW_DEPS)
+
 # Install dependencies needed for the Homebrew build.
 #
 # We don't use just 'make setup' because Homebrew installs its own version

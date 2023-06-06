@@ -1,45 +1,49 @@
 #!/usr/bin/env bash
-# Build semgrep-core for MacOS
-#
-# This script is a quasi-duplicate of osx-release.sh. It looks like maybe
-# these files used to be different but now are identical.
-# TODO: share code with osx-release.sh. Having a command-line option for m1
-# would be preferable over maintaining duplicate code.
-#
 set -eux
 
-# Because we're running this on a remote machine, we don't want to reinstall
-# everything every time
-brew install opam pkg-config coreutils pcre gmp gettext
-brew update # Needed to sidestep bintray brownout
-brew list
+# Build semgrep-core for MacOS
+
+# history: there used to be a separate osx-m1-release.sh script
+# that was mostly a copy of osx-release.sh, but now the
+# build steps are identical so we just have one script.
+
+# Note that this script runs from a self-hosted CI runner which
+# does not reset the environment between each run, so you may
+# need to do more cleanup than usually necessary.
+
+brew install opam
+#still needed?
+#brew update
+#still needed?
+#opam init --no-setup --bare
+#
 
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
+    # This happens because the self-hosted CI runners do not
+    # cleanup things between each run.
     echo "Switch 4.14.0 exists, continuing"
 else
     echo "Switch 4.14.0 doesn't yet exist, creating..."
     opam switch create 4.14.0
     opam switch 4.14.0
 fi
-git submodule update --init --recursive --depth 1
-
 eval "$(opam env)"
 
+#pad:??? What was for? This was set only for the M1 build before
 # Needed so we don't make config w/ sudo
 export HOMEBREW_SYSTEM=1
 
-# Remove libraries dynamically linked to force MacOS to use static.
-# This needs to be done before make setup since it is used there.
+make install-deps-MACOS-for-semgrep-core
+make install-deps-for-semgrep-core
+
+# Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
 ls -l "$(brew --prefix)"/opt/gmp/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
 rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 
-make setup
-
-# Remove dynamically linked libraries to force MacOS to use static ones
-# This needs to be done after make setup but before make build-*
+# This needs to be done after make install-deps-xxx but before make core
 TREESITTER_LIBDIR=libs/ocaml-tree-sitter-core/tree-sitter/lib
 echo "TREESITTER_LIBDIR is $TREESITTER_LIBDIR and contains:"
 ls -l "$TREESITTER_LIBDIR" || true

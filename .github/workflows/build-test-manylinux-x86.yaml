@@ -1,3 +1,6 @@
+# This workflow is used to ??? Is this still used now that we
+# don't upload anymore artifacts for each release?
+
 name: build-test-manylinux-x86
 
 on:
@@ -7,30 +10,27 @@ on:
 jobs:
   build-wheels-manylinux:
     runs-on: ubuntu-latest
+    #pad: What is this sgrep-xxx image?
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+          submodules: true
+      - uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts-release
-      - name: Install artifacts
-        run: tar xf ocaml-build-artifacts.tgz
+      - run: tar xf ocaml-build-artifacts.tgz
+      #pad: Why do we have this weird setup python step?
       - name: Setup Python
         run: |
           rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
-      - name: Install zip & musl-tools
-        run: apt-get update && apt install -y zip musl-tools
-      - name: Build the wheels
-        env:
+          ln `which python3.7` /usr/bin/python3
+      - run: apt-get update && apt install -y zip musl-tools
+      - env:
           # Relative because build-wheels does a 'cd semgrep'
           SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
         run: ./scripts/build-wheels.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
           name: manylinux-wheel
           path: cli/dist.zip
@@ -43,8 +43,7 @@ jobs:
       - uses: actions/download-artifact@v1
         with:
           name: manylinux-wheel
-      - name: unzip dist
-        run: unzip ./manylinux-wheel/dist.zip
+      - run: unzip ./manylinux-wheel/dist.zip
       - name: install package
         run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
       - name: test package
@@ -53,6 +52,3 @@ jobs:
       - name: e2e semgrep-core test
         working-directory: /opt/python/cp37-cp37m/bin/
         run: echo '1 == 1' | ./semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        working-directory: /opt/python/cp37-cp37m/bin/
-        run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
