@@ -21,7 +21,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.php-sca",
       "end": {
         "col": 0,
-        "line": 65,
+        "line": 10,
         "offset": 0
       },
       "extra": {
@@ -42,11 +42,11 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "found_dependency": {
               "allowed_hashes": {},
               "ecosystem": "composer",
-              "line_number": 64,
+              "line_number": 9,
               "package": "bad/package",
-              "resolved_url": "https://api.github.com/repos/padraic/mockery/zipball/35f0e18022f5538df9df8920a3d96c1761d63220",
+              "resolved_url": "https://api.github.com/repos/google/recaptcha/zipball/614f25a9038be4f3f2da7cbfd778dc5b357d2419",
               "transitivity": "unknown",
-              "version": "0.8.0"
+              "version": "1.2.4"
             },
             "lockfile": "targets/dependency_aware/php/composer.lock"
           },
@@ -59,7 +59,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "path": "targets/dependency_aware/php/composer.lock",
       "start": {
         "col": 0,
-        "line": 64,
+        "line": 9,
         "offset": 0
       }
     }
@@ -69,21 +69,21 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
-            
-            
+
+
   CODE RULES
   Nothing to scan.
-                    
+
   SUPPLY CHAIN RULES
   Scanning 1 file.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
