@@ -1,3 +1,6 @@
+# This workflow is used to ??? Is this still used now that we
+# don't upload anymore artifacts for each release?
+
 name: build-test-manylinux-x86
 
 on:
@@ -7,6 +10,7 @@ on:
 jobs:
   build-wheels-manylinux:
     runs-on: ubuntu-latest
+    #pad: What is this sgrep-xxx image?
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - uses: actions/checkout@v3
@@ -16,10 +20,11 @@ jobs:
         with:
           name: ocaml-build-artifacts-release
       - run: tar xf ocaml-build-artifacts.tgz
+      #pad: Why do we have this weird setup python step?
       - name: Setup Python
         run: |
           rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
+          ln `which python3.7` /usr/bin/python3
       - run: apt-get update && apt install -y zip musl-tools
       - env:
           # Relative because build-wheels does a 'cd semgrep'
