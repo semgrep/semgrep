@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from textwrap import dedent
 
@@ -194,7 +195,7 @@ def send_msg(server, method, params=None, notif=False):
         msg["params"] = params
 
     if not notif:
-        msg["id"] = 1
+        msg["id"] = str(uuid.uuid4())
     server.on_std_message(msg)
 
 
@@ -365,6 +366,17 @@ def send_semgrep_refresh_rules(server):
     send_msg(server, "semgrep/refreshRules", notif=True)
 
 
+def send_semgrep_search(server, pattern, language=None):
+    params = {"pattern": pattern}
+    if language:
+        params["language"] = language
+    send_msg(
+        server,
+        "semgrep/search",
+        params,
+    )
+
+
 def check_diagnostics(response, file, expected_ids):
     assert response["method"] == "textDocument/publishDiagnostics"
     assert response["params"]["uri"] == f"file://{file}"
@@ -486,6 +498,8 @@ def test_ls_specs(
     response = next(responses)
     check_diagnostics(response, added, [])
 
+    send_exit(server)
+
 
 # Test any extensions to the LSP specs, basically anything custom to semgrep
 @pytest.mark.parametrize("logged_in", [True, False])
@@ -589,6 +603,13 @@ def test_ls_ext(
         else:
             assert len(ids) == 0
 
+    send_semgrep_search(server, "print(...)")
+    response = next(responses)
+    results = response["result"]
+    assert len(results["locations"]) == 3
+
+    send_exit(server)
+
 
 # Test functionality of multi-workspaces
 @pytest.mark.slow()
@@ -621,8 +642,12 @@ def test_ls_multi(run_semgrep_ls, mock_workspaces):  # nosemgrep: typehint-run-s
     for file in scanned_files:
         check_diagnostics(next(responses), file, ["eqeq-five"])
 
+    send_exit(server)
+
 
 @pytest.mark.slow()
 def test_ls_no_folders(run_semgrep_ls):  # nosemgrep: typehint-run-semgrep
     server, responses = run_semgrep_ls
     check_startup(server, responses, [], False, [])
+
+    send_exit(server)

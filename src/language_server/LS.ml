@@ -7,6 +7,7 @@ module SR = Server_request
 module SN = Server_notification
 module CR = Client_request
 module CN = Client_notification
+module Out = Semgrep_output_v1_t
 module Conv = Convert_utils
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -257,6 +258,18 @@ module Server = struct
     in
     server
 
+  let handle_custom_request server (meth : string)
+      (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * t =
+    let search_handler =
+      Search.on_request server.session.config
+        (Session.targets { server.session with only_git_dirty = false })
+    in
+    match [ (Search.meth, search_handler) ] |> List.assoc_opt meth with
+    | None ->
+        logger#warning "Unhandled custom request %s" meth;
+        (None, server)
+    | Some handler -> (handler params, server)
+
   let on_request (type r) (request : r CR.t) server =
     let to_yojson r = Some (CR.yojson_of_result request r) in
     let resp, server =
@@ -295,7 +308,9 @@ module Server = struct
           in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
-      | _ when server.state = State.Uninitialized -> (None, server)
+      | _ when server.state = State.Uninitialized ->
+          logger#info "Received request before initialization";
+          (None, server)
       | CR.CodeAction { textDocument = { uri }; context; _ } ->
           let file = Uri.to_path uri in
           let results = Hashtbl.find_opt server.session.documents file in
@@ -314,10 +329,14 @@ module Server = struct
             CodeActions.code_actions_of_core_matches matches [ file ]
           in
           (to_yojson (Some actions), server)
-      | CR.Shutdown -> (None, { server with state = State.Stopped })
+      | CR.UnknownRequest { meth; params } ->
+          handle_custom_request server meth params
+      | CR.Shutdown ->
+          logger#info "Shutting down";
+          (None, { server with state = State.Stopped })
       | CR.DebugEcho params -> (to_yojson params, server)
       | _ ->
-          logger#warning "Unhandled request";
+          logger#warning "Unhandled request: %s" (Common2.dump request);
           (None, server)
     in
     (resp, server)
@@ -341,15 +360,19 @@ module Server = struct
     Lwt.return server
 
   let rec rpc_loop server () =
-    let%lwt client_msg = Io.read server.session.incoming in
-    match (client_msg, server.state) with
-    | None, _
-    | _, State.Stopped ->
+    match server.state with
+    | State.Stopped ->
         logger#info "Server stopped";
         Lwt.return ()
-    | Some msg, _ ->
-        let%lwt server = handle_client_message msg server in
-        rpc_loop server ()
+    | _ -> (
+        let%lwt client_msg = Io.read server.session.incoming in
+        match client_msg with
+        | Some msg ->
+            let%lwt server = handle_client_message msg server in
+            rpc_loop server ()
+        | None ->
+            logger#warning "Client disconnected";
+            Lwt.return ())
 
   let start server = Lwt_main.run (rpc_loop server ())
 
@@ -395,4 +418,5 @@ end
 let start config =
   logger#info "Starting server";
   let server = Server.create config in
-  Server.start server
+  Server.start server;
+  exit 0
