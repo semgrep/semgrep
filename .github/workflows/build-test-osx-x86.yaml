@@ -12,6 +12,7 @@ jobs:
     name: Build the OSX binaries
     runs-on: [self-hosted, macOS, X64]
     steps:
+      # see the comment in build-test-osx-m1.yaml why we need this step
       - name: Clean Checkout
         run: |
           rm -rf ./*
@@ -65,8 +66,6 @@ jobs:
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |

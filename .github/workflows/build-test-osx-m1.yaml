@@ -13,12 +13,11 @@ jobs:
     name: Build the OSX M1 binaries
     runs-on: [self-hosted, macOS, ARM64]
     steps:
-      # Force hard cleanup of any old checkouts.
-      # This is needed when submodules move around, as they are no longer
-      # removed by the default clean: true of the checkout step below.
-      # This misses some files (like hidden files) but should take care of the
-      # issues we've been seeing. A more targeted approach we tried previously seems
-      # to have failed to clean up all issues.
+      # Force hard cleanup of any old checkouts. This is needed because we run on
+      # self-hosted CI runners here and when submodules move around they are no longer
+      # removed by default.
+      # This hack misses some files (like hidden files) but should take care of the
+      # issues we've been seeing.
       - name: Clean Checkout
         run: |
           rm -rf ./*
@@ -76,8 +75,6 @@ jobs:
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
