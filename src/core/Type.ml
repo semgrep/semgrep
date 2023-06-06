@@ -157,20 +157,23 @@ let builtin_type_of_string _langTODO str =
   | "number" -> Some Number
   | __else__ -> None
 
-(* coupling: Inverse of builtin_type_of_string
- *
- * TODO: Check lang to get proper builtin type for more languages *)
-let ast_generic_type_of_builtin_type ?tok lang t =
+(* TODO: Check lang to get proper builtin type for more languages *)
+let name_of_builtin_type lang t =
   match (lang, t) with
-  | _, Int -> mkt ?tok "int"
-  | _, Float -> mkt ?tok "float"
-  | Lang.Java, String -> mkt ?tok "String"
-  | _, String -> mkt ?tok "string"
-  | Lang.Java, Bool -> mkt ?tok "boolean"
-  | _, Bool -> mkt ?tok "bool"
+  | _, Int -> "int"
+  | _, Float -> "float"
+  | Lang.Java, String -> "String"
+  | _, String -> "string"
+  | Lang.Java, Bool -> "boolean"
+  | _, Bool -> "bool"
   (* TS *)
-  | _, Number -> mkt ?tok "number"
-  | _, OtherBuiltins str -> mkt ?tok str
+  | _, Number -> "number"
+  | _, OtherBuiltins str -> str
+
+(* coupling: Inverse of builtin_type_of_string *)
+let ast_generic_type_of_builtin_type ?tok lang t =
+  let str = name_of_builtin_type lang t in
+  mkt ?tok str
 
 let builtin_type_of_type lang t =
   match t.G.t with

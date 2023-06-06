@@ -103,8 +103,18 @@ public class metavar_typed_bool {
     System.out.println(m1.get("x"));
 
     Map<String, Boolean> m2 = new HashMap<>();
-    m1.put("x", false);
+    m2.put("x", false);
     // MATCH:
     System.out.println(m2.get("x"));
+
+    // MATCH:
+    System.out.println("asdf".matches("asdf"));
+
+    // MATCH:
+    System.out.println(m1.isEmpty());
+
+    java.lang.String y = "test";
+    // MATCH:
+    System.out.println(y.matches("test"));
   }
 }

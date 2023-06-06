@@ -36,7 +36,7 @@ module G = AST_generic
  * We should use Type.t for `id_type` to address this ambiguity. In the
  * meantime, we will use this helper function to abstract it away for type
  * guessing purposes. *)
-let name_and_targs_of_named_type = function
+let name_and_targs_of_named_type lang = function
   | Type.N ((G.Id ((str, _), _), targs), _)
   | Type.UnresolvedName (str, targs) ->
       Some (str, targs)
@@ -50,11 +50,19 @@ let name_and_targs_of_named_type = function
       in
       let str = String.concat "." (middle_strs @ [ str_last ]) in
       Some (str, targs)
+  | Type.Builtin b -> Some (Type.name_of_builtin_type lang b, [])
   | _else_ -> None
 
 let guess_type_of_dotaccess lang lhs_ty str =
-  match (lang, name_and_targs_of_named_type lhs_ty, str) with
-  | Lang.Java, _, "equals" -> Type.Function ([], Type.Builtin Type.Bool)
+  match (lang, name_and_targs_of_named_type lang lhs_ty, str) with
+  | ( Lang.Java,
+      _,
+      ("equals" | "isEmpty" | "contains" | "containsKey" | "containsValue") ) ->
+      (* Really the return type is all that matters. We could add the parameters
+       * later if we need to. *)
+      Type.Function ([], Type.Builtin Type.Bool)
+  | Lang.Java, _, ("size" | "length") ->
+      Type.Function ([], Type.Builtin Type.Int)
   (* For unresolved types with one type parameter, assume that the `get`
    * method's return type is the type parameter (e.g. List<T>). For unresolved
    * types with two type parameters, assume that the `get` method's return type
@@ -65,6 +73,11 @@ let guess_type_of_dotaccess lang lhs_ty str =
       (* Param type could be Top if we add that as a type *)
       let param = Type.Param { pident = None; ptype = Type.NoType } in
       Type.Function ([ param ], elt_type)
+  | Lang.Java, Some (("String" | "java.lang.String"), _), "matches" ->
+      let param =
+        Type.Param { pident = None; ptype = Type.Builtin Type.String }
+      in
+      Type.Function ([ param ], Type.Builtin Type.Bool)
   | _else_ -> Type.NoType
 
 (******************************************************************************)
