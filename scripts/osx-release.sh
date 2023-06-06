@@ -17,6 +17,7 @@ brew install opam
 #still needed?
 #opam init --no-setup --bare
 #
+
 #coupling: this should be the same version than in our Dockerfile
 if opam switch 4.14.0 ; then
     # This happens because the self-hosted CI runners do not
@@ -38,7 +39,9 @@ make install-deps-for-semgrep-core
 
 # Remove dynamically linked libraries to force MacOS to use static ones.
 ls -l "$(brew --prefix)"/opt/pcre/lib || true
+ls -l "$(brew --prefix)"/opt/gmp/lib || true
 rm -f "$(brew --prefix)"/opt/pcre/lib/libpcre.1.dylib
+rm -f "$(brew --prefix)"/opt/gmp/lib/libgmp.10.dylib
 
 # This needs to be done after make install-deps-xxx but before make core
 TREESITTER_LIBDIR=libs/ocaml-tree-sitter-core/tree-sitter/lib

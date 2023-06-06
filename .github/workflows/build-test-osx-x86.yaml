@@ -18,8 +18,6 @@ jobs:
           rm -rf ./*
           rm -f .gitmodules
           rm -rf .git
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -61,7 +59,7 @@ jobs:
         run: pip3 install dist/*.whl
       - run: semgrep --version
       - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+        run: echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |

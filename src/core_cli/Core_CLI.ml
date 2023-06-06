@@ -21,7 +21,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* This module contains the main command line parsing logic.
  *
  * It is packaged as a library so it can be used both for the stand-alone
- * semgrep-core binary as well as the semgrep_bridge.so shared library.
+ * semgrep-core binary as well as the semgrep-core-proprietary one.
  * The code here used to be in Main.ml.
  *)
 
