@@ -203,7 +203,8 @@ repos:
         # available in docker.
         # If docker complains that --platform isn't supported because
         # it's experimental, try upgrading your docker server.
-        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache --platform linux/amd64 returntocorp/semgrep:develop semgrep
+        # Dogfooding osemgrep also here!
+        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache --platform linux/amd64 returntocorp/semgrep:develop osemgrep
 
         # Both the .semgrepignore file and the --exclude option
         # do nothing because the target files are passed
