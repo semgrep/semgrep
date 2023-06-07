@@ -123,13 +123,6 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
-  | Some _
-    when (not (LvalMap.mem lval tainted))
-         && LvalMap.cardinal tainted > Limits_semgrep.taint_MAX_TAINTED_LVALS ->
-      logger#warning
-        "Already tracking too many tainted l-values, will not track %s"
-        (Display_IL.string_of_lval lval);
-      lval_env
   | Some lval ->
       let taints =
         (* If the lvalue is a simple variable, we record it as part of

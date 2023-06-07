@@ -15,9 +15,6 @@
  * of the data structures involved may help too.
  *)
 
-(** Bounds the number of l-values we can track. *)
-let taint_MAX_TAINTED_LVALS = 100
-
 (** Bounds the number of taints we can track per l-value. *)
 let taint_MAX_TAINT_SET_SIZE = 50
 
