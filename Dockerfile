@@ -157,10 +157,10 @@ ENV SEMGREP_IN_DOCKER=1 \
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
 # (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
 WORKDIR /src
-RUN chmod 555 /src
 
 RUN addgroup --system semgrep \
     && adduser --system --shell /bin/false --ingroup semgrep semgrep
+RUN chown semgrep /src
 USER semgrep
 
 
