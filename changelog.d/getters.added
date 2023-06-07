@@ -1,1 +1,0 @@
-In Java, Semgrep can now track taint through more getters and setters. It could already relate setters to getters (e.g. `o.setX(taint); o.getX()` but now it can relate setters and getters to properties (e.g. `o.setX(taint); o.x`).
