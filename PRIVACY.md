@@ -348,7 +348,7 @@ as well tracking results as new, fixed, or duplicate. The classes of findings da
 dependencies data are:
 
 - Package name (e.g., lodash)
-- Package version (e.g. 1.2.3)
+- Package version (e.g., 1.2.3)
 
 ## Registry fetches
 
