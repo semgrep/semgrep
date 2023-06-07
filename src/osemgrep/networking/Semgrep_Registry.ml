@@ -19,7 +19,7 @@ let url_of_registry_config_kind rkind =
    * TODO: don't use the curl interface which seems slower than what
    * pysemgrep is doing.
    *)
-  let prefix = Uri.to_string Semgrep_envvars.env.semgrep_url ^ "/c" in
+  let prefix = Uri.to_string Semgrep_envvars.v.semgrep_url ^ "/c" in
   let url =
     match rkind with
     | C.Registry s -> spf "%s/r/%s" prefix s

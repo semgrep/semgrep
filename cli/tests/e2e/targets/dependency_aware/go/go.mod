@@ -49,7 +49,7 @@ require (
 )
 
 replace (
-		// my comment
+		// my comment with ending ()
     github.com/riandyrn/otelchi v0.5.0 => github.com/riandyrn/otelchi v0.5.1
    	go.opentelemetry.io/otel v1.11.1 => go.opentelemetry.io/otel v1.11.2
 )

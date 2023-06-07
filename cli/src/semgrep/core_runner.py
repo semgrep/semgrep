@@ -246,6 +246,7 @@ class StreamingSemgrepCore:
             try:
                 line_bytes = await get_input(stream)
             except asyncio.IncompleteReadError:
+                logger.debug(self._stderr)
                 # happens if the data that follows a sequence of zero
                 # or more ".\n" has fewer than two bytes, such as:
                 # "", "3", ".\n.\n3", ".\n.\n.\n.", etc.

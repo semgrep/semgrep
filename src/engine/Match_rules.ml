@@ -155,12 +155,14 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     rules xtarget =
-  let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
+  let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
-  if !Profiling.profile =*= Profiling.ProfAll then (
-    logger#info "forcing eval of ast outside of rules, for better profile";
-    Lazy.force lazy_ast_and_errors |> ignore);
-
+  (match (!Profiling.profile, xlang) with
+  (* coupling: see Run_semgrep.xtarget_of_file() *)
+  | Profiling.ProfAll, Xlang.L (_lang, []) ->
+      logger#info "forcing parsing of AST outside of rules, for better profile";
+      Lazy.force lazy_ast_and_errors |> ignore
+  | _else_ -> ());
   let per_rule_boilerplate_fn =
     per_rule_boilerplate_fn ~timeout ~timeout_threshold file
   in

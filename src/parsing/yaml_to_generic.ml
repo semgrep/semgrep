@@ -132,8 +132,7 @@ let mk_bracket
         _;
       } ) v env =
   (* The end index needs to be adjusted by one because the token is off *)
-  (* TODO: figure out why we get an off-by-one with jsoo *)
-  let e_index' = if !Common.jsoo then e_index else e_index - 1 in
+  let e_index' = e_index - 1 in
   let e_line, e_column =
     match env.charpos_to_pos with
     | None -> (e_line, e_column)

@@ -565,6 +565,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
              (* xlang from the language field in -target should be unique *)
              assert false
          | _ ->
+             (* alt: could return an empty program, but better to be defensive*)
              failwith
                "requesting generic AST for an unspecified target language"
        in
