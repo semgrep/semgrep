@@ -341,7 +341,7 @@ as well tracking results as new, fixed, or duplicate. The classes of findings da
 - Check ID and metadata (as defined in the rule definition; e.g., OWASP category, message, severity)
 - Code location, including file path, that triggered findings
 - A one-way hash of a unique code identifier that includes the triggering code content
-- Dependency name and version (only sent when using Semgrep Supply Chain or the `--sca` flag)
+- Dependency name and version (only sent when using Semgrep Supply Chain)
 - Source code is NOT collected
 
 **Dependencies data** are used to power Dependency Search and License Compliance. The classes of
@@ -349,6 +349,7 @@ dependencies data are:
 
 - Package name (e.g., lodash)
 - Package version (e.g., 1.2.3)
+- File path for lockfile (e.g., frontend/yarn.lock)
 
 ## Registry fetches
 
