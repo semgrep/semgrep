@@ -704,40 +704,6 @@ let find_pos_in_actual_args args_taints fparams =
         "cannot match taint variable with function arguments (%i: %s)" i s;
     taint_opt
 
-let propagate_taint_via_java_setter env e args all_args_taints =
-  match (e, args) with
-  | ( {
-        e =
-          Fetch
-            ({
-               base = Var _obj;
-               rev_offset =
-                 [
-                   ({
-                      o = Dot ({ IL.ident = method_str, method_tok; _ } as m);
-                      _;
-                    } as offset);
-                 ];
-             } as lval);
-        _;
-      },
-      [ _ ] )
-    when env.lang =*= Lang.Java
-         && Stdcompat.String.starts_with ~prefix:"set" method_str
-         && String.length method_str > 3 ->
-      (* e.g. setFooBar -> fooBar *)
-      let prop_name =
-        String.uncapitalize_ascii (Str.string_after method_str 3)
-      in
-      let prop_lval =
-        let o = Dot { m with ident = (prop_name, method_tok) } in
-        { lval with rev_offset = [ { offset with o } ] }
-      in
-      if not (Taints.is_empty all_args_taints) then
-        Lval_env.add env.lval_env prop_lval all_args_taints
-      else env.lval_env
-  | __else__ -> env.lval_env
-
 let fix_poly_taint_with_field env lval st =
   if env.lang =*= Lang.Java || Lang.is_js env.lang then
     match lval.rev_offset with
@@ -749,16 +715,9 @@ let fix_poly_taint_with_field env lval st =
             st
         | `Tainted taints -> (
             match !(n.id_info.id_type) with
-            | Some { t = TyFun _; _ }
-              when env.lang <> Lang.Java
-                   || Option.is_some !(n.id_info.id_resolved)
-                   || not
-                        (Stdcompat.String.starts_with ~prefix:"get"
-                           (fst n.ident)) ->
+            | Some { t = TyFun _; _ } ->
                 (* We have an l-value like `o.f` where `f` has a function type,
-                 * so it's a method call. We will only fix poly-taint in such case
-                 * when it's an unresolved Java `getX` method. In any other case,
-                 * we do nothing here. *)
+                 * so it's a method call, we do nothing here. *)
                 st
             | __else__ ->
                 (* Not a method call (to the best of our knowledge) or
@@ -974,30 +933,23 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   report_findings { env with lval_env } findings;
   (taints, lval_env)
 
-(* Not collocated with propagate_taint_via_java_setter since this relies on a
- * function which is part of the mutually recursive set. *)
-and propagate_taint_via_java_getter env e args =
-  match (e, args) with
-  | ( {
-        e =
-          Fetch
-            ({
-               base = Var _obj;
-               rev_offset =
-                 [
-                   {
-                     o = Dot ({ IL.ident = method_str, method_tok; _ } as m);
-                     _;
-                   };
-                 ];
-             } as lval);
-        _;
-      },
-      [] )
+and propagate_taint_via_unresolved_java_getters_and_setters env e args
+    all_args_taints =
+  match e with
+  | {
+   e =
+     Fetch
+       ({
+          base = Var _obj;
+          rev_offset =
+            [ { o = Dot ({ IL.ident = method_str, method_tok; _ } as m); _ } ];
+        } as lval);
+   _;
+  }
     when env.lang =*= Lang.Java
-         && Stdcompat.String.starts_with ~prefix:"get" method_str
-         && String.length method_str > 3 ->
-      (* e.g. getFooBar -> fooBar *)
+         && Option.is_none !(m.id_info.id_resolved)
+         && String.length method_str > 3 -> (
+      (* e.g. getFooBar/setFooBar -> fooBar *)
       let prop_str =
         String.uncapitalize_ascii (Str.string_after method_str 3)
       in
@@ -1005,7 +957,14 @@ and propagate_taint_via_java_getter env e args =
       let prop_lval =
         { lval with rev_offset = [ { o = Dot prop_name; oorig = NoOrig } ] }
       in
-      check_tainted_lval env prop_lval
+      match args with
+      | [] when Stdcompat.String.(starts_with ~prefix:"get" method_str) ->
+          check_tainted_lval env prop_lval
+      | [ _ ] when Stdcompat.String.starts_with ~prefix:"set" method_str ->
+          if not (Taints.is_empty all_args_taints) then
+            (Taints.empty, Lval_env.add env.lval_env prop_lval all_args_taints)
+          else (Taints.empty, env.lval_env)
+      | __else__ -> (Taints.empty, env.lval_env))
   | __else__ -> (Taints.empty, env.lval_env)
 
 and check_tainted_lval_aux env (lval : IL.lval) :
@@ -1072,7 +1031,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
                 (* HACK(field-sensitivity): If we encounter `obj.x` and `obj` has
                    * polymorphic taint, and we know nothing specific about `obj.x`, then
                    * we add the same offset `.x` to the polymorphic taint coming from `obj`.
-                   * (See also 'propagate_taint_via_java_setter'.)
+                   * (See also 'propagate_taint_via_unresolved_java_getters_and_setters'.)
                    *
                    * For example, given `function foo(o) { sink(o.x); }`, and being '0 the
                    * polymorphic taint of `o`, this allows us to record that what goes into
@@ -1577,16 +1536,14 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
                      * the taint of its arguments. *)
                   all_args_taints
               in
-              let lval_env =
-                (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.x = arg`. *)
-                propagate_taint_via_java_setter { env with lval_env } e args
-                  all_args_taints
+              let getter_taints, lval_env =
+                (* HACK: Java: If we encounter `obj.setX(arg)` we interpret it as
+                 * `obj.x = arg`, if we encounter `obj.getX()` we interpret it as
+                 * `obj.x`. *)
+                propagate_taint_via_unresolved_java_getters_and_setters
+                  { env with lval_env } e args all_args_taints
               in
-              let new_taints, lval_env =
-                (* HACK: Java: If we encounter `obj.getX()` we interpret this as `obj.x`. *)
-                propagate_taint_via_java_getter { env with lval_env } e args
-              in
-              let call_taints = Taints.union call_taints new_taints in
+              let call_taints = Taints.union call_taints getter_taints in
               (call_taints, lval_env)
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too.
