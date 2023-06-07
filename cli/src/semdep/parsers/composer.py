@@ -38,35 +38,6 @@ def parse_composer_manifest(manifest_path: Path) -> Set[str]:
         )
         return manifest_deps
 
-    # try:
-    #     manifest_json = manifest_json_opt.as_dict()
-
-    #     required_list = []
-    #     required = manifest_json.get("required")
-    #     if required is not None:
-    #         required_list = required.as_list()
-
-    #     required_dev_list = []
-    #     required_dev = manifest_json.get("require-dev")
-    #     if required_dev is not None:
-    #         required_dev_list = required_dev.as_list()
-
-    #     if required_list is not None and required_dev_list is not None:
-    #         reqs = required_list + required_dev_list
-    #     elif required_list is not None:
-    #         reqs = required_list
-    #     elif required_dev_list is not None:
-    #         reqs = required_dev_list
-    #     else:
-    #         logger.debug("Found empty composer.json file")
-    #         return set()
-
-    #     return set(reqs)
-
-    # except Exception as e:
-    #     logger.info(f"Error parsing composer.json: {str(e)}")
-    #     return set()
-
 
 # Function to parse the composer.lock file and return a list of FoundDependency objects
 def parse_composer_lock(

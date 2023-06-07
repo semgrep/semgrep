@@ -45,7 +45,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "line_number": 9,
               "package": "bad/package",
               "resolved_url": "https://api.github.com/repos/google/recaptcha/zipball/614f25a9038be4f3f2da7cbfd778dc5b357d2419",
-              "transitivity": "unknown",
+              "transitivity": "direct",
               "version": "1.2.4"
             },
             "lockfile": "targets/dependency_aware/php/composer.lock"
@@ -74,7 +74,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+  Scanning 3 files tracked by git with 0 Code rules, 1 Supply Chain rule:
 
 
   CODE RULES
