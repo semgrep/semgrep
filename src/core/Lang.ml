@@ -146,6 +146,7 @@ let langs_of_filename filename =
   | FT.PL FT.Rust -> [ Rust ]
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
+  | FT.PL FT.Swift -> [ Swift ]
   | FT.PL (FT.Web FT.Html) -> [ Html ]
   | _ -> []
 

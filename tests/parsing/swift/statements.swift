@@ -255,6 +255,8 @@ if true {}
 if true {} else {}
 if async let x = true {} else {}
 if case x = true {} else if case x = false {} else {}
+if let x {} else {}
+if var x {} else {}
 if #available(things2) {}
 if #available(things 1 . 2 . 3) {}
 if #available(things 2 . 3) {}
@@ -263,6 +265,8 @@ if #available(*) {}
 // Guard statements
 guard true else {}
 guard async let x = true else {}
+guard let x else {}
+guard var x else {}
 
 // Switch statements
 switch foo {
