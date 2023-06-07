@@ -464,7 +464,15 @@ let partition_mutating_sources sources_matches =
 let type_of_expr env e =
   match e.eorig with
   | SameAs eorig -> Typing.type_of_expr env.lang eorig |> fst
-  | _else -> Type.NoType
+  | __else__ -> Type.NoType
+
+let type_of_lval env lval =
+  match lval with
+  | { base = Var x; rev_offset = [] } ->
+      Typing.resolved_type_of_id_info env.lang x.id_info
+  | { base = _; rev_offset = { o = Dot fld; _ } :: _ } ->
+      Typing.resolved_type_of_id_info env.lang fld.id_info
+  | __else__ -> Type.NoType
 
 (* We only check this at a few key places to avoid calling `type_of_expr` too
  * many times which could be bad for perf (but haven't properly benchmarked):
@@ -475,12 +483,11 @@ let type_of_expr env e =
  *  fill it in, so that every expression has its known type available without
  *  extra cost.
  *)
-let drop_taints_if_bool_or_number env taints ty =
+let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
   match ty with
-  | Type.(Builtin Bool) when env.options.taint_assume_safe_booleans ->
-      Taints.empty
-  | Type.(Builtin (Int | Float | Number))
-    when env.options.taint_assume_safe_numbers ->
+  | Type.(Builtin Bool) when options.taint_assume_safe_booleans -> Taints.empty
+  | Type.(Builtin (Int | Float | Number)) when options.taint_assume_safe_numbers
+    ->
       Taints.empty
   | __else__ -> taints
 
@@ -924,6 +931,9 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let new_taints, lval_in_env, lval_env = check_tainted_lval_aux env lval in
   let taints_from_env = status_to_taints lval_in_env in
   let taints = Taints.union new_taints taints_from_env in
+  let taints =
+    drop_taints_if_bool_or_number env.options taints (type_of_lval env lval)
+  in
   let sinks =
     lval_is_sink env.config lval
     |> List.filter (Top_sinks.is_best_match env.top_sinks)
@@ -1498,7 +1508,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
     | Assign (_, e) ->
         let taints, lval_env = check_expr env e in
         let taints =
-          drop_taints_if_bool_or_number env taints (type_of_expr env e)
+          drop_taints_if_bool_or_number env.options taints (type_of_expr env e)
         in
         (taints, lval_env)
     | AssignAnon _ -> (Taints.empty, env.lval_env) (* TODO *)
@@ -1520,14 +1530,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
           match
             check_function_signature { env with lval_env } e args args_taints
           with
-          | Some (call_taints, lval_env) ->
-              let call_taints =
-                match type_of_expr env e with
-                | Type.Function (_, return_ty) ->
-                    drop_taints_if_bool_or_number env call_taints return_ty
-                | __else__ -> call_taints
-              in
-              (call_taints, lval_env)
+          | Some (call_taints, lval_env) -> (call_taints, lval_env)
           | None ->
               let call_taints =
                 if not (propagate_through_functions env) then Taints.empty
@@ -1546,11 +1549,16 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
               let call_taints = Taints.union call_taints getter_taints in
               (call_taints, lval_env)
         in
-        (* We add the taint of the function itselt (i.e., 'e_taints') too.
-         * DEEP: In DeepSemgrep this also helps identifying `x.foo()` as tainted
-         * when `x` is tainted, because the call is represented in IL as `(x.foo)()`.
-         * TODO: Properly track taint through objects. *)
-        (Taints.union e_taints call_taints, lval_env)
+        (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
+        let all_call_taints = Taints.union e_taints call_taints in
+        let all_call_taints =
+          match type_of_expr env e with
+          | Type.Function (_, return_ty) ->
+              drop_taints_if_bool_or_number env.options all_call_taints
+                return_ty
+          | __else__ -> all_call_taints
+        in
+        (all_call_taints, lval_env)
     | New (_lval, _ty, Some constructor, args) -> (
         (* 'New' with reference to constructor, although it doesn't mean it has been resolved. *)
         let args_taints, all_args_taints, lval_env =
@@ -1603,7 +1611,9 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
     |> Common.map sink_of_match
   in
   let taints, var_env' = check_tainted_expr env e in
-  let taints = drop_taints_if_bool_or_number env taints (type_of_expr env e) in
+  let taints =
+    drop_taints_if_bool_or_number env.options taints (type_of_expr env e)
+  in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings;
   (taints, var_env')
