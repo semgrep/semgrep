@@ -7,5 +7,16 @@ public class H {
         sink(e.getY());
         // ruleid: test
         sink(e.getX());
+        // ruleid: test
+        sink(e.x);
+
+        d = new RE();
+        d.x = tainted;
+        // OK:
+        sink(d.getY());
+        // ruleid: test
+        sink(d.getX());
+        // ruleid: test
+        sink(d.x);
     }
 }

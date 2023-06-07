@@ -709,16 +709,28 @@ let propagate_taint_via_java_setter env e args all_args_taints =
   | ( {
         e =
           Fetch
-            ({ base = Var _obj; rev_offset = [ ({ o = Dot m; _ } as offset) ] }
-            as lval);
+            ({
+               base = Var _obj;
+               rev_offset =
+                 [
+                   ({
+                      o = Dot ({ IL.ident = method_str, method_tok; _ } as m);
+                      _;
+                    } as offset);
+                 ];
+             } as lval);
         _;
       },
       [ _ ] )
     when env.lang =*= Lang.Java
-         && Stdcompat.String.starts_with ~prefix:"set" (fst m.IL.ident) ->
-      let prop_name = "get" ^ Str.string_after (fst m.IL.ident) 3 in
+         && Stdcompat.String.starts_with ~prefix:"set" method_str
+         && String.length method_str > 3 ->
+      (* e.g. setFooBar -> fooBar *)
+      let prop_name =
+        String.uncapitalize_ascii (Str.string_after method_str 3)
+      in
       let prop_lval =
-        let o = Dot { m with ident = (prop_name, snd m.IL.ident) } in
+        let o = Dot { m with ident = (prop_name, method_tok) } in
         { lval with rev_offset = [ { offset with o } ] }
       in
       if not (Taints.is_empty all_args_taints) then
@@ -961,6 +973,40 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let findings = findings_of_tainted_sinks { env with lval_env } taints sinks in
   report_findings { env with lval_env } findings;
   (taints, lval_env)
+
+(* Not collocated with propagate_taint_via_java_setter since this relies on a
+ * function which is part of the mutually recursive set. *)
+and propagate_taint_via_java_getter env e args =
+  match (e, args) with
+  | ( {
+        e =
+          Fetch
+            ({
+               base = Var _obj;
+               rev_offset =
+                 [
+                   {
+                     o = Dot ({ IL.ident = method_str, method_tok; _ } as m);
+                     _;
+                   };
+                 ];
+             } as lval);
+        _;
+      },
+      [] )
+    when env.lang =*= Lang.Java
+         && Stdcompat.String.starts_with ~prefix:"get" method_str
+         && String.length method_str > 3 ->
+      (* e.g. getFooBar -> fooBar *)
+      let prop_str =
+        String.uncapitalize_ascii (Str.string_after method_str 3)
+      in
+      let prop_name = { m with ident = (prop_str, method_tok) } in
+      let prop_lval =
+        { lval with rev_offset = [ { o = Dot prop_name; oorig = NoOrig } ] }
+      in
+      check_tainted_lval env prop_lval
+  | __else__ -> (Taints.empty, env.lval_env)
 
 and check_tainted_lval_aux env (lval : IL.lval) :
     Taints.t
@@ -1532,10 +1578,15 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
                   all_args_taints
               in
               let lval_env =
-                (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.getX = arg`. *)
+                (* HACK: Java: If we encounter `obj.setX(arg)` we interpret this as `obj.x = arg`. *)
                 propagate_taint_via_java_setter { env with lval_env } e args
                   all_args_taints
               in
+              let new_taints, lval_env =
+                (* HACK: Java: If we encounter `obj.getX()` we interpret this as `obj.x`. *)
+                propagate_taint_via_java_getter { env with lval_env } e args
+              in
+              let call_taints = Taints.union call_taints new_taints in
               (call_taints, lval_env)
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too.
