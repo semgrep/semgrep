@@ -40,7 +40,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let _fb = Tok.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let fk = Tok.unsafe_fake_tok
 
 (* helper to factorize code *)
@@ -57,8 +57,13 @@ let map_before_unary_op_opt env v1 =
 let args_of_exprs_and_keywords exprs kwds = (exprs, kwds)
 let binary_call e1 op e2 = BinaryOp (e1, op, e2)
 let expr_of_block blk = Block blk
-let mk_call_parens _e _tdot _args _xxx = failwith "TODO"
-let mk_call_no_parens _id_or_remote _args _blopt = failwith "TODO"
+let mk_call_parens e args blopt = (e, args, blopt)
+
+let mk_call_no_parens id_or_remote args blopt =
+  match id_or_remote with
+  | Left id -> (I id, fb args, blopt)
+  | Right remote -> (DotRemote remote, fb args, blopt)
+
 let items_of_exprs_and_keywords es kwds = (es, kwds)
 let body_to_program xs = xs
 
@@ -348,7 +353,8 @@ and map_anon_term_choice_stab_clause_70647b7 (env : env)
 and map_anonymous_call (env : env) ((v1, v2) : CST.anonymous_call) : call =
   let e, tdot = map_anonymous_dot env v1 in
   let args = map_call_arguments_with_parentheses env v2 in
-  mk_call_parens e (Some tdot) args None
+  let e' = DotAnon (e, tdot) in
+  mk_call_parens e' args None
 
 and map_anonymous_dot (env : env) ((v1, v2) : CST.anonymous_dot) =
   let v1 = map_expression env v1 in
@@ -618,7 +624,7 @@ and map_call_with_parentheses (env : env) (x : CST.call_with_parentheses) : call
       in
       let args = map_call_arguments_with_parentheses env v2 in
       let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-      mk_call_parens call1 None args blopt
+      mk_call_parens (Call call1) args blopt
 
 and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
     : call =
@@ -631,7 +637,7 @@ and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
   | `Local_call_just_do_blk (v1, v2) ->
       let id = map_identifier env v1 in
       let bl = map_do_block env v2 in
-      mk_call_no_parens (Left id) [] (Some bl)
+      mk_call_no_parens (Left id) ([], []) (Some bl)
   | `Remote_call_with_parens (v1, v2, v3) ->
       let rdot = map_remote_dot env v1 in
       let args : arguments =
@@ -849,7 +855,9 @@ and map_expression (env : env) (x : CST.expression) : expr =
   | `Un_op x -> map_unary_operator env x
   | `Bin_op x -> map_binary_operator env x
   | `Dot x -> map_dot env x
-  | `Call x -> map_call env x
+  | `Call x ->
+      let c = map_call env x in
+      Call c
   (* semantic: transformed in Access.get/2 *)
   | `Access_call (v1, v2, v3, v4) ->
       let v1 = map_expression env v1 in
@@ -957,7 +965,7 @@ and map_local_call_with_parentheses (env : env)
   let id = map_identifier env v1 in
   let args = map_call_arguments_with_parentheses_immediate env v2 in
   let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-  mk_call_parens (I id) None args blopt
+  mk_call_parens (I id) args blopt
 
 and map_pair (env : env) ((v1, v2) : CST.pair) : pair =
   let v1 = map_keyword env v1 in
@@ -1012,8 +1020,8 @@ and map_remote_call_with_parentheses (env : env)
   let e, tdot, fld = map_remote_dot env v1 in
   let args = map_call_arguments_with_parentheses_immediate env v2 in
   let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-  (* Elixir_to_generic.mk_call_parens e args blopt *)
-  failwith "TODO"
+  let e' = DotRemote (e, tdot, fld) in
+  mk_call_parens e' args blopt
 
 and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) : remote_dot =
   let e = map_expression env v1 in

@@ -194,6 +194,10 @@ and expr =
         DotAccess (e, tdot, FDynamic tuple) |> G.e
   *)
   | DotTuple of expr * Tok.t * items bracket
+  (* only inside Call *)
+  | DotAnon of expr * Tok.t
+  (* only inside Call *)
+  | DotRemote of remote_dot
   | ModuleVarAccess of Tok.t (* @ *) * expr
   | ArrayAccess of expr * expr bracket
   | Call of call
@@ -238,8 +242,8 @@ and sigil_kind =
 (* exprs separated by terminators (newlines or semicolons) *)
 and body = expr list
 
-(* less: restrict with special arg? *)
-and call = expr
+(* the parenthesis can be fake *)
+and call = expr * arguments bracket * do_block option
 
 (* TODO
    map_remote_dor:
