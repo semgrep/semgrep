@@ -1,0 +1,1 @@
+taint analysis: Improve handling of dataflow for tainted value propagation in class field definitions

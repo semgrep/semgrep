@@ -1,0 +1,11 @@
+rules:
+  - id: tainted-anon-type
+    pattern-sources:
+      - pattern: GetSecret()
+    pattern-sinks:
+      - pattern: Log(...);
+    mode: taint
+    message: Semgrep found a match
+    languages:
+      - csharp
+    severity: WARNING
