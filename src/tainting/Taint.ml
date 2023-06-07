@@ -130,19 +130,14 @@ and compare_sources s1 s2 =
       Option.compare compare_precondition s1.precondition s2.precondition
   | other -> other
 
-and compare_name n1 n2 =
-  match
-    AST_utils.with_structural_equal G.equal_ident n1.IL.ident n2.IL.ident
-  with
-  | true -> Stdlib.compare n1.sid n2.sid
-  | false -> Stdlib.compare n1.ident n2.ident
-
-(* type arg = { pos : arg_pos; offset : IL.name list } *)
 and compare_args a1 a2 =
   let pos1 = a1.pos in
   let pos2 = a2.pos in
   match Stdlib.compare pos1 pos2 with
-  | 0 -> List.compare (fun n1 n2 -> compare_name n1 n2) a1.offset a2.offset
+  | 0 ->
+      List.compare
+        (fun n1 n2 -> IL_helpers.compare_name n1 n2)
+        a1.offset a2.offset
   | other -> other
 
 and compare_orig orig1 orig2 =
