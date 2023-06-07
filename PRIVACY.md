@@ -315,11 +315,11 @@ This is a sample blob of the aggregate metrics described above:
 ## Data collected when explicitly requested
 
 For Semgrep App users running `semgrep ci` while logged in,
-data is sent to power your dashboard, notification, and finding management features.
+data is sent to power your dashboard, notification, dependency search, and finding management features.
 These data are ONLY sent when using `semgrep ci` in an App-connected mode
 and are not sent when not logged in.
 
-Two types of data are sent to Semgrep, Inc servers for this logged-in use case: scan data and findings data.
+Three types of data are sent to Semgrep, Inc servers for this logged-in use case: scan data, findings data, and dependencies data.
 
 **Scan data** provide information on the environment and performance of Semgrep.
 They power dashboards, identify anomalies with the product, and are needed for billing.
@@ -343,6 +343,12 @@ as well tracking results as new, fixed, or duplicate. The classes of findings da
 - A one-way hash of a unique code identifier that includes the triggering code content
 - Dependency name and version (only sent when using Semgrep Supply Chain or the `--sca` flag)
 - Source code is NOT collected
+
+**Dependencies data** are used to power Dependency Search and License Compliance. The classes of
+dependencies data are:
+
+- Package name (e.g., lodash)
+- Package version (e.g., 1.2.3)
 
 ## Registry fetches
 
