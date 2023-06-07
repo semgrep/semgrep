@@ -3,66 +3,110 @@ Parsers for composer.lock files
 Based on https://getcomposer.org/doc/01-basic-usage.md
 """
 # Import necessary modules and classes
-from collections import defaultdict
 from pathlib import Path
-from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
-from semdep.parsers.util import ParserName
-
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 from semgrep.verbose_logging import getLogger
 
 # Instantiate logger
 logger = getLogger(__name__)
 
 # Function to parse the composer.json manifest file and return required and required-dev dependencies as a dictionary
-def parse_composer_manifest(manifest_path: Path) -> Dict[str, set]:
-    manifest_json_opt = safe_path_parse(manifest_path, json_doc)
+def parse_composer_manifest(manifest_path: Path) -> Set[str]:
+    manifest_json_opt = safe_path_parse(
+        manifest_path, json_doc, ParserName.composer_lock
+    )
     if not manifest_json_opt:
         logger.info("Failed to parse composer.json file")
-        return {}
+        return set()
 
-    try:
+    else:
         manifest_json = manifest_json_opt.as_dict()
+        manifest_deps = (
+            set(manifest_json["require"].as_dict().keys())
+            if "require" in manifest_json
+            else set()
+        )
+        return manifest_deps
 
-        # Extract required and required-dev dependencies
-        required = set(manifest_json.get("require", {}).as_dict().keys())
-        required_dev = set(manifest_json.get("require-dev", {}).as_dict().keys())
+    # try:
+    #     manifest_json = manifest_json_opt.as_dict()
 
-        # Return a set containing both required and required-dev dependencies
-        return required.union(required_dev)
-    except Exception as e:
-        logger.info(f"Error parsing composer.json: {str(e)}")
-        return {}
+    #     required_list = []
+    #     required = manifest_json.get("required")
+    #     if required is not None:
+    #         required_list = required.as_list()
+
+    #     required_dev_list = []
+    #     required_dev = manifest_json.get("require-dev")
+    #     if required_dev is not None:
+    #         required_dev_list = required_dev.as_list()
+
+    #     if required_list is not None and required_dev_list is not None:
+    #         reqs = required_list + required_dev_list
+    #     elif required_list is not None:
+    #         reqs = required_list
+    #     elif required_dev_list is not None:
+    #         reqs = required_dev_list
+    #     else:
+    #         logger.debug("Found empty composer.json file")
+    #         return set()
+
+    #     return set(reqs)
+
+    # except Exception as e:
+    #     logger.info(f"Error parsing composer.json: {str(e)}")
+    #     return set()
 
 
 # Function to parse the composer.lock file and return a list of FoundDependency objects
 def parse_composer_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName.composer_lock)
+    lockfile_json_opt = safe_path_parse(
+        lockfile_path, json_doc, ParserName.composer_lock
+    )
+
+    if not lockfile_json_opt:
+        return []
 
     lockfile_json = lockfile_json_opt.as_dict()
 
-    # Extract packages and packages-dev from lockfile_json
-    packages = lockfile_json.get("packages", []).as_list() or []
-    packages_dev = lockfile_json.get("packages-dev", []).as_list() or []
+    packages_list = []
+    packages = lockfile_json.get("packages")
+    if packages is not None:
+        packages_list = packages.as_list()
 
-    # Combine packages and packages-dev lists
-    deps = packages + packages_dev
+    packages_dev_list = []
+    packages_dev = lockfile_json.get("packages-dev")
+    if packages_dev is not None:
+        packages_dev_list = packages_dev.as_list()
+
+    if packages_list is not None and packages_dev_list is not None:
+        deps = packages_list + packages_dev_list
+    elif packages_list is not None:
+        deps = packages_list
+    elif packages_dev_list is not None:
+        deps = packages_dev_list
+    else:
+        logger.debug("Found package-lock with no 'packages'")
+        return []
 
     # Get manifest dependencies by parsing composer.json manifest
+    manifest_deps: Set[str]
     if manifest_path:
         manifest_deps = parse_composer_manifest(manifest_path)
     else:
-        manifest_deps = {}
+        manifest_deps = set()
 
     # Initialize output list
     output = []
@@ -70,7 +114,7 @@ def parse_composer_lock(
     for dep in deps:
         fields = dep.as_dict()
         if "version" not in fields:
-            logger.info(f"no version for dependency: {dep['name']}")
+            logger.info(f"no version for dependency: {dep.as_dict()['name']}")
             continue
 
         # Extract version and package name from dependency fields

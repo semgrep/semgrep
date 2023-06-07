@@ -7,6 +7,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from semdep.parsers.composer import parse_composer_lock
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
@@ -19,7 +20,6 @@ from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import ParserName
 from semdep.parsers.yarn import parse_yarn
-from semdep.parsers.composer import parse_composer_lock
 from semgrep.console import console
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
@@ -74,7 +74,7 @@ NEW_LOCKFILE_PARSERS: Dict[
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
-    "composer.lock": parse_composer_lock, # PHP
+    "composer.lock": parse_composer_lock,  # PHP
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
