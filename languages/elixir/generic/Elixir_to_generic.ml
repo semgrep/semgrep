@@ -32,16 +32,8 @@ let todo _env _v = failwith "TODO"
 let map_string _env x = x
 let map_int _env x = x
 let map_char _env x = x
-let map_list f _env xs = failwith "TODO"
-(*
-  Common.map f xs
-*)
-
-let map_option f _env x = failwith "TODO"
-(*
-  Option.map f x
-*)
-
+let map_list f env xs = Common.map (f env) xs
+let map_option f env x = Option.map (f env) x
 let map_or_quoted f env v = todo env v
 
 (* TODO: maybe need a 'a. for all type
@@ -54,24 +46,12 @@ let map_or_quoted f env v = todo env v
        todo env v
 *)
 
-let map_quoted env v = todo env v
-(* TODO
-   (map_bracket (map_list f)) env v
-*)
-
 (*****************************************************************************)
 (* Boilerplate *)
 (*****************************************************************************)
 
-let map_wrap f env (v1, v2) = failwith "TODO"
-(*
-  f v1, v2
-*)
-
-let map_bracket f _env (v1, v2, v3) = failwith "TODO"
-(*
-  (v1, f v2, v3)
-*)
+let map_wrap f env (v1, v2) = (f env v1, v2)
+let map_bracket f env (v1, v2, v3) = (v1, f env v2, v3)
 
 let map_ident env v =
   match v with
@@ -118,6 +98,11 @@ let rec map_atom env (v1, v2) =
 and map_keyword env (v1, v2) =
   let v1 = (map_or_quoted (map_wrap map_string)) env v1 in
   todo env (v1, v2)
+
+and map_quoted env v = todo env v
+(* TODO
+   (map_bracket (map_list f)) env v
+*)
 
 and map_arguments env (v1, v2) =
   let v1 = (map_list map_expr) env v1 in
