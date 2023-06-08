@@ -720,7 +720,8 @@ let extracted_targets_of_config (config : Runner_config.t)
  * It takes a set of rules and a set of targets (targets derived from config,
  * and potentially also extract rules) and iteratively process those targets.
  *)
-let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
+let semgrep_with_rules ?match_hook config
+    ((rules, invalid_rules), rules_parse_time) =
   sanity_check_rules_and_invalid_rules config rules invalid_rules;
 
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
@@ -784,9 +785,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                         Filter_target.filter_paths paths (Fpath.v file))
            in
            let xtarget = xtarget_of_file config xlang file in
-           let match_hook str match_ =
+           let default_match_hook str match_ =
              if config.output_format =*= Text then
                print_match ~str config match_ Metavariable.ii_of_mval
+           in
+           let match_hook =
+             Option.value match_hook ~default:default_match_hook
            in
            let xconf =
              {
