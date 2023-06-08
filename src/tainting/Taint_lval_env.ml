@@ -125,7 +125,8 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
       lval_env
   | Some _
     when (not (LvalMap.mem lval tainted))
-         && LvalMap.cardinal tainted > Limits_semgrep.taint_MAX_TAINTED_LVALS ->
+         && !Flag_semgrep.max_tainted_lvals > 0
+         && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals ->
       logger#warning
         "Already tracking too many tainted l-values, will not track %s"
         (Display_IL.string_of_lval lval);
@@ -153,8 +154,9 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
                 (* THINK: couldn't we just replace the existing taints? *)
                 | Some taints' ->
                     if
-                      Taints.cardinal taints'
-                      < Limits_semgrep.taint_MAX_TAINT_SET_SIZE
+                      !Flag_semgrep.max_taint_set_size > 0
+                      && Taints.cardinal taints'
+                         < !Flag_semgrep.max_taint_set_size
                     then Some (Taints.union taints taints')
                     else (
                       logger#warning
