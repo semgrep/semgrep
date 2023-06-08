@@ -145,9 +145,12 @@ and map_items env (v1, v2) : G.expr list =
   v1
   @ Common.map
       (fun (kwd, e) ->
-        match kwd with
-        | Left id -> G.keyval (G.N (H.name_of_id id) |> G.e) (G.fake "=>") e
-        | Right (quoted : quoted_generic) -> expr_of_quoted quoted)
+        let key =
+          match kwd with
+          | Left id -> G.N (H.name_of_id id) |> G.e
+          | Right (quoted : quoted_generic) -> expr_of_quoted quoted
+        in
+        G.keyval key (G.fake "=>") e)
       v2
 
 and map_keywords env v = (map_list map_pair) env v
@@ -254,12 +257,15 @@ and map_expr env v : G.expr =
       | Left (op, tk) -> G.opcall (op, tk) [ v2 ]
       | Right (str, tk) -> todo env (str, tk))
   | BinaryOp (v1, v2, v3) -> (
-      let v1 = map_expr env v1 in
-      let v2 = map_wrap_operator env v2 in
-      let v3 = map_expr env v3 in
-      match v2 with
-      | Left (op, tk) -> G.opcall (op, tk) [ v1; v3 ]
-      | Right (str, tk) -> todo env (str, tk))
+      let e1 = map_expr env v1 in
+      let op = map_wrap_operator env v2 in
+      let e2 = map_expr env v3 in
+      match op with
+      | Left (op, tk) -> G.opcall (op, tk) [ e1; e2 ]
+      | Right id ->
+          let n = N (H.name_of_id id) |> G.e in
+          Call (n, Tok.unsafe_fake_bracket ([ e1; e2 ] |> Common.map G.arg))
+          |> G.e)
   | OpArity (v1, v2, v3) ->
       let v1 = map_wrap_operator env v1 in
       let v3 = (map_wrap (map_option map_int)) env v3 in

@@ -40,7 +40,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Raw constructs *)
 (*****************************************************************************)
-(* AST constructs or aliases corresponding to "raw" Elixir constructs.
+(* AST constructs corresponding to "raw" Elixir constructs.
  *
  * We try to follow the naming conventions in
  * https://hexdocs.pm/elixir/syntax-reference.html
@@ -92,6 +92,7 @@ type operator =
   | OCons (* |, =~ "::" in OCaml (comes from Erlang/Prolog) *)
   | OWhen (* when, in guards *)
   | O of G.operator
+  (* lots of operators here, +++, ---, etc. *)
   | OOther of string
 [@@deriving show { with_path = false }]
 
@@ -115,6 +116,8 @@ and arguments = expr list * keywords
 
 (* inside containers (list, bits, maps, tuples), separated by commas *)
 and items = expr list * keywords
+
+(* Elixir semantic is to unsugar in regular (atom, expr) pair *)
 and keywords = pair list
 
 (* note that Elixir supports also pairs using the (:atom => expr) syntax *)
@@ -157,7 +160,10 @@ and expr_or_kwds = E of expr | Kwds of keywords
          OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
 *)
 and expr =
+  (* lowercase idents *)
   | I of ident
+  (* uppercase idents *)
+  | Alias of alias
   | L of G.literal
   | A of atom
   | String of quoted
@@ -167,7 +173,6 @@ and expr =
   | Tuple of items bracket
   | Bits of items bracket
   | Map of Tok.t (* "%" *) * astruct option * items bracket
-  | Alias of alias
   | Block of block
   | DotAlias of expr * Tok.t * alias
   | DotTuple of expr * Tok.t * items bracket
@@ -180,6 +185,7 @@ and expr =
   | Call of call
   | UnaryOp of operator wrap * expr
   | BinaryOp of expr * operator wrap * expr
+  (* coming from Erlang (comint itself from Prolog) *)
   | OpArity of operator wrap * Tok.t (* '/' *) * int option wrap
   | When of expr * Tok.t (* 'when' *) * expr_or_kwds
   | Join of expr * Tok.t (* '|' *) * expr_or_kwds
@@ -206,16 +212,39 @@ and sigil_kind =
   | Lower of char wrap * quoted
   | Upper of char wrap * string wrap bracket
 
-(* exprs separated by terminators (newlines or semicolons) *)
-and body = expr list
-
 (* the parenthesis can be fake *)
 and call = expr * arguments bracket * do_block option
 and remote_dot = expr * Tok.t (* '.' *) * ident_or_operator or_quoted
 
 (* ------------------------------------------------------------------------- *)
+(* Blocks *)
+(* ------------------------------------------------------------------------- *)
+
+(* the bracket here are () *)
+and block = body_or_clauses bracket [@@deriving show { with_path = false }]
+
+(* in after/rescue/catch/else and do blocks *)
+and body_or_clauses =
+  | Body of body
+  (* can be empty *)
+  | Clauses of clauses
+
+(* exprs separated by terminators (newlines or semicolons) *)
+and body = stmt list
+
+(* The bracket here are do/end.
+ * Elixir semantic is to unsugar in a list of pairs with "do:", "after:",
+ * as the keys.
+ *)
+and do_block =
+  (body_or_clauses * (exn_clause_kind wrap * body_or_clauses) list) bracket
+
+and exn_clause_kind = After | Rescue | Catch | Else
+
+(* ------------------------------------------------------------------------- *)
 (* Clauses *)
 (* ------------------------------------------------------------------------- *)
+and clauses = stab_clause list
 
 (* Ideally it should be pattern list * tok * body option, but Elixir
  * is more general and use '->' also for type declarations in typespecs,
@@ -224,31 +253,11 @@ and remote_dot = expr * Tok.t (* '.' *) * ident_or_operator or_quoted
 and stab_clause =
   (arguments * (Tok.t (*'when'*) * expr) option) * Tok.t (* '->' *) * body
 
-and clauses = stab_clause list
-
-(* in after/rescue/catch/else and do blocks *)
-and body_or_clauses =
-  | Body of body
-  (* can be empty *)
-  | Clauses of clauses
-
-(* ------------------------------------------------------------------------- *)
-(* Blocks *)
-(* ------------------------------------------------------------------------- *)
-
-(* the bracket here are do/end *)
-and do_block =
-  (body_or_clauses * (exn_clause_kind wrap * body_or_clauses) list) bracket
-
-and exn_clause_kind = After | Rescue | Catch | Else
-
-(* the bracket here are () *)
-and block = body_or_clauses bracket [@@deriving show { with_path = false }]
-
 (*****************************************************************************)
 (* Kernel constructs *)
 (*****************************************************************************)
 (* ref: https://hexdocs.pm/elixir/Kernel.html *)
+and stmt = expr
 
 (*****************************************************************************)
 (* Program *)
