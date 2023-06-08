@@ -134,10 +134,7 @@ and compare_args a1 a2 =
   let pos1 = a1.pos in
   let pos2 = a2.pos in
   match Stdlib.compare pos1 pos2 with
-  | 0 ->
-      List.compare
-        (fun n1 n2 -> IL_helpers.compare_name n1 n2)
-        a1.offset a2.offset
+  | 0 -> List.compare IL_helpers.compare_name a1.offset a2.offset
   | other -> other
 
 and compare_orig orig1 orig2 =
