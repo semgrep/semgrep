@@ -491,6 +491,13 @@ let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
       Taints.empty
   | __else__ -> taints
 
+(* Calls to 'type_of_expr' seem not to be cheap and even though we tried to limit the
+ * number of these calls being made, doing them unconditionally caused a slowdown of
+ * ~25% in a ~dozen repos in our stress-test-monorepo. We should just not call
+ * 'type_of_expr' unless at least one of the taint_assume_safe_{booleans,numbers} has
+ * been set, so rules that do not use these options remain unaffected. Long term we
+ * should make type_of_expr less costly.
+ *)
 let check_type_and_drop_taints_if_bool_or_number env taints type_of_x x =
   if
     env.options.taint_assume_safe_booleans
