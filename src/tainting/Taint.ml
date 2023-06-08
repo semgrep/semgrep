@@ -17,6 +17,7 @@ module G = AST_generic
 module PM = Pattern_match
 module R = Rule
 module LabelSet = Set.Make (String)
+open Ppx_compare_lib.Builtin
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -65,7 +66,7 @@ let rec _show_call_trace show_thing = function
 (* Signatures *)
 (*****************************************************************************)
 
-type arg_pos = string * int [@@deriving show]
+type arg_pos = string * int [@@deriving show, compare]
 type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
 
 let _show_arg { pos = s, i; offset = os } =
