@@ -179,10 +179,17 @@ and map_expr env v : G.expr =
       let e = expr_of_quoted v in
       let l, _, _ = v in
       G.OtherExpr (("Charlist", l), [ G.E e ]) |> G.e
-  | Sigil (v1, v2, v3) ->
+  | Sigil (ttilde, v2, v3) ->
       let v2 = map_sigil_kind env v2 in
       let v3 = (map_option (map_wrap map_string)) env v3 in
-      todo env (v1, v2, v3)
+      G.OtherExpr
+        ( ("Sigil", ttilde),
+          v2
+          @
+          match v3 with
+          | None -> []
+          | Some id -> [ G.I id ] )
+      |> G.e
   | List v ->
       let v = (map_bracket map_items) env v in
       G.Container (G.List, v) |> G.e
@@ -200,27 +207,38 @@ and map_expr env v : G.expr =
       | None ->
           let l = Tok.combine_toks v1 [ l ] in
           G.Container (G.Dict, (l, xs, r)) |> G.e
-      | Some astruct -> todo env astruct)
+      | Some astruct ->
+          (* TODO?
+             | Some (Left id) ->
+                 let n = H2.name_of_id id in
+                 let ty = G.TyN n |> G.t in
+                 G.New (tpercent, ty, G.empty_id_info (), (l, Common.map G.arg xs, r))
+                 |> G.e
+          *)
+          G.Call (astruct, (l, Common.map G.arg xs, r)) |> G.e)
   | Alias v ->
+      (* TODO: split alias in components, and then use name_of_ids *)
       let v = map_alias env v in
-      todo env v
+      G.N (H.name_of_id v) |> G.e
   | Block v ->
       let v = map_block env v in
       todo env v
-  | DotAlias (v1, v2, v3) ->
-      let v1 = map_expr env v1 in
-      let v3 = map_alias env v3 in
-      todo env (v1, v2, v3)
-  | DotTuple (v1, v2, v3) ->
-      let v1 = map_expr env v1 in
-      let v3 = (map_bracket map_items) env v3 in
-      todo env (v1, v2, v3)
-  | DotAnon (v1, v2) ->
-      let v1 = map_expr env v1 in
-      todo env (v1, v2)
-  | DotRemote v ->
-      let v = map_remote_dot env v in
-      todo env v
+  | DotAlias (v1, tdot, v3) ->
+      let e = map_expr env v1 in
+      (* TODO: split alias in components, and then use name_of_ids *)
+      let id = map_alias env v3 in
+      G.DotAccess (e, tdot, G.FN (H.name_of_id id)) |> G.e
+  | DotTuple (v1, tdot, v3) ->
+      let e = map_expr env v1 in
+      let items = (map_bracket map_items) env v3 in
+      let tuple = G.Container (G.Tuple, items) |> G.e in
+      DotAccess (e, tdot, G.FDynamic tuple) |> G.e
+  (* only inside a Call *)
+  | DotAnon (v1, tdot) ->
+      let e = map_expr env v1 in
+      G.OtherExpr (("DotAnon", tdot), [ G.E e ]) |> G.e
+  (* only inside a Call *)
+  | DotRemote v -> map_remote_dot env v
   | ModuleVarAccess (v1, v2) ->
       let v2 = map_expr env v2 in
       todo env (v1, v2)
@@ -272,7 +290,7 @@ and map_expr env v : G.expr =
 
 and map_astruct env v = map_expr env v
 
-and map_sigil_kind env v =
+and map_sigil_kind env v : G.any list =
   match v with
   | Lower (v1, v2) ->
       let v1 = (map_wrap map_char) env v1 in
@@ -293,10 +311,29 @@ and map_call env (v1, v2, v3) : G.expr =
   let v3 = (map_option map_do_block) env v3 in
   todo env (v1, v2, v3)
 
-and map_remote_dot env (v1, v2, v3) =
-  let v1 = map_expr env v1 in
-  (* TODO let v3 = (map_or_quoted map_ident_or_operator) env v3 in *)
-  todo env (v1, v2, v3)
+and map_remote_dot env (v1, tdot, v3) : G.expr =
+  let e = map_expr env v1 in
+  let v3 =
+    match v3 with
+    | X id_or_op ->
+        let str_wrap =
+          match id_or_op with
+          | Left id -> map_ident env id
+          | Right op -> (
+              match map_wrap_operator env op with
+              | Left (_op, tk) -> (Tok.content_of_tok tk, tk)
+              | Right (s, tk) -> (s, tk))
+        in
+        X str_wrap
+    | Quoted x -> Quoted x
+  in
+  let v3 = map_or_quoted (map_wrap map_string) env v3 in
+  let fld =
+    match v3 with
+    | Left id -> G.FN (H.name_of_id id)
+    | Right (quoted : quoted_generic) -> G.FDynamic (expr_of_quoted quoted)
+  in
+  DotAccess (e, tdot, fld) |> G.e
 
 and map_stab_clause env (v1, v2, v3) =
   let map_tuple1 env (v1, v2) =

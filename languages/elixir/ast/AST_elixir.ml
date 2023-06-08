@@ -146,16 +146,6 @@ and expr_or_kwds = E of expr | Kwds of keywords
    for Capture:
          AST_generic_helpers.set_e_range v1 v3 v2;
 
-   map_dot:
-       match v3 with
-       | `Alias tok ->
-           let al = map_alias env tok in
-           DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e
-       | `Tuple x ->
-           let l, xs, r = map_tuple env x in
-           let tuple = Container (Tuple, (l, xs, r)) |> G.e in
-           DotAccess (e, tdot, FDynamic tuple) |> G.e
-
    map_unary_operator:
    plus
          let e1 = N (H2.name_of_id id) |> G.e in
@@ -172,22 +162,14 @@ and expr =
   | A of atom
   | String of quoted
   | Charlist of quoted
-  (*  G.OtherExpr (("Sigil", ttilde), [ G.I letter; any ] @ idopt) |> G.e *)
   | Sigil of Tok.t (* '~' *) * sigil_kind * string wrap option
   | List of items bracket
   | Tuple of items bracket
-  (* G.OtherExpr
-     (("ContainerBits", l), (xs |> Common.map (fun e -> G.E e)) @ [ G.Tk r ]) *)
   | Bits of items bracket
   | Map of Tok.t (* "%" *) * astruct option * items bracket
   | Alias of alias
   | Block of block
-  (* ... DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e ... *)
   | DotAlias of expr * Tok.t * alias
-  (* ...
-        let tuple = Container (Tuple, (l, xs, r)) |> G.e in
-        DotAccess (e, tdot, FDynamic tuple) |> G.e
-  *)
   | DotTuple of expr * Tok.t * items bracket
   (* only inside Call *)
   | DotAnon of expr * Tok.t
@@ -217,16 +199,6 @@ and expr =
   (* semgrep-ext: *)
   | DeepEllipsis of expr bracket
 
-(* TODO
-      match struct_opt with
-      | None -> container
-      | Some (Left id) ->
-          let n = H2.name_of_id id in
-          let ty = G.TyN n |> G.t in
-          G.New (tpercent, ty, G.empty_id_info (), (l, Common.map G.arg xs, r))
-          |> G.e
-      | Some (Right e) -> G.Call (e, (l, Common.map G.arg xs, r)) |> G.e)
-*)
 (* restricted to Alias/A/I/DotAlias/DotTuple and all unary op *)
 and astruct = expr
 
@@ -239,22 +211,7 @@ and body = expr list
 
 (* the parenthesis can be fake *)
 and call = expr * arguments bracket * do_block option
-
-(* TODO
-   map_remote_dor:
-           FN (H2.name_of_id id)
-   ...
-           FDynamic x
-   ...
-     DotAccess (e, tdot, fld) |> G.e
-*)
 and remote_dot = expr * Tok.t (* '.' *) * ident_or_operator or_quoted
-
-(* TODO
-   map_anonymous_call:
-     let anon_fld = G.FDynamic (G.OtherExpr (("AnonDotField", tdot), []) |> G.e) in
-     let e = G.DotAccess (e, tdot, anon_fld) |> G.e in
-*)
 
 (* ------------------------------------------------------------------------- *)
 (* Clauses *)
@@ -288,19 +245,19 @@ and exn_clause_kind = After | Rescue | Catch | Else
 (* the bracket here are () *)
 and block = body_or_clauses bracket [@@deriving show { with_path = false }]
 
-(* ------------------------------------------------------------------------- *)
-(* Program *)
-(* ------------------------------------------------------------------------- *)
-
-type program = body [@@deriving show]
-
-(* ------------------------------------------------------------------------- *)
-(* Any *)
-(* ------------------------------------------------------------------------- *)
-
-type any = Pr of program [@@deriving show { with_path = false }]
-
 (*****************************************************************************)
 (* Kernel constructs *)
 (*****************************************************************************)
 (* ref: https://hexdocs.pm/elixir/Kernel.html *)
+
+(*****************************************************************************)
+(* Program *)
+(*****************************************************************************)
+
+type program = body [@@deriving show]
+
+(*****************************************************************************)
+(* Any *)
+(*****************************************************************************)
+
+type any = Pr of program [@@deriving show { with_path = false }]
