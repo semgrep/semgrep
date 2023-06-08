@@ -49,8 +49,8 @@ module G = AST_generic
 (* ------------------------------------------------------------------------- *)
 (* Tokens *)
 (* ------------------------------------------------------------------------- *)
-type 'a wrap = 'a * Tok.t
-type 'a bracket = Tok.t * 'a * Tok.t
+type 'a wrap = 'a * Tok.t [@@deriving show]
+type 'a bracket = Tok.t * 'a * Tok.t [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Names *)
@@ -63,9 +63,10 @@ type ident =
   | IdEllipsis of Tok.t (* '...' *)
   (* semgrep-ext: *)
   | IdMetavar of string wrap
+[@@deriving show { with_path = false }]
 
 (* uppercase ident; constructs that expand to atoms at compile-time *)
-type alias = string wrap
+type alias = string wrap [@@deriving show]
 
 (* ref: https://hexdocs.pm/elixir/operators.html *)
 type operator =
@@ -89,8 +90,9 @@ type operator =
   | OWhen (* when, in guards *)
   | O of G.operator
   | OOther of string
+[@@deriving show { with_path = false }]
 
-type ident_or_operator = (ident, operator wrap) Common.either
+type ident_or_operator = (ident, operator wrap) Common.either [@@deriving show]
 
 (* start of BIG recursive type because atoms can contain interpolated exprs *)
 
@@ -291,19 +293,19 @@ and do_block =
 and exn_clause_kind = After | Rescue | Catch | Else
 
 (* the bracket here are () *)
-and block = body_or_clauses bracket
+and block = body_or_clauses bracket [@@deriving show { with_path = false }]
 
 (* ------------------------------------------------------------------------- *)
 (* Program *)
 (* ------------------------------------------------------------------------- *)
 
-type program = body
+type program = body [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Any *)
 (* ------------------------------------------------------------------------- *)
 
-type any = Pr of program
+type any = Pr of program [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Kernel constructs *)
