@@ -1,0 +1,2 @@
+Fixed comparison of taint information that was causing duplicate taints to be tracked.
+Interfile analysis on large repos will see a small speedup.
