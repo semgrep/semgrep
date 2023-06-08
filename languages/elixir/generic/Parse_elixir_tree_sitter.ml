@@ -17,10 +17,6 @@ module CST = Tree_sitter_elixir.CST
 open AST_elixir
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
-module H2 = AST_generic_helpers
-
-(* TODO: remove! *)
-[@@@warning "-26"]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -972,48 +968,39 @@ and map_pair (env : env) ((v1, v2) : CST.pair) : pair =
   let v2 = map_expression env v2 in
   (v1, v2)
 
-and map_quoted_i_angle (env : env) ((v1, v2, v3) : CST.quoted_i_angle) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+and map_quoted_i_angle (env : env) ((v1, v2, v3) : CST.quoted_i_angle) : quoted
+    =
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_bar (env : env) ((v1, v2, v3) : CST.quoted_i_bar) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_curly (env : env) ((v1, v2, v3) : CST.quoted_i_curly) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_double (env : env) ((v1, v2, v3) : CST.quoted_i_double) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_heredoc_double (env : env)
     ((v1, v2, v3) : CST.quoted_i_heredoc_double) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_heredoc_single (env : env)
     ((v1, v2, v3) : CST.quoted_i_heredoc_single) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_parenthesis (env : env)
     ((v1, v2, v3) : CST.quoted_i_parenthesis) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_single (env : env) ((v1, v2, v3) : CST.quoted_i_single) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_slash (env : env) ((v1, v2, v3) : CST.quoted_i_slash) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_quoted_i_square (env : env) ((v1, v2, v3) : CST.quoted_i_square) =
-  let x = map_quoted_i_xxx map_interpolation env (v1, v2, v3) in
-  failwith "TODO"
+  map_quoted_i_xxx map_interpolation env (v1, v2, v3)
 
 and map_remote_call_with_parentheses (env : env)
     ((v1, v2, v3) : CST.remote_call_with_parentheses) : call =
@@ -1138,7 +1125,7 @@ and map_string_ (env : env) (x : CST.string_) : quoted =
   | `Quoted_i_double x -> map_quoted_i_double env x
   | `Quoted_i_here_double x -> map_quoted_i_heredoc_double env x
 
-and map_struct_ (env : env) (x : CST.struct_) : struct_ =
+and map_struct_ (env : env) (x : CST.struct_) : astruct =
   match x with
   | `Alias tok ->
       let al = map_alias env tok in

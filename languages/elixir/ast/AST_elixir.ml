@@ -107,7 +107,7 @@ and keyword = string wrap or_quoted * Tok.t (* : *)
          G.OtherExpr (("AtomExpr", t), [ E str ]) |> G.e
 *)
 and 'a or_quoted = X of 'a | Quoted of quoted
-and quoted = expr bracket
+and quoted = (string wrap, expr bracket) Common.either list bracket
 
 (* TODO: They use the term 'remote' for qualified calls with lowercase ident *)
 (* TODO: remote *)
@@ -184,7 +184,7 @@ and expr =
   (* G.OtherExpr
      (("ContainerBits", l), (xs |> Common.map (fun e -> G.E e)) @ [ G.Tk r ]) *)
   | Bits of items bracket
-  | Map of Tok.t (* "%" *) * struct_ option * items bracket
+  | Map of Tok.t (* "%" *) * astruct option * items bracket
   | Alias of alias
   | Block of block
   (* ... DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e ... *)
@@ -233,7 +233,7 @@ and expr =
       | Some (Right e) -> G.Call (e, (l, Common.map G.arg xs, r)) |> G.e)
 *)
 (* restricted to Alias/A/I/DotAlias/DotTuple and all unary op *)
-and struct_ = expr
+and astruct = expr
 
 and sigil_kind =
   | Lower of char wrap * quoted
