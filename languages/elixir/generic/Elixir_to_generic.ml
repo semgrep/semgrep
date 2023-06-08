@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open AST_elixir
 module G = AST_generic
 module H = AST_generic_helpers
@@ -35,17 +36,16 @@ let map_int _env x = x
 let map_char _env x = x
 let map_list f env xs = Common.map (f env) xs
 let map_option f env x = Option.map (f env) x
-let map_or_quoted f env v = todo env v
 
-(* TODO: maybe need a 'a. for all type
-   match v with
-   | X v ->
-       let v = f env v in
-       xxx env v
-   | Quoted v ->
-       let v = map_quoted env v in
-       xxx env v
-*)
+let either_to_either3 = function
+  | Left x -> Left3 x
+  | Right (l, x, r) -> Right3 (l, Some x, r)
+
+type quoted_generic = (string G.wrap, G.expr G.bracket) either list G.bracket
+
+let expr_of_quoted (quoted : quoted_generic) : G.expr =
+  let l, xs, r = quoted in
+  G.interpolated (l, xs |> Common.map either_to_either3, r)
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -74,52 +74,81 @@ let map_ident_expr env v : G.expr =
 
 let map_alias env v = (map_wrap map_string) env v
 
-let map_wrap_operator env (op, _tk) =
+let map_wrap_operator env (op, tk) =
   match op with
-  | OPin -> todo env ()
-  | ODot -> todo env ()
-  | OMatch -> todo env ()
-  | OCapture -> todo env ()
-  | OType -> todo env ()
-  | OStrictAnd -> todo env ()
-  | OStrictOr -> todo env ()
-  | OStrictNot -> todo env ()
-  | OPipeline -> todo env ()
-  | OModuleAttr -> todo env ()
-  | OLeftArrow -> todo env ()
-  | ODefault -> todo env ()
-  | ORightArrow -> todo env ()
-  | OCons -> todo env ()
-  | OWhen -> todo env ()
-  | O v -> todo env v
+  | OPin
+  | ODot
+  | OMatch
+  | OCapture
+  | OType
+  | OStrictAnd
+  | OStrictOr
+  | OStrictNot
+  | OPipeline
+  | OModuleAttr
+  | OLeftArrow
+  | ODefault
+  | ORightArrow
+  | OCons
+  | OWhen ->
+      Right (Tok.content_of_tok tk, tk)
+  | O op -> Left (op, tk)
   | OOther v ->
       let v = map_string env v in
-      todo env v
+      Right (v, tk)
 
 (* start of big mutually recursive functions *)
 
-let rec map_atom env (v1, v2) =
+let rec map_atom env (tcolon, v2) : G.expr =
   let v2 = (map_or_quoted (map_wrap map_string)) env v2 in
-  todo env (v1, v2)
+  match v2 with
+  | Left x -> G.L (G.Atom (tcolon, x)) |> G.e
+  | Right quoted ->
+      let e = expr_of_quoted quoted in
+      G.OtherExpr (("AtomExpr", tcolon), [ E e ]) |> G.e
 
-and map_keyword env (v1, v2) =
-  let v1 = (map_or_quoted (map_wrap map_string)) env v1 in
-  todo env (v1, v2)
+(* TODO: maybe need a 'a. for all type *)
+and map_or_quoted f env v =
+  match v with
+  | X v ->
+      let v = f env v in
+      Left (f env v)
+  | Quoted v -> Right (map_quoted env v)
 
-and map_quoted env v = todo env v
-(* TODO
-   (map_bracket (map_list f)) env v
-*)
+and map_keyword env (v1, v2) = map_or_quoted (map_wrap map_string) env v1
+
+and map_quoted env v : quoted_generic =
+  map_bracket
+    (map_list (fun env x ->
+         match x with
+         | Left x -> Left (map_wrap map_string env x)
+         | Right x -> Right (map_bracket map_expr env x)))
+    env v
 
 and map_arguments env (v1, v2) : G.argument list =
   let v1 = (map_list map_expr) env v1 in
   let v2 = map_keywords env v2 in
-  Common.map G.arg v1 @ Common.map (fun (_kwd, _e) -> todo env ()) v2
+  Common.map G.arg v1
+  @ Common.map
+      (fun (kwd, e) ->
+        match kwd with
+        | Left id -> G.ArgKwd (id, e)
+        | Right (quoted : quoted_generic) ->
+            let l, _, _ = quoted in
+            let e = expr_of_quoted quoted in
+            OtherArg (("ArgKwdQuoted", l), [ G.E e ]))
+      v2
 
-and map_items env (v1, v2) =
+and map_items env (v1, v2) : G.expr list =
   let v1 = (map_list map_expr) env v1 in
   let v2 = map_keywords env v2 in
-  todo env (v1, v2)
+  v1
+  @ Common.map
+      (fun (kwd, e) ->
+        match kwd with
+        | Left id -> G.keyval (G.N (H.name_of_id id) |> G.e) (G.fake "=>") e
+        | Right (quoted : quoted_generic) -> expr_of_quoted quoted)
+      v2
 
 and map_keywords env v = (map_list map_pair) env v
 
@@ -132,24 +161,24 @@ and map_expr_or_kwds env v =
   match v with
   | E v ->
       let v = map_expr env v in
-      todo env v
+      Left v
   | Kwds v ->
       let v = map_keywords env v in
-      todo env v
+      Right v
 
 and map_expr env v : G.expr =
   match v with
   | I v -> map_ident_expr env v
   | L lit -> G.L lit |> G.e
-  | A v ->
-      let v = map_atom env v in
-      todo env v
+  | A v -> map_atom env v
   | String v ->
       let v = map_quoted env v in
-      todo env v
+      expr_of_quoted v
   | Charlist v ->
       let v = map_quoted env v in
-      todo env v
+      let e = expr_of_quoted v in
+      let l, _, _ = v in
+      G.OtherExpr (("Charlist", l), [ G.E e ]) |> G.e
   | Sigil (v1, v2, v3) ->
       let v2 = map_sigil_kind env v2 in
       let v3 = (map_option (map_wrap map_string)) env v3 in
@@ -161,12 +190,17 @@ and map_expr env v : G.expr =
       let v = (map_bracket map_items) env v in
       G.Container (G.Tuple, v) |> G.e
   | Bits v ->
-      let v = (map_bracket map_items) env v in
-      todo env v
-  | Map (v1, v2, v3) ->
+      let l, xs, r = (map_bracket map_items) env v in
+      G.OtherExpr (("Bits", l), Common.map (fun e -> G.E e) xs @ [ G.Tk r ])
+      |> G.e
+  | Map (v1, v2, v3) -> (
       let v2 = (map_option map_astruct) env v2 in
-      let v3 = (map_bracket map_items) env v3 in
-      todo env (v1, v2, v3)
+      let l, xs, r = (map_bracket map_items) env v3 in
+      match v2 with
+      | None ->
+          let l = Tok.combine_toks v1 [ l ] in
+          G.Container (G.Dict, (l, xs, r)) |> G.e
+      | Some astruct -> todo env astruct)
   | Alias v ->
       let v = map_alias env v in
       todo env v
@@ -195,15 +229,19 @@ and map_expr env v : G.expr =
       let v2 = (map_bracket map_expr) env v2 in
       G.ArrayAccess (v1, v2) |> G.e
   | Call v -> map_call env v
-  | UnaryOp (v1, v2) ->
+  | UnaryOp (v1, v2) -> (
       let v1 = map_wrap_operator env v1 in
       let v2 = map_expr env v2 in
-      todo env (v1, v2)
-  | BinaryOp (v1, v2, v3) ->
+      match v1 with
+      | Left (op, tk) -> G.opcall (op, tk) [ v2 ]
+      | Right (str, tk) -> todo env (str, tk))
+  | BinaryOp (v1, v2, v3) -> (
       let v1 = map_expr env v1 in
       let v2 = map_wrap_operator env v2 in
       let v3 = map_expr env v3 in
-      todo env (v1, v2, v3)
+      match v2 with
+      | Left (op, tk) -> G.opcall (op, tk) [ v1; v3 ]
+      | Right (str, tk) -> todo env (str, tk))
   | OpArity (v1, v2, v3) ->
       let v1 = map_wrap_operator env v1 in
       let v3 = (map_wrap (map_option map_int)) env v3 in

@@ -65,7 +65,10 @@ type ident =
   | IdMetavar of string wrap
 [@@deriving show { with_path = false }]
 
-(* uppercase ident; constructs that expand to atoms at compile-time *)
+(* uppercase ident; constructs that expand to atoms at compile-time
+ * TODO: seems like it contain contains string with dots! Foo.Bar is
+ * parsed as a single alias, so maybe we need to inspect it and split it.
+ *)
 type alias = string wrap [@@deriving show]
 
 (* ref: https://hexdocs.pm/elixir/operators.html *)
@@ -101,18 +104,8 @@ type atom = Tok.t (* ':' *) * string wrap or_quoted
 
 (* TODO: need to extract the ':' for the ident case *)
 and keyword = string wrap or_quoted * Tok.t (* : *)
-
-(* TODO
-         G.L (G.Atom (G.fake ":", x)) |> G.e
-   ...
-         let str = map_anon_choice_quoted_i_double_d7d5f65 env v2 in
-         G.OtherExpr (("AtomExpr", t), [ E str ]) |> G.e
-*)
 and 'a or_quoted = X of 'a | Quoted of quoted
 and quoted = (string wrap, expr bracket) Common.either list bracket
-
-(* TODO: They use the term 'remote' for qualified calls with lowercase ident *)
-(* TODO: remote *)
 
 (* ------------------------------------------------------------------------- *)
 (* Keywords and arguments *)
