@@ -14,6 +14,7 @@
  *)
 open AST_elixir
 module G = AST_generic
+module H = AST_generic_helpers
 
 (* TODO: to remove! *)
 [@@@warning "-27"]
@@ -40,10 +41,10 @@ let map_or_quoted f env v = todo env v
    match v with
    | X v ->
        let v = f env v in
-       todo env v
+       xxx env v
    | Quoted v ->
        let v = map_quoted env v in
-       todo env v
+       xxx env v
 *)
 
 (*****************************************************************************)
@@ -53,20 +54,28 @@ let map_or_quoted f env v = todo env v
 let map_wrap f env (v1, v2) = (f env v1, v2)
 let map_bracket f env (v1, v2, v3) = (v1, f env v2, v3)
 
-let map_ident env v =
+let map_ident env v : G.ident =
   match v with
   | Id v ->
-      let v = (map_wrap map_string) env v in
-      todo env v
-  | IdEllipsis v -> todo env v
+      let id = (map_wrap map_string) env v in
+      id
+  | IdEllipsis v -> ("...", v)
   | IdMetavar v ->
-      let v = (map_wrap map_string) env v in
-      todo env v
+      let id = (map_wrap map_string) env v in
+      id
+
+let map_ident_expr env v : G.expr =
+  match v with
+  | IdEllipsis v -> G.Ellipsis v |> G.e
+  | Id _
+  | IdMetavar _ ->
+      let id = map_ident env v in
+      G.N (H.name_of_id id) |> G.e
 
 let map_alias env v = (map_wrap map_string) env v
 
-let map_operator env v =
-  match v with
+let map_wrap_operator env (op, _tk) =
+  match op with
   | OPin -> todo env ()
   | ODot -> todo env ()
   | OMatch -> todo env ()
@@ -87,8 +96,6 @@ let map_operator env v =
       let v = map_string env v in
       todo env v
 
-let map_ident_or_operator env v = todo env v
-
 (* start of big mutually recursive functions *)
 
 let rec map_atom env (v1, v2) =
@@ -104,10 +111,10 @@ and map_quoted env v = todo env v
    (map_bracket (map_list f)) env v
 *)
 
-and map_arguments env (v1, v2) =
+and map_arguments env (v1, v2) : G.argument list =
   let v1 = (map_list map_expr) env v1 in
   let v2 = map_keywords env v2 in
-  todo env (v1, v2)
+  Common.map G.arg v1 @ Common.map (fun (_kwd, _e) -> todo env ()) v2
 
 and map_items env (v1, v2) =
   let v1 = (map_list map_expr) env v1 in
@@ -119,7 +126,7 @@ and map_keywords env v = (map_list map_pair) env v
 and map_pair env (v1, v2) =
   let v1 = map_keyword env v1 in
   let v2 = map_expr env v2 in
-  todo env (v1, v2)
+  (v1, v2)
 
 and map_expr_or_kwds env v =
   match v with
@@ -130,12 +137,10 @@ and map_expr_or_kwds env v =
       let v = map_keywords env v in
       todo env v
 
-and map_expr env v =
+and map_expr env v : G.expr =
   match v with
-  | I v ->
-      let v = map_ident env v in
-      todo env v
-  | L v -> todo env v
+  | I v -> map_ident_expr env v
+  | L lit -> G.L lit |> G.e
   | A v ->
       let v = map_atom env v in
       todo env v
@@ -151,10 +156,10 @@ and map_expr env v =
       todo env (v1, v2, v3)
   | List v ->
       let v = (map_bracket map_items) env v in
-      todo env v
+      G.Container (G.List, v) |> G.e
   | Tuple v ->
       let v = (map_bracket map_items) env v in
-      todo env v
+      G.Container (G.Tuple, v) |> G.e
   | Bits v ->
       let v = (map_bracket map_items) env v in
       todo env v
@@ -188,21 +193,19 @@ and map_expr env v =
   | ArrayAccess (v1, v2) ->
       let v1 = map_expr env v1 in
       let v2 = (map_bracket map_expr) env v2 in
-      todo env (v1, v2)
-  | Call v ->
-      let v = map_call env v in
-      todo env v
+      G.ArrayAccess (v1, v2) |> G.e
+  | Call v -> map_call env v
   | UnaryOp (v1, v2) ->
-      let v1 = (map_wrap map_operator) env v1 in
+      let v1 = map_wrap_operator env v1 in
       let v2 = map_expr env v2 in
       todo env (v1, v2)
   | BinaryOp (v1, v2, v3) ->
       let v1 = map_expr env v1 in
-      let v2 = (map_wrap map_operator) env v2 in
+      let v2 = map_wrap_operator env v2 in
       let v3 = map_expr env v3 in
       todo env (v1, v2, v3)
   | OpArity (v1, v2, v3) ->
-      let v1 = (map_wrap map_operator) env v1 in
+      let v1 = map_wrap_operator env v1 in
       let v3 = (map_wrap (map_option map_int)) env v3 in
       todo env (v1, v2, v3)
   | When (v1, v2, v3) ->
@@ -227,7 +230,7 @@ and map_expr env v =
       todo env (v1, v2)
   | DeepEllipsis v ->
       let v = (map_bracket map_expr) env v in
-      todo env v
+      G.DeepEllipsis v |> G.e
 
 and map_astruct env v = map_expr env v
 
@@ -242,9 +245,11 @@ and map_sigil_kind env v =
       let v2 = (map_bracket (map_wrap map_string)) env v2 in
       todo env (v1, v2)
 
-and map_body env v = (map_list map_expr) env v
+and map_body env v : G.stmt list =
+  let xs = (map_list map_expr) env v in
+  xs |> Common.map G.exprstmt
 
-and map_call env (v1, v2, v3) =
+and map_call env (v1, v2, v3) : G.expr =
   let v1 = map_expr env v1 in
   let v2 = (map_bracket map_arguments) env v2 in
   let v3 = (map_option map_do_block) env v3 in
@@ -252,7 +257,7 @@ and map_call env (v1, v2, v3) =
 
 and map_remote_dot env (v1, v2, v3) =
   let v1 = map_expr env v1 in
-  let v3 = (map_or_quoted map_ident_or_operator) env v3 in
+  (* TODO let v3 = (map_or_quoted map_ident_or_operator) env v3 in *)
   todo env (v1, v2, v3)
 
 and map_stab_clause env (v1, v2, v3) =
@@ -302,7 +307,7 @@ and map_exn_clause_kind env v =
 
 and map_block env v = (map_bracket map_body_or_clauses) env v
 
-let map_program env v = map_body env v
+let map_program env v : G.program = map_body env v
 
 let map_any env v =
   match v with

@@ -827,6 +827,7 @@ and svalue =
    * using ksvalue (see Visitor_AST); or e.g. when constructing the Meta_AST. *)
   | NotCst
 
+(* TODO? Bits for Elixir/Erlang? *)
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)
   | List
