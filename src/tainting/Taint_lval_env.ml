@@ -154,8 +154,8 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
                 (* THINK: couldn't we just replace the existing taints? *)
                 | Some taints' ->
                     if
-                      !Flag_semgrep.max_taint_set_size > 0
-                      && Taints.cardinal taints'
+                      !Flag_semgrep.max_taint_set_size = 0
+                      || Taints.cardinal taints'
                          < !Flag_semgrep.max_taint_set_size
                     then Some (Taints.union taints taints')
                     else (
