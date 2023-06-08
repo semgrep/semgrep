@@ -1512,9 +1512,11 @@ let check_function_call_arguments env args =
     args
     |> List.fold_left_map
          (fun (lval_env, all_taints) arg ->
-           let taints, lval_env =
-             check_tainted_expr { env with lval_env }
-               (IL_helpers.exp_of_arg arg)
+           let e = IL_helpers.exp_of_arg arg in
+           let taints, lval_env = check_tainted_expr { env with lval_env } e in
+           let taints =
+             check_type_and_drop_taints_if_bool_or_number env taints
+               type_of_expr e
            in
            let new_acc = (lval_env, taints :: all_taints) in
            match arg with
