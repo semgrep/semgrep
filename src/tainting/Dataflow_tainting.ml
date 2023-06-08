@@ -461,11 +461,6 @@ let partition_mutating_sources sources_matches =
 (* Types *)
 (*****************************************************************************)
 
-let type_of_expr env e =
-  match e.eorig with
-  | SameAs eorig -> Typing.type_of_expr env.lang eorig |> fst
-  | __else__ -> Type.NoType
-
 let type_of_lval env lval =
   match lval with
   | { base = Var x; rev_offset = [] } ->
@@ -474,11 +469,16 @@ let type_of_lval env lval =
       Typing.resolved_type_of_id_info env.lang fld.id_info
   | __else__ -> Type.NoType
 
+let type_of_expr env e =
+  match e.eorig with
+  | SameAs eorig -> Typing.type_of_expr env.lang eorig |> fst
+  | __else__ -> Type.NoType
+
 (* We only check this at a few key places to avoid calling `type_of_expr` too
  * many times which could be bad for perf (but haven't properly benchmarked):
  * - assignments
  * - return's
- * - function calls
+ * - function calls and their actual arguments
  * TODO: Ideally we add an `e_type` field and have a type-inference pass to
  *  fill it in, so that every expression has its known type available without
  *  extra cost.
@@ -1156,10 +1156,11 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
         (Taints.empty, env.lval_env)
     | Composite (_, (_, es, _)) -> union_map_taints_and_vars env check es
     | Operator ((op, _), es) ->
-        let args_taints, lval_env =
-          es
-          |> Common.map IL_helpers.exp_of_arg
-          |> union_map_taints_and_vars env check
+        let _, args_taints, lval_env = check_function_call_arguments env es in
+        let args_taints =
+          if env.options.taint_only_propagate_through_assignments then
+            Taints.empty
+          else args_taints
         in
         let op_taints =
           match op with
@@ -1239,6 +1240,32 @@ and check_tainted_expr env exp : Taints.t * Lval_env.t =
       let taints = Taints.union taints taints_propagated in
       check_orig_if_sink env exp.eorig taints;
       (taints, var_env)
+
+(* Check the actual arguments of a function call. This also handles left-to-right
+ * taint propagation by chaining the 'lval_env's returned when checking the arguments.
+ * For example, given `foo(x.a)` we'll check whether `x.a` is tainted or whether the
+ * argument is a sink. *)
+and check_function_call_arguments env args =
+  let args_taints, (lval_env, all_taints) =
+    args
+    |> List.fold_left_map
+         (fun (lval_env, all_taints) arg ->
+           let e = IL_helpers.exp_of_arg arg in
+           let taints, lval_env = check_tainted_expr { env with lval_env } e in
+           let taints =
+             logger#flash "argument = %s" (IL.show_orig e.eorig);
+             check_type_and_drop_taints_if_bool_or_number env taints
+               type_of_expr e
+           in
+           let new_acc = (lval_env, taints :: all_taints) in
+           match arg with
+           | Unnamed _ -> (new_acc, Unnamed taints)
+           | Named (id, _) -> (new_acc, Named (id, taints)))
+         (env.lval_env, [])
+    |> Common2.swap
+  in
+  let all_args_taints = List.fold_left Taints.union Taints.empty all_taints in
+  (args_taints, all_args_taints, lval_env)
 
 let check_tainted_var env (var : IL.name) : Taints.t * Lval_env.t =
   check_tainted_lval env (LV.lval_of_var var)
@@ -1503,31 +1530,6 @@ let check_function_signature env fun_exp args args_taints =
 
 let check_function_call_callee env e = check_tainted_expr env e
 
-(* Check the actual arguments of a function call. This also handles left-to-right
- * taint propagation by chaining the 'lval_env's returned when checking the arguments.
- * For example, given `foo(x.a)` we'll check whether `x.a` is tainted or whether the
- * argument is a sink. *)
-let check_function_call_arguments env args =
-  let args_taints, (lval_env, all_taints) =
-    args
-    |> List.fold_left_map
-         (fun (lval_env, all_taints) arg ->
-           let e = IL_helpers.exp_of_arg arg in
-           let taints, lval_env = check_tainted_expr { env with lval_env } e in
-           let taints =
-             check_type_and_drop_taints_if_bool_or_number env taints
-               type_of_expr e
-           in
-           let new_acc = (lval_env, taints :: all_taints) in
-           match arg with
-           | Unnamed _ -> (new_acc, Unnamed taints)
-           | Named (id, _) -> (new_acc, Named (id, taints)))
-         (env.lval_env, [])
-    |> Common2.swap
-  in
-  let all_args_taints = List.fold_left Taints.union Taints.empty all_taints in
-  (args_taints, all_args_taints, lval_env)
-
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let check_tainted_instr env instr : Taints.t * Lval_env.t =
@@ -1600,9 +1602,13 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         let exps = ty.exps @ (args |> Common.map IL_helpers.exp_of_arg) in
         exps |> union_map_taints_and_vars env check_expr
     | CallSpecial (_, _, args) ->
-        args
-        |> Common.map IL_helpers.exp_of_arg
-        |> union_map_taints_and_vars env check_expr
+        let _, taints, lval_env = check_function_call_arguments env args in
+        let taints =
+          if env.options.taint_only_propagate_through_assignments then
+            Taints.empty
+          else taints
+        in
+        (taints, lval_env)
     | FixmeInstr _ -> (Taints.empty, env.lval_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
