@@ -491,6 +491,25 @@ let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
       Taints.empty
   | __else__ -> taints
 
+(* Calls to 'type_of_expr' seem not to be cheap and even though we tried to limit the
+ * number of these calls being made, doing them unconditionally caused a slowdown of
+ * ~25% in a ~dozen repos in our stress-test-monorepo. We should just not call
+ * 'type_of_expr' unless at least one of the taint_assume_safe_{booleans,numbers} has
+ * been set, so rules that do not use these options remain unaffected. Long term we
+ * should make type_of_expr less costly.
+ *)
+let check_type_and_drop_taints_if_bool_or_number env taints type_of_x x =
+  if
+    (env.options.taint_assume_safe_booleans
+   || env.options.taint_assume_safe_numbers)
+    && not (Taints.is_empty taints)
+  then
+    match type_of_x env x with
+    | Type.Function (_, return_ty) ->
+        drop_taints_if_bool_or_number env.options taints return_ty
+    | ty -> drop_taints_if_bool_or_number env.options taints ty
+  else taints
+
 (*****************************************************************************)
 (* Labels *)
 (*****************************************************************************)
@@ -932,7 +951,7 @@ let rec check_tainted_lval env (lval : IL.lval) : Taints.t * Lval_env.t =
   let taints_from_env = status_to_taints lval_in_env in
   let taints = Taints.union new_taints taints_from_env in
   let taints =
-    drop_taints_if_bool_or_number env.options taints (type_of_lval env lval)
+    check_type_and_drop_taints_if_bool_or_number env taints type_of_lval lval
   in
   let sinks =
     lval_is_sink env.config lval
@@ -1515,7 +1534,7 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
     | Assign (_, e) ->
         let taints, lval_env = check_expr env e in
         let taints =
-          drop_taints_if_bool_or_number env.options taints (type_of_expr env e)
+          check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
         in
         (taints, lval_env)
     | AssignAnon _ -> (Taints.empty, env.lval_env) (* TODO *)
@@ -1559,11 +1578,8 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
         (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
         let all_call_taints = Taints.union e_taints call_taints in
         let all_call_taints =
-          match type_of_expr env e with
-          | Type.Function (_, return_ty) ->
-              drop_taints_if_bool_or_number env.options all_call_taints
-                return_ty
-          | __else__ -> all_call_taints
+          check_type_and_drop_taints_if_bool_or_number env all_call_taints
+            type_of_expr e
         in
         (all_call_taints, lval_env)
     | New (_lval, _ty, Some constructor, args) -> (
@@ -1619,7 +1635,7 @@ let check_tainted_return env tok e : Taints.t * Lval_env.t =
   in
   let taints, var_env' = check_tainted_expr env e in
   let taints =
-    drop_taints_if_bool_or_number env.options taints (type_of_expr env e)
+    check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
   in
   let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings;
