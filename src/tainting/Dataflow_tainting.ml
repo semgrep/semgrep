@@ -500,8 +500,9 @@ let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
  *)
 let check_type_and_drop_taints_if_bool_or_number env taints type_of_x x =
   if
-    env.options.taint_assume_safe_booleans
-    || env.options.taint_assume_safe_numbers
+    (env.options.taint_assume_safe_booleans
+   || env.options.taint_assume_safe_numbers)
+    && not (Taints.is_empty taints)
   then
     match type_of_x env x with
     | Type.Function (_, return_ty) ->
