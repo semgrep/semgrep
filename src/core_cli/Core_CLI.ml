@@ -222,6 +222,13 @@ let dump_ast ?(naming = false) lang file =
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
+(* temporary *)
+let dump_elixir_ast file =
+  let x = Parse_elixir_tree_sitter.parse file in
+  match x.program with
+  | Some x -> pr (AST_elixir.show_program x)
+  | None -> failwith (spf "could not parse %s" file)
+
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
   let ast = Parse_target.parse_program !!file in
@@ -462,6 +469,7 @@ let all_actions () =
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
+    ("-dump_elixir_ast", " <file>", Arg_helpers.mk_action_1_arg dump_elixir_ast);
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
