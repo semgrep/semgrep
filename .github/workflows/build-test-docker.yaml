@@ -76,7 +76,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        continue-on-error: true
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
       - uses: actions/upload-artifact@v3
         with:
