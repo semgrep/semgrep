@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
@@ -439,6 +440,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 
 let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+  let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
@@ -446,7 +448,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     {
       Xtarget.file;
       xlang = rule.languages.target_analyzer;
-      lazy_content = lazy (Common.read_file file);
+      lazy_content = lazy (File.read_file file);
       lazy_ast_and_errors;
     }
   in
@@ -514,7 +516,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   in
   let config = xconf.config in
   ( {
-      Dataflow_tainting.filepath = file;
+      Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
@@ -722,7 +724,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule ~per_file_formula_cache xconf file (ast, []) rule
+    taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
       handle_findings
   in
 
