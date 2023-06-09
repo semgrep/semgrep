@@ -56,6 +56,11 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
     steps:
       - uses: docker/setup-buildx-action@v2
       - id: meta
@@ -71,30 +76,20 @@ jobs:
         uses: depot/build-push-action@v1.7.1
         with:
           project: fhmxj6w9z8
-          platforms: linux/amd64
+          platforms: ${{ inputs.platform }}
           outputs: type=docker,dest=/tmp/image.tar
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ inputs.file }}-amd64
-      - name: Build image (arm64)
-        id: build-image
-        uses: depot/build-push-action@v1.7.1
-        with:
-          project: fhmxj6w9z8
-          platforms: linux/arm64
-          outputs: type=docker,dest=/tmp/image.tar
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ inputs.file }}-arm64
+          file: ${{ inputs.file }}
       - name: Load image
         run: |
-          docker load --input /tmp/image.tar-amd64
+          docker load --input /tmp/image.tar
       - uses: actions/checkout@v3
         if: ${{ inputs.enable-tests }}
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} ${{ matrix.platform }}
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}
+          name: ${{ inputs.artifact-name }}-${{ matrix.platform }}
           path: /tmp/image.tar
