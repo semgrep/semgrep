@@ -1253,7 +1253,6 @@ and check_function_call_arguments env args =
            let e = IL_helpers.exp_of_arg arg in
            let taints, lval_env = check_tainted_expr { env with lval_env } e in
            let taints =
-             logger#flash "argument = %s" (IL.show_orig e.eorig);
              check_type_and_drop_taints_if_bool_or_number env taints
                type_of_expr e
            in
