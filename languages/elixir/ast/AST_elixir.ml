@@ -127,38 +127,6 @@ and expr_or_kwds = E of expr | Kwds of keywords
 (* ------------------------------------------------------------------------- *)
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
-
-(* TODO
-      when binaryop:
-            OtherExpr
-              ( ("When", twhen),
-                [ E e1; E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
-            |> G.e
-      consbinaryop:
-            G.OtherExpr
-              ( ("Join", tbar),
-                [ G.E e1; G.E (Elixir_to_generic.expr_of_e_or_kwds e_or_kwds) ] )
-            |> G.e
-
-            let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
-            G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
-      /int binaryop:
-            let e = G.L (G.Int (int_of_string_opt s, t)) |> G.e in
-            G.OtherExpr (("OpSlashInt", tslash), [ G.I id; G.E e ]) |> G.e
-
-   for Capture:
-         AST_generic_helpers.set_e_range v1 v3 v2;
-
-   map_unary_operator:
-   plus
-         let e1 = N (H2.name_of_id id) |> G.e in
-         Elixir_to_generic.mk_call_no_parens e1 [ G.arg e2 ] None
-   @
-         OtherExpr (("AttrExpr", tat), [ E e ]) |> G.e
-   &1
-         let e = L (Int (int_of_string_opt s, t)) |> G.e in
-         OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
-*)
 and expr =
   (* lowercase idents *)
   | I of ident
@@ -196,9 +164,6 @@ and expr =
      Lambda fdef |> G.e
   *)
   | Lambda of Tok.t (* 'fn' *) * clauses * Tok.t (* 'end' *)
-  (*
-      OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
-*)
   | Capture of Tok.t (* '&' *) * expr
   | ShortLambda of Tok.t (* '&' *) * expr bracket
   | PlaceHolder of Tok.t (* & *) * int option wrap

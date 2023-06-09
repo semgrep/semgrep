@@ -31,6 +31,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 
 let todo _env _v = failwith "TODO"
+let fb = Tok.unsafe_fake_bracket
 let map_string _env x = x
 let map_int _env x = x
 let map_char _env x = x
@@ -42,10 +43,27 @@ let either_to_either3 = function
   | Right (l, x, r) -> Right3 (l, Some x, r)
 
 type quoted_generic = (string G.wrap, G.expr G.bracket) either list G.bracket
+type keywords_generic = ((G.ident, quoted_generic) either * G.expr) list
 
 let expr_of_quoted (quoted : quoted_generic) : G.expr =
   let l, xs, r = quoted in
   G.interpolated (l, xs |> Common.map either_to_either3, r)
+
+let keyval_of_pair (kwd, e) =
+  let key =
+    match kwd with
+    | Left id -> G.N (H.name_of_id id) |> G.e
+    | Right (quoted : quoted_generic) -> expr_of_quoted quoted
+  in
+  G.keyval key (G.fake "=>") e
+
+let list_container_of_kwds (kwds : keywords_generic) : G.expr =
+  G.Container (G.List, fb (kwds |> Common.map keyval_of_pair)) |> G.e
+
+let expr_of_expr_or_kwds (x : (G.expr, keywords_generic) either) : G.expr =
+  match x with
+  | Left e -> e
+  | Right kwds -> list_container_of_kwds kwds
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -97,6 +115,11 @@ let map_wrap_operator env (op, tk) =
       let v = map_string env v in
       Right (v, tk)
 
+let map_wrap_operator_ident env v : G.ident =
+  match map_wrap_operator env v with
+  | Left (_op, tk) -> (Tok.content_of_tok tk, tk)
+  | Right (s, tk) -> (s, tk)
+
 (* start of big mutually recursive functions *)
 
 let rec map_atom env (tcolon, v2) : G.expr =
@@ -142,16 +165,7 @@ and map_arguments env (v1, v2) : G.argument list =
 and map_items env (v1, v2) : G.expr list =
   let v1 = (map_list map_expr) env v1 in
   let v2 = map_keywords env v2 in
-  v1
-  @ Common.map
-      (fun (kwd, e) ->
-        let key =
-          match kwd with
-          | Left id -> G.N (H.name_of_id id) |> G.e
-          | Right (quoted : quoted_generic) -> expr_of_quoted quoted
-        in
-        G.keyval key (G.fake "=>") e)
-      v2
+  v1 @ Common.map keyval_of_pair v2
 
 and map_keywords env v = (map_list map_pair) env v
 
@@ -160,7 +174,7 @@ and map_pair env (v1, v2) =
   let v2 = map_expr env v2 in
   (v1, v2)
 
-and map_expr_or_kwds env v =
+and map_expr_or_kwds env v : (G.expr, keywords_generic) either =
   match v with
   | E v ->
       let v = map_expr env v in
@@ -242,9 +256,9 @@ and map_expr env v : G.expr =
       G.OtherExpr (("DotAnon", tdot), [ G.E e ]) |> G.e
   (* only inside a Call *)
   | DotRemote v -> map_remote_dot env v
-  | ModuleVarAccess (v1, v2) ->
-      let v2 = map_expr env v2 in
-      todo env (v1, v2)
+  | ModuleVarAccess (tat, v2) ->
+      let e = map_expr env v2 in
+      G.OtherExpr (("AttrExpr", tat), [ G.E e ]) |> G.e
   | ArrayAccess (v1, v2) ->
       let v1 = map_expr env v1 in
       let v2 = (map_bracket map_expr) env v2 in
@@ -252,10 +266,12 @@ and map_expr env v : G.expr =
   | Call v -> map_call env v
   | UnaryOp (v1, v2) -> (
       let v1 = map_wrap_operator env v1 in
-      let v2 = map_expr env v2 in
+      let e = map_expr env v2 in
       match v1 with
-      | Left (op, tk) -> G.opcall (op, tk) [ v2 ]
-      | Right (str, tk) -> todo env (str, tk))
+      | Left (op, tk) -> G.opcall (op, tk) [ e ]
+      | Right id ->
+          let n = N (H.name_of_id id) |> G.e in
+          Call (n, fb [ G.Arg e ]) |> G.e)
   | BinaryOp (v1, v2, v3) -> (
       let e1 = map_expr env v1 in
       let op = map_wrap_operator env v2 in
@@ -264,32 +280,36 @@ and map_expr env v : G.expr =
       | Left (op, tk) -> G.opcall (op, tk) [ e1; e2 ]
       | Right id ->
           let n = N (H.name_of_id id) |> G.e in
-          Call (n, Tok.unsafe_fake_bracket ([ e1; e2 ] |> Common.map G.arg))
-          |> G.e)
-  | OpArity (v1, v2, v3) ->
-      let v1 = map_wrap_operator env v1 in
-      let v3 = (map_wrap (map_option map_int)) env v3 in
-      todo env (v1, v2, v3)
-  | When (v1, v2, v3) ->
-      let v1 = map_expr env v1 in
+          Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e)
+  | OpArity (v1, tslash, v3) ->
+      let id = map_wrap_operator_ident env v1 in
+      let x = (map_wrap (map_option map_int)) env v3 in
+      let lit = G.L (G.Int x) |> G.e in
+      G.OtherExpr (("OpArity", tslash), [ G.I id; G.E lit ]) |> G.e
+  | When (v1, twhen, v3) ->
+      let e1 = map_expr env v1 in
       let v3 = map_expr_or_kwds env v3 in
-      todo env (v1, v2, v3)
-  | Join (v1, v2, v3) ->
-      let v1 = map_expr env v1 in
+      let e3 = expr_of_expr_or_kwds v3 in
+      G.OtherExpr (("When", twhen), [ G.E e1; G.E e3 ]) |> G.e
+  | Join (v1, tbar, v3) ->
+      let e1 = map_expr env v1 in
       let v3 = map_expr_or_kwds env v3 in
-      todo env (v1, v2, v3)
+      let e3 = expr_of_expr_or_kwds v3 in
+      G.OtherExpr (("Join", tbar), [ G.E e1; G.E e3 ]) |> G.e
   | Lambda (v1, v2, v3) ->
       let v2 = map_clauses env v2 in
       todo env (v1, v2, v3)
-  | Capture (v1, v2) ->
-      let v2 = map_expr env v2 in
-      todo env (v1, v2)
-  | ShortLambda (v1, v2) ->
-      let v2 = (map_bracket map_expr) env v2 in
-      todo env (v1, v2)
-  | PlaceHolder (v1, v2) ->
-      let v2 = (map_wrap (map_option map_int)) env v2 in
-      todo env (v1, v2)
+  | Capture (tamp, v2) ->
+      let e = map_expr env v2 in
+      G.OtherExpr (("Capture", tamp), [ G.E e ]) |> G.e
+  | ShortLambda (tamp, (l, v2, r)) ->
+      let e = map_expr env v2 in
+      H.set_e_range l r e;
+      G.OtherExpr (("ShortLambda", tamp), [ G.E e ]) |> G.e
+  | PlaceHolder (tamp, v2) ->
+      let x = (map_wrap (map_option map_int)) env v2 in
+      let lit = G.L (G.Int x) |> G.e in
+      G.OtherExpr (("PlaceHolder", tamp), [ G.E lit ]) |> G.e
   | DeepEllipsis v ->
       let v = (map_bracket map_expr) env v in
       G.DeepEllipsis v |> G.e
@@ -313,7 +333,7 @@ and map_body env v : G.stmt list =
 
 and map_call env (v1, v2, v3) : G.expr =
   let v1 = map_expr env v1 in
-  let v2 = (map_bracket map_arguments) env v2 in
+  let _l, _xs, _r = (map_bracket map_arguments) env v2 in
   let v3 = (map_option map_do_block) env v3 in
   todo env (v1, v2, v3)
 
@@ -322,15 +342,12 @@ and map_remote_dot env (v1, tdot, v3) : G.expr =
   let v3 =
     match v3 with
     | X id_or_op ->
-        let str_wrap =
+        let id =
           match id_or_op with
           | Left id -> map_ident env id
-          | Right op -> (
-              match map_wrap_operator env op with
-              | Left (_op, tk) -> (Tok.content_of_tok tk, tk)
-              | Right (s, tk) -> (s, tk))
+          | Right op -> map_wrap_operator_ident env op
         in
-        X str_wrap
+        X id
     | Quoted x -> Quoted x
   in
   let v3 = map_or_quoted (map_wrap map_string) env v3 in
@@ -361,10 +378,10 @@ and map_body_or_clauses env v =
   match v with
   | Body v ->
       let v = map_body env v in
-      todo env v
+      Left v
   | Clauses v ->
       let v = map_clauses env v in
-      todo env v
+      Right v
 
 and map_do_block env v =
   let map_tuple1 env (v1, v2) =
