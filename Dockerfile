@@ -135,8 +135,6 @@ COPY Dockerfile /Dockerfile
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
-RUN ln -s semgrep-core /usr/local/bin/osemgrep
-
 # 'semgrep' is now available in /usr/local/bin thanks to the 'pip install' command
 # above, so let's remove /semgrep which is not needed anymore.
 #
@@ -147,7 +145,8 @@ RUN ln -s semgrep-core /usr/local/bin/osemgrep
 # git history).
 # TODO? to save space, we could have another docker build stage like we already
 # do between the ocaml build and the Python build.
-RUN rm -rf /semgrep
+RUN ln -s semgrep-core /usr/local/bin/osemgrep \
+    && rm -rf /semgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
@@ -159,8 +158,8 @@ ENV SEMGREP_IN_DOCKER=1 \
 WORKDIR /src
 
 RUN addgroup --system semgrep \
-    && adduser --system --shell /bin/false --ingroup semgrep semgrep
-RUN chown semgrep /src
+    && adduser --system --shell /bin/false --ingroup semgrep semgrep \
+    && chown semgrep /src
 USER semgrep
 
 
