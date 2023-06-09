@@ -68,6 +68,8 @@ jobs:
         run: |
           echo "no-slashes=${PLATFORM//\//-}" >> $GITHUB_OUTPUT
       - uses: docker/setup-buildx-action@v2
+      - if: ${{ matrix.platform != 'linux/amd64' }}
+        uses: docker/setup-qemu-action@v2
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
