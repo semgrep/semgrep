@@ -66,19 +66,29 @@ jobs:
           # :latest is also added automatically
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
-      - name: Build image
+      - name: Build image (amd64)
         id: build-image
         uses: depot/build-push-action@v1.7.1
         with:
           project: fhmxj6w9z8
-          platforms: linux/amd64,linux/arm64
-          outputs: type=oci,dest=/tmp/image.tar
+          platforms: linux/amd64
+          outputs: type=docker,dest=/tmp/image.tar
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: ${{ inputs.file }}
+          file: ${{ inputs.file }}-amd64
+      - name: Build image (arm64)
+        id: build-image
+        uses: depot/build-push-action@v1.7.1
+        with:
+          project: fhmxj6w9z8
+          platforms: linux/arm64
+          outputs: type=docker,dest=/tmp/image.tar
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ inputs.file }}-arm64
       - name: Load image
         run: |
-          docker load --input /tmp/image.tar
+          docker load --input /tmp/image.tar-amd64
       - uses: actions/checkout@v3
         if: ${{ inputs.enable-tests }}
       - name: Test Image
