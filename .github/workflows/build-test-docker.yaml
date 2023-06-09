@@ -15,10 +15,12 @@ on:
         required: true
         type: string
         description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        default: returntocorp/semgrep
       file:
         required: true
         type: string
         description: Dockerfile to build
+        default: Dockerfile
       enable-tests:
         required: true
         type: boolean
@@ -51,6 +53,9 @@ jobs:
   build-test-docker:
     name: Build and test Semgrep Docker image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: docker/setup-buildx-action@v2
       - id: meta
@@ -60,13 +65,14 @@ jobs:
           images: ${{ inputs.repository-name }}
           # :latest is also added automatically
           tags: ${{ inputs.docker-tags }}
+      - uses: depot/setup-action@v1
       - name: Build image
         id: build-image
-        uses: docker/build-push-action@v4
+        uses: depot/build-push-action@v4
         with:
-          outputs: type=docker,dest=/tmp/image.tar
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+          project: fhmxj6w9z8
+          platforms: linux/amd64,linux/arm64
+          outputs: type=oci,dest=/tmp/image.tar
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
@@ -74,6 +80,7 @@ jobs:
         run: |
           docker load --input /tmp/image.tar
       - uses: actions/checkout@v3
+        if: ${{ inputs.enable-tests }}
       - name: Test Image
         if: ${{ inputs.enable-tests }}
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}

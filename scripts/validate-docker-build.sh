@@ -25,7 +25,7 @@ EOF
 
 image=$default_image
 if [[ $# -gt 0 ]]; then
-  if [[ $# -gt 1 ]]; then
+  if [[ $# -gt 2 ]]; then
     error "too many arguments"
   fi
   case "$1" in
@@ -38,27 +38,35 @@ if [[ $# -gt 0 ]]; then
   esac
 fi
 
+platform=${2:-}
+
+docker_args=()
+
+if [[ -n $platform ]]; then
+  docker_args+=(--platform "$platform")
+fi
+
 # Running just the image should print help without error.
-docker run "$image"
+docker run ${docker_args[@]} "$image"
 
 # Random valid shell commands should run ok
-docker run "$image" echo -l -a -t -r -v -e -f
+docker run ${docker_args[@]} "$image" echo -l -a -t -r -v -e -f
 
 # Semgrep should run when a config is passed
-docker run "$image" semgrep --config=p/ci --help
+docker run ${docker_args[@]} "$image" semgrep --config=p/ci --help
 
 # Semgrep should run when just help is requested
-docker run "$image" semgrep --help
+docker run ${docker_args[@]} "$image" semgrep --help
 
 # Semgrep should run when a subcommand is passed
-docker run "$image" semgrep ci --help
-docker run "$image" semgrep publish --help
+docker run ${docker_args[@]} "$image" semgrep ci --help
+docker run ${docker_args[@]} "$image" semgrep publish --help
 
 # Semgrep should be able to return findings
 echo "if 1 == 1: pass" \
-    | docker run -i "$image" semgrep -l python -e '$X == $X' - \
+    | docker run ${docker_args[@]} -i "$image" semgrep -l python -e '$X == $X' - \
     | grep -q "1 == 1"
 
 TEMP_DIR=$(mktemp -d)
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
-docker run -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"
+docker run ${docker_args[@]} -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"

@@ -71,7 +71,7 @@ def cli(ctx: click.Context) -> None:
     state = get_state()
     state.terminal.init_for_cli()
 
-    abort_if_linux_arm64()
+    # abort_if_linux_arm64()
 
     commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
 
