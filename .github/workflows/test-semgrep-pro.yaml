@@ -80,5 +80,5 @@ jobs:
           aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
       - name: Run Semgrep Pro Engine!
         run: |
-          chmod +rwx .
+          chmod +x ./semgrep-core-proprietary
           docker run --rm -v "$(pwd):/root" -v "$(pwd)/semgrep-core-proprietary:/usr/local/bin/semgrep-core-proprietary" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
