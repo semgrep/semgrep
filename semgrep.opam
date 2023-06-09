@@ -57,8 +57,6 @@ depends: [
   "bos"
   "digestif" {>= "1.0.0"}
   "notty"
-  "mtime"
-  "duration"
   "odoc" {with-doc}
 ]
 build: [

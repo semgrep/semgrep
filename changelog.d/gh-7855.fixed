@@ -1,0 +1,1 @@
+Elixir: fix the string extraction used for -filter_irrelevant_rules
