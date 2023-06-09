@@ -1,0 +1,11 @@
+rules:
+  - id: php-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      depends-on-either:
+        - namespace: composer
+          package: bad/package
+          version: "< 99.99.99"
+    message: oh no
+    languages: [php]
+    severity: WARNING

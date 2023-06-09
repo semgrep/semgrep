@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
@@ -439,6 +440,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 
 let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+  let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
@@ -446,7 +448,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     {
       Xtarget.file;
       xlang = rule.languages.target_analyzer;
-      lazy_content = lazy (Common.read_file file);
+      lazy_content = lazy (File.read_file file);
       lazy_ast_and_errors;
     }
   in
@@ -514,7 +516,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   in
   let config = xconf.config in
   ( {
-      Dataflow_tainting.filepath = file;
+      Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
@@ -612,7 +614,7 @@ let pm_of_finding finding =
         let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
-let check_fundef lang options taint_config opt_ent fdef =
+let check_fundef lang options taint_config opt_ent ctx fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -620,6 +622,7 @@ let check_fundef lang options taint_config opt_ent fdef =
   in
   let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in
+    let var_type = Typing.resolved_type_of_id_info lang var.id_info in
     let source_pms =
       taint_config.D.is_source (G.Tk (snd id))
       @
@@ -635,6 +638,9 @@ let check_fundef lang options taint_config opt_ent fdef =
          We can safely say there's no incoming taints to these sources.
       *)
       |> T.taints_of_pms ~incoming:T.Taint_set.empty
+    in
+    let taints =
+      Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
     in
     Lval_env.add env (IL_helpers.lval_of_var var) taints
   in
@@ -686,7 +692,7 @@ let check_fundef lang options taint_config opt_ent fdef =
       Lval_env.empty
       (Tok.unbracket fdef.G.fparams)
   in
-  let _, xs = AST_to_IL.function_definition lang fdef in
+  let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config flow
@@ -718,7 +724,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule ~per_file_formula_cache xconf file (ast, []) rule
+    taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
       handle_findings
   in
 
@@ -727,10 +733,19 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   | Some setup_hook_function_taint_signature ->
       setup_hook_function_taint_signature xconf rule taint_config xtarget);
 
+  let ctx = ref AST_to_IL.empty_ctx in
+  Visit_function_defs.visit
+    (fun opt_ent _ ->
+      match opt_ent with
+      | Some { name = EN (Id (n, _)); _ } ->
+          ctx := AST_to_IL.add_entity_name !ctx n
+      | __else__ -> ())
+    ast;
+
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      check_fundef lang xconf.config taint_config opt_ent fdef |> ignore)
+      check_fundef lang xconf.config taint_config opt_ent !ctx fdef |> ignore)
     ast;
 
   (* Check the top-level statements.

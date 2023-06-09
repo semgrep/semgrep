@@ -25,6 +25,7 @@
    semgrep_core
    semgrep_optimizing
    semgrep_reporting
+   semgrep.typing
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

@@ -575,6 +575,7 @@ let brace_pairs_of_string_pairs env xs =
 let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
   let options = Option.value env.options ~default:Rule_options.default_config in
   let default = Aliengrep.Conf.default_multiline_conf in
+  let caseless = options.generic_caseless in
   let multiline = options.generic_multiline in
   let word_chars =
     default.word_chars
@@ -591,7 +592,7 @@ let aliengrep_conf_of_options (env : env) : Aliengrep.Conf.t =
     in
     base_set @ extra_braces
   in
-  { multiline; word_chars; brackets }
+  { caseless; multiline; word_chars; brackets }
 
 let parse_options rule_id (key : key) value =
   let s = J.string_of_json (generic_to_json rule_id key value) in
@@ -1532,7 +1533,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
              "Unexpected value for mode, should be 'search' or 'taint', not %s"
              (fst key))
   in
-  { step_languages = step_languages.target_analyzer; step_paths; step_mode }
+  { step_languages; step_paths; step_mode }
 
 let parse_steps env key (value : G.expr) : R.steps =
   let parse_step step = parse_step_fields env key step in

@@ -137,6 +137,8 @@ COPY Dockerfile /Dockerfile
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
+RUN ln -s semgrep-core /usr/local/bin/osemgrep
+
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \

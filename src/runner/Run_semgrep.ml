@@ -553,8 +553,10 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   Common.hash_of_list id_pairs
 
+(* TODO: use Fpath.t for file *)
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
     (file : Common.filename) : Xtarget.t =
+  let file = Fpath.v file in
   let lazy_ast_and_errors =
     lazy
       (let lang =
@@ -565,17 +567,18 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
              (* xlang from the language field in -target should be unique *)
              assert false
          | _ ->
+             (* alt: could return an empty program, but better to be defensive*)
              failwith
                "requesting generic AST for an unspecified target language"
        in
        Parse_with_caching.parse_and_resolve_name
          ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
-         (Fpath.v file))
+         file)
   in
   {
     Xtarget.file;
     xlang;
-    lazy_content = lazy (Common.read_file file);
+    lazy_content = lazy (File.read_file file);
     lazy_ast_and_errors;
   }
 
@@ -894,8 +897,7 @@ let semgrep_with_raw_results_and_exn_handler config =
       in
       (Some e, res, [])
 
-let semgrep_with_rules_and_formatted_output config =
-  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
+let output_semgrep_results (exn, res, files) config =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -932,6 +934,10 @@ let semgrep_with_rules_and_formatted_output config =
       if not (null res.errors) then (
         pr "WARNING: some files were skipped or only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+
+let semgrep_with_rules_and_formatted_output config =
+  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
+  output_semgrep_results (exn, res, files) config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)

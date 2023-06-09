@@ -16,11 +16,11 @@ let make_login_url () =
   ( session_id,
     Uri.(
       add_query_params'
-        (with_path Semgrep_envvars.env.semgrep_url "login")
+        (with_path Semgrep_envvars.v.semgrep_url "login")
         [
           ("cli-token", Uuidm.to_string session_id);
-          ("docker", if Semgrep_envvars.env.in_docker then "True" else "False");
-          ("gha", if Semgrep_envvars.env.in_gh_action then "True" else "False");
+          ("docker", if Semgrep_envvars.v.in_docker then "True" else "False");
+          ("gha", if Semgrep_envvars.v.in_gh_action then "True" else "False");
         ]) )
 
 (* from login.py *)
@@ -31,12 +31,12 @@ let save_token ~echo_token settings token =
       Logs.app (fun m ->
           m "Saved login token@.@.\t%s@.@.in %a"
             (if echo_token then token else "<redacted>")
-            Fpath.pp Semgrep_envvars.env.user_settings_file);
+            Fpath.pp Semgrep_envvars.v.user_settings_file);
       Logs.app (fun m ->
           m
             "Note: You can always generate more tokens at \
              %s/orgs/-/settings/tokens"
-            (Uri.to_string Semgrep_envvars.env.semgrep_url));
+            (Uri.to_string Semgrep_envvars.v.semgrep_url));
       true)
     else false
   else (
@@ -57,7 +57,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
-      match Semgrep_envvars.env.app_token with
+      match Semgrep_envvars.v.app_token with
       | Some token when String.length token > 0 ->
           if save_token ~echo_token:false settings token then Exit_code.ok
           else Exit_code.fatal
@@ -89,7 +89,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                   Exit_code.fatal
               | n -> (
                   let url =
-                    Uri.with_path Semgrep_envvars.env.semgrep_url
+                    Uri.with_path Semgrep_envvars.v.semgrep_url
                       "api/agent/tokens/requests"
                   in
                   let body =
@@ -129,7 +129,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                             m
                               "Unexpected failure from %s: status code %d; \
                                please contact support@r2c.dev if this persists"
-                              (Uri.to_string Semgrep_envvars.env.semgrep_url)
+                              (Uri.to_string Semgrep_envvars.v.semgrep_url)
                               status_code);
                         Logs.info (fun m -> m "HTTP error: %s" msg);
                         Exit_code.fatal))
@@ -140,7 +140,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
           m
             "API token already exists in %s. To login with a different token \
              logout use `semgrep logout`"
-            (Fpath.to_string Semgrep_envvars.env.user_settings_file));
+            (Fpath.to_string Semgrep_envvars.v.user_settings_file));
       Exit_code.fatal
 
 (*****************************************************************************)

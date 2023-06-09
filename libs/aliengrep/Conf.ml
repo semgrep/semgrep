@@ -5,6 +5,7 @@
 open Printf
 
 type t = {
+  caseless : bool;
   (* multiline = newlines are treated as ordinary whitespace *)
   multiline : bool;
   (* TODO: support UTF-8 word characters *)
@@ -76,13 +77,15 @@ let digit = [ '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9' ]
 
 let default_multiline_conf =
   {
+    caseless = false;
     multiline = true;
     word_chars = ('_' :: upper) @ lower @ digit;
     brackets = [ ('(', ')'); ('[', ']'); ('{', '}') ];
   }
 
-let default_uniline_conf =
+let default_singleline_conf =
   {
+    caseless = false;
     multiline = false;
     word_chars = default_multiline_conf.word_chars;
     brackets = [ ('"', '"'); ('\'', '\'') ] @ default_multiline_conf.brackets;
