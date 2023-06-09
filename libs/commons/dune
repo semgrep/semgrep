@@ -17,9 +17,6 @@
    re
    pcre
    parmap
-   mtime
-   mtime.clock.os
-   duration
    digestif.c
  )
  ; can't use profiling.ppx because of circular dependencies :(
