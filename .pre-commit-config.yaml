@@ -218,7 +218,7 @@ repos:
             "--config",
             "semgrep.jsonnet",
             "--error",
-            "--debugxxxx",
+            "--debug",
             #
             # note that pre-commit can call multiple times semgrep in
             # one run if there are many files in a PR (or in CI where
