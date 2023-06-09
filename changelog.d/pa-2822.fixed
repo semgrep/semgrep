@@ -1,0 +1,1 @@
+Fix a recent regression that caused failures to match in certain cases that combined metavariable-regex and typed metavariables which themselves contain metavariables (e.g. in Go `($X: $T)` with a `metavariable-regex` operating on `$T`).

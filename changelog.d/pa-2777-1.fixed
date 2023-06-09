@@ -1,0 +1,1 @@
+taint-mode: Fixed performance regression in 1.24.0 that affected taint rules.

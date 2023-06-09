@@ -620,6 +620,7 @@ let check_fundef lang options taint_config opt_ent ctx fdef =
   in
   let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in
+    let var_type = Typing.resolved_type_of_id_info lang var.id_info in
     let source_pms =
       taint_config.D.is_source (G.Tk (snd id))
       @
@@ -635,6 +636,9 @@ let check_fundef lang options taint_config opt_ent ctx fdef =
          We can safely say there's no incoming taints to these sources.
       *)
       |> T.taints_of_pms ~incoming:T.Taint_set.empty
+    in
+    let taints =
+      Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
     in
     Lval_env.add env (IL_helpers.lval_of_var var) taints
   in

@@ -128,7 +128,8 @@ let parse_pattern print_errors lang str =
       extract_pattern_from_tree_sitter_result res print_errors
   | Lang.Elixir ->
       let res = Parse_elixir_tree_sitter.parse_pattern str in
-      extract_pattern_from_tree_sitter_result res print_errors
+      let pattern = extract_pattern_from_tree_sitter_result res print_errors in
+      Elixir_to_generic.any pattern
   | Lang.Hack ->
       let res = Parse_hack_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
