@@ -34,7 +34,10 @@ let get ?headers url =
       Error
         ("HTTP request failed, server response "
         ^ Status.to_string response.status)
-  | Error (`Msg msg) -> Error ("HTTP request failed: " ^ msg)
+  | Error (`Msg msg) ->
+      let err = "HTTP request failed: " ^ msg in
+      Logs.debug (fun m -> m "%s" err);
+      Error err
   [@@profiling]
 
 let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
@@ -52,5 +55,8 @@ let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
         ( Status.to_code response.status,
           "HTTP request failed, server response "
           ^ Status.to_string response.status )
-  | Error (`Msg msg) -> Error (-1, "HTTP request failed: " ^ msg)
+  | Error (`Msg msg) ->
+      let err = "HTTP request failed: " ^ msg in
+      Logs.debug (fun m -> m "%s" err);
+      Error (-1, err)
   [@@profiling]
