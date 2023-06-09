@@ -30,7 +30,6 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-let todo _env _v = failwith "TODO"
 let fb = Tok.unsafe_fake_bracket
 let map_string _env x = x
 let map_int _env x = x
@@ -45,6 +44,16 @@ let either_to_either3 = function
 type quoted_generic = (string G.wrap, G.expr G.bracket) either list G.bracket
 type keywords_generic = ((G.ident, quoted_generic) either * G.expr) list
 
+type stab_clause_generic =
+  (G.argument list * (Tok.t * G.expr) option) * Tok.t * G.stmt list
+
+type body_or_clauses_generic = (G.stmt list, stab_clause_generic list) either
+
+type do_block_generic =
+  (body_or_clauses_generic
+  * (exn_clause_kind wrap * body_or_clauses_generic) list)
+  bracket
+
 let expr_of_quoted (quoted : quoted_generic) : G.expr =
   let l, xs, r = quoted in
   G.interpolated (l, xs |> Common.map either_to_either3, r)
@@ -57,6 +66,14 @@ let keyval_of_pair (kwd, e) =
   in
   G.keyval key (G.fake "=>") e
 
+let argument_of_pair (kwd, e) =
+  match kwd with
+  | Left id -> G.ArgKwd (id, e)
+  | Right (quoted : quoted_generic) ->
+      let l, _, _ = quoted in
+      let e = expr_of_quoted quoted in
+      OtherArg (("ArgKwdQuoted", l), [ G.E e ])
+
 let list_container_of_kwds (kwds : keywords_generic) : G.expr =
   G.Container (G.List, fb (kwds |> Common.map keyval_of_pair)) |> G.e
 
@@ -64,6 +81,79 @@ let expr_of_expr_or_kwds (x : (G.expr, keywords_generic) either) : G.expr =
   match x with
   | Left e -> e
   | Right kwds -> list_container_of_kwds kwds
+
+(* TODO: lots of work here to detect when args is really a single
+ * pattern, or tuples *)
+let pat_of_args_and_when (args, when_opt) : G.pattern =
+  let rest =
+    match when_opt with
+    | None -> []
+    | Some (_tok, e) -> [ G.E e ]
+  in
+  G.OtherPat (("ArgsAndWhenOpt", G.fake ""), G.Args args :: rest) |> G.p
+
+let case_and_body_of_stab_clause (x : stab_clause_generic) : G.case_and_body =
+  (* body can be empty *)
+  let args_and_when, _tarrow, stmts = x in
+  let pat = pat_of_args_and_when args_and_when in
+  let stmt = G.stmt1 stmts in
+  G.case_of_pat_and_stmt (pat, stmt)
+
+(* TODO: if the list contains just one element, can be a simple lambda
+ * as in 'fn (x, y) -> x + y end'. Otherwise it can be a multiple-cases
+ * switch/match.
+ * The first tk parameter corresponds to 'fn' for lambdas and 'do' when
+ * used in a do_block.
+ *)
+let stab_clauses_to_function_definition tk (xs : stab_clause_generic list) :
+    G.function_definition =
+  (* mostly a copy-paste of code to handle Function in ml_to_generic *)
+  let xs = xs |> Common.map case_and_body_of_stab_clause in
+  let id = G.implicit_param_id tk in
+  let params = [ G.Param (G.param_of_id id) ] in
+  let body_stmt =
+    G.Switch (tk, Some (G.Cond (G.N (H.name_of_id id) |> G.e)), xs) |> G.s
+  in
+  {
+    G.fparams = fb params;
+    frettype = None;
+    fkind = (G.Function, tk);
+    fbody = G.FBStmt body_stmt;
+  }
+
+let expr_of_body_or_clauses tk (x : body_or_clauses_generic) : G.expr =
+  match x with
+  | Left stmts ->
+      (* less: use G.stmt1 instead? or get rid of fake_bracket here
+       * passed down from caller? *)
+      let block = G.Block (fb stmts) |> G.s in
+      G.stmt_to_expr block
+  | Right clauses ->
+      let fdef = stab_clauses_to_function_definition tk clauses in
+      Lambda fdef |> G.e
+
+(* following Elixir semantic (unsugaring do/end block in keywords) *)
+let kwds_of_do_block (bl : do_block_generic) : keywords_generic =
+  let tdo, (body_or_clauses, extras), _tend = bl in
+  let dokwd = Left ("do:", tdo) in
+  let e = expr_of_body_or_clauses tdo body_or_clauses in
+  let pair1 = (dokwd, e) in
+  let rest =
+    extras
+    |> Common.map (fun ((kind, t), body_or_clauses) ->
+           let s = string_of_exn_kind kind in
+           let kwd = Left (s ^ ":", t) in
+           let e = expr_of_body_or_clauses t body_or_clauses in
+           (kwd, e))
+  in
+  pair1 :: rest
+
+let args_of_do_block_opt (blopt : do_block_generic option) : G.argument list =
+  match blopt with
+  | None -> []
+  | Some bl ->
+      let kwds = kwds_of_do_block bl in
+      Common.map argument_of_pair kwds
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -151,16 +241,7 @@ and map_quoted env v : quoted_generic =
 and map_arguments env (v1, v2) : G.argument list =
   let v1 = (map_list map_expr) env v1 in
   let v2 = map_keywords env v2 in
-  Common.map G.arg v1
-  @ Common.map
-      (fun (kwd, e) ->
-        match kwd with
-        | Left id -> G.ArgKwd (id, e)
-        | Right (quoted : quoted_generic) ->
-            let l, _, _ = quoted in
-            let e = expr_of_quoted quoted in
-            OtherArg (("ArgKwdQuoted", l), [ G.E e ]))
-      v2
+  Common.map G.arg v1 @ Common.map argument_of_pair v2
 
 and map_items env (v1, v2) : G.expr list =
   let v1 = (map_list map_expr) env v1 in
@@ -238,8 +319,12 @@ and map_expr env v : G.expr =
       let v = map_alias env v in
       G.N (H.name_of_id v) |> G.e
   | Block v ->
-      let v = map_block env v in
-      todo env v
+      let l, body_or_clauses, _r = map_block env v in
+
+      (* TODO: could pass a 'body_or_clauses bracket' to
+       * expr_of_body_or_clauses to avoid the fake_bracket above
+       *)
+      expr_of_body_or_clauses l body_or_clauses
   | DotAlias (v1, tdot, v3) ->
       let e = map_expr env v1 in
       (* TODO: split alias in components, and then use name_of_ids *)
@@ -296,9 +381,11 @@ and map_expr env v : G.expr =
       let v3 = map_expr_or_kwds env v3 in
       let e3 = expr_of_expr_or_kwds v3 in
       G.OtherExpr (("Join", tbar), [ G.E e1; G.E e3 ]) |> G.e
-  | Lambda (v1, v2, v3) ->
-      let v2 = map_clauses env v2 in
-      todo env (v1, v2, v3)
+  | Lambda (tfn, v2, _tend) ->
+      let xs = map_clauses env v2 in
+      let fdef = stab_clauses_to_function_definition tfn xs in
+      let fdef = { fdef with fkind = (G.LambdaKind, tfn) } in
+      G.Lambda fdef |> G.e
   | Capture (tamp, v2) ->
       let e = map_expr env v2 in
       G.OtherExpr (("Capture", tamp), [ G.E e ]) |> G.e
@@ -319,23 +406,26 @@ and map_astruct env v = map_expr env v
 and map_sigil_kind env v : G.any list =
   match v with
   | Lower (v1, v2) ->
-      let v1 = (map_wrap map_char) env v1 in
-      let v2 = map_quoted env v2 in
-      todo env (v1, v2)
+      let c, tk = (map_wrap map_char) env v1 in
+      let quoted = map_quoted env v2 in
+      let id = (spf "%c" c, tk) in
+      [ G.I id; G.E (expr_of_quoted quoted) ]
   | Upper (v1, v2) ->
-      let v1 = (map_wrap map_char) env v1 in
-      let v2 = (map_bracket (map_wrap map_string)) env v2 in
-      todo env (v1, v2)
+      let c, tk = (map_wrap map_char) env v1 in
+      let l, x, r = (map_bracket (map_wrap map_string)) env v2 in
+      let id = (spf "%c" c, tk) in
+      [ G.I id; G.E (G.L (G.String (l, x, r)) |> G.e) ]
 
 and map_body env v : G.stmt list =
   let xs = (map_list map_expr) env v in
   xs |> Common.map G.exprstmt
 
 and map_call env (v1, v2, v3) : G.expr =
-  let v1 = map_expr env v1 in
-  let _l, _xs, _r = (map_bracket map_arguments) env v2 in
+  let e = map_expr env v1 in
+  let l, args, r = (map_bracket map_arguments) env v2 in
   let v3 = (map_option map_do_block) env v3 in
-  todo env (v1, v2, v3)
+  let args' = args_of_do_block_opt v3 in
+  G.Call (e, (l, args @ args', r)) |> G.e
 
 and map_remote_dot env (v1, tdot, v3) : G.expr =
   let e = map_expr env v1 in
@@ -358,19 +448,16 @@ and map_remote_dot env (v1, tdot, v3) : G.expr =
   in
   DotAccess (e, tdot, fld) |> G.e
 
-and map_stab_clause env (v1, v2, v3) =
-  let map_tuple1 env (v1, v2) =
-    let v1 = map_arguments env v1 in
-    let map_tuple2 env (v1, v2) =
-      let v2 = map_expr env v2 in
-      todo env (v1, v2)
-    in
-    let v2 = (map_option map_tuple2) env v2 in
-    todo env (v1, v2)
+and map_stab_clause env (v : stab_clause) : stab_clause_generic =
+  let (vargs, vwhenopt), tarrow, vbody = v in
+  let args = map_arguments env vargs in
+  let map_when env (twhen, v2) =
+    let e = map_expr env v2 in
+    (twhen, e)
   in
-  let v1 = map_tuple1 env v1 in
-  let v3 = map_body env v3 in
-  todo env (v1, v2, v3)
+  let whenopt = (map_option map_when) env vwhenopt in
+  let stmts = map_body env vbody in
+  ((args, whenopt), tarrow, stmts)
 
 and map_clauses env v = (map_list map_stab_clause) env v
 
@@ -383,25 +470,17 @@ and map_body_or_clauses env v =
       let v = map_clauses env v in
       Right v
 
-and map_do_block env v =
+and map_do_block env (v : do_block) : do_block_generic =
   let map_tuple1 env (v1, v2) =
     let v1 = map_body_or_clauses env v1 in
-    let map_tuple2 env (v1, v2) =
-      let v1 = (map_wrap map_exn_clause_kind) env v1 in
+    let map_tuple2 env (kind, v2) =
       let v2 = map_body_or_clauses env v2 in
-      todo env (v1, v2)
+      (kind, v2)
     in
     let v2 = (map_list map_tuple2) env v2 in
-    todo env (v1, v2)
+    (v1, v2)
   in
   (map_bracket map_tuple1) env v
-
-and map_exn_clause_kind env v =
-  match v with
-  | After -> todo env ()
-  | Rescue -> todo env ()
-  | Catch -> todo env ()
-  | Else -> todo env ()
 
 and map_block env v = (map_bracket map_body_or_clauses) env v
 
@@ -411,7 +490,7 @@ let map_any env v =
   match v with
   | Pr v ->
       let v = map_program env v in
-      todo env v
+      G.Pr v
 
 (*****************************************************************************)
 (* Entry points *)

@@ -235,3 +235,12 @@ type program = body [@@deriving show]
 (*****************************************************************************)
 
 type any = Pr of program [@@deriving show { with_path = false }]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let string_of_exn_kind = function
+  | After -> "after"
+  | Rescue -> "rescue"
+  | Catch -> "catch"
+  | Else -> "else"
