@@ -17,9 +17,6 @@ open AST_elixir
 module G = AST_generic
 module H = AST_generic_helpers
 
-(* TODO: to remove! *)
-[@@@warning "-27"]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -135,14 +132,20 @@ let expr_of_body_or_clauses tk (x : body_or_clauses_generic) : G.expr =
 (* following Elixir semantic (unsugaring do/end block in keywords) *)
 let kwds_of_do_block (bl : do_block_generic) : keywords_generic =
   let tdo, (body_or_clauses, extras), _tend = bl in
-  let dokwd = Left ("do:", tdo) in
+  (* In theory we should unsugar as "do:", and below for the
+   * other kwds as "rescue:" for example, which is Elixir unsugaring semantic,
+   * but then this does not play well with Analyze_pattern.ml
+   * so simpler for now to unsugar as the actual keyword string without
+   * the ':' suffix.
+   *)
+  let dokwd = Left ("do", tdo) in
   let e = expr_of_body_or_clauses tdo body_or_clauses in
   let pair1 = (dokwd, e) in
   let rest =
     extras
     |> Common.map (fun ((kind, t), body_or_clauses) ->
            let s = string_of_exn_kind kind in
-           let kwd = Left (s ^ ":", t) in
+           let kwd = Left (s, t) in
            let e = expr_of_body_or_clauses t body_or_clauses in
            (kwd, e))
   in
@@ -228,7 +231,7 @@ and map_or_quoted f env v =
       Left (f env v)
   | Quoted v -> Right (map_quoted env v)
 
-and map_keyword env (v1, v2) = map_or_quoted (map_wrap map_string) env v1
+and map_keyword env (v1, _tcolon) = map_or_quoted (map_wrap map_string) env v1
 
 and map_quoted env v : quoted_generic =
   map_bracket
