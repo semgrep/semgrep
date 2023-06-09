@@ -62,6 +62,11 @@ jobs:
           - linux/amd64
           - linux/arm64
     steps:
+      - id: sanitize-platform
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          echo "no-slashes=${PLATFORM//\//-}" >> $GITHUB_OUTPUT
       - uses: docker/setup-buildx-action@v2
       - id: meta
         name: Set tags and labels
@@ -91,5 +96,5 @@ jobs:
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} ${{ matrix.platform }}
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}-${{ matrix.platform }}
+          name: ${{ inputs.artifact-name }}-${{ steps.sanitize-platform.outputs.no-slashes }}
           path: /tmp/image.tar
