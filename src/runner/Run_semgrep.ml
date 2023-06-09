@@ -553,8 +553,10 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   Common.hash_of_list id_pairs
 
+(* TODO: use Fpath.t for file *)
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
     (file : Common.filename) : Xtarget.t =
+  let file = Fpath.v file in
   let lazy_ast_and_errors =
     lazy
       (let lang =
@@ -571,12 +573,12 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
        in
        Parse_with_caching.parse_and_resolve_name
          ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
-         (Fpath.v file))
+         file)
   in
   {
     Xtarget.file;
     xlang;
-    lazy_content = lazy (Common.read_file file);
+    lazy_content = lazy (File.read_file file);
     lazy_ast_and_errors;
   }
 
