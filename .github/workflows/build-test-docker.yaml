@@ -76,7 +76,7 @@ jobs:
         uses: depot/build-push-action@v1.7.1
         with:
           project: fhmxj6w9z8
-          platforms: ${{ inputs.platform }}
+          platforms: ${{ matrix.platform }}
           outputs: type=docker,dest=/tmp/image.tar
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
