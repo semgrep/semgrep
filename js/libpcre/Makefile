@@ -10,7 +10,7 @@ build: dist/libpcre.js
 
 .PHONY: clean
 clean:
-	rm -r dist
+	rm -rf dist
 	cd downloads/pcre-8.45; $(MAKE) clean
 
 .PHONY: test
