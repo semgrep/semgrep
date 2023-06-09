@@ -100,3 +100,11 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}-${{ steps.sanitize-platform.outputs.no-slashes }}
           path: /tmp/image.tar
+  merge-images:
+    needs: [build-test-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: /tmp
