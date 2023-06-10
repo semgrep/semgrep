@@ -808,11 +808,59 @@ let interactive_loop ~turbo xlang xtargets =
   let rec render_and_loop ?(has_changed = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed state);
     loop t state
+  and do_event e t state =
+    match e with
+    | `Key (`Enter, _) ->
+        let state = execute_command state in
+        render_and_loop t state
+    | `Key (`Backspace, _) -> (
+        match state.cur_line_rev with
+        (* nothing to delete, just stay the same *)
+        | [] -> loop t state
+        | _ :: cs ->
+            stop_thread_if_turbo state;
+            let state = fresh_state { state with cur_line_rev = cs } in
+            spawn_thread_if_turbo state;
+            render_and_loop ~has_changed:true t state)
+    | `Key (`ASCII c, _) ->
+        stop_thread_if_turbo state;
+        let state =
+          fresh_state { state with cur_line_rev = c :: state.cur_line_rev }
+        in
+        spawn_thread_if_turbo state;
+        render_and_loop ~has_changed:true t state
+    | `Key (`Arrow `Left, _) ->
+        let file_zipper = !(state.file_zipper) in
+        state.file_zipper :=
+          Pointed_zipper.map_current
+            (fun { file; matches = mz } ->
+              { file; matches = Pointed_zipper.move_left mz })
+            file_zipper;
+        render_and_loop t state
+    | `Key (`Arrow `Right, _) ->
+        let file_zipper = !(state.file_zipper) in
+        state.file_zipper :=
+          Pointed_zipper.map_current
+            (fun { file; matches = mz } ->
+              { file; matches = Pointed_zipper.move_right mz })
+            file_zipper;
+        render_and_loop t state
+    | `Key (`Arrow `Up, _) ->
+        let file_zipper = !(state.file_zipper) in
+        state.file_zipper := Pointed_zipper.move_left file_zipper;
+        render_and_loop t state
+    | `Key (`Arrow `Down, _) ->
+        let file_zipper = !(state.file_zipper) in
+        state.file_zipper := Pointed_zipper.move_right file_zipper;
+        render_and_loop t state
+    | `Resize _ -> render_and_loop t state
+    | __else__ -> render_and_loop t state
   and loop t state =
     if !should_refresh then (
       (* If this is true, this indicates that we should refresh, because a
          thread has asynchronously given us new matches (and a new file zipper)
       *)
+      if true then failwith "true";
       should_refresh := false;
       render_and_loop t state)
     else
@@ -834,56 +882,9 @@ let interactive_loop ~turbo xlang xtargets =
       match Unix.select [ Unix.stdin ] [] [] 0.0005 with
       | [], _, _ ->
           (* stdin not available for reading, no data so let's cycle again
-         *)
+        *)
           loop t state
-      | _ :: _, _, _ -> (
-          match Term.event t with
-          | `Key (`Enter, _) ->
-              let state = execute_command state in
-              render_and_loop t state
-          | `Key (`Backspace, _) -> (
-              match state.cur_line_rev with
-              (* nothing to delete, just stay the same *)
-              | [] -> loop t state
-              | _ :: cs ->
-                  stop_thread_if_turbo state;
-                  let state = fresh_state { state with cur_line_rev = cs } in
-                  spawn_thread_if_turbo state;
-                  render_and_loop ~has_changed:true t state)
-          | `Key (`ASCII c, _) ->
-              stop_thread_if_turbo state;
-              let state =
-                fresh_state
-                  { state with cur_line_rev = c :: state.cur_line_rev }
-              in
-              spawn_thread_if_turbo state;
-              render_and_loop ~has_changed:true t state
-          | `Key (`Arrow `Left, _) ->
-              let file_zipper = !(state.file_zipper) in
-              state.file_zipper :=
-                Pointed_zipper.map_current
-                  (fun { file; matches = mz } ->
-                    { file; matches = Pointed_zipper.move_left mz })
-                  file_zipper;
-              render_and_loop t state
-          | `Key (`Arrow `Right, _) ->
-              let file_zipper = !(state.file_zipper) in
-              state.file_zipper :=
-                Pointed_zipper.map_current
-                  (fun { file; matches = mz } ->
-                    { file; matches = Pointed_zipper.move_right mz })
-                  file_zipper;
-              render_and_loop t state
-          | `Key (`Arrow `Up, _) ->
-              let file_zipper = !(state.file_zipper) in
-              state.file_zipper := Pointed_zipper.move_left file_zipper;
-              render_and_loop t state
-          | `Key (`Arrow `Down, _) ->
-              let file_zipper = !(state.file_zipper) in
-              state.file_zipper := Pointed_zipper.move_right file_zipper;
-              render_and_loop t state
-          | `Resize _ -> render_and_loop t state
-          | __else__ -> render_and_loop t state)
+      | _ :: _, _, _ -> do_event (Term.event t) t state
   in
   let t = Term.create () in
   Common.finalize
