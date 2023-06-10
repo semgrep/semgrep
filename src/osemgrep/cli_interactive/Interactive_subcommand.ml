@@ -879,17 +879,15 @@ let interactive_loop ~turbo xlang xtargets =
          TODO(pad): we should not need any Unix.select, and no 0.0005 timeout.
          Thread should work fine with Term.event
       *)
-      match Unix.select [ Unix.stdin ] [] [] 0.0005 with
-      | [], _, _ ->
-          (* stdin not available for reading, no data so let's cycle again
-        *)
-          loop t state
-      | _ :: _, _, _ -> do_event (Term.event t) t state
+      (* stdin not available for reading, no data so let's cycle again
+    *)
+      loop t state
   in
   let t = Term.create () in
   Common.finalize
     (fun () ->
       let state = init_state turbo xlang xtargets t in
+      do_event (Term.event t) t state |> ignore;
       (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
       if true then render_and_loop state.term state)
     (fun () -> Term.release t)
