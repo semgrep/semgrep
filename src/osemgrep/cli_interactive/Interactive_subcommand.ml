@@ -879,9 +879,11 @@ let interactive_loop ~turbo xlang xtargets =
          TODO(pad): we should not need any Unix.select, and no 0.0005 timeout.
          Thread should work fine with Term.event
       *)
-      (* stdin not available for reading, no data so let's cycle again
-    *)
-      loop t state
+      match Unix.select [ Unix.stdin ] [] [] 0.0005 with
+      | _ ->
+          (* stdin not available for reading, no data so let's cycle again
+        *)
+          loop t state
   in
   let t = Term.create () in
   Common.finalize
