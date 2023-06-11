@@ -43,10 +43,10 @@ type iformula =
 
 type matches_by_file = {
   file : string;
-  matches : Pattern_match.t Pointed_zipper.t;
+  matches : Pattern_match.t Framed_zipper.t;
       (** A zipper, because we want to be able to go back and forth
         through the matches in the file.
-        Fortunately, a regular zipper is equivalent to a pointed
+        Fortunately, a regular zipper is equivalent to a framed
         zipper with a frame size of 1.
       *)
 }
@@ -64,7 +64,7 @@ type xtarget = Xtarget.t Lock_protected.t
 type state = {
   xlang : Xlang.t;
   xtargets : xtarget list;
-  file_zipper : matches_by_file Pointed_zipper.t ref;
+  file_zipper : matches_by_file Framed_zipper.t ref;
       (** ref because our matches might change at any time when the
           thread which is doing matches completes.
           The thread needs to be able to communicate the new file zipper
@@ -278,7 +278,7 @@ let init_state turbo xlang xtargets term =
   {
     xlang;
     xtargets;
-    file_zipper = ref (Pointed_zipper.empty_with_max_len (height_of_files term));
+    file_zipper = ref (Framed_zipper.empty_with_max_len (height_of_files term));
     should_continue_iterating_targets = ref true;
     cur_line_rev = [];
     formula = None;
@@ -363,7 +363,7 @@ let mk_fake_rule lang formula =
  * so getting directly to Match_search_mode.check_rule() can be simpler.
  *)
 let matches_of_new_iformula (new_iform : iformula) (state : state) :
-    matches_by_file Pointed_zipper.t =
+    matches_by_file Framed_zipper.t =
   let rule_formula = translate_formula new_iform in
   let fake_rule =
     mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
@@ -403,7 +403,7 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
     |> List.concat_map (fun ({ matches; _ } : _ Report.match_result) ->
            Common.map (fun (m : Pattern_match.t) -> (m.file, m)) matches)
     |> Common2.group_assoc_bykey_eff
-    (* A pointed zipper with a frame size of 1 is the same as a regular
+    (* A framed zipper with a frame size of 1 is the same as a regular
        zipper.
     *)
     |> Common.map (fun (file, pms) ->
@@ -414,10 +414,10 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
                  Int.compare l1.pos.charpos l2.pos.charpos)
                pms
            in
-           { file; matches = Pointed_zipper.of_list 1 sorted_pms })
+           { file; matches = Framed_zipper.of_list 1 sorted_pms })
     |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
-  Pointed_zipper.of_list (height_of_files state.term) res_by_file
+  Framed_zipper.of_list (height_of_files state.term) res_by_file
 
 let parse_pattern_opt s state =
   try
@@ -623,9 +623,9 @@ let render_top_left_pane file_zipper state =
   in
   let lines_of_files = height_of_files state.term - I.height patterns - 1 in
   let files =
-    Pointed_zipper.take lines_of_files file_zipper
+    Framed_zipper.take lines_of_files file_zipper
     |> Common.mapi (fun idx { file; _ } ->
-           if idx = Pointed_zipper.relative_position file_zipper then
+           if idx = Framed_zipper.relative_position file_zipper then
              I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
            else I.string (A.fg (A.gray 16)) file)
   in
@@ -650,15 +650,15 @@ let render_screen ?(has_changed = false) state =
   let file_zipper = !(state.file_zipper) in
   let top_left_pane = render_top_left_pane file_zipper state in
   let preview_pane =
-    if Pointed_zipper.is_empty file_zipper then
+    if Framed_zipper.is_empty file_zipper then
       render_preview_no_matches ~has_changed state
     else
       let { file; matches = matches_zipper } =
-        Pointed_zipper.get_current file_zipper
+        Framed_zipper.get_current file_zipper
       in
       (* 1 indexed *)
-      let match_idx = Pointed_zipper.absolute_position matches_zipper + 1 in
-      let total_matches = Pointed_zipper.length matches_zipper in
+      let match_idx = Framed_zipper.absolute_position matches_zipper + 1 in
+      let total_matches = Framed_zipper.length matches_zipper in
       let match_position_img =
         if total_matches = 1 then I.void 0 0
         else
@@ -666,7 +666,7 @@ let render_screen ?(has_changed = false) state =
             (Common.spf "%d/%d" match_idx total_matches)
           |> I.hsnap ~align:`Right (w - files_width - 1)
       in
-      let pm = Pointed_zipper.get_current matches_zipper in
+      let pm = Framed_zipper.get_current matches_zipper in
       I.(match_position_img </> preview_of_match pm file state)
   in
   let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
@@ -787,7 +787,7 @@ let spawn_thread_if_turbo state =
             (* When we go back to the empty line, reset the view to default. *)
             should_refresh := true;
             state.file_zipper :=
-              Pointed_zipper.empty_with_max_len (height_of_files state.term)
+              Framed_zipper.empty_with_max_len (height_of_files state.term)
         | _, None -> ()
         | _, Some pat ->
             let new_iformula = IPat (pat, true) in
@@ -861,26 +861,26 @@ let interactive_loop ~turbo xlang xtargets =
           | `Key (`Arrow `Left, _) ->
               let file_zipper = !(state.file_zipper) in
               state.file_zipper :=
-                Pointed_zipper.map_current
+                Framed_zipper.map_current
                   (fun { file; matches = mz } ->
-                    { file; matches = Pointed_zipper.move_left mz })
+                    { file; matches = Framed_zipper.move_left mz })
                   file_zipper;
               render_and_loop t state
           | `Key (`Arrow `Right, _) ->
               let file_zipper = !(state.file_zipper) in
               state.file_zipper :=
-                Pointed_zipper.map_current
+                Framed_zipper.map_current
                   (fun { file; matches = mz } ->
-                    { file; matches = Pointed_zipper.move_right mz })
+                    { file; matches = Framed_zipper.move_right mz })
                   file_zipper;
               render_and_loop t state
           | `Key (`Arrow `Up, _) ->
               let file_zipper = !(state.file_zipper) in
-              state.file_zipper := Pointed_zipper.move_left file_zipper;
+              state.file_zipper := Framed_zipper.move_left file_zipper;
               render_and_loop t state
           | `Key (`Arrow `Down, _) ->
               let file_zipper = !(state.file_zipper) in
-              state.file_zipper := Pointed_zipper.move_right file_zipper;
+              state.file_zipper := Framed_zipper.move_right file_zipper;
               render_and_loop t state
           | `Resize _ -> render_and_loop t state
           | __else__ -> render_and_loop t state)
