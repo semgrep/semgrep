@@ -110,7 +110,7 @@ jobs:
       - run: |
           artifact_filenames=(/tmp/artifacts/${{ inputs.artifact-name }}-*/image.tar)
           if [[ ${#artifact_filenames[@]} == 1 ]]; then
-            cp ${artifact_filenames[0]} /tmp/image/tar
+            cp ${artifact_filenames[0]} /tmp/image.tar
             exit 0
           fi
           mkdir -p /tmp/merged/blobs/sha256
