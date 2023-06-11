@@ -108,17 +108,24 @@ jobs:
         with:
           path: /tmp/artifacts
       - run: |
+          artifact_filenames=/tmp/artifacts/${{ inputs.artifact-name }}-*/image.tar
+          if [[ ${#artifact_filenames[@]} == 1 ]]; then
+            cp ${artifact_filenames[0]} /tmp/image/tar
+            exit 0
+          fi
           mkdir -p /tmp/merged/blobs/sha256
           echo '{"schemaVersion": 2, "manifests": []}' > /tmp/merged/index.json
           echo '{"imageLayoutVersion":"1.0.0"}' > /tmp/merged/oci-layout
-          for filename in /tmp/artifacts/${{ inputs.artifact-name }}-*/image.tar; do
+          for filename in ${artifact_filenames[@]}; do
             cd $(dirname $filename)
             tar xf image.tar
             cp -r blobs/sha256/* /tmp/merged/blobs/sha256/
             jq -s '.[0].manifests+=.[1].manifests|.[0]' /tmp/merged/index.json index.json > /tmp/merged/index.json
+            echo "current index.json: $(cat index.json | jq)"
+            echo "index.json is now: $(cat /tmp/merged/index.json | jq)"
           done
-          echo "creating tarball"
-          tar cvf /tmp/image.tar /tmp/merged/
+          cd /tmp/merged
+          tar cf /tmp/image.tar .
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}
