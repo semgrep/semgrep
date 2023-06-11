@@ -94,6 +94,13 @@ type state = {
   should_continue_iterating_targets : bool ref;
 }
 
+type event =
+  | End
+  | Key of Unescape.key
+  | Mouse of Unescape.mouse
+  | Paste of Unescape.paste
+  | Resize of { cols : int; rows : int }
+
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
@@ -117,15 +124,7 @@ let fg_line_num = A.(fg neutral_yellow)
    redraw the screen, so we only redraw when this condition is true.
 *)
 let should_refresh = ref false
-
-let event_queue :
-    [ `End
-    | `Key of Unescape.key
-    | `Mouse of Unescape.mouse
-    | `Paste of Unescape.paste
-    | `Resize of int * int ]
-    Queue.t =
-  Queue.create ()
+let event_queue : event Queue.t = Queue.create ()
 
 (*****************************************************************************)
 (* ASCII art *)
@@ -321,6 +320,13 @@ let get_current_line state =
 let safe_subtract x y =
   let res = x - y in
   if res < 0 then 0 else res
+
+let parse_event = function
+  | `End -> End
+  | `Key k -> Key k
+  | `Mouse m -> Mouse m
+  | `Paste p -> Paste p
+  | `Resize (cols, rows) -> Resize { cols; rows }
 
 (*****************************************************************************)
 (* Engine Helpers *)
@@ -828,9 +834,8 @@ let spawn_event_thread term =
   Thread.create
     (fun _ ->
       let rec loop () =
-        let e = Term.event term in
+        let e = parse_event (Term.event term) in
         Queue.add e event_queue;
-        (* THINK: yield here? *)
         loop ()
       in
       loop ())
@@ -841,13 +846,13 @@ let interactive_loop ~turbo xlang xtargets =
   let rec render_and_loop ?(has_changed = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed state);
     loop t state
-  and on_event e state =
+  and on_event (e : event) state =
     let t = state.term in
     match e with
-    | `Key (`Enter, _) ->
+    | Key (`Enter, _) ->
         let state = execute_command state in
         render_and_loop t state
-    | `Key (`Backspace, _) -> (
+    | Key (`Backspace, _) -> (
         match state.cur_line_rev with
         (* nothing to delete, just stay the same *)
         | [] -> loop t state
@@ -856,14 +861,14 @@ let interactive_loop ~turbo xlang xtargets =
             let state = fresh_state { state with cur_line_rev = cs } in
             spawn_thread_if_turbo state;
             render_and_loop ~has_changed:true t state)
-    | `Key (`ASCII c, _) ->
+    | Key (`ASCII c, _) ->
         stop_thread_if_turbo state;
         let state =
           fresh_state { state with cur_line_rev = c :: state.cur_line_rev }
         in
         spawn_thread_if_turbo state;
         render_and_loop ~has_changed:true t state
-    | `Key (`Arrow `Left, _) ->
+    | Key (`Arrow `Left, _) ->
         let file_zipper = !(state.file_zipper) in
         state.file_zipper :=
           Pointed_zipper.map_current
@@ -871,7 +876,7 @@ let interactive_loop ~turbo xlang xtargets =
               { file; matches = Pointed_zipper.move_left mz })
             file_zipper;
         render_and_loop t state
-    | `Key (`Arrow `Right, _) ->
+    | Key (`Arrow `Right, _) ->
         let file_zipper = !(state.file_zipper) in
         state.file_zipper :=
           Pointed_zipper.map_current
@@ -879,15 +884,15 @@ let interactive_loop ~turbo xlang xtargets =
               { file; matches = Pointed_zipper.move_right mz })
             file_zipper;
         render_and_loop t state
-    | `Key (`Arrow `Up, _) ->
+    | Key (`Arrow `Up, _) ->
         let file_zipper = !(state.file_zipper) in
         state.file_zipper := Pointed_zipper.move_left file_zipper;
         render_and_loop t state
-    | `Key (`Arrow `Down, _) ->
+    | Key (`Arrow `Down, _) ->
         let file_zipper = !(state.file_zipper) in
         state.file_zipper := Pointed_zipper.move_right file_zipper;
         render_and_loop t state
-    | `Resize _ -> render_and_loop t state
+    | Resize _ -> render_and_loop t state
     | __else__ -> render_and_loop t state
   and loop t state =
     if !should_refresh then (
