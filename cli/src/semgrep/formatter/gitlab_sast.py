@@ -1,3 +1,17 @@
+#
+# Produce a report in the format expected by Gitlab.
+#
+# This is for the '--gitlab-sast' option used by the Gitlab CI integration.
+#
+# The format is specified here:
+#
+#   https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
+#
+# To validate an JSON report, use check-jsonschema:
+#
+# $ pip install check-jsonschema
+# $ check-jsonschema --schemafile sast-report-format.json myreport.json
+#
 import hashlib
 import json
 from datetime import datetime
