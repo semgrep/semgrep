@@ -37,7 +37,7 @@
 # hopefully also under Windows WSL.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
-# macros like the one below to make the Makefile portable.
+# macros like the one below to have a portable Makefile.
 
 # Used to select commands with different usage under GNU/Linux and *BSD/Darwin
 # such as 'sed'.
@@ -90,21 +90,16 @@ core:
 	ln -s semgrep-core bin/osemgrep
 
 # Make binaries available to pysemgrep
-#
-# TODO: find out and explain why we can't use symlinks
-# which is faster, clearer, and less wasteful than full copies.
-# It may have something to do with how we do Python or Homebrew packaging.
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
-	# Executables
 	rm -f cli/src/semgrep/bin/semgrep-core
-	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/osemgrep
+	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
-# Builds only the two main binaries needed for development.
+# Builds only the binary needed for development.
 # If you need other binaries, look at the rules below.
 .PHONY: minimal-build
 minimal-build:
@@ -131,28 +126,15 @@ build-pfff:
 	dune build _build/install/default/bin/pfff
 	test -e bin || ln -s _build/install/default/bin .
 
-# Build just this executable
+# This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
 .PHONY: build-parse-cairo
 build-parse-cairo:
 	rm -f bin
 	dune build _build/install/default/bin/parse-cairo
 	test -e bin || ln -s _build/install/default/bin .
 
-# Build just this executable
-.PHONY: build-spacegrep
-build-spacegrep:
-	rm -f bin
-	dune build _build/install/default/bin/spacegrep
-	test -e bin || ln -s _build/install/default/bin .
-
-# Build just this executable
-.PHONY: build-oncall
-build-oncall:
-	rm -f bin
-	dune build _build/install/default/bin/oncall
-	test -e bin || ln -s _build/install/default/bin .
-
 # Build the js_of_ocaml portion of the semgrep javascript packages
+# TODO: you actually can't 'cd js; make'; You first need this step
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
@@ -225,28 +207,15 @@ test:
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
 
-# I put 'all' as a dependency because sometimes you modify a test file
-# and dune runtest -f does not see this new file, probably because
-# the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core build-spacegrep
-	# The test executable has a few options that can be useful
-	# in some contexts.
-	$(MAKE) build-core-test
+core-test:
+	# The test executable has a few options that can be useful in some contexts.
 	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
-	$(MAKE) -C libs/spacegrep test
 	dune runtest -f --no-buffer
-
-# This is useful when working on one or a few specific test cases.
-# It rebuilds the test executable which can then be called with
-# './test <filter>' where <filter> selects the tests to run.
-.PHONY: build-core-test
-build-core-test:
-	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
