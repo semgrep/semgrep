@@ -22,6 +22,8 @@
     ;(menhir_flags (--table))
     ))
 
+; List of relevant directories to look for dune files for building. By omitting/
+; tests and stats which contains lots of files we can speedup a little bit dune.
 ; coupling: if you modify this, you probably need to modify the core-cache
 ; regexps in .github/workflow/tests.yml passed to the hashFiles function
 (dirs
@@ -29,5 +31,5 @@
   libs
   tools
   languages
-  js ; consider commenting this if the default compilation time is too much
+  js
 )
