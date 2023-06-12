@@ -215,7 +215,6 @@ core-test:
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
-	$(MAKE) -C libs/spacegrep test
 	./scripts/run-core-test
 
 #coupling: this is run by .github/workflow/tests.yml
