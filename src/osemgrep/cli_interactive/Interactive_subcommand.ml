@@ -407,6 +407,13 @@ let reset_zipper state =
  * we need; it's doubtful we want to write interactively tainting rules,
  * so getting directly to Match_search_mode.check_rule() can be simpler.
  *)
+(* [buffer_matches_of_new_iformula] is an intensive call, which causes the
+   state.file_zipper to be imperatively updated every time that we finish
+   computing matches on a given file.
+   It's called "buffer", in the same way that YouTube videos will buffer their
+   contents so that you can replay it faster. We display the file results
+   quickly up front so we don't have to wait for the whole time.
+*)
 let buffer_matches_of_new_iformula (new_iform : iformula) (state : state) : unit
     =
   let rule_formula = translate_formula new_iform in
@@ -464,12 +471,17 @@ let buffer_matches_of_new_iformula (new_iform : iformula) (state : state) : unit
                          -> Int.compare l1.pos.charpos l2.pos.charpos)
                     |> fun matches ->
                     match List.length matches with
-                    | 0 -> ()
+                    | 0 -> () (* no point in putting it in if no matches *)
                     | _ ->
                         let matches = Framed_zipper.of_list 1 matches in
                         let matches_by_file =
                           { file = Fpath.to_string xtarget.file; matches }
                         in
+                        (* It's OK to append here, which just puts it at the
+                           end, because we already sorted by file name.
+                           This means that we ensure the produced file zipper
+                           is still in alphabetical order.
+                        *)
                         atomic_map_file_zipper
                           (Framed_zipper.append matches_by_file)
                           state;
@@ -821,6 +833,7 @@ let execute_command (state : state) =
         (* This is a blocking call, so calling this function will
            just cause the REPL thread to block until all the matches
            are done.
+           TODO: We could make use of the buffering here too.
         *)
         buffer_matches_of_new_iformula new_iformula state;
         { state with formula = Some new_iformula }
