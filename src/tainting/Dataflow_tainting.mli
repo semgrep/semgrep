@@ -106,7 +106,7 @@ val hook_function_taint_signature :
 (** DEEP *)
 
 val hook_find_attribute_in_class :
-  (AST_generic.type_ -> string -> AST_generic.name option) option ref
+  (AST_generic.name -> string -> AST_generic.name option) option ref
 (** DEEP *)
 
 val fixpoint :
