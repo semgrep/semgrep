@@ -337,7 +337,7 @@ let abstract_for_comparison_visitor =
     method! visit_tok _env _i = Tok.Ab
 
     method! visit_id_info env ii =
-      super#visit_id_info env { ii with AST_generic.id_svalue = ref None }
+      super#visit_id_info env { ii with AST_generic.id_svalue = ref DontKnow }
   end
 
 let abstract_for_comparison_any x =

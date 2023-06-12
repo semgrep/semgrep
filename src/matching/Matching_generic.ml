@@ -247,8 +247,8 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
      * THINK: We could also equal two different variable occurrences that happen
      * to have the same constant value. *)
     | ( MV.E { e = G.L a_lit; _ },
-        MV.Id (_, Some { B.id_svalue = { contents = Some (B.Lit b_lit) }; _ }) )
-    | ( MV.Id (_, Some { G.id_svalue = { contents = Some (G.Lit a_lit) }; _ }),
+        MV.Id (_, Some { B.id_svalue = { contents = B.Lit b_lit }; _ }) )
+    | ( MV.Id (_, Some { G.id_svalue = { contents = G.Lit a_lit }; _ }),
         MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit

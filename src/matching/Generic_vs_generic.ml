@@ -333,8 +333,7 @@ let m_with_symbolic_propagation ~is_root f b tin =
      * one of these bugs. *)
     if tin.deref_sym_vals < max_NESTED_SYMBOLIC_PROPAGATION then
       match b.G.e with
-      | G.N (G.Id ((id, _), { id_svalue = { contents = Some (G.Sym b1) }; _ }))
-        ->
+      | G.N (G.Id ((id, _), { id_svalue = { contents = G.Sym b1 }; _ })) ->
           (* We shouldn't end up with a symbol that resolves to itself, but if
            * we do, we shouldn't crash. This simple check will not protect
            * against complicated paths through which a symbol could resolve to
@@ -1271,7 +1270,8 @@ and m_literal_svalue a b =
       | ___else___ -> fail ())
   | B.Cst _
   | B.Sym _
-  | B.NotCst ->
+  | B.NotCst
+  | B.DontKnow ->
       fail ()
 
 and m_arithmetic_operator a b =

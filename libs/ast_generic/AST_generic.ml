@@ -555,7 +555,7 @@ and id_info = {
    * meaning the same variable might have different id_svalue value
    * depending where it is used.
    *)
-  id_svalue : svalue option ref; [@equal fun _a _b -> true]
+  id_svalue : svalue ref; [@equal fun _a _b -> true]
   (* THINK: Drop option? *)
   (* id_hidden=true must be set for any artificial identifier that never
      appears in source code but is introduced in the AST after parsing.
@@ -826,6 +826,7 @@ and svalue =
    * AST representation itself, but you must be careful when e.g. iterating over ASTs
    * using ksvalue (see Visitor_AST); or e.g. when constructing the Meta_AST. *)
   | NotCst
+  | DontKnow
 
 (* TODO? Bits for Elixir/Erlang? *)
 and container_operator =
@@ -2163,7 +2164,7 @@ let empty_id_info ?(hidden = false) () =
   {
     id_resolved = ref None;
     id_type = ref None;
-    id_svalue = ref None;
+    id_svalue = ref DontKnow;
     id_hidden = hidden;
     id_info_id = id_info_id ();
   }
@@ -2172,7 +2173,7 @@ let basic_id_info ?(hidden = false) resolved =
   {
     id_resolved = ref (Some resolved);
     id_type = ref None;
-    id_svalue = ref None;
+    id_svalue = ref DontKnow;
     id_hidden = hidden;
     id_info_id = id_info_id ();
   }

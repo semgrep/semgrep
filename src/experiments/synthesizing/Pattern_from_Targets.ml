@@ -130,7 +130,7 @@ let default_id str =
          {
            id_resolved = ref None;
            id_type = ref None;
-           id_svalue = ref None;
+           id_svalue = ref DontKnow;
            id_hidden = false;
            id_info_id = IdInfoId.unsafe_default;
          } ))

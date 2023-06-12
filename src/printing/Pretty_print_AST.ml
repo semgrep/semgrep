@@ -736,6 +736,7 @@ let ctype = function
   | G.Cany -> "???"
 
 let svalue env = function
+  | G.DontKnow -> "BOT"
   | G.NotCst -> "TOP"
   | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
   | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
