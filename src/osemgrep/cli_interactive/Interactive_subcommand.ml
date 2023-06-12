@@ -482,12 +482,12 @@ let translate_formula iformula =
     | Header -> None
     | IAll ipats ->
         let pats =
-          Framed_zipper.to_list ipats |> Common.map fst |> List.filter_map aux
+          Framed_zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
         in
         Some (Rule.And (fk, { conjuncts = pats; conditions = []; focus = [] }))
     | IAny ipats ->
         let pats =
-          Framed_zipper.to_list ipats |> Common.map fst |> List.filter_map aux
+          Framed_zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
         in
         Some (Rule.Or (fk, pats))
   in
