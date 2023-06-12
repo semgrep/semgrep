@@ -36,12 +36,32 @@ type command =
   (* actual commands *)
   | Exit
 
-(* interactive formula *)
-type iformula =
+(* interactive formula, but in a zipper!
+
+   When in Pattern Builder mode, we want to be able to traverse the
+   formula, up and down. This means we need another zipper. We can
+   use `Framed_zipper` of frame 1 to mimic a true zipper, again.
+
+   The difficulty is that we would also like to be able to have the
+   zipper stop on the `all` and `any` themselves, which means we need
+   to have an extra entry in the zipper. We'll call that `Header`,
+   described below.
+*)
+type iformula_zipper =
   | IPat of Xpattern.t * bool
   (* false = negated *)
-  | IAll of iformula list
-  | IAny of iformula list
+  | Header
+  (* Header should only be within a zipper of IAll or IAny (not top level),
+     and only once. This is so if we have
+     all:
+       - foo
+       - bar
+     then "foo" and "bar" should be in the zipper, so we can go between
+     them, but we might also want to be able to go to `all`, so we include
+     a "header" as the first item in the zipper.
+  *)
+  | IAll of iformula_zipper Framed_zipper.t
+  | IAny of iformula_zipper Framed_zipper.t
 
 type matches_by_file = {
   file : string;
@@ -57,6 +77,12 @@ type matches_by_file = {
  * hence the use of Lock_protected.t
  *)
 type xtarget = Xtarget.t Lock_protected.t
+
+(* The kind of menu we are currently highlighting. We can be using the
+   arrow keys to move around in the files, or the pattern building
+   menu.
+*)
+type menu_mode = File | Pattern
 
 (* The type of the state for the interactive loop.
    This is the information we need to carry in between every key press,
@@ -80,11 +106,12 @@ type state = {
       (** The current line that we are reading in, which is not yet finished.
           It's in reverse because we're consing on to the front.
       *)
-  formula : iformula option;
-  (* True if in "All mode", false if "Any mode". This is changed
-   * when the user type 'all' or 'any' in the prompt.
-   *)
-  mode : bool;
+  formula : iformula_zipper option;
+  menu_mode : menu_mode;  (** The kind of menu we are currently highlighting. *)
+  pattern_mode : bool;
+      (** True if in "All mode", false if "Any mode". This is changed
+        * when the user type 'all' or 'any' in the prompt.
+        *)
   term : Notty_unix.Term.t;
   turbo : bool;  (** Whether or not to do Turbo. *)
   (* To tell the spawned thread to stop because its computation is not
@@ -302,7 +329,8 @@ let init_state turbo xlang xtargets term =
     should_continue_iterating_targets = ref true;
     cur_line_rev = [];
     formula = None;
-    mode = true;
+    menu_mode = File;
+    pattern_mode = true;
     term;
     turbo;
   }
@@ -339,24 +367,125 @@ let parse_event = function
   | `Paste p -> Paste p
   | `Resize (cols, rows) -> Resize { cols; rows }
 
+let bg_if b attr = if b then attr else A.empty
+
+(*****************************************************************************)
+(* Pattern building helpers *)
+(*****************************************************************************)
+
+(* The base logic for moving up and down through the pattern builder. This
+   entails moving through a zipper of zippers, so we have to ensure that we
+   only move in an outer zipper if it is not possible to move in the inner
+   zipper. In other words, by doing a depth-first search, the first move
+   should be the only one.
+*)
+let move_pat_base ~at_end ~move_zipper state =
+  let has_moved = ref false in
+  let rec move_iformula = function
+    | IPat (xpat, b) -> IPat (xpat, b)
+    | Header -> Header
+    | IAll zipper ->
+        let res = Framed_zipper.map_current move_iformula zipper in
+        if !has_moved || at_end zipper then IAll res
+        else (
+          has_moved := true;
+          IAll (move_zipper res))
+    | IAny zipper ->
+        let res = Framed_zipper.map_current move_iformula zipper in
+        if !has_moved || at_end zipper then IAny res
+        else (
+          has_moved := true;
+          IAny (move_zipper res))
+  in
+  match state.formula with
+  | None -> None
+  | Some iformula_zipper -> Some (move_iformula iformula_zipper)
+
+let move_pat_up state =
+  move_pat_base ~move_zipper:Framed_zipper.move_left
+    ~at_end:Framed_zipper.is_leftmost state
+
+let move_pat_down state =
+  move_pat_base ~move_zipper:Framed_zipper.move_right
+    ~at_end:Framed_zipper.is_rightmost state
+
+(* Map the xpat which is currently being focused by our pattern builder zipper. *)
+let map_focused_pat_string f state =
+  let rec loop pat =
+    match pat with
+    | IPat (xpat, b) ->
+        let new_xpat = f xpat in
+        IPat (new_xpat, b)
+    | Header -> Header
+    | IAll pats -> IAll (Framed_zipper.map_current loop pats)
+    | IAny pats -> IAny (Framed_zipper.map_current loop pats)
+  in
+  match state.formula with
+  | None -> failwith "precondition"
+  | Some formula -> loop formula
+
+(* Sometimes we want to load the string of whatever the currently focused
+   pattern in the pattern builder menu is, into our REPL cur line buffer.
+   This allows us to immediately start editing it as soon as we switch into
+   Pattern Builder.
+*)
+let load_focused_pat_string state =
+  let xpat_ref = ref None in
+  map_focused_pat_string
+    (fun xpat ->
+      xpat_ref := Some xpat;
+      xpat)
+    state
+  |> ignore;
+  match !xpat_ref with
+  | None -> { state with cur_line_rev = [] }
+  | Some { Xpattern.pstr = s, _; _ } ->
+      { state with cur_line_rev = List.rev (Common2.list_of_string s) }
+
+let is_pattern_menu state =
+  match state.menu_mode with
+  | Pattern -> true
+  | __else__ -> false
+
+(* We use this to get around our headers, because we don't want to map them
+   when rendering patterns, because `all:` and `any:` are meant to be
+   unindented.
+*)
+let map_nonfirst f l =
+  match l with
+  | [] -> []
+  | x :: xs -> x :: Common.map f xs
+
+(* Switch menus, when hitting the TAB key! *)
+let switch_menu = function
+  | Pattern -> File
+  | File -> Pattern
+
 (*****************************************************************************)
 (* Engine Helpers *)
 (*****************************************************************************)
 
 let fk = Tok.unsafe_fake_tok ""
 
-let rec translate_formula = function
-  | IPat (pat, true) -> Rule.P pat
-  | IPat (pat, false) -> Rule.Not (fk, P pat)
-  | IAll ipats ->
-      Rule.And
-        ( fk,
-          {
-            conjuncts = Common.map translate_formula ipats;
-            conditions = [];
-            focus = [];
-          } )
-  | IAny ipats -> Rule.Or (fk, Common.map translate_formula ipats)
+let translate_formula iformula =
+  let rec aux = function
+    | IPat (pat, true) -> Some (Rule.P pat)
+    | IPat (pat, false) -> Some (Rule.Not (fk, P pat))
+    | Header -> None
+    | IAll ipats ->
+        let pats =
+          Framed_zipper.to_list ipats |> Common.map fst |> List.filter_map aux
+        in
+        Some (Rule.And (fk, { conjuncts = pats; conditions = []; focus = [] }))
+    | IAny ipats ->
+        let pats =
+          Framed_zipper.to_list ipats |> Common.map fst |> List.filter_map aux
+        in
+        Some (Rule.Or (fk, pats))
+  in
+  match aux iformula with
+  | None -> failwith "should not happen"
+  | Some iformula -> iformula
 
 let mk_fake_rule lang formula =
   {
@@ -414,8 +543,10 @@ let reset_zipper state =
    contents so that you can replay it faster. We display the file results
    quickly up front so we don't have to wait for the whole time.
 *)
-let buffer_matches_of_new_iformula (new_iform : iformula) (state : state) : unit
-    =
+let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
+    : unit =
+  (* Reset the zipper before buffering matches into it! *)
+  reset_zipper state;
   let rule_formula = translate_formula new_iform in
   let fake_rule =
     mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
@@ -644,33 +775,54 @@ let render_preview_no_matches ~has_changed state =
 (* This just pretty-prints out the patterns we currently have in
    our tree.
 *)
-let render_patterns iformula =
-  let rec loop = function
+let render_patterns iformula state =
+  let rec loop ~header (pat, is_focus) =
+    (* To render a pattern, we have to be able to render the sub-patterns,
+       and then put them into place via indenting and adding hyphens.
+       To make sure that we highlight the focused pattern properly,
+       we carry down an "is_focus" accumulator, which should only be true
+       if the path we have taken to this pattern has only been along the
+       focused parts of the zipper.
+    *)
+    let pat_bg =
+      bg_if (is_focus && is_pattern_menu state) A.(st bold ++ bg_file_selected)
+    in
+    match pat with
     | IPat ({ Xpattern.pstr = s, _; _ }, b) ->
-        if b then I.(string A.empty (Common.spf "%s" s))
-        else I.(string A.(fg lightblue) "not: " <|> string A.empty s)
+        let img =
+          if b then I.(string pat_bg (Common.spf "%s" s))
+          else I.(string A.(fg lightblue ++ pat_bg) "not: " <|> string pat_bg s)
+        in
+        img
+    | Header ->
+        if header then I.(string A.(fg lightblue ++ pat_bg) "all:")
+        else I.(string A.(fg lightblue ++ pat_bg) "any:")
     | IAll pats ->
         I.(
-          let patterns =
-            pats |> Common.map loop
-            |> Common.map (fun img -> I.(string A.empty "- " <|> img))
-            |> vcat |> hpad 2 0
-          in
-          hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "all:")
-          <-> patterns)
+          pats |> Framed_zipper.to_list
+          |> Common.map (fun (pat, is_focus') ->
+                 loop ~header:true (pat, is_focus && is_focus'))
+          |> map_nonfirst (fun img ->
+                 I.(hpad 2 0 (string A.empty "- " <|> img)))
+          |> vcat)
     | IAny pats ->
         I.(
-          let patterns =
-            pats |> Common.map loop
-            |> Common.map (fun img -> I.(string A.empty "- " <|> img))
-            |> vcat |> hpad 2 0
-          in
-          hsnap (I.width patterns) ~align:`Left (string A.(fg lightblue) "any:")
-          <-> patterns)
+          pats |> Framed_zipper.to_list
+          |> Common.map (fun (pat, is_focus') ->
+                 loop ~header:false (pat, is_focus && is_focus'))
+          |> map_nonfirst (fun img ->
+                 I.(hpad 2 0 (string A.empty "- " <|> img)))
+          |> vcat)
   in
+  (* It doesn't actually matter what this is. By precondition, we should only hit
+     Header (which consumes this) if we first pass through IAll or IAny, which
+     resets this.
+  *)
+  let header = true in
   match iformula with
-  | IPat (_, true) -> I.(string A.(fg lightblue) "pattern: " <|> loop iformula)
-  | _ -> loop iformula
+  | IPat (_, true) ->
+      I.(string A.(fg lightblue) "pattern: " <|> loop ~header (iformula, true))
+  | _ -> loop ~header (iformula, true)
 
 (* This differs based on our mode. In Turbo Mode, this is just the
    list of files.
@@ -686,7 +838,7 @@ let render_top_left_pane file_zipper state =
     match state.formula with
     | None -> I.void 0 0
     | Some formula ->
-        render_patterns formula
+        render_patterns formula state
         |> I.hsnap (width_of_files state.term) ~align:`Left
   in
   let intermediary_bar =
@@ -697,7 +849,13 @@ let render_top_left_pane file_zipper state =
     Framed_zipper.take lines_of_files file_zipper
     |> Common.mapi (fun idx { file; _ } ->
            if idx = Framed_zipper.relative_position file_zipper then
-             I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
+             I.string
+               A.(
+                 fg (gray 19)
+                 ++ bg_if
+                      (not (is_pattern_menu state))
+                      (st bold ++ bg_file_selected))
+               file
            else I.string (A.fg (A.gray 16)) file)
   in
   I.(
@@ -747,7 +905,9 @@ let render_screen ?(has_changed = false) state =
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let mode =
     if state.turbo then I.void 0 0
-    else if state.mode then I.(string A.(fg semgrep_green) "[ALL]")
+    else if is_pattern_menu state then
+      I.(string A.(fg light_blue) "[PATTERN BUILDER]")
+    else if state.pattern_mode then I.(string A.(fg semgrep_green) "[ALL]")
     else I.(string A.(fg semgrep_green) "[ANY]")
   in
   let prompt =
@@ -816,18 +976,21 @@ let execute_command (state : state) =
     let new_pat = IPat (pat, b) in
     if state.turbo then new_pat
     else
-      match (state.formula, state.mode) with
+      match (state.formula, state.pattern_mode) with
       | None, _ -> new_pat
-      | Some (IAll pats), true -> IAll (new_pat :: pats)
-      | Some (IAny pats), false -> IAny (new_pat :: pats)
-      | Some pat, true -> IAll [ new_pat; pat ]
-      | Some pat, false -> IAny [ new_pat; pat ]
+      | Some (IAll pats), true -> IAll (Framed_zipper.append new_pat pats)
+      | Some (IAny pats), false -> IAny (Framed_zipper.append new_pat pats)
+      (* Here is where Header is introduced, when we create a new any or all. *)
+      | Some pat, true ->
+          IAll (Framed_zipper.of_list 1 [ Header; pat; new_pat ])
+      | Some pat, false ->
+          IAny (Framed_zipper.of_list 1 [ Header; pat; new_pat ])
   in
   let state =
     match cmd with
     | Exit -> failwith "bye bye"
-    | All -> { state with mode = true }
-    | Any -> { state with mode = false }
+    | All -> { state with pattern_mode = true }
+    | Any -> { state with pattern_mode = false }
     | Pat (pat, b) ->
         let new_iformula = handle_pat (pat, b) in
         (* This is a blocking call, so calling this function will
@@ -860,21 +1023,21 @@ let spawn_thread_if_turbo state =
      This reduces perceived lag if the user is typing really fast.
   *)
   if state.turbo && Queue.is_empty event_queue then
-    (reset_zipper state;
-     Thread.create
-       (fun _ ->
-         let cur_line = get_current_line state in
-         let pat_opt = parse_pattern_opt cur_line state in
-         match (cur_line, pat_opt) with
-         | "", _
-         | _, None ->
-             (* When we go back to the empty line, or find no matches,
-                reset the view to the no matches screen. *)
-             should_refresh := true
-         | _, Some pat ->
-             let new_iformula = IPat (pat, true) in
-             buffer_matches_of_new_iformula new_iformula state)
-       ())
+    Thread.create
+      (fun _ ->
+        let cur_line = get_current_line state in
+        let pat_opt = parse_pattern_opt cur_line state in
+        match (cur_line, pat_opt) with
+        | "", _
+        | _, None ->
+            (* When we go back to the empty line, or find no matches,
+               reset the view to the no matches screen. *)
+            reset_zipper state;
+            should_refresh := true
+        | _, Some pat ->
+            let new_iformula = IPat (pat, true) in
+            buffer_matches_of_new_iformula new_iformula state)
+      ()
     |> ignore
 
 let stop_thread_if_turbo state =
@@ -907,9 +1070,60 @@ let interactive_loop ~turbo xlang xtargets =
   let rec render_and_loop ?(has_changed = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed state);
     loop t state
-  and on_event (e : event) state =
+  and on_event_pattern (e : event) state =
+    (* We shouldn't be able to enter Pattern Builder mode if we have
+       no formula zipper.
+    *)
+    assert (Option.is_some state.formula);
     let t = state.term in
     match e with
+    | Key (`Tab, _) ->
+        render_and_loop t
+          {
+            state with
+            menu_mode = switch_menu state.menu_mode;
+            cur_line_rev = [];
+          }
+    | Key (`Arrow `Up, _) ->
+        let state = { state with formula = move_pat_up state } in
+        let state = load_focused_pat_string state in
+        render_and_loop t state
+    | Key (`Arrow `Down, _) ->
+        let state = { state with formula = move_pat_down state } in
+        let state = load_focused_pat_string state in
+        render_and_loop t state
+    | Key (`Enter, _) -> (
+        match parse_pattern_opt (get_current_line state) state with
+        | None ->
+            (* TODO: better error handling *)
+            render_and_loop t
+              { state with menu_mode = switch_menu state.menu_mode }
+        | Some xpat ->
+            let new_formula = map_focused_pat_string (fun _ -> xpat) state in
+            (* Load the matches from this new formula! *)
+            buffer_matches_of_new_iformula new_formula state;
+            render_and_loop t { state with formula = Some new_formula })
+    | Key (`ASCII c, _) ->
+        assert (not state.turbo);
+        let state =
+          fresh_state { state with cur_line_rev = c :: state.cur_line_rev }
+        in
+        (* It doesn't actually matter what we put here, because we shouldn't
+           be able to get here if we're Turbo, which is the only case this
+           matters.
+        *)
+        render_and_loop ~has_changed:true t state
+    | _ -> render_and_loop t state
+  and on_event_file (e : event) state =
+    let t = state.term in
+    match e with
+    | Key (`Tab, _) -> (
+        match state.formula with
+        | None -> loop t state
+        | Some _ ->
+            let state = load_focused_pat_string state in
+            render_and_loop t
+              { state with menu_mode = switch_menu state.menu_mode })
     | Key (`Enter, _) ->
         let state = execute_command state in
         render_and_loop t state
@@ -957,14 +1171,15 @@ let interactive_loop ~turbo xlang xtargets =
       should_refresh := false;
       render_and_loop t state)
     else
-      match Queue.take_opt event_queue with
-      | None ->
+      match (Queue.take_opt event_queue, state.menu_mode) with
+      | None, _ ->
           (* We have to yield here, or else the turbo thread will take a long time
              to compute, because we're hogging all the process' time!
           *)
           Thread.yield ();
           loop t state
-      | Some e -> on_event e state
+      | Some e, File -> on_event_file e state
+      | Some e, Pattern -> on_event_pattern e state
   in
   let t = Term.create () in
   spawn_event_thread t;

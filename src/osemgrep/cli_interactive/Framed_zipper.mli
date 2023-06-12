@@ -44,6 +44,11 @@ val move_left : 'a t -> 'a t
 val move_right : 'a t -> 'a t
 val of_list : int -> 'a list -> 'a t
 val append : 'a -> 'a t -> 'a t
+
+(* To list, but the enclosed bool will be true for
+   whatever the currently focused item is.
+*)
+val to_list : 'a t -> ('a * bool) list
 val empty_with_max_len : int -> 'a t
 val take : int -> 'a t -> 'a list
 val get_current : 'a t -> 'a
@@ -52,3 +57,5 @@ val is_empty : 'a t -> bool
 val length : 'a t -> int
 val absolute_position : 'a t -> int
 val relative_position : 'a t -> int
+val is_leftmost : 'a t -> bool
+val is_rightmost : 'a t -> bool
