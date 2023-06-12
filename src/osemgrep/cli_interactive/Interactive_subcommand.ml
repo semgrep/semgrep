@@ -374,11 +374,6 @@ let mk_fake_rule lang formula =
     metadata = None;
   }
 
-let ( let+ ) x f =
-  match x with
-  | None -> ()
-  | Some v -> f v
-
 let atomic_map_file_zipper f state =
   Lock_protected.with_lock
     (fun file_zipper -> file_zipper := f !file_zipper)
@@ -407,6 +402,47 @@ let reset_zipper state =
  * we need; it's doubtful we want to write interactively tainting rules,
  * so getting directly to Match_search_mode.check_rule() can be simpler.
  *)
+
+let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
+    =
+  let hook _s (_m : Pattern_match.t) = () in
+  if
+    Match_rules.is_relevant_rule_for_xtarget
+      (fake_rule :> Rule.rule)
+      xconf xtarget
+  then
+    let ({ Report.matches; _ } : _ Report.match_result) =
+      (* Calling the engine! *)
+      Match_search_mode.check_rule fake_rule hook xconf xtarget
+    in
+    matches
+    |> Common.map_filter (fun (m : Pattern_match.t) ->
+           if m.file = Fpath.to_string xtarget.file then Some m
+           else (
+             logger#warning
+               "Interactive: got match from non-current-xtarget file";
+             None))
+    |> List.sort
+         (fun
+           { Pattern_match.range_loc = l1, _; _ }
+           { Pattern_match.range_loc = l2, _; _ }
+         -> Int.compare l1.pos.charpos l2.pos.charpos)
+    |> fun matches ->
+    match List.length matches with
+    | 0 -> () (* no point in putting it in if no matches *)
+    | _ ->
+        let matches = Framed_zipper.of_list 1 matches in
+        let matches_by_file =
+          { file = Fpath.to_string xtarget.file; matches }
+        in
+        (* It's OK to append here, which just puts it at the
+            end, because we already sorted by file name.
+            This means that we ensure the produced file zipper
+            is still in alphabetical order.
+        *)
+        atomic_map_file_zipper (Framed_zipper.append matches_by_file) state;
+        should_refresh := true
+
 (* [buffer_matches_of_new_iformula] is an intensive call, which causes the
    state.file_zipper to be imperatively updated every time that we finish
    computing matches on a given file.
@@ -420,7 +456,6 @@ let buffer_matches_of_new_iformula (new_iform : iformula) (state : state) : unit
   let fake_rule =
     mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
   in
-  let hook _s (_m : Pattern_match.t) = () in
   let xconf =
     {
       Match_env.config = Rule_options.default_config;
@@ -445,47 +480,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula) (state : state) : unit
            if !(state.should_continue_iterating_targets) then
              xtarget_prot
              |> Lock_protected.with_lock (fun xtarget ->
-                    let+ { matches; _ } =
-                      if
-                        Match_rules.is_relevant_rule_for_xtarget fake_rule xconf
-                          xtarget
-                      then
-                        (* Calling the engine! *)
-                        Some
-                          (Match_search_mode.check_rule fake_rule hook xconf
-                             xtarget)
-                      else None
-                    in
-                    matches
-                    |> Common.map_filter (fun (m : Pattern_match.t) ->
-                           if m.file = Fpath.to_string xtarget.file then Some m
-                           else (
-                             logger#warning
-                               "Interactive: got match from \
-                                non-current-xtarget file";
-                             None))
-                    |> List.sort
-                         (fun
-                           { Pattern_match.range_loc = l1, _; _ }
-                           { Pattern_match.range_loc = l2, _; _ }
-                         -> Int.compare l1.pos.charpos l2.pos.charpos)
-                    |> fun matches ->
-                    match List.length matches with
-                    | 0 -> () (* no point in putting it in if no matches *)
-                    | _ ->
-                        let matches = Framed_zipper.of_list 1 matches in
-                        let matches_by_file =
-                          { file = Fpath.to_string xtarget.file; matches }
-                        in
-                        (* It's OK to append here, which just puts it at the
-                           end, because we already sorted by file name.
-                           This means that we ensure the produced file zipper
-                           is still in alphabetical order.
-                        *)
-                        atomic_map_file_zipper
-                          (Framed_zipper.append matches_by_file)
-                          state;
-                        should_refresh := true)
+                    buffer_matches_of_xtarget state fake_rule xconf xtarget)
              (* the user typed something else; we're not needed anyore *)
            else raise Thread.Exit)
     |> ignore
@@ -855,27 +850,32 @@ let execute_command (state : state) =
    Care must be taken to ensure multiple threads don't mess with each other.
 *)
 let spawn_thread_if_turbo state =
-  (* Let's only spawn a new turbo thread if we don't have more events in
-     our queue.
+  (* Let's only spawn a new turbo thread if our next event isn't
+     one which is going to spin up yet another turbo thread.
      This reduces perceived lag if the user is typing really fast.
   *)
-  if state.turbo && Queue.is_empty event_queue then
-    (reset_zipper state;
-     Thread.create
-       (fun _ ->
-         let cur_line = get_current_line state in
-         let pat_opt = parse_pattern_opt cur_line state in
-         match (cur_line, pat_opt) with
-         | "", _
-         | _, None ->
-             (* When we go back to the empty line, or find no matches,
-                reset the view to the no matches screen. *)
-             should_refresh := true
-         | _, Some pat ->
-             let new_iformula = IPat (pat, true) in
-             buffer_matches_of_new_iformula new_iformula state)
-       ())
-    |> ignore
+  match Queue.peek_opt event_queue with
+  | Some (Key (`ASCII _, _))
+  | Some (Key (`Backspace, _)) ->
+      ()
+  | __else__ ->
+      if state.turbo then
+        (reset_zipper state;
+         Thread.create
+           (fun _ ->
+             let cur_line = get_current_line state in
+             let pat_opt = parse_pattern_opt cur_line state in
+             match (cur_line, pat_opt) with
+             | "", _
+             | _, None ->
+                 (* When we go back to the empty line, or find no matches,
+                     reset the view to the no matches screen. *)
+                 should_refresh := true
+             | _, Some pat ->
+                 let new_iformula = IPat (pat, true) in
+                 buffer_matches_of_new_iformula new_iformula state)
+           ())
+        |> ignore
 
 let stop_thread_if_turbo state =
   if state.turbo then state.should_continue_iterating_targets := false
@@ -932,20 +932,20 @@ let interactive_loop ~turbo xlang xtargets =
     | Key (`Arrow `Left, _) ->
         atomic_map_file_zipper
           (Framed_zipper.map_current (fun { file; matches = mz } ->
-               { file; matches = Framed_zipper.move_left mz }))
+               { file; matches = Framed_zipper.move_up mz }))
           state;
         render_and_loop t state
     | Key (`Arrow `Right, _) ->
         atomic_map_file_zipper
           (Framed_zipper.map_current (fun { file; matches = mz } ->
-               { file; matches = Framed_zipper.move_right mz }))
+               { file; matches = Framed_zipper.move_down mz }))
           state;
         render_and_loop t state
     | Key (`Arrow `Up, _) ->
-        atomic_map_file_zipper Framed_zipper.move_left state;
+        atomic_map_file_zipper Framed_zipper.move_up state;
         render_and_loop t state
     | Key (`Arrow `Down, _) ->
-        atomic_map_file_zipper Framed_zipper.move_right state;
+        atomic_map_file_zipper Framed_zipper.move_down state;
         render_and_loop t state
     | Resize _ -> render_and_loop t state
     | __else__ -> render_and_loop t state
