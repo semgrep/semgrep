@@ -90,6 +90,11 @@ type fun_env = (var, Taint.Taint_set.t) Hashtbl.t
   * tainted). This is used for a HACK to do some poor-man's intrafile
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
+type java_props_cache
+(** When we encounter getters/setters without a definition, we need to resolve them
+  * to their corresponding property, we cache the results here. *)
+
+val mk_empty_java_props_cache : unit -> java_props_cache
 val str_of_name : IL.name -> var
 
 val hook_function_taint_signature :
@@ -98,7 +103,11 @@ val hook_function_taint_signature :
   (AST_generic.parameters (* params of function *) * Taint.finding list) option)
   option
   ref
-(** Deep Semgrep *)
+(** DEEP *)
+
+val hook_find_attribute_in_class :
+  (AST_generic.type_ -> string -> AST_generic.name option) option ref
+(** DEEP *)
 
 val fixpoint :
   ?in_env:Taint_lval_env.t ->
@@ -106,6 +115,7 @@ val fixpoint :
   Lang.t ->
   Rule_options.t ->
   config ->
+  java_props_cache ->
   IL.cfg ->
   mapping
 (** Main entry point, [fixpoint config cfg] returns a mapping (effectively a set)
