@@ -55,6 +55,7 @@ let move_right m =
 
 let take n m = Common2.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
+let append x m = { m with after = m.after @ [ x ] }
 let relative_position m = m.pointer
 let get_current m = List.nth m.after (relative_position m)
 

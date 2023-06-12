@@ -43,6 +43,7 @@ type 'a t
 val move_left : 'a t -> 'a t
 val move_right : 'a t -> 'a t
 val of_list : int -> 'a list -> 'a t
+val append : 'a -> 'a t -> 'a t
 val empty_with_max_len : int -> 'a t
 val take : int -> 'a t -> 'a list
 val get_current : 'a t -> 'a
