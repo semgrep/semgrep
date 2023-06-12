@@ -942,7 +942,7 @@ let run (conf : Interactive_CLI.conf) : Exit_code.t =
   let config = Core_runner.runner_config_of_conf conf.core_runner_conf in
   let config = { config with roots = conf.target_roots; lang = Some xlang } in
   let xtargets =
-    targets |> Common.map Fpath.to_string
+    targets
     |> Common.map (fun file ->
            let xtarget = Run_semgrep.xtarget_of_file config xlang file in
            Lock_protected.protect xtarget)

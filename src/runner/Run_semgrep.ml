@@ -555,8 +555,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
 
 (* TODO: use Fpath.t for file *)
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
-    (file : Common.filename) : Xtarget.t =
-  let file = Fpath.v file in
+    (file : Fpath.t) : Xtarget.t =
   let lazy_ast_and_errors =
     lazy
       (let lang =
@@ -692,7 +691,7 @@ let extracted_targets_of_config (config : Runner_config.t)
               passed explicitly? *)
            let file = t.path in
            let xlang = t.language in
-           let xtarget = xtarget_of_file config xlang file in
+           let xtarget = xtarget_of_file config xlang (Fpath.v file) in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
@@ -758,7 +757,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (fun (target : In.target) ->
-           let file = target.path in
+           let file = Fpath.v target.path in
            let xlang = target.language in
            let rules =
              (* Assumption: find_opt will return None iff a r_id
@@ -782,8 +781,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                      *)
                     match r.R.paths with
                     | None -> true
-                    | Some paths ->
-                        Filter_target.filter_paths paths (Fpath.v file))
+                    | Some paths -> Filter_target.filter_paths paths file)
            in
            let xtarget = xtarget_of_file config xlang file in
            let match_hook str match_ =
@@ -830,12 +828,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
             * the hook should not rely on shared memory.
             *)
            config.file_match_results_hook
-           |> Option.iter (fun hook -> hook (Fpath.v file) matches);
+           |> Option.iter (fun hook -> hook file matches);
 
            update_cli_progress config;
 
            (* adjust the match location for extracted targets *)
-           match Hashtbl.find_opt extract_result_map file with
+           match Hashtbl.find_opt extract_result_map !!file with
            | Some f -> f matches
            | None -> matches)
   in
