@@ -81,7 +81,7 @@ type engine_kind = OSS | Pro [@@deriving show, eq]
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
-  (* location information *)
+  (* location information: TODO Fpath.t *)
   file : Common.filename;
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)

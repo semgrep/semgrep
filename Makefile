@@ -37,7 +37,7 @@
 # hopefully also under Windows WSL.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
-# macros like the one below to make the Makefile portable.
+# macros like the one below to have a portable Makefile.
 
 # Used to select commands with different usage under GNU/Linux and *BSD/Darwin
 # such as 'sed'.
@@ -87,44 +87,23 @@ core:
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
+	ln -s semgrep-core bin/osemgrep
 
-# Make binaries available to 'semgrep', the Python wrapper.
-#
-# TODO: find out and explain why we can't use symlinks
-# (symlink-core-for-cli) which is faster, clearer, and less wasteful
-# than full copies. It may have something to do with how we do Python
-# or Homebrew packaging.
+# Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
-	# Executables
 	rm -f cli/src/semgrep/bin/semgrep-core
+	rm -f cli/src/semgrep/bin/osemgrep
 	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
-	rm -f cli/src/semgrep/bin/osemgrep
-	cp _build/install/default/bin/osemgrep cli/src/semgrep/bin/
-
-# Same as copy-core-for-cli but faster. This is suitable for local testing
-# of semgrep.
-#
-# Creating symlinks is much faster than making full copies with cp
-# (< 100 ms vs. 500 ms), which is significant during development.
-#
-.PHONY: symlink-core-for-cli
-symlink-core-for-cli:
-	# Executables
-	rm -f cli/src/semgrep/bin/semgrep-core
-	ln -s ../../../../bin/semgrep-core \
-	  cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
-	ln -s ../../../../bin/osemgrep \
-	  cli/src/semgrep/bin/osemgrep
+	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
-# Builds only the two main binaries needed for development.
+# Builds only the binary needed for development.
 # If you need other binaries, look at the rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core _build/install/default/bin/osemgrep
+	dune build _build/install/default/bin/semgrep-core
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -147,28 +126,15 @@ build-pfff:
 	dune build _build/install/default/bin/pfff
 	test -e bin || ln -s _build/install/default/bin .
 
-# Build just this executable
+# This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
 .PHONY: build-parse-cairo
 build-parse-cairo:
 	rm -f bin
 	dune build _build/install/default/bin/parse-cairo
 	test -e bin || ln -s _build/install/default/bin .
 
-# Build just this executable
-.PHONY: build-spacegrep
-build-spacegrep:
-	rm -f bin
-	dune build _build/install/default/bin/spacegrep
-	test -e bin || ln -s _build/install/default/bin .
-
-# Build just this executable
-.PHONY: build-oncall
-build-oncall:
-	rm -f bin
-	dune build _build/install/default/bin/oncall
-	test -e bin || ln -s _build/install/default/bin .
-
 # Build the js_of_ocaml portion of the semgrep javascript packages
+# TODO: you actually can't 'cd js; make'; You first need this step
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
@@ -241,17 +207,13 @@ test:
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
 
-# I put 'all' as a dependency because sometimes you modify a test file
-# and dune runtest -f does not see this new file, probably because
-# the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core build-spacegrep
-	# The test executable has a few options that can be useful
-	# in some contexts.
+core-test:
+	# The test executable has a few options that can be useful in some contexts.
 	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
-	# from the directory of the checkou
+	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	$(MAKE) -C libs/spacegrep test
 	./scripts/run-core-test
@@ -343,6 +305,17 @@ install-deps-and-build-ALPINE-semgrep-core:
 # -------------------------------------------------
 # macOS (brew)
 # -------------------------------------------------
+
+# Here is why we need those external packages below:
+# - pcre: for ocaml-pcre now used in semgrep-core
+# - gmp: for osemgrep (now merged with semgrep-core) and its use of cohttp
+# - pkg-config?
+# - coreutils?
+# - gettext?
+BREW_DEPS=pkg-config coreutils pcre gmp gettext
+
+install-deps-MACOS-for-semgrep-core:
+	brew install $(BREW_DEPS)
 
 # Install dependencies needed for the Homebrew build.
 #
@@ -487,11 +460,12 @@ check_for_emacs:
 
 DOCKER_IMAGE=returntocorp/semgrep:develop
 
-# If you get semgrep-core parsing errors while running this command, maybe you
-# have an old cached version of the docker image.
-# You can invalidate the cache with 'docker rmi returntocorp/semgrep:develop`
+# If you get parsing errors while running this command, maybe you have an old
+# cached version of the docker image. You can invalidate the cache with
+#   'docker rmi returntocorp/semgrep:develop`
+# We're dogfooding osemgrep here too! which is now part of the docker image.
 check_with_docker:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) osemgrep $(SEMGREP_ARGS)
 
 ###############################################################################
 # Martin's targets
@@ -500,17 +474,13 @@ check_with_docker:
 # These are normally copied by '/cli/setup.py' but it doesn't happen if we
 # run only 'dune build'.
 #
-# This is for development purposes only as I'm not sure if a symlink is ok
-# for packaging things up on the Python side.
-#
 # Usage:
 #  $ make dev
 #  $ PIPENV_PIPFILE=~/semgrep/cli/Pipfile pipenv run semgrep ...
-#
 .PHONY: dev
 dev:
 	$(MAKE) core
-	$(MAKE) symlink-core-for-cli
+	$(MAKE) copy-core-for-cli
 
 ###############################################################################
 # Pad's targets

@@ -395,3 +395,16 @@ rules:
     fix: Dataflow_svalue.set_svalue_ref $1 $2
     languages: [ocaml]
     severity: WARNING
+
+  - id: no-logger-flash
+    patterns:
+      # FIXME: This doesn't work as expected
+      # - pattern-inside: |
+      #     let $LOGGER = Logging.get_logger ...
+      #     ...
+      - pattern: $LOGGER#flash ...
+    message: >-
+      $LOGGER#flash is just for debuggging purposes.
+    fix: ""
+    languages: [ocaml]
+    severity: WARNING

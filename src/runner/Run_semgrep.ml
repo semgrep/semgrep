@@ -553,8 +553,9 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   Common.hash_of_list id_pairs
 
+(* TODO: use Fpath.t for file *)
 let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
-    (file : Common.filename) : Xtarget.t =
+    (file : Fpath.t) : Xtarget.t =
   let lazy_ast_and_errors =
     lazy
       (let lang =
@@ -565,17 +566,18 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
              (* xlang from the language field in -target should be unique *)
              assert false
          | _ ->
+             (* alt: could return an empty program, but better to be defensive*)
              failwith
                "requesting generic AST for an unspecified target language"
        in
        Parse_with_caching.parse_and_resolve_name
          ~parsing_cache_dir:config.parsing_cache_dir AST_generic.version lang
-         (Fpath.v file))
+         file)
   in
   {
     Xtarget.file;
     xlang;
-    lazy_content = lazy (Common.read_file file);
+    lazy_content = lazy (File.read_file file);
     lazy_ast_and_errors;
   }
 
@@ -689,7 +691,7 @@ let extracted_targets_of_config (config : Runner_config.t)
               passed explicitly? *)
            let file = t.path in
            let xlang = t.language in
-           let xtarget = xtarget_of_file config xlang file in
+           let xtarget = xtarget_of_file config xlang (Fpath.v file) in
            let extracted_targets =
              Match_extract_mode.extract_nested_lang ~match_hook
                ~timeout:config.timeout
@@ -755,7 +757,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (fun (target : In.target) ->
-           let file = target.path in
+           let file = Fpath.v target.path in
            let xlang = target.language in
            let rules =
              (* Assumption: find_opt will return None iff a r_id
@@ -779,8 +781,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
                      *)
                     match r.R.paths with
                     | None -> true
-                    | Some paths ->
-                        Filter_target.filter_paths paths (Fpath.v file))
+                    | Some paths -> Filter_target.filter_paths paths file)
            in
            let xtarget = xtarget_of_file config xlang file in
            let match_hook str match_ =
@@ -827,12 +828,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
             * the hook should not rely on shared memory.
             *)
            config.file_match_results_hook
-           |> Option.iter (fun hook -> hook (Fpath.v file) matches);
+           |> Option.iter (fun hook -> hook file matches);
 
            update_cli_progress config;
 
            (* adjust the match location for extracted targets *)
-           match Hashtbl.find_opt extract_result_map file with
+           match Hashtbl.find_opt extract_result_map !!file with
            | Some f -> f matches
            | None -> matches)
   in
@@ -894,8 +895,7 @@ let semgrep_with_raw_results_and_exn_handler config =
       in
       (Some e, res, [])
 
-let semgrep_with_rules_and_formatted_output config =
-  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
+let output_semgrep_results (exn, res, files) config =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -932,6 +932,10 @@ let semgrep_with_rules_and_formatted_output config =
       if not (null res.errors) then (
         pr "WARNING: some files were skipped or only partially analyzed:";
         res.errors |> List.iter (fun err -> pr (E.string_of_error err)))
+
+let semgrep_with_rules_and_formatted_output config =
+  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
+  output_semgrep_results (exn, res, files) config
 
 (*****************************************************************************)
 (* semgrep-core -e/-f *)

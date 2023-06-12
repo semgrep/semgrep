@@ -13,6 +13,7 @@ from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.engine import EngineType
+from semgrep.error import SemgrepError
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GitMeta
 from semgrep.metrics import MetricsState
@@ -204,13 +205,19 @@ class LSPConfig:
         elif len(self.rules) == 0:
             self.rules.extend(self.auto_rules)
 
-    def send_metrics(self) -> None:
+    def send_metrics(
+        self, exit_code: Optional[int] = None, error: Optional[SemgrepError] = None
+    ) -> None:
         state = get_state()
         metrics = state.metrics
         metrics.configure(self.metrics_state, None)
         metrics.add_engine_type(self.engine_type)
         metrics.add_project_url(self.project_url)
         metrics.add_token(self.token)
+        if exit_code is not None:
+            metrics.add_exit_code(exit_code)
+        if error is not None:
+            metrics.add_errors([error])
         extension_metrics = self.extension_metrics
         machine_id = extension_metrics.get("machineId")
         new_install = extension_metrics.get("isNewAppInstall")

@@ -2,6 +2,7 @@
  (names Main)
  (libraries
     semgrep_core_cli
+    osemgrep_cli
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug
@@ -19,5 +20,6 @@
 (install
  (package semgrep)
  (section bin)
+ ; LATER: at some point we should copy it as osemgrep instead
  (files (Main.exe as semgrep-core))
 )

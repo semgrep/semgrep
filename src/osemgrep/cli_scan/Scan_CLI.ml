@@ -129,8 +129,8 @@ let default : conf =
     max_lines_per_finding = 10;
     rewrite_rule_ids = true;
     metrics = Metrics_.Auto;
-    (* like legacy, should maybe be set to false when we release osemgrep*)
-    registry_caching = true;
+    (* like legacy, should maybe be set to false when we release osemgrep *)
+    registry_caching = false;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;

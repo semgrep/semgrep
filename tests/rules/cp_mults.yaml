@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    patterns:
+      - pattern: $F(..., $VAR=$VAL, ...)
+      - metavariable-comparison:
+          comparison: $VAL > 2
+      - focus-metavariable: $VAL
+    languages:
+      - python
+    severity: INFO
+    message: "`$VAR` has value `value($VAL)`"

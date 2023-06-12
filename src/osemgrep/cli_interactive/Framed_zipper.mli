@@ -1,12 +1,12 @@
-(* This module implements something I call a "pointed zipper".
+(* This module implements something I call a "framed zipper".
 
    A zipper is, of course, the classic data structure for a
    list's "one hole context", of traversing a list via being located
    at a single point.
 
-   A "pointed zipper" is a zipper which also has a "frame", which
+   A "framed zipper" is a zipper which also has a "frame", which
    is of a certain size, and a pointer which can move around the
-   frame freely. Essentially, a pointed zipper is not just located
+   frame freely. Essentially, a framed zipper is not just located
    at a single element in the list, but a frame of many such
    elements.
 

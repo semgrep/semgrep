@@ -80,7 +80,7 @@ let parse_config_string config_str =
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)
   | str ->
       let addendum =
-        if Semgrep_envvars.env.in_docker then
+        if Semgrep_envvars.v.in_docker then
           " (since you are running in docker, you cannot specify arbitrary \
            paths on the host; they must be mounted into the container)"
         else ""

@@ -236,17 +236,17 @@ let eval_unop_int op opt_i =
  * integers have just 63-bits in 64-bit architectures!
  *)
 let eval_binop_int tok op opt_i1 opt_i2 =
-  let sign i = i asr (Sys.int_size - 1) in
+  let sign_bit i = i asr (Sys.int_size - 1) =|= 1 in
   match (op, opt_i1, opt_i2) with
   | G.Plus, Some i1, Some i2 ->
       let r = i1 + i2 in
-      if sign i1 =|= sign i2 && sign r <> sign i1 then
+      if sign_bit i1 =:= sign_bit i2 && sign_bit r <> sign_bit i1 then
         G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 + i2))
   | G.Minus, Some i1, Some i2 ->
       let r = i1 - i2 in
-      if sign i1 <> sign i2 && sign r <> sign i1 then G.Cst G.Cint
-        (* overflow *)
+      if sign_bit i1 <> sign_bit i2 && sign_bit r <> sign_bit i1 then
+        G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 - i2))
   | G.Mult, Some i1, Some i2 ->
       let overflow =
@@ -254,7 +254,7 @@ let eval_binop_int tok op opt_i1 opt_i2 =
         && ((i1 < 0 && i2 =|= min_int) (* >max_int *)
            || (i1 =|= min_int && i2 < 0) (* >max_int *)
            ||
-           if sign i1 * sign i2 =|= 1 then abs i1 > abs (max_int / i2)
+           if sign_bit i1 =:= sign_bit i2 then abs i1 > abs (max_int / i2)
              (* >max_int *)
            else abs i1 > abs (min_int / i2) (* <min_int *))
       in

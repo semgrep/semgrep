@@ -26,7 +26,8 @@ let test_tainting lang file options config def =
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let flow, mapping =
-    Match_tainting_mode.check_fundef lang options config None def
+    Match_tainting_mode.check_fundef lang options config None
+      AST_to_IL.empty_ctx def
   in
   let taint_to_str taint =
     let show_taint t =

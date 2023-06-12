@@ -1,3 +1,7 @@
+# This workflow builds and tests the semgrep-core binary for macOS M1
+
+# coupling: if you modify this file, modify also build-test-osx-x86.yaml
+# This file is mostly a copy-paste of build-test-osx-x86.yaml
 name: build-test-osx-m1
 
 on:
@@ -9,27 +13,27 @@ jobs:
     name: Build the OSX M1 binaries
     runs-on: [self-hosted, macOS, ARM64]
     steps:
-      # Force hard cleanup of any old checkouts.
-      # This is needed when submodules move around, as they are no longer removed by the default clean: true of the checkout step below.
-      # This misses some files (like hidden files) but should take care of the issues we've been seeing.
-      # A more targeted approach we tried previously seems to have failed to clean up all issues
+      # Force hard cleanup of any old checkouts. This is needed because we run on
+      # self-hosted CI runners here and when submodules move around they are no longer
+      # removed by default.
+      # This hack misses some files (like hidden files) but should take care of the
+      # issues we've been seeing.
       - name: Clean Checkout
         run: |
           rm -rf ./*
           rm -f .gitmodules
           rm -rf .git
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Run OSX release script
-        env:
+      - env:
           # M1 builds failing due to a permissions issue. this cleanup is an optimization,
           # and we can revisit re-enabling cleanup when we have more time/resources to debug.
           HOMEBREW_NO_INSTALL_CLEANUP: "true"
-        run: ./scripts/osx-m1-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        run: ./scripts/osx-release.sh
+      - uses: actions/upload-artifact@v3
         with:
           name: semgrep-m1-${{ github.sha }}
           path: artifacts.zip
@@ -38,23 +42,18 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     needs: [build-core-m1]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+          submodules: true
+      - uses: actions/download-artifact@v3
         with:
           name: semgrep-m1-${{ github.sha }}
-      - name: Install artifacts
-        run: unzip artifacts.zip
-      - name: Build the wheels
-        env:
+      - run: unzip artifacts.zip
+      - env:
           # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels-m1.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        run: ./scripts/build-wheels.sh
+      - uses: actions/upload-artifact@v3
         with:
           name: m1-wheel
           path: cli/dist.zip
@@ -70,20 +69,16 @@ jobs:
       - uses: actions/download-artifact@v1
         with:
           name: m1-wheel
-      - name: unzip dist
-        run: unzip ./m1-wheel/dist.zip
+      - run: unzip ./m1-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
-      - name: test version
-        run: semgrep --version
+      - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |
-          otool -L $(semgrep --dump-engine-path)  > otool.txt
+          otool -L $(semgrep --dump-engine-path) > otool.txt
           if [ $? -ne 0 ]; then
             echo "Failed to list dynamically linked libraries.";
             cat otool.txt;

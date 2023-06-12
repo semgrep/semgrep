@@ -7,6 +7,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from semdep.parsers.composer import parse_composer_lock
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
@@ -73,6 +74,7 @@ NEW_LOCKFILE_PARSERS: Dict[
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
+    "composer.lock": parse_composer_lock,  # PHP
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -82,6 +84,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "requirements3.txt": "requirements.in",
     "package-lock.json": "package.json",
     "yarn.lock": "package.json",
+    "composer.lock": "composer.json",
     "Gemfile.lock": None,
     "go.mod": None,
     "Cargo.lock": None,

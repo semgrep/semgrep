@@ -107,8 +107,13 @@ let rec to_name_opt lang ty =
   | Pointer ty when lang =*= Lang.Go -> to_name_opt lang ty
   | _else_ -> None
 
-let mkt str =
-  G.TyN (G.Id ((str, Tok.unsafe_fake_tok str), G.empty_id_info ())) |> G.t
+let mkt ?tok str =
+  let tok =
+    match tok with
+    | Some tok -> tok
+    | None -> Tok.unsafe_fake_tok str
+  in
+  G.TyN (G.Id ((str, tok), G.empty_id_info ())) |> G.t
 
 let is_real_type = function
   | NoType
@@ -128,36 +133,47 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
 (* less: should sanity check things by looking at [lang]. but maybe users like
  * to write `bool` in a language that uses `boolean`, and we should allow that?
  *
+ * NB: Conflates Java boxed types with primitives. This is probably fine for our
+ * analysis.
+ *
  * coupling: Inverse of ast_generic_type_of_builtin_type *)
 let builtin_type_of_string _langTODO str =
   match str with
-  | "int" -> Some Int
-  | "float" -> Some Float
+  | "int"
+  | "Integer" ->
+      Some Int
+  | "float"
+  | "Float" ->
+      Some Float
   | "str"
   | "string"
   | "String" ->
       Some String
   | "bool"
-  | "boolean" ->
+  | "boolean"
+  | "Boolean" ->
       Some Bool
   (* TS *)
   | "number" -> Some Number
   | __else__ -> None
 
-(* coupling: Inverse of builtin_type_of_string
- *
- * TODO: Check lang to get proper builtin type for more languages *)
-let ast_generic_type_of_builtin_type lang t =
+(* TODO: Check lang to get proper builtin type for more languages *)
+let name_of_builtin_type lang t =
   match (lang, t) with
-  | _, Int -> mkt "int"
-  | _, Float -> mkt "float"
-  (* TODO check lang for string type *)
-  | _, String -> mkt "string"
-  | Lang.Java, Bool -> mkt "boolean"
-  | _, Bool -> mkt "bool"
+  | _, Int -> "int"
+  | _, Float -> "float"
+  | Lang.Java, String -> "String"
+  | _, String -> "string"
+  | Lang.Java, Bool -> "boolean"
+  | _, Bool -> "bool"
   (* TS *)
-  | _, Number -> mkt "number"
-  | _, OtherBuiltins str -> mkt str
+  | _, Number -> "number"
+  | _, OtherBuiltins str -> str
+
+(* coupling: Inverse of builtin_type_of_string *)
+let ast_generic_type_of_builtin_type ?tok lang t =
+  let str = name_of_builtin_type lang t in
+  mkt ?tok str
 
 let builtin_type_of_type lang t =
   match t.G.t with
@@ -169,9 +185,19 @@ let builtin_type_of_type lang t =
   | __else__ -> None
 
 (* There is no function of_ast_generic_type_. The closest is
- * Naming_AST.type_of_expr  which converts an G.type_ to Type.t *)
-let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
-    (x : 'a t) : G.type_ option =
+ * Naming_AST.type_of_expr  which converts an G.type_ to Type.t.
+ *
+ * If provided, `tok` is used in place of a fake tokens in most contexts where a
+ * token is needed. This allows the resulting synthetic AST to be used in places
+ * that require location information.
+ * *)
+let rec to_ast_generic_type_ ?(tok = None) lang
+    (f : 'a -> G.alternate_name list -> G.name) (x : 'a t) : G.type_ option =
+  let make_tok str =
+    match tok with
+    | Some tok -> tok
+    | None -> Tok.unsafe_fake_tok str
+  in
   match x with
   | N ((name, args), alts) -> (
       let n = f name alts in
@@ -182,19 +208,19 @@ let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
           let* targs = type_arguments lang f xs in
           Some (G.TyApply (t, Tok.unsafe_fake_bracket targs) |> G.t))
   | UnresolvedName (s, args) -> (
-      let t = mkt s in
+      let t = mkt ~tok:(make_tok s) s in
       match args with
       | [] -> Some t
       | xs ->
           let* targs = type_arguments lang f xs in
           Some (G.TyApply (t, Tok.unsafe_fake_bracket targs) |> G.t))
-  | Null -> Some (mkt "null")
-  | Builtin x -> Some (ast_generic_type_of_builtin_type lang x)
+  | Null -> Some (mkt ~tok:(make_tok "null") "null")
+  | Builtin x ->
+      Some (ast_generic_type_of_builtin_type ~tok:(make_tok "") lang x)
   | Array (size, ty) ->
       let size =
         Option.map
-          (fun n ->
-            G.L (G.Int (Some n, Tok.unsafe_fake_tok (string_of_int n))) |> G.e)
+          (fun n -> G.L (G.Int (Some n, make_tok (string_of_int n))) |> G.e)
           size
       in
       let* ty = to_ast_generic_type_ lang f ty in
@@ -210,8 +236,7 @@ let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
                      let classic =
                        {
                          G.pname =
-                           pident
-                           |> Option.map (fun s -> (s, Tok.unsafe_fake_tok s));
+                           pident |> Option.map (fun s -> (s, make_tok s));
                          ptype = Some t;
                          pattrs = [];
                          pinfo = G.empty_id_info ();
@@ -221,9 +246,7 @@ let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
                      G.Param classic
                  | _else_ ->
                      G.OtherParam
-                       ( ( "to_ast_generic_type for param",
-                           Tok.unsafe_fake_tok "" ),
-                         [] ))
+                       (("to_ast_generic_type for param", make_tok ""), []))
              | OtherParam x ->
                  G.OtherParam (todo_kind_to_ast_generic_todo_kind x, []))
       in
@@ -231,7 +254,7 @@ let rec to_ast_generic_type_ lang (f : 'a -> G.alternate_name list -> G.name)
       Some (G.TyFun (params, tret) |> G.t)
   | Pointer ty ->
       let* ty = to_ast_generic_type_ lang f ty in
-      Some (G.TyPointer (Tok.unsafe_fake_tok "Pointer", ty) |> G.t)
+      Some (G.TyPointer (make_tok "Pointer", ty) |> G.t)
   | NoType
   | Todo _ ->
       None

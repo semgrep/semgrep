@@ -37,7 +37,7 @@ def multi_spec(spec: "Parser[A]") -> "Parser[List[Tuple[A,Optional[str]]]]":
     return (
         regex(r"[ \t]*\(\n")
         >> (
-            regex(r"[ \t]*") >> pair(spec, comment.optional(None)) << string("\n")
+            (regex(r"[ \t]*") >> pair(spec, comment.optional(None))) << string("\n")
         ).many()
         << string(")")
     ) | (regex(r"[ \t]*") >> pair(spec, comment.optional()).map(lambda x: [x]))
@@ -52,12 +52,12 @@ def make_directive(
 dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.result(None)
 
 specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
-    "module": consume_line,
-    "go": consume_line,
+    "module": comment.result(None) | consume_line,
+    "go": comment.result(None) | consume_line,
     "require": dep_spec,
     "exclude": dep_spec,
-    "replace": consume_line,
-    "retract": consume_line,
+    "replace": comment.result(None) | consume_line,
+    "retract": comment.result(None) | consume_line,
 }
 
 directive = alt(

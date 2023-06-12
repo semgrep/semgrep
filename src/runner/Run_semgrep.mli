@@ -107,7 +107,15 @@ val semgrep_with_one_pattern : Runner_config.t -> unit
 
 val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
 (** [semgrep_with_rules_and_formatted_output config] calls
-    [semgrep_with_raw_results_and_exn_handler] and
+    [semgrep_with_raw_results_and_exn_handler] and then
+    [output_semgrep_results] on the results
+*)
+
+val output_semgrep_results :
+  Exception.t option * Report.final_result * Fpath.t list ->
+  Runner_config.t ->
+  unit
+(** [output_semgrep_results] takes the results of a semgrep run and
     format the results on stdout either in a JSON or Textual format
     (depending on the value in config.output_format)
 
@@ -187,6 +195,10 @@ val extracted_targets_of_config :
    targets.
 *)
 
+val rules_from_rule_source :
+  Runner_config.t -> Rule.rules * Rule.invalid_rule_error list
+(** Get the rules *)
+
 val targets_of_config :
   Runner_config.t ->
   Rule.rule_id list ->
@@ -207,7 +219,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
 (* TODO: This is used by semgrep-pro and not by semgrep. What is it?
    TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
-val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
+val xtarget_of_file : Runner_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 
 (*
    Sort targets by decreasing size. This is meant for optimizing

@@ -3,6 +3,8 @@
 *)
 
 type t = {
+  (* Use case-insensitive matching. Rely on PCRE to do this well. *)
+  caseless : bool;
   (* multiline = newlines are treated as ordinary whitespace *)
   multiline : bool;
   (* TODO: support UTF-8 word characters *)
@@ -12,7 +14,7 @@ type t = {
 
 (* TODO: document the difference in the defaults *)
 val default_multiline_conf : t
-val default_uniline_conf : t
+val default_singleline_conf : t
 
 (* Check the validity of the configuration.
    Raises an exception if the configuration is invalid. *)

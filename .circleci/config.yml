@@ -24,9 +24,9 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      # Dogfooding on the bleeding edge by using jsonnet and the new syntax!
+      # Dogfooding on the bleeding edge by using jsonnet, the new syntax, osemgrep!
       # coupling: see also 'make check'
-      - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests
+      - run: osemgrep --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting

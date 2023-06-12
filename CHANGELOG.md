@@ -6,6 +6,55 @@
 
 <!-- insertion point -->
 
+## [1.26.0](https://github.com/returntocorp/semgrep/releases/tag/v1.26.0) - 2023-06-09
+
+### Added
+
+- In Java, Semgrep can now track taint through more getters and setters. It could already relate setters to getters (e.g. `o.setX(taint); o.getX()` but now it can relate setters and getters to properties (e.g. `o.setX(taint); o.x`). (getters)
+- taint-mode: Added experimental options `taint_assume_safe_booleans` and
+  `taint_assume_safe_numbers` to avoid propagating taint coming from expressions
+  with Boolean or number (integer, float) types. (pa-2777)
+
+### Fixed
+
+- swift: Support if let shorthand for shadowing an existing optional variable. (gh-7583)
+- Elixir: fix the string extraction used for -filter_irrelevant_rules (gh-7855)
+- Fixed comparison of taint information that was causing duplicate taints to be tracked.
+  Interfile analysis on large repos will see a small speedup. (misc-1)
+- taint-mode: Fixed performance regression in 1.24.0 that affected taint rules. (pa-2777-1)
+- Fix a recent regression that caused failures to match in certain cases that combined metavariable-regex and typed metavariables which themselves contain metavariables (e.g. in Go `($X: $T)` with a `metavariable-regex` operating on `$T`). (pa-2822)
+- Gomod comments: fix parsing comments that end in ')' (sc-716)
+
+## [1.25.0](https://github.com/returntocorp/semgrep/releases/tag/v1.25.0) - 2023-06-06
+
+### Added
+
+- aliengrep: new option 'generic_caseless' to achieve case-insensitive matching (gh-7883)
+- Semgrep now includes heuristics based on the Java standard library and common naming patterns. These allow Semgrep to determine the types of more expressions in Java, for use with typed metavariables (https://semgrep.dev/docs/writing-rules/pattern-syntax/#typed-metavariables). (heuristics)
+- Language server now supports search (and replace) with semgrep patterns through semgrep/search (ls-search)
+- Language Server will now notify users of errors, and reason for crash (pa-2791)
+
+### Fixed
+
+- Pro (taint analysis): Check function calls without parameters or parenthesis in Ruby (gh-7787)
+- Aliengrep: ellipsis patterns that would be useless because of being placed
+  at the extremity of a pattern (always) or a line (in single-mode) are now
+  anchored to the beginning/end of input/line. For example, `...` in multiline
+  mode matches the whole input rather than matching nothing many times. (gh-7881)
+- Fixed bug in constant propagation that made Semgrep fail to compute the value of
+  an integer constant when this was obtained via the multiplication of two other
+  constants. (gh-7893)
+- Fix regexps potentially vulnerable to ReDoS attacks in Python code for parsing
+  git URLs. Sets maximum length of git URLs to 1024 characters since parsing is
+  still perceptibly slow on 5000-byte input. Reported by Sebastian Chnelik,
+  PyUp.io. (gh-7943)
+
+## [1.24.1](https://github.com/returntocorp/semgrep/releases/tag/v1.24.1) - 2023-06-01
+
+### Fixed
+
+- Yarn v1: fix parsing for package headers without version constraints (sc-749)
+
 ## [1.24.0](https://github.com/returntocorp/semgrep/releases/tag/v1.24.0) - 2023-05-31
 
 ### Added

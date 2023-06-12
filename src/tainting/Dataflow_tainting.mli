@@ -116,3 +116,7 @@ val fixpoint :
   * @param in_env are the assumptions made on the function's parameters.
   * @param name is the name of the function being analyzed, if it has a name.
   * *)
+
+(* TODO: Move to module 'Taint' maybe. *)
+val drop_taints_if_bool_or_number :
+  Rule_options_t.t -> Taint.Taint_set.t -> 'a Type.t -> Taint.Taint_set.t

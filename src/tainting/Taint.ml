@@ -130,6 +130,13 @@ and compare_sources s1 s2 =
       Option.compare compare_precondition s1.precondition s2.precondition
   | other -> other
 
+and compare_args a1 a2 =
+  let pos1 = a1.pos in
+  let pos2 = a2.pos in
+  match Stdlib.compare pos1 pos2 with
+  | 0 -> List.compare IL_helpers.compare_name a1.offset a2.offset
+  | other -> other
+
 and compare_orig orig1 orig2 =
   match (orig1, orig2) with
   | Arg { pos = s, i; _ }, Arg { pos = s', j; _ } -> (
@@ -269,7 +276,7 @@ module Taint_set = struct
       match (k1, k2) with
       | Arg _, Src _ -> -1
       | Src _, Arg _ -> 1
-      | Arg a1, Arg a2 -> Stdlib.compare a1 a2
+      | Arg a1, Arg a2 -> compare_args a1 a2
       | Src s1, Src s2 -> compare_sources s1 s2
   end)
 
