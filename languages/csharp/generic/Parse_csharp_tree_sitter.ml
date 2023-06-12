@@ -2448,7 +2448,7 @@ and type_name (env : env) (x : CST.type_name) =
 
 and ref_base_type (env : env) (x : CST.ref_base_type) =
   match x with
-  | `Impl_type _tok -> failwith "TODO"
+  | `Impl_type tok -> G.OtherType (("var", token env tok), []) |> G.t
   | `Array_type x -> array_type env x
   | `Type_name x -> type_name env x
   | `Null_type x -> nullable_type env x
