@@ -145,13 +145,13 @@ let get_propagated_value default_start mvalue =
   match mvalue with
   | E { e = N (Id (_, id_info)); _ } -> (
       match !(id_info.id_svalue) with
-      | Some (Lit x) ->
+      | Lit x ->
           let any = E (L x |> e) in
           any_to_svalue_value any
-      | Some (Sym x) -> any_to_svalue_value (E x)
-      | Some (Cst _) -> None
-      | Some NotCst -> None
-      | None -> None)
+      | Sym x -> any_to_svalue_value (E x)
+      | Cst _ -> None
+      | NotCst -> None
+      | DontKnow -> None)
   | __else__ -> None
 
 let metavars startp_of_match_range (s, mval) =

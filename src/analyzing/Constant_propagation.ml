@@ -196,7 +196,9 @@ let add_constant_env ident (sid, svalue) env =
   | Sym _ ->
       logger#trace "adding constant in env %s" (H.str_of_ident ident);
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
-  | NotCst -> ()
+  | DontKnow
+  | NotCst ->
+      ()
 
 let find_id env id id_info =
   match id_info with
@@ -295,28 +297,27 @@ let concat_string_cst s1 s2 =
 let rec eval env x : svalue option =
   match x.e with
   | L x -> Some (Lit x)
-  | N (Id (_, { id_svalue = { contents = Some x }; _ }))
+  | N (Id (_, { id_svalue = { contents = x }; _ }))
   | DotAccess
       ( { e = IdSpecial ((This | Self), _); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
+        FN (Id (_, { id_svalue = { contents = x }; _ })) )
+    when x <> G.DontKnow ->
       Some x
   (* ugly: terraform specific. *)
   | DotAccess
       ( { e = N (Id ((("local" | "var"), _), _)); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
-    when is_lang env Lang.Terraform ->
+        FN (Id (_, { id_svalue = { contents = x }; _ })) )
+    when is_lang env Lang.Terraform && x <> G.DontKnow ->
       Some x
   (* ugly: dockerfile specific *)
   | Call
       ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
         ( _,
-          [
-            Arg { e = N (Id (_, { id_svalue = { contents = Some x }; _ })); _ };
-          ],
+          [ Arg { e = N (Id (_, { id_svalue = { contents = x }; _ })); _ } ],
           _ ) )
-    when is_lang env Lang.Dockerfile ->
+    when is_lang env Lang.Dockerfile && x <> G.DontKnow ->
       Some x
   | Conditional (_e1, e2, e3) ->
       let* v2 = eval env e2 in
@@ -658,21 +659,21 @@ let propagate_basic lang prog =
                 && List.exists is_private attrs
             then
              match (!id_svalue, e.e) with
-             (* When the name already has an svalue computed, just use
-              * that. DeepSemgrep assigns svalues sometimes in its naming
-              * phase. *)
-             | Some svalue, _ -> add_constant_env id (sid, svalue) env
-             | None, L literal -> add_constant_env id (sid, Lit literal) env
+             | DontKnow, L literal -> add_constant_env id (sid, Lit literal) env
              (* For any other symbolic expression, it is OK to propagate it symbolically so long as
                 the lvalue is only assigned to once.
                 Although we may propagate expressions with identifiers in them, those identifiers
                 will simply not have an `svalue` if they are non-propagated as well.
              *)
-             | None, _
+             | DontKnow, _
                when Dataflow_svalue.is_symbolic_expr e
                     && no_cycles_in_sym_prop sid e ->
                  add_constant_env id (sid, Sym e) env
-             | None, _ -> ());
+             | DontKnow, _ -> ()
+             (* When the name already has an svalue computed, just use
+              * that. DeepSemgrep assigns svalues sometimes in its naming
+              * phase. *)
+             | svalue, _ -> add_constant_env id (sid, svalue) env);
             super#visit_definition venv x
         | _ -> super#visit_definition venv x
 

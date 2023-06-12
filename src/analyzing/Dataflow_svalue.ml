@@ -113,11 +113,14 @@ let eq c1 c2 =
        * it may not be safe to use them interchangeably. (TBH I'm not sure if/when
        * it's safe so I'm erring on the side of caution!) *)
       phys_equal e1 e2
-  | G.NotCst, G.NotCst -> true
+  | G.NotCst, G.NotCst
+  | G.DontKnow, G.DontKnow ->
+      true
   | G.Lit _, _
   | G.Cst _, _
   | G.Sym _, _
-  | G.NotCst, _ ->
+  | G.NotCst, _
+  | G.DontKnow, _ ->
       false
 
 let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
@@ -128,6 +131,9 @@ let union c1 c2 =
   | _any, G.NotCst
   | G.NotCst, _any ->
       G.NotCst
+  | c, G.DontKnow
+  | G.DontKnow, c ->
+      c
   | c1, c2 when eq c1 c2 -> c1
   (* Note that merging symbolic expressions can be tricky.
    *
@@ -167,7 +173,9 @@ let refine c1 c2 =
   match (c1, c2) with
   | _ when eq c1 c2 -> c1
   | c, G.NotCst
-  | G.NotCst, c ->
+  | G.NotCst, c
+  | c, G.DontKnow
+  | G.DontKnow, c ->
       c
   | G.Lit _, _
   | G.Cst _, G.Cst _
@@ -306,11 +314,11 @@ and eval_lval env lval =
   | { base = Var x; rev_offset = [] } -> (
       let opt_c = VarMap.find_opt (str_of_name x) env in
       match (!(x.id_info.id_svalue), opt_c) with
-      | None, None -> G.NotCst
-      | Some c, None
-      | None, Some c ->
+      | G.DontKnow, None -> G.NotCst
+      | c, None
+      | DontKnow, Some c ->
           c
-      | Some c1, Some c2 -> refine c1 c2)
+      | c1, Some c2 -> refine c1 c2)
   | ___else___ -> G.NotCst
 
 and eval_op env wop args =
@@ -439,6 +447,7 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
            * id_svalue ref, that tells us it's the same variable occurrence. *)
           not (phys_equal id_info.id_svalue ii.id_svalue))
         (G.E e)
+  | G.DontKnow
   | G.NotCst
   | G.Cst _
   | G.Lit _ ->
@@ -446,9 +455,8 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
 
 let set_svalue_ref id_info c' =
   if no_cycles_in_svalue id_info c' then
-    match !(id_info.id_svalue) with
-    | None -> id_info.id_svalue := Some c'
-    | Some c -> id_info.id_svalue := Some (refine c c')
+    let c = !(id_info.id_svalue) in
+    id_info.id_svalue := refine c c'
   else
     logger#error "Cycle check failed for %s := %s" (G.show_id_info id_info)
       (G.show_svalue c')
