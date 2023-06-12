@@ -282,7 +282,7 @@ let get_ghost_lines height =
 (* UI Helpers *)
 (*****************************************************************************)
 
-let height_of_files term = snd (Term.size term) - 3
+let height_of_preview term = snd (Term.size term) - 3
 let width_of_files _term = files_width
 let width_of_preview term = fst (Term.size term) - width_of_files term - 1
 
@@ -290,7 +290,8 @@ let init_state turbo xlang xtargets term =
   {
     xlang;
     xtargets;
-    file_zipper = ref (Framed_zipper.empty_with_max_len (height_of_files term));
+    file_zipper =
+      ref (Framed_zipper.empty_with_max_len (height_of_preview term));
     should_continue_iterating_targets = ref true;
     cur_line_rev = [];
     formula = None;
@@ -436,7 +437,9 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
            { file; matches = Framed_zipper.of_list 1 sorted_pms })
     |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
   in
-  Framed_zipper.of_list (height_of_files state.term) res_by_file
+  Framed_zipper.of_list
+    (Framed_zipper.frame_size !(state.file_zipper))
+    res_by_file
 
 let parse_pattern_opt s state =
   try
@@ -492,7 +495,7 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
   let lines = Common2.cat file in
   let start_line = t1.pos.line in
   let end_line = t2.pos.line in
-  let max_height = height_of_files state.term in
+  let max_height = height_of_preview state.term in
   let match_height = end_line - start_line in
   (* We want the appropriate amount of lines that will fit within
      our terminal window.
@@ -557,10 +560,10 @@ let default_screen_img s state =
       ]
     |> Common.map (hsnap w)
     |> vcat
-    |> I.vsnap (height_of_files state.term))
+    |> I.vsnap (height_of_preview state.term))
 
 let no_matches_found_img state =
-  let h = height_of_files state.term in
+  let h = height_of_preview state.term in
   I.(
     (get_ghost_lines h |> Common.map (I.string (A.fg light_blue)))
     @ [ vpad 2 0 (string A.empty "no matches found") ]
@@ -634,15 +637,20 @@ let render_top_left_pane file_zipper state =
     match state.formula with
     | None -> I.void 0 0
     | Some formula ->
-        render_patterns formula
-        |> I.hsnap (width_of_files state.term) ~align:`Left
+        let intermediary_bar =
+          String.make (width_of_files state.term) '-'
+          |> I.string (A.fg (A.gray 12))
+        in
+        I.(
+          intermediary_bar <-> render_patterns formula
+          |> I.hsnap (width_of_files state.term) ~align:`Left)
   in
-  let intermediary_bar =
-    String.make (width_of_files state.term) '-' |> I.string (A.fg (A.gray 12))
-  in
-  let lines_of_files = height_of_files state.term - I.height patterns - 1 in
+  let lines_of_files = height_of_preview state.term - I.height patterns in
+  let file_zipper = Framed_zipper.set_frame_size lines_of_files file_zipper in
+  state.file_zipper := file_zipper;
   let files =
-    Framed_zipper.take lines_of_files file_zipper
+    file_zipper
+    |> Framed_zipper.take lines_of_files
     |> Common.mapi (fun idx { file; _ } ->
            if idx = Framed_zipper.relative_position file_zipper then
              I.string A.(fg (gray 19) ++ st bold ++ bg_file_selected) file
@@ -651,7 +659,7 @@ let render_top_left_pane file_zipper state =
   I.(
     files |> I.vcat
     |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
-    <-> intermediary_bar <-> patterns)
+    <-> patterns)
 
 (*****************************************************************************)
 (* User Interface (Screen) *)
@@ -688,7 +696,7 @@ let render_screen ?(has_changed = false) state =
       let pm = Framed_zipper.get_current matches_zipper in
       I.(match_position_img </> preview_of_match pm file state)
   in
-  let vertical_bar = I.char A.empty '|' 1 (height_of_files state.term) in
+  let vertical_bar = I.char A.empty '|' 1 (height_of_preview state.term) in
   let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
   let mode =
     if state.turbo then I.void 0 0
@@ -806,7 +814,8 @@ let spawn_thread_if_turbo state =
             (* When we go back to the empty line, reset the view to default. *)
             should_refresh := true;
             state.file_zipper :=
-              Framed_zipper.empty_with_max_len (height_of_files state.term)
+              Framed_zipper.empty_with_max_len
+                (Framed_zipper.frame_size !(state.file_zipper))
         | _, None -> ()
         | _, Some pat ->
             let new_iformula = IPat (pat, true) in

@@ -49,5 +49,7 @@ val get_current : 'a t -> 'a
 val map_current : ('a -> 'a) -> 'a t -> 'a t
 val is_empty : 'a t -> bool
 val length : 'a t -> int
+val frame_size : 'a t -> int
+val set_frame_size : int -> 'a t -> 'a t
 val absolute_position : 'a t -> int
 val relative_position : 'a t -> int
