@@ -81,8 +81,16 @@ type xtarget = Xtarget.t Lock_protected.t
 (* The kind of menu we are currently highlighting. We can be using the
    arrow keys to move around in the files, or the pattern building
    menu.
+
+   In Navigator Mode, the arrow keys are used to move around in either
+   the list of files, or the matches within a particular file. Editing
+   is used to add new patterns to the pattern tree.
+
+   In Pattern Builder Mode, the arrow keys are used to move around in
+   the already-built pattern tree, and editing causes the pattern tree
+   to be edited in-place.
 *)
-type menu_mode = File | Pattern
+type menu_mode = Navigator | Pattern
 
 (* The type of the state for the interactive loop.
    This is the information we need to carry in between every key press,
@@ -329,7 +337,7 @@ let init_state turbo xlang xtargets term =
     should_continue_iterating_targets = ref true;
     cur_line_rev = [];
     formula = None;
-    menu_mode = File;
+    menu_mode = Navigator;
     pattern_mode = true;
     term;
     turbo;
@@ -458,8 +466,8 @@ let map_nonfirst f l =
 
 (* Switch menus, when hitting the TAB key! *)
 let switch_menu = function
-  | Pattern -> File
-  | File -> Pattern
+  | Pattern -> Navigator
+  | Navigator -> Pattern
 
 (*****************************************************************************)
 (* Engine Helpers *)
@@ -545,7 +553,9 @@ let reset_zipper state =
 *)
 let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
     : unit =
-  (* Reset the zipper before buffering matches into it! *)
+  (* Reset the zipper before buffering matches into it! Otherwise,
+     Regular Mode won't work properly.
+  *)
   reset_zipper state;
   let rule_formula = translate_formula new_iform in
   let fake_rule =
@@ -1103,6 +1113,13 @@ let interactive_loop ~turbo xlang xtargets =
             (* Load the matches from this new formula! *)
             buffer_matches_of_new_iformula new_formula state;
             render_and_loop t { state with formula = Some new_formula })
+    | Key (`Backspace, _) -> (
+        match state.cur_line_rev with
+        (* nothing to delete, just stay the same *)
+        | [] -> loop t state
+        | _ :: cs ->
+            let state = fresh_state { state with cur_line_rev = cs } in
+            render_and_loop ~has_changed:true t state)
     | Key (`ASCII c, _) ->
         assert (not state.turbo);
         let state =
@@ -1114,7 +1131,7 @@ let interactive_loop ~turbo xlang xtargets =
         *)
         render_and_loop ~has_changed:true t state
     | _ -> render_and_loop t state
-  and on_event_file (e : event) state =
+  and on_event_navigator (e : event) state =
     let t = state.term in
     match e with
     | Key (`Tab, _) -> (
@@ -1178,7 +1195,7 @@ let interactive_loop ~turbo xlang xtargets =
           *)
           Thread.yield ();
           loop t state
-      | Some e, File -> on_event_file e state
+      | Some e, Navigator -> on_event_navigator e state
       | Some e, Pattern -> on_event_pattern e state
   in
   let t = Term.create () in
