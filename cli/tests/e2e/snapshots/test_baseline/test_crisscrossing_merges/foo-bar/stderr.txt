@@ -7,7 +7,7 @@
   Scanning 1 file.
   Current version has 9 findings.
 
-Switching repository to baseline commit 'bar'.
+Creating git worktree from 'bar' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * fe51afb merging bar~6
     * 4917fac commit #9

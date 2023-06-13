@@ -7,9 +7,7 @@
   Scanning 1 file.
   Current version has 2 findings.
 
-Switching repository to baseline commit '4b63ca493df05e223404a80ac5f30d2aa830a704'.
-  Will report findings introduced by these commits (may be incomplete for shallow checkouts):
-
+Creating git worktree from '4b63ca493df05e223404a80ac5f30d2aa830a704' to scan baseline.
 
                
                

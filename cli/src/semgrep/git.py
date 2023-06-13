@@ -225,31 +225,53 @@ class BaselineHandler:
         cwd = Path.cwd()
         git_root = get_git_root_path()
         relative_path = cwd.relative_to(git_root)
+        # `git worktree` is doing 90% of the heavy lifting here. Docs:
+        # https://git-scm.com/docs/git-worktree
+        #
+        # In short, git allows you to have multiple working trees checked out at
+        # the same time. This means you can essentially have X different
+        # branches/commits checked out from the same repo, in different locations
+        #
+        # Different worktrees share the same .git directory, so this is a lot
+        # faster/cheaper than cloning the repo multiple times
+        #
+        # This also allows us to not worry about git state, since
+        # unstaged/staged files are not shared between worktrees. This means we
+        # don't need to git stash anything, or expect a clean working tree.
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 merge_base_sha = self._get_git_merge_base()
                 logger.debug("Running git checkout for baseline context")
+                # Add a new working tree at the temporary directory
                 git_check_output(["git", "worktree", "add", tmpdir, merge_base_sha])
                 logger.debug("Finished git checkout for baseline context")
 
+                # Change the working directory to the new working tree
                 os.chdir(Path(tmpdir) / relative_path)
+
+                # We are now in the temporary working tree, and scans should be
+                # identical to as if we had checked out the baseline commit
                 yield
             finally:
                 os.chdir(cwd)
                 logger.debug("Cleaning up git worktree")
+                # Remove the working tree
                 git_check_output(["git", "worktree", "remove", tmpdir])
                 logger.debug("Finished cleaning up git worktree")
 
     def print_git_log(self) -> None:
         base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])
+        head_commit_sha = git_check_output(["git", "rev-parse", "HEAD"])
         merge_base_sha = self._get_git_merge_base()
-        logger.info(
-            "  Will report findings introduced by these commits (may be incomplete for shallow checkouts):"
-        )
-        log = git_check_output(
-            ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
-        )
-        logger.info(indent(log, "    "))
+        if head_commit_sha != merge_base_sha:
+            logger.info(
+                "  Will report findings introduced by these commits (may be incomplete for shallow checkouts):"
+            )
+            log = git_check_output(
+                ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
+            )
+            logger.info(indent(log, "    "))
+
         if merge_base_sha != base_commit_sha:
             logger.warning(
                 "  The current branch is missing these commits from the baseline branch:"
