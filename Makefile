@@ -83,7 +83,6 @@ build:
 # was the 'all' target in in semgrep-core/Makefile before
 .PHONY: core
 core:
-	rm -f bin
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
