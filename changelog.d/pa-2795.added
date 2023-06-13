@@ -1,0 +1,1 @@
+New pre-commit hook `semgrep-ci` to use CI rules in pre-commit, which will pull from the rule board + block those in the block column
