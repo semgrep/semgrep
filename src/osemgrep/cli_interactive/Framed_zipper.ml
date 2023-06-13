@@ -20,12 +20,12 @@ type 'a t = {
 (* Helpers *)
 (*****************************************************************************)
 
-let shift_frame_left m =
+let shift_frame_up m =
   match (m.before_rev, m.after) with
   | [], _ -> m
   | x :: xs, after -> { m with before_rev = xs; after = x :: after }
 
-let shift_frame_right m =
+let shift_frame_down m =
   match (m.before_rev, m.after) with
   | _, [] -> m
   | before_rev, x :: xs -> { m with before_rev = x :: before_rev; after = xs }
@@ -38,11 +38,11 @@ let shift_frame_right m =
    not cause a frame move, depending on if the pointer is
    at the boundaries of the frame.
 *)
-let move_left m =
-  if m.pointer <= 0 then { (shift_frame_left m) with pointer = 0 }
+let move_up m =
+  if m.pointer <= 0 then { (shift_frame_up m) with pointer = 0 }
   else { m with pointer = m.pointer - 1 }
 
-let move_right m =
+let move_down m =
   if m.pointer >= List.length m.after - 1 then
     (* This is the case where we move the pointer
        down, but we don't have enough entries left.
@@ -50,12 +50,13 @@ let move_right m =
     *)
     m
   else if m.pointer >= m.max_len - 1 then
-    { (shift_frame_right m) with pointer = m.max_len - 1 }
+    { (shift_frame_down m) with pointer = m.max_len - 1 }
   else { m with pointer = m.pointer + 1 }
 
 let change_max_len t len = { t with max_len = len }
 let take n m = Common2.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
+let append x m = { m with after = m.after @ [ x ] }
 let relative_position m = m.pointer
 let get_current m = List.nth m.after (relative_position m)
 

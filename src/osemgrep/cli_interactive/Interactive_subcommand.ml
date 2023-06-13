@@ -21,6 +21,8 @@
 open Notty
 open Notty_unix
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -64,11 +66,15 @@ type xtarget = Xtarget.t Lock_protected.t
 type state = {
   xlang : Xlang.t;
   xtargets : xtarget list;
-  file_zipper : matches_by_file Framed_zipper.t ref;
+  file_zipper : matches_by_file Framed_zipper.t ref Lock_protected.t;
       (** ref because our matches might change at any time when the
           thread which is doing matches completes.
           The thread needs to be able to communicate the new file zipper
           back to the main thread.
+          Lock protected, because in Turbo mode, the turbo thread writes to
+          this ref in order to buffer more matches into it, and the REPL thread
+          writes to this ref in order to move up and down and stuff.
+          We need to ensure these writes do not clash.
         *)
   cur_line_rev : char list;
       (** The current line that we are reading in, which is not yet finished.
@@ -291,7 +297,8 @@ let init_state turbo xlang xtargets term =
     xlang;
     xtargets;
     file_zipper =
-      ref (Framed_zipper.empty_with_max_len (height_of_preview term));
+      Lock_protected.protect
+        (ref (Framed_zipper.empty_with_max_len (height_of_preview term)));
     should_continue_iterating_targets = ref true;
     cur_line_rev = [];
     formula = None;
@@ -311,7 +318,10 @@ let fresh_state old_state =
    *)
   {
     old_state with
-    file_zipper = ref !(old_state.file_zipper);
+    file_zipper =
+      Lock_protected.with_lock
+        (fun file_zipper -> Lock_protected.protect (ref !file_zipper))
+        old_state.file_zipper;
     should_continue_iterating_targets = ref true;
   }
 
@@ -364,6 +374,16 @@ let mk_fake_rule lang formula =
     metadata = None;
   }
 
+let atomic_map_file_zipper f state =
+  Lock_protected.with_lock
+    (fun file_zipper -> file_zipper := f !file_zipper)
+    state.file_zipper
+
+let reset_zipper state =
+  atomic_map_file_zipper
+    (fun _ -> Framed_zipper.empty_with_max_len (height_of_preview state.term))
+    state
+
 (*****************************************************************************)
 (* Calling the Semgrep Engine *)
 (*****************************************************************************)
@@ -382,13 +402,60 @@ let mk_fake_rule lang formula =
  * we need; it's doubtful we want to write interactively tainting rules,
  * so getting directly to Match_search_mode.check_rule() can be simpler.
  *)
-let matches_of_new_iformula (new_iform : iformula) (state : state) :
-    matches_by_file Framed_zipper.t =
+
+let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
+    =
+  let hook _s (_m : Pattern_match.t) = () in
+  if
+    Match_rules.is_relevant_rule_for_xtarget
+      (fake_rule :> Rule.rule)
+      xconf xtarget
+  then
+    let ({ Report.matches; _ } : _ Report.match_result) =
+      (* Calling the engine! *)
+      Match_search_mode.check_rule fake_rule hook xconf xtarget
+    in
+    matches
+    |> Common.map_filter (fun (m : Pattern_match.t) ->
+           if m.file = Fpath.to_string xtarget.file then Some m
+           else (
+             logger#warning
+               "Interactive: got match from non-current-xtarget file";
+             None))
+    |> List.sort
+         (fun
+           { Pattern_match.range_loc = l1, _; _ }
+           { Pattern_match.range_loc = l2, _; _ }
+         -> Int.compare l1.pos.charpos l2.pos.charpos)
+    |> fun matches ->
+    match List.length matches with
+    | 0 -> () (* no point in putting it in if no matches *)
+    | _ ->
+        let matches = Framed_zipper.of_list 1 matches in
+        let matches_by_file =
+          { file = Fpath.to_string xtarget.file; matches }
+        in
+        (* It's OK to append here, which just puts it at the
+            end, because we already sorted by file name.
+            This means that we ensure the produced file zipper
+            is still in alphabetical order.
+        *)
+        atomic_map_file_zipper (Framed_zipper.append matches_by_file) state;
+        should_refresh := true
+
+(* [buffer_matches_of_new_iformula] is an intensive call, which causes the
+   state.file_zipper to be imperatively updated every time that we finish
+   computing matches on a given file.
+   It's called "buffer", in the same way that YouTube videos will buffer their
+   contents so that you can replay it faster. We display the file results
+   quickly up front so we don't have to wait for the whole time.
+*)
+let buffer_matches_of_new_iformula (new_iform : iformula) (state : state) : unit
+    =
   let rule_formula = translate_formula new_iform in
   let fake_rule =
     mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
   in
-  let hook _s (_m : Pattern_match.t) = () in
   let xconf =
     {
       Match_env.config = Rule_options.default_config;
@@ -399,45 +466,24 @@ let matches_of_new_iformula (new_iform : iformula) (state : state) :
       filter_irrelevant_rules = true;
     }
   in
-  let res : Report.rule_profiling Report.match_result list =
+  if !(state.should_continue_iterating_targets) then
     state.xtargets
-    |> Common.map_filter (fun xtarget_prot ->
+    (* First, sort files. We will search them in alphabetical order. *)
+    |> List.sort (fun x1 x2 ->
+           Lock_protected.with_lock
+             (fun x1 ->
+               Lock_protected.with_lock
+                 (fun x2 -> Fpath.compare x1.Xtarget.file x2.Xtarget.file)
+                 x2)
+             x1)
+    |> List.iter (fun xtarget_prot ->
            if !(state.should_continue_iterating_targets) then
              xtarget_prot
              |> Lock_protected.with_lock (fun xtarget ->
-                    if
-                      Match_rules.is_relevant_rule_for_xtarget fake_rule xconf
-                        xtarget
-                    then
-                      (* Calling the engine! *)
-                      Some
-                        (Match_search_mode.check_rule fake_rule hook xconf
-                           xtarget)
-                    else None)
+                    buffer_matches_of_xtarget state fake_rule xconf xtarget)
              (* the user typed something else; we're not needed anyore *)
            else raise Thread.Exit)
-  in
-
-  let res_by_file =
-    res
-    |> List.concat_map (fun ({ matches; _ } : _ Report.match_result) ->
-           Common.map (fun (m : Pattern_match.t) -> (m.file, m)) matches)
-    |> Common2.group_assoc_bykey_eff
-    (* A framed zipper with a frame size of 1 is the same as a regular
-       zipper.
-    *)
-    |> Common.map (fun (file, pms) ->
-           let sorted_pms =
-             List.sort
-               (fun { Pattern_match.range_loc = l1, _; _ }
-                    { Pattern_match.range_loc = l2, _; _ } ->
-                 Int.compare l1.pos.charpos l2.pos.charpos)
-               pms
-           in
-           { file; matches = Framed_zipper.of_list 1 sorted_pms })
-    |> List.sort (fun { file = k1; _ } { file = k2; _ } -> String.compare k1 k2)
-  in
-  Framed_zipper.of_list (height_of_preview state.term) res_by_file
+    |> ignore
 
 let parse_pattern_opt s state =
   try
@@ -664,11 +710,14 @@ let render_screen ?(has_changed_query = false) state =
   (* Minus two, because one for the line, and one for
      the input line.
   *)
-  (* The zipper shouldn't be able to change while we're
-     rendering the screen, so it's safe to do this. This
-     ensures that we don't act like it does, anyways.
+  (* The zipper might be changing during this call, because in Turbo mode,
+     the zipper imperatively changes while we are buffering the matches from
+     the turbo thread.
+     If we dereference it now and just use its value, we should be good.
   *)
-  let file_zipper = !(state.file_zipper) in
+  let file_zipper =
+    Lock_protected.with_lock (fun file_zipper -> !file_zipper) state.file_zipper
+  in
   let top_left_pane = render_top_left_pane file_zipper state in
   let preview_pane =
     if Framed_zipper.is_empty file_zipper then
@@ -777,8 +826,12 @@ let execute_command (state : state) =
     | Any -> { state with mode = false }
     | Pat (pat, b) ->
         let new_iformula = handle_pat (pat, b) in
-        let file_zipper = matches_of_new_iformula new_iformula state in
-        state.file_zipper := file_zipper;
+        (* This is a blocking call, so calling this function will
+           just cause the REPL thread to block until all the matches
+           are done.
+           TODO: We could make use of the buffering here too.
+        *)
+        buffer_matches_of_new_iformula new_iformula state;
         { state with formula = Some new_iformula }
   in
   (* Remember to reset the current line after executing a command,
@@ -798,26 +851,32 @@ let execute_command (state : state) =
    Care must be taken to ensure multiple threads don't mess with each other.
 *)
 let spawn_thread_if_turbo state =
-  if state.turbo then
-    Thread.create
-      (fun _ ->
-        let cur_line = get_current_line state in
-        let pat_opt = parse_pattern_opt cur_line state in
-        match (cur_line, pat_opt) with
-        | "", _ ->
-            (* When we go back to the empty line, reset the view to default. *)
-            should_refresh := true;
-            state.file_zipper :=
-              (* TODO? *)
-              Framed_zipper.empty_with_max_len (height_of_preview state.term)
-        | _, None -> ()
-        | _, Some pat ->
-            let new_iformula = IPat (pat, true) in
-            let file_zipper = matches_of_new_iformula new_iformula state in
-            state.file_zipper := file_zipper;
-            should_refresh := true)
+  (* Let's only spawn a new turbo thread if our next event isn't
+     one which is going to spin up yet another turbo thread.
+     This reduces perceived lag if the user is typing really fast.
+  *)
+  match Queue.peek_opt event_queue with
+  | Some (Key (`ASCII _, _))
+  | Some (Key (`Backspace, _)) ->
       ()
-    |> ignore
+  | __else__ ->
+      if state.turbo then
+        (reset_zipper state;
+         Thread.create
+           (fun _ ->
+             let cur_line = get_current_line state in
+             let pat_opt = parse_pattern_opt cur_line state in
+             match (cur_line, pat_opt) with
+             | "", _
+             | _, None ->
+                 (* When we go back to the empty line, or find no matches,
+                     reset the view to the no matches screen. *)
+                 should_refresh := true
+             | _, Some pat ->
+                 let new_iformula = IPat (pat, true) in
+                 buffer_matches_of_new_iformula new_iformula state)
+           ())
+        |> ignore
 
 let stop_thread_if_turbo state =
   if state.turbo then state.should_continue_iterating_targets := false
@@ -872,28 +931,22 @@ let interactive_loop ~turbo xlang xtargets =
         spawn_thread_if_turbo state;
         render_and_loop ~has_changed_query:true t state
     | Key (`Arrow `Left, _) ->
-        let file_zipper = !(state.file_zipper) in
-        state.file_zipper :=
-          Framed_zipper.map_current
-            (fun { file; matches = mz } ->
-              { file; matches = Framed_zipper.move_left mz })
-            file_zipper;
+        atomic_map_file_zipper
+          (Framed_zipper.map_current (fun { file; matches = mz } ->
+               { file; matches = Framed_zipper.move_up mz }))
+          state;
         render_and_loop t state
     | Key (`Arrow `Right, _) ->
-        let file_zipper = !(state.file_zipper) in
-        state.file_zipper :=
-          Framed_zipper.map_current
-            (fun { file; matches = mz } ->
-              { file; matches = Framed_zipper.move_right mz })
-            file_zipper;
+        atomic_map_file_zipper
+          (Framed_zipper.map_current (fun { file; matches = mz } ->
+               { file; matches = Framed_zipper.move_down mz }))
+          state;
         render_and_loop t state
     | Key (`Arrow `Up, _) ->
-        let file_zipper = !(state.file_zipper) in
-        state.file_zipper := Framed_zipper.move_left file_zipper;
+        atomic_map_file_zipper Framed_zipper.move_up state;
         render_and_loop t state
     | Key (`Arrow `Down, _) ->
-        let file_zipper = !(state.file_zipper) in
-        state.file_zipper := Framed_zipper.move_right file_zipper;
+        atomic_map_file_zipper Framed_zipper.move_down state;
         render_and_loop t state
     | Resize _ -> render_and_loop t state
     | __else__ -> render_and_loop t state

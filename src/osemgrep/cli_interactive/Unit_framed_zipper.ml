@@ -5,8 +5,8 @@ let emit zipper = Common.pr2 (FZ.show Int.to_string zipper)
 let%expect_test "empty" =
   let zipper = FZ.empty_with_max_len 5 in
   emit zipper;
-  emit (FZ.move_right zipper);
-  emit (FZ.move_left zipper);
+  emit (FZ.move_down zipper);
+  emit (FZ.move_up zipper);
   [%expect
     {|
     [5 | (<NONE>), <NONE>, <NONE>, <NONE>, <NONE>]
@@ -34,8 +34,8 @@ type move = Left | Right
 let emit_with_move zipper move =
   let zipper =
     match move with
-    | Left -> FZ.move_left zipper
-    | Right -> FZ.move_right zipper
+    | Left -> FZ.move_up zipper
+    | Right -> FZ.move_down zipper
   in
   emit zipper;
   zipper
@@ -45,13 +45,13 @@ let emit_with_moves zipper moves =
   List.fold_left (fun zipper move -> emit_with_move zipper move) zipper moves
   |> ignore
 
-let%expect_test "move_left_boundary" =
+let%expect_test "move_up_boundary" =
   emit_with_moves (FZ.of_list 3 [ 1; 2; 3 ]) [ Left ];
   [%expect {|
     [3 | (1), 2, 3]
     [3 | (1), 2, 3] |}]
 
-let%expect_test "move_right_boundary" =
+let%expect_test "move_down_boundary" =
   emit_with_moves (FZ.of_list 3 [ 1; 2; 3 ]) [ Right; Right; Right ];
   [%expect
     {|
@@ -60,7 +60,7 @@ let%expect_test "move_right_boundary" =
     [3 | 1, 2, (3)]
     [3 | 1, 2, (3)] |}]
 
-let%expect_test "move_left_and_right_fitted" =
+let%expect_test "move_up_and_right_fitted" =
   let zipper = FZ.of_list 3 [ 1; 2; 3 ] in
   emit zipper;
   [%expect {| [3 | (1), 2, 3] |}];
@@ -87,7 +87,7 @@ let%expect_test "move_left_and_right_fitted" =
   let _ = emit_with_move zipper Right in
   [%expect {| [3 | 1, (2), 3] |}]
 
-let%expect_test "move_left_and_right_framed" =
+let%expect_test "move_up_and_right_framed" =
   let zipper = FZ.of_list 3 [ 1; 2; 3; 4; 5 ] in
   emit zipper;
   [%expect {| [3 | (1), 2, 3] |}];
@@ -135,10 +135,10 @@ let%expect_test "change_max_len" =
 
 let%expect_test "position" =
   let zipper = FZ.of_list 3 [ 1; 2; 3; 4; 5 ] in
-  let zipper = FZ.move_right zipper in
-  let zipper = FZ.move_right zipper in
-  let zipper = FZ.move_right zipper in
-  let zipper = FZ.move_right zipper in
+  let zipper = FZ.move_down zipper in
+  let zipper = FZ.move_down zipper in
+  let zipper = FZ.move_down zipper in
+  let zipper = FZ.move_down zipper in
   emit zipper;
   Common.(
     pr2
