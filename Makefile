@@ -80,7 +80,7 @@ build:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-# was the 'all' target in in semgrep-core/Makefile before
+#history: was the 'all' target in in semgrep-core/Makefile before
 .PHONY: core
 core:
 	$(MAKE) minimal-build
@@ -114,23 +114,17 @@ build-docker:
 # Build just this executable
 .PHONY: build-otarzan
 build-otarzan:
-	rm -f bin
 	dune build _build/install/default/bin/otarzan
-	test -e bin || ln -s _build/install/default/bin .
 
 # Build just this executable
 .PHONY: build-pfff
 build-pfff:
-	rm -f bin
 	dune build _build/install/default/bin/pfff
-	test -e bin || ln -s _build/install/default/bin .
 
 # This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
 .PHONY: build-parse-cairo
 build-parse-cairo:
-	rm -f bin
 	dune build _build/install/default/bin/parse-cairo
-	test -e bin || ln -s _build/install/default/bin .
 
 # Build the js_of_ocaml portion of the semgrep javascript packages
 # TODO: you actually can't 'cd js; make'; You first need this step
