@@ -903,7 +903,22 @@ let render_screen ?(has_changed_query = false) state =
       I.(match_position_img </> preview_of_match pm file state)
   in
   let vertical_bar = I.char A.empty '|' 1 (height_of_preview state.term) in
-  let horizontal_bar = String.make w '-' |> I.string (A.fg (A.gray 12)) in
+  let horizontal_bar =
+    let files_loaded_img =
+      I.
+        [
+          string (A.fg semgrep_green) "[";
+          string
+            (A.fg (A.gray 17))
+            (Common.spf "%d/%d"
+               (Framed_zipper.length file_zipper)
+               (List.length state.xtargets));
+          string (A.fg semgrep_green) "]";
+        ]
+      |> I.hcat |> I.hpad 4 0 |> I.hsnap ~align:`Left w
+    in
+    I.(files_loaded_img </> (String.make w '-' |> I.string (A.fg (A.gray 12))))
+  in
   let mode =
     if state.turbo then I.void 0 0
     else if is_pattern_menu state then
