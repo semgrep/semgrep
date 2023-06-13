@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -eux
 
-# Build semgrep-core for MacOS
+# Setup the environment under MacOS to build and release semgrep-core.
 
 # history: there used to be a separate osx-m1-release.sh script
-# that was mostly a copy of osx-release.sh, but now the
+# that was mostly a copy of this file, but now the
 # build steps are identical so we just have one script.
 
 # Note that this script runs from a self-hosted CI runner which
@@ -19,6 +19,7 @@ brew install opam
 
 # Some CI runners have tree-sitter preinstalled which interfere with
 # out static linking plans below so better to remove it.
+# TODO: fix setup-m1-builder.sh instead?
 brew uninstall --force tree-sitter
 
 #coupling: this should be the same version than in our Dockerfile
@@ -55,10 +56,3 @@ echo "Deleting all the tree-sitter dynamic libraries to force static linking."
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.0.dylib
 rm -f "$TREESITTER_LIBDIR"/libtree-sitter.dylib
-
-make core
-make core-install
-
-mkdir -p artifacts
-cp ./_build/install/default/bin/semgrep-core artifacts
-zip -r artifacts.zip artifacts

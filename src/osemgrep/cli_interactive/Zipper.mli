@@ -1,3 +1,7 @@
+(* A simple library for zippers on lists.
+   https://en.wikipedia.org/wiki/Zipper_(data_structure)
+*)
+
 (* This module implements something I call a "framed zipper".
 
    A zipper is the classic data structure for a list's "one hole context",
@@ -43,43 +47,20 @@ type 'a t
 *)
 val move_up : 'a t -> 'a t
 val move_down : 'a t -> 'a t
-val of_list : int -> 'a list -> 'a t
-
-(* Append only modifies the data in the zipper, it doesn't
-   affect the current position or the frame.
-*)
-val append : 'a -> 'a t -> 'a t
 
 (* To list, but the enclosed bool will be true for
    whatever the currently focused item is.
 *)
 val to_list : 'a t -> ('a * bool) list
-val empty_with_max_len : int -> 'a t
-val change_max_len : 'a t -> int -> 'a t
-val map_current : ('a -> 'a) -> 'a t -> 'a t
+val of_list : 'a list -> 'a t
 
-(* destructors *)
-
-(* Get the next n elements from the zipper. Doesn't need
-   to be within the frame.
+(* Append only modifies the data in the zipper, it doesn't
+   modify the current position.
 *)
-val take : int -> 'a t -> 'a list
-val get_current : 'a t -> 'a
-val is_empty : 'a t -> bool
+val append : 'a -> 'a t -> 'a t
+val position : 'a t -> int
 val length : 'a t -> int
-val frame_size : 'a t -> int
-val set_frame_size : int -> 'a t -> 'a t
-
-(* The absolute position is with respect to the number of
-   things in the frame, including stufff behind us.
-   The relative position is only with respect to the current
-   frame.
-   0-indexed.
-*)
-val absolute_position : 'a t -> int
-val relative_position : 'a t -> int
-val show : ('a -> string) -> 'a t -> string
-
-(* top and bottom of the zipper, not the frame *)
 val is_top : 'a t -> bool
 val is_bottom : 'a t -> bool
+val get_current : 'a t -> 'a
+val map_current : ('a -> 'a) -> 'a t -> 'a t
