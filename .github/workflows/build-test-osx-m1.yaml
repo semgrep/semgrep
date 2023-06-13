@@ -34,7 +34,7 @@ jobs:
           HOMEBREW_NO_INSTALL_CLEANUP: "true"
         run: |
           ./scripts/osx-setup-for-release.sh
-          make core
+          opam exec -- make core
           mkdir -p artifacts
           cp ./bin/semgrep-core artifacts
           zip -r artifacts.zip artifacts

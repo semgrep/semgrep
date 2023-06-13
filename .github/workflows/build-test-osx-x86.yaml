@@ -23,7 +23,7 @@ jobs:
           submodules: true
       - run: |
           ./scripts/osx-setup-for-release.sh
-          make core
+          opam exec -- make core
           mkdir -p artifacts
           cp ./bin/semgrep-core artifacts
           zip -r artifacts.zip artifacts
