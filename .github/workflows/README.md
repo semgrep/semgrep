@@ -39,15 +39,12 @@ Here is a short description of the workflows in this directory:
     (after validate-release.yml) and in turn bumps to the new Semgrep version
     many dependent repositories (semgrep-rpc, semgrep-action, semgrep-app)
 
-- homebrew-core-head.yml: cron to check that the new Homebrew Core Formula
-  created by release.yml works. Why can't this be part of validate-release.yml?
+- nightly.yml: cron to check that the Homebrew Core Formula works.
+  Why can't this be part of validate-release.yml?
   Because it usually takes some time for HomeBrew developers to accept the PR
   created in release.yml, so we shouldn't block on actions we can't control.
   This is why we have the find-old-brew-prs.yml and homebrew-core-head.yml
   workflows.
-
-- find-old-brew-prs.yml: cron to check whether the HomeBrew PR created by
-  release.yml has been accepted or is hanging around unmerged.
 
 - update-semgrep-rules.yml: cron to update semgrep/tests/semgrep-rules
   submodule to its latest version

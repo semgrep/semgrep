@@ -1,5 +1,4 @@
-# This workflow is used to ??? Is this still used now that we
-# don't upload anymore artifacts for each release?
+# This workflow generates the manylinux-wheel for pypi.
 
 name: build-test-manylinux-x86
 
