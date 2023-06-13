@@ -1,7 +1,9 @@
+# This workflow depends on build-test-core-x86.yaml to generate
+# the appropriate ocaml-build-artifacts.tgz file
 #TODO: What is this workflow used for? we dont release anymore
 # those semgrep-xxx version assets, so do we still need this workflow?
 
-name: build-test-manylinux-x86
+name: build-test-ubuntu-16-04-x86
 
 on:
   workflow_dispatch:
