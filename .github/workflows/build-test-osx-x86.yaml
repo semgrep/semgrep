@@ -21,11 +21,16 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - run: ./scripts/osx-release.sh
+      - run: |
+          ./scripts/osx-setup-for-release.sh
+          opam exec -- make core
+          mkdir -p artifacts
+          cp ./bin/semgrep-core artifacts
+          zip -r artifacts.zip artifacts
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
+          name: semgrep-osx-${{ github.sha }}
 
   build-wheels-osx:
     runs-on: macos-12
@@ -44,8 +49,8 @@ jobs:
         run: ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
-          name: osx-wheel
           path: cli/dist.zip
+          name: osx-wheel
 
   test-wheels-osx:
     runs-on: macos-12
