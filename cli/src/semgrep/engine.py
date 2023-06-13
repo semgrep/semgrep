@@ -63,7 +63,8 @@ class EngineType(Enum):
     def default_jobs(self) -> int:
         if self == EngineType.PRO_INTERFILE:
             return 1
-        return self.get_cpu_count()
+
+        return min(16, self.get_cpu_count())
 
     @property
     def default_max_memory(self) -> int:
