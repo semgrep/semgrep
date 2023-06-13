@@ -30,16 +30,8 @@ jobs:
       - name: Build semgrep
         run: |
           eval $(opam env)
-
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
-
-          # This symlink seems to be necessary because our tree-sitter langs don't
-          # explicitly include the $TREESITTER_INCDIR folder when building c++ files.
-          # I'm puzzled why we haven't hit this issue elsewhere.
-          . libs/ocaml-tree-sitter-core/tree-sitter-config.sh
-          ln -s $TREESITTER_INCDIR/tree_sitter /usr/include/tree_sitter
-
           make build-semgrep-jsoo
       - uses: actions/upload-artifact@v3
         with:
