@@ -84,12 +84,12 @@ let is_empty m = List.length m.after + List.length m.before_rev = 0
 let empty_with_max_len max_len =
   { before_rev = []; after = []; pointer = 0; max_len }
 
-let is_leftmost m =
+let is_top m =
   match m.before_rev with
-  | [] -> true
+  | [] -> m.pointer = 0
   | __else__ -> false
 
-let is_rightmost m =
+let is_bottom m =
   (* THINK: empty? *)
   m.pointer >= List.length m.after - 1
 

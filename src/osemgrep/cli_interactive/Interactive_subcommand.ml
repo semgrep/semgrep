@@ -39,8 +39,7 @@ type command =
 (* interactive formula, but in a zipper!
 
    When in Pattern Builder mode, we want to be able to traverse the
-   formula, up and down. This means we need another zipper. We can
-   use `Framed_zipper` of frame 1 to mimic a true zipper, again.
+   formula, up and down. This means we need another zipper.
 
    The difficulty is that we would also like to be able to have the
    zipper stop on the `all` and `any` themselves, which means we need
@@ -60,16 +59,14 @@ type iformula_zipper =
      them, but we might also want to be able to go to `all`, so we include
      a "header" as the first item in the zipper.
   *)
-  | IAll of iformula_zipper Framed_zipper.t
-  | IAny of iformula_zipper Framed_zipper.t
+  | IAll of iformula_zipper Zipper.t
+  | IAny of iformula_zipper Zipper.t
 
 type matches_by_file = {
   file : string;
-  matches : Pattern_match.t Framed_zipper.t;
+  matches : Pattern_match.t Zipper.t;
       (** A zipper, because we want to be able to go back and forth
         through the matches in the file.
-        Fortunately, a regular zipper is equivalent to a framed
-        zipper with a frame size of 1.
       *)
 }
 
@@ -393,13 +390,13 @@ let move_pat_base ~at_end ~move_zipper state =
     | IPat (xpat, b) -> IPat (xpat, b)
     | Header -> Header
     | IAll zipper ->
-        let res = Framed_zipper.map_current move_iformula zipper in
+        let res = Zipper.map_current move_iformula zipper in
         if !has_moved || at_end zipper then IAll res
         else (
           has_moved := true;
           IAll (move_zipper res))
     | IAny zipper ->
-        let res = Framed_zipper.map_current move_iformula zipper in
+        let res = Zipper.map_current move_iformula zipper in
         if !has_moved || at_end zipper then IAny res
         else (
           has_moved := true;
@@ -410,12 +407,10 @@ let move_pat_base ~at_end ~move_zipper state =
   | Some iformula_zipper -> Some (move_iformula iformula_zipper)
 
 let move_pat_up state =
-  move_pat_base ~move_zipper:Framed_zipper.move_up
-    ~at_end:Framed_zipper.is_leftmost state
+  move_pat_base ~move_zipper:Zipper.move_up ~at_end:Zipper.is_top state
 
 let move_pat_down state =
-  move_pat_base ~move_zipper:Framed_zipper.move_down
-    ~at_end:Framed_zipper.is_rightmost state
+  move_pat_base ~move_zipper:Zipper.move_down ~at_end:Zipper.is_bottom state
 
 (* Map the xpat which is currently being focused by our pattern builder zipper. *)
 let map_focused_pat_string f state =
@@ -425,8 +420,8 @@ let map_focused_pat_string f state =
         let new_xpat = f xpat in
         IPat (new_xpat, b)
     | Header -> Header
-    | IAll pats -> IAll (Framed_zipper.map_current loop pats)
-    | IAny pats -> IAny (Framed_zipper.map_current loop pats)
+    | IAll pats -> IAll (Zipper.map_current loop pats)
+    | IAny pats -> IAny (Zipper.map_current loop pats)
   in
   match state.formula with
   | None -> failwith "precondition"
@@ -482,12 +477,12 @@ let translate_formula iformula =
     | Header -> None
     | IAll ipats ->
         let pats =
-          Framed_zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
+          Zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
         in
         Some (Rule.And (fk, { conjuncts = pats; conditions = []; focus = [] }))
     | IAny ipats ->
         let pats =
-          Framed_zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
+          Zipper.to_list ipats |> Common.map fst |> Common.map_filter aux
         in
         Some (Rule.Or (fk, pats))
   in
@@ -516,7 +511,7 @@ let atomic_map_file_zipper f state =
     (fun file_zipper -> file_zipper := f !file_zipper)
     state.file_zipper
 
-let reset_zipper state =
+let reset_file_zipper state =
   atomic_map_file_zipper
     (fun _ -> Framed_zipper.empty_with_max_len (height_of_preview state.term))
     state
@@ -568,7 +563,7 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
     match List.length matches with
     | 0 -> () (* no point in putting it in if no matches *)
     | _ ->
-        let matches = Framed_zipper.of_list 1 matches in
+        let matches = Zipper.of_list matches in
         let matches_by_file =
           { file = Fpath.to_string xtarget.file; matches }
         in
@@ -592,7 +587,7 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
   (* Reset the zipper before buffering matches into it! Otherwise,
      Regular Mode won't work properly.
   *)
-  reset_zipper state;
+  reset_file_zipper state;
   let rule_formula = translate_formula new_iform in
   let fake_rule =
     mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
@@ -804,7 +799,7 @@ let render_patterns iformula state =
         else I.(string A.(fg lightblue ++ pat_bg) "any:")
     | IAll pats ->
         I.(
-          pats |> Framed_zipper.to_list
+          pats |> Zipper.to_list
           |> Common.map (fun (pat, is_focus') ->
                  loop ~header:true (pat, is_focus && is_focus'))
           |> map_nonfirst (fun img ->
@@ -812,7 +807,7 @@ let render_patterns iformula state =
           |> vcat)
     | IAny pats ->
         I.(
-          pats |> Framed_zipper.to_list
+          pats |> Zipper.to_list
           |> Common.map (fun (pat, is_focus') ->
                  loop ~header:false (pat, is_focus && is_focus'))
           |> map_nonfirst (fun img ->
@@ -895,8 +890,8 @@ let render_screen ?(has_changed_query = false) state =
         Framed_zipper.get_current file_zipper
       in
       (* 1 indexed *)
-      let match_idx = Framed_zipper.absolute_position matches_zipper + 1 in
-      let total_matches = Framed_zipper.length matches_zipper in
+      let match_idx = Zipper.position matches_zipper + 1 in
+      let total_matches = Zipper.length matches_zipper in
       let match_position_img =
         if total_matches = 1 then I.void 0 0
         else
@@ -904,7 +899,7 @@ let render_screen ?(has_changed_query = false) state =
             (Common.spf "%d/%d" match_idx total_matches)
           |> I.hsnap ~align:`Right (w - files_width - 1)
       in
-      let pm = Framed_zipper.get_current matches_zipper in
+      let pm = Zipper.get_current matches_zipper in
       I.(match_position_img </> preview_of_match pm file state)
   in
   let vertical_bar = I.char A.empty '|' 1 (height_of_preview state.term) in
@@ -984,13 +979,11 @@ let execute_command (state : state) =
     else
       match (state.formula, state.pattern_mode) with
       | None, _ -> new_pat
-      | Some (IAll pats), true -> IAll (Framed_zipper.append new_pat pats)
-      | Some (IAny pats), false -> IAny (Framed_zipper.append new_pat pats)
+      | Some (IAll pats), true -> IAll (Zipper.append new_pat pats)
+      | Some (IAny pats), false -> IAny (Zipper.append new_pat pats)
       (* Here is where Header is introduced, when we create a new any or all. *)
-      | Some pat, true ->
-          IAll (Framed_zipper.of_list 1 [ Header; pat; new_pat ])
-      | Some pat, false ->
-          IAny (Framed_zipper.of_list 1 [ Header; pat; new_pat ])
+      | Some pat, true -> IAll (Zipper.of_list [ Header; pat; new_pat ])
+      | Some pat, false -> IAny (Zipper.of_list [ Header; pat; new_pat ])
   in
   let state =
     match cmd with
@@ -1034,7 +1027,7 @@ let spawn_thread_if_turbo state =
       ()
   | __else__ ->
       if state.turbo then
-        (reset_zipper state;
+        (reset_file_zipper state;
          Thread.create
            (fun _ ->
              let cur_line = get_current_line state in
@@ -1164,13 +1157,13 @@ let interactive_loop ~turbo xlang xtargets =
     | Key (`Arrow `Left, _) ->
         atomic_map_file_zipper
           (Framed_zipper.map_current (fun { file; matches = mz } ->
-               { file; matches = Framed_zipper.move_up mz }))
+               { file; matches = Zipper.move_up mz }))
           state;
         render_and_loop t state
     | Key (`Arrow `Right, _) ->
         atomic_map_file_zipper
           (Framed_zipper.map_current (fun { file; matches = mz } ->
-               { file; matches = Framed_zipper.move_down mz }))
+               { file; matches = Zipper.move_down mz }))
           state;
         render_and_loop t state
     | Key (`Arrow `Up, _) ->

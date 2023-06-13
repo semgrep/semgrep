@@ -148,3 +148,22 @@ let%expect_test "position" =
   [%expect {|
     [3 | 3, 4, (5)]
     absolute: 4, relative: 2 |}]
+
+let%expect_test "top_bottom" =
+  let str_of_bool b = if b then "T" else "F" in
+  let zipper = FZ.of_list 3 [ 1; 2; 3 ] in
+  Common.pr2 (str_of_bool (FZ.is_top zipper));
+  Common.pr2 (str_of_bool (FZ.is_bottom zipper));
+  let zipper = FZ.move_down zipper in
+  Common.pr2 (str_of_bool (FZ.is_top zipper));
+  Common.pr2 (str_of_bool (FZ.is_bottom zipper));
+  let zipper = FZ.move_down zipper in
+  Common.pr2 (str_of_bool (FZ.is_top zipper));
+  Common.pr2 (str_of_bool (FZ.is_bottom zipper));
+  [%expect {|
+    T
+    F
+    F
+    F
+    F
+    T |}]
