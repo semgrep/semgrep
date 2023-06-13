@@ -63,7 +63,7 @@ class EngineType(Enum):
     def default_jobs(self) -> int:
         if self == EngineType.PRO_INTERFILE:
             return 1
-        """Maxing out number of cores used to 16 if more not requested to not overload on large machines"""
+        # Maxing out number of cores used to 16 if more not requested to not overload on large machines
         return min(16, self.get_cpu_count())
 
     @property
