@@ -254,7 +254,8 @@ install-deps: install-deps-for-semgrep-core
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
 # - python3: still needed for pysemgrep and our e2e tests
-ALPINE_APK_DEPS=pcre-dev gmp-dev python3
+# - python-dev: for compiling jsonnet for pysemgrep
+ALPINE_APK_DEPS=pcre-dev gmp-dev python3 python3-dev
 
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
