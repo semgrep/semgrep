@@ -57,6 +57,14 @@ let change_max_len t len = { t with max_len = len }
 let take n m = Common2.take_safe n m.after
 let of_list max_len l = { before_rev = []; after = l; pointer = 0; max_len }
 let append x m = { m with after = m.after @ [ x ] }
+
+let to_list m =
+  let pad_with_false = Common.map (fun x -> (x, false)) in
+  match m.after with
+  | [] -> pad_with_false (List.rev m.before_rev)
+  | x :: xs ->
+      pad_with_false (List.rev m.before_rev) @ ((x, true) :: pad_with_false xs)
+
 let relative_position m = m.pointer
 let get_current m = List.nth m.after (relative_position m)
 
@@ -75,6 +83,15 @@ let is_empty m = List.length m.after + List.length m.before_rev = 0
 
 let empty_with_max_len max_len =
   { before_rev = []; after = []; pointer = 0; max_len }
+
+let is_top m =
+  match m.before_rev with
+  | [] -> m.pointer = 0
+  | __else__ -> false
+
+let is_bottom m =
+  (* THINK: empty? *)
+  m.pointer >= List.length m.after - 1
 
 let show f t =
   let after_padded =
