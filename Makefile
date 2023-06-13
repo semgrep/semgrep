@@ -3,9 +3,9 @@
 ###############################################################################
 
 # Many targets in this Makefile assume some commands have been run before to
-# install the correct build environment supporting the different languages
+# setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
+#  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
 #
@@ -37,7 +37,7 @@
 # hopefully also under Windows WSL.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
-# macros like the one below to make the Makefile portable.
+# macros like the one below to have a portable Makefile.
 
 # Used to select commands with different usage under GNU/Linux and *BSD/Darwin
 # such as 'sed'.
@@ -80,32 +80,26 @@ build:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-# was the 'all' target in in semgrep-core/Makefile before
+#history: was the 'all' target in in semgrep-core/Makefile before
 .PHONY: core
 core:
-	rm -f bin
 	$(MAKE) minimal-build
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core bin/osemgrep
 
 # Make binaries available to pysemgrep
-#
-# TODO: find out and explain why we can't use symlinks
-# which is faster, clearer, and less wasteful than full copies.
-# It may have something to do with how we do Python or Homebrew packaging.
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
-	# Executables
 	rm -f cli/src/semgrep/bin/semgrep-core
-	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/osemgrep
+	cp bin/semgrep-core cli/src/semgrep/bin/
 	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
-# Builds only the two main binaries needed for development.
-# If you need other binaries, look at the rules below.
+# Builds only the binary needed for development.
+# If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
 	dune build _build/install/default/bin/semgrep-core
@@ -120,39 +114,20 @@ build-docker:
 # Build just this executable
 .PHONY: build-otarzan
 build-otarzan:
-	rm -f bin
 	dune build _build/install/default/bin/otarzan
-	test -e bin || ln -s _build/install/default/bin .
 
 # Build just this executable
 .PHONY: build-pfff
 build-pfff:
-	rm -f bin
 	dune build _build/install/default/bin/pfff
-	test -e bin || ln -s _build/install/default/bin .
 
-# Build just this executable
+# This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
 .PHONY: build-parse-cairo
 build-parse-cairo:
-	rm -f bin
 	dune build _build/install/default/bin/parse-cairo
-	test -e bin || ln -s _build/install/default/bin .
-
-# Build just this executable
-.PHONY: build-spacegrep
-build-spacegrep:
-	rm -f bin
-	dune build _build/install/default/bin/spacegrep
-	test -e bin || ln -s _build/install/default/bin .
-
-# Build just this executable
-.PHONY: build-oncall
-build-oncall:
-	rm -f bin
-	dune build _build/install/default/bin/oncall
-	test -e bin || ln -s _build/install/default/bin .
 
 # Build the js_of_ocaml portion of the semgrep javascript packages
+# TODO: you actually can't 'cd js; make'; You first need this step
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
@@ -225,28 +200,15 @@ test:
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
 
-# I put 'all' as a dependency because sometimes you modify a test file
-# and dune runtest -f does not see this new file, probably because
-# the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core build-spacegrep
-	# The test executable has a few options that can be useful
-	# in some contexts.
-	$(MAKE) build-core-test
+core-test:
+	# The test executable has a few options that can be useful in some contexts.
 	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
-	$(MAKE) -C libs/spacegrep test
-	dune runtest -f --no-buffer
-
-# This is useful when working on one or a few specific test cases.
-# It rebuilds the test executable which can then be called with
-# './test <filter>' where <filter> selects the tests to run.
-.PHONY: build-core-test
-build-core-test:
-	dune build ./_build/default/src/tests/test.exe
+	./scripts/run-core-test
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
@@ -290,10 +252,10 @@ install-deps: install-deps-for-semgrep-core
 
 # Here is why we need those external packages below:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - python3: used also during building semgrep-core for processing lang.json
-# - python3-dev: for the semgrep Python bridge to build Python C extensions
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
+# - python3: still needed for pysemgrep and our e2e tests
+# - python-dev: for compiling jsonnet for pysemgrep
+ALPINE_APK_DEPS=pcre-dev gmp-dev python3 python3-dev
 
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
@@ -321,16 +283,11 @@ install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS)
 	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
 
-#TODO: deprecate scripts/install-alpine-xxx in favor of that
-install-deps-and-build-ALPINE-semgrep-core:
-	$(MAKE) install-deps-ALPINE-for-semgrep-core
-	$(MAKE) install-deps
-	$(MAKE)
-	$(MAKE) install
-
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
+
+#TODO: move scripts/ubuntu-release.sh here as an install-deps-UBUNTU-xxx target
 
 # -------------------------------------------------
 # macOS (brew)
@@ -344,6 +301,8 @@ install-deps-and-build-ALPINE-semgrep-core:
 # - gettext?
 BREW_DEPS=pkg-config coreutils pcre gmp gettext
 
+# see also scripts/osx-setup-for-release.sh that adjust those
+# external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
 	brew install $(BREW_DEPS)
 

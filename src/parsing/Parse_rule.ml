@@ -1795,7 +1795,7 @@ let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
 let parse_xpattern xlang (str, tok) =
   let env =
     {
-      id = Rule.ID.of_string "-e/-f";
+      id = Rule.ID.of_string "anon-pattern";
       languages = Rule.languages_of_xlang xlang;
       in_metavariable_pattern = false;
       path = [];
