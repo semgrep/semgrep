@@ -1,4 +1,9 @@
-name: build-test-ubuntu-x86
+# This workflow builds and test semgrep-core. It also generates an
+# ocaml-build-artifacts.tgz file which is used in many other jobs such
+# as test-cli in tests.yml or build-wheels-manylinux in
+# build-test-manylinux-x86.yaml
+
+name: build-test-core-x86
 
 on:
   workflow_dispatch:

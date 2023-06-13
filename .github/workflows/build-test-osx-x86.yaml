@@ -1,4 +1,5 @@
 # This workflow builds and tests the semgrep-core binary for macOS X86
+# and generates osx-wheel for pypi.
 
 # coupling: if you modify this file, modify also build-test-osx-m1.yaml
 name: build-test-osx-x86
