@@ -20,10 +20,17 @@ jobs:
         with:
           submodules: true
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+          mkdir -p ocaml-build-artifacts/bin
+          cp bin/semgrep-core ocaml-build-artifacts/bin/
+          tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts
       - uses: actions/upload-artifact@v3
         with:
-          name: ocaml-build-artifacts-release
           path: ocaml-build-artifacts.tgz
+          name: ocaml-build-artifacts-release
       - name: Test semgrep-core
         run: opam exec -- make core-test

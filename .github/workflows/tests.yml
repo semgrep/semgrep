@@ -19,7 +19,6 @@ on:
 
 jobs:
   test-core:
-    # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2023-04-03
@@ -31,7 +30,13 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+          # needed for the e2e test below
+          make core-install
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -71,7 +76,11 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
       - name: Install osemgrep
         run: |
           eval $(opam env)

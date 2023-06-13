@@ -3,9 +3,9 @@
 ###############################################################################
 
 # Many targets in this Makefile assume some commands have been run before to
-# install the correct build environment supporting the different languages
+# setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
+#  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
 #  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
 #
@@ -93,13 +93,13 @@ core:
 copy-core-for-cli:
 	rm -f cli/src/semgrep/bin/semgrep-core
 	rm -f cli/src/semgrep/bin/osemgrep
-	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
+	cp bin/semgrep-core cli/src/semgrep/bin/
 	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
 # Builds only the binary needed for development.
-# If you need other binaries, look at the rules below.
+# If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
 	dune build _build/install/default/bin/semgrep-core
@@ -252,10 +252,10 @@ install-deps: install-deps-for-semgrep-core
 
 # Here is why we need those external packages below:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - python3: used also during building semgrep-core for processing lang.json
-# - python3-dev: for the semgrep Python bridge to build Python C extensions
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
+# - python3: still needed for pysemgrep and our e2e tests
+# - python-dev: for compiling jsonnet for pysemgrep
+ALPINE_APK_DEPS=pcre-dev gmp-dev python3 python3-dev
 
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
@@ -283,16 +283,11 @@ install-deps-ALPINE-for-semgrep-core:
 	apk add --no-cache $(ALPINE_APK_DEPS)
 	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
 
-#TODO: deprecate scripts/install-alpine-xxx in favor of that
-install-deps-and-build-ALPINE-semgrep-core:
-	$(MAKE) install-deps-ALPINE-for-semgrep-core
-	$(MAKE) install-deps
-	$(MAKE)
-	$(MAKE) install
-
 # -------------------------------------------------
 # Ubuntu
 # -------------------------------------------------
+
+#TODO: move scripts/ubuntu-release.sh here as an install-deps-UBUNTU-xxx target
 
 # -------------------------------------------------
 # macOS (brew)
@@ -306,6 +301,8 @@ install-deps-and-build-ALPINE-semgrep-core:
 # - gettext?
 BREW_DEPS=pkg-config coreutils pcre gmp gettext
 
+# see also scripts/osx-setup-for-release.sh that adjust those
+# external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
 	brew install $(BREW_DEPS)
 
