@@ -1,2 +1,0 @@
-semgrep-core now validates rule IDs. This should not affect users since rule
-ID validation is done by the Python wrapper.
