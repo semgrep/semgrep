@@ -1,14 +1,14 @@
-#OK:
+#ERROR:
 @decorator
 def fun():
   return 42
 
-#OK:
+#ERROR:
 @decorator(1,2,3)
 def grumble():
   return "wahoo"
 
-#OK:
+#ERROR:
 @decorator("oh")
 @decorator("my")
 def grr():
