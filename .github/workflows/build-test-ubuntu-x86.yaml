@@ -1,3 +1,6 @@
+#TODO: What is this workflow used for? we dont release anymore
+# those semgrep-xxx version assets, so do we still need this workflow?
+
 name: build-test-manylinux-x86
 
 on:
@@ -7,6 +10,7 @@ on:
 jobs:
   build-ubuntu-16-04:
     runs-on: ubuntu-latest
+    #TODO? what is this container? sgrep?
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
       - uses: actions/checkout@v3
@@ -20,8 +24,14 @@ jobs:
           tar xf ocaml-build-artifacts.tgz
           mkdir -p semgrep-files
           cp ocaml-build-artifacts/bin/* semgrep-files
-      - run: ./scripts/ubuntu-release.sh
+      - run: |
+          # Make a semgrep release for Linux x86_64.
+          # We may not need all of these packages anymore since semgrep-core now
+          # comes pre-built.
+          sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libexpat1-dev gettext libz-dev libssl-dev build-essential autoconf musl-tools
+          chmod +x semgrep-files/semgrep-core
+          tar -cvzf artifacts.tar.gz semgrep-files/
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
