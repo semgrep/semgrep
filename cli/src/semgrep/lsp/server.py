@@ -7,8 +7,6 @@ import tempfile
 import threading
 import time
 import traceback
-import urllib
-from pathlib import PosixPath
 from tempfile import _TemporaryFileWrapper
 from typing import Any
 from typing import List
@@ -166,6 +164,11 @@ class SemgrepCoreLSServer:
         config = initializationOptions if initializationOptions is not None else {}
         if workspaceFolders is not None:
             self.config = LSPConfig(config, workspaceFolders)
+            if len(workspaceFolders) > 1:
+                self.notify_show_message(
+                    2,
+                    "Running Semgrep Language Server with multiple workspace folders may degrade performance",
+                )
         elif rootUri is not None:
             self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
         else:
@@ -234,16 +237,14 @@ class SemgrepCoreLSServer:
             self.update_rules_file()
             self.update_targets_file()
 
-        if method == "textDocument/didOpen":
-            uri = urllib.parse.urlparse(params["textDocument"]["uri"])
-            # Updating targets can take awhile if the project is large
-            # So only update them if it's not already in the target manager
-            found = (
-                PosixPath(urllib.request.url2pathname(uri.path))
-                not in self.config.target_manager.get_all_files()
-            )
-            if found:
-                self.update_targets_file()
+        update_targets_methods = [
+            "workspace/didCreateFiles",
+            "workspace/didDeleteFiles",
+            "workspace/didRenameFiles",
+            "workspace/didChangeWorkspaceFolders",
+        ]
+        if method in update_targets_methods:
+            self.update_targets_file()
 
         if method == "semgrep/login":
             self.m_semgrep__login(id)
