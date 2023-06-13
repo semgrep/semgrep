@@ -31,7 +31,11 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -71,7 +75,11 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
       - name: Install osemgrep
         run: |
           eval $(opam env)
