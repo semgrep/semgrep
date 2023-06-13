@@ -40,8 +40,8 @@ jobs:
           zip -r artifacts.zip artifacts
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-m1-${{ github.sha }}
           path: artifacts.zip
+          name: semgrep-m1-${{ github.sha }}
 
   build-wheels-m1:
     runs-on: [self-hosted, macOS, ARM64]
@@ -60,8 +60,8 @@ jobs:
         run: ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
-          name: m1-wheel
           path: cli/dist.zip
+          name: m1-wheel
 
   test-wheels-m1:
     runs-on: [self-hosted, macOS, ARM64]
