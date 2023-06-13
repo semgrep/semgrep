@@ -943,7 +943,7 @@ let semgrep_with_rules_and_formatted_output config =
 
 let minirule_of_pattern lang pattern_string pattern =
   {
-    MR.id = Rule.ID.of_string "-e/-f";
+    MR.id = Rule.ID.of_string "anon-pattern";
     pattern_string;
     pattern;
     inside = false;
