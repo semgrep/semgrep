@@ -76,7 +76,7 @@ end = struct
        let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
        fun str -> SPcre.pmatch_noerr ~rex str
   *)
-  let validate _str = true
+  let validate str = not (str = "!!TEST!!")
   let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
   let of_string_opt x = if validate x then Some x else None
   let to_string_list x = x

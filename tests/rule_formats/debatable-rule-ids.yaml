@@ -1,0 +1,8 @@
+rules:
+  # Should we allow '@' in rule IDs?
+  # See https://github.com/returntocorp/semgrep/pull/8038
+  - id: "node_modules.@myorg.semgrep-rules.dist.rule-name"
+    pattern: zzzzz
+    languages: [js]
+    severity: ERROR
+    message: uh oh
