@@ -250,21 +250,10 @@ install-deps: install-deps-for-semgrep-core
 # Alpine
 # -------------------------------------------------
 
-# Here is why we need those external packages below:
+# Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
 # - gmp-dev: for osemgrep and its use of cohttp
-# - python3: still needed for pysemgrep and our e2e tests
-# - python-dev: for compiling jsonnet for pysemgrep
-ALPINE_APK_DEPS=pcre-dev gmp-dev python3 python3-dev
-
-# We pin to a specific version just to prevent things from breaking randomly.
-# We could update to a more recent version.
-# coupling: if you modify the version, please modify also .github/workflows/*
-PIPENV='pipenv==2022.6.7'
-#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
-# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
-# so I pinned an older version
-VIRTENV='virtualenv==20.21.0'
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -277,10 +266,27 @@ VIRTENV='virtualenv==20.21.0'
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
+install-deps-ALPINE-for-semgrep-core:
+	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
+
+
+# Here is why we need those external packages below for pysemgrep:
+# - python3: obviously needed for pysemgrep and our e2e tests
+# - python-dev: for compiling jsonnet for pysemgrep
+ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
+# We pin to a specific version just to prevent things from breaking randomly.
+# We could update to a more recent version.
+# coupling: if you modify the version, please modify also .github/workflows/*
+PIPENV='pipenv==2022.6.7'
+#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
+# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
+# so I pinned an older version
+VIRTENV='virtualenv==20.21.0'
+
 # For '--ignore-installed distlib' below see
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
-install-deps-ALPINE-for-semgrep-core:
-	apk add --no-cache $(ALPINE_APK_DEPS)
+install-deps-ALPINE-for-pysemgrep:
+	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
 	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
 
 # -------------------------------------------------
