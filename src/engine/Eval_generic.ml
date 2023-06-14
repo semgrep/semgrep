@@ -224,8 +224,13 @@ let rec eval env code =
               | _ -> raise (NotHandled code))
           | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))
-  | G.Call ({ e = G.N (G.Id (("current_date", _), _)); _ }, (_, _, _)) ->
-      Date (2023, 6, 26)
+  | G.Call ({ e = G.N (G.Id (("today", _), _)); _ }, (_, _, _)) ->
+      let cur_date = Unix.localtime (Unix.time ()) in
+      (* cur_date.tm_year returns years since 1900 so need to add 1900 *)
+      let cur_year = cur_date.tm_year + 1900 in
+      let cur_month = cur_date.tm_mon in
+      let cur_day = cur_date.tm_mday in
+      Date (cur_year, cur_month, cur_day)
   (* Emulate Python re.match just enough *)
   | G.Call
       ( {
@@ -277,8 +282,10 @@ and eval_op op values code =
   | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
   | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
-  | G.GtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool (if y1 >= y2 then true else if m1 >= m2 then true else d1 >= d2)
+  | G.GtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] -> (
+      match eval_op G.Lt [ Date (y1, m1, d1); Date (y2, m2, d2) ] code with
+      | Bool result -> Bool (not result)
+      | _ -> raise (NotHandled code))
   | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
@@ -290,8 +297,10 @@ and eval_op op values code =
   | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
   | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
-  | G.LtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool (if y1 >= y2 then true else if m1 >= m2 then true else d1 >= d2)
+  | G.LtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] -> (
+      match eval_op G.Gt [ Date (y1, m1, d1); Date (y2, m2, d2) ] code with
+      | Bool result -> Bool (not result)
+      | _ -> raise (NotHandled code))
   | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
   | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
@@ -354,7 +363,6 @@ and eval_str _env ~code v =
     | String s -> s
     | Date (y, m, d) ->
         string_of_int y ^ "-" ^ string_of_int m ^ "-" ^ string_of_int d
-        (*TODO: change this A LOT*)
     | AST s -> s
     | List _ -> raise (NotHandled code)
   in
