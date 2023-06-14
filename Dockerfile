@@ -121,33 +121,19 @@ COPY cli ./
 #    by 'pip install jsonnet'.
 #    TODO: at some point we should not need the 'pip install jsonnet' because
 #    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
-# TODO? why the mkdir -p /tmp/.cache?
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      SEMGREP_SKIP_BIN=true pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
      semgrep --version &&\
-     apk del .build-deps &&\
-     mkdir -p /tmp/.cache
+     apk del .build-deps
 
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
-
-RUN ln -s semgrep-core /usr/local/bin/osemgrep
-
-# ???
-ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-    SEMGREP_USER_AGENT_APPEND="Docker"
-
-# The command we tell people to run for testing semgrep in Docker is
-#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
-# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
-WORKDIR /src
 
 # 'semgrep' is now available in /usr/local/bin thanks to the 'pip install' command
 # above, so let's remove /semgrep which is not needed anymore.
@@ -159,7 +145,23 @@ WORKDIR /src
 # git history).
 # TODO? to save space, we could have another docker build stage like we already
 # do between the ocaml build and the Python build.
-RUN rm -rf /semgrep
+RUN ln -s semgrep-core /usr/local/bin/osemgrep \
+    && rm -rf /semgrep
+
+# ???
+ENV SEMGREP_IN_DOCKER=1 \
+    SEMGREP_USER_AGENT_APPEND="Docker"
+
+# The command we tell people to run for testing semgrep in Docker is
+#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
+# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
+WORKDIR /src
+
+RUN addgroup --system semgrep \
+    && adduser --system --shell /bin/false --ingroup semgrep semgrep \
+    && chown semgrep /src
+USER semgrep
+
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
