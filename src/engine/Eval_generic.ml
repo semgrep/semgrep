@@ -204,9 +204,7 @@ let rec eval env code =
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
       let v = eval env e in
       eval_str env ~code v
-  (* Convert string to date
-     Todo: date validity checker
-     https://semgrep.dev/playground/s/ZoLW possible test *)
+  (* Convert string to date *)
   | G.Call ({ e = G.N (G.Id (("strptime", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
