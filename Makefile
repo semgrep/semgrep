@@ -287,8 +287,6 @@ install-deps-ALPINE-for-semgrep-core:
 # Ubuntu
 # -------------------------------------------------
 
-#TODO: move scripts/ubuntu-release.sh here as an install-deps-UBUNTU-xxx target
-
 # -------------------------------------------------
 # macOS (brew)
 # -------------------------------------------------
@@ -299,7 +297,7 @@ install-deps-ALPINE-for-semgrep-core:
 # - pkg-config?
 # - coreutils?
 # - gettext?
-BREW_DEPS=pkg-config coreutils pcre gmp gettext
+BREW_DEPS=pcre gmp pkg-config coreutils gettext
 
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
