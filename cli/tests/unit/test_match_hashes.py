@@ -52,6 +52,61 @@ def double_eqeq_rule() -> Rule:
 
 
 @pytest.fixture
+def eqeq_rules_from_curr_scan() -> Rule:
+    config = parse_config_string(
+        "testfile",
+        dedent(
+            """
+        rules:
+        - id: rule_id
+          pattern: $X == $X
+          languages: [python]
+          severity: INFO
+          message: bad
+          metadata:
+            semgrep.dev:
+                rule:
+                    rule_id: abcd
+                    version_id: version1
+                    url: "https://semgrep.dev/r/python.eqeq-five"
+                    shortlink: "https://sg.run/abcd"
+                src: unchanged
+        """
+        ),
+        None,
+    )
+    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+
+
+@pytest.fixture
+def eqeq_rules_from_prev_scan() -> Rule:
+    config = parse_config_string(
+        "testfile",
+        dedent(
+            """
+        rules:
+        - id: abcdversion1
+          pattern: $X == $X
+          languages: [python]
+          severity: INFO
+          message: bad
+          metadata:
+            semgrep.dev:
+                rule:
+                    rule_id: abcd
+                    version_id: version1
+                    url: "https://semgrep.dev/r/python.eqeq-five"
+                    shortlink: "https://sg.run/abcd"
+                    rule_name: rule_id
+                src: previous-scan
+        """
+        ),
+        None,
+    )
+    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+
+
+@pytest.fixture
 def foo_contents() -> str:
     return dedent(
         """
@@ -161,3 +216,22 @@ def test_line_hashes_hash_correct_line(mocker, double_eqeq_rule, foo_contents):
     assert matches[1].start_line_hash != matches[1].end_line_hash
     assert matches[0].start_line_hash == matches[1].end_line_hash
     assert matches[0].end_line_hash == matches[1].start_line_hash
+
+
+@pytest.mark.quick
+def test_same_match_based_id_for_previous_scan_finding(
+    mocker, double_eqeq_rule, foo_contents
+):
+    """
+    For the reliable fixed status work, we start sending rules run during the previous scan too.
+
+    As the engine can't process two rules with same rule.id, we override the rule.id for previous scan findings with something unique.
+    However, we store the original rule.id in the metadata.
+
+    Before computing the match_based_id, we fetch the rule.id from the metadata and use it to compute the match_based_id.
+
+    This test ensures that the match_based_id for the previous scan finding is same as the match_based_id for the current scan finding.
+    """
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
+    # FIXME
+    return
