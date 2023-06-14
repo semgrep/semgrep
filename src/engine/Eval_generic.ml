@@ -141,6 +141,18 @@ let value_of_lit ~code x =
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
+(* helper function for comparing dates *)
+let date_compare date1 date2 =
+  match (date1, date2) with
+  | (y1, m1, d1), (y2, m2, d2) ->
+      if y1 < y2 then -1
+      else if y1 > y2 then 1
+      else if m1 < m2 then -1
+      else if m1 > m2 then 1
+      else if d1 < d2 then -1
+      else if d1 > d2 then 1
+      else 0
+
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
@@ -215,10 +227,9 @@ let rec eval env code =
               match
                 (int_of_string_opt y, int_of_string_opt m, int_of_string_opt d)
               with
-              | Some yv, Some mv, Some dv ->
-                  if CalendarLib.Date.is_valid_date yv mv dv then
-                    Date (yv, mv, dv)
-                  else raise (NotHandled code)
+              | Some yv, Some mv, Some dv
+                when CalendarLib.Date.is_valid_date yv mv dv ->
+                  Date (yv, mv, dv)
               | _ -> raise (NotHandled code))
           | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))
@@ -274,31 +285,29 @@ and eval_op op values code =
   | G.Gt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 > i2)
   | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > float_of_int i2)
   | G.Gt, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool
-        (if y1 =*= y2 then if m1 =*= m2 then d1 > d2 else m1 > m2 else y1 > y2)
+      Bool (date_compare (y1, m1, d1) (y2, m2, d2) =*= 1)
   | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
   | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
-  | G.GtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] -> (
-      match eval_op G.Lt [ Date (y1, m1, d1); Date (y2, m2, d2) ] code with
-      | Bool result -> Bool (not result)
-      | _ -> raise (NotHandled code))
+  | G.GtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
+      Bool
+        (date_compare (y1, m1, d1) (y2, m2, d2) =*= 0
+        || date_compare (y1, m1, d1) (y2, m2, d2) =*= 1)
   | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
   | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < float_of_int i2)
   | G.Lt, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool
-        (if y1 =*= y2 then if m1 =*= m2 then d1 < d2 else m1 < m2 else y1 < y2)
+      Bool (date_compare (y1, m1, d1) (y2, m2, d2) =*= -1)
   | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
   | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
-  | G.LtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] -> (
-      match eval_op G.Gt [ Date (y1, m1, d1); Date (y2, m2, d2) ] code with
-      | Bool result -> Bool (not result)
-      | _ -> raise (NotHandled code))
+  | G.LtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
+      Bool
+        (date_compare (y1, m1, d1) (y2, m2, d2) =*= 0
+        || date_compare (y1, m1, d1) (y2, m2, d2) =*= -1)
   | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
   | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
@@ -360,7 +369,8 @@ and eval_str _env ~code v =
     | Float f -> string_of_float f
     | String s -> s
     | Date (y, m, d) ->
-        string_of_int y ^ "-" ^ string_of_int m ^ "-" ^ string_of_int d
+        Common.spf "%s-%s-%s" (string_of_int y) (string_of_int m)
+          (string_of_int d)
     | AST s -> s
     | List _ -> raise (NotHandled code)
   in
