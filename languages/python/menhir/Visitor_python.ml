@@ -492,7 +492,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | Continue t ->
           let t = v_info t in
           ()
-      | Decorators dl -> v_list v_decorator dl
     in
     vin.kstmt (k, all_functions) x
   and v_cases_and_body = function
@@ -537,6 +536,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ()
     | Stmts v1 ->
         let v1 = v_list v_stmt v1 in
+        ()
+    | Decorator d ->
+        let d = v_decorator d in
         ()
     | Program v1 ->
         let v1 = v_program v1 in

@@ -387,10 +387,6 @@ type stmt =
   (* should be allowed just at the toplevel *)
   | FunctionDef of function_definition
   | ClassDef of class_definition
-  (* Allowed only in Semgrep; as we want to allow patterns like @$NAME()
-   * in a Semgrep pattern. Not valid Python
-   *)
-  | Decorators of decorator list
 
 and case_and_body =
   | CasesAndBody of case list * stmt list
@@ -468,6 +464,7 @@ type any =
   | Expr of expr
   | Stmt of stmt
   | Stmts of stmt list
+  | Decorator of decorator
   | Program of program
   | DictElem of dictorset_elt
 [@@deriving show { with_path = false }]

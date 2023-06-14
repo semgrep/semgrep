@@ -239,6 +239,8 @@ nl_or_stmt:
  | stmt    { $1 }
 
 sgrep_spatch_pattern:
+ (* for decorator patterns @$NAME(...) *)
+ | decorator EOF { Flag_parsing.sgrep_guard (Decorator $1) }
  | stmt NEWLINE? EOF   {
    match $1 with
    | [ExprStmt x] -> Expr x
@@ -583,7 +585,6 @@ decorated:
      | FunctionDef (t, a, b, c, d, e) -> FunctionDef (t, a, b, c, d, $1 @ e)
      | _ -> raise Impossible
   }
-  | decorator+ { Flag_parsing.sgrep_guard (Decorators $1) }
 
 (* this is always preceded by a ":" *)
 suite:
