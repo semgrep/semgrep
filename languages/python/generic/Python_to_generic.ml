@@ -590,6 +590,10 @@ and stmt_aux env x =
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
+  | Decorators ld ->
+      let env = { env with context = InPattern } in
+      let ld = list (fun dec -> G.At (decorator env dec)) ld in
+      [ G.OtherStmt (G.OS_LoneAttrs, ld) |> G.s ]
   | Return (t, v1) ->
       let v1 = option (expr env) v1 in
       [ G.Return (t, v1, G.sc) |> G.s ]

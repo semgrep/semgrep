@@ -801,6 +801,7 @@ and map_other_stmt_operator = function
   | OS_ThrowFrom -> "ThrowFrom"
   | OS_ThrowNothing -> "ThrowNothing"
   | OS_ThrowArgsLocation -> "ThrowArgsLocation"
+  | OS_LoneAttrs -> "LoneAttrs"
   | OS_Pass -> "Pass"
   | OS_Async -> "Async"
   | OS_Asm -> "Asm"

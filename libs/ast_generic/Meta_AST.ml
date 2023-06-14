@@ -1017,6 +1017,7 @@ and vof_other_stmt_operator = function
   | OS_Defer -> OCaml.VSum ("OS_Defer", [])
   | OS_Extension -> OCaml.VSum ("OS_Extension", [])
   | OS_Fallthrough -> OCaml.VSum ("OS_Fallthrough", [])
+  | OS_LoneAttrs -> OCaml.VSum ("OS_LoneAttrs", [])
 
 and vof_pattern = function
   | PatEllipsis v1 ->

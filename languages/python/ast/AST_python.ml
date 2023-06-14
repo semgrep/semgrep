@@ -387,6 +387,10 @@ type stmt =
   (* should be allowed just at the toplevel *)
   | FunctionDef of function_definition
   | ClassDef of class_definition
+  | Decorators of decorator list
+(* Allowed only in Semgrep; as we want to allow patterns like @$NAME()
+ * in a Semgrep pattern. Not valid Python
+ *)
 
 and case_and_body =
   | CasesAndBody of case list * stmt list
