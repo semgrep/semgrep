@@ -45,6 +45,8 @@ type value =
   | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
+  | Date of int * int * int
+  (*year, month, date for now, can maybe add support for other formats later?*)
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
@@ -202,6 +204,33 @@ let rec eval env code =
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
       let v = eval env e in
       eval_str env ~code v
+  (* Convert string to date
+     Todo: date validity checker
+     https://semgrep.dev/playground/s/ZoLW possible test *)
+  | G.Call ({ e = G.N (G.Id (("strptime", _), _)); _ }, (_, [ Arg e ], _)) -> (
+      let v = eval env e in
+      match v with
+      | String s -> (
+          let yyyy_mm_dd = String.split_on_char '-' s in
+          match yyyy_mm_dd with
+          | [ y; m; d ] -> (
+              match
+                (int_of_string_opt y, int_of_string_opt m, int_of_string_opt d)
+              with
+              | Some yv, Some mv, Some dv ->
+                  if CalendarLib.Date.is_valid_date yv mv dv then
+                    Date (yv, mv, dv)
+                  else raise (NotHandled code)
+              | _ -> raise (NotHandled code))
+          | _ -> raise (NotHandled code))
+      | __else__ -> raise (NotHandled code))
+  | G.Call ({ e = G.N (G.Id (("today", _), _)); _ }, (_, _, _)) ->
+      let cur_date = Unix.localtime (Unix.time ()) in
+      (* cur_date.tm_year returns years since 1900 so need to add 1900 *)
+      let cur_year = cur_date.tm_year + 1900 in
+      let cur_month = cur_date.tm_mon in
+      let cur_day = cur_date.tm_mday in
+      Date (cur_year, cur_month, cur_day)
   (* Emulate Python re.match just enough *)
   | G.Call
       ( {
@@ -246,18 +275,32 @@ and eval_op op values code =
   | G.Gt, [ Float i1; Float i2 ] -> Bool (i1 > i2)
   | G.Gt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 > i2)
   | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > float_of_int i2)
+  | G.Gt, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
+      Bool
+        (if y1 =*= y2 then if m1 =*= m2 then d1 > d2 else m1 > m2 else y1 > y2)
   | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
   | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
+  | G.GtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] -> (
+      match eval_op G.Lt [ Date (y1, m1, d1); Date (y2, m2, d2) ] code with
+      | Bool result -> Bool (not result)
+      | _ -> raise (NotHandled code))
   | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
   | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < float_of_int i2)
+  | G.Lt, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
+      Bool
+        (if y1 =*= y2 then if m1 =*= m2 then d1 < d2 else m1 < m2 else y1 < y2)
   | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
   | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
+  | G.LtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] -> (
+      match eval_op G.Gt [ Date (y1, m1, d1); Date (y2, m2, d2) ] code with
+      | Bool result -> Bool (not result)
+      | _ -> raise (NotHandled code))
   | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
   | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
@@ -318,6 +361,8 @@ and eval_str _env ~code v =
     | Int i -> string_of_int i
     | Float f -> string_of_float f
     | String s -> s
+    | Date (y, m, d) ->
+        string_of_int y ^ "-" ^ string_of_int m ^ "-" ^ string_of_int d
     | AST s -> s
     | List _ -> raise (NotHandled code)
   in

@@ -5,6 +5,7 @@ type value =
   (* the string does not contain the enclosing '"' *)
   | String of string
   | List of value list
+  | Date of int * int * int
   (* any AST, e.g., "x+1" *)
   | AST of string
 
