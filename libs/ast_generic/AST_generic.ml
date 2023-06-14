@@ -1332,7 +1332,6 @@ and other_stmt_operator =
   | OS_ThrowFrom
   | OS_ThrowNothing
   | OS_ThrowArgsLocation
-  (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
   | OS_Pass
   | OS_Async
   (* C/C++ *)
