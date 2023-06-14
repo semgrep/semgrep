@@ -18,8 +18,8 @@ on:
       - "**.md"
 
 jobs:
+  #TODO: do we need this job now that we have build-test-core-x86.yaml?
   test-core:
-    # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
     container: returntocorp/ocaml:alpine-2023-04-03
@@ -31,7 +31,13 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+          # needed for the e2e test below
+          make core-install
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -59,6 +65,7 @@ jobs:
           #
           opam exec -- make report-perf-matching
 
+  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yaml)
   test-osemgrep:
     name: test osemgrep
     runs-on: ubuntu-22.04
@@ -71,7 +78,11 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
       - name: Install osemgrep
         run: |
           eval $(opam env)
@@ -368,11 +379,6 @@ jobs:
 
   build-test-osx-m1:
     uses: ./.github/workflows/build-test-osx-m1.yaml
-    secrets: inherit
-
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
     secrets: inherit
 
   build-test-javascript:

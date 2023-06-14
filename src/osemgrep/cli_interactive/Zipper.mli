@@ -1,12 +1,16 @@
-(* This module implements something I call a "pointed zipper".
+(* A simple library for zippers on lists.
+   https://en.wikipedia.org/wiki/Zipper_(data_structure)
+*)
 
-   A zipper is, of course, the classic data structure for a
-   list's "one hole context", of traversing a list via being located
-   at a single point.
+(* This module implements something I call a "framed zipper".
 
-   A "pointed zipper" is a zipper which also has a "frame", which
+   A zipper is the classic data structure for a list's "one hole context",
+   of traversing a list via being located at a single point.
+   https://en.wikipedia.org/wiki/Zipper_(data_structure)
+
+   A "framed zipper" is a zipper which also has a "frame", which
    is of a certain size, and a pointer which can move around the
-   frame freely. Essentially, a pointed zipper is not just located
+   frame freely. Essentially, a framed zipper is not just located
    at a single element in the list, but a frame of many such
    elements.
 
@@ -36,18 +40,27 @@
 
 type 'a t
 
+(* creators *)
 (* A move necessitates a pointer move, which may or may
    not cause a frame move, depending on if the pointer is
    at the boundaries of the frame.
 *)
-val move_left : 'a t -> 'a t
-val move_right : 'a t -> 'a t
-val of_list : int -> 'a list -> 'a t
-val empty_with_max_len : int -> 'a t
-val take : int -> 'a t -> 'a list
+val move_up : 'a t -> 'a t
+val move_down : 'a t -> 'a t
+
+(* To list, but the enclosed bool will be true for
+   whatever the currently focused item is.
+*)
+val to_list : 'a t -> ('a * bool) list
+val of_list : 'a list -> 'a t
+
+(* Append only modifies the data in the zipper, it doesn't
+   modify the current position.
+*)
+val append : 'a -> 'a t -> 'a t
+val position : 'a t -> int
+val length : 'a t -> int
+val is_top : 'a t -> bool
+val is_bottom : 'a t -> bool
 val get_current : 'a t -> 'a
 val map_current : ('a -> 'a) -> 'a t -> 'a t
-val is_empty : 'a t -> bool
-val length : 'a t -> int
-val absolute_position : 'a t -> int
-val relative_position : 'a t -> int

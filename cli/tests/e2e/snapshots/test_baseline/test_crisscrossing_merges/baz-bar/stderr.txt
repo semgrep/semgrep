@@ -7,7 +7,7 @@
   Scanning 2 files.
   Current version has 14 findings.
 
-Switching repository to baseline commit 'bar'.
+Creating git worktree from 'bar' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ff8459e commit #9
     * a0592d5 commit #8

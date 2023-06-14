@@ -564,7 +564,9 @@ def main(
                 "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
             )
         else:
-            logger.info(f"Switching repository to baseline commit '{baseline_commit}'.")
+            logger.info(
+                f"Creating git worktree from '{baseline_commit}' to scan baseline."
+            )
             baseline_handler.print_git_log()
             logger.info("")
             try:

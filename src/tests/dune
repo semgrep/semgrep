@@ -29,9 +29,4 @@
    (pps
       ppx_deriving.show
    ))
- ; inform dune that if ../tests or ../cli/tests/e2e/snapshots are changing,
- ; the tests should be rerun
- ; if your tests depend on data stored in a separate directory, add the
- ; directory here, so 'dune runtest' will pick up the changes
- (deps (source_tree ../tests) (source_tree ../cli/tests/e2e/snapshots))
 )
