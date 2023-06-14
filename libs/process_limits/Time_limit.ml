@@ -73,7 +73,7 @@ let set_timeout ~name max_duration f =
             for %S of %g seconds is still running."
            name max_duration running_name running_val));
   let info (* private *) = { name; max_duration } in
-  let raise_timeout () = raise (Timeout info) in
+  let raise_timeout () = raise_notrace (Timeout info) in
   let clear_timer () =
     current_timer := None;
     Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = 0.; it_interval = 0. }
