@@ -15,7 +15,6 @@
 open Common
 open Ast_cpp
 module A = Ast_c
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -45,9 +44,9 @@ let cnt = ref 0
 (* Types *)
 (*****************************************************************************)
 
-exception ObsoleteConstruct of string * Parse_info.t
+exception ObsoleteConstruct of string * Tok.t
 exception CplusplusConstruct
-exception TodoConstruct of string * Parse_info.t
+exception TodoConstruct of string * Tok.t
 exception CaseOutsideSwitch
 exception MacroInCase
 
@@ -77,7 +76,7 @@ let rec ifdef_skipper xs f =
       | Some ifdef -> (
           match ifdef with
           | Ifdef tok -> (
-              logger#info "skipping: %s" (Parse_info.str_of_info tok);
+              logger#info "skipping: %s" (Tok.content_of_tok tok);
               try
                 let _, x, rest =
                   xs
@@ -101,12 +100,12 @@ let rec ifdef_skipper xs f =
                 | _ -> raise Impossible
               with
               | Not_found ->
-                  failwith
-                    (spf "%s: unclosed ifdef" (Parse_info.string_of_info tok)))
+                  failwith (spf "%s: unclosed ifdef" (Tok.stringpos_of_tok tok))
+              )
           | IfdefElse tok
           | IfdefElseif tok
           | IfdefEndif tok ->
-              failwith (spf "%s: no ifdef" (Parse_info.string_of_info tok))))
+              failwith (spf "%s: no ifdef" (Tok.stringpos_of_tok tok))))
 
 let bracket_keep of_a (t1, x, t2) = (t1, of_a x, t2)
 
@@ -164,7 +163,7 @@ and declaration env x =
                        A.f_name = x.A.v_name;
                        f_type = ft;
                        f_static = storage =*= A.Static;
-                       f_body = PI.fake_bracket (snd x.A.v_name) [];
+                       f_body = Tok.fake_bracket (snd x.A.v_name) [];
                      }
                | _ -> A.VarDef x))
   (* todo *)
@@ -440,7 +439,7 @@ and stmt env st =
       raise Todo
   | ExprStmt (eopt, t) -> (
       match eopt with
-      | None -> A.Block (PI.fake_bracket t [])
+      | None -> A.Block (Tok.fake_bracket t [])
       | Some e -> A.ExprSt (expr env e, t))
   | Label (s, _, st) -> A.Label (s, stmt env st)
   | Case _
@@ -619,7 +618,8 @@ and constant _env x =
   | String (s, ii) -> A.String (s, ii)
   | Nullptr ii -> A.Null ii
   | Bool x -> A.Bool x
-  | MultiString iis -> A.String ("TODO", iis |> List.hd |> snd)
+  | MultiString iis ->
+      A.String ("TODO", iis |> Common.hd_exn "empty multistring" |> snd)
 
 and argument env x =
   match x with
@@ -678,7 +678,7 @@ and full_type env x =
       let ii =
         match iis with
         | [] -> raise Impossible
-        | x :: xs -> PI.combine_infos x xs
+        | x :: xs -> Tok.combine_toks x xs
       in
       A.TBase (ys @ [ last_s ] |> String.concat "_", ii)
   | TFunction ft -> A.TFunction (function_type env ft)

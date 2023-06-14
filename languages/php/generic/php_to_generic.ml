@@ -14,7 +14,6 @@
  *)
 open Common
 open Ast_php
-module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -40,7 +39,7 @@ let string = id
 (* raise AST_generic.Error *)
 let error = AST_generic.error
 let fake = AST_generic.fake
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -292,7 +291,7 @@ and expr e : G.expr =
   | New (v0, v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
       let t = H.expr_to_type v1 in
-      G.New (v0, t, fb v2) |> G.e
+      G.New (v0, t, G.empty_id_info (), fb v2) |> G.e
   | NewAnonClass (_tTODO, args, cdef) ->
       let _ent, cdef = class_def cdef in
       let args = list argument args in
@@ -346,7 +345,7 @@ and expr e : G.expr =
       let v1 = expr v1 in
       G.Call
         ( G.IdSpecial (G.Spread, fake "...") |> G.e,
-          PI.unsafe_fake_bracket [ G.Arg v1 ] )
+          Tok.unsafe_fake_bracket [ G.Arg v1 ] )
       |> G.e
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in

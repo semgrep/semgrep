@@ -1,7 +1,7 @@
 The goal of this directory is to gather all the "interfaces" used
 by the different semgrep components:
  - the semgrep-core program
- - the semgrep-python cli
+ - the pysemgrep CLI
 
 We're using atdgen to specify the types of most of those interfaces.
 See https://github.com/ahrefs/atd for more information on atdgen.

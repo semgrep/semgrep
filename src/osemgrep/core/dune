@@ -28,7 +28,7 @@
  )
 )
 
-; this is just used in Metrics.ml
+; this is just used in Metrics_.ml
 (rule
  (targets semgrep_metrics_j.ml semgrep_metrics_j.mli)
  (deps    semgrep_metrics.atd)

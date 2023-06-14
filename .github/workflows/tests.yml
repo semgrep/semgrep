@@ -18,11 +18,11 @@ on:
       - "**.md"
 
 jobs:
+  #TODO: do we need this job now that we have build-test-core-x86.yaml?
   test-core:
-    # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2022-09-24
+    container: returntocorp/ocaml:alpine-2023-04-03
     env:
       HOME: /root
     steps:
@@ -30,22 +30,14 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
-      - name: Cache OCaml build files
-        uses: actions/cache@v3
-        with:
-          path: |
-            /root/.dune
-            /root/.opam/download-cache
-            /root/.opam/*/.opam-switch/packages
-            /root/.opam/*/.opam-switch/sources
-          key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
-        env:
-          DUNE_CACHE: enabled
-          DUNE_CACHE_STORAGE_MODE: copy
-          DUNE_CACHE_ROOT: /root/.dune
-          DUNE_CACHE_TRANSPORT: direct
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+          # needed for the e2e test below
+          make core-install
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -73,6 +65,39 @@ jobs:
           #
           opam exec -- make report-perf-matching
 
+  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yaml)
+  test-osemgrep:
+    name: test osemgrep
+    runs-on: ubuntu-22.04
+    container: returntocorp/ocaml:alpine-2023-04-03
+    env:
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+      - name: Build semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+      - name: Install osemgrep
+        run: |
+          eval $(opam env)
+          make core-install
+          # needed for pipenv install to work below
+          cp bin/semgrep-core /usr/bin/
+      - name: Install Python dependencies
+        run: |
+          make install-deps-ALPINE-for-pysemgrep
+          (cd cli; pipenv install --dev)
+      - name: Run pytest for osemgrep known passing tests
+        working-directory: cli
+        run: |
+          make osempass
+
   test-cli:
     name: test semgrep-cli
     runs-on: ubuntu-22.04
@@ -82,13 +107,14 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10"]
+        python: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
         with:
           persist-credentials: false
+      #TODO? just use submodule:true above instead of this?
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -180,10 +206,10 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
       - name: Download artifacts
@@ -223,7 +249,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
@@ -237,7 +263,7 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install semgrep
+      - name: Install cli dependencies
         working-directory: cli
         run: pipenv install --dev
       - name: Test dummy benchmarks on latest
@@ -257,24 +283,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
           cache: pipenv
       - run: pip install pipenv==2022.6.7
-      - name: Run timing benchmark
-        run: |
-          pip3 install semgrep==0.122.0
-          semgrep --version
-          python3 -m semgrep --version
-          export PATH=/github/home/.local/bin:$PATH
-
-          python3 perf/run-benchmarks --small-only --std-only --save-to cli/baseline_timing1.json --no-time
-          jq . cli/baseline_timing1.json
-          python3 perf/run-benchmarks --small-only --std-only --save-to cli/baseline_timing2.json --no-time
-          jq . cli/baseline_timing2.json
-          pip3 uninstall -y semgrep
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -283,24 +297,14 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install semgrep
+      - name: Install cli dependencies
         working-directory: cli
         run: pipenv install --dev
-      - name: Get timing for latest semgrep
+      - name: Run perf benchmark
+        run: scripts/run-benchmarks.sh ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
+      - name: Run python performance tests
         working-directory: cli
-        run: |
-          pipenv run semgrep --version
-          pipenv run python -m semgrep --version
-          pipenv run semgrep-core -version
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing1.json
-          jq . timing1.json
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json --save-findings-to findings.json
-          jq . timing2.json
-          jq . findings.json
-      - name: Compare timing infos
-        run: |
-          perf/compare-perf cli/baseline_timing1.json cli/baseline_timing2.json cli/timing1.json cli/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
-          perf/compare-bench-findings cli/findings.json
+        run: pipenv run pytest tests/performance
 
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
@@ -357,6 +361,7 @@ jobs:
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository # only returntocorp has the necessary credentials to access semgrep pro
     secrets: inherit
     with:
       artifact-name: image-test
@@ -379,7 +384,6 @@ jobs:
     uses: ./.github/workflows/build-test-osx-m1.yaml
     secrets: inherit
 
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
+  build-test-javascript:
+    uses: ./.github/workflows/build-test-javascript.yaml
     secrets: inherit

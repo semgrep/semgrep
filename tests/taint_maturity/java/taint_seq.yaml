@@ -1,0 +1,16 @@
+rules:
+  - id: taint-maturity
+    mode: taint
+    languages:
+      - java
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: |
+          "tainted"
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+    severity: ERROR
+

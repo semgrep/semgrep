@@ -1,19 +1,28 @@
-Scanning 1 file.
-
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
   Current version has 1 finding.
 
-Switching repository to baseline commit 'baseline-commit'.
+Creating git worktree from 'baseline-commit' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * 8ebfb32 commit #2
 
-Scanning 1 file.
-
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

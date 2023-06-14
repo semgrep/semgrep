@@ -6,4 +6,4 @@ val parse : Common.filename -> program_and_tokens * Parsing_stat.t
 val parse_program : Common.filename -> Ast_lisp.program
 
 (* internal *)
-val tokens : Common.filename -> Parser_lisp.token list
+val tokens : Parsing_helpers.input_source -> Parser_lisp.token list

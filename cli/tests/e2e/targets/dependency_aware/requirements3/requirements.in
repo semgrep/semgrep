@@ -1,0 +1,13 @@
+bunch==1.0.1
+coverage==6.3.3
+dominate==2.6.0
+numpy==1.23.2
+pandas #Comment
+plotly
+psutil==5.9.0
+pylint<=2.13.9
+pytest>=7.1.2
+pytest-forked==1.4.0 #Comment
+pytest-xdist==2.5.0
+tqdm==4.64.0
+wcmatch==8.3

@@ -29,7 +29,6 @@
  *)
 open Common
 open AST_python
-module PI = Parse_info
 
 (* intermediate helper type *)
 type single_or_tuple =
@@ -42,21 +41,21 @@ let cons e = function
 
 let tuple_expr = function
   | Single e -> e
-  (* the fake could be set later in rewrap_paren_if_tuple below *)
-  | Tup l -> Tuple (CompList (PI.unsafe_fake_bracket l), Load)
+  (* the fake could be set later in rewrap_paren below *)
+  | Tup l -> Tuple (CompList (Tok.unsafe_fake_bracket l), Load)
 
 let to_list = function
   | Single e -> [e]
   | Tup l -> l
 
 (* this is important for semgrep, to get the right range (and for autofix) *)
-let rewrap_paren_if_tuple l e r =
+let rewrap_paren l e r =
   match e with
   | Tuple (CompList (_, xs, _), Load) ->
       Tuple (CompList (l, xs, r), Load)
   | Tuple (CompForIf (_, x, _), Load) ->
       Tuple (CompForIf (l, x, r), Load)
-  | _ -> e
+  | _ -> ParenExpr (l, e, r)
 
 (* TODO: TypedExpr? ExprStar? then can appear as lvalue
  * CompForIf though is not an lvalue.
@@ -86,7 +85,7 @@ let tuple_expr_store l =
     | _ -> expr_store e
 
 let mk_str ii =
-  let s = Parse_info.str_of_info ii in
+  let s = Tok.content_of_tok ii in
   Str (s, ii)
 
 %}
@@ -240,6 +239,8 @@ nl_or_stmt:
  | stmt    { $1 }
 
 sgrep_spatch_pattern:
+ (* for decorator patterns @$NAME(...) *)
+ | decorator EOF { Flag_parsing.sgrep_guard (Decorator $1) }
  | stmt NEWLINE? EOF   {
    match $1 with
    | [ExprStmt x] -> Expr x
@@ -743,7 +744,7 @@ atom_and_trailers:
             (* If everything in the brackets is a normal expression, return a
              * single tuple *)
             let tuple =
-              Tuple (CompList (PI.unsafe_fake_bracket index_exprs), Load)
+              Tuple (CompList (Tok.unsafe_fake_bracket index_exprs), Load)
             in
             Subscript (
               $1,
@@ -882,7 +883,7 @@ format_token:
 
 atom_tuple:
   | "("               ")"         { Tuple (CompList ($1, [], $2), Load) }
-  | "(" testlist_comp_or_expr ")" { rewrap_paren_if_tuple $1 $2 $3 }
+  | "(" testlist_comp_or_expr ")" { rewrap_paren $1 $2 $3 }
   | "(" yield_expr    ")"         { $2 }
 
 atom_list:
@@ -986,7 +987,7 @@ testlist_comp:
  * in parenthesis, e.g., (1) in a regular expr, not a tuple *)
 testlist_comp_or_expr:
   | namedexpr_or_star_expr comp_for
-     { Tuple (CompForIf (PI.unsafe_fake_bracket ($1, $2)), Load) }
+     { Tuple (CompForIf (Tok.unsafe_fake_bracket ($1, $2)), Load) }
   | tuple(namedexpr_or_star_expr)
      { tuple_expr $1 }
 

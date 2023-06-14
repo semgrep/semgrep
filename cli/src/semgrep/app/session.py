@@ -1,5 +1,6 @@
 import os
 import subprocess
+from http.cookiejar import MozillaCookieJar
 from pathlib import Path
 from typing import Any
 from typing import Optional
@@ -139,6 +140,10 @@ class AppSession(requests.Session):
         super().__init__(*args, **kwargs)
         self.user_agent = UserAgent()
         self.token: Optional[str] = None
+        if os.getenv("SEMGREP_COOKIES_PATH"):
+            cookies = MozillaCookieJar(os.environ["SEMGREP_COOKIES_PATH"])
+            cookies.load()
+            self.cookies = cookies  # type: ignore
 
         # retry after 4, 8, 16 seconds
         retry_adapter = requests.adapters.HTTPAdapter(
@@ -162,6 +167,10 @@ class AppSession(requests.Session):
 
         metrics = get_state().metrics
         metrics.add_token(self.token)
+
+    @property
+    def is_authenticated(self) -> bool:
+        return self.token is not None
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 60)

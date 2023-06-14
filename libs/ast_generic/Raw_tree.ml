@@ -6,8 +6,8 @@
 open Ppx_hash_lib.Std.Hash.Builtin
 
 type 'any t =
-  (* Tok.t = Parse_info.t with special equal and hash functions *)
-  | Token of (string * Tok.t)
+  (* Tok.t_always_equal = Tok.t with special equal and hash functions *)
+  | Token of (string * Tok.t_always_equal)
   | List of 'any t list
   | Tuple of 'any t list
   | Case of string * 'any t
@@ -72,7 +72,7 @@ let unsafe_loc x =
   match loc x with
   | Some res -> res
   | None ->
-      let tok = Parse_info.unsafe_fake_info "" in
+      let tok = Tok.unsafe_fake_tok "" in
       (tok, tok)
 
 let anys x =

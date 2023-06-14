@@ -1,0 +1,18 @@
+; Parse (and match) a glob pattern according to glob(3) and glob(7),
+; with some gitignore extensions like '**'
+(library
+  (public_name glob)
+  (libraries
+    stdcompat
+    commons
+    profiling
+  )
+  (preprocess (pps
+     ppx_deriving.show
+     profiling.ppx
+  ))
+)
+
+(ocamllex Lexer)
+(menhir (modules Parser)
+        (flags --unused-tokens --explain --fixed-exception))

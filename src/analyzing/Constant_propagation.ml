@@ -16,8 +16,6 @@
 open AST_generic
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -70,11 +68,19 @@ type env = {
   lang : Lang.t option;
   (* basic constant propagation of literals for semgrep *)
   constants : (var, svalue) Hashtbl.t;
+  attributes : (var, G.attribute list) Hashtbl.t;
   in_lvalue : bool ref;
+  in_static_block : bool ref;
 }
 
 let default_env lang =
-  { lang; constants = Hashtbl.create 64; in_lvalue = ref false }
+  {
+    lang;
+    constants = Hashtbl.create 100;
+    attributes = Hashtbl.create 100;
+    in_lvalue = ref false;
+    in_static_block = ref false;
+  }
 
 type lr_stats = {
   (* note that a VarDef defining the value will count as 1 *)
@@ -90,7 +96,7 @@ type var_stats = (var, lr_stats) Hashtbl.t
 (* Helpers *)
 (*****************************************************************************)
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let ( let* ) o f = Option.bind o f
 let ( let/ ) o f = Option.iter f o
 
@@ -111,17 +117,37 @@ let rec lvars_in_lhs expr =
   | Container ((Tuple | Array), (_, es, _)) -> List.concat_map lvars_in_lhs es
   | __else__ -> []
 
+let no_cycles_in_sym_prop sid exp =
+  let for_all_sid : (G.sid -> bool) -> G.any -> bool =
+    (* Check that all sid's satisfy a given condition. We use refs so that
+     * we can have a single visitor for all calls, given that the old
+     * `mk_visitor` was kind of expensive, and constructing a visitor object
+     * may be as well. *)
+    let ff = ref (fun _ -> assert false) in
+    let ok = ref true in
+    let vout =
+      object
+        inherit [_] G.iter
+
+        method! visit_resolved_name _env (_, sid) =
+          ok := !ok && !ff sid;
+          if not !ok then raise Exit
+      end
+    in
+    fun f ast ->
+      ff := f;
+      ok := true;
+      try
+        vout#visit_any () ast;
+        !ok
+      with
+      | Exit -> false
+  in
+  for_all_sid (fun sid' -> sid' <> sid) (E exp)
+
 (*****************************************************************************)
 (* Environment Helpers *)
 (*****************************************************************************)
-
-let is_global = function
-  | Global -> true
-  | _ -> false
-
-let is_resolved_name = function
-  | GlobalName _ -> true
-  | _ -> false
 
 let is_lang env l2 =
   match env.lang with
@@ -132,6 +158,36 @@ let is_js env =
   match env.lang with
   | None -> false
   | Some lang -> Lang.is_js lang
+
+let is_global = function
+  | Global (* OSS *)
+  | GlobalName _ (* Pro *) ->
+      true
+  | LocalVar
+  | Parameter
+  | EnclosedVar
+  | ImportedEntity _
+  | ImportedModule _
+  | TypeName
+  | Macro
+  | EnumConstant ->
+      false
+
+let is_class_field env = function
+  | EnclosedVar (* OSS *)
+  | GlobalName _ (* Pro *) ->
+      is_lang env Lang.Java
+  | Global
+  | LocalVar
+  | Parameter
+  | ImportedEntity _
+  | ImportedModule _
+  | TypeName
+  | Macro
+  | EnumConstant ->
+      false
+
+let is_resolved_name _kind sid = not (SId.is_unsafe_default sid)
 
 let add_constant_env ident (sid, svalue) env =
   match svalue with
@@ -153,6 +209,14 @@ let find_name env name =
   match name with
   | Id (id, id_info) -> find_id env id id_info
   | IdQualified _ -> None
+
+let is_assigned_just_once stats var =
+  let id_str, sid = var in
+  match Hashtbl.find_opt stats var with
+  | Some stats -> !(stats.lvalue) = 1
+  | None ->
+      logger#debug "No stats for (%s,%s)" id_str (G.SId.show sid);
+      false
 
 let deep_constant_propagation_and_evaluate_literal x =
   match !hook_constant_propagation_and_evaluate_literal with
@@ -285,7 +349,7 @@ let rec eval env x : svalue option =
       deep_constant_propagation_and_evaluate_literal x
 
 and eval_args env args =
-  args |> PI.unbracket
+  args |> Tok.unbracket
   |> Common.map (function
        | Arg e -> eval env e
        | _ -> None)
@@ -364,6 +428,24 @@ let var_stats prog : var_stats =
             incr stat.lvalue;
             super#visit_definition env x
         | _ -> super#visit_definition env x
+
+      (* TODO: An `ExprStmt` method call (probably returning 'void') should count as a
+       * potential assignment too... E.g. in Ruby `a.concat(b)` is going to update `a`. *)
+      method! visit_stmt env x =
+        (match x.s with
+        | For
+            ( _,
+              ForEach
+                ( PatId
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }),
+                  _,
+                  _ ),
+              _ ) ->
+            let var = (H.str_of_ident id, sid) in
+            let stat = get_stat_or_create var h in
+            incr stat.lvalue
+        | _ -> ());
+        super#visit_stmt env x
 
       method! visit_expr env x =
         match x.e with
@@ -502,7 +584,7 @@ let terraform_sid = SId.unsafe_default
 
 let add_special_constants env lang prog =
   if lang = Lang.Terraform then
-    let vars = prog |> Common.map terraform_stmt_to_vardefs |> List.flatten in
+    let vars = prog |> List.concat_map terraform_stmt_to_vardefs in
     vars
     |> List.iter (fun (id, v) ->
            match v.e with
@@ -537,6 +619,22 @@ let propagate_basic lang prog =
               name =
                 EN
                   (Id
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+              attrs;
+              _;
+            },
+            VarDef { vinit = None; _ } ) ->
+            if is_assigned_just_once stats (H.str_of_ident id, sid) then
+              (* This is a potential constant but it's defined later on, so we store
+               * it's attributes so check them later, e.g. to know whether it has
+               * `private` visibility. An example of this is a class field that
+               * is initialized in the constructor or in a `static` block. *)
+              Hashtbl.replace env.attributes (fst id, sid) attrs;
+            super#visit_definition venv x
+        | ( {
+              name =
+                EN
+                  (Id
                     ( id,
                       {
                         id_resolved = { contents = Some (_kind, sid) };
@@ -548,37 +646,43 @@ let propagate_basic lang prog =
             },
             VarDef { vinit = Some e; _ } )
         (* note that some languages such as Python do not have VarDef.
-         * todo? should add those somewhere instead of in_lvalue detection?*)
-          -> (
-            match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
-            | Some stats ->
-                (if
-                 H.has_keyword_attr Const attrs
-                 || H.has_keyword_attr Final attrs
-                 || (!(stats.lvalue) = 1 && is_js env)
-                 || !(stats.lvalue) = 1 && env.lang = Some Lang.Java
-                    && List.exists is_private attrs
-                then
-                 match (!id_svalue, e.e) with
-                 (* When the name already has an svalue computed, just use
-                  * that. DeepSemgrep assigns svalues sometimes in its naming
-                  * phase. *)
-                 | Some svalue, _ -> add_constant_env id (sid, svalue) env
-                 | None, L literal -> add_constant_env id (sid, Lit literal) env
-                 (* For any other symbolic expression, it is OK to propagate it symbolically so long as
-                    the lvalue is only assigned to once.
-                    Although we may propagate expressions with identifiers in them, those identifiers
-                    will simply not have an `svalue` if they are non-propagated as well.
-                 *)
-                 | None, _ when Dataflow_svalue.is_symbolic_expr e ->
-                     add_constant_env id (sid, Sym e) env
-                 | None, _ -> ());
-                super#visit_definition venv x
-            | None ->
-                logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
-                  (G.SId.show sid);
-                super#visit_definition venv x)
+         * todo? should add those somewhere instead of in_lvalue detection?*) ->
+            let assigned_just_once =
+              is_assigned_just_once stats (H.str_of_ident id, sid)
+            in
+            (if
+             H.has_keyword_attr Const attrs
+             || H.has_keyword_attr Final attrs
+             || (assigned_just_once && is_js env)
+             || assigned_just_once && is_lang env Lang.Java
+                && List.exists is_private attrs
+            then
+             match (!id_svalue, e.e) with
+             (* When the name already has an svalue computed, just use
+              * that. DeepSemgrep assigns svalues sometimes in its naming
+              * phase. *)
+             | Some svalue, _ -> add_constant_env id (sid, svalue) env
+             | None, L literal -> add_constant_env id (sid, Lit literal) env
+             (* For any other symbolic expression, it is OK to propagate it symbolically so long as
+                the lvalue is only assigned to once.
+                Although we may propagate expressions with identifiers in them, those identifiers
+                will simply not have an `svalue` if they are non-propagated as well.
+             *)
+             | None, _
+               when Dataflow_svalue.is_symbolic_expr e
+                    && no_cycles_in_sym_prop sid e ->
+                 add_constant_env id (sid, Sym e) env
+             | None, _ -> ());
+            super#visit_definition venv x
         | _ -> super#visit_definition venv x
+
+      method! visit_stmt_kind venv x =
+        (match x with
+        | OtherStmtWithStmt (OSWS_Block ("Static", _), [], block) ->
+            Common.save_excursion env.in_static_block true (fun () ->
+                self#visit_stmt venv block)
+        | __else__ -> ());
+        super#visit_stmt_kind venv x
 
       (* the uses (and also defs for Python Assign) *)
       method! visit_expr venv x =
@@ -589,19 +693,19 @@ let propagate_basic lang prog =
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: dockerfile specific *)
         | Call
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         | DotAccess
             ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           when not !(env.in_lvalue) ->
             let/ svalue = find_id env id id_info in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: terraform specific.
          * coupling: with eval() above
          *)
@@ -612,7 +716,7 @@ let propagate_basic lang prog =
           when lang = Lang.Terraform && not !(env.in_lvalue) ->
             let var = (prefix ^ "." ^ str, terraform_sid) in
             let/ svalue = Hashtbl.find_opt env.constants var in
-            id_info.id_svalue := Some svalue
+            Dataflow_svalue.set_svalue_ref id_info svalue
         | ArrayAccess (e1, (_, e2, _)) ->
             self#visit_expr venv e1;
             Common.save_excursion env.in_lvalue false (fun () ->
@@ -628,21 +732,31 @@ let propagate_basic lang prog =
               },
               _,
               rexp ) ->
-            eval env rexp
-            |> Option.iter (fun svalue ->
-                   match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
-                   | Some stats ->
-                       if
-                         !(stats.lvalue) = 1
-                         (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
-                         && (is_lang env Lang.Python || is_lang env Lang.Ruby
-                           || is_lang env Lang.Php || is_js env)
-                         && (is_global kind || is_resolved_name kind)
-                       then add_constant_env id (sid, svalue) env
-                   | None ->
-                       logger#debug "No stats for (%s,%s)" (H.str_of_ident id)
-                         (G.SId.show sid);
-                       ());
+            let opt_svalue = eval env rexp in
+            (let is_private_class_field =
+               match Hashtbl.find_opt env.attributes (fst id, sid) with
+               | None -> false
+               | Some attrs ->
+                   List.exists is_private attrs && is_class_field env kind
+             in
+             if
+               is_assigned_just_once stats (H.str_of_ident id, sid)
+               (* restricted to prevent unexpected const-prop FPs *)
+               && ((is_lang env Lang.Python || is_lang env Lang.Ruby
+                  || is_lang env Lang.Php || is_js env)
+                   && is_global kind
+                  || is_lang env Lang.Java && is_private_class_field
+                     && !(env.in_static_block))
+               && is_resolved_name kind sid
+             then
+               match opt_svalue with
+               | Some svalue -> add_constant_env id (sid, svalue) env
+               | None ->
+                   if
+                     Dataflow_svalue.is_symbolic_expr rexp
+                     && no_cycles_in_sym_prop sid rexp
+                   then add_constant_env id (sid, Sym rexp) env;
+                   ());
             self#visit_expr venv rexp
         | Assign (e1, _, e2)
         | AssignOp (e1, _, e2) ->
@@ -667,7 +781,7 @@ let propagate_dataflow lang ast =
   | Lang.Dockerfile ->
       (* Dockerfile has no functions. The whole file is just a single scope *)
       let xs =
-        AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
+        AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
       let flow = CFG_build.cfg_of_stmts xs in
       propagate_dataflow_one_function lang [] flow

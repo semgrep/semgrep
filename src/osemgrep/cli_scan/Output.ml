@@ -28,7 +28,7 @@ module Out = Semgrep_output_v1_j
 let apply_fixes (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TODO fix_regex *)
   let edits : Textedit.t list =
-    List.filter_map
+    Common.map_filter
       (fun (result : Out.cli_match) ->
         let path = result.Out.path in
         let* fix = result.Out.extra.fix in
@@ -63,7 +63,7 @@ let apply_fixes_and_warn (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
 (*****************************************************************************)
 
 let dispatch_output_format (output_format : Output_format.t)
-    (cli_output : Out.cli_output) =
+    (conf : Scan_CLI.conf) (cli_output : Out.cli_output) =
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
@@ -101,7 +101,8 @@ let dispatch_output_format (output_format : Output_format.t)
              } ->
                  let severity = String.lowercase_ascii severity in
                  let severity_and_ruleid =
-                   if check_id = Constants.cli_rule_id then severity
+                   if check_id = (Constants.rule_id_for_dash_e :> string) then
+                     severity
                    else
                      let xs =
                        check_id |> Str.split (Str.regexp_string ".") |> List.rev
@@ -115,7 +116,9 @@ let dispatch_output_format (output_format : Output_format.t)
                     * we can't use m.extra.lines because this field actually
                     * contains a string, not a string list.
                     *)
-                   match Cli_json_output.lines_of_file (start, end_) path with
+                   match
+                     Cli_json_output.lines_of_file (start, end_) (Fpath.v path)
+                   with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)
                  in
@@ -131,7 +134,12 @@ let dispatch_output_format (output_format : Output_format.t)
                    ]
                  in
                  pr (String.concat ":" parts))
-  | Text
+  | Text ->
+      Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
+        ~max_lines_per_finding:conf.max_lines_per_finding
+        ~color_output:conf.force_color Format.std_formatter cli_output
+  (* matches have already been displayed in a file_match_results_hook *)
+  | TextIncremental -> ()
   | Gitlab_sast
   | Gitlab_secrets
   | Junit_xml
@@ -148,7 +156,8 @@ let dispatch_output_format (output_format : Output_format.t)
  * output.output() all at once.
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
+let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
+    Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -156,9 +165,19 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) : unit =
    *)
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      ~rules_source:conf.rules_source res
+      res
+  in
+  let cli_output =
+    let keep_ignored =
+      (not conf.nosem) (* --disable-nosem *) || false
+      (* TODO(dinosaure): [false] depends on the output formatter. Currently,
+         we just have the JSON output. *)
+    in
+    Nosemgrep.process_ignores ~keep_ignored ~strict:conf.Scan_CLI.strict
+      cli_output
   in
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
-  dispatch_output_format conf.output_format cli_output;
-  ()
+  dispatch_output_format conf.output_format conf cli_output;
+  cli_output
+  [@@profiling]

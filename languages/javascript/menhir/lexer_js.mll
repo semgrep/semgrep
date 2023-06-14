@@ -18,7 +18,6 @@ open Common
 
 open Parser_js
 module Flag = Flag_parsing
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,11 +38,11 @@ module PI = Parse_info
 
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = Parse_info.tokinfo
-let error = Parse_info.lexical_error
+let tokinfo = Tok.tok_of_lexbuf
+let error = Parsing_error.lexical_error
 
 (* less: should use Buffer and not ^ so we should not need that *)
-let tok_add_s = PI.tok_add_s
+let tok_add_s = Tok.tok_add_s
 
 let hexa_to_int = function
   | '0'..'9' as x -> Char.code x - Char.code '0'
@@ -190,12 +189,12 @@ let reset () =
   ()
 
 let rec current_mode () =
-  try
-    Common2.top !_mode_stack
-  with Failure("hd") ->
-    pr2("mode_stack is empty, defaulting to INITIAL");
-    reset();
-    current_mode ()
+  match !_mode_stack with
+  | top :: _ -> top
+  | [] ->
+      pr2("mode_stack is empty, defaulting to INITIAL");
+      reset();
+      current_mode ()
 
 let push_mode mode = Common.push mode _mode_stack
 let pop_mode () = ignore(Common2.pop2 _mode_stack)
@@ -252,7 +251,7 @@ rule initial = parse
       let buf = Buffer.create 127 in
       Buffer.add_string buf "/*";
       st_comment buf lexbuf;
-      TComment(info |> PI.rewrap_str (Buffer.contents buf))
+      TComment(info |> Tok.rewrap_str (Buffer.contents buf))
     }
 
   (* don't keep the trailing \n; it will be in another token *)
@@ -430,7 +429,7 @@ rule initial = parse
       Buffer.add_char buf2 quote;
 
       (* s does not contain the enclosing "'" but the info does *)
-      T_STRING (s, info |> PI.rewrap_str (Buffer.contents buf2))
+      T_STRING (s, info |> Tok.rewrap_str (Buffer.contents buf2))
     }
 
   (* ----------------------------------------------------------------------- *)
@@ -490,10 +489,10 @@ rule initial = parse
           let str_modifier = Buffer.contents buf_modifier in
 
           let fullstr = "/" ^ str ^ "/" ^ str_modifier in
-          let info = info |> PI.rewrap_str fullstr in
-          let (lt, info) = PI.split_info_at_pos 1 info in
-          let (t, info) = PI.split_info_at_pos (String.length str) info in
-          let (rt, info) = PI.split_info_at_pos 1 info in
+          let info = info |> Tok.rewrap_str fullstr in
+          let (lt, info) = Tok.split_tok_at_bytepos 1 info in
+          let (t, info) = Tok.split_tok_at_bytepos (String.length str) info in
+          let (rt, info) = Tok.split_tok_at_bytepos 1 info in
           let modifier =
             if str_modifier = ""
             then None
@@ -655,7 +654,7 @@ and backquote = parse
       T_ENCAPSED_STRING(Buffer.contents buf, info)
     }
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _  {
       error ("unrecognised symbol, in backquote string:"^tok lexbuf) lexbuf;
       TUnknown (tokinfo lexbuf)
@@ -725,7 +724,7 @@ and st_in_xhp_tag current_tag = parse
         let buf = Buffer.create 127 in
         Buffer.add_string buf "/*";
         st_comment buf lexbuf;
-        TComment(info |> PI.rewrap_str (Buffer.contents buf))
+        TComment(info |> Tok.rewrap_str (Buffer.contents buf))
      }
   | "/**/" { TComment(tokinfo lexbuf) }
 
@@ -750,7 +749,7 @@ and st_in_xhp_tag current_tag = parse
       Buffer.add_string buf2 s;
       Buffer.add_char buf2 quote;
       (* s does not contain the enclosing "'" but the info does *)
-      T_STRING (s, info |> PI.rewrap_str (Buffer.contents buf2))
+      T_STRING (s, info |> Tok.rewrap_str (Buffer.contents buf2))
     }
 
   | "{" {
@@ -772,7 +771,7 @@ and st_in_xhp_tag current_tag = parse
       T_XHP_GT (tokinfo lexbuf)
     }
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _  {
         error("unrecognised symbol, in XHP tag:"^tok lexbuf) lexbuf;
         TUnknown (tokinfo lexbuf)
@@ -818,9 +817,9 @@ and st_in_xhp_text current_tag = parse
   (* opti: *)
   | [^'<' '{']+ { T_XHP_TEXT (tok lexbuf, tokinfo lexbuf) }
 
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
   | _  {
-      error ("unrecognised symbol, in XHP text:"^tok lexbuf) lexbuf;
+      error ("unrecognised symbol, in XHP text:" ^ tok lexbuf) lexbuf;
       TUnknown (tokinfo lexbuf)
     }
 

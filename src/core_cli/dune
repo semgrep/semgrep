@@ -1,5 +1,5 @@
 ; This library packages the command line parser for use by either the
-; semgrep-core executable for the semgrep-bridge.so shared library.
+; semgrep-core or semgrep-core-proprietary executables.
 (library
  (public_name semgrep.core_cli)
  (name semgrep_core_cli)
@@ -18,10 +18,12 @@
 
     ; internal deps in src/
     semgrep.core
+    semgrep.language_server
     semgrep.running
     semgrep.metachecking
     semgrep.parsing.tests ; Test_parsing.parsing_stats
     semgrep.analyzing.tests ; Test_analyze_generic.actions
+    semgrep.data
 
     ; experiments
     semgrep.synthesizing

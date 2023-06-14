@@ -25,6 +25,7 @@ from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import quoted
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
@@ -40,27 +41,19 @@ A = TypeVar("A")
 
 # The initial line of a yarn version 1 dependency, lists the constraints that lead to this package
 # Examples:
-# "@ampproject/remapping@^2.0.0"
-# bad-lib@0.0.8
+# "@ampproject/remapping@^2.0.0":
+# bad-lib@0.0.8:
+# my-package-without-version-constraint:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-def source1(quoted: bool) -> "Parser[Tuple[str,str]]":
-
-    return pair(
-        string("@").optional("") + upto("@", consume_other=True),
-        # If the source is quoted, then we know it ends at a quote
-        # If it's not, then it must end at either a colon, or a comma
-        # The colon is the end of the line (see the yarn_dep1 example)
-        # The comma indicates we have a list of sources (see the multi_source1 example)
-        upto(*(['"'] + ([":", ","] if not quoted else []))),
-    )
-
+part1 = regex('"?@?([^@:]*)', flags=0, group=1)
+part2 = regex('@?([^:,"]*(:?(?!\n)[^:,"]*)*)"?', flags=0, group=1)
+source1 = pair(part1, part2)
 
 # Examples:
 # "@ampproject/remapping@^2.0.0", "@ampproject/remapping@^3.1.0"
 # bad-lib@0.0.8, bad-lib@^0.0.4
-multi_source1 = (quoted(source1(True)) | source1(False)).sep_by(string(", "))
-
+multi_source1 = source1.sep_by(string(", "))
 
 # A key value pair. These can be a name followed by a nested list, but the only data we care about is in outermost list
 # This is why we produce None if the line is preceeded by more than 2 spaces, or if it ends in a colon
@@ -210,7 +203,7 @@ def get_manifest_deps(manifest_path: Optional[Path]) -> Optional[Set[Tuple[str, 
     """
     if not manifest_path:
         return None
-    json_opt = safe_path_parse(manifest_path, json_doc)
+    json_opt = safe_path_parse(manifest_path, json_doc, ParserName.jsondoc)
     if not json_opt:
         return None
     json = json_opt.as_dict()
@@ -235,7 +228,8 @@ def parse_yarn(
     manifest_deps = get_manifest_deps(manifest_path)
     yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2
     parser = yarn1 if yarn_version == 1 else yarn2
-    deps = safe_path_parse(lockfile_path, parser)
+    parser_name = ParserName.yarn_1 if yarn_version == 1 else ParserName.yarn_2
+    deps = safe_path_parse(lockfile_path, parser, parser_name)
     if not deps:
         return []
     output = []

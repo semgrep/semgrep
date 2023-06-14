@@ -1,0 +1,9 @@
+rules:
+  - id: test
+    languages:
+      - java
+    message: Test
+    severity: INFO
+    options:
+      symbolic_propagation: true
+    pattern: baz(req.xyz)

@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -14,8 +15,8 @@ let parse file =
 (* Unit tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let tests =
   Testutil.pack_tests "parsing_cpp"
@@ -38,28 +39,29 @@ let tests =
           let files =
             Common2.glob (spf "%s/*.cpp" dir) @ Common2.glob (spf "%s/*.h" dir)
           in
-          files
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file) );
+                 | Parsing_error.Syntax_error _ ->
+                     Alcotest.failf "it should correctly parse %s" !!file) );
       ( "rejecting bad code",
         fun () ->
           let dir = Filename.concat tests_path "cpp/parsing_errors" in
           let files = Common2.glob (spf "%s/*.cpp" dir) in
-          files
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
-                   Alcotest.failf "it should have thrown a Parse_error %s" file
+                   Alcotest.failf "it should have thrown a Parse_error %s"
+                     !!file
                  with
-                 | Parse_info.Parsing_error _ -> ()
+                 | Parsing_error.Syntax_error _ -> ()
                  | exn ->
                      Alcotest.failf "throwing wrong exn %s on %s"
-                       (Common.exn_to_s exn) file) );
+                       (Common.exn_to_s exn) !!file) );
       (* parsing C files (and not C++ files) possibly containing C++ keywords *)
       ( "C regression files",
         fun () ->
@@ -68,14 +70,14 @@ let tests =
             Common2.glob (spf "%s/*.c" dir)
             (* @ Common2.glob (spf "%s/*.h" dir) *)
           in
-          files
+          files |> File.Path.of_strings
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file) )
+                 | Parsing_error.Syntax_error _ ->
+                     Alcotest.failf "it should correctly parse %s" !!file) )
       (*-----------------------------------------------------------------------*)
       (* Misc *)
       (*-----------------------------------------------------------------------*);

@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module G = AST_generic
 module RM = Range_with_metavars
 
@@ -17,7 +18,7 @@ let pr2_ranges file rwms =
          let line_str =
            let pm = rwm.RM.origin in
            let loc1, _ = pm.Pattern_match.range_loc in
-           string_of_int loc1.Parse_info.line
+           string_of_int loc1.Tok.pos.line
          in
          Common.pr2 (code_text ^ " @l." ^ line_str))
 
@@ -25,16 +26,19 @@ let test_tainting lang file options config def =
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let flow, mapping =
-    Match_tainting_mode.check_fundef lang options config None def
+    Match_tainting_mode.check_fundef lang options config None
+      AST_to_IL.empty_ctx
+      (Dataflow_tainting.mk_empty_java_props_cache ())
+      def
   in
   let taint_to_str taint =
     let show_taint t =
       match t.Taint.orig with
       | Taint.Src src ->
-          let tok1, tok2 = (fst (Taint.pm_of_trace src)).range_loc in
+          let tok1, tok2 = (fst (Taint.pm_of_trace src.call_trace)).range_loc in
           let r = Range.range_of_token_locations tok1 tok2 in
           Range.content_at_range file r
-      | Taint.Arg (s, i) -> spf "arg %s %d" s i
+      | Taint.Arg arg -> Taint._show_arg arg
     in
     taint |> Taint.Taint_set.elements |> Common.map show_taint
     |> String.concat ", "
@@ -43,52 +47,61 @@ let test_tainting lang file options config def =
   DataflowX.display_mapping flow mapping (Taint_lval_env.to_string taint_to_str)
 
 let test_dfg_tainting rules_file file =
-  let lang = List.hd (Lang.langs_of_filename file) in
+  let rules_file = Fpath.v rules_file in
+  let file = Fpath.v file in
+  let lang = Lang.lang_of_filename_exn file in
   let rules =
     try Parse_rule.parse rules_file with
     | exn ->
         failwith
-          (spf "fail to parse tainting rules %s (exn = %s)" rules_file
+          (spf "fail to parse tainting rules %s (exn = %s)" !!rules_file
              (Common.exn_to_s exn))
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang !!file with
     | exn ->
-        failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
+        failwith
+          (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
   in
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages with
+           match r.Rule.languages.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
-  let rule = List.hd taint_rules in
+  let _search_rules, taint_rules, _extract_rules, _join_rules =
+    Rule.partition_rules rules
+  in
+  let rule = Common.hd_exn "unexpected empty list" taint_rules in
   pr2 "Tainting";
   pr2 "========";
   let handle_findings _ _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
+  (* this won't cache anything. but that's fine, we don't need it
+     for test purposes.
+  *)
+  let tbl = Match_tainting_mode.mk_specialized_formula_cache [] in
   let config, debug_taint, _exps =
-    Match_tainting_mode.taint_config_of_rule xconf file (ast, []) rule
-      handle_findings
+    Match_tainting_mode.taint_config_of_rule ~per_file_formula_cache:tbl xconf
+      !!file (ast, []) rule handle_findings
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";
-  pr2_ranges file (debug_taint.sources |> Common.map fst);
+  pr2_ranges !!file (debug_taint.sources |> Common.map fst);
   Common.pr2 "\nSanitizers";
   Common.pr2 "----------";
-  pr2_ranges file debug_taint.sanitizers;
+  pr2_ranges !!file debug_taint.sanitizers;
   Common.pr2 "\nSinks";
   Common.pr2 "-----";
-  pr2_ranges file (debug_taint.sinks |> Common.map fst);
+  pr2_ranges !!file (debug_taint.sinks |> Common.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_function_definition env def =
-        test_tainting lang file xconf.config config def;
+        test_tainting lang !!file xconf.config config def;
         (* go into nested functions *)
         super#visit_function_definition env def
     end

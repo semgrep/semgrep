@@ -3,8 +3,8 @@
 ###############################################################################
 # The main goals of this pipeline are to:
 # - dogfood Semgrep by running it on each semgrep PRs.
-# - check that Semgrep can run in alternate CI platforms like Circle CI
-#   (and not just in Github actions).
+# - check that Semgrep can run in an alternate CI platform like Circle CI
+#   (and not just in Github Actions).
 # - have a cron that update our parsing statistics as well as some benchmarks,
 #   which are then accessible at https://dashboard.semgrep.dev/metrics
 #   and also at https://metabase.corp.r2c.dev/collection/59-semgrep
@@ -24,9 +24,9 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      # Dogfooding on the bleeding edge by using jsonnet and the new syntax!
+      # Dogfooding on the bleeding edge by using jsonnet, the new syntax, osemgrep!
       # coupling: see also 'make check'
-      - run: semgrep --config semgrep.jsonnet --error --verbose --exclude tests --exclude pfff
+      - run: osemgrep --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
@@ -66,7 +66,7 @@ jobs:
       - store_artifacts:
           path: stats/parsing-stats/results.txt
 
-  # Run parsing stats and publish them to the semgrep dashboard.
+  # Run autofix parsing stats and publish them to the semgrep dashboard.
   autofix-printing-stats:
     docker:
       # The returntocorp/semgrep-dev:develop image doesn't have OCaml, so
@@ -85,7 +85,10 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install -y python3-pip jq
-            pip3 install semgrep
+            # Pip wants to let apt manage all the packages, but Semgrep isn't
+            # available there. Pass --break-system-packages to convince it to
+            # install it anyway.
+            pip3 install semgrep --break-system-packages
             # Put semgrep-core on the path. This is a little bit shady but
             # apparently the `pip show` output is meant to be machine-parseable
             # so this output should be stable:
@@ -107,14 +110,6 @@ workflows:
 
   # Daily semgrep benchmarks
   benchmarks:
-    triggers:
-      - schedule:
-          # Run at 00:00 every day, UTC.
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - develop
     jobs:
       - benchmarks:
           # Run only on these branches
@@ -122,8 +117,6 @@ workflows:
             branches:
               only:
                 - develop
-
-  scheduled-parsing-stats:
     triggers:
       - schedule:
           # Run at 00:00 every day, UTC.
@@ -132,7 +125,8 @@ workflows:
             branches:
               only:
                 - develop
-                - main
+
+  scheduled-parsing-stats:
     jobs:
       - parsing-stats:
           # Run only on these branches
@@ -140,9 +134,6 @@ workflows:
             branches:
               only:
                 - develop
-                - main
-
-  scheduled-autofix-printing-stats:
     triggers:
       - schedule:
           # Run at 00:00 every day, UTC.
@@ -151,9 +142,19 @@ workflows:
             branches:
               only:
                 - develop
+
+  scheduled-autofix-printing-stats:
     jobs:
       - autofix-printing-stats:
           # Run only on these branches
+          filters:
+            branches:
+              only:
+                - develop
+    triggers:
+      - schedule:
+          # Run at 00:00 every day, UTC.
+          cron: "0 0 * * *"
           filters:
             branches:
               only:

@@ -2,7 +2,6 @@
 Parsers for requirements.txt and requirements.in files
 Based on https://pip.pypa.io/en/stable/reference/requirements-file-format/
 """
-import re
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -13,8 +12,10 @@ from semdep.external.parsy import string
 from semdep.external.parsy import string_from
 from semdep.external.parsy import success
 from semdep.external.parsy import whitespace
+from semdep.parsers import preprocessors
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -89,19 +90,7 @@ requirements = (
 
 # first remove comments
 # https://github.com/pypa/pip/blob/e69e265cb7b60fb2dacbbb2ab8fa3baaf24bfe4d/src/pip/_internal/req/req_file.py#LL45
-COMMENT_RE = re.compile(r"(^|\s+)#.*$")
-
-
-def strip_comment_from_line(line: str) -> str:
-    match = COMMENT_RE.search(line)
-    if not match:
-        return line
-    else:
-        return line[: match.span()[0]]
-
-
-def remove_comments(s: str) -> str:
-    return "\n".join(strip_comment_from_line(line) for line in s.splitlines())
+COMMENT_REGEX = r"(^|\s+)#.*$"
 
 
 def get_manifest_deps(
@@ -113,10 +102,17 @@ def get_manifest_deps(
 def parse_requirements(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, requirements, preprocess=remove_comments)
+    deps = safe_path_parse(
+        lockfile_path,
+        requirements,
+        ParserName.requirements,
+        preprocess=preprocessors.CommentRemover(),
+    )
     if deps is None:
         return []
-    manifest_deps = get_manifest_deps(safe_path_parse(manifest_path, requirements))
+    manifest_deps = get_manifest_deps(
+        safe_path_parse(manifest_path, requirements, ParserName.requirements)
+    )
     output = []
     for line_number, (package, constraints) in deps:
         # A package with no pinned version, skip it

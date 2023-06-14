@@ -10,9 +10,13 @@ name: test-semgrep-pro-latest
 on:
   workflow_dispatch:
   pull_request:
+  push:
+    branches:
+      - "develop"
 jobs:
   test-semgrep-pro-latest:
     name: Test Semgrep Pro Engine (latest release)
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository # only returntocorp has the necessary credentials to access semgrep pro
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
@@ -25,7 +29,7 @@ jobs:
         with:
           submodules: true
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role
           role-duration-seconds: 900
@@ -40,4 +44,5 @@ jobs:
           aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "returntocorp/semgrep:develop" /root/scripts/test-pro.sh
+          chmod +x ./semgrep-core-proprietary
+          docker run --rm -v "$(pwd):/root" -v "$(pwd)/semgrep-core-proprietary:/usr/local/bin/semgrep-core-proprietary" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "returntocorp/semgrep:develop" /root/scripts/test-pro.sh

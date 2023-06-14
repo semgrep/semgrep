@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 
 (* G is the pattern, and B the concrete source code. For now
  * we both use the same module but they may differ later
@@ -30,9 +29,8 @@ module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
-module Config = Config_semgrep_t
+module Options = Rule_options_t
 module H = AST_generic_helpers
-module T = Type_generic
 
 (* optimisations *)
 module CK = Caching.Cache_key
@@ -176,7 +174,7 @@ let should_match_call = function
       false
 
 (*****************************************************************************)
-(* Optimisations (caching, bloom filter) *)
+(* Optimisations (caching) *)
 (*****************************************************************************)
 
 (* Getters and setters that were left abstract in the cache implementation. *)
@@ -187,31 +185,6 @@ let cache_access : tin Caching.Cache.access =
     get_mv_field = (fun tin -> tin.mv);
     set_mv_field = (fun tin mv -> { tin with mv });
   }
-
-let stmts_may_match pattern_stmts (stmts : G.stmt list) =
-  (* We could gather all the strings from the stmts
-     and perform one intersection, but this is quite slow.
-     By iterating over each stmt, we can shortcircuit *)
-  if not !Flag.use_bloom_filter then true
-  else
-    let pattern_strs =
-      Bloom_annotation.set_of_pattern_strings (Ss pattern_stmts)
-    in
-    let pats_in_stmt pats (stmt : AST_generic.stmt) =
-      match stmt.s_strings with
-      | None -> true
-      | Some strs -> Set_.subset pats strs
-    in
-    let rec patterns_in_any_stmt pats stmts acc =
-      match stmts with
-      | [] -> acc
-      | stmt :: rest -> (
-          match acc with
-          | false -> patterns_in_any_stmt pats rest (pats_in_stmt pats stmt)
-          | true -> acc)
-    in
-    patterns_in_any_stmt pattern_strs stmts true
-  [@@profiling]
 
 (*****************************************************************************)
 (* Name *)
@@ -254,7 +227,7 @@ let make_dotted xs =
       let base = B.N (B.Id (x, B.empty_id_info ())) |> G.e in
       List.fold_left
         (fun acc e ->
-          let tok = Parse_info.fake_info (snd x) "." in
+          let tok = Tok.fake_tok (snd x) "." in
           B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
         base xs
 
@@ -351,8 +324,8 @@ let max_NESTED_SYMBOLIC_PROPAGATION = 50
 let m_with_symbolic_propagation ~is_root f b tin =
   if
     (* If we are not at the root, then we permit recursing into substituted values. *)
-    tin.config.Config.constant_propagation
-    && tin.config.Config.symbolic_propagation && not is_root
+    tin.config.Options.constant_propagation
+    && tin.config.Options.symbolic_propagation && not is_root
   then
     (* In the past, naming bugs have introduced circular references causing
      * infinite loops, and not all are caught by the defensive check `b1 == b`
@@ -366,12 +339,8 @@ let m_with_symbolic_propagation ~is_root f b tin =
            * we do, we shouldn't crash. This simple check will not protect
            * against complicated paths through which a symbol could resolve to
            * itself, but if it directly resolves to itself, we can easily catch
-           * it.
-           *
-           * Yes, Semgrep, I want physical equality.
-           *
-           * nosemgrep *)
-          if b1 == b then (
+           * it. *)
+          if phys_equal b1 b then (
             logger#error
               "Aborting symbolic propagation: Circular reference encountered \
                (\"%s\")"
@@ -674,7 +643,7 @@ and m_id_info a b =
 (*****************************************************************************)
 
 and m_expr_deep a b tin =
-  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let symbolic_propagation = tin.config.Options.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr ~symbolic_propagation
   in
@@ -702,7 +671,7 @@ and m_expr_deep a b tin =
  *
  *)
 and m_expr_deep_implict a b tin =
-  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let symbolic_propagation = tin.config.Options.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr_implicit ~symbolic_propagation
   in
@@ -745,7 +714,12 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
      the cases that do decompose on `a` or `b`.
   *)
   | _, G.Cast (_, _, b1) when arguments_have_changed ->
-      m_expr a b1 >||> m_expr ~arguments_have_changed:false a b
+      (* We apply this equivalence only if not at the root, meaning we've done work
+         to get here, and should consider all possibilities.
+         This is similar to symbolic propagation.
+      *)
+      (if not is_root then m_expr a b1 else fail ())
+      >||> m_expr ~arguments_have_changed:false a b
   (* equivalence: name resolving! *)
   (* todo: it would be nice to factorize the aliasing code by just calling
    * m_name, but below we use make_dotted, which is different from what
@@ -857,7 +831,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.L a1, _b ->
       if_config
-        (fun x -> x.Config.constant_propagation)
+        (fun x -> x.Options.constant_propagation)
         ~then_:
           (with_lang (fun lang ->
                match
@@ -919,15 +893,11 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
-  (* TODO? should probably do some equivalence like allowing extra
-   * paren in the pattern to still match code without parens
-   *)
-  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
-  | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
-      m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
+  | G.New (_a0, a1, _a2, a3), B.New (_b0, b1, _b2, b3) ->
+      m_type_ a1 b1 >>= fun () -> m_arguments a3 b3
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -941,7 +911,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
         when List.length vars =|= List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
-          let mult_assigns = List.map2 create_assigns vars vals in
+          let mult_assigns = Common.map2 create_assigns vars vals in
           let rec aux xs =
             match xs with
             | [] -> fail ()
@@ -1049,7 +1019,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.N _, _
   | G.New _, _
   | G.IdSpecial _, _
-  | G.ParenExpr _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _
@@ -1268,20 +1237,20 @@ and m_wrap_m_int_opt (a1, a2) (b1, b2) =
    * a syntax OCaml int_of_string could not parse,
    * we default to a string comparison *)
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
+      let a1 = Tok.content_of_tok a2 in
       (* bugfix: not that with constant propagation, some integers don't have
        * a real token associated with them, so b2 may be a FakeTok, but
        * Parse_info.str_of_info does not raise an exn anymore on a FakeTok
        *)
-      let b1 = Parse_info.str_of_info b2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_wrap_m_string_opt (a1, a2) (b1, b2) =
   match (a1, b1) with
   | Some s1, Some s2 when String.equal s1 s2 -> return ()
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
-      let b1 = Parse_info.str_of_info b2 in
+      let a1 = Tok.content_of_tok a2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_wrap_m_float_opt (a1, a2) (b1, b2) =
@@ -1289,8 +1258,8 @@ and m_wrap_m_float_opt (a1, a2) (b1, b2) =
   (* iso: semantic equivalence of value! 0x8 can match 8 *)
   | Some f1, Some f2 when f1 =*= f2 -> return ()
   | _ ->
-      let a1 = Parse_info.str_of_info a2 in
-      let b1 = Parse_info.str_of_info b2 in
+      let a1 = Tok.content_of_tok a2 in
+      let b1 = Tok.content_of_tok b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
 and m_literal_svalue a b =
@@ -1423,112 +1392,52 @@ and m_container_ordered_elements a b =
  *    style as typechecking could also bind metavariables in the process
  *)
 and m_compatible_type lang typed_mvar t e =
-  match (Type_generic.builtin_type_of_type lang t, e.G.e) with
-  | Some builtin, B.L lit -> (
-      match (builtin, lit) with
-      | T.TInt, B.Int _
-      | T.TFloat, B.Float _
-      | T.TNumber, (B.Int _ | B.Float _)
-      | T.TBool, B.Bool _
-      | T.TString, B.String _ ->
-          envf typed_mvar (MV.E e)
-      | _ -> fail ())
-  | _else_ -> (
-      match (t.G.t, e.G.e) with
-      (* for C specific literals *)
-      | ( G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }),
-          B.L (B.String _) ) ->
-          envf typed_mvar (MV.E e)
-      | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
-      (* for C strings to match metavariable pointer types *)
-      | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
-          B.L (B.String _) ) ->
-          m_type_ t
-            (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t)
-            |> G.t)
-          >>= fun () -> envf typed_mvar (MV.E e)
-      (* for matching ids *)
-      (* this is covered by the basic type propagation done in Naming_AST.ml *)
-      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-          (* NOTE: Name values must be represented with MV.Id! *)
-          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-          envf typed_mvar (MV.Id (idb, Some id_infob))
-      | _ta, _eb -> (
-          match type_of_expr lang e with
-          | tbopt, Some idb ->
-              m_type_option_with_hook idb (Some t) tbopt >>= fun () ->
-              envf typed_mvar (MV.E e)
-          | Some tb, None ->
-              let* () = m_type_ t tb in
-              envf typed_mvar (MV.E e)
-          | None, None -> fail ()))
-
-(* returns possibly the inferred type of the expression,
- * as well as an ident option that can then be used to query LSP to get the
- * type of the ident.
- *)
-and type_of_expr lang e : G.type_ option * G.ident option =
-  match e.B.e with
-  (* TODO? or generate a fake "new" id for LSP to query on tk? *)
-  | B.New (_tk, t, _) -> (Some t, None)
+  match (t.G.t, e.G.e) with
+  (* for C specific literals *)
+  | G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }), B.L (B.String _) ->
+      envf typed_mvar (MV.E e)
+  | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
+  (* for C strings to match metavariable pointer types *)
+  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
+      B.L (B.String _) ) ->
+      m_type_ t
+        (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
+      >>= fun () -> envf typed_mvar (MV.E e)
+  (* for matching ids *)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | B.N
-      (B.IdQualified
-        { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
-  | B.DotAccess
-      ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { B.id_type = tb; _ })))
-    ->
-      (!tb, Some idb)
-  (* deep: those are usually resolved only in deep mode *)
-  | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> (!tb, Some idb)
-  (* deep: same *)
-  | B.Call
-      ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
-        _args ) -> (
-      match !tb with
-      (* less: in OCaml functions can be curried, so we need to match
-       * _params and _args to calculate the resulting type.
-       *)
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  (* deep: in Java, there can be an implicit `this.`
-     so calculate the type in the same way as above
-     THINK: should we do this for all languages? Why not? *)
-  | B.Call ({ e = N (Id (idb, { B.id_type = tb; _ })); _ }, _args)
-    when lang =*= Lang.Java -> (
-      match !tb with
-      | Some { t = TyFun (_params, tret); _ } -> (Some tret, Some idb)
-      | Some _
-      | None ->
-          (None, Some idb))
-  | B.ParenExpr (_, e, _) -> type_of_expr lang e
-  | B.Conditional (_, e1, e2) ->
-      let ( let* ) = Option.bind in
-      let t1opt, id1opt = type_of_expr lang e1 in
-      let t2opt, id2opt = type_of_expr lang e2 in
-      (* LATER: we could also not enforce to have a type for both branches,
-       * but let's go simple for now and enforce both branches have
-       * a type and that the types are equal.
-       *)
-      let topt =
-        let* t1 = t1opt in
-        let* t2 = t2opt in
-        (* LATER: in theory we should look if the types are compatible,
-         * and take the lowest upper bound of the two types *)
-        if AST_utils.with_structural_equal G.equal_type_ t1 t2 then Some t1
-        else None
+  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+      (* NOTE: Name values must be represented with MV.Id! *)
+      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+      envf typed_mvar (MV.Id (idb, Some id_infob))
+  | _ta, _eb -> (
+      let with_bound_metavar =
+        match e.G.e with
+        | B.N (B.Id (id, info)) ->
+            (* NOTE: Name values must be represented with MV.Id! *)
+            envf typed_mvar (MV.Id (id, Some info))
+        | _else_ -> envf typed_mvar (MV.E e)
       in
-      let idopt =
-        (* TODO? is there an Option.xxx or Common.xxx function for that? *)
-        match (id1opt, id2opt) with
-        | Some id1, _ -> Some id1
-        | _, Some id2 -> Some id2
-        | None, None -> None
-      in
-      (topt, idopt)
-  | _else_ -> (None, None)
+      let tb, idopt = Typing.type_of_expr lang e in
+      (* If we can infer the type, then match against it. Otherwise, fall back
+       * on LSP type matching *)
+      if Type.is_real_type tb then
+        (* In case the pattern of the type itself contains a metavariable (e.g.
+         * `(List<$T> $X)), take a token from the expression so that we have a
+         * real location to associate with the metavariable. *)
+        let tok =
+          lazy
+            (match H.ii_of_any (G.E e) |> List.filter Tok.is_origintok with
+            | hd :: _ -> Some hd
+            | [] -> None)
+        in
+        let* () = m_generic_type_vs_type_t lang tok t tb in
+        with_bound_metavar
+      else
+        match idopt with
+        | Some idb ->
+            m_type_option_with_hook idb (Some t) None >>= fun () ->
+            with_bound_metavar
+        | None -> fail ())
 
 (*---------------------------------------------------------------------------*)
 (* XML *)
@@ -1546,7 +1455,7 @@ and m_xml_kind a b =
   | G.XmlClassic (a0, a1, a2, _), B.XmlSingleton (b0, b1, b2)
   | G.XmlSingleton (a0, a1, a2), B.XmlClassic (b0, b1, b2, _) ->
       if_config
-        (fun x -> x.Config.xml_singleton_loose_matching)
+        (fun x -> x.Options.xml_singleton_loose_matching)
         ~then_:
           (let* () = m_tok a0 b0 in
            let* () = m_ident a1 b1 in
@@ -1814,8 +1723,8 @@ and m_call_op aop toka aargs bop tokb bargs tin =
    * regular non-AC matching. *)
   if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
     match
-      ( H.ac_matching_nf aop (PI.unbracket aargs),
-        H.ac_matching_nf bop (PI.unbracket bargs) )
+      ( H.ac_matching_nf aop (Tok.unbracket aargs),
+        H.ac_matching_nf bop (Tok.unbracket bargs) )
     with
     | Some aargs_ac, Some bargs_ac ->
         if is_commutative_operator aop then
@@ -2095,6 +2004,147 @@ and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in
   m_type_ a2 b2
 
+(******************************************************************************)
+(* Type.t, constructed during type inference and matched for typed metavariables
+ * *)
+(******************************************************************************)
+
+(* The AST_generic.type_ written in a pattern vs an inferred Type.t
+ *
+ * Checks if the pattern `a` describes any supertype of the type `b`. Currently,
+ * subtype analysis is fairly limited (I believe it only happens with
+ * inheritance for nominal types when used with the Pro Engine) but it may be
+ * extended at some point.
+ *
+ * Uses the provided `tok` (if any) when constructing synthetic AST to which a
+ * metavariable is bound.
+ * *)
+and m_generic_type_vs_type_t lang tok a b =
+  match (a.G.t, b) with
+  | G.TyN (Id ((str, idtok), _)), _ when MV.is_metavar_name str -> (
+      match
+        Type.to_ast_generic_type_ ~tok:(Lazy.force tok) lang
+          (fun name _alts -> name)
+          b
+      with
+      | None ->
+          (* Log error? Bind to OtherType? *)
+          fail ()
+      (* Ensure MV bindings are to Id or N as appropriate. THINK: Should this be
+       * part of envf? *)
+      | Some { G.t = G.TyN (Id (id, info)); _ } ->
+          envf (str, idtok) (MV.Id (id, Some info))
+      | Some { G.t = G.TyN name; _ } -> envf (str, idtok) (MV.N name)
+      | Some ty -> envf (str, idtok) (MV.T ty))
+  | G.TyN name1, Type.N ((name2, (* targs *) []), _alts) ->
+      (* TODO: Alternate names should actually be part of the 'resolved type
+       * param in Type.t. They are actually stored in the name, so we ignore
+       * them here. *)
+      m_name name1 name2
+  | G.TyApply ({ t = G.TyN name1; _ }, targs1), Type.N ((name2, targs2), _alts)
+    ->
+      let* () = m_name name1 name2 in
+      m_generic_targs_vs_type_targs lang tok targs1 targs2
+  (* TODO: Handle IdQualified matching unresolved name? *)
+  | G.TyN (Id ((str1, _), _)), Type.UnresolvedName (str2, (* targs *) []) ->
+      m_string str1 str2
+  | ( G.TyApply ({ t = G.TyN (Id ((str1, _), _)); _ }, targs1),
+      Type.UnresolvedName (str2, targs2) ) ->
+      let* () = m_string str1 str2 in
+      m_generic_targs_vs_type_targs lang tok targs1 targs2
+  | G.TyN (Id ((str, _), _)), Type.Builtin builtin2 -> (
+      (* Convert the string in the pattern to a Type.builtin_type. Currently,
+       * this lets users write, for example `str` in Java and have it
+       * interpreted as `String`. We could make this a bit stricter, but some
+       * tests rely on this behavior and real rules probably do as well. It's
+       * probably fine to be a bit generous here when we're attempting a match
+       * against a builtin, as this will not preclude matches elsewhere against
+       * named types that happen to collide. *)
+      match (Type.builtin_type_of_string lang str, builtin2) with
+      | Some Type.Int, Type.Int
+      | Some Type.Float, Type.Float
+      | Some Type.String, Type.String
+      | Some Type.Bool, Type.Bool
+      (* Type.Number used for JS/TS. We still infer more specific types for
+       * literals, however. *)
+      | Some Type.Number, (Type.Number | Type.Int | Type.Float) ->
+          return ()
+      | Some Type.Int, _
+      | Some Type.Float, _
+      | Some Type.String, _
+      | Some Type.Bool, _
+      | Some Type.Number, _
+      | Some (Type.OtherBuiltins _), _
+      | None, _ ->
+          fail ())
+  (* coupling: we also match on "null" etc. in Typing.type_of_ast_generic_type.
+   * Pull out into util? *)
+  | G.TyN (Id ((("null" | "nil" | "NULL"), _), _)), Type.Null -> return ()
+  (* An array type pattern with no size specified should still match an array
+   * type where we know the size. *)
+  | G.TyArray ((_l, None, _r), t1), Type.Array (_size, t2) ->
+      (* THINK: Should be an invariant match rather than covariant? *)
+      m_generic_type_vs_type_t lang tok t1 t2
+  | ( G.TyArray ((_l, Some { e = G.L (G.Int (Some size1, _)); _ }, _r), t1),
+      Type.Array (Some size2, t2) ) ->
+      let* () = m_int size1 size2 in
+      (* THINK: Should be an invariant match rather than covariant? *)
+      m_generic_type_vs_type_t lang tok t1 t2
+  | G.TyFun (params1, tret1), Type.Function (params2, tret2) ->
+      let* () = m_generic_params_vs_params lang tok params1 params2 in
+      m_generic_type_vs_type_t lang tok tret1 tret2
+  | G.TyPointer (_tok, t1), Type.Pointer t2 ->
+      m_generic_type_vs_type_t lang tok t1 t2
+  | G.TyExpr { e = G.N name1; _ }, _ ->
+      m_generic_type_vs_type_t lang tok (G.TyN name1 |> G.t) b
+  | _, Type.N _
+  | _, Type.UnresolvedName _
+  | _, Type.Builtin _
+  | _, Type.Null
+  | _, Type.Array _
+  | _, Type.Function _
+  | _, Type.Pointer _
+  | _, Type.NoType
+  | _, Type.Todo _ ->
+      fail ()
+
+and m_generic_targs_vs_type_targs lang tok (_l, a, _r) b =
+  (* TODO Handle ellipses? *)
+  m_list (m_generic_targ_vs_type_targ lang tok) a b
+
+and m_generic_targ_vs_type_targ lang tok a b =
+  match (a, b) with
+  | G.TA t1, Type.TA t2 ->
+      (* Technically this isn't quite right. m_generic_type_vs_type_t checks if
+       * t1 is a supertype of t2. Typically, type parameters must be invariant,
+       * and this will assume covariance. But it's probably not a big deal, and
+       * they don't have to be invariant in all cases anyway. *)
+      m_generic_type_vs_type_t lang tok t1 t2
+  | G.TA _, Type.OtherTypeArg _
+  (* TODO Represent more typearg kinds in Type.t? *)
+  | G.TAWildcard _, _
+  | G.TAExpr _, _
+  (* THINK: Should G.OtherTypeArg match Type.OtherTypeArg? *)
+  | G.OtherTypeArg _, _ ->
+      fail ()
+
+and m_generic_params_vs_params lang tok a b =
+  (* TODO Handle ellipses? *)
+  m_list (m_generic_param_vs_param lang tok) a b
+
+and m_generic_param_vs_param lang tok a b =
+  match (a, b) with
+  | ( G.Param { G.pname = name1; ptype = t1; _ },
+      Type.Param { Type.pident = name2; ptype = t2 } ) -> (
+      let name1 = Option.map fst name1 in
+      let* () = m_option m_string name1 name2 in
+      match t1 with
+      | Some t1 -> m_generic_type_vs_type_t lang tok t1 t2
+      | None -> (* THINK: Is this right? *) return ())
+  | _, Type.Param _
+  | _, Type.OtherParam _ ->
+      fail ()
+
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
@@ -2214,13 +2264,11 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
-          (if not (stmts_may_match xsa xsb) then fail ()
-          else
-            match SubAST_generic.flatten_substmts_of_stmts xsb with
-            | None -> fail () (* was already flat *)
-            | Some (xsb, last_stmt) ->
-                m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id)
-                  xsa xsb)
+          (match SubAST_generic.flatten_substmts_of_stmts xsb with
+          | None -> fail () (* was already flat *)
+          | Some (xsb, last_stmt) ->
+              m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
+                xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
@@ -2326,8 +2374,7 @@ and m_stmt a b =
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
-      | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
-          m_expr suba subb
+      | B.ExprStmt (subb, _) when not (Tok.is_fake sc) -> m_expr suba subb
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
@@ -2631,7 +2678,6 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_With, G.OSWS_With
   | G.OSWS_Else_in_try, G.OSWS_Else_in_try
   | G.OSWS_Iterator, G.OSWS_Iterator
-  | G.OSWS_Closure, G.OSWS_Closure
   | G.OSWS_Todo, G.OSWS_Todo ->
       return ()
   | G.OSWS_Block a, G.OSWS_Block b -> m_todo_kind a b
@@ -2639,7 +2685,6 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_Block _, _
   | G.OSWS_Else_in_try, _
   | G.OSWS_Iterator, _
-  | G.OSWS_Closure, _
   | G.OSWS_Todo, _ ->
       fail ()
 
@@ -2894,6 +2939,7 @@ and m_parameter a b =
       let* () = m_tok a1 b1 in
       m_parameter_classic a2 b2
   | G.ParamPattern a1, B.ParamPattern b1 -> m_pattern a1 b1
+  | G.ParamReceiver a1, B.ParamReceiver b1 -> m_parameter_classic a1 b1
   | G.OtherParam (a1, a2), B.OtherParam (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ParamEllipsis a1, B.ParamEllipsis b1 -> m_tok a1 b1
@@ -2902,6 +2948,7 @@ and m_parameter a b =
   | G.ParamRest _, _
   | G.ParamHashSplat _, _
   | G.ParamEllipsis _, _
+  | G.ParamReceiver _, _
   | G.OtherParam _, _ ->
       fail ()
 
@@ -3053,7 +3100,12 @@ and m_type_definition a b =
 
 and m_type_definition_kind a b =
   match (a, b) with
-  | G.OrType a1, B.OrType b1 -> (m_list m_or_type) a1 b1
+  | G.OrType a1, B.OrType b1 ->
+      m_list_with_dots m_or_type
+        (function
+          | G.OrEllipsis _ -> true
+          | _else_ -> false)
+        ~less_is_ok:false a1 b1
   | G.AndType a1, B.AndType b1 -> m_bracket m_fields a1 b1
   | G.AliasType a1, B.AliasType b1 -> m_type_ a1 b1
   | G.NewType a1, B.NewType b1 -> m_type_ a1 b1
@@ -3083,6 +3135,8 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
+  (* dots: *)
+  | G.OrEllipsis _, _ -> return ()
   | G.OrConstructor _, _
   | G.OrEnum _, _
   | G.OrUnion _, _ ->
@@ -3106,17 +3160,23 @@ and m_list__m_type_any_order (xsa : G.type_ list) (xsb : G.type_ list) =
 
 and m_list__m_class_parent (xsa : G.class_parent list)
     (xsb : G.class_parent list) =
-  (* TODO: m_list_in_any_order ~less_is_ok:true m_class_parent xsa xsb
-   * but regressions for python?
-   *)
-  m_list_with_dots m_class_parent
-    (function
-      | { G.t = G.TyEllipsis _; _ }, None -> true
-      (* dots: '...', this is very Python Specific I think *)
-      | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
-      | _ -> false)
-      (* less-is-ok: it's ok to not specify all the parents I think *)
-    ~less_is_ok:true xsa xsb
+  with_lang (fun lang ->
+      if
+        lang =*= Lang.Kotlin
+        (* in Kotlin the order in cextends does not matter *)
+      then m_list_in_any_order ~less_is_ok:true m_class_parent xsa xsb
+      else
+        (* we could generalize to other languages, but we currently get
+         * regressions for python where the order does seem to matter
+         *)
+        m_list_with_dots m_class_parent
+          (function
+            | { G.t = G.TyEllipsis _; _ }, None -> true
+            (* dots: '...', this is very Python Specific I think *)
+            | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
+            | _ -> false)
+            (* less-is-ok: it's ok to not specify all the parents I think *)
+          ~less_is_ok:true xsa xsb)
 
 and m_class_parent_basic (a1, a2) (b1, b2) =
   let* () = m_type_ a1 b1 in
@@ -3512,6 +3572,7 @@ and m_any a b =
   | G.Tp a1, B.Tp b1 -> m_type_parameter a1 b1
   | G.Ta a1, B.Ta b1 -> m_type_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
+  | G.XmlAt a1, B.XmlAt b1 -> m_xml_attr a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
   | G.I a1, B.I b1 -> m_ident a1 b1
@@ -3535,6 +3596,7 @@ and m_any a b =
   | G.Tp _, _
   | G.Ta _, _
   | G.At _, _
+  | G.XmlAt _, _
   | G.Dk _, _
   | G.Pr _, _
   | G.Fld _, _

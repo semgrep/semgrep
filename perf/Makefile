@@ -39,4 +39,6 @@ clean:
 
 .PHONY: regenerate-tests
 regenerate-tests:
-	./run-benchmarks --small-only --std-only --snapshot-update
+	./run-benchmarks --config configs/ci_small_repos.yaml --std-only --save-findings-to snapshots/ci_small_repos_baseline.json
+	jq . snapshots/ci_small_repos_baseline.json > snapshots/ci_small_repos_baseline.json.tmp
+	mv snapshots/ci_small_repos_baseline.json.tmp snapshots/ci_small_repos_baseline.json

@@ -1,4 +1,4 @@
-(* Parse a rule file, either in YAML or JSON (or even JSONNET) format
+(* Parse a rule file, either in YAML or JSON (or even Jsonnet) format
  * depending on the filename extension.
  *
  * The parser accepts invalid rules, skips them, and returns them in
@@ -9,7 +9,7 @@
  * (e.g., Rule.InvalidYaml).
  *)
 val parse_and_filter_invalid_rules :
-  Common.filename -> Rule.rules * Rule.invalid_rule_error list
+  Fpath.t -> Rule.rules * Rule.invalid_rule_error list
 
 (* ex: foo.yaml, foo.yml, but not foo.test.yaml.
  *
@@ -21,10 +21,15 @@ val parse_and_filter_invalid_rules :
  * the valid rule files when using --config <DIR>,
  * and also in Test_engine.ml.
  *)
-val is_valid_rule_filename : Common.filename -> bool
+val is_valid_rule_filename : Fpath.t -> bool
 
-(* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml
+(* This is used for parsing -e/-f extended patterns in Run_semgrep.ml
  * and now also in osemgrep Config_resolver.ml.
+ * This can raise Failure for spacegrep parsing errors, and
+ * Rule.InvalidRegexp for regexp errors.
+ * For lang.t, we now parse the pattern lazily, so if you want
+ * to get the possible Rule.InvalidPattern exn, you need to
+ * force evaluate XPattern.Sem (lpat_lazy, _).
  *)
 val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
 
@@ -33,7 +38,7 @@ val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t
  * This function may raise (Rule.Err ....) or Assert_failure (when
  * there are invalid rules).
  *)
-val parse : Common.filename -> Rule.rules
+val parse : Fpath.t -> Rule.rules
 
 (* Internals, used by osemgrep to setup a ojsonnet import hook.
  * The filename parameter is just used in case of missing 'rules:'
@@ -41,6 +46,6 @@ val parse : Common.filename -> Rule.rules
  *)
 val parse_generic_ast :
   ?error_recovery:bool ->
-  Common.filename ->
+  Fpath.t ->
   AST_generic.program ->
   Rule.rules * Rule.invalid_rule_error list

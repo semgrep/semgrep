@@ -14,7 +14,6 @@
  *)
 open Common
 open AST_python
-module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -95,9 +94,9 @@ let option = Option.map
 let list = Common.map
 let string = id
 let bool = id
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
-let fb = Parse_info.unsafe_fake_bracket
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
@@ -121,10 +120,10 @@ let module_name env (v1, dots) =
   | Some toks ->
       let count =
         toks
-        |> Common.map Parse_info.str_of_info
+        |> Common.map Tok.content_of_tok
         |> String.concat "" |> String.length
       in
-      let tok = List.hd toks in
+      let tok = Common.hd_exn "unexpected empty list" toks in
       let elems = v1 |> Common.map fst in
       let prefixes =
         match count with
@@ -309,6 +308,10 @@ let rec expr env (x : expr) =
       let l, v1, _ = bracket (expr env) v1 in
       G.OtherExpr (("Repr", l), [ G.E v1 ]) |> G.e
   | NamedExpr (v, t, e) -> G.Assign (expr env v, t, expr env e) |> G.e
+  | ParenExpr (l, e, r) ->
+      let e = expr env e in
+      H.set_e_range l r e;
+      e
 
 and argument env = function
   | Arg e ->
@@ -328,7 +331,7 @@ and argument env = function
       let e = expr env e in
       G.Arg
         (G.Comprehension
-           (G.List, PI.unsafe_fake_bracket (e, list (for_if env) xs))
+           (G.List, Tok.unsafe_fake_bracket (e, list (for_if env) xs))
         |> G.e)
 
 and for_if env = function
@@ -443,7 +446,7 @@ and param_pattern env = function
   | PatternName n -> G.PatId (name env n, G.empty_id_info ())
   | PatternTuple t ->
       let t = list (param_pattern env) t in
-      G.PatTuple (PI.unsafe_fake_bracket t)
+      G.PatTuple (Tok.unsafe_fake_bracket t)
 
 and parameters env xs : G.parameter list =
   xs
@@ -458,7 +461,7 @@ and parameters env xs : G.parameter list =
            G.Param { (G.param_of_id n) with G.ptype = topt }
        | ParamPattern (PatternTuple pat, _) ->
            let pat = list (param_pattern env) pat in
-           G.ParamPattern (G.PatTuple (PI.unsafe_fake_bracket pat))
+           G.ParamPattern (G.PatTuple (Tok.unsafe_fake_bracket pat))
        | ParamStar (t, (n, topt)) ->
            let n = name env n in
            let topt = option (type_ env) topt in
@@ -716,7 +719,7 @@ and stmt_aux env x =
           [
             G.exprstmt
               (G.Assign
-                 ( G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e,
+                 ( G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e,
                    v2,
                    v3 )
               |> G.e);
@@ -876,7 +879,7 @@ and excepthandler env = function
                 G.CatchParam
                   (G.param_of_type
                      (H.expr_to_type
-                        (G.Container (G.Tuple, PI.unsafe_fake_bracket [ e ])
+                        (G.Container (G.Tuple, Tok.unsafe_fake_bracket [ e ])
                         |> G.e))))
         | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
@@ -891,7 +894,7 @@ and decorator env (t, v1, v2) =
   let args =
     match v2 with
     | Some (t1, x, t2) -> (t1, x, t2)
-    | None -> PI.unsafe_fake_bracket []
+    | None -> Tok.unsafe_fake_bracket []
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, args)
@@ -923,6 +926,9 @@ let any x =
   | Stmts v1 ->
       let v1 = list_stmt env v1 in
       G.Ss v1
+  | Decorator v1 ->
+      let v1 = decorator env v1 in
+      G.At v1
   | Program v1 ->
       let v1 = list_stmt env v1 in
       G.Pr v1

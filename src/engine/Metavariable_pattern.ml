@@ -30,7 +30,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
   match xlang with
-  | Xlang.L (Lang.Php, _) -> "<?php " ^ content
+  | Xlang.L (Lang.Php, _)
+    when not (content =~ {|[ \t\n]*<\?\(php\|=\)?[ \t\n]+|}) ->
+      (* THINK:
+         * - Shouldn't the parser just handle the absence of `<?php` ?
+         * - Isn't the `?>` closing needed ?
+      *)
+      "<?php " ^ content
   | __else__ -> content
 
 (* This function adds mvars to a range, but only the mvars which are not already
@@ -73,7 +79,9 @@ let filter_new_mvars_by_range range mvars =
    tokens with the correct information.
 *)
 let get_persistent_bindings revert_loc r nested_matches =
-  let reverting_visitor = Map_AST.mk_fix_token_locations revert_loc in
+  let reverting_visitor =
+    AST_generic_helpers.fix_token_locations_any revert_loc
+  in
   nested_matches
   |> Common.map (fun nested_match ->
          (* The bindings in this match were produced from a target whose location
@@ -81,9 +89,9 @@ let get_persistent_bindings revert_loc r nested_matches =
          *)
          let readjusted_mvars =
            nested_match.RM.mvars
-           |> List.filter_map (fun (mvar, mval) ->
+           |> Common.map_filter (fun (mvar, mval) ->
                   match
-                    mval |> MV.mvalue_to_any |> reverting_visitor.Map_AST.vany
+                    mval |> MV.mvalue_to_any |> reverting_visitor
                     |> MV.mvalue_of_any
                   with
                   | None ->
@@ -99,7 +107,7 @@ let get_persistent_bindings revert_loc r nested_matches =
 (* Entry point *)
 (*****************************************************************************)
 let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
-    opt_xlang formula =
+    (opt_xlang : Xlang.t option) formula =
   let bindings = r.RM.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
@@ -132,41 +140,48 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
           (* We don't want having to re-parse `content', but then we
            * need to fix the token locations in `mast`. *)
           let mast_start_loc =
-            mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
-            |> PI.unsafe_token_location_of_info
+            mval |> MV.ii_of_mval |> AST_generic_helpers.range_of_tokens |> fst
+            |> Tok.unsafe_loc_of_tok
           in
           let fix_loc file loc =
             (* The column is only perturbed if this loc is on the first line of
              * the original metavariable match *)
             let column =
-              if loc.PI.line =|= mast_start_loc.PI.line then
-                loc.column - mast_start_loc.column
-              else loc.column
+              if loc.Tok.pos.line =|= mast_start_loc.Tok.pos.line then
+                loc.pos.column - mast_start_loc.pos.column
+              else loc.pos.column
             in
             {
               loc with
-              PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
-              line = loc.line - mast_start_loc.line + 1;
-              column;
-              file;
+              pos =
+                {
+                  charpos = loc.pos.charpos - mast_start_loc.pos.charpos;
+                  line = loc.pos.line - mast_start_loc.pos.line + 1;
+                  column;
+                  file;
+                };
             }
           in
           (* We need to undo the changes made to the file location,
              for when we preserve this binding and re-localize it to
              the original file.
           *)
-          let revert_loc loc =
+          let revert_loc (loc : Tok.location) =
             (* See fix_loc *)
             let column =
-              if loc.PI.line =|= 1 then loc.column + mast_start_loc.column
-              else loc.column
+              if loc.pos.line =|= 1 then
+                loc.pos.column + mast_start_loc.pos.column
+              else loc.pos.column
             in
             {
               loc with
-              PI.charpos = loc.PI.charpos + mast_start_loc.charpos;
-              line = loc.line + mast_start_loc.line - 1;
-              column;
-              file = mval_file;
+              pos =
+                {
+                  charpos = loc.Tok.pos.charpos + mast_start_loc.pos.charpos;
+                  line = loc.pos.line + mast_start_loc.pos.line - 1;
+                  column;
+                  file = mval_file;
+                };
             }
           in
           match opt_xlang with
@@ -191,14 +206,14 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   let content = Range.content_at_range mval_file mval_range in
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
-                      let fixing_visitor =
-                        Map_AST.mk_fix_token_locations (fix_loc file)
+                      let mast' =
+                        AST_generic_helpers.fix_token_locations_program
+                          (fix_loc file) mast
                       in
-                      let mast' = fixing_visitor.Map_AST.vprogram mast in
                       let xtarget =
                         {
                           env.xtarget with
-                          file;
+                          file = Fpath.v file;
                           lazy_ast_and_errors = lazy (mast', []);
                           lazy_content = lazy content;
                         }
@@ -230,7 +245,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 | _, MV.Xmls [ XmlText (content, _tok) ]
                 | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
                     Some content
-                | Xlang.LGeneric, _else_ ->
+                | (LSpacegrep | LAliengrep), _ ->
                     Some (Range.content_at_range mval_file mval_range)
                 | _else_ -> None
               in
@@ -254,11 +269,11 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* We re-parse the matched text as `xlang`. *)
                   Xpattern_matcher.with_tmp_file ~str:content
                     ~ext:"mvar-pattern" (fun file ->
-                      let lazy_ast_and_errors =
-                        lazy
-                          (match xlang with
-                          | L (lang, _) ->
-                              let { Parse_target.ast; skipped_tokens; _ } =
+                      let ast_and_errors_res =
+                        match xlang with
+                        | L (lang, _) -> (
+                            try
+                              let { Parsing_result2.ast; skipped_tokens; _ } =
                                 Parse_target.parse_and_resolve_name lang file
                               in
                               (* Reposition the errors to the original source
@@ -274,23 +289,42 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                   (spf
                                      "rule %s: metavariable-pattern: failed to \
                                       fully parse the content of %s"
-                                     (fst env.rule.Rule.id) mvar);
-                              (ast, skipped_tokens)
-                          | LRegex
-                          | LGeneric ->
-                              failwith
-                                "requesting generic AST for LRegex|LGeneric")
+                                     (fst env.rule.Rule.id :> string)
+                                     mvar);
+                              Ok (lazy (ast, skipped_tokens))
+                            with
+                            | Parsing_error.Syntax_error tk ->
+                                Error (Tok.content_of_tok tk))
+                        | LRegex
+                        | LSpacegrep
+                        | LAliengrep ->
+                            Ok
+                              (lazy
+                                (failwith
+                                   "requesting generic AST for \
+                                    LRegex|LSpacegrep|LAliengrep"))
                       in
-                      let xtarget =
-                        {
-                          Xtarget.file;
-                          xlang;
-                          lazy_ast_and_errors;
-                          lazy_content = lazy content;
-                        }
-                      in
-                      (* Persist the bindings from inside the `metavariable-pattern`
-                         matches
-                      *)
-                      get_nested_formula_matches { env with xtarget } formula r'
-                      |> get_persistent_bindings revert_loc r))))
+                      match ast_and_errors_res with
+                      | Error msg ->
+                          error env
+                            (Common.spf
+                               "rule %s: metavariable-pattern failed when \
+                                parsing %s's content as %s: %s"
+                               (fst env.rule.Rule.id :> string)
+                               mvar (Xlang.to_string xlang) msg);
+                          []
+                      | Ok lazy_ast_and_errors ->
+                          let xtarget =
+                            {
+                              Xtarget.file = Fpath.v file;
+                              xlang;
+                              lazy_ast_and_errors;
+                              lazy_content = lazy content;
+                            }
+                          in
+                          (* Persist the bindings from inside the `metavariable-pattern`
+                             matches
+                          *)
+                          get_nested_formula_matches { env with xtarget }
+                            formula r'
+                          |> get_persistent_bindings revert_loc r))))

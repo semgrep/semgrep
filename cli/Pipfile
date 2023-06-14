@@ -20,6 +20,7 @@ pypi-parker = "*"
 pytest-freezegun = "*"
 pytest-mock = "*"
 pytest-rerunfailures = "*"
+# for pytest --splits and --group
 pytest-split = "*"
 types-colorama = "~=0.4.0"
 types-freezegun = "*"

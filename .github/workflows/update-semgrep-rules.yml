@@ -68,7 +68,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
       # Recursively checkout all submodules
       # ensure that we're on the default branch (develop)

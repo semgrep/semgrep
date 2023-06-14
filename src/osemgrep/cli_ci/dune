@@ -6,6 +6,7 @@
   (libraries
     cmdliner
     commons
+    emile
 
     osemgrep_core
     osemgrep_networking

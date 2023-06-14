@@ -15,7 +15,6 @@
  *)
 
 module Flag = Flag_parsing
-module PI = Parse_info
 module Ast = Ast_js
 module T = Parser_js
 module TH = Token_helpers_js
@@ -93,7 +92,7 @@ let rparens_of_if toks =
 (* alt: could have instead a better Ast_fuzzy type instead of putting
  * everything in the Tok category?
  *)
-let is_identifier horigin (info : Parse_info.t) =
+let is_identifier horigin (info : Tok.t) =
   match Hashtbl.find_opt horigin info with
   | Some (T.T_ID _) -> true
   | _ -> false
@@ -164,12 +163,12 @@ let fix_tokens toks =
          | T.T_LCURLY info when Hashtbl.mem retag_lbrace info ->
              T.T_LCURLY_SEMGREP info
          | T.T_IMPORT info when Hashtbl.mem retag_keywords info ->
-             T.T_ID (PI.str_of_info info, info)
+             T.T_ID (Tok.content_of_tok info, info)
          | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if !Flag.error_recovery then toks
-      else raise (Parse_info.Lexical_error (msg, info))
+      else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
 (* ASI (Automatic Semicolon Insertion) part 1 *)
@@ -192,7 +191,7 @@ let fix_tokens_ASI xs =
   let push_sc_before_x x =
     let info = TH.info_of_tok x in
     let fake = Ast.fakeInfoAttach info in
-    logger#debug "ASI: insertion fake ';' before %s" (PI.string_of_info info);
+    logger#debug "ASI: insertion fake ';' before %s" (Tok.stringpos_of_tok info);
     Common.push (T.T_VIRTUAL_SEMICOLON fake) res
   in
 

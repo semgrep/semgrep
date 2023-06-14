@@ -13,21 +13,21 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Report
 module T = Taint
 module Lval_env = Taint_lval_env
-module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
 module Out = Output_from_core_t
+module Labels = Set.Make (String)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -105,7 +105,13 @@ module DataflowY = Dataflow_core.Make (struct
 end)
 
 let convert_rule_id (id, _tok) =
-  { PM.id; message = ""; pattern_string = id; fix = None; languages = [] }
+  {
+    PM.id;
+    message = "";
+    pattern_string = (id :> string);
+    fix = None;
+    languages = [];
+  }
 
 let option_bind_list opt f =
   match opt with
@@ -132,6 +138,90 @@ type propagator_match = {
 }
 (** Taint will flow from `from` to `to_` through the axiliary variable `id`. *)
 
+(* This Formula_tbl structure is used to create a "formula cache", which will
+   permit the sharing of matches resulting from common formulas that occur as
+   sources, sinks, sanitizers, or propagators.
+
+   In particular, because of hardcoded propagators, we expect to see lots of
+   sharing from Semgrep Pro Engine.
+*)
+module Formula_tbl = struct
+  include Hashtbl.Make (struct
+    type t = Rule.formula
+
+    let equal = AST_utils.with_structural_equal Rule.equal_formula
+    let hash = Rule.hash_formula
+  end)
+
+  let cached_find_opt formula_cache formula compute_matches_fn =
+    match find_opt formula_cache formula with
+    | None ->
+        (* it should not actually be possible for a formula to
+           not be in the formula table
+
+           just don't cache it I guess
+        *)
+        logger#error
+          "Tried to compute matches for a taint formula not in the cache \
+           (impossible?)";
+        compute_matches_fn ()
+    | Some (None, count) ->
+        let ranges, expls = compute_matches_fn () in
+        if count <= 1 then
+          (* if there's only 1 more use left, there's no point
+             in caching it
+          *)
+          (ranges, expls)
+        else (
+          (* otherwise, this is the first time we've seen this
+             formula, and we should cache it
+          *)
+          replace formula_cache formula (Some (ranges, expls), count - 1);
+          (ranges, expls))
+    | Some (Some (ranges, expls), count) ->
+        if count <= 1 then remove formula_cache formula;
+        (ranges, expls)
+end
+
+type formula_cache = ((RM.t list * ME.t list) option * int) Formula_tbl.t
+
+(* This function is for creating a formula cache which only caches formula that
+   it knows will be shared, at least once, among the formula in a bunch of
+   taint rules.
+
+   This is because it's obviously not useful to cache a formula's matches if
+   that formula never comes up again. This cache stores an option, with keys
+   that are only formula that are guaranteed to appear more than once in the
+   collection.
+*)
+let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
+  let count_tbl = Formula_tbl.create 128 in
+  let flat_formulas =
+    rules
+    |> List.concat_map (fun rule ->
+           let (`Taint (spec : R.taint_spec)) = rule.R.mode in
+           Common.map (fun source -> source.R.source_formula) (snd spec.sources)
+           @ Common.map
+               (fun sanitizer -> sanitizer.R.sanitizer_formula)
+               spec.sanitizers
+           @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
+           @ Common.map
+               (fun propagator -> propagator.R.propagator_formula)
+               spec.propagators)
+  in
+  flat_formulas
+  |> List.iter (fun formula ->
+         match Formula_tbl.find_opt count_tbl formula with
+         | None -> Formula_tbl.add count_tbl formula (None, 1)
+         | Some (_, x) -> Formula_tbl.replace count_tbl formula (None, 1 + x));
+  (* We return the table with pairs of (None, count) itself.
+     When we try to cache a find, we will first check whether decreasing this
+     counter results in 0. Then, there are no more uses, and the result is no
+     longer worth caching.
+     This way we don't keep around entries when we don't need to.
+  *)
+  count_tbl
+
 (*****************************************************************************)
 (* Finding matches for taint specs *)
 (*****************************************************************************)
@@ -148,24 +238,29 @@ let concat_map_with_expls f xs =
   in
   (res, List.flatten !all_expls)
 
-let find_range_w_metas (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (specs : (R.formula * 'a) list) :
+let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) (rule : Rule.t) (specs : (R.formula * 'a) list) :
     (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
   |> concat_map_with_expls (fun (pf, x) ->
-         let ranges, expls = range_w_metas_of_formula xconf xtarget rule pf in
+         let ranges, expls =
+           Formula_tbl.cached_find_opt formula_cache pf (fun () ->
+               range_w_metas_of_formula xconf xtarget rule pf)
+         in
          (ranges |> Common.map (fun rwm -> (rwm, x)), expls))
 
-let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (specs : R.taint_sanitizer list) :
+let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) (rule : Rule.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
          let ranges, exps =
-           range_w_metas_of_formula xconf xtarget rule
-             sanitizer.sanitizer_formula
+           Formula_tbl.cached_find_opt formula_cache sanitizer.sanitizer_formula
+             (fun () ->
+               range_w_metas_of_formula xconf xtarget rule
+                 sanitizer.sanitizer_formula)
          in
          ( ranges
            |> Common.map (fun x ->
@@ -173,14 +268,17 @@ let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
            exps ))
 
 (* Finds all matches of `pattern-propagators`. *)
-let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (propagators_spec : R.taint_propagator list) =
+let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) (rule : Rule.t)
+    (propagators_spec : R.taint_propagator list) =
   propagators_spec
   |> List.concat_map (fun (p : Rule.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars, _expsTODO =
-           range_w_metas_of_formula xconf xtarget rule p.propagator_formula
+           Formula_tbl.cached_find_opt formula_cache p.propagator_formula
+             (fun () ->
+               range_w_metas_of_formula xconf xtarget rule p.propagator_formula)
          in
          (* Now, for each match of the propagator pattern, we try to construct
           * a `propagator_match`. We just need to look up what code is captured
@@ -188,7 +286,7 @@ let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
           * location info for that code (i.e., we have real tokens rather than
           * fake ones). *)
          ranges_w_metavars
-         |> List.filter_map (fun rwm ->
+         |> Common.map_filter (fun rwm ->
                 (* The piece of code captured by the `from` metavariable.  *)
                 let* _mvar_from, mval_from =
                   List.find_opt
@@ -203,20 +301,18 @@ let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
                 in
                 (* TODO: log a warning when we cannot obtain a taint propagator due to
                  * lacking range info. *)
-                match
-                  Parse_info.
-                    ( token_location_of_info tok_pfrom,
-                      token_location_of_info tok_pto )
-                with
+                match (Tok.loc_of_tok tok_pfrom, Tok.loc_of_tok tok_pto) with
                 | Error _, _
                 | _, Error _ ->
                     None
                 | Ok loc_pfrom, Ok loc_pto ->
                     let* mval_from_start_loc, mval_from_end_loc =
-                      Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_from)
+                      AST_generic_helpers.range_of_any_opt
+                        (MV.mvalue_to_any mval_from)
                     in
                     let* mval_to_start_loc, mval_to_end_loc =
-                      Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_to)
+                      AST_generic_helpers.range_of_any_opt
+                        (MV.mvalue_to_any mval_to)
                     in
                     let from =
                       Range.range_of_token_locations mval_from_start_loc
@@ -228,8 +324,9 @@ let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
                     in
                     let id =
                       Common.spf "propagator:%d:%d:%d:%d:%d:%d"
-                        loc_pfrom.charpos loc_pto.charpos from.Range.start
-                        from.Range.end_ to_.Range.start to_.Range.end_
+                        loc_pfrom.pos.charpos loc_pto.pos.charpos
+                        from.Range.start from.Range.end_ to_.Range.start
+                        to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))
 
@@ -240,7 +337,7 @@ let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
 let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
-  match Visitor_AST.range_of_any_opt any with
+  match AST_generic_helpers.range_of_any_opt any with
   | None ->
       (* IL.any_of_orig will return `G.Anys []` for `NoOrig`, and there is
        * no point in issuing this warning in that case.
@@ -281,7 +378,7 @@ let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List.filter_map (fun (rwm, ts) ->
+  |> Common.map_filter (fun (rwm, ts) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -315,7 +412,7 @@ let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List.filter_map (fun (rwm, spec) ->
+  |> Common.map_filter (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -327,7 +424,7 @@ let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List.filter_map (fun (rwm, spec) ->
+  |> Common.map_filter (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -341,33 +438,35 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Main entry points *)
 (*****************************************************************************)
 
-let taint_config_of_rule xconf file ast_and_errors
+let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+  let file = Fpath.v file in
+  let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
     {
       Xtarget.file;
-      xlang = rule.languages;
-      lazy_content = lazy (Common.read_file file);
+      xlang = rule.languages.target_analyzer;
+      lazy_content = lazy (File.read_file file);
       lazy_ast_and_errors;
     }
   in
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
-    find_range_w_metas xconf xtarget rule
+    find_range_w_metas formula_cache xconf xtarget rule
       (spec.sources |> snd
       |> Common.map (fun (src : Rule.taint_source) -> (src.source_formula, src))
       )
   and (propagators_ranges : propagator_match list) =
-    find_propagators_matches xconf xtarget rule spec.propagators
+    find_propagators_matches formula_cache xconf xtarget rule spec.propagators
   and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
-    find_range_w_metas xconf xtarget rule
+    find_range_w_metas formula_cache xconf xtarget rule
       (spec.sinks |> snd
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
       )
   in
   let sanitizers_ranges, _exps_sanitizersTODO =
-    find_sanitizers_matches xconf xtarget rule spec.sanitizers
+    find_sanitizers_matches formula_cache xconf xtarget rule spec.sanitizers
   in
   let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
@@ -376,7 +475,7 @@ let taint_config_of_rule xconf file ast_and_errors
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
     sanitizers_ranges
-    |> List.filter_map (fun (not_conflicting, range, spec) ->
+    |> Common.map_filter (fun (not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if
@@ -417,7 +516,7 @@ let taint_config_of_rule xconf file ast_and_errors
   in
   let config = xconf.config in
   ( {
-      Dataflow_tainting.filepath = file;
+      Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
@@ -437,54 +536,85 @@ let taint_config_of_rule xconf file ast_and_errors
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
+      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
       PM.Toks toks
   | Taint.Call (expr, toks, ct) ->
       PM.Call
         {
-          call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
+          call_toks =
+            AST_generic_helpers.ii_of_any (G.E expr)
+            |> List.filter Tok.is_origintok;
           intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }
 
-let taint_trace_of_src_to_sink source tokens sink =
-  {
-    Pattern_match.source = convert_taint_call_trace source;
-    tokens;
-    sink = convert_taint_call_trace sink;
-  }
-
 let pm_of_finding finding =
   match finding with
-  | T.SrcToSink { source; tokens; sink; merged_env } ->
-      (* We always report the finding on the sink that gets tainted, the call trace
-       * must be used to explain how exactly the taint gets there. At some point
-       * we experimented with reporting the match on the `sink`'s function call that
-       * leads to the actual sink. E.g.:
-       *
-       *     def f(x):
-       *       sink(x)
-       *
-       *     def g():
-       *       f(source)
-       *
-       * Here we tried reporting the match on `f(source)` as "the line to blame"
-       * for the injection bug... but most users seem to be confused about this. They
-       * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
-       *)
-      let taint_trace =
-        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
-      in
-      let sink_pm, _ = T.pm_of_trace sink in
-      Some { sink_pm with env = merged_env; taint_trace }
-  | T.SrcToReturn _
-  (* TODO: We might want to report functions that let input taint
-   * go into a sink (?) *)
-  | T.ArgToSink _
-  | T.ArgToReturn _ ->
+  | T.ToArg _
+  | T.ToReturn _ ->
       None
+  | ToSink
+      {
+        taints_with_precondition = taints, requires;
+        sink = { pm = sink_pm; _ };
+        merged_env;
+      } ->
+      (* TODO: We might want to report functions that let input taint
+         * go into a sink (?) *)
+      if
+        not
+          (T.taints_satisfy_requires
+             (Common.map (fun t -> t.T.taint) taints)
+             requires)
+      then None
+      else
+        (* these arg taints are not useful to us, because we are within
+           the function, not at the call-site. so we don't know what
+           the argument taints are.
+        *)
+        let source_taints, _args_taints =
+          taints
+          |> Common.partition_either
+               (fun { T.taint = { orig; tokens }; sink_trace } ->
+                 match orig with
+                 | Src src -> Left (src, tokens, sink_trace)
+                 | Arg arg -> Right arg)
+        in
+        (* The old behavior used to be that, for sinks with a `requires`, we would
+           generate a finding per every single taint source going in. Later deduplication
+           would deal with it.
+           We will instead choose to consolidate all sources into a single finding. We can
+           do some postprocessing to report only relevant sources later on, but for now we
+           will lazily (again) defer that computation to later.
+        *)
+        let traces =
+          source_taints
+          |> Common.map (fun (src, tokens, sink_trace) ->
+                 {
+                   PM.source_trace = convert_taint_call_trace src.T.call_trace;
+                   tokens;
+                   sink_trace = convert_taint_call_trace sink_trace;
+                 })
+        in
+        (* We always report the finding on the sink that gets tainted, the call trace
+            * must be used to explain how exactly the taint gets there. At some point
+            * we experimented with reporting the match on the `sink`'s function call that
+            * leads to the actual sink. E.g.:
+            *
+            *     def f(x):
+            *       sink(x)
+            *
+            *     def g():
+            *       f(source)
+            *
+            * Here we tried reporting the match on `f(source)` as "the line to blame"
+            * for the injection bug... but most users seem to be confused about this. They
+            * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+        *)
+        let taint_trace = Some (lazy traces) in
+        Some { sink_pm with env = merged_env; taint_trace }
 
-let check_fundef lang options taint_config opt_ent fdef =
+let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -492,6 +622,7 @@ let check_fundef lang options taint_config opt_ent fdef =
   in
   let add_to_env env id ii pdefault =
     let var = AST_to_IL.var_of_id_info id ii in
+    let var_type = Typing.resolved_type_of_id_info lang var.id_info in
     let source_pms =
       taint_config.D.is_source (G.Tk (snd id))
       @
@@ -502,7 +633,14 @@ let check_fundef lang options taint_config opt_ent fdef =
     let taints =
       source_pms
       |> Common.map (fun (x : _ D.tmatch) -> (x.spec_pm, x.spec))
-      |> T.taints_of_pms
+      (* These sources come from the parameters to a function,
+         which are not within the normal control flow of a code.
+         We can safely say there's no incoming taints to these sources.
+      *)
+      |> T.taints_of_pms ~incoming:T.Taint_set.empty
+    in
+    let taints =
+      Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
     in
     Lval_env.add env (IL_helpers.lval_of_var var) taints
   in
@@ -548,27 +686,30 @@ let check_fundef lang options taint_config opt_ent fdef =
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _
+        | G.ParamReceiver _
         | G.OtherParam (_, _) ->
             env)
       Lval_env.empty
-      (Parse_info.unbracket fdef.G.fparams)
+      (Tok.unbracket fdef.G.fparams)
   in
-  let _, xs = AST_to_IL.function_definition lang fdef in
+  let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
   let mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name options taint_config flow
+    Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
+      java_props_cache flow
   in
   (flow, mapping)
 
-let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) =
+let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   let matches = ref [] in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let lang =
     match xlang with
     | L (lang, _) -> lang
-    | LGeneric
+    | LSpacegrep
+    | LAliengrep
     | LRegex ->
         failwith "taint-mode and generic/regex matching are incompatible"
   in
@@ -584,7 +725,8 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule xconf file (ast, []) rule handle_findings
+    taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
+      handle_findings
   in
 
   (match !hook_setup_hook_function_taint_signature with
@@ -592,10 +734,24 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   | Some setup_hook_function_taint_signature ->
       setup_hook_function_taint_signature xconf rule taint_config xtarget);
 
+  (* FIXME: This is no longer needed, now we can just check the type 'n'. *)
+  let ctx = ref AST_to_IL.empty_ctx in
+  Visit_function_defs.visit
+    (fun opt_ent _ ->
+      match opt_ent with
+      | Some { name = EN (Id (n, _)); _ } ->
+          ctx := AST_to_IL.add_entity_name !ctx n
+      | __else__ -> ())
+    ast;
+
+  let java_props_cache = Dataflow_tainting.mk_empty_java_props_cache () in
+
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      check_fundef lang xconf.config taint_config opt_ent fdef |> ignore)
+      check_fundef lang xconf.config taint_config opt_ent !ctx java_props_cache
+        fdef
+      |> ignore)
     ast;
 
   (* Check the top-level statements.
@@ -606,7 +762,9 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint xconf.config taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint lang xconf.config taint_config
+          java_props_cache flow
+        |> ignore)
   in
   let matches =
     !matches
@@ -616,7 +774,9 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
     |> Common.before_return (fun v ->
            v
            |> List.iter (fun (m : Pattern_match.t) ->
-                  let str = Common.spf "with rule %s" m.rule_id.id in
+                  let str =
+                    Common.spf "with rule %s" (m.rule_id.id :> string)
+                  in
                   match_hook str m))
     |> Common.map (fun m ->
            { m with PM.rule_id = convert_rule_id rule.Rule.id })
@@ -648,6 +808,15 @@ let check_rules ~match_hook
        RP.rule_profiling RP.match_result) (rules : R.taint_rule list)
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) :
     RP.rule_profiling RP.match_result list =
+  (* We create a "formula cache" here, before dealing with individual rules, to
+     permit sharing of matches for sources, sanitizers, propagators, and sinks
+     between rules.
+
+     In particular, this expects to see big gains due to shared propagators,
+     in Semgrep Pro. There may be some benefit in OSS, but it's low-probability.
+  *)
+  let per_file_formula_cache = mk_specialized_formula_cache rules in
+
   rules
   |> Common.map (fun rule ->
          let xconf =
@@ -659,4 +828,5 @@ let check_rules ~match_hook
          *)
          per_rule_boilerplate_fn
            (rule :> R.rule)
-           (fun () -> check_rule rule match_hook xconf xtarget))
+           (fun () ->
+             check_rule per_file_formula_cache rule match_hook xconf xtarget))

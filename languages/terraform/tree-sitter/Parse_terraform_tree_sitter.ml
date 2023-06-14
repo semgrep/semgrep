@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module CST = Tree_sitter_hcl.CST
 module H = Parse_tree_sitter_helpers
 open AST_terraform
@@ -39,7 +38,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* for list/dict comprehensions *)
 let pattern_of_ids ids =
@@ -128,7 +127,7 @@ let map_template_literal (env : env) (xs : CST.template_literal) :
       let str =
         concat_chunks x_str x_pos.Loc.end_.row x_pos.Loc.end_.column xs
       in
-      let tok = PI.rewrap_str str (token env x) in
+      let tok = Tok.rewrap_str str (token env x) in
       Some (str, tok)
 
 let map_identifier (env : env) (x : CST.identifier) : ident =
@@ -268,13 +267,13 @@ and map_expr_term (env : env) (x : CST.expr_term) : expr =
   match x with
   | `Choice_lit_value x -> (
       match x with
-      | `Lit_value x -> L (map_literal_value env x) |> G.e
+      | `Lit_value x -> G.L (map_literal_value env x) |> G.e
       | `Temp_expr x -> map_template_expr env x
       | `Coll_value x -> map_collection_value env x
       | `Var_expr tok ->
           (* identifier *)
           let id = map_identifier env tok in
-          N (H2.name_of_id id) |> G.e
+          G.N (H2.name_of_id id) |> G.e
       | `Func_call (v1, v2, v3, v4) ->
           let v1 = (* identifier *) map_identifier env v1 in
           let v2 = (* "(" *) token env v2 in
@@ -284,8 +283,8 @@ and map_expr_term (env : env) (x : CST.expr_term) : expr =
             | None -> []
           in
           let v4 = (* ")" *) token env v4 in
-          let n = N (H2.name_of_id v1) |> G.e in
-          Call (n, (v2, v3, v4)) |> G.e
+          let n = G.N (H2.name_of_id v1) |> G.e in
+          G.Call (n, (v2, v3, v4)) |> G.e
       | `For_expr x -> map_for_expr env x
       | `Oper x -> map_operation env x
       | `Expr_term_index (v1, v2) ->
@@ -305,12 +304,12 @@ and map_expr_term (env : env) (x : CST.expr_term) : expr =
           let v2 = map_expression env v2 in
           let _v3 = (* ")" *) token env v3 in
           v2)
-  | `Semg_ellips tok -> Ellipsis ((* "..." *) token env tok) |> G.e
+  | `Semg_ellips tok -> G.Ellipsis ((* "..." *) token env tok) |> G.e
   | `Deep_ellips (v1, v2, v3) ->
       let v1 = (* "<..." *) token env v1 in
       let v2 = map_expression env v2 in
       let v3 = (* "...>" *) token env v3 in
-      DeepEllipsis (v1, v2, v3) |> G.e
+      G.DeepEllipsis (v1, v2, v3) |> G.e
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
@@ -321,12 +320,12 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v3 = map_expression env v3 in
       let _v4 = (* ":" *) token env v4 in
       let v5 = map_expression env v5 in
-      Conditional (v1, v3, v5) |> G.e
+      G.Conditional (v1, v3, v5) |> G.e
 
 and map_for_cond (env : env) ((v1, v2) : CST.for_cond) : G.for_or_if_comp =
   let v1 = (* "if" *) token env v1 in
   let v2 = map_expression env v2 in
-  CompIf (v1, v2)
+  G.CompIf (v1, v2)
 
 and map_for_expr (env : env) (x : CST.for_expr) =
   match x with
@@ -432,7 +431,7 @@ and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
     | None -> []
   in
   let v3 = (* "}" *) token env v3 in
-  Record (v1, v2, v3) |> G.e
+  G.Record (v1, v2, v3) |> G.e
 
 and map_object_elem (env : env) (x : CST.object_elem) : G.field =
   match x with
@@ -535,7 +534,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
         | None -> []
       in
       let v4 = (* heredoc_identifier *) token env v4 in
-      let t1 = PI.combine_infos v1 [ v2 ] in
+      let t1 = Tok.combine_toks v1 [ v2 ] in
       G.interpolated (t1, v3, v4)
 
 and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =

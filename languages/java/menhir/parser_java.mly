@@ -39,13 +39,12 @@
 open Common
 open AST_generic (* for the arithmetic operator *)
 open Ast_java
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let empty_body = PI.unsafe_fake_bracket []
-let fake_dot = Parse_info.unsafe_fake_info "."
+let empty_body = Tok.unsafe_fake_bracket []
+let fake_dot = Tok.unsafe_fake_tok "."
 
 (* todo? use a Ast.special? *)
 let super_ident ii = ("super", ii)
@@ -162,8 +161,8 @@ let mk_stmt_or_stmts = function
 (*************************************************************************)
 
 (* classic *)
-%token <Parse_info.t> TUnknown
-%token <Parse_info.t> EOF
+%token <Tok.t> TUnknown
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The comment tokens *)
@@ -174,68 +173,68 @@ let mk_stmt_or_stmts = function
  * because ocamllex may generate them, or some intermediate phases may also
  * generate them (like some functions in parsing_hacks.ml).
  *)
-%token <Parse_info.t> TComment TCommentNewline TCommentSpace
+%token <Tok.t> TComment TCommentNewline TCommentSpace
 
 (*-----------------------------------------*)
 (* The normal tokens *)
 (*-----------------------------------------*)
 
 (* tokens with "values" *)
-%token <int option * Parse_info.t> TInt
-%token <float option * Parse_info.t> TFloat
-%token <string * Parse_info.t> TChar TString
+%token <int option * Tok.t> TInt
+%token <float option * Tok.t> TFloat
+%token <string * Tok.t> TChar TString
 
-%token <(string * Parse_info.t)> IDENTIFIER
-%token <(string * Parse_info.t)> PRIMITIVE_TYPE
+%token <(string * Tok.t)> IDENTIFIER
+%token <(string * Tok.t)> PRIMITIVE_TYPE
 
-%token <Parse_info.t> LP "("		(* ( *)
-%token <Parse_info.t> RP ")"		(* ) *)
-%token <Parse_info.t> LC "{"		(* { *)
-%token <Parse_info.t> RC "}"		(* } *)
-%token <Parse_info.t> LB "["		(* [ *)
-%token <Parse_info.t> RB "]"		(* ] *)
-%token <Parse_info.t> SM ";"		(* ; *)
-%token <Parse_info.t> CM ","		(* , *)
-%token <Parse_info.t> DOT "."		(* . *)
+%token <Tok.t> LP "("		(* ( *)
+%token <Tok.t> RP ")"		(* ) *)
+%token <Tok.t> LC "{"		(* { *)
+%token <Tok.t> RC "}"		(* } *)
+%token <Tok.t> LB "["		(* [ *)
+%token <Tok.t> RB "]"		(* ] *)
+%token <Tok.t> SM ";"		(* ; *)
+%token <Tok.t> CM ","		(* , *)
+%token <Tok.t> DOT "."		(* . *)
 
-%token <Parse_info.t> EQ "="		(* = *)
-%token <Parse_info.t> GT		(* > *)
-%token <Parse_info.t> LT		(* < *)
-%token <Parse_info.t> NOT		(* ! *)
-%token <Parse_info.t> COMPL		(* ~ *)
-%token <Parse_info.t> COND		(* ? *)
-%token <Parse_info.t> COLON ":"		(* : *)
-%token <Parse_info.t> EQ_EQ		(* == *)
-%token <Parse_info.t> LE		(* <= *)
-%token <Parse_info.t> GE		(* >= *)
-%token <Parse_info.t> NOT_EQ		(* != *)
-%token <Parse_info.t> AND_AND		(* && *)
-%token <Parse_info.t> OR_OR		(* || *)
-%token <Parse_info.t> INCR		(* ++ *)
-%token <Parse_info.t> DECR		(* -- *)
-%token <Parse_info.t> PLUS		(* + *)
-%token <Parse_info.t> MINUS		(* - *)
-%token <Parse_info.t> TIMES		(* * *)
-%token <Parse_info.t> DIV		(* / *)
-%token <Parse_info.t> AND		(* & *)
-%token <Parse_info.t> OR		(* | *)
-%token <Parse_info.t> XOR		(* ^ *)
-%token <Parse_info.t> MOD		(* % *)
-%token <Parse_info.t> LS		(* << *)
-%token <Parse_info.t> SRS		(* >> *)
-%token <Parse_info.t> URS		(* >>> *)
+%token <Tok.t> EQ "="		(* = *)
+%token <Tok.t> GT		(* > *)
+%token <Tok.t> LT		(* < *)
+%token <Tok.t> NOT		(* ! *)
+%token <Tok.t> COMPL		(* ~ *)
+%token <Tok.t> COND		(* ? *)
+%token <Tok.t> COLON ":"		(* : *)
+%token <Tok.t> EQ_EQ		(* == *)
+%token <Tok.t> LE		(* <= *)
+%token <Tok.t> GE		(* >= *)
+%token <Tok.t> NOT_EQ		(* != *)
+%token <Tok.t> AND_AND		(* && *)
+%token <Tok.t> OR_OR		(* || *)
+%token <Tok.t> INCR		(* ++ *)
+%token <Tok.t> DECR		(* -- *)
+%token <Tok.t> PLUS		(* + *)
+%token <Tok.t> MINUS		(* - *)
+%token <Tok.t> TIMES		(* * *)
+%token <Tok.t> DIV		(* / *)
+%token <Tok.t> AND		(* & *)
+%token <Tok.t> OR		(* | *)
+%token <Tok.t> XOR		(* ^ *)
+%token <Tok.t> MOD		(* % *)
+%token <Tok.t> LS		(* << *)
+%token <Tok.t> SRS		(* >> *)
+%token <Tok.t> URS		(* >>> *)
 
-%token <Parse_info.t> AT "@"		(* @ *)
-%token <Parse_info.t> DOTS "..."		(* ... *) LDots "<..." RDots "...>"
-%token <Parse_info.t> ARROW "->"		(* -> *)
-%token <Parse_info.t> COLONCOLON "::"		(* :: *)
+%token <Tok.t> AT "@"		(* @ *)
+%token <Tok.t> DOTS "..."		(* ... *) LDots "<..." RDots "...>"
+%token <Tok.t> ARROW "->"		(* -> *)
+%token <Tok.t> COLONCOLON "::"		(* :: *)
 
 
-%token <(AST_generic.operator * Parse_info.t)> OPERATOR_EQ
+%token <(AST_generic.operator * Tok.t)> OPERATOR_EQ
 	(* += -= *= /= &= |= ^= %= <<= >>= >>>= *)
 
 (* keywords tokens *)
-%token <Parse_info.t>
+%token <Tok.t>
  ABSTRACT BREAK CASE CATCH CLASS CONST CONTINUE
  DEFAULT DO ELSE EXTENDS FINAL FINALLY FOR GOTO
  IF IMPLEMENTS IMPORT INSTANCEOF INTERFACE
@@ -247,19 +246,24 @@ let mk_stmt_or_stmts = function
  ENUM
  TRUE FALSE NULL
  VAR
+ (* This terminal is currently not used but lexed so that we generate parse
+  * errors on code using records so that we switch to the tree-sitter
+  * parser for files using this construct.
+  *)
+ RECORD
 
 (*-----------------------------------------*)
 (* Extra tokens: *)
 (*-----------------------------------------*)
 
 (* to avoid some conflicts *)
-%token <Parse_info.t> LB_RB
+%token <Tok.t> LB_RB
 
 (* Those fresh tokens are created in parsing_hacks_java.ml *)
-%token <Parse_info.t> LT_GENERIC		(* < ... > *)
-%token <Parse_info.t> LP_LAMBDA		(* ( ... ) ->  *)
-%token <Parse_info.t> DEFAULT_COLON		(* default :  *)
-%token <Parse_info.t> LP_PARAM		(* ( ) { }  *)
+%token <Tok.t> LT_GENERIC		(* < ... > *)
+%token <Tok.t> LP_LAMBDA		(* ( ... ) ->  *)
+%token <Tok.t> DEFAULT_COLON		(* default :  *)
+%token <Tok.t> LP_PARAM		(* ( ) { }  *)
 
 (*************************************************************************)
 (* Priorities *)
@@ -826,7 +830,7 @@ variable_arity_parameter:
 
 (* no need %prec LOW_PRIORITY_RULE as in parser_js.mly ?*)
 lambda_body:
- | expression { Expr ($1, PI.unsafe_sc) }
+ | expression { Expr ($1, Tok.unsafe_sc) }
  | block      { $1 }
 
 (*----------------------------*)
@@ -874,7 +878,7 @@ statement:
  | while_statement  { $1 }
  | for_statement  { $1 }
  (* sgrep-ext: *)
- | "..." { Flag_parsing.sgrep_guard (Expr (Ellipsis $1, PI.sc $1)) }
+ | "..." { Flag_parsing.sgrep_guard (Expr (Ellipsis $1, Tok.sc $1)) }
 
 statement_without_trailing_substatement:
  | block  { $1 }
@@ -1030,7 +1034,7 @@ catch_formal_parameter:
   | "..." { CatchEllipsis $1 }
 
 (* javaext: ? *)
-catch_type: list_sep(type_, OR) { List.hd $1, List.tl $1 }
+catch_type: list_sep(type_, OR) { Common.hd_exn "unexpected empty list" $1, Common.tl_exn "unexpected empty list" $1 }
 
 (* javaext: ? *)
 resource_specification: "(" list_sep(resource, ";") ";"? ")"

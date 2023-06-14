@@ -1,3 +1,5 @@
+; This library should not depend on languages/ (parsing_languages/ can though).
+; This allows to generate a smaller engine.js file.
 (library
  (public_name semgrep.parsing)
  (name semgrep_parsing)
@@ -6,55 +8,24 @@
    yaml pcre
 
    commons
+   paths
    lib_parsing
-   pfff-lang_GENERIC-naming
-
-   ; has an xxx.ast, xxx.menhir, xxx.tree_sitter, xxx.generic
-   parser_go.menhir parser_go.tree_sitter parser_go.ast_generic
-   parser_ocaml.menhir parser_ocaml.tree_sitter parser_ocaml.ast_generic
-   parser_java.menhir parser_java.tree_sitter parser_java.ast_generic
-   parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
-   parser_c.menhir parser_c.tree_sitter parser_c.ast_generic
-   parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
-   parser_php.menhir parser_php.tree_sitter parser_php.ast_generic
-   ; dyp not menhir this time
-   parser_ruby.dyp parser_ruby.tree_sitter parser_ruby.ast_generic
-   ; no tree_sitter (use the one for typescript)
-   parser_javascript.menhir parser_javascript.ast_generic
-   ; no ast_generic (use the one for javascript)
-   parser_typescript.tree_sitter
-   ; no tree_sitter (use the one for typescript)
-   parser_json.menhir parser_json.ast_generic
-   ; no tree_sitter
-   parser_scala.recursive_descent parser_scala.ast_generic
-   ; no menhir
-   parser_bash.tree_sitter parser_bash.ast_generic
-   parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
-   parser_jsonnet.tree_sitter parser_jsonnet.ast_generic
-   parser_terraform.tree_sitter parser_terraform.ast_generic
-   ; directly to generic AST
-   parser_lisp.tree_sitter
-   parser_solidity.ast_generic
-   parser_csharp.ast_generic
-   parser_rust.ast_generic
-   parser_lua.ast_generic
-   parser_kotlin.ast_generic
-   parser_elixir.ast_generic
-   parser_swift.ast_generic
-   parser_julia.ast_generic
-   parser_r.ast_generic
-
-   ; no ast, directoy to generic AST
-   tree-sitter-to-generic
-
-   ojsonnet
-
    process_limits
    spacegrep
+
+   pfff-lang_GENERIC-naming
+
+   ; remaining language dependencies (the main one are in ../parsing_languages/)
+   ojsonnet
+   ;TODO: use lighter JSON parser at some point or move
+   ; also out of Parse_rule.ml to reduce even more JS size
+   parser_json.menhir parser_json.ast_generic
+   parser_typescript.tree_sitter
 
    semgrep_core
    semgrep_optimizing
    semgrep_reporting
+   semgrep.typing
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

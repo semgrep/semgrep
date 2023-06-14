@@ -10,10 +10,10 @@
  *   {"total":111,"bad":0,"percent_correct":100.0}
  *)
 val parsing_stats :
-  ?json:bool -> ?verbose:bool -> Lang.t -> Common.path list -> unit
+  ?json:bool -> ?verbose:bool -> Lang.t -> Common.filename list -> unit
 
 (* TODO: parsing regressions as in pfff (unfinished) *)
-val parsing_regressions : Lang.t -> Common.path list -> unit
+val parsing_regressions : Lang.t -> Common.filename list -> unit
 
 (* Similar to [parsing_stats], but uses only tree-sitter parsers,
  * and stop the parsing at the tree-sitter CST level (it does not
@@ -42,4 +42,4 @@ val diff_pfff_tree_sitter : Common.filename list -> unit
  * find YAML files containing rules and check if they
  * parse correctly using Parse_rule.parse.
  *)
-val test_parse_rules : Common.path list -> unit
+val test_parse_rules : Common.filename list -> unit

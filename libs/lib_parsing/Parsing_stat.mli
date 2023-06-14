@@ -32,4 +32,4 @@ val print_recurring_problematic_tokens : t list -> unit
 val aggregate_stats : t list -> int * int (* total * bad *)
 
 val print_regression_information :
-  ext:string -> Common2.path list -> Common2.score -> unit
+  ext:string -> Fpath.t list -> Common2.score -> unit

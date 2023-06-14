@@ -1,6 +1,5 @@
 import binascii
 import hashlib
-import itertools
 import textwrap
 from collections import Counter
 from datetime import datetime
@@ -28,6 +27,7 @@ from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.util import get_lines
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:
-    return value.rstrip() if value else None
+    return value.rstrip() if value is not None else None
 
 
 @total_ordering
@@ -100,6 +100,10 @@ class RuleMatch:
     match_based_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
+    code_hash: str = field(init=False, repr=False)
+    pattern_hash: str = field(init=False, repr=False)
+    start_line_hash: str = field(init=False, repr=False)
+    end_line_hash: str = field(init=False, repr=False)
 
     # TODO: return a out.RuleId
     @property
@@ -108,7 +112,7 @@ class RuleMatch:
 
     @property
     def path(self) -> Path:
-        return Path(self.match.location.path)
+        return Path(self.match.location.path.value)
 
     @property
     def start(self) -> core.Position:
@@ -117,6 +121,31 @@ class RuleMatch:
     @property
     def end(self) -> core.Position:
         return self.match.location.end
+
+    @property
+    def product(self) -> RuleProduct:
+        return RuleProduct.sca if "sca_info" in self.extra else RuleProduct.sast
+
+    @property
+    def title(self) -> str:
+        if self.product == RuleProduct.sca:
+            cve_id = self.metadata.get("sca-vuln-database-identifier")
+            sca_info = self.extra.get("sca_info")
+            package_name = (
+                sca_info.dependency_match.found_dependency.package if sca_info else None
+            )
+
+            if cve_id and package_name:
+                return f"{package_name} - {cve_id}"
+
+        return self.rule_id
+
+    def get_individual_line(self, line_number: int) -> str:
+        line_array = get_lines(self.path, line_number, line_number)
+        if len(line_array) == 0:
+            return ""
+        else:
+            return line_array[0]
 
     @lines.default
     def get_lines(self) -> List[str]:
@@ -135,26 +164,10 @@ class RuleMatch:
         """Return the line preceding the match, if any.
 
         This is meant for checking for the presence of a nosemgrep comment.
-        This implementation was derived from the 'lines' method below.
-        Refer to it for relevant comments.
-        IT feels like a lot of duplication. Feel free to improve.
         """
-        # see comments in '_get_lines' method
-        start_line = self.start.line - 2
-        end_line = start_line + 1
-        is_empty_file = self.end.line <= 0
-
-        if start_line < 0 or is_empty_file:
-            # no previous line
-            return ""
-
-        with self.path.open(buffering=1, errors="replace") as fd:
-            res = list(itertools.islice(fd, start_line, end_line))
-
-        if res:
-            return res[0]
-        else:
-            return ""
+        return (
+            self.get_individual_line(self.start.line - 1) if self.start.line > 1 else ""
+        )
 
     @syntactic_context.default
     def get_syntactic_context(self) -> str:
@@ -248,7 +261,7 @@ class RuleMatch:
         """
         A 32-character hash representation of ci_unique_key.
 
-        This value is sent to semgrep.dev and used as a unique key in the database.
+        This value is sent to semgrep.dev and used to track findings across branches
         """
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
@@ -290,6 +303,60 @@ class RuleMatch:
         match_id_str = str(match_id)
         return f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
 
+    @code_hash.default
+    def get_code_hash(self) -> str:
+        """
+        A 32-character hash representation of syntactic_context.
+
+        We started collecting this in addition to syntactic_id because the syntactic_id changes
+        whenever the file path or rule name or index changes, but all of those can be sent in
+        plaintext, so it does not make sense to include them inside a hash.
+
+        By sending the hash of ONLY the code contents, we can determine whether a finding
+        has moved files (path changed), or moved down a file (index changed) and handle that
+        logic in the app. This also gives us more flexibility for changing the definition of
+        a unique finding in the future, since we can analyze things like code, file, index all
+        independently of one another.
+        """
+        return hashlib.sha256(self.syntactic_context.encode()).hexdigest()
+
+    @pattern_hash.default
+    def get_pattern_hash(self) -> str:
+        """
+        A 32-character hash representation of syntactic_context.
+
+        We started collecting this in addition to match_based_id because the match_based_id will
+        change when the file path or rule name or index changes, but all of those can be passed
+        in plaintext, so it does not make sense to include them in the hash.
+
+        By sending the hash of ONLY the pattern contents, we can determine whether a finding
+        has only changed because e.g. the file path changed
+        """
+        match_formula_str = self.match_formula_string
+        if self.extra.get("metavars") is not None:
+            metavars = self.extra["metavars"]
+            for metavar in metavars:
+                match_formula_str = match_formula_str.replace(
+                    metavar, metavars[metavar]["abstract_content"]
+                )
+        return hashlib.sha256(match_formula_str.encode()).hexdigest()
+
+    @start_line_hash.default
+    def get_start_line_hash(self) -> str:
+        """
+        A 32-character hash of the first line of the code in the match
+        """
+        first_line = self.get_individual_line(self.start.line)
+        return hashlib.sha256(first_line.encode()).hexdigest()
+
+    @end_line_hash.default
+    def get_end_line_hash(self) -> str:
+        """
+        A 32-character hash of the last line of the code in the match
+        """
+        last_line = self.get_individual_line(self.end.line)
+        return hashlib.sha256(last_line.encode()).hexdigest()
+
     @property
     def uuid(self) -> UUID:
         """
@@ -313,7 +380,7 @@ class RuleMatch:
         # We need this to quickly get augment a Location with the contents of the location
         # Convenient to just have it as a separate function
         def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
-            with open(location.path, errors="replace") as fd:
+            with open(location.path.value, errors="replace") as fd:
                 content = util.read_range(
                     fd, location.start.offset, location.end.offset
                 )
@@ -346,6 +413,7 @@ class RuleMatch:
         if dataflow_trace:
             taint_source = None
             intermediate_vars = None
+            taint_sink = None
             if dataflow_trace.taint_source:
                 taint_source = translate_core_match_call_trace(
                     dataflow_trace.taint_source
@@ -357,7 +425,7 @@ class RuleMatch:
                     # TODO avoid repeated opens in the common case (i.e. not
                     # DeepSemgrep) where all of these locations are in the same
                     # file?
-                    with open(location.path, errors="replace") as fd:
+                    with open(location.path.value, errors="replace") as fd:
                         content = util.read_range(
                             fd, location.start.offset, location.end.offset
                         )
@@ -376,6 +444,26 @@ class RuleMatch:
             )
         return None
 
+    @property
+    def exposure_type(self) -> Optional[str]:
+        """
+        Mimic the exposure categories on semgrep.dev for supply chain.
+
+        "reachable": dependency is used in the codebase or is vulnerable even without usage
+        "unreachable": dependency is not used in the codebase
+        "undetermined": rule for dependency doesn't look for reachability
+        None: not a supply chain rule
+        """
+        if "sca_info" not in self.extra:
+            return None
+
+        if self.metadata.get("sca-kind") == "upgrade-only":
+            return "reachable"
+        elif self.metadata.get("sca-kind") == "legacy":
+            return "undetermined"
+        else:
+            return "reachable" if self.extra["sca_info"].reachable else "unreachable"
+
     def to_app_finding_format(self, commit_date: str) -> out.Finding:
         """
         commit_date here for legacy reasons.
@@ -393,9 +481,16 @@ class RuleMatch:
         else:
             app_severity = 0
 
+        hashes = out.FindingHashes(
+            start_line_hash=self.start_line_hash,
+            end_line_hash=self.end_line_hash,
+            code_hash=self.code_hash,
+            pattern_hash=self.pattern_hash,
+        )
+
         ret = out.Finding(
             check_id=out.RuleId(self.rule_id),
-            path=str(self.path),
+            path=out.Fpath(str(self.path)),
             line=self.start.line,
             column=self.start.col,
             end_line=self.end.line,
@@ -406,6 +501,7 @@ class RuleMatch:
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
             match_based_id=self.match_based_id,
+            hashes=hashes,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
             dataflow_trace=self.dataflow_trace,

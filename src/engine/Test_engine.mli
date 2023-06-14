@@ -4,8 +4,8 @@
 *)
 val make_tests :
   ?unit_testing:bool ->
-  ?get_xlang:(Common.filename -> Rule.rules -> Xlang.t) option ->
-  Common.filename list ->
+  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) option ->
+  Fpath.t list ->
   (string * (unit -> unit)) list * (unit -> unit)
 
 (* Run the tests and print a summary. *)

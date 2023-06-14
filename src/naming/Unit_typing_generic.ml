@@ -1,23 +1,24 @@
 open Common
+open File.Operators
 module G = AST_generic
 
 (*****************************************************************************)
 (* Unit tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
-let tests_path_typing = Filename.concat tests_path "typing"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
+let tests_path_typing = tests_path / "typing"
 
 let tests parse_program parse_pattern =
   Testutil.pack_tests "typing_tests"
     [
       ( "test basic variable definitions java",
         fun () ->
-          let file = Filename.concat tests_path_typing "VarDef.java" in
+          let file = tests_path_typing / "VarDef.java" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -38,14 +39,14 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
       ( "test multiple variable definitions java",
         fun () ->
-          let file = Filename.concat tests_path_typing "EqVarCmp.java" in
+          let file = tests_path_typing / "EqVarCmp.java" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -87,14 +88,14 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
       ( "test basic params java",
         fun () ->
-          let file = Filename.concat tests_path_typing "BasicParam.java" in
+          let file = tests_path_typing / "BasicParam.java" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -128,14 +129,14 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
       ( "test class field types",
         fun () ->
-          let file = Filename.concat tests_path_typing "ClassFields.java" in
+          let file = tests_path_typing / "ClassFields.java" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -163,39 +164,39 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
       (* TODO?? why this is here? should be in Unit_parsing. ml *)
       ( "java_pattern_files",
         fun () ->
-          let dir = Filename.concat tests_path "parsing_patterns/java" in
-          let files = Common2.glob (spf "%s/*.sgrep" dir) in
+          let dir = tests_path / "parsing_patterns" / "java" in
+          let files = Common2.glob (spf "%s/*.sgrep" !!dir) in
           files
           |> List.iter (fun file ->
                  try
                    let _ = parse_pattern Lang.Java (Common.read_file file) in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Syntax_error _ ->
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "go_pattern_files",
         fun () ->
-          let dir = Filename.concat tests_path "parsing_patterns/go" in
-          let files = Common2.glob (spf "%s/*.sgrep" dir) in
+          let dir = tests_path / "parsing_patterns" / "go" in
+          let files = Common2.glob (spf "%s/*.sgrep" !!dir) in
           files
           |> List.iter (fun file ->
                  try
                    let _ = parse_pattern Lang.Go (Common.read_file file) in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Syntax_error _ ->
                      Alcotest.failf "it should correctly parse %s" file) );
       ( "test basic variable definitions go",
         fun () ->
-          let file = Filename.concat tests_path_typing "StaticVarDef.go" in
+          let file = tests_path_typing / "StaticVarDef.go" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -216,14 +217,14 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
       ( "test basic function call go",
         fun () ->
-          let file = Filename.concat tests_path_typing "FuncParam.go" in
+          let file = tests_path_typing / "FuncParam.go" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -264,14 +265,14 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
       ( "test inferred variable definitions go",
         fun () ->
-          let file = Filename.concat tests_path_typing "PropVarDef.go" in
+          let file = tests_path_typing / "PropVarDef.go" in
           try
-            let ast = parse_program file in
-            let lang = List.hd (Lang.langs_of_filename file) in
+            let ast = parse_program !!file in
+            let lang = Lang.lang_of_filename_exn file in
             Naming_AST.resolve lang ast;
 
             let v =
@@ -306,6 +307,6 @@ let tests parse_program parse_pattern =
             in
             v#visit_program () ast
           with
-          | Parse_info.Parsing_error _ ->
-              Alcotest.failf "it should correctly parse %s" file );
+          | Parsing_error.Syntax_error _ ->
+              Alcotest.failf "it should correctly parse %s" !!file );
     ]

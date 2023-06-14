@@ -80,7 +80,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       # some repos need this, others may not - we'll take the hit on overhead
       # instead of calling a workflow from another repo. doing that (calling workflow in another repo)
       # comes with a bunch more eng effort to set up proper secrets passing, and I've decided it's better to do this.
@@ -104,7 +104,7 @@ jobs:
             RELEASE_BRANCH="release-${{ inputs.version }}"
           fi
           git checkout -b ${RELEASE_BRANCH}
-          echo ::set-output name=release-branch::${RELEASE_BRANCH}
+          echo "release-branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
       - name: Run release scripts
         id: release-script
         run: |
@@ -143,5 +143,5 @@ jobs:
           #GH actions doesn't provide an easy way to determine this, so we capture the number and go from there.
           PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
 
-          echo "::set-output name=pr-number::$PR_NUMBER"
-          echo "::set-output name=pr-url::$PR_URL"
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT

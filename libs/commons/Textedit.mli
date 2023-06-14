@@ -12,7 +12,7 @@ type edit_application_result =
   | Overlap of {
       partial_result : string;
       (* nonempty *)
-      discarded_edits : t list;
+      conflicting_edits : t list;
     }
 
 (* Apply a list of edits, modifying the files in place. If dryrun, do everything

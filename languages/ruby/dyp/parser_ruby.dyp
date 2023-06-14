@@ -34,10 +34,8 @@ module H = Ast_ruby_helpers
 module S = Parser_ruby_helpers
 (* for merging *)
 module M = Parser_ruby_helpers
-(* for fake_xxx *)
-module PI = Parse_info
 
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*************************************************************************)
 (*1 Dypgen merge directives *)
@@ -127,7 +125,7 @@ let dyp_merge xs =
 let token_immediate_check t1 t2 =
   ()
 
-let fake s = Parse_info.unsafe_fake_info s
+let fake s = Tok.unsafe_fake_tok s
 
 (*************************************************************************)
 (*1 AST helpers *)
@@ -171,40 +169,40 @@ and params_to_pattern xs =
 /*(*2 The space/comment tokens *)*/
 /*(*-----------------------------------------*)*/
 
-%token <Parse_info.t> T_SPACE
-%token <Parse_info.t> T_COMMENT
-%token <Parse_info.t> T_EOF
-%token <Parse_info.t> T_UNKNOWN
+%token <Tok.t> T_SPACE
+%token <Tok.t> T_COMMENT
+%token <Tok.t> T_EOF
+%token <Tok.t> T_UNKNOWN
 
 /*(* newline has a meaning in Ruby *)*/
-%token <Parse_info.t> T_EOL
+%token <Tok.t> T_EOL
 
 /*(*-----------------------------------------*)*/
 /*(*2 The normal tokens *)*/
 /*(*-----------------------------------------*)*/
 
-%token <string * Parse_info.t> T_UID
-%token <string * Parse_info.t> T_LID
-%token <string * Parse_info.t> T_GLOBAL_VAR
-%token <string * Parse_info.t> T_INST_VAR
-%token <string * Parse_info.t> T_CLASS_VAR
+%token <string * Tok.t> T_UID
+%token <string * Tok.t> T_LID
+%token <string * Tok.t> T_GLOBAL_VAR
+%token <string * Tok.t> T_INST_VAR
+%token <string * Tok.t> T_CLASS_VAR
 
-%token <string * Parse_info.t>  T_NUM
-%token <string * Parse_info.t>  T_FLOAT
+%token <string * Tok.t>  T_NUM
+%token <string * Tok.t>  T_FLOAT
 
-%token <Parse_info.t * (string * Parse_info.t)> T_ATOM
-%token <Parse_info.t> T_ATOM_BEG
+%token <Tok.t * (string * Tok.t)> T_ATOM
+%token <Tok.t> T_ATOM_BEG
 
-%token <string * Parse_info.t> T_SINGLE_STRING
-%token <Parse_info.t> T_DOUBLE_BEG
-%token <string * Parse_info.t> T_INTERP_STR
-%token <string * Parse_info.t> T_INTERP_END
+%token <string * Tok.t> T_SINGLE_STRING
+%token <Tok.t> T_DOUBLE_BEG
+%token <string * Tok.t> T_INTERP_STR
+%token <string * Tok.t> T_INTERP_END
 
-%token <Parse_info.t> T_TICK_BEG
-%token <string * Parse_info.t> T_USER_BEG
+%token <Tok.t> T_TICK_BEG
+%token <string * Tok.t> T_USER_BEG
 
-%token <Parse_info.t> T_REGEXP_BEG
-%token <string * Parse_info.t>  T_REGEXP_MOD
+%token <Tok.t> T_REGEXP_BEG
+%token <string * Tok.t>  T_REGEXP_MOD
 
 /*(*-----------------------------------------*)*/
 /*(*2 Keyword tokens *)*/
@@ -212,22 +210,22 @@ and params_to_pattern xs =
 
 /* keywords */
 %token
- <Parse_info.t> K_CLASS <Parse_info.t> K_MODULE <Parse_info.t> K_DEF
- <Parse_info.t> K_BEGIN  <Parse_info.t> K_END
- <Parse_info.t> K_ALIAS <Parse_info.t> K_UNDEF
- <Parse_info.t> K_RESCUE <Parse_info.t> K_ENSURE
- <Parse_info.t> K_IF <Parse_info.t> K_UNLESS <Parse_info.t> K_THEN
- <Parse_info.t> K_ELSIF <Parse_info.t> K_ELSE
- <Parse_info.t> K_CASE <Parse_info.t> K_WHEN
- <Parse_info.t> K_WHILE <Parse_info.t> K_UNTIL <Parse_info.t> K_FOR
- <Parse_info.t> K_IN <Parse_info.t> K_DO
- <Parse_info.t> K_RETURN
- <Parse_info.t> K_AND <Parse_info.t> K_OR <Parse_info.t> K_NOT
- <Parse_info.t> K_lBEGIN <Parse_info.t> K_lEND
- <Parse_info.t> K_NIL
- <Parse_info.t> K_YIELD
- <Parse_info.t> K_SELF <Parse_info.t> K_SUPER
- <Parse_info.t> K_TRUE <Parse_info.t> K_FALSE
+ <Tok.t> K_CLASS <Tok.t> K_MODULE <Tok.t> K_DEF
+ <Tok.t> K_BEGIN  <Tok.t> K_END
+ <Tok.t> K_ALIAS <Tok.t> K_UNDEF
+ <Tok.t> K_RESCUE <Tok.t> K_ENSURE
+ <Tok.t> K_IF <Tok.t> K_UNLESS <Tok.t> K_THEN
+ <Tok.t> K_ELSIF <Tok.t> K_ELSE
+ <Tok.t> K_CASE <Tok.t> K_WHEN
+ <Tok.t> K_WHILE <Tok.t> K_UNTIL <Tok.t> K_FOR
+ <Tok.t> K_IN <Tok.t> K_DO
+ <Tok.t> K_RETURN
+ <Tok.t> K_AND <Tok.t> K_OR <Tok.t> K_NOT
+ <Tok.t> K_lBEGIN <Tok.t> K_lEND
+ <Tok.t> K_NIL
+ <Tok.t> K_YIELD
+ <Tok.t> K_SELF <Tok.t> K_SUPER
+ <Tok.t> K_TRUE <Tok.t> K_FALSE
 /* K_DEFINED K_SUPER K_BREAK K_REDO K_RETRY K_NEXT K___LIN_ K___FIL_ */
 
 /*(*-----------------------------------------*)*/
@@ -235,65 +233,65 @@ and params_to_pattern xs =
 /*(*-----------------------------------------*)*/
 
 /*(* syntax *)*/
-%token <Parse_info.t> T_DOT          /* . */
-%token <Parse_info.t> T_COMMA        /* , */
+%token <Tok.t> T_DOT          /* . */
+%token <Tok.t> T_COMMA        /* , */
 
-%token <Parse_info.t> T_ASSOC    /* => */
-%token <Parse_info.t> T_LPAREN   /* _( */
-%token <Parse_info.t> T_LPAREN_ARG   /* ( */
-%token <Parse_info.t> T_RPAREN   /* ) */
-%token <Parse_info.t> T_LBRACK_ARG   /* [ as in x[y] = 2 */
-%token <Parse_info.t> T_LBRACK   /* [ as in x [y] aka x([y]) */
-%token <Parse_info.t> T_RBRACK   /* ] */
-%token <Parse_info.t> T_LBRACE   /* { for hash */
-%token <Parse_info.t> T_LBRACE_ARG   /* { for code block */
-%token <Parse_info.t> T_RBRACE   /* } */
+%token <Tok.t> T_ASSOC    /* => */
+%token <Tok.t> T_LPAREN   /* _( */
+%token <Tok.t> T_LPAREN_ARG   /* ( */
+%token <Tok.t> T_RPAREN   /* ) */
+%token <Tok.t> T_LBRACK_ARG   /* [ as in x[y] = 2 */
+%token <Tok.t> T_LBRACK   /* [ as in x [y] aka x([y]) */
+%token <Tok.t> T_RBRACK   /* ] */
+%token <Tok.t> T_LBRACE   /* { for hash */
+%token <Tok.t> T_LBRACE_ARG   /* { for code block */
+%token <Tok.t> T_RBRACE   /* } */
 
-%token <Parse_info.t> T_QUESTION     /* ? */
-%token <Parse_info.t> T_COLON        /* : */
+%token <Tok.t> T_QUESTION     /* ? */
+%token <Tok.t> T_COLON        /* : */
 
-%token <Parse_info.t> T_SEMICOLON    /* ; */
-%token <Parse_info.t> T_SCOPE        /* x::y */
-%token <Parse_info.t> T_USCOPE       /* f ::y */
+%token <Tok.t> T_SEMICOLON    /* ; */
+%token <Tok.t> T_SCOPE        /* x::y */
+%token <Tok.t> T_USCOPE       /* f ::y */
 
 /*(* operators *)*/
 
-%token <Parse_info.t> T_PLUS     /* + */
-%token <Parse_info.t> T_UPLUS    /* unary + */
-%token <Parse_info.t> T_MINUS    /* - */
-%token <Parse_info.t> T_UMINUS   /* unary - */
-%token <Parse_info.t> T_POW      /* ** */
-%token <Parse_info.t> T_CMP      /* <=> */
-%token <Parse_info.t> T_ASSIGN       /* = */
-%token <Parse_info.t> T_EQ       /* == */
-%token <Parse_info.t> T_EQQ      /* === */
-%token <Parse_info.t> T_NEQ      /* != */
-%token <Parse_info.t> T_GEQ      /* >= */
-%token <Parse_info.t> T_LEQ      /* <= */
-%token <Parse_info.t> T_LT       /* < */
-%token <Parse_info.t> T_GT       /* > */
-%token <Parse_info.t> T_ANDOP  <Parse_info.t> T_OROP    /* && and || */
-%token <Parse_info.t> T_MATCH  <Parse_info.t> T_NMATCH  /* =~ and !~ */
+%token <Tok.t> T_PLUS     /* + */
+%token <Tok.t> T_UPLUS    /* unary + */
+%token <Tok.t> T_MINUS    /* - */
+%token <Tok.t> T_UMINUS   /* unary - */
+%token <Tok.t> T_POW      /* ** */
+%token <Tok.t> T_CMP      /* <=> */
+%token <Tok.t> T_ASSIGN       /* = */
+%token <Tok.t> T_EQ       /* == */
+%token <Tok.t> T_EQQ      /* === */
+%token <Tok.t> T_NEQ      /* != */
+%token <Tok.t> T_GEQ      /* >= */
+%token <Tok.t> T_LEQ      /* <= */
+%token <Tok.t> T_LT       /* < */
+%token <Tok.t> T_GT       /* > */
+%token <Tok.t> T_ANDOP  <Tok.t> T_OROP    /* && and || */
+%token <Tok.t> T_MATCH  <Tok.t> T_NMATCH  /* =~ and !~ */
 
-%token <Parse_info.t> T_DOT2 <Parse_info.t> T_DOT3 /* .. and ... */
-%token <Parse_info.t> LDots <Parse_info.t> RDots
+%token <Tok.t> T_DOT2 <Tok.t> T_DOT3 /* .. and ... */
+%token <Tok.t> LDots <Tok.t> RDots
 
-%token <Parse_info.t> T_LSHFT <Parse_info.t> T_RSHFT    /* << and >> */
+%token <Tok.t> T_LSHFT <Tok.t> T_RSHFT    /* << and >> */
 
-%token <string*Parse_info.t> T_OP_ASGN   /* +=, -=  etc. */
+%token <string*Tok.t> T_OP_ASGN   /* +=, -=  etc. */
 
-%token <Parse_info.t> T_STAR     /* * */
-%token <Parse_info.t> T_USTAR    /* * */
-%token <Parse_info.t> T_SLASH    /* / */
-%token <Parse_info.t> T_PERCENT  /* % */
+%token <Tok.t> T_STAR     /* * */
+%token <Tok.t> T_USTAR    /* * */
+%token <Tok.t> T_SLASH    /* / */
+%token <Tok.t> T_PERCENT  /* % */
 
-%token <Parse_info.t> T_RARROW   /* -> */
-%token <Parse_info.t> T_CARROT       /* ^ */
-%token <Parse_info.t> T_VBAR         /* | */
-%token <Parse_info.t> T_BANG         /* ! */
-%token <Parse_info.t> T_TILDE        /* ~ */
-%token <Parse_info.t> T_AMPER    /* & */
-%token <Parse_info.t> T_UAMPER   /* & */
+%token <Tok.t> T_RARROW   /* -> */
+%token <Tok.t> T_CARROT       /* ^ */
+%token <Tok.t> T_VBAR         /* | */
+%token <Tok.t> T_BANG         /* ! */
+%token <Tok.t> T_TILDE        /* ~ */
+%token <Tok.t> T_AMPER    /* & */
+%token <Tok.t> T_UAMPER   /* & */
 
 /*(*-----------------------------------------*)*/
 /*(*2 Extra tokens: *)*/
@@ -602,7 +600,7 @@ one_string:
 interp_str:
   | T_SINGLE_STRING {[StrChars $1]}
   | interp_str_work<i>
-      {match i with [] -> [StrChars ("", Parse_info.unsafe_fake_info "")] | lst -> lst}
+      {match i with [] -> [StrChars ("", Tok.unsafe_fake_tok "")] | lst -> lst}
 
 interp_str_work:
   | T_INTERP_STR<s,pos> interp_code<tl>
@@ -617,7 +615,7 @@ interp_code:
         let mk_block lst =
           match lst with
           | [x] -> x
-          | _ -> S (Block(PI.unsafe_fake_bracket lst))
+          | _ -> S (Block(fb lst))
         in
           match ss with
           | [] -> tl

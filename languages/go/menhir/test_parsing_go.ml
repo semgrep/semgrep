@@ -1,5 +1,5 @@
 open Common
-module PI = Parse_info
+open File.Operators
 module PS = Parsing_stat
 module Flag = Flag_parsing
 
@@ -14,7 +14,7 @@ let test_tokens_go file =
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
-  let toks = Parse_go.tokens file in
+  let toks = Parse_go.tokens (Parsing_helpers.file file) in
   let toks = Parsing_hacks_go.fix_tokens toks in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
@@ -23,7 +23,7 @@ let test_tokens_go file =
 let try_with_print_exn_and_reraise _a b = b ()
 
 let test_parse_go xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Lib_parsing_go.find_source_files_of_dir_or_files xs
@@ -42,13 +42,13 @@ let test_parse_go xs =
                  let { Parsing_result.stat; _ } =
                    Common.save_excursion Flag.error_recovery true (fun () ->
                        Common.save_excursion Flag.exn_when_lexical_error false
-                         (fun () -> Parse_go.parse file))
+                         (fun () -> Parse_go.parse !!file))
                  in
                  Common.push stat stat_list;
                  let s = spf "bad = %d" stat.PS.error_line_count in
                  if stat.PS.error_line_count =|= 0 then
-                   Hashtbl.add newscore file Common2.Ok
-                 else Hashtbl.add newscore file (Common2.Pb s))));
+                   Hashtbl.add newscore !!file Common2.Ok
+                 else Hashtbl.add newscore !!file (Common2.Pb s))));
 
   flush stdout;
   flush stderr;

@@ -9,7 +9,6 @@
 open Common
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
-module PI = Parse_info
 open AST_bash
 module H = Parse_tree_sitter_helpers
 
@@ -85,10 +84,10 @@ let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
     | Pipelines (loc, pipelines) ->
         let pipelines =
           replace_last pipelines (fun pip ->
-              let loc = Loc.range (pipeline_loc pip) term_loc in
+              let loc = Tok_range.range (pipeline_loc pip) term_loc in
               [ Control_operator (loc, pip, term) ])
         in
-        let loc = Loc.range loc term_loc in
+        let loc = Tok_range.range loc term_loc in
         Pipelines (loc, pipelines)
     | Empty _ as blist -> blist
   in
@@ -274,7 +273,7 @@ let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
           | Simple_variable_name (name_s, name_tok)
             when AST_generic.is_metavar_name ("$" ^ name_s) ->
               let mv_s = "$" ^ name_s in
-              let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
+              let mv_tok = Tok.combine_toks dollar_tok [ name_tok ] in
               Frag_semgrep_metavar (mv_s, mv_tok)
           | _ -> Expansion (loc, Simple_expansion (loc, var_name)))
       | Program -> Expansion (loc, Simple_expansion (loc, var_name)))
@@ -341,7 +340,8 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
         | `Test_op tok -> (* test_operator *) token env tok
       in
       let right = expression env v3 in
-      T_todo (Loc.range (test_expression_loc left) (test_expression_loc right))
+      T_todo
+        (Tok_range.range (test_expression_loc left) (test_expression_loc right))
   | `Exp_choice_EQEQ_regex (v1, v2, v3) ->
       let left = expression env v1 in
       let _op =
@@ -413,15 +413,17 @@ and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
                   Literal (expression_loc e, e)
               | `Regex tok -> (* regex *) Regexp (str env tok)
             in
-            let loc = Loc.range (eq_op_loc eq) (right_eq_operand_loc right) in
+            let loc =
+              Tok_range.range (eq_op_loc eq) (right_eq_operand_loc right)
+            in
             Equality_test (loc, eq, right))
       v3
   in
   let arguments = name :: args in
   let loc =
-    let loc1 = Loc.of_list assignment_loc assignments in
-    let loc2 = Loc.of_list expression_loc arguments in
-    Loc.of_locs [ loc1; loc2 ]
+    let loc1 = Tok_range.of_list assignment_loc assignments in
+    let loc2 = Tok_range.of_list expression_loc arguments in
+    Tok_range.of_locs [ loc1; loc2 ]
   in
   let command = Simple_command { loc; assignments; arguments } in
   { loc; command; redirects }
@@ -430,12 +432,12 @@ and command_name (env : env) (x : CST.command_name) : expression =
   match x with
   | `Conc x ->
       let el = concatenation env x in
-      let loc = Loc.of_list expression_loc el in
+      let loc = Tok_range.of_list expression_loc el in
       Concatenation (loc, el)
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
       let el = Common.map (fun tok -> Special_character (str env tok)) xs in
-      let loc = Loc.of_list expression_loc el in
+      let loc = Tok_range.of_list expression_loc el in
       Concatenation (loc, el)
 
 and command_substitution (env : env) (x : CST.command_substitution) :
@@ -670,7 +672,7 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
   let target_e = literal env v3 in
   let target = target_e |> file_redir_target in
   let loc = ref (expression_loc target_e) in
-  let update_loc tok = loc := Loc.extend !loc tok in
+  let update_loc tok = loc := Tok_range.extend !loc tok in
   let opt_src_fd : write_redir_src option =
     match v1 with
     | Some tok -> (
@@ -732,7 +734,7 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
         let tok = token2 env tok (* ">|" *) in
         Write (src_fd1 tok, (Write_force_truncate, tok), target)
   in
-  let loc = Loc.union !loc (expression_loc target_e) in
+  let loc = Tok_range.union !loc (expression_loc target_e) in
   File_redirect (loc, file_redir)
 
 and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
@@ -791,14 +793,14 @@ and literal (env : env) (x : CST.literal) : expression =
   match x with
   | `Conc x -> (
       let el = concatenation env x in
-      let loc = Loc.of_list expression_loc el in
+      let loc = Tok_range.of_list expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
       let el = Common.map (fun tok -> Special_character (str env tok)) xs in
-      let loc = Loc.of_list expression_loc el in
+      let loc = Tok_range.of_list expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
@@ -1065,7 +1067,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             let loc = bracket_loc sub in
             (loc, Subshell (loc, sub), [])
       in
-      let loc = Loc.extend loc excl in
+      let loc = Tok_range.extend loc excl in
       let command = Negated_command (loc, excl, command) in
       Tmp_command ({ loc; command; redirects }, None)
   | `For_stmt (v1, v2, v3, v4, v5) ->
@@ -1201,14 +1203,14 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         match control_op with
         | None -> pipeline
         | Some ((_, tok) as op) ->
-            let loc = Loc.extend loc tok in
+            let loc = Tok_range.extend loc tok in
             Control_operator (loc, pipeline, op)
       in
       Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
       let left = pipeline_statement env v1 in
       let right = pipeline_statement env v3 in
-      let loc = Loc.range (pipeline_loc left) (pipeline_loc right) in
+      let loc = Tok_range.range (pipeline_loc left) (pipeline_loc right) in
       let command =
         match v2 with
         | `AMPAMP tok -> And (loc, left, token env tok, right)
@@ -1256,7 +1258,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             Subshell (bracket_loc br, br)
         | `Test_cmd x -> test_command env x
       in
-      let loc = Loc.extend (command_loc body) start in
+      let loc = Tok_range.extend (command_loc body) start in
       let command = Function_definition (loc, { loc; function_; name; body }) in
       Tmp_command ({ loc; command; redirects = [] }, None)
 
@@ -1284,7 +1286,7 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
     | None -> last_blist
     | Some term -> add_terminator_to_blist last_blist term
   in
-  let loc = Loc.range (blist_loc blist) (blist_loc last_blist) in
+  let loc = Tok_range.range (blist_loc blist) (blist_loc last_blist) in
   Seq (loc, blist, last_blist)
 
 and statements2 (env : env) (xs : CST.statements2) : blist =
@@ -1393,16 +1395,18 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
           | `Semg_meta_eq tok ->
               (* pattern \$[A-Z_][A-Z_0-9]*= *)
               let mv_eq_tok = token env tok in
-              let len = String.length (PI.str_of_info mv_eq_tok) in
-              let mv_tok, eq_tok = PI.split_info_at_pos (len - 1) mv_eq_tok in
+              let len = String.length (Tok.content_of_tok mv_eq_tok) in
+              let mv_tok, eq_tok =
+                Tok.split_tok_at_bytepos (len - 1) mv_eq_tok
+              in
               let assign_op = (Set, eq_tok (* "=" *)) in
               (mv_tok, assign_op)
           | `Semg_meta_pluseq tok ->
               (* pattern \$[A-Z_][A-Z_0-9]*\+= *)
               let mv_eq_tok = token env tok in
-              let len = String.length (Parse_info.str_of_info mv_eq_tok) in
+              let len = String.length (Tok.content_of_tok mv_eq_tok) in
               let mv_tok, pluseq_tok =
-                Parse_info.split_info_at_pos (len - 2) mv_eq_tok
+                Tok.split_tok_at_bytepos (len - 2) mv_eq_tok
               in
               let assign_op = (Add, pluseq_tok (* "+=" *)) in
               (mv_tok, assign_op)
@@ -1411,7 +1415,7 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
            in which metavariables shouldn't exist.
            In such case, we should not return an assignment but convert
            $X=42 to a variable expansion and concatenation. *)
-        let mv = (PI.str_of_info mv_tok, mv_tok) in
+        let mv = (Tok.content_of_tok mv_tok, mv_tok) in
         (mv, assign_op, v2)
     | `Choice_var_name_choice_EQ_choice_choice_conc (v1, v2, v3) ->
         let var =
@@ -1453,7 +1457,7 @@ let parse file =
       let env =
         { H.file; conv = H.line_col_to_pos file; extra = AST_bash.Program }
       in
-      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let tok = Tok.first_tok_of_file file in
       program env ~tok cst)
 
 let parse_pattern str =
@@ -1462,5 +1466,5 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = AST_bash.Pattern } in
-      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let tok = Tok.first_tok_of_file file in
       program env ~tok cst)

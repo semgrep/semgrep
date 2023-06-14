@@ -14,7 +14,6 @@
  *)
 open AST_jsonnet
 module G = AST_generic
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -78,7 +77,7 @@ let rec map_expr env v : G.expr =
       let _tsemi = map_tok env v3 in
       let e = map_expr env v4 in
       let stmts = defs |> Common.map (fun def -> G.DefStmt def |> G.s) in
-      let block = PI.unsafe_fake_bracket (stmts @ [ G.exprstmt e ]) in
+      let block = Tok.unsafe_fake_bracket (stmts @ [ G.exprstmt e ]) in
       G.stmt_to_expr (G.Block block |> G.s)
   | DotAccess (v1, v2, v3) ->
       let e = map_expr env v1 in
@@ -146,8 +145,9 @@ let rec map_expr env v : G.expr =
       let e = map_expr env v2 in
       G.OtherExpr (("Error", terror), [ G.E e ]) |> G.e
   | ParenExpr v ->
-      let v = (map_bracket map_expr) env v in
-      G.ParenExpr v |> G.e
+      let l, e, r = (map_bracket map_expr) env v in
+      AST_generic_helpers.set_e_range l r e;
+      e
   | Ellipsis v ->
       let tdots = map_tok env v in
       G.Ellipsis tdots |> G.e
@@ -243,7 +243,7 @@ and map_assert_ env (v1, v2, v3) : G.stmt =
   let eopt = (map_option map_tuple) env v3 in
   let es = e :: Option.to_list eopt in
   let args = es |> Common.map G.arg in
-  let st = G.Assert (tassert, PI.unsafe_fake_bracket args, G.sc) |> G.s in
+  let st = G.Assert (tassert, Tok.unsafe_fake_bracket args, G.sc) |> G.s in
   st
 
 and map_arr_inside env v =
@@ -371,7 +371,8 @@ and map_field_name env v : G.entity_name =
       G.EN (G.Id ((s, tk), G.empty_id_info ()))
   | FDynamic v ->
       let l, e, r = (map_bracket map_expr) env v in
-      G.EDynamic (G.ParenExpr (l, e, r) |> G.e)
+      AST_generic_helpers.set_e_range l r e;
+      G.EDynamic e
 
 and map_hidden _env v =
   match v with
@@ -395,9 +396,10 @@ and map_obj_comprehension env v =
   let defs1 = (map_list map_obj_local) env oc_locals1 in
   let map_tuple env (v1, v2, v3) =
     let l, e1, r = (map_bracket map_expr) env v1 in
+    AST_generic_helpers.set_e_range l r e1;
     let _tcolon = map_tok env v2 in
     let e = map_expr env v3 in
-    let entname = G.EDynamic (G.ParenExpr (l, e1, r) |> G.e) in
+    let entname = G.EDynamic e1 in
     let ent = { G.name = entname; tparams = []; attrs = [] } in
     let def = G.VarDef { G.vinit = Some e; vtype = None } in
     (ent, def)

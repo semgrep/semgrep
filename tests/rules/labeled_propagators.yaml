@@ -1,0 +1,23 @@
+rules:
+  - id: test
+    languages:
+      - python
+    severity: ERROR
+    mode: taint
+    message: Test
+    pattern-sources:
+      - label: INPUT
+        pattern: input()
+    pattern-propagators:
+      - by-side-effect: false
+        patterns:
+          - pattern-inside: $F($X)
+          - focus-metavariable: $F
+          - pattern: foo
+        from: $X
+        to: $F
+        label: FOO
+        requires: INPUT
+    pattern-sinks:
+      - requires: FOO
+        pattern: sink(...)

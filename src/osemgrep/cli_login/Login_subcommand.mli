@@ -7,8 +7,5 @@
 *)
 val main : string array -> Exit_code.t
 
-(* no parameters for now *)
-type conf = unit
-
 (* internal *)
-val run : conf -> Exit_code.t
+val run : Login_CLI.conf -> Exit_code.t

@@ -54,7 +54,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   let rec v_info x =
     let k x =
       match x with
-      | { Parse_info.token = _v_pinfox; transfo = _v_transfo } ->
+      | _ ->
           (*
     let arg = Parse_info.v_pinfo v_pinfox in
     let arg = v_unit v_comments in
@@ -185,6 +185,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
           ()
       | NamedExpr (v, t, e) ->
           let v = v_expr v and t = v_tok t and e = v_expr e in
+          ()
+      | ParenExpr v1 ->
+          let v1 = v_bracket v_expr v1 in
           ()
     in
     vin.kexpr (k, all_functions) x
@@ -533,6 +536,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ()
     | Stmts v1 ->
         let v1 = v_list v_stmt v1 in
+        ()
+    | Decorator d ->
+        let d = v_decorator d in
         ()
     | Program v1 ->
         let v1 = v_program v1 in

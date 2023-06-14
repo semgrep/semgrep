@@ -369,14 +369,14 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "check_id": "supply-chain1",
       "end": {
         "col": 0,
-        "line": 0,
+        "line": 2,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "",
+        "lines": "[[package]]\nname = \"badlib\"",
         "message": "found a dependency",
         "metadata": {
           "dev.semgrep.actions": [
@@ -411,7 +411,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "path": "poetry.lock",
       "start": {
         "col": 0,
-        "line": 0,
+        "line": 1,
         "offset": 0
       }
     }
@@ -421,45 +421,46 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of stdout - plain
 
 === stderr - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown         
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
+
+  CONNECTION
+  Reporting start of scan for deployment_name
+  Fetching configuration from Semgrep Cloud Platform
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+
+
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep App:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stderr - plain

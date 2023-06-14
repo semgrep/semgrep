@@ -15,7 +15,7 @@
 open Common
 module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
-module PI = Parse_info
+module Boilerplate = Tree_sitter_ruby.Boilerplate
 open Ast_ruby
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
@@ -36,7 +36,7 @@ module H = Parse_tree_sitter_helpers
 
 type env = unit H.env
 
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let list_to_maybe_tuple = function
   | [] -> raise Impossible
@@ -45,9 +45,9 @@ let list_to_maybe_tuple = function
 
 let mk_Literal_String (t1, xs, t2) =
   let string_kind =
-    match (PI.str_of_info t1, xs) with
-    | "'", [] -> Single ("", PI.combine_infos t1 [ t2 ])
-    | "'", [ StrChars (s, t) ] -> Single (s, PI.combine_infos t1 [ t; t2 ])
+    match (Tok.content_of_tok t1, xs) with
+    | "'", [] -> Single ("", Tok.combine_toks t1 [ t2 ])
+    | "'", [ StrChars (s, t) ] -> Single (s, Tok.combine_toks t1 [ t; t2 ])
     | _ -> Double (t1, xs, t2)
   in
   Literal (String string_kind)
@@ -231,7 +231,7 @@ and method_rest (env : env) ((v1, v2, v3) : CST.method_rest) =
   let v2 =
     match v2 with
     | `Params_opt_term (v1, v2) ->
-        let v1 = parameters env v1 |> PI.unbracket in
+        let v1 = parameters env v1 |> Tok.unbracket in
         let _v2 =
           match v2 with
           | Some x -> terminator env x
@@ -802,7 +802,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | Some x ->
             Some
               (match x with
-              | `Params x -> parameters env x |> PI.unbracket
+              | `Params x -> parameters env x |> Tok.unbracket
               | `Bare_params x -> bare_parameters env x)
         | None -> None
       in
@@ -975,7 +975,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> PI.unbracket
+        | Some x -> argument_list env x |> Tok.unbracket
         | None -> []
       in
       S (Return (v1, v2))
@@ -983,7 +983,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> PI.unbracket
+        | Some x -> argument_list env x |> Tok.unbracket
         | None -> []
       in
       S (Yield (v1, v2))
@@ -991,7 +991,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> PI.unbracket
+        | Some x -> argument_list env x |> Tok.unbracket
         | None -> []
       in
       S (Break (v1, v2))
@@ -999,7 +999,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> PI.unbracket
+        | Some x -> argument_list env x |> Tok.unbracket
         | None -> []
       in
       S (Next (v1, v2))
@@ -1007,7 +1007,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> PI.unbracket
+        | Some x -> argument_list env x |> Tok.unbracket
         | None -> []
       in
       S (Redo (v1, v2))
@@ -1015,7 +1015,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some x -> argument_list env x |> PI.unbracket
+        | Some x -> argument_list env x |> Tok.unbracket
         | None -> []
       in
       S (Retry (v1, v2))
@@ -1060,7 +1060,7 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
   let v1 =
     match v1 with
     | `COLONCOLON tok -> fun e -> TopScope (token2 env tok, e)
-    | `Prim_imm_tok_COLONCOLON (v1, v2) ->
+    | `Prim_imm_tok_colo (v1, v2) ->
         let v1 = primary env v1 in
         let v2 = token2 env v2 in
         fun e -> Scope (v1, v2, SV e)
@@ -1072,7 +1072,21 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
   in
   v1 v2
 
-and anon_choice_id_5ca805c (env : env) (x : CST.anon_choice_id_5ca805c) =
+and anon_choice_for_call_no_id (env : env) x =
+  match x with
+  | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
+  | `Op x -> (
+      let op = operator env x in
+      match op with
+      | Left bin, t -> (MethodOperator (bin, t), None)
+      | Right un, t -> (MethodUOperator (un, t), None))
+  | `Cst tok -> (MethodId (str env tok, ID_Uppercase), None)
+  | `Arg_list x ->
+      (* ex: block.(), to call the block *)
+      let l, xs, r = argument_list env x in
+      (MethodSpecialCall (l, (), r), Some (l, xs, r))
+
+and anon_choice_for_command_call_no_id (env : env) x =
   match x with
   | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
   | `Op x -> (
@@ -1089,7 +1103,7 @@ and anon_choice_id_5ca805c (env : env) (x : CST.anon_choice_id_5ca805c) =
 and call (env : env) ((v1, v2, v3) : CST.call) =
   let v1 = primary env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
-  let v3, args_opt = anon_choice_id_5ca805c env v3 in
+  let v3, args_opt = anon_choice_for_call_no_id env v3 in
   match args_opt with
   | None -> DotAccess (v1, v2, v3)
   | Some xs -> Call (DotAccess (v1, v2, v3), xs, None)
@@ -1098,7 +1112,7 @@ and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
     AST.expr =
   let v1 = command_call_with_block env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
-  let v3, args_opt = anon_choice_id_5ca805c env v3 in
+  let v3, args_opt = anon_choice_for_command_call_no_id env v3 in
   match args_opt with
   | None -> DotAccess (v1, v2, v3)
   | Some xs -> Call (DotAccess (v1, v2, v3), xs, None)
@@ -1237,7 +1251,7 @@ and do_block (env : env) ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
   let params_opt =
     match v3 with
     | Some (v1, v2) ->
-        let v1 = block_parameters env v1 |> PI.unbracket in
+        let v1 = block_parameters env v1 |> Tok.unbracket in
         let _v2 =
           match v2 with
           | Some x -> terminator env x
@@ -1254,7 +1268,7 @@ and block (env : env) ((v1, v2, v3, v4) : CST.block) =
   let lb = token2 env v1 in
   let params_opt =
     match v2 with
-    | Some x -> Some (block_parameters env x |> PI.unbracket)
+    | Some x -> Some (block_parameters env x |> Tok.unbracket)
     | None -> None
   in
   let v3 =
@@ -1581,8 +1595,8 @@ and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
 and simple_symbol (env : env) (tok : CST.simple_symbol) : atom =
   (* TODO: split tok *)
   let t = token2 env tok in
-  let tcolon, tafter = PI.split_info_at_pos 1 t in
-  let str = PI.str_of_info tafter in
+  let tcolon, tafter = Tok.split_tok_at_bytepos 1 t in
+  let str = Tok.content_of_tok tafter in
   (tcolon, AtomSimple (str, tafter))
 
 and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
@@ -1594,7 +1608,7 @@ and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
     | None -> []
   in
   let v3 = token2 env v3 (* string_end " "*) in
-  (Parse_info.fake_info v1 ":", AtomFromString (v1, res, v3))
+  (Tok.fake_tok v1 ":", AtomFromString (v1, res, v3))
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
   List.filter_map
@@ -1638,7 +1652,7 @@ and pair (env : env) (x : CST.pair) =
       let v3 = arg env v3 in
       (* will be converted to ArgKwd in ruby_to_generic.ml if needed *)
       Left (Binop (v1, (Op_ASSOC, v2), v3))
-  | `Choice_hash_key_symb_imm_tok_COLON_arg (v1, v2, v3) -> (
+  | `Choice_hash_key_symb_imm_tok_colon_arg (v1, v2, v3) -> (
       let v1 =
         match v1 with
         | `Hash_key_symb tok -> Id (str env tok, ID_Lowercase)
@@ -1678,8 +1692,15 @@ let parse file =
     (fun () -> Tree_sitter_ruby.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      (if debug then
-       let sexp = CST.sexp_of_program cst in
-       let s = Sexplib.Sexp.to_string_hum sexp in
-       print_endline s);
+      if debug then Boilerplate.dump_tree cst;
       program env cst)
+
+let parse_pattern string =
+  let debug = false in
+  H.wrap_parser
+    (fun () -> Tree_sitter_ruby.Parse.string string)
+    (fun cst ->
+      let file = "<file>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      if debug then Boilerplate.dump_tree cst;
+      Ss (program env cst))

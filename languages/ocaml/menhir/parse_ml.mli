@@ -11,4 +11,4 @@ val any_of_string : string -> Ast_ml.any
 val type_of_string : string -> Ast_ml.type_
 
 (* internal *)
-val tokens : Common.filename -> Parser_ml.token list
+val tokens : Parsing_helpers.input_source -> Parser_ml.token list

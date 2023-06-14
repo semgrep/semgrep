@@ -6,7 +6,7 @@
  * of_files_and_dirs> and compares it with any previous run, providing some
  * form of regression testing.
  *)
-val test_parse_php : Common.path list -> unit
+val test_parse_php : Common.filename list -> unit
 
 (*x: test_parsing_php.mli *)
 (* Print the set of tokens in a PHP file *)

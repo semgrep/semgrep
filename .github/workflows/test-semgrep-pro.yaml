@@ -29,7 +29,7 @@ jobs:
     outputs:
       docker-tag: ${{ steps.setup-docker-tag.outputs.docker-tag }}
     steps:
-      - name:
+      - name: Setup Docker Tag
         id: setup-docker-tag
         run: |
           echo "Github event is ${{ github.event_name }}"
@@ -65,7 +65,7 @@ jobs:
         run: |
           docker load --input /tmp/image.tar
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role
           role-duration-seconds: 900
@@ -80,4 +80,5 @@ jobs:
           aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
       - name: Run Semgrep Pro Engine!
         run: |
-          docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh
+          chmod +x ./semgrep-core-proprietary
+          docker run --rm -v "$(pwd):/root" -v "$(pwd)/semgrep-core-proprietary:/usr/local/bin/semgrep-core-proprietary" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "${{ inputs.repository-name }}:${{ needs.setup-docker-tag.outputs.docker-tag }}" /root/scripts/test-pro.sh

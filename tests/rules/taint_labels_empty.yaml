@@ -1,0 +1,16 @@
+rules:
+- id: test
+  languages:
+  - go
+  message: Test
+  mode: taint
+  pattern-sources:
+  - label: INPUT
+    pattern: |
+      ($REQUEST : *http.Request).URL
+  pattern-sinks:
+  - requires: INPUT or not INPUT # could lead to findings with empty sources
+    patterns:
+    - pattern: http.$METHOD($URL, ...)
+    - focus-metavariable: $URL
+  severity: WARNING

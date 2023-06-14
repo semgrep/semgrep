@@ -1,11 +1,15 @@
-Nothing to scan.
 
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 0 files tracked by git with 1 Code rule:
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 

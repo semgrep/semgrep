@@ -7,6 +7,7 @@
     cmdliner
     commons
 
+    osemgrep_configuring
     osemgrep_core
     osemgrep_networking
   )

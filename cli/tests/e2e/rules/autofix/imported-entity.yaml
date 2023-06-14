@@ -1,0 +1,7 @@
+rules:
+  - id: exception-useless-parentheses
+    pattern: raise $X()
+    fix: raise $X
+    message: Found useless parentheses
+    languages: [python]
+    severity: ERROR

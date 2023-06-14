@@ -1,17 +1,14 @@
 open Cst_php
 
 (*s: lib_parsing_php.mli *)
-val is_php_filename : Common.filename -> bool
+val is_php_filename : Fpath.t -> bool
 
 (* this will open the file and look possible for a #!/usr/bin/env php *)
-val is_php_file : Common.filename -> bool
-val is_php_script : Common.filename -> bool
+val is_php_file : Fpath.t -> bool
+val is_php_script : Fpath.t -> bool
 
 val find_source_files_of_dir_or_files :
-  ?verbose:bool ->
-  ?include_hack:bool ->
-  Common.path list ->
-  Common.filename list
+  ?verbose:bool -> ?include_hack:bool -> Fpath.t list -> Fpath.t list
 
 (*x: lib_parsing_php.mli *)
 (*

@@ -10,6 +10,7 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -48,6 +49,8 @@ tree_line = mark_line(
                 d[1],
             )
         )
+        # ignore lines that we don't recognize
+        | consume_line
     )
 )
 
@@ -61,11 +64,20 @@ pom_tree = (
 
 
 def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    deps = safe_path_parse(tree_path, pom_tree)
+    deps = safe_path_parse(tree_path, pom_tree, ParserName.pomtree)
     if not deps:
         return []
     output = []
-    for line_number, (transitivity, package, version) in deps:
+    seen_matches = set()
+    for line_number, match in deps:
+        if match is None:
+            continue
+
+        if match in seen_matches:
+            continue
+        seen_matches.add(match)
+
+        transitivity, package, version = match
         output.append(
             FoundDependency(
                 package=package,
@@ -77,8 +89,3 @@ def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
             )
         )
     return output
-
-
-from pathlib import Path
-
-path = Path("/Users/matthewmcquaid/test/maven_dep_tree.txt")

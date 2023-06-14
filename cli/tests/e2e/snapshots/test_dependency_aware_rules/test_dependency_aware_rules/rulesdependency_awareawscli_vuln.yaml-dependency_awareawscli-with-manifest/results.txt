@@ -1,0 +1,447 @@
+=== command
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/awscli_vuln.yaml --json targets/dependency_aware/awscli-with-manifest
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+      "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.vulnerable-awscli-apr-2017",
+      "end": {
+        "col": 43,
+        "line": 21,
+        "offset": 537
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\")",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": "== 1.11.82"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
+      "start": {
+        "col": 25,
+        "line": 21,
+        "offset": 519
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.vulnerable-awscli-apr-2017",
+      "end": {
+        "col": 63,
+        "line": 24,
+        "offset": 670
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": "== 1.11.82"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
+      "start": {
+        "col": 25,
+        "line": 24,
+        "offset": 632
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.vulnerable-awscli-apr-2017-wrong-pattern",
+      "end": {
+        "col": 0,
+        "line": 21,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    \"awscli\": {\n      \"hashes\": [",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": "== 1.11.82"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+      "start": {
+        "col": 0,
+        "line": 20,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.version-ge",
+      "end": {
+        "col": 43,
+        "line": 21,
+        "offset": 537
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\")",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": ">= 0.0.1"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
+      "start": {
+        "col": 25,
+        "line": 21,
+        "offset": 519
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.version-ge",
+      "end": {
+        "col": 63,
+        "line": 24,
+        "offset": 670
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": ">= 0.0.1"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
+      "start": {
+        "col": 25,
+        "line": 24,
+        "offset": 632
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.version-leq",
+      "end": {
+        "col": 43,
+        "line": 21,
+        "offset": 537
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\")",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": "<= 1.11.82"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
+      "start": {
+        "col": 25,
+        "line": 21,
+        "offset": 519
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.version-leq",
+      "end": {
+        "col": 63,
+        "line": 24,
+        "offset": 670
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": "<= 1.11.82"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
+      "start": {
+        "col": 25,
+        "line": 24,
+        "offset": 632
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.unconditional-depends-on-only",
+      "end": {
+        "col": 0,
+        "line": 21,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    \"awscli\": {\n      \"hashes\": [",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "awscli",
+              "semver_range": "== 1.11.82"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha256": [
+                  "dc36a9325b479c6f86002a89c6e0ba2682a5dcf1d32a933b5eb5a8c06e5f447b",
+                  "e7e66b60241c748d52cca26b749552c14867a68e122f1fff9480a3b56448d92f"
+                ]
+              },
+              "ecosystem": "pypi",
+              "line_number": 20,
+              "package": "awscli",
+              "transitivity": "direct",
+              "version": "1.11.82"
+            },
+            "lockfile": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+      "start": {
+        "col": 0,
+        "line": 20,
+        "offset": 0
+      }
+    }
+  ],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 0 Code rules, 6 Supply Chain rules:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file with 6 python rules.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 6 rules on 2 files: 8 findings.
+
+=== end of stderr - plain

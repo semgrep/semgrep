@@ -14,7 +14,6 @@
  *)
 open Common
 module Flag = Flag_parsing
-module PI = Parse_info
 module PS = Parsing_stat
 module TH = Token_helpers_java
 
@@ -34,10 +33,10 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens file =
+let tokens input_source =
   let token = Lexer_java.token in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
@@ -47,7 +46,7 @@ let parse filename =
   let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.file filename) in
   let toks = Parsing_hacks_java.fix_tokens toks in
 
   let tr, lexer, lexbuf_fake =
@@ -85,7 +84,7 @@ let parse filename =
   | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (_info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
-        raise (PI.Parsing_error (TH.info_of_tok cur));
+        raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
         pr2 ("parse error \n = " ^ error_msg_tok cur);
@@ -110,10 +109,9 @@ let parse_string (w : string) = Common2.with_tmp_file ~str:w ~ext:"java" parse
 (* for sgrep/spatch *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"java" (fun file ->
-          let toks = tokens file in
-          let toks = Parsing_hacks_java.fix_tokens toks in
-          let _tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
-          in
-          Parser_java.semgrep_pattern lexer lexbuf_fake))
+      let toks = tokens (Parsing_helpers.Str s) in
+      let toks = Parsing_hacks_java.fix_tokens toks in
+      let _tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
+      in
+      Parser_java.semgrep_pattern lexer lexbuf_fake)

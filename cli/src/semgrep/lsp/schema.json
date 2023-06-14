@@ -33,26 +33,6 @@
       "default": 1,
       "description": "Number of parallel jobs to run."
     },
-    "semgrep.scan.disableNoSem": {
-      "type": "boolean",
-      "default": false,
-      "description": "Disable no-semgrep comments."
-    },
-    "semgrep.scan.baselineCommit": {
-      "type": "string",
-      "default": null,
-      "description": "Baseline commit to scan from"
-    },
-    "semgrep.scan.severity": {
-      "type": "array",
-      "default": ["INFO", "WARNING", "ERROR"],
-      "items": {
-        "type": "string",
-        "enum": ["INFO", "WARNING", "ERROR"]
-      },
-      "description": "Severity of rules to scan for.",
-      "uniqueItems": true
-    },
     "semgrep.scan.maxMemory": {
       "type": "integer",
       "default": 0,
@@ -60,52 +40,28 @@
     },
     "semgrep.scan.maxTargetBytes": {
       "type": "integer",
-      "default": 0,
+      "default": 1000000,
       "description": "Maximum size of target in bytes to scan."
+    },
+    "semgrep.scan.timeout": {
+      "type": "integer",
+      "default": 30,
+      "description": "Maximum time to scan in seconds."
     },
     "semgrep.scan.timeoutThreshold": {
       "type": "integer",
-      "default": 0,
-      "description": "Maximum time to scan in seconds."
+      "default": 3,
+      "description": "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 3."
     },
-    "semgrep.scan.useGitIgnore": {
+    "semgrep.scan.onlyGitDirty": {
       "type": "boolean",
       "default": true,
-      "description": "Skip files ignored by git"
+      "description": "Only scan lines changed since the last commit"
     },
-    "semgrep.lsp.watchOpenFiles": {
+    "semgrep.metrics.enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Scan all opened files automatically on open and save."
-    },
-    "semgrep.lsp.watchWorkspace": {
-      "type": "boolean",
-      "default": true,
-      "description": "Scan all workspace folders automatically on open and when folders are added or removed."
-    },
-    "semgrep.lsp.watchConfigs": {
-      "type": "boolean",
-      "default": true,
-      "description": "Watch all semgrep config files for changes and rescan when they are saved."
-    },
-    "semgrep.lsp.autodetectConfigs": {
-      "type": "boolean",
-      "default": true,
-      "description": "Automatically detect configuration files in workspace folders according to the glob pattern **/{semgrep,.semgrep}.{yml,yaml}"
-    },
-    "semgrep.lsp.ciEnabled": {
-      "type": "boolean",
-      "default": true,
-      "description": "When logged in, the LSP will runs rules configured on Semgrep App"
-    },
-    "semgrep.metrics": {
-      "type": "string",
-      "default": "on",
-      "items": {
-        "type": "string",
-        "enum": ["auto", "on", "off"]
-      },
-      "description": "Enable or disable metrics collection. Auto will only report metrics when rules are pulled from the registry"
+      "description": "Enable or disable metrics collection."
     }
   }
 }

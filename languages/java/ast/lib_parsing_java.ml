@@ -19,7 +19,7 @@ module V = Visitor_java
 (*****************************************************************************)
 
 let find_source_files_of_dir_or_files xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | FT.PL FT.Java -> true
@@ -43,3 +43,8 @@ let extract_info_visitor recursor =
   List.rev !globals
 
 let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
+
+let info_of_any any =
+  match ii_of_any any with
+  | x :: _ -> x
+  | [] -> assert false

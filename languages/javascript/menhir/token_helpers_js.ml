@@ -12,9 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
 open Parser_js
-module PI = Parse_info
+module PI = Lib_ast_fuzzy
 
 (*****************************************************************************)
 (* Token Helpers *)
@@ -219,8 +218,8 @@ let info_of_tok tok =
 
 let line_of_tok tok =
   let info = info_of_tok tok in
-  Parse_info.line_of_info info
+  Tok.line_of_tok info
 
 let col_of_tok tok =
   let info = info_of_tok tok in
-  Parse_info.col_of_info info
+  Tok.col_of_tok info

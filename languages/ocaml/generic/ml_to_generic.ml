@@ -42,7 +42,7 @@ let _error = G.error
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let add_attrs ent attrs = { ent with G.attrs }
 
 let mk_var_or_func tlet params tret body =
@@ -230,87 +230,86 @@ and option_expr_to_ctor_arguments v =
       fb [ e ]
 
 and expr e =
-  (match e with
+  match e with
   | ParenExpr (l, e, r) -> (
       let e = expr e in
       match e.G.e with
       (* replace fake brackets with real one *)
-      | G.Container (G.Tuple, (_, xs, _)) -> G.Container (G.Tuple, (l, xs, r))
-      (* actually, always keep the ParenExpr for now, so that autofix does not
-       * have dangling parenthesis
-       * TODO: this may prevent some matching in generic_vs_generic.
-       * Maybe we should have a pre-phase that set the e_range correctly and
-       * remove the extra ParenExpr.
-       *)
-      | _kind -> G.ParenExpr (l, e, r))
+      | G.Container (G.Tuple, (_, xs, _)) ->
+          G.Container (G.Tuple, (l, xs, r)) |> G.e
+      | _kind ->
+          AST_generic_helpers.set_e_range l r e;
+          e)
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
       let v2 = tok v2 in
       let v3 = type_ v3 in
       match v1.G.e with
       | G.N (G.Id (id, _idinfo)) when AST_generic.is_metavar_name (fst id) ->
-          G.TypedMetavar (id, v2, v3)
-      | _ -> G.Cast (v3, v2, v1))
+          G.TypedMetavar (id, v2, v3) |> G.e
+      | _ -> G.Cast (v3, v2, v1) |> G.e)
   | Ellipsis v1 ->
       let v1 = tok v1 in
-      G.Ellipsis v1
+      G.Ellipsis v1 |> G.e
   | DeepEllipsis (v1, v2, v3) ->
       let v1 = tok v1 in
       let v2 = expr v2 in
       let v3 = tok v3 in
-      G.DeepEllipsis (v1, v2, v3)
+      G.DeepEllipsis (v1, v2, v3) |> G.e
   | L v1 ->
       let v1 = literal v1 in
-      G.L v1
-  | Name v1 -> G.N (name v1)
+      G.L v1 |> G.e
+  | Name v1 -> G.N (name v1) |> G.e
   | Constructor (v1, v2) ->
       let v1 = name v1 in
       let v2 = option_expr_to_ctor_arguments v2 in
-      G.Constructor (v1, v2)
+      G.Constructor (v1, v2) |> G.e
   | PolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
       let v1 = ident v1 in
       let v2 = option_expr_to_ctor_arguments v2 in
       let name = H.name_of_ids [ ("`", v0); v1 ] in
       (* TODO: introduce a new construct in AST_generic instead? *)
-      G.Constructor (name, v2)
+      G.Constructor (name, v2) |> G.e
   | Tuple v1 ->
       let v1 = (list expr) v1 in
       (* the fake brackets might be replaced in the caller if there
        * was a ParenExpr around
        *)
-      G.Container (G.Tuple, fb v1)
+      G.Container (G.Tuple, fb v1) |> G.e
   | List v1 ->
       let v1 = bracket (list expr) v1 in
-      G.Container (G.List, v1)
+      G.Container (G.List, v1) |> G.e
   | Prefix (v1, v2) ->
       let v1 = wrap string v1 and v2 = expr v2 in
       G.Call (G.N (G.Id (v1, G.empty_id_info ())) |> G.e, fb [ G.Arg v2 ])
+      |> G.e
   (* todo? convert some v2 in IdSpecial Op? *)
   | Infix (v1, v2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
       G.Call
         (G.N (G.Id (v2, G.empty_id_info ())) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      |> G.e
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
-      G.Call (v1, fb v2)
+      G.Call (v1, fb v2) |> G.e
   | RefAccess (v1, v2) ->
       let v1 = tok v1 and v2 = expr v2 in
-      G.DeRef (v1, v2)
+      G.DeRef (v1, v2) |> G.e
   | RefAssign (v1, v2, v3) ->
       let v1 = expr v1 and v2 = tok v2 and v3 = expr v3 in
-      G.Assign (G.DeRef (v2, v1) |> G.e, v2, v3)
+      G.Assign (G.DeRef (v2, v1) |> G.e, v2, v3) |> G.e
   | FieldAccess (v1, vtok, v2) ->
       let v1 = expr v1 in
       let vtok = tok vtok in
       let v2 = name v2 in
-      G.DotAccess (v1, vtok, G.FN v2)
+      G.DotAccess (v1, vtok, G.FN v2) |> G.e
   | FieldAssign (v1, t1, v2, t2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
       let t1 = tok t1 in
       let t2 = tok t2 in
       let v2 = name v2 in
-      G.Assign (G.DotAccess (v1, t1, G.FN v2) |> G.e, t2, v3)
+      G.Assign (G.DotAccess (v1, t1, G.FN v2) |> G.e, t2, v3) |> G.e
   | Record (v1, v2) -> (
       let v1 = option expr v1
       and v2 =
@@ -328,18 +327,17 @@ and expr e =
                    G.fld (ent, def)))
           v2
       in
-      let obj = G.Record v2 in
+      let obj = G.Record v2 |> G.e in
       match v1 with
       | None -> obj
-      | Some e -> G.OtherExpr (("With", G.fake ""), [ G.E e; G.E (obj |> G.e) ])
-      )
+      | Some e -> G.OtherExpr (("With", G.fake ""), [ G.E e; G.E obj ]) |> G.e)
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
-      G.New (v1, G.TyN v2 |> G.t, fb [])
+      G.New (v1, G.TyN v2 |> G.t, G.empty_id_info (), fb []) |> G.e
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in
-      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | LetIn (tlet, v1, v2, v3) ->
       let _v1 = rec_opt v1 in
       let v2 = list let_binding v2 in
@@ -347,7 +345,7 @@ and expr e =
       let defs = defs_of_bindings tlet [] v2 in
       let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
       let x = G.stmt_to_expr st in
-      x.G.e
+      x.G.e |> G.e
   | Fun (t, v1, v2) ->
       let v1 = list parameter v1 and v2 = expr v2 in
       let def =
@@ -358,7 +356,7 @@ and expr e =
           fbody = G.FBExpr v2;
         }
       in
-      G.Lambda def
+      G.Lambda def |> G.e
   | Function (t, xs) ->
       let xs = list (fun a -> a |> match_case |> G.case_of_pat_and_expr) xs in
       let id = G.implicit_param_id t in
@@ -375,10 +373,11 @@ and expr e =
           fkind = (G.Function, t);
           fbody = G.FBStmt body_stmt;
         }
+      |> G.e
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr (t, Common.map (fun x -> G.E x) xs)
+      G.OtherExpr (t, Common.map (fun x -> G.E x) xs) |> G.e
   | If _
   | Try _
   | For _
@@ -387,8 +386,7 @@ and expr e =
   | Match _ ->
       let s = stmt e in
       let x = G.stmt_to_expr s in
-      x.G.e)
-  |> G.e
+      x.G.e |> G.e
 
 and literal = function
   | Int v1 ->
@@ -409,7 +407,7 @@ and literal = function
   | Unit (v1, v2) ->
       let v1 = tok v1 in
       let v2 = tok v2 in
-      let t = Parse_info.combine_infos v1 [ v2 ] in
+      let t = Tok.combine_toks v1 [ v2 ] in
       G.Unit t
 
 and argument = function

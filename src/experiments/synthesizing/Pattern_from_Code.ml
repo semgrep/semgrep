@@ -33,7 +33,7 @@ exception UnexpectedCase of string
 type named_variants = (string * Pattern.t) list
 
 type environment = {
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   count : int;
   mapping : (expr * expr) list;
   has_type : bool;
@@ -59,7 +59,7 @@ let lookup env e =
 (* Helpers *)
 (*****************************************************************************)
 
-let fk = Parse_info.unsafe_fake_info "fake"
+let fk = Tok.unsafe_fake_tok "fake"
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
 let body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 let _bk f (lp, x, rp) = (lp, f x, rp)
@@ -197,7 +197,7 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 let generalize_call env e =
   match e.e with
-  | New (_, _, _) -> []
+  | New (_, _, _, _) -> []
   | Call (e, (lp, es, rp)) -> (
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =

@@ -12,6 +12,8 @@ causing no runtime errors.
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from enum import auto
+from enum import Enum
 from pathlib import Path
 from re import escape
 from typing import Callable
@@ -32,6 +34,7 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
+from semgrep.console import console
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -43,8 +46,28 @@ logger = getLogger(__name__)
 
 A = TypeVar("A")
 B = TypeVar("B")
+C = TypeVar("C")
 
 Pos = Tuple[int, int]
+
+
+class ParserName(Enum):
+    gemfile_lock = auto()
+    go_mod = auto()
+    go_sum = auto()
+    gradle_lockfile = auto()
+    gradle_build = auto()
+    jsondoc = auto()
+    pipfile = auto()
+    pnpm_lock = auto()
+    poetry_lock = auto()
+    pyproject_toml = auto()
+    requirements = auto()
+    yarn_1 = auto()
+    yarn_2 = auto()
+    pomtree = auto()
+    cargo = auto()
+    composer_lock = auto()
 
 
 def not_any(*chars: str) -> "Parser[str]":
@@ -93,6 +116,13 @@ def pair(p1: "Parser[A]", p2: "Parser[B]") -> "Parser[Tuple[A,B]]":
     Returns a parser which runs [p1] then [p2] and produces a pair of the results
     """
     return p1.bind(lambda a: p2.bind(lambda b: success((a, b))))
+
+
+def triple(p1: "Parser[A]", p2: "Parser[B]", p3: "Parser[C]") -> "Parser[Tuple[A,B,C]]":
+    """
+    Returns a parser which runs [p1] then [p2] then [p3] and produces a triple of the results
+    """
+    return p1.bind(lambda a: p2.bind(lambda b: p3.bind(lambda c: success((a, b, c)))))
 
 
 def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Transitivity:
@@ -149,6 +179,8 @@ def quoted(p: "Parser[A]") -> "Parser[A]":
     return string('"') >> p << string('"')
 
 
+integer = regex(r"\d+").map(int)
+any_str = regex(".*")
 word = not_any(" ")
 consume_word = word >> success(None)
 
@@ -201,22 +233,57 @@ def parse_error_to_str(e: ParseError) -> str:
         return f"expected one of {expected_list}"
 
 
+@dataclass
+class DependencyParserError(Exception):
+    """
+    Encapsulate failure to parse file using parsy
+    """
+
+    path: Path
+    parser: ParserName
+    reason: str
+    line: Optional[int] = None
+    col: Optional[int] = None
+    text: Optional[str] = None
+
+    def to_json(self) -> Dict[str, Union[Optional[str], Optional[int]]]:
+        return {
+            "path": str(self.path),
+            "parser": self.parser.name,
+            "reason": self.reason,
+            "line": self.line,
+            "col": self.col,
+            "text": self.text,
+        }
+
+
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
-    preprocess: Optional[Callable[[str], str]] = None,
+    parser_name: ParserName,
+    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
 ) -> Optional[A]:
     """
     Run [parser] on the text in [path]
-    If the parsing fails, produces a pretty error message
+
+    PARSER_NAME is used for error reporting to correctly identify which PARSER attempted to parse PATH
+
+    Returns None if path does not exist
+
+    Raises DependencyParserError if it fails to parse the file in PATH with PARSER
     """
     if not path:
         return None
+
     text = path.read_text()
-    if preprocess:
-        text = preprocess(text)
+    text = preprocess(text)
+
     try:
         return parser.parse(text)
+    except RecursionError:
+        reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
+        console.print(f"Failed to parse {path} - {reason}")
+        raise DependencyParserError(path, parser_name, reason)
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
@@ -225,15 +292,22 @@ def safe_path_parse(
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
+        location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
+
         if line < len(text_lines):
-            logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\n{line_prefix + text.splitlines()[line]}\n{' ' * (col + len(line_prefix))}^"
+            offending_line = text_lines[line]
+            console.print(
+                f"Failed to parse {location} - {error_str}\n"
+                f"{line_prefix}{offending_line}\n"
+                f"{' ' * (col + len(line_prefix))}^"
+            )
+            raise DependencyParserError(
+                path, parser_name, error_str, line + 1, col + 1, offending_line
             )
         else:
-            logger.error(
-                f"Failed to parse {path} at {line + 1}:{col + 1} - {error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
-            )
-        return None
+            reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+            console.print(f"Failed to parse {location} - {reason}")
+            raise DependencyParserError(path, parser_name, reason, line + 1, col + 1)
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
@@ -264,6 +338,9 @@ class JSON:
 
     def as_list(self) -> List["JSON"]:
         return cast(List["JSON"], self.value)
+
+    def as_int(self) -> int:
+        return cast(int, self.value)
 
 
 # Utilities

@@ -1,6 +1,6 @@
-exception ObsoleteConstruct of string * Parse_info.t
+exception ObsoleteConstruct of string * Tok.t
 exception CplusplusConstruct
-exception TodoConstruct of string * Parse_info.t
+exception TodoConstruct of string * Tok.t
 exception CaseOutsideSwitch
 exception MacroInCase
 

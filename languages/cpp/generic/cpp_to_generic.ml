@@ -16,7 +16,6 @@ open Common
 module H = AST_generic_helpers
 open Ast_cpp
 open OCaml (* for the map_of_xxx *)
-module PI = Parse_info
 module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -42,17 +41,18 @@ let recover_when_partial_error = ref true
 type env = { mutable defs_toadd : G.definition list }
 
 let empty_env () = { defs_toadd = [] }
-let error t s = raise (Parse_info.Other_error (s, t))
+let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
 let error_unless_partial_error _env t s =
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
+    logger#error "error_unless_partial_error: %s, at %s" s
+      (Tok.stringpos_of_tok t)
 
 let empty_stmt tk = Compound (tk, [], tk)
 let _id x = x
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let map_either _env f g x =
   match x with
@@ -176,17 +176,17 @@ and map_ident_or_op (env : env) = function
   | IdOperator (v1, v2) ->
       let t1 = map_tok env v1 in
       let _op, t2 = map_wrap env (map_operator env) v2 in
-      let id = (PI.str_of_info t2, PI.combine_infos t1 [ t2 ]) in
+      let id = (Tok.content_of_tok t2, Tok.combine_toks t1 [ t2 ]) in
       (id, None)
   | IdDestructor (v1, v2) ->
       let t1 = map_tok env v1 and s, t2 = map_ident env v2 in
-      let id = (PI.str_of_info t1 ^ s, PI.combine_infos t1 [ t2 ]) in
+      let id = (Tok.content_of_tok t1 ^ s, Tok.combine_toks t1 [ t2 ]) in
       (id, None)
   | IdConverter (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      let ii = Visitor_AST.ii_of_any (G.T v2) in
-      let s = v1 :: ii |> Common.map PI.str_of_info |> String.concat "" in
-      let t = PI.combine_infos v1 ii in
+      let ii = AST_generic_helpers.ii_of_any (G.T v2) in
+      let s = v1 :: ii |> Common.map Tok.content_of_tok |> String.concat "" in
+      let t = Tok.combine_toks v1 ii in
       let id = (s, t) in
       (id, None)
 
@@ -284,7 +284,8 @@ and map_typeC env x : G.type_ =
   | ClassName (v1, v2) ->
       let (_kind, tk), _attrs = map_class_key env v1
       and v2 = map_a_class_name env v2 in
-      G.OtherType ((PI.str_of_info tk, tk), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
+      G.OtherType ((Tok.content_of_tok tk, tk), [ G.T (G.TyN v2 |> G.t) ])
+      |> G.t
   | ClassDef ((_, vdef) as v1) ->
       let nopt, cdef = map_class_definition env v1 in
       let _kind, tk = vdef.c_kind in
@@ -299,12 +300,12 @@ and map_typeC env x : G.type_ =
                 tparams = [];
               }
             in
-            let t = G.OtherType ((PI.str_of_info tk, tk), []) |> G.t in
+            let t = G.OtherType ((Tok.content_of_tok tk, tk), []) |> G.t in
             (ent, t)
         | Some n ->
             let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
             let t =
-              G.OtherType ((PI.str_of_info tk, tk), [ G.T (G.TyN n |> G.t) ])
+              G.OtherType ((Tok.content_of_tok tk, tk), [ G.T (G.TyN n |> G.t) ])
               |> G.t
             in
             (ent, t)
@@ -441,7 +442,7 @@ and map_expr env x : G.expr =
       in
       let arg = arg_of_either_expr_type v2 in
       let special = G.IdSpecial (G.Sizeof, v1) |> G.e in
-      G.Call (special, PI.unsafe_fake_bracket [ arg ]) |> G.e
+      G.Call (special, Tok.unsafe_fake_bracket [ arg ]) |> G.e
   | Cast (v1, v2) ->
       let l, t, _r = map_paren env (map_type_ env) v1
       and v2 = map_expr env v2 in
@@ -455,10 +456,12 @@ and map_expr env x : G.expr =
       and lbrace, xs, rbrace =
         map_brace env (map_of_list (map_initialiser env)) v2
       in
-      G.New (lpar, t, (lbrace, xs |> Common.map G.arg, rbrace)) |> G.e
+      G.New
+        (lpar, t, G.empty_id_info (), (lbrace, xs |> Common.map G.arg, rbrace))
+      |> G.e
   | ConstructedObject (v1, v2) ->
       let t = map_type_ env v1 and l, args, r = map_obj_init env v2 in
-      G.New (PI.fake_info l "new", t, (l, args, r)) |> G.e
+      G.New (Tok.fake_tok l "new", t, G.empty_id_info (), (l, args, r)) |> G.e
   | TypeId (v1, v2) ->
       let v1 = map_tok env v1
       and _l, either, _r =
@@ -481,10 +484,10 @@ and map_expr env x : G.expr =
       and v5 = map_of_option (map_obj_init env) v5 in
       let l, args, r =
         match v5 with
-        | None -> PI.unsafe_fake_bracket []
+        | None -> Tok.unsafe_fake_bracket []
         | Some (l, args, r) -> (l, args, r)
       in
-      G.New (v2, v4, (l, args, r)) |> G.e
+      G.New (v2, v4, G.empty_id_info (), (l, args, r)) |> G.e
   | Delete (v1, v2, v3, v4) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
@@ -569,7 +572,7 @@ and map_constant env x : G.literal =
       let t =
         match v1 |> Common.map snd with
         | [] -> raise Impossible
-        | x :: xs -> PI.combine_infos x xs
+        | x :: xs -> Tok.combine_toks x xs
       in
       G.String (fb (s, t))
   | Bool v1 ->
@@ -760,7 +763,7 @@ and map_stmt env x : G.stmt =
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
-      let st = G.Block (PI.unsafe_fake_bracket v2) |> G.s in
+      let st = G.Block (Tok.unsafe_fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
 
 (* similar to Ast_c_build.cases()
@@ -1639,7 +1642,7 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) either =
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
       fun tk ->
         let dots = H.dotted_ident_of_name v2 in
-        Left (G.ImportAll (tk, G.DottedName dots, PI.fake_info v1 "") |> G.d)
+        Left (G.ImportAll (tk, G.DottedName dots, Tok.fake_tok v1 "") |> G.d)
   | UsingAlias (v1, v2, v3) ->
       fun _tk ->
         let v1 = map_ident env v1

@@ -15,7 +15,6 @@
 open Common
 open AST_generic
 module G = AST_generic
-module M = Map_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -287,22 +286,22 @@ let vardef_to_assign (ent, def) =
   let v =
     match def.vinit with
     | Some v -> v
-    | None -> L (Null (Parse_info.unsafe_fake_info "null")) |> G.e
+    | None -> L (Null (Tok.unsafe_fake_tok "null")) |> G.e
   in
-  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
   let name_or_expr = entity_name_to_expr ent.name (Some idinfo) in
   let v = Lambda def |> G.e in
-  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
 let funcbody_to_stmt = function
   | FBStmt st -> st
   | FBExpr e -> G.exprstmt e
   | FBDecl sc -> Block (sc, [], sc) |> G.s
-  | FBNothing -> Block (Parse_info.unsafe_fake_bracket []) |> G.s
+  | FBNothing -> Block (Tok.unsafe_fake_bracket []) |> G.s
 
 let has_keyword_attr kwd attrs =
   attrs
@@ -320,7 +319,9 @@ let parameter_to_catch_exn_opt p =
   | ParamRest (_, _p)
   | ParamHashSplat (_, _p) ->
       None
-  | OtherParam _ -> None
+  | ParamReceiver _
+  | OtherParam _ ->
+      None
 
 (*****************************************************************************)
 (* Abstract position and svalue for comparison *)
@@ -330,20 +331,17 @@ let parameter_to_catch_exn_opt p =
  * does not care about position information.
  * TODO: can we remove this function now then?
  *)
-let abstract_for_comparison_visitor recursor =
-  let hooks =
-    {
-      M.default_visitor with
-      M.kinfo = (fun (_k, _) i -> { i with Parse_info.token = Parse_info.Ab });
-      M.kidinfo =
-        (fun (k, _) ii -> k { ii with AST_generic.id_svalue = ref None });
-    }
-  in
-  let vout = M.mk_visitor hooks in
-  recursor vout
+let abstract_for_comparison_visitor =
+  object
+    inherit [_] AST_generic.map_legacy as super
+    method! visit_tok _env _i = Tok.Ab
+
+    method! visit_id_info env ii =
+      super#visit_id_info env { ii with AST_generic.id_svalue = ref None }
+  end
 
 let abstract_for_comparison_any x =
-  abstract_for_comparison_visitor (fun visitor -> visitor.M.vany x)
+  abstract_for_comparison_visitor#visit_any () x
 
 (*****************************************************************************)
 (* Associative-Commutative (AC) matching *)
@@ -386,7 +384,7 @@ let ac_matching_nf op args =
         logger#error
           "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
           (show_operator op)
-          (show_arguments (Parse_info.unsafe_fake_bracket args));
+          (show_arguments (Tok.unsafe_fake_bracket args));
         None)
   else None
 
@@ -397,7 +395,165 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
       let mk_op x y =
         Call
           ( IdSpecial (Op op, tok) |> G.e,
-            Parse_info.unsafe_fake_bracket [ Arg x; Arg y ] )
+            Tok.unsafe_fake_bracket [ Arg x; Arg y ] )
         |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)
+
+let set_e_range l r e =
+  match (Tok.loc_of_tok l, Tok.loc_of_tok r) with
+  | Ok l, Ok r -> e.e_range <- Some (l, r)
+  | Error _, _
+  | _, Error _ ->
+      (* Probably not super useful to dump the whole expression, or to log the
+       * fake tokens themselves. Perhaps this will be useful for debugging
+       * isolated examples, though. *)
+      logger#debug "set_e_range failed: missing token location";
+      ()
+
+class ['self] extract_info_visitor =
+  object (_self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+    method! visit_tok globals tok = Common.push tok globals
+
+    method! visit_expr globals x =
+      match x.e with
+      (* Ignore the tokens from the expression str is aliased to *)
+      | Alias ((_str, t), _e) -> Common.push t globals
+      | _ -> super#visit_expr globals x
+  end
+
+let ii_of_any any =
+  let v = new extract_info_visitor in
+  let globals = ref [] in
+  v#visit_any globals any;
+  List.rev !globals
+  [@@profiling]
+
+let info_of_any any =
+  match ii_of_any any with
+  | x :: _ -> x
+  | [] -> assert false
+
+(*e: function [[Lib_AST.ii_of_any]] *)
+
+let first_info_of_any any =
+  let xs = ii_of_any any in
+  let xs = List.filter Tok.is_origintok xs in
+  let min, _max = Tok_range.min_max_toks_by_pos xs in
+  min
+
+(*****************************************************************************)
+(* Extract ranges *)
+(*****************************************************************************)
+
+class ['self] range_visitor =
+  let smaller t1 t2 =
+    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
+  in
+  let larger t1 t2 =
+    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
+  in
+  let incorporate_tokens ranges (left, right) =
+    match !ranges with
+    | None -> ranges := Some (left, right)
+    | Some (orig_left, orig_right) ->
+        ranges := Some (smaller orig_left left, larger orig_right right)
+  in
+  let incorporate_token ranges tok =
+    if Tok.is_origintok tok then
+      let tok_loc = Tok.unsafe_loc_of_tok tok in
+      incorporate_tokens ranges (tok_loc, tok_loc)
+  in
+  object (self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+    method! visit_tok ranges tok = incorporate_token ranges tok
+
+    method! visit_expr ranges expr =
+      match expr.e_range with
+      | None -> (
+          let saved_ranges = !ranges in
+          ranges := None;
+          super#visit_expr ranges expr;
+          expr.e_range <- !ranges;
+          match saved_ranges with
+          | None -> ()
+          | Some r -> incorporate_tokens ranges r)
+      | Some range -> incorporate_tokens ranges range
+
+    method! visit_stmt ranges stmt =
+      match stmt.s_range with
+      | None -> (
+          let saved_ranges = !ranges in
+          ranges := None;
+          super#visit_stmt ranges stmt;
+          stmt.s_range <- !ranges;
+          match saved_ranges with
+          | None -> ()
+          | Some r -> incorporate_tokens ranges r)
+      | Some range -> incorporate_tokens ranges range
+
+    (* Ignore the tokens from the aliased expression *)
+    method! visit_Alias ranges id _e = self#visit_ident ranges id
+  end
+
+let extract_ranges : AST_generic.any -> (Tok.location * Tok.location) option =
+  let v = new range_visitor in
+  let ranges = ref None in
+  fun any ->
+    v#visit_any ranges any;
+    let res = !ranges in
+    ranges := None;
+    res
+
+let range_of_tokens tokens =
+  List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
+  [@@profiling]
+
+let range_of_any_opt any =
+  (* Even if the ranges are cached, calling `extract_ranges` to get them
+   * is extremely expensive (due to `mk_visitor`). Testing taint-mode
+   * open-redirect rule on Django, we spent ~16 seconds computing range
+   * info (despite caching). If we bypass `extract_ranges` as we do here,
+   * that time drops to just ~1.5 seconds! *)
+  match any with
+  | G.E e when Option.is_some e.e_range -> e.e_range
+  | G.S s when Option.is_some s.s_range -> s.s_range
+  | G.Tk tok -> (
+      match Tok.loc_of_tok tok with
+      | Ok tok_loc -> Some (tok_loc, tok_loc)
+      | Error _ -> None)
+  | G.Anys [] -> None
+  | _ -> extract_ranges any
+  [@@profiling]
+
+(*****************************************************************************)
+(* Fix token locations *)
+(*****************************************************************************)
+
+let fix_token_locations_visitor =
+  object (_self : 'self)
+    inherit [_] AST_generic.map_legacy as super
+
+    method! visit_id_info _fix ii =
+      (* The id_info contains locations that should not be modified, and they
+       * are likely outside the sub-AST of interest anyways. *)
+      ii
+
+    method! visit_expr fix e =
+      super#visit_expr fix
+        { e with e_range = Option.map (fun (x, y) -> (fix x, fix y)) e.e_range }
+
+    method! visit_stmt fix s =
+      super#visit_stmt fix
+        { s with s_range = Option.map (fun (x, y) -> (fix x, fix y)) s.s_range }
+
+    method! visit_tok fix t = Tok.fix_location fix t
+  end
+
+(* Exposing just these methods because we want the .mli file for this module,
+ * and it's impractical to write out the type of an autogenerated visitor. If we
+ * need more, we could consider putting the visitor in a separate file without
+ * an mli and allowing direct access to it. *)
+let fix_token_locations_any = fix_token_locations_visitor#visit_any
+let fix_token_locations_program = fix_token_locations_visitor#visit_program

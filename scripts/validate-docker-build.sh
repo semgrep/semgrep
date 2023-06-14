@@ -45,14 +45,14 @@ docker run "$image"
 docker run "$image" echo -l -a -t -r -v -e -f
 
 # Semgrep should run when a config is passed
-docker run "$image" --config=p/ci --help
+docker run "$image" semgrep --config=p/ci --help
 
 # Semgrep should run when just help is requested
-docker run "$image" --help
+docker run "$image" semgrep --help
 
 # Semgrep should run when a subcommand is passed
-docker run "$image" ci --help
-docker run "$image" publish --help
+docker run "$image" semgrep ci --help
+docker run "$image" semgrep publish --help
 
 # Semgrep should be able to return findings
 echo "if 1 == 1: pass" \
@@ -60,5 +60,6 @@ echo "if 1 == 1: pass" \
     | grep -q "1 == 1"
 
 TEMP_DIR=$(mktemp -d)
+chmod +rwx "$TEMP_DIR"
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
 docker run -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"

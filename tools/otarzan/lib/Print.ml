@@ -125,7 +125,7 @@ let rec func_for_type (conf : Conf.t) (typ : type_) : out list * string =
         gen_typedef conf true
           (TyDecl
              {
-               tname = (local_name, Parse_info.unsafe_sc);
+               tname = (local_name, Tok.unsafe_sc);
                tparams = [];
                tbody = CoreType typ;
              })

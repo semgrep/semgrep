@@ -14,7 +14,6 @@
  *)
 
 module CST = Tree_sitter_python.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_python
 
@@ -39,8 +38,8 @@ let str = H.str
 
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
-let fb = Parse_info.unsafe_fake_bracket
-let invalid () = raise (PI.NoTokenLocation "Invalid program")
+let fb = Tok.unsafe_fake_bracket
+let invalid () = raise (Tok.NoTokenLocation "Invalid program")
 
 (* AST builders helpers
  * less: could be moved in AST_Python.ml to factorize things with
@@ -721,7 +720,7 @@ and map_pattern_to_parameter (env : env) (x : CST.pattern) : param_pattern =
   | `Subs _
   | `List_pat _
   | `Attr _ ->
-      raise (PI.NoTokenLocation "")
+      raise (Tok.NoTokenLocation "")
   | `List_splat_pat x ->
       (* Via the Python 3 grammar, you can only have a pow in a pattern if the next
          is just a NAME.
@@ -925,15 +924,14 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       let r = (* ")" *) token env v3 in
       Tuple (CompList (l, xs, r), no_ctx)
   | `Paren_exp (v1, v2, v3) ->
-      let _lp = (* "(" *) token env v1 in
+      let lp = (* "(" *) token env v1 in
       let e =
         match v2 with
         | `Exp x -> map_type_ env x
         | `Yield x -> map_yield env x
       in
-      let _rp = (* ")" *) token env v3 in
-      (* TODO? ParenExpr? *)
-      e
+      let rp = (* ")" *) token env v3 in
+      ParenExpr (lp, e, rp)
   | `Gene_exp x ->
       let x = map_generator_expression env x in
       x

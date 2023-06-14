@@ -9,6 +9,7 @@ from xml.etree import cElementTree
 import pytest
 from tests.conftest import TESTS_PATH
 from tests.e2e.test_ci import REPO_DIR_NAME
+from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
@@ -40,8 +41,9 @@ def _etree_to_dict(t):
     return d
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_output_highlighting(run_semgrep_in_tmp, snapshot):
+def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
         target_name="cli_test/basic/",
@@ -55,8 +57,9 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
+def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
         target_name="cli_test/basic/",
@@ -70,8 +73,11 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snapshot):
+def test_output_highlighting__force_color_and_no_color(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     """
     NO_COLOR would normally disable color: https://no-color.org/
 
@@ -96,7 +102,7 @@ def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snaps
 # with metavariables. We don't want to introduce regressions which might
 # mess this up.
 @pytest.mark.quick
-def test_yaml_metavariables(run_semgrep_in_tmp, snapshot):
+def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/yaml_key.yaml",
         target_name="yaml/target.yaml",
@@ -121,7 +127,8 @@ def test_yaml_metavariables(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.quick
-def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
 
@@ -139,12 +146,13 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp, snapshot):
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--emacs", "--vim"],
 )
-def test_output_format(run_semgrep_in_tmp, snapshot, format):
+def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         target_name="basic/stupid.py",
@@ -155,7 +163,16 @@ def test_output_format(run_semgrep_in_tmp, snapshot, format):
 
 
 @pytest.mark.kinda_slow
-def test_omit_inventory(run_semgrep_in_tmp, snapshot):
+@pytest.mark.parametrize(
+    "format",
+    ["--gitlab-sast", "--gitlab-secrets", "--sarif"],
+)
+def test_output_format_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
+    test_output_format(run_semgrep_in_tmp, snapshot, format)
+
+
+@pytest.mark.kinda_slow
+def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/inventory/invent.yaml", target_name="inventory/invent.py"
     )
@@ -163,7 +180,7 @@ def test_omit_inventory(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_omit_experiment(run_semgrep_in_tmp, snapshot):
+def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/experiment/experiment.yaml",
         target_name="experiment/experiment.py",
@@ -172,7 +189,7 @@ def test_omit_experiment(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_debug_experimental_rule(run_semgrep_in_tmp, snapshot):
+def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     result = run_semgrep_in_tmp(
         "rules/experiment/experiment.yaml",
         target_name="experiment/experiment.py",
@@ -187,7 +204,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp, snapshot):
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
                 # Mask variable debug output
-                re.compile(r"/(.*)/semgrep(-core|_bridge_python.so)"),
+                re.compile(r"/(.*)/semgrep-core"),
                 re.compile(r"loaded 1 configs in(.*)"),
                 re.compile(r".*https://semgrep.dev(.*).*"),
                 re.compile(r"(.*Main\.Dune__exe__Main.*)"),
@@ -208,7 +225,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
+def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
     )
@@ -223,7 +240,7 @@ def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
 # If there are nosemgrep comments to ignore findings, SARIF output should include them
 # labeled as suppressed.
 @pytest.mark.kinda_slow
-def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-nosemgrep.yaml",
@@ -236,7 +253,7 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
 
 # Test that rule board information makes its way into SARIF output
 @pytest.mark.kinda_slow
-def test_sarif_output_rule_board(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/rule-board-eqeq.yaml",
@@ -248,7 +265,7 @@ def test_sarif_output_rule_board(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
     ).stdout
@@ -265,7 +282,7 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF
     ).stdout
@@ -278,7 +295,9 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_with_nosemgrep_and_error(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq.yaml",
@@ -291,7 +310,7 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/autofix/autofix.yaml",
@@ -310,7 +329,7 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp, snapshot):
+def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/taint.yaml",
@@ -323,7 +342,9 @@ def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot):
+def test_semgrepignore_ignore_log_report(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
     )
@@ -359,7 +380,9 @@ def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
 
 
 @pytest.mark.kinda_slow
-def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snapshot):
+def test_semgrepignore_ignore_log_json_report(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
     )
@@ -394,7 +417,9 @@ def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snap
     "git_repo",
     [True, False],
 )
-def test_git_repo_output(run_semgrep, git_repo, tmp_path, monkeypatch, snapshot):
+def test_git_repo_output(
+    run_semgrep: RunSemgrep, git_repo, tmp_path, monkeypatch, snapshot
+):
     """
     Initialize a git repo at a temp directory
     """
@@ -427,10 +452,23 @@ def test_git_repo_output(run_semgrep, git_repo, tmp_path, monkeypatch, snapshot)
 
 
 @pytest.mark.kinda_slow
-def test_sca_output(run_semgrep_on_copied_files, snapshot):
+def test_sca_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
     results, _errors = run_semgrep_on_copied_files(
         "rules/dependency_aware/monorepo_with_first_party.yaml",
         target_name="dependency_aware/monorepo",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_sca_lockfile_only_output(run_semgrep_on_copied_files: RunSemgrep, snapshot):
+    results, _errors = run_semgrep_on_copied_files(
+        "rules/dependency_aware/lodash-4.17.19.yaml",
+        target_name="dependency_aware/unreachable_multiple_copies/yarn.lock",
         output_format=OutputFormat.TEXT,
     )
     snapshot.assert_match(

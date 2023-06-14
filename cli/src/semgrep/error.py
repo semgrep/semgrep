@@ -28,10 +28,10 @@ logger = getLogger(__name__)
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
 FATAL_EXIT_CODE = 2
-# the commented one below are not used anymore
-# INVALID_CODE_EXIT_CODE = 3
-INVALID_PATTERN_EXIT_CODE = 4
+TARGET_PARSE_FAILURE_EXIT_CODE = 3
+RULE_PARSE_FAILURE_EXIT_CODE = 4
 UNPARSEABLE_YAML_EXIT_CODE = 5
+# the commented one below are not used anymore
 # NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
@@ -129,7 +129,7 @@ class SemgrepCoreError(SemgrepError):
         if not isinstance(
             self.core.error_type.value, core.RuleParseError
         ) and not isinstance(self.core.error_type.value, core.PatternParseError):
-            base = dataclasses.replace(base, path=str(self.core.location.path))
+            base = dataclasses.replace(base, path=self.core.location.path)
 
         if self.spans:
             base = dataclasses.replace(base, spans=self.spans)
@@ -171,11 +171,9 @@ class SemgrepCoreError(SemgrepError):
             ) or isinstance(self.core.error_type.value, core.PatternParseError):
                 error_context = f"in rule {self.core.rule_id.value}"
             else:
-                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
+                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path.value}"
         else:
-            error_context = (
-                f"at line {self.core.location.path}:{self.core.location.start.line}"
-            )
+            error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
 
         return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
 
@@ -202,7 +200,7 @@ class SemgrepCoreError(SemgrepError):
                 self.level,
                 self.core.rule_id,
                 self.core.error_type.kind,
-                self.core.location.path,
+                self.core.location.path.value,
                 self.core.location.start,
                 self.core.location.end,
                 self.core.message,
@@ -398,7 +396,7 @@ class ErrorWithSpan(SemgrepError):
 
 @attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
+    code = RULE_PARSE_FAILURE_EXIT_CODE
     level = Level.ERROR
 
 

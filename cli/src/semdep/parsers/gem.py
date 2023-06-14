@@ -11,6 +11,7 @@ from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import mark_line
+from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
@@ -39,13 +40,21 @@ manifest_package = string("  ") >> upto(" ", "!").bind(
     )
 )
 
+# Gemfiles may have 1 or more remotes, so the following are both valid:
+#   remote: https://rubygems.org/
+# and
+#   remote: https://rubygems.org/
+#   remote: https://foo.bar.org/foobar/
+remotes = (
+    string("  remote: ") >> any_char.until(string("\n"), consume_other=True)
+).at_least(1)
+
 # Gemfile.lock contains both locked depedencies and manifest dependencies
 # Ignore everything until GEM, indicating locked dependencies
 # Then ignore everything until DEPENDENCIES, indicating manifest dependencies
 gemfile = (
     any_char.until(string("GEM\n"), consume_other=True)
-    >> string("  remote: ")
-    >> any_char.until(string("\n"), consume_other=True)
+    >> remotes
     >> string("  specs:\n")
     >> mark_line(package | consume_line)
     .sep_by(string("\n"))
@@ -62,7 +71,7 @@ gemfile = (
 def parse_gemfile(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps_opt = safe_path_parse(lockfile_path, gemfile)
+    deps_opt = safe_path_parse(lockfile_path, gemfile, ParserName.gemfile_lock)
     if not deps_opt:
         return []
     deps, manifest_deps = deps_opt

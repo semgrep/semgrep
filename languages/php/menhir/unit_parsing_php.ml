@@ -25,8 +25,8 @@ module Flag = Flag_parsing
 (* Unit tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let tests =
   Testutil.pack_tests "parsing_php"
@@ -73,7 +73,7 @@ let tests =
             let _ = Parse_php.program_of_string "echo 1+" in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parse_info.Parsing_error _ -> ()
+          | Parsing_error.Syntax_error _ -> ()
         (* old:
          * The PHP parser does not return an exception when a PHP file contains
          * an error, to allow some form of error recovery by not stopping
@@ -94,7 +94,7 @@ let tests =
             in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parse_info.Parsing_error _ -> () );
+          | Parsing_error.Syntax_error _ -> () );
       ( "rejecting multiple variadic params",
         fun () ->
           Flag.show_parsing_error := false;
@@ -105,7 +105,7 @@ let tests =
             in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parse_info.Parsing_error _ -> () );
+          | Parsing_error.Syntax_error _ -> () );
       ( "rejecting non-tail variadic param without variable name",
         fun () ->
           Flag.show_parsing_error := false;
@@ -115,7 +115,7 @@ let tests =
             in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parse_info.Parsing_error _ -> () );
+          | Parsing_error.Syntax_error _ -> () );
       ( "rejecting ellipsis with optional constructs",
         fun () ->
           Flag.show_parsing_error := false;
@@ -123,7 +123,7 @@ let tests =
             let _ = Parse_php.program_of_string "function foo(int ...) {}" in
             Alcotest.fail "it should have thrown a Parse_error exception"
           with
-          | Parse_info.Parsing_error _ -> () );
+          | Parsing_error.Syntax_error _ -> () );
       ( "regression files",
         fun () ->
           let dir = Filename.concat tests_path "php/parsing" in
@@ -134,7 +134,7 @@ let tests =
                    let _ = Parse_php.parse_program file in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Syntax_error _ ->
                      Alcotest.failf "it should correctly parse %s" file) );
       (*-----------------------------------------------------------------------*)
       (* Types *)
@@ -146,7 +146,7 @@ let tests =
               let _ = Parse_php.program_of_string x in
               ()
             with
-            | Parse_info.Parsing_error _ ->
+            | Parsing_error.Syntax_error _ ->
                 Alcotest.failf "it should correctly parse %s" x
           in
 
@@ -208,7 +208,7 @@ let tests =
           match e with
           | ObjGet (_v, _tok, Id name) ->
               let info = Ast.info_of_name name in
-              Alcotest.(check int) "same values" 4 (Parse_info.col_of_info info)
+              Alcotest.(check int) "same values" 4 (Tok.col_of_tok info)
           | _ -> Alcotest.fail "not good AST" )
       (*-----------------------------------------------------------------------*)
       (* Sgrep *)

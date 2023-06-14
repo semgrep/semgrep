@@ -35,6 +35,7 @@
           "message": {
             "text": "this rule comes from the rule board!"
           },
+          "properties": {},
           "ruleId": "rules.rule-board-eqeq-five"
         },
         {
@@ -63,6 +64,7 @@
           "message": {
             "text": "this rule comes from the rule board!"
           },
+          "properties": {},
           "ruleId": "rules.rule-board-eqeq-five"
         },
         {
@@ -91,6 +93,7 @@
           "message": {
             "text": "this rule comes from the rule board!"
           },
+          "properties": {},
           "ruleId": "rules.rule-board-eqeq-five"
         }
       ],
@@ -114,7 +117,7 @@
                 ]
               },
               "shortDescription": {
-                "text": "this rule comes from the rule board!"
+                "text": "Semgrep Finding: rules.rule-board-eqeq-five"
               }
             }
           ],

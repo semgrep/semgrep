@@ -1,32 +1,42 @@
-Semgrep Supply Chain Summary: 1 Reachable finding, 1 Unreachable finding
 
 
-Reachable Supply Chain Findings:
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
 
-  targets/dependency_aware/monorepo/webapp1/app.js with lockfile targets/dependency_aware/monorepo/webapp1/yarn.lock
-     rules.dependency_aware.js-sca
-        oh no
+    targets/dependency_aware/monorepo/webapp1/app.js with lockfile
+  targets/dependency_aware/monorepo/webapp1/yarn.lock
+       rules.dependency_aware.js-sca
+          oh no
 
-          1┆ bad()
-
-Unreachable Supply Chain Findings:
-
-  targets/dependency_aware/monorepo/webapp2/yarn.lock 
-     rules.dependency_aware.js-sca
-        oh no
+            1┆ bad()
 
 
-First-Party Findings:
+┌────────────────────────────────────┐
+│ 1 Unreachable Supply Chain Finding │
+└────────────────────────────────────┘
 
-  targets/dependency_aware/monorepo/build.js 
-     rules.dependency_aware.js-other
-        this is always bad
+    targets/dependency_aware/monorepo/webapp2/yarn.lock
+       rules.dependency_aware.js-sca
+          oh no
 
-          1┆ bad()
+            5┆ bad-lib@0.0.7:
+            6┆   version "0.0.7"
 
 
-  targets/dependency_aware/monorepo/webapp1/app.js 
-     rules.dependency_aware.js-other
-        this is always bad
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
 
-          1┆ bad()
+    targets/dependency_aware/monorepo/build.js
+       rules.dependency_aware.js-other
+          this is always bad
+
+            1┆ bad()
+
+    targets/dependency_aware/monorepo/webapp1/app.js
+       rules.dependency_aware.js-other
+          this is always bad
+
+            1┆ bad()
+

@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Optional
 
 from semgrep.app.scans import ScanHandler
+from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
+from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
@@ -30,11 +32,11 @@ class EngineType(Enum):
         Considers settings from Semgrep Cloud Platform and version control state.
         """
         if git_meta and scan_handler:
-            if requested_engine == cls.PRO_INTERFILE and not git_meta.is_full_scan:
-                requested_engine = cls.PRO_LANG
+            if scan_handler.deepsemgrep and requested_engine is None:
+                requested_engine = cls.PRO_INTERFILE
 
-            if scan_handler.deepsemgrep:
-                return cls.PRO_INTERFILE if git_meta.is_full_scan else cls.PRO_LANG
+            if requested_engine == cls.PRO_INTERFILE and not git_meta.is_full_scan:
+                requested_engine = cls.PRO_INTRAFILE
 
         return requested_engine or cls.OSS
 
@@ -61,7 +63,22 @@ class EngineType(Enum):
     def default_jobs(self) -> int:
         if self == EngineType.PRO_INTERFILE:
             return 1
-        return self.get_cpu_count()
+        # Maxing out number of cores used to 16 if more not requested to not overload on large machines
+        return min(16, self.get_cpu_count())
+
+    @property
+    def default_max_memory(self) -> int:
+        """Interfile uses a lot of memory, so it should have a safe default limit."""
+        if self == EngineType.PRO_INTERFILE:
+            return DEFAULT_MAX_MEMORY_PRO_CI
+        return 0  # unlimited
+
+    @property
+    def default_interfile_timeout(self) -> int:
+        """Interfile uses a lot of time, so it should have a safe default limit."""
+        if self == EngineType.PRO_INTERFILE:
+            return DEFAULT_PRO_TIMEOUT_CI
+        return 0  # unlimited
 
     def get_binary_path(self) -> Optional[Path]:
         return SemgrepCore.pro_path() if self.is_pro else SemgrepCore.path()

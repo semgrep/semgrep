@@ -4,7 +4,8 @@ open Common
 (* Unit tests *)
 (*****************************************************************************)
 
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let tests =
   Testutil.pack_tests "parsing_ruby"
@@ -19,6 +20,6 @@ let tests =
                    let _ = Parse_ruby.parse_program file in
                    ()
                  with
-                 | Parse_info.Parsing_error _ ->
+                 | Parsing_error.Syntax_error _ ->
                      Alcotest.failf "it should correctly parse %s" file) );
     ]

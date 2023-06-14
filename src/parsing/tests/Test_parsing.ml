@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
+open File.Operators
 module PS = Parsing_stat
 module G = AST_generic
 module J = JSON
@@ -136,22 +136,22 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_clojure.Boilerplate.dump_tree
   | Lang.R ->
       Tree_sitter_r.Parse.file file
-      |> dump_and_print_errors Tree_sitter_r.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_r.Boilerplate.dump_tree
   | Lang.Ruby ->
       Tree_sitter_ruby.Parse.file file
-      |> dump_and_print_errors Tree_sitter_ruby.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_ruby.Boilerplate.dump_tree
   | Lang.Java ->
       Tree_sitter_java.Parse.file file
-      |> dump_and_print_errors Tree_sitter_java.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_java.Boilerplate.dump_tree
   | Lang.Go ->
       Tree_sitter_go.Parse.file file
       |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
   | Lang.Csharp ->
       Tree_sitter_c_sharp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
-      |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
   | Lang.Jsonnet ->
       Tree_sitter_jsonnet.Parse.file file
       |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
@@ -160,65 +160,68 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
   | Lang.Swift ->
       Tree_sitter_swift.Parse.file file
-      |> dump_and_print_errors Tree_sitter_swift.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_swift.Boilerplate.dump_tree
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
-      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Ts ->
       (* Typescript is mostly a subset of TSX *)
       Tree_sitter_tsx.Parse.file file
-      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
-      |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_lua.Boilerplate.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
   | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
-      |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_ocaml.Boilerplate.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
   | Lang.Cpp ->
       Tree_sitter_cpp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_cpp.Boilerplate.dump_tree
   | Lang.Html ->
       Tree_sitter_html.Parse.file file
-      |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_html.Boilerplate.dump_tree
   | Lang.Vue ->
       Tree_sitter_vue.Parse.file file
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
   | Lang.Php ->
       Tree_sitter_php.Parse.file file
-      |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_php.Boilerplate.dump_tree
   | Lang.Terraform ->
       Tree_sitter_hcl.Parse.file file
-      |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_hcl.Boilerplate.dump_tree
   | Lang.Elixir ->
       Tree_sitter_elixir.Parse.file file
-      |> dump_and_print_errors Tree_sitter_elixir.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_elixir.Boilerplate.dump_tree
   | Lang.Julia ->
       Tree_sitter_julia.Parse.file file
       |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
+  | Lang.Cairo ->
+      Tree_sitter_cairo.Parse.file file
+      |> dump_and_print_errors Tree_sitter_cairo.Boilerplate.dump_tree
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->
       Tree_sitter_python.Parse.file file
-      |> dump_and_print_errors Tree_sitter_python.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_python.Boilerplate.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths in
+  let paths = Common.map Common.fullpath root_paths |> File.Path.of_strings in
   let paths, _skipped_paths =
-    Find_target.files_of_dirs_or_files (Some lang) paths
+    Find_targets_old.files_of_dirs_or_files (Some lang) paths
   in
   let stat_list = ref [] in
-  paths
+  paths |> File.Path.to_strings
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -330,15 +333,17 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs
+    Common.map Common.fullpath files_or_dirs |> File.Path.of_strings
   in
-  let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
+  let paths, skipped =
+    Find_targets_old.files_of_dirs_or_files (Some lang) paths
+  in
   let stats =
-    paths
+    paths |> File.Path.to_strings
     |> List.rev_map (fun file ->
            pr2
              (spf "%05.1fs: [%s] processing %s" (Sys.time ())
-                (Lang.to_lowercase_alnum lang)
+                (Lang.to_capitalized_alnum lang)
                 file);
            let stat =
              try
@@ -350,7 +355,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                with
                | Some res ->
                    let ast_stat = AST_stat.stat res.ast in
-                   { res.Parse_target.stat with ast_stat = Some ast_stat }
+                   { res.Parsing_result2.stat with ast_stat = Some ast_stat }
                | None ->
                    { (Parsing_stat.bad_stat file) with have_timeout = true }
              with
@@ -398,7 +403,7 @@ let parse_project ~verbose lang name files_or_dirs =
   in
   pr2
     (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
-       (Lang.to_lowercase_alnum lang)
+       (Lang.to_capitalized_alnum lang)
        name);
   (name, stat_list)
 
@@ -490,7 +495,11 @@ let aggregate_project_stats lang
       acc project_stats
   in
   let global = update_parsing_rate acc in
-  { language = Lang.to_lowercase_alnum lang; global; projects = project_stats }
+  {
+    language = Lang.to_capitalized_alnum lang;
+    global;
+    projects = project_stats;
+  }
 
 let print_json lang results =
   let project_stats = aggregate_file_stats results in
@@ -541,12 +550,13 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
+  let roots = File.Path.of_strings roots in
   let targets, _skipped_paths =
-    Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
+    Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
+         logger#info "processing %s" !!file;
          let _r = Parse_rule.parse file in
          ());
   logger#info "done test_parse_rules"

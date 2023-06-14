@@ -2,20 +2,13 @@ running 1 rules from 1 config rules/long.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:
 - rules.forcetimeout
-Scanning 1 file.
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
 
 ========================================
 Files skipped:
@@ -48,13 +41,18 @@ Files skipped:
 
    • <none>
 
-  Skipped by analysis failure due to parsing or internal Semgrep error
+  Partially analyzed due to parsing or internal Semgrep errors
 
-   • targets/equivalence/open_redirect.py (all lines skipped)
+   • targets/equivalence/open_redirect.py
 
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
-  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
+  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
 
 Ran 1 rule on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

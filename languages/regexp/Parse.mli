@@ -23,10 +23,10 @@
 *)
 
 (* Parse a file *)
-val file : ?conf:Conf.t -> string -> AST.t
+val file : ?conf:Conf.t -> Fpath.t -> AST.t
 
 (* Parse a string *)
 val string : ?conf:Conf.t -> string -> AST.t
 
 (* Alias for 'file' *)
-val parse : ?conf:Conf.t -> string -> AST.t
+val parse : ?conf:Conf.t -> Fpath.t -> AST.t

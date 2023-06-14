@@ -1,5 +1,5 @@
 #
-# A container with semgrep in it, made to work from within the container.
+# A container with semgrep in it, with a few changes compared to semgrep.Dockerfile:
 # - changes the entrypoint to bash
 # - installs some basic packages
 #
@@ -20,8 +20,7 @@ FROM returntocorp/semgrep:develop
 RUN apk add --no-cache \
   bash \
   curl \
-  jq && \
-  apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
+  jq
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile

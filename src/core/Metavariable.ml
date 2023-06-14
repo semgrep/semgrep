@@ -59,6 +59,7 @@ type mvalue =
   | T of AST_generic.type_
   | P of AST_generic.pattern
   | Raw of AST_generic.raw_tree
+  | XmlAt of AST_generic.xml_attribute
   (* Those can be now empty with $...XXX metavariables.
    * coupling: if you add more constructors that allow an empty content,
    * you may need to modify JSON_report.range_of_any to not get
@@ -99,6 +100,7 @@ let mvalue_to_any = function
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)) |> G.e)
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())) |> G.e)
   | N x -> G.Name x
+  | XmlAt x -> G.XmlAt x
   | Raw x -> G.E (G.RawExpr x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
@@ -107,7 +109,7 @@ let mvalue_to_any = function
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info, _) ->
-      G.E (G.L (G.String (Parse_info.unsafe_fake_bracket (s, info))) |> G.e)
+      G.E (G.L (G.String (Tok.unsafe_fake_bracket (s, info))) |> G.e)
 
 (* coupling: this function should be an inverse to the function above! *)
 let mvalue_of_any = function
@@ -120,6 +122,7 @@ let mvalue_of_any = function
   | E e -> Some (E e)
   | S s -> Some (S s)
   | Name x -> Some (N x)
+  | XmlAt x -> Some (XmlAt x)
   | Ss x -> Some (Ss x)
   | Args x -> Some (Args x)
   | Params x -> Some (Params x)
@@ -171,18 +174,20 @@ let program_of_mvalue : mvalue -> G.program option =
   | Xmls _
   | T _
   | P _
+  | XmlAt _
   | Text _ ->
       logger#debug "program_of_mvalue: not handled '%s'" (show_mvalue mval);
       None
 
 let range_of_mvalue mval =
-  let ( let* ) = Common.( >>= ) in
-  let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
+  let* tok_start, tok_end =
+    AST_generic_helpers.range_of_any_opt (mvalue_to_any mval)
+  in
   (* We must return both the range *and* the file, due to metavariable-pattern
    * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
-  Some (tok_start.file, Range.range_of_token_locations tok_start tok_end)
+  Some (tok_start.pos.file, Range.range_of_token_locations tok_start tok_end)
 
-let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
+let ii_of_mval x = x |> mvalue_to_any |> AST_generic_helpers.ii_of_any
 let str_of_mval x = show_mvalue x
 
 (* note that the mvalue acts as the value of the metavar and also

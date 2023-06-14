@@ -20,14 +20,14 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "check_id": "rules.dependency_aware.maven-guice",
       "end": {
         "col": 0,
-        "line": 0,
+        "line": 3,
         "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "",
+        "lines": "+- com.google.inject:guice:jar:no_aop:4.2.2.RELEASE:test (optional)",
         "message": "got em",
         "metadata": {},
         "metavars": {},
@@ -57,7 +57,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       "path": "targets/dependency_aware/maven_dep_tree_release_version/maven_dep_tree.txt",
       "start": {
         "col": 0,
-        "line": 0,
+        "line": 2,
         "offset": 0
       }
     }
@@ -67,20 +67,24 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-Nothing to scan.
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 Ran 1 rule on 1 file: 1 finding.
 

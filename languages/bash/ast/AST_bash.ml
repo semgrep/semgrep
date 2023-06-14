@@ -22,14 +22,14 @@ type input_kind = Pattern | Program
    original region of code.
 *)
 
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (*
    A location is made of the first token and the last token in the source
    code. Each node of the AST has a field that's either a loc or a
    single tok.
 *)
-type loc = Loc.t
+type loc = Tok_range.t
 type 'a wrap = 'a * tok [@@deriving show]
 type 'a bracket = tok * 'a * tok [@@deriving show]
 
@@ -523,7 +523,10 @@ let else_loc (x : else_) =
   loc
 
 let assignment_loc (x : assignment) = x.loc
-let assignment_list_loc (x : assignment list) = Loc.of_list assignment_loc x
+
+let assignment_list_loc (x : assignment list) =
+  Tok_range.of_list assignment_loc x
+
 let declaration_loc (x : declaration) = x.loc
 
 let expression_loc = function
@@ -617,20 +620,20 @@ let concat_blists (x : blist list) : blist =
   | [] ->
       (* TODO: use actual location in the program rather than completely
          fake location *)
-      Empty Loc.unsafe_fake_loc
+      Empty Tok_range.unsafe_fake_loc
   | last_blist :: blists ->
       let end_ = blist_loc last_blist in
       List.fold_left
         (fun acc blist ->
           let start = blist_loc blist in
-          let loc = Loc.range start end_ in
+          let loc = Tok_range.range start end_ in
           Seq (loc, blist, acc))
         last_blist blists
 
 let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
     cmd_redir =
   let all_locs = cmd_r.loc :: Common.map redirect_loc redirects in
-  let loc = Loc.of_list (fun loc -> loc) all_locs in
+  let loc = Tok_range.of_list (fun loc -> loc) all_locs in
   { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
 
 let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
@@ -638,11 +641,11 @@ let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
   | Command cmd_r -> Command (add_redirects_to_command cmd_r redirects)
   | Pipeline (loc, pip, bar, cmd_r) ->
       let cmd_r = add_redirects_to_command cmd_r redirects in
-      let loc = Loc.range loc cmd_r.loc in
+      let loc = Tok_range.range loc cmd_r.loc in
       Pipeline (loc, pip, bar, cmd_r)
   | Control_operator (loc, pip, op) ->
       let pip = add_redirects_to_last_command_of_pipeline pip redirects in
-      let loc = Loc.range loc (pipeline_loc pip) in
+      let loc = Tok_range.range loc (pipeline_loc pip) in
       Control_operator (loc, pip, op)
 
 let rec first_command_of_pipeline pip :

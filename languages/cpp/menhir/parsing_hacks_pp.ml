@@ -17,7 +17,6 @@ open Common
 module TH = Token_helpers_cpp
 module TV = Token_views_cpp
 module Parser = Parser_cpp
-module PI = Parse_info
 open Parser_cpp
 open Token_views_cpp
 open Parsing_hacks_lib
@@ -170,7 +169,11 @@ let rec find_ifdef_mid xs =
                  let counts =
                    xxs |> List.map count_open_close_stuff_ifdef_clause
                  in
-                 let cnt1, cnt2 = List.hd counts in
+                 let cnt1, cnt2 =
+                   match counts with
+                   | x :: _ -> x
+                   | [] -> assert false
+                 in
                  if
                    cnt1 <> 0 || cnt2 <> 0
                    (*???? && counts +> List.for_all (fun x -> x = (cnt1, cnt2)) *)
@@ -415,7 +418,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* the static const case *)
@@ -430,7 +433,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       (* need retag this const, otherwise ambiguity in grammar
          21: shift/reduce conflict (shift 121, reduce 137) on Tconst
@@ -455,7 +458,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* on multiple lines *)
@@ -469,7 +472,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_macro ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* linuxext: ex: DECLARE_BITMAP();
@@ -492,7 +495,7 @@ let rec find_macro_lineparen xs =
     :: xs
     when s ==~ regexp_declare ->
       let info = TH.info_of_tok macro.t in
-      change_tok macro (TIdent_MacroDecl (PI.str_of_info info, info));
+      change_tok macro (TIdent_MacroDecl (Tok.content_of_tok info, info));
 
       find_macro_lineparen xs
   (* toplevel macros.
@@ -518,7 +521,9 @@ let rec find_macro_lineparen xs =
                &&
                match other.t with
                | TOBrace _ -> false (* otherwise would match funcdecl *)
-               | TCBrace _ when List.hd ctx <> InFunction -> false
+               | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction
+                 ->
+                   false
                | TPtVirg _
                | TCol _ ->
                    false
@@ -549,7 +554,8 @@ let rec find_macro_lineparen xs =
         &&
         match other.t with
         | TOBrace _ -> false (* otherwise would match funcdecl *)
-        | TCBrace _ when List.hd ctx <> InFunction -> false
+        | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction ->
+            false
         | TPtVirg _
         | TCol _ ->
             false
@@ -558,7 +564,8 @@ let rec find_macro_lineparen xs =
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when List.hd ctx =*= InFunction -> true
+           | TCBrace _ when Common.hd_exn "empty context" ctx =*= InFunction ->
+               true
            | Treturn _ -> true
            | Tif _ -> true
            | Telse _ -> true
@@ -591,13 +598,15 @@ let rec find_macro_lineparen xs =
         match other.t with
         | TPtVirg _ -> false
         | TOr _ -> false
-        | TCBrace _ when List.hd ctx <> InFunction -> false
+        | TCBrace _ when Common.hd_exn "empty context" ctx <> InFunction ->
+            false
         | tok when TH.is_binary_operator tok -> false
         | _ -> true)
         || col2 <= col1
            &&
            match other.t with
-           | TCBrace _ when List.hd ctx =*= InFunction -> true
+           | TCBrace _ when Common.hd_exn "empty context" ctx =*= InFunction ->
+               true
            | Treturn _ -> true
            | Tif _ -> true
            | Telse _ -> true

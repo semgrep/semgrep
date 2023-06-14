@@ -44,7 +44,7 @@
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
 
-type tok = Parse_info.t [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Names *)
@@ -66,12 +66,10 @@ and var_kind =
   | Global
   | Constant (* old: | Builtin, now merged in Global *)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (* convenience alias that is a subtype of identifier *)
 type builtin_or_global = var_kind (* [`Var_Builtin|`Var_Global] *) * string
 [@@deriving show]
-(* with tarzan *)
 
 type msg_id =
   | ID_UOperator of unary_op
@@ -105,7 +103,6 @@ and binary_op =
   | Op_ARef
   | Op_ASet
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Expression *)
@@ -129,7 +126,6 @@ and literal =
    nested Star's are allowed *)
 and star_expr = SE of expr | SStar of expr
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Instruction *)
@@ -242,13 +238,12 @@ and alias_kind =
   | Alias_Method of msg_id * msg_id
   | Alias_Global of builtin_or_global * builtin_or_global
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Toplevel *)
 (*****************************************************************************)
 
-type t = stmt [@@deriving show] (* with tarzan *)
+type t = stmt [@@deriving show]
 
 (*****************************************************************************)
 (* Misc *)
@@ -256,7 +251,6 @@ type t = stmt [@@deriving show] (* with tarzan *)
 
 type any_formal = B of block_formal_param | M of method_formal_param
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 let b_to_any x = B x
 let m_to_any x = M x

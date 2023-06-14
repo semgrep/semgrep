@@ -10,30 +10,6 @@ _scan_options: List[Callable] = [
  optgroup.group("Display options"),
 
     optgroup.option(
-        "--enable-nosem/--disable-nosem",
-        is_flag=True,
-        default=True,
-        help="""
-            --enable-nosem enables 'nosem'. Findings will not be reported on lines
-            containing a 'nosem' comment at the end. Enabled by default.
-        """,
-    ),
-    optgroup.option(
-        MAX_CHARS_FLAG_NAME,
-        type=int,
-        default=DEFAULT_MAX_CHARS_PER_LINE,
-        help="Maximum number of characters to show per line.",
-    ),
-    optgroup.option(
-        MAX_LINES_FLAG_NAME,
-        type=int,
-        default=DEFAULT_MAX_LINES_PER_FINDING,
-        help="""
-            Maximum number of lines of code that will be shown for each match before
-            trimming (set to 0 for unlimited).
-        """,
-    ),
-    optgroup.option(
         "--dataflow-traces",
         is_flag=True,
         help="Explain how non-local values reach the location of a finding (only affects text output).",
@@ -79,7 +55,6 @@ _scan_options: List[Callable] = [
 def scan(
     *,
     deep: bool,
-    enable_nosem: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     junit_xml: bool,

@@ -236,8 +236,8 @@ and eval_op op values code =
   match (op, values) with
   | _op, [ AST _; _ ]
   | _op, [ _; AST _ ] ->
-      (* To compare `AST` values one needs to explicitly use the `str()` function!
-       * Otherwise we would introduce regressions. *)
+      (* To compare `AST` values one needs to explicitly use the `str()`
+       * function! Otherwise we would introduce regressions. *)
       raise (NotHandled code)
   | G.And, [ Bool b1; Bool b2 ] -> Bool (b1 && b2)
   | G.Not, [ Bool b1 ] -> Bool (not b1)
@@ -282,6 +282,14 @@ and eval_op op values code =
   | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
   | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
   | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
+  | G.Pow, [ Int i1; Int i2 ] -> Int (Common2.power i1 i2)
+  | G.Pow, [ Float i1; Int i2 ] -> Float (i1 ** float_of_int i2)
+  | G.Pow, [ Int i1; Float i2 ] -> Float (float_of_int i1 ** i2)
+  | G.Pow, [ Float i1; Float i2 ] -> Float (i1 ** i2)
+  | G.BitNot, [ Int i1 ] -> Int (Int.lognot i1)
+  | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int.logand i1 i2)
+  | G.BitOr, [ Int i1; Int i2 ] -> Int (Int.logor i1 i2)
+  | G.BitXor, [ Int i1; Int i2 ] -> Int (Int.logxor i1 i2)
   | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 =*= v2)
   | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= float_of_int v2)
   (* TODO? dangerous use of polymorphic =*= ? *)
@@ -347,14 +355,14 @@ let text_of_binding mvar mval =
       Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in
-      match Visitor_AST.range_of_any_opt any with
+      match AST_generic_helpers.range_of_any_opt any with
       | None ->
           (* TODO: Report a warning to the user? *)
           logger#error "We lack range info for metavariable %s: %s" mvar
             (G.show_any any);
           None
       | Some (min, max) ->
-          let file = min.Parse_info.file in
+          let file = min.Tok.pos.file in
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))
 
@@ -362,7 +370,7 @@ let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
   Some (mvar, AST x)
 
-let bindings_to_env (config : Config_semgrep.t) bindings =
+let bindings_to_env (config : Rule_options.t) bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
@@ -392,12 +400,13 @@ let bindings_to_env (config : Config_semgrep.t) bindings =
            | MV.Id (i, Some id_info) ->
                try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
            | MV.E e -> try_bind_to_exp e
+           | MV.Text (s, _, _) -> Some (mvar, String s)
            | x -> string_of_binding mvar x)
     |> Common.hash_of_list
   in
   { mvars; constant_propagation }
 
-let bindings_to_env_just_strings (config : Config_semgrep.t) xs =
+let bindings_to_env_just_strings (config : Rule_options.t) xs =
   let mvars =
     xs
     |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)

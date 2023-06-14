@@ -97,7 +97,7 @@ module Set = Set_
 (* Generate pattern *)
 (*****************************************************************************)
 
-let range_of_ast ast = R.range_of_tokens (Visitor_AST.ii_of_any ast)
+let range_of_ast ast = R.range_of_tokens (AST_generic_helpers.ii_of_any ast)
 
 let pattern_from_diff f =
   let file = f.In.filename in
@@ -120,7 +120,7 @@ let pattern_from_diff f =
   let functions =
     try
       let file_ast = Parse_target.parse_program file in
-      List.filter_map (function_from_range file_ast) f.In.diffs
+      Common.map_filter (function_from_range file_ast) f.In.diffs
     with
     | _ -> []
   in

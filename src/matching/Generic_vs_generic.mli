@@ -10,6 +10,7 @@ val m_stmts_deep :
 val m_type_ : AST_generic.type_ Matching_generic.matcher
 val m_pattern : AST_generic.pattern Matching_generic.matcher
 val m_attribute : AST_generic.attribute Matching_generic.matcher
+val m_xml_attr : AST_generic.xml_attribute Matching_generic.matcher
 val m_partial : AST_generic.partial Matching_generic.matcher
 val m_field : AST_generic.field Matching_generic.matcher
 val m_fields : AST_generic.field list Matching_generic.matcher

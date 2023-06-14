@@ -2,6 +2,8 @@
    Extended languages: everything from Lang.t + spacegrep (generic) and regex.
 *)
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (* eXtended language, stored in the languages: field in the rule.
  * less: merge with xpattern_kind? *)
 type t =
@@ -9,9 +11,10 @@ type t =
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
   | LRegex
-  (* for spacegrep *)
-  | LGeneric
-[@@deriving show, eq]
+  (* generic mode uses either spacegrep or aliengrep *)
+  | LSpacegrep
+  | LAliengrep
+[@@deriving show, eq, hash]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 
@@ -21,13 +24,16 @@ let to_lang_exn (x : t) : Lang.t =
   match x with
   | L (lang, _) -> lang
   | LRegex -> failwith (Lang.unsupported_language_message "regex")
-  | LGeneric -> failwith (Lang.unsupported_language_message "generic")
+  | LSpacegrep
+  | LAliengrep ->
+      failwith (Lang.unsupported_language_message "generic")
 
 let to_langs (x : t) : Lang.t list =
   match x with
   | L (lang, langs) -> lang :: langs
   | LRegex
-  | LGeneric ->
+  | LSpacegrep
+  | LAliengrep ->
       []
 
 let lang_of_opt_xlang_exn (x : t option) : Lang.t =
@@ -38,11 +44,17 @@ let lang_of_opt_xlang_exn (x : t option) : Lang.t =
 let flatten x =
   match x with
   | L (lang, langs) -> Common.map (fun x -> L (x, [])) (lang :: langs)
-  | (LRegex | LGeneric) as x -> [ x ]
+  | (LRegex | LSpacegrep | LAliengrep) as x -> [ x ]
 
 let assoc : (string * t) list =
   Common.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
-  @ [ ("regex", LRegex); ("none", LRegex); ("generic", LGeneric) ]
+  @ [
+      ("regex", LRegex);
+      ("none", LRegex);
+      ("generic", LSpacegrep);
+      ("spacegrep", LSpacegrep);
+      ("aliengrep", LAliengrep);
+    ]
 
 let map = Common.hash_of_list assoc
 let keys = Common2.hkeys map
@@ -55,12 +67,15 @@ let unsupported_xlang_message (xlang_s : string) =
       xlang_s supported_xlangs
 
 (* coupling: Parse_mini_rule.parse_languages *)
-let of_string ?id:(id_opt = None) s =
+let of_string ?rule_id:id_opt s =
   match s with
   | "none"
   | "regex" ->
       LRegex
-  | "generic" -> LGeneric
+  | "generic"
+  | "spacegrep" ->
+      LSpacegrep
+  | "aliengrep" -> LAliengrep
   | __else__ -> (
       match Lang.of_string_opt s with
       | None -> (
@@ -75,10 +90,26 @@ let of_string ?id:(id_opt = None) s =
 let to_string = function
   | L (l, _) -> Lang.to_string l
   | LRegex -> "regex"
-  | LGeneric -> "generic"
+  | LSpacegrep -> "spacegrep"
+  | LAliengrep -> "aliengrep"
 
 let is_proprietary = function
   | L (lang, _) -> Lang.is_proprietary lang
   | LRegex
-  | LGeneric ->
+  | LSpacegrep
+  | LAliengrep ->
       false
+
+let wrap str = of_string str
+let unwrap xlang = to_string xlang
+
+let informative_suffix xlang =
+  match xlang with
+  | L (lang, _) -> (
+      match Lang.ext_of_lang lang with
+      | x :: _ -> x
+      | [] -> "." ^ Lang.to_string lang)
+  | LRegex
+  | LSpacegrep
+  | LAliengrep ->
+      ".target-for-" ^ to_string xlang

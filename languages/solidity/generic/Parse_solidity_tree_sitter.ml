@@ -14,7 +14,6 @@
  *)
 open Common
 module CST = Tree_sitter_solidity.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
@@ -26,6 +25,9 @@ module H2 = AST_generic_helpers
 (* Solidity parser using tree-sitter-lang/semgrep-solidity and converting
  * directly to AST_generic.ml
  *
+ * related work:
+ *  - https://github.com/OCamlPro/ocaml-solidity which contains not only a parser
+ *    but also a typechecker!
  *)
 
 (*****************************************************************************)
@@ -35,8 +37,8 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
-let fake s = PI.unsafe_fake_info s
+let fb = Tok.unsafe_fake_bracket
+let fake s = Tok.unsafe_fake_tok s
 
 let map_trailing_comma env v =
   match v with
@@ -505,20 +507,37 @@ let map_user_defined_type_definition (env : env)
   let def = { tbody = AliasType (* or NewType? *) ty } in
   (ent, TypeDef def)
 
+let map_enum_member (env : env) (x : CST.enum_member) : or_type_element =
+  match x with
+  | `Id tok ->
+      let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env tok in
+      OrEnum (id, None)
+  | `Ellips tok ->
+      let tk = (* "..." *) token env tok in
+      OrEllipsis tk
+
 let map_enum_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.enum_declaration) : definition =
   let _enumkwd = (* "enum" *) token env v1 in
   let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
   let _lb = (* "{" *) token env v3 in
-  let elems =
+  let or_elems =
     match v4 with
-    | Some x -> map_anon_yul_id_rep_COMMA_yul_id_opt_COMMA_477546e env x
+    | Some (v1, v2, v3) ->
+        let x = map_enum_member env v1 in
+        let xs =
+          v2
+          |> Common.map (fun (v1, v2) ->
+                 let _comma = token env v1 in
+                 map_enum_member env v2)
+        in
+        let _ = map_trailing_comma env v3 in
+        x :: xs
     | None -> []
   in
   let _rb = (* "}" *) token env v5 in
   let ent = G.basic_entity id in
-  let ors = elems |> Common.map (fun id -> OrEnum (id, None)) in
-  let def = { tbody = OrType ors } in
+  let def = { tbody = OrType or_elems } in
   (ent, TypeDef def)
 
 let map_override_specifier (env : env) ((v1, v2) : CST.override_specifier) =
@@ -877,7 +896,7 @@ let map_yul_assignment_operator (env : env) (x : CST.yul_assignment_operator) =
   | `COLON_EQ (v1, v2) ->
       let v1 = (* ":" *) token env v1 in
       let v2 = (* "=" *) token env v2 in
-      PI.combine_infos v1 [ v2 ]
+      Tok.combine_toks v1 [ v2 ]
 
 let map_yul_assignment (env : env) (x : CST.yul_assignment) : expr =
   match x with
@@ -1397,8 +1416,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
         | None -> None
       in
       match argsopt with
-      | None -> New (tnew, t, fb []) |> G.e
-      | Some (lp, es, rp) -> New (tnew, t, (lp, es, rp)) |> G.e)
+      | None -> New (tnew, t, empty_id_info (), fb []) |> G.e
+      | Some (lp, es, rp) ->
+          New (tnew, t, empty_id_info (), (lp, es, rp)) |> G.e)
 
 and map_return_parameters (env : env)
     ((v0, v1, v2, v3, v4, v5) : CST.return_parameters) : type_ =
@@ -1727,20 +1747,24 @@ let map_inheritance_specifier (env : env) (v1 : CST.inheritance_specifier) :
       in
       (ty, argsopt)
 
-let map_event_paramater (env : env) ((v1, v2, v3) : CST.event_paramater) :
-    parameter_classic =
-  let ty = map_type_name env v1 in
-  let pattrs =
-    match v2 with
-    | Some tok -> [ G.unhandled_keywordattr (* "indexed" *) (str env tok) ]
-    | None -> []
-  in
-  let idopt =
-    match v3 with
-    | Some tok -> (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) Some (str env tok)
-    | None -> None
-  in
-  G.param_of_type ~pattrs ~pname:idopt ty
+let map_event_paramater (env : env) (x : CST.event_paramater) : parameter =
+  match x with
+  | `Type_name_opt_inde_opt_id (v1, v2, v3) ->
+      let ty = map_type_name env v1 in
+      let pattrs =
+        match v2 with
+        | Some tok -> [ G.unhandled_keywordattr (* "indexed" *) (str env tok) ]
+        | None -> []
+      in
+      let idopt =
+        match v3 with
+        | Some tok -> (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) Some (str env tok)
+        | None -> None
+      in
+      G.Param (G.param_of_type ~pattrs ~pname:idopt ty)
+  | `Ellips v ->
+      let tk = token env v in
+      G.ParamEllipsis tk
 
 let map_return_type_definition (env : env)
     ((v1, v2) : CST.return_type_definition) =
@@ -1813,7 +1837,7 @@ let map_class_heritage (env : env) ((v1, v2, v3, v4) : CST.class_heritage) :
   v2 :: v3
 
 let map_event_parameter_list (env : env)
-    ((v1, v2, v3) : CST.event_parameter_list) =
+    ((v1, v2, v3) : CST.event_parameter_list) : parameters =
   let lb = (* "(" *) token env v1 in
   let xs =
     match v2 with
@@ -1892,16 +1916,19 @@ let map_event_definition (env : env)
     ((v1, v2, v3, v4, v5) : CST.event_definition) : definition =
   let tevent = (* "event" *) token env v1 in
   let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
-  let _lp, params, _rp = map_event_parameter_list env v3 in
+  let fparams = map_event_parameter_list env v3 in
   let attrs =
     match v4 with
     | Some tok -> (* "anonymous" *) [ str env tok |> G.unhandled_keywordattr ]
     | None -> []
   in
-  let _sc = (* ";" *) token env v5 in
+  let sc = (* ";" *) token env v5 in
   let ent = G.basic_entity id ~attrs in
-  let anys = params |> Common.map (fun pclassic -> Pa (Param pclassic)) in
-  (ent, OtherDef (("Event", tevent), anys))
+  (* TODO? make a new fkind? *)
+  let fdef =
+    { fkind = (Function, tevent); fparams; frettype = None; fbody = FBDecl sc }
+  in
+  (ent, FuncDef fdef)
 
 let map_variable_declaration_statement (env : env)
     ((v1, v2) : CST.variable_declaration_statement) :
@@ -2440,6 +2467,9 @@ let map_source_file (env : env) (x : CST.source_file) : any =
       S (DefStmt x |> G.s)
   | `Cons_defi x ->
       let x = map_constructor_definition env x in
+      S (DefStmt x |> G.s)
+  | `Event_defi x ->
+      let x = map_event_definition env x in
       S (DefStmt x |> G.s)
 
 (*****************************************************************************)

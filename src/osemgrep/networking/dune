@@ -4,14 +4,18 @@
   (wrapped false)
   (libraries
     lwt
-    ; !!osemgrep_networking should be the only lib in semgrep using cohttp!!
-    cohttp cohttp-lwt-unix
+    ; !!osemgrep_networking should be the only lib in semgrep using http-lwt-client!!
+    uri http-lwt-client
 
     profiling
+
+    semgrep_core_cli ; for Version.version in Network_app.ml
+    osemgrep_configuring
+    osemgrep_jsonnet
   )
  (preprocess
    (pps
-     ppx_profiling
+     profiling.ppx
      ppx_deriving.show
      ppx_deriving.eq
      ppx_hash

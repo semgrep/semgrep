@@ -9,7 +9,6 @@ open Common
 module AST = Ast_js
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
-module PI = Parse_info
 module H2 = AST_generic_helpers
 open Ast_js
 
@@ -32,8 +31,8 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fake = PI.unsafe_fake_info ""
-let fb = PI.unsafe_fake_bracket
+let fake = Tok.unsafe_fake_tok ""
+let fb = Tok.unsafe_fake_bracket
 let mk_functype (params, rett) = TyFun (params, rett)
 
 (* Note that this file also raises some Impossible and Ast_builder_error *)
@@ -113,7 +112,7 @@ let identifier_ (env : env) (x : CST.identifier_) : expr =
 (* LATER: this is overriden by another automatic_semicolon later, normal? *)
 let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
   (* do like in pfff: *)
-  PI.unsafe_fake_info ";"
+  Tok.unsafe_fake_tok ";"
 
 let semicolon (env : env) (x : CST.semicolon) =
   match x with
@@ -158,7 +157,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let close = token env v3 (* "\"" *) in
       let str = contents |> Common.map fst |> String.concat "" in
       let toks = (contents |> Common.map snd) @ [ close ] in
-      (str, PI.combine_infos open_ toks)
+      (str, Tok.combine_toks open_ toks)
   | `SQUOT_rep_choice_unes_single_str_frag_SQUOT (v1, v2, v3) ->
       let open_ = token env v1 (* "'" *) in
       let v2 =
@@ -173,7 +172,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let close = token env v3 (* "'" *) in
       let str = v2 |> Common.map fst |> String.concat "" in
       let toks = (v2 |> Common.map snd) @ [ close ] in
-      (str, PI.combine_infos open_ toks)
+      (str, Tok.combine_toks open_ toks)
 
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import_export) =
   let star = token env v1 (* "*" *) in
@@ -199,7 +198,7 @@ let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
   | `Jsx_name_name x ->
       let id1, id2 = jsx_namespace_name env x in
       let str = fst id1 ^ ":" ^ fst id2 in
-      (str, PI.combine_infos (snd id1) [ snd id2 ])
+      (str, Tok.combine_toks (snd id1) [ snd id2 ])
 
 let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
     a_ident list =
@@ -224,11 +223,11 @@ let jsx_element_name (env : env) (x : CST.jsx_element_name) : a_ident =
         | [] -> raise Impossible
         | x :: xs -> (x, xs)
       in
-      (str, PI.combine_infos (snd hd) (tl |> Common.map snd))
+      (str, Tok.combine_toks (snd hd) (tl |> Common.map snd))
   | `Jsx_name_name x ->
       let id1, id2 = jsx_namespace_name env x in
       let str = fst id1 ^ ":" ^ fst id2 in
-      (str, PI.combine_infos (snd id1) [ snd id2 ])
+      (str, Tok.combine_toks (snd id1) [ snd id2 ])
 
 let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element)
     =
@@ -236,7 +235,7 @@ let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element)
   let v2 = token env v2 (* "/" *) in
   let str, v3 = jsx_element_name env v3 in
   let v4 = token env v4 (* ">" *) in
-  let t = PI.combine_infos v1 [ v2; v3; v4 ] in
+  let t = Tok.combine_toks v1 [ v2; v3; v4 ] in
   (str, t)
 
 let from_clause (env : env) ((v1, v2) : CST.from_clause) : tok * string wrap =
@@ -368,7 +367,7 @@ let concat_nested_identifier (idents : a_ident list) : a_ident =
     | [] -> assert false
     | x :: xs -> (x, xs)
   in
-  (str, PI.combine_infos x xs)
+  (str, Tok.combine_toks x xs)
 
 (* 'import id = require(...)' are Commonjs-style import.
  * See https://www.typescriptlang.org/docs/handbook/2/modules.html#commonjs-style-import-and-export- for reference.
@@ -398,7 +397,7 @@ let literal_type (env : env) (x : CST.literal_type) : expr =
       in
       let s2, t2 = str env v2 (* number *) in
       (* TODO: float_of_string_opt_also_from_hexoctbin *)
-      L (Num (float_of_string_opt (s ^ s2), PI.combine_infos t1 [ t2 ]))
+      L (Num (float_of_string_opt (s ^ s2), Tok.combine_toks t1 [ t2 ]))
   | `Num tok ->
       let n = number env tok in
       L (Num n)
@@ -504,7 +503,7 @@ and anon_choice_type_id_b8f8ced (env : env)
 
 let rec parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) =
-  let _v1 = token env v1 (* "(" *) in
+  let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
     | `Exp_opt_type_anno (v1, v2) -> (
@@ -516,8 +515,8 @@ let rec parenthesized_expression (env : env)
         | None -> v1)
     | `Seq_exp x -> sequence_expression env x
   in
-  let _v3 = token env v3 (* ")" *) in
-  v2
+  let v3 = token env v3 (* ")" *) in
+  ParenExpr (v1, v2, v3)
 
 and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     =
@@ -535,7 +534,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
         *)
         let _v2TODO =
           match v2 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         id
@@ -555,7 +554,7 @@ and jsx_self_clos_elem (env : env)
         let id = concat_nested_identifier v1 in
         let _v2TODO =
           match v2 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         id
@@ -563,7 +562,7 @@ and jsx_self_clos_elem (env : env)
   let v3 = Common.map (jsx_attribute_ env) v3 in
   let v4 = token env v4 (* "/" *) in
   let v5 = token env v5 (* ">" *) in
-  let t2 = PI.combine_infos v4 [ v5 ] in
+  let t2 = Tok.combine_toks v4 [ v5 ] in
   (v1, v2, v3, t2)
 
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment) : xml
@@ -574,8 +573,8 @@ and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment) : xml
   let v4 = token env v4 (* "<" *) in
   let v5 = token env v5 (* "/" *) in
   let v6 = token env v6 (* ">" *) in
-  let t1 = PI.combine_infos v1 [ v2 ] in
-  let t2 = PI.combine_infos v4 [ v5; v6 ] in
+  let t1 = Tok.combine_toks v1 [ v2 ] in
+  let t2 = Tok.combine_toks v4 [ v5; v6 ] in
   { xml_kind = XmlFragment (t1, t2); xml_attrs = []; xml_body = v3 }
 
 and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) :
@@ -620,7 +619,9 @@ and jsx_expression_some env x =
   let t1, eopt, t2 = jsx_expression env x in
   match eopt with
   | None ->
-      raise (PI.Ast_builder_error ("jsx_expression_some got a None expr", t1))
+      raise
+        (Parsing_error.Ast_builder_error
+           ("jsx_expression_some got a None expr", t1))
   | Some e -> (t1, e, t2)
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
@@ -1227,7 +1228,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
                 match v4 with
                 | `Exp x ->
                     let e = expression env x in
-                    Return (v3, Some e, PI.sc v3)
+                    Return (v3, Some e, Tok.sc v3)
                 | `Stmt_blk x -> statement_block env x
               in
               let f_kind = (G.Arrow, v3) in
@@ -1302,7 +1303,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
               let v1 = token env v1 (* "new" *) in
               let v2 = token env v2 (* "." *) in
               let v3 = token env v3 (* "target" *) in
-              let t = PI.combine_infos v1 [ v2; v3 ] in
+              let t = Tok.combine_toks v1 [ v2; v3 ] in
               IdSpecial (NewTarget, t)
           | `Call_exp x -> call_expression env x)
       | `Non_null_exp x -> non_null_expression env x)
@@ -1314,7 +1315,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       (* TODO: types *)
       let _v2TODO =
         match v2 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let v3 =
@@ -1333,7 +1334,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       (* TODO: types *)
       let _v3TODO =
         match v3 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let v4 = arguments env v4 in
@@ -1611,7 +1612,9 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 = expression env v2 in
       match xs with
       | [ t ] -> TypeAssert (v2, t1, t)
-      | _ -> raise (PI.Ast_builder_error ("wrong type assert expr", t1)))
+      | _ ->
+          raise (Parsing_error.Ast_builder_error ("wrong type assert expr", t1))
+      )
   | `Prim_exp x -> primary_expression env x
   | `Choice_jsx_elem x ->
       let xml = jsx_element_ env x in
@@ -1685,7 +1688,7 @@ and expression (env : env) (x : CST.expression) : expr =
       (* TODO types *)
       let _v3TODO =
         match v3 with
-        | Some x -> type_arguments env x |> PI.unbracket
+        | Some x -> type_arguments env x |> Tok.unbracket
         | None -> []
       in
       let t1, xs, t2 =
@@ -2002,12 +2005,12 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       let pat =
         match opt_type with
         | None -> pat
-        | Some type_ -> Cast (pat, PI.unsafe_fake_info ":", type_)
+        | Some type_ -> Cast (pat, Tok.unsafe_fake_tok ":", type_)
       in
       let pat =
         match opt_default with
         | None -> pat
-        | Some expr -> Assign (pat, PI.unsafe_fake_info "=", expr)
+        | Some expr -> Assign (pat, Tok.unsafe_fake_tok "=", expr)
       in
       ParamPattern pat
 
@@ -2589,7 +2592,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
   let v2 = expression env v2 in
   let v3 =
     match v3 with
-    | Some x -> type_arguments env x |> PI.unbracket
+    | Some x -> type_arguments env x |> Tok.unbracket
     | None -> []
   in
   let v4 =
@@ -2599,7 +2602,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
         let v2 = expression env v2 in
         let v3 =
           match v3 with
-          | Some x -> type_arguments env x |> PI.unbracket
+          | Some x -> type_arguments env x |> Tok.unbracket
           | None -> []
         in
         tyname_or_expr_of_expr v2 v3)

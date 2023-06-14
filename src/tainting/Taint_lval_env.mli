@@ -68,3 +68,4 @@ val union : env -> env -> env
 
 val equal : env -> env -> bool
 val to_string : (Taint.taints -> string) -> env -> string
+val seq_of_tainted : env -> (IL.lval * Taint.taints) Seq.t

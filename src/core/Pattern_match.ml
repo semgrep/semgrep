@@ -37,10 +37,10 @@
  *)
 
 (* The locations of variables which taint propagates through *)
-type tainted_tokens = Parse_info.t list [@@deriving show, eq]
+type tainted_tokens = Tok.t list [@@deriving show, eq]
 
 (* The tokens associated with a single pattern match involved in a taint trace *)
-type pattern_match_tokens = Parse_info.t list [@@deriving show, eq]
+type pattern_match_tokens = Tok.t list [@@deriving show, eq]
 
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)
 type taint_call_trace =
@@ -54,25 +54,40 @@ type taint_call_trace =
     }
 [@@deriving show, eq]
 
-type taint_trace = {
-  source : taint_call_trace;
+(* The trace of a single source of taint, to the sink.
+   There may be many of these, taking different paths. For a single
+   sink, the fact that it produces a finding might be the product of
+   many taints, due to labels.
+   These taints may also take their own paths, because they might arrive
+   via different variables.
+*)
+type taint_trace_item = {
+  source_trace : taint_call_trace;
+      (** This is the path that the taint takes, from the source, to get to
+        the current function in which the taint finding is reported. *)
   tokens : tainted_tokens;
-  sink : taint_call_trace;
+      (** This is the path taken within the current function, to link the
+        taint source obtained earlier with a sink. Both of these might
+        be done through a chain of function calls. *)
+  sink_trace : taint_call_trace;
+      (** This is the path that the taint takes, from the function context,
+        to get to the sink. *)
 }
 [@@deriving show, eq]
 
+type taint_trace = taint_trace_item list [@@deriving show, eq]
 type engine_kind = OSS | Pro [@@deriving show, eq]
 
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
-  (* location information *)
+  (* location information: TODO Fpath.t *)
   file : Common.filename;
   (* less: redundant with location? *)
-  (* note that the two token_location can be equal *)
-  range_loc : Parse_info.token_location * Parse_info.token_location;
+  (* note that the two Tok.location can be equal *)
+  range_loc : Tok.location * Tok.location;
   (* less: do we need to be lazy? *)
-  tokens : Parse_info.t list Lazy.t; [@equal fun _a _b -> true]
+  tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
   (* Lazy since construction involves forcing lazy token lists. *)
@@ -105,7 +120,7 @@ and rule_id = {
    * Note that when we process a full rule, this id can temporarily
    * contain a Rule.pattern_id.
    *)
-  id : string;
+  id : Rule.ID.t;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml.
    *
    * TODO should we remove these fields and just pass around a Rule.t or

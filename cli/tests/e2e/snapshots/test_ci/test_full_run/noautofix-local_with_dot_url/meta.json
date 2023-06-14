@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "semgrep_version": "<sanitized version>",
+    "repository": "checkout_project_name",
+    "repo_url": "https://TestName/_git/Core.Thing",
+    "branch": "some/branch-name",
+    "ci_job_url": null,
+    "commit": "sanitized",
+    "commit_author_email": "test_environment@test.r2c.dev",
+    "commit_author_name": "Environment Test",
+    "commit_author_username": null,
+    "commit_author_image_url": null,
+    "commit_title": "Some other commit/ message",
+    "on": "unknown",
+    "pull_request_author_username": null,
+    "pull_request_author_image_url": null,
+    "pull_request_id": null,
+    "pull_request_title": null,
+    "scan_environment": "git",
+    "is_full_scan": true,
+    "is_sca_scan": false
+  }
+}

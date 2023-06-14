@@ -1,7 +1,7 @@
 open Common
+open File.Operators
 module Flag = Flag_parsing
 module J = JSON
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -14,17 +14,20 @@ let test_tokens_js file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
 
-  let toks = Parse_js.tokens file (* |> Parsing_hacks_js.fix_tokens  *) in
+  let toks =
+    Parse_js.tokens (Parsing_helpers.file file)
+    (* |> Parsing_hacks_js.fix_tokens  *)
+  in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
 let test_parse_common xs fullxs ext =
   let fullxs, _skipped_paths =
     match xs with
-    | [ x ] when Common2.is_directory x ->
+    | [ x ] when Common2.is_directory !!x ->
         let skip_list =
-          if Sys.file_exists (x ^ "/skip_list.txt") then
-            Skip_code.load (x ^ "/skip_list.txt")
+          if Sys.file_exists (!!x ^ "/skip_list.txt") then
+            Skip_code.load (Fpath.v (!!x ^ "/skip_list.txt"))
           else []
         in
         Skip_code.filter_files skip_list x fullxs
@@ -46,7 +49,7 @@ let test_parse_common xs fullxs ext =
                  Common.save_excursion Flag.error_recovery true (fun () ->
                      Common.save_excursion Flag.exn_when_lexical_error false
                        (fun () ->
-                         Parse_js.parse ~timeout:5.0 file
+                         Parse_js.parse ~timeout:5.0 !!file
                          (* to have a better comparison with semgrep -lang js -test_parse_lang: *)
                          (* let _gen = Js_to_generic.program ast in *)
                          (* note that there's still Naming_AST.resolve and
@@ -55,23 +58,24 @@ let test_parse_common xs fullxs ext =
                           *)))
                with
                | Stack_overflow as exn ->
-                   pr2 (spf "PB on %s, exn = %s" file (Common.exn_to_s exn));
+                   pr2 (spf "PB on %s, exn = %s" !!file (Common.exn_to_s exn));
                    {
                      Parsing_result.ast = [];
                      tokens = [];
-                     stat = Parsing_stat.bad_stat file;
+                     stat = Parsing_stat.bad_stat !!file;
                    }
              in
              Common.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
-               Hashtbl.add newscore file Common2.Ok
-             else Hashtbl.add newscore file (Common2.Pb s)));
+               Hashtbl.add newscore !!file Common2.Ok
+             else Hashtbl.add newscore !!file (Common2.Pb s)));
   Parsing_stat.print_parsing_stat_list !stat_list;
   Parsing_stat.print_regression_information ~ext xs newscore;
   ()
 
 let test_parse_js xs =
+  let xs = File.Path.of_strings xs in
   let fullxs =
     Lib_parsing_js.find_source_files_of_dir_or_files ~include_scripts:false xs
   in
@@ -80,8 +84,9 @@ let test_parse_js xs =
 module FT = File_type
 
 let test_parse_ts xs =
+  let xs = File.Path.of_strings xs in
   let fullxs =
-    Common.files_of_dir_or_files_no_vcs_nofilter xs
+    File.files_of_dirs_or_files_no_vcs_nofilter xs
     |> List.filter (fun filename ->
            match FT.file_type_of_file filename with
            | FT.PL (FT.Web FT.TypeScript) -> true
@@ -109,15 +114,17 @@ let test_dump_ts file =
 (*****************************************************************************)
 
 let info_to_json_range info =
-  let loc = PI.unsafe_token_location_of_info info in
-  ( J.Object [ ("line", J.Int loc.PI.line); ("col", J.Int loc.PI.column) ],
+  let loc = Tok.unsafe_loc_of_tok info in
+  ( J.Object
+      [ ("line", J.Int loc.Tok.pos.line); ("col", J.Int loc.Tok.pos.column) ],
     J.Object
       [
-        ("line", J.Int loc.PI.line);
-        ("col", J.Int (loc.PI.column + String.length loc.PI.str));
+        ("line", J.Int loc.Tok.pos.line);
+        ("col", J.Int (loc.Tok.pos.column + String.length loc.Tok.str));
       ] )
 
 let parse_js_r2c xs =
+  let xs = File.Path.of_strings xs in
   let fullxs =
     Lib_parsing_js.find_source_files_of_dir_or_files ~include_scripts:false xs
   in
@@ -125,34 +132,34 @@ let parse_js_r2c xs =
     J.Array
       (fullxs
       |> Common.map_filter (fun file ->
-             let nblines = Common.cat file |> List.length in
+             let nblines = File.cat file |> List.length in
              try
                let _res =
                  Common.save_excursion Flag.error_recovery false (fun () ->
                      Common.save_excursion Flag.exn_when_lexical_error true
                        (fun () ->
                          Common.save_excursion Flag.show_parsing_error true
-                           (fun () -> Parse_js.parse file)))
+                           (fun () -> Parse_js.parse !!file)))
                in
                (* only return a finding if there was a parse error so we can
                 * sort by the number of parse errors in the triage tool
                 *)
                None
              with
-             | ( Parse_info.Parsing_error info
-               | Parse_info.Lexical_error (_, info) ) as exn ->
+             | ( Parsing_error.Syntax_error info
+               | Parsing_error.Lexical_error (_, info) ) as exn ->
                  let startp, endp = info_to_json_range info in
                  let message =
                    match exn with
-                   | Parse_info.Parsing_error _ -> "parse error"
-                   | Parse_info.Lexical_error (s, _) -> "lexical error: " ^ s
+                   | Parsing_error.Syntax_error _ -> "syntax error"
+                   | Parsing_error.Lexical_error (s, _) -> "lexical error: " ^ s
                    | _ -> raise Impossible
                  in
                  Some
                    (J.Object
                       [
                         ("check_id", J.String "pfff-parse_js_r2c");
-                        ("path", J.String file);
+                        ("path", J.String !!file);
                         ("start", startp);
                         ("end", endp);
                         ( "extra",

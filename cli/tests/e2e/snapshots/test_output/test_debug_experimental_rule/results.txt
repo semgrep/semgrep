@@ -34,11 +34,16 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 Experimental Rules:
 - rules.experiment.research-experiment
-Passing whole rules directly to semgrep_core
-Scanning 1 file.
-Running Semgrep engine with command:
-/<MASKED>/semgrep<MASKED> -json -rules <MASKED>-json_time -fast --debug
 
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+Passing whole rules directly to semgrep_core
+Running Semgrep engine with command:
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
 <MASKED>
 <MASKED>
@@ -63,16 +68,9 @@ Running Semgrep engine with command:
 <MASKED>
 <MASKED>
 <MASKED>
-<MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
 
 ========================================
 Files skipped:
@@ -105,10 +103,15 @@ Files skipped:
 
    • <none>
 
-  Skipped by analysis failure due to parsing or internal Semgrep error
+  Partially analyzed due to parsing or internal Semgrep errors
 
    • <none>
 
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 Ran 1 rule on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

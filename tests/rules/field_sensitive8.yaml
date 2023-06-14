@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    languages:
+      - python
+    severity: ERROR
+    message: Test
+    mode: taint
+    pattern-sources:
+      - pattern: source(...)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+    pattern-sinks:
+      - pattern: sink(...)

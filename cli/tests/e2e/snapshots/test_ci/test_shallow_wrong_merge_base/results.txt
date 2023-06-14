@@ -3,65 +3,65 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+1
 === end of exit code
 
 === stdout - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
+
+
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment github-actions, triggering event is
+                pull_request
 Fixing git state for github action pull request
 Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
-Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
-  SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is      
-                pull_request                                                    
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
 
+  CONNECTION
+Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+  Reporting start of scan for deployment_name
+  Fetching configuration from Semgrep Cloud Platform
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 4 Code rules:
+  Scanning 1 file with 4 python rules.
   Current version has 1 finding.
 
 Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-Non-Blocking Findings:
 
-  bar.py 
-     eqeq-five
-        useless comparison to 5
 
-         ▶▶┆ Autofix ▶ (bar == 2)
-          1┆ bar == 5
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+
+    bar.py
+       eqeq-five
+          useless comparison to 5
+
+           ▶▶┆ Autofix ▶ (bar == 2)
+            1┆ bar == 5
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
   Found 1 finding (0 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep App:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stdout - plain
 

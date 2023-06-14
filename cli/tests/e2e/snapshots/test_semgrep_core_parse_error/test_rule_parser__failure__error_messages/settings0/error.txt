@@ -1,60 +1,12 @@
-running 1 rules from 1 config rules/eqeq-basic.yaml_0
+running 1 rules from 1 config rules/bad-java-rule.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:
-- rules.eqeq-bad
-Scanning 1 file.
+- rules.broken-rule
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
 
-========================================
-Files skipped:
-========================================
-
-  [1m[24mAlways skipped by Semgrep:[0m
-
-   • <none>
-
-  [1m[24mSkipped by .gitignore:[0m
-  [1m[24m(Disable by passing --no-git-ignore)[0m
-
-   • <all files not listed by `git ls-files` were skipped>
-
-  [1m[24mSkipped by .semgrepignore:[0m
-  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
-  defaults)[0m
-
-   • <none>
-
-  [1m[24mSkipped by --include patterns:[0m
-
-   • <none>
-
-  [1m[24mSkipped by --exclude patterns:[0m
-
-   • <none>
-
-  [1m[24mSkipped by limiting to files smaller than 1000000 bytes:[0m
-  [1m[24m(Adjust with the --max-target-bytes flag)[0m
-
-   • <none>
-
-  [1m[24mSkipped by analysis failure due to parsing or internal Semgrep error[0m
-
-   • [36m[22m[24mtargets/bad/invalid_go.go (2 lines skipped)[0m
-
-Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
-
-Ran 1 rule on 1 file: 0 findings.
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

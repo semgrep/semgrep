@@ -80,7 +80,7 @@ let map_ref_expr (env : env) tok expr : A.expr =
   | Some tok -> (* "&" *) A.Ref (token env tok, expr)
   | None -> expr
 
-let map_empty_block (env : env) semi = A.Block (Parse_info.fake_bracket semi [])
+let map_empty_block (env : env) semi = A.Block (Tok.fake_bracket semi [])
 
 let map_empty_statement_to_semicolon env empty =
   match empty with
@@ -89,15 +89,15 @@ let map_empty_statement_to_semicolon env empty =
 
 let stmt1 xs =
   match xs with
-  | [] -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc [])
+  | [] -> A.Block (Tok.fake_bracket Tok.unsafe_sc [])
   | [ st ] -> st
-  | xs -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc xs)
+  | xs -> A.Block (Tok.fake_bracket Tok.unsafe_sc xs)
 
 let fake_call_to_builtin (env : env) tok args =
   let str, tok = tok in
   A.Call
     ( A.Id [ (A.builtin str, tok) ],
-      Parse_info.fake_bracket tok (args |> Common.map (fun x -> A.Arg x)) )
+      Tok.fake_bracket tok (args |> Common.map (fun x -> A.Arg x)) )
 
 let rec chain_else_if (env : env) ifelses (else_ : A.stmt) : A.stmt =
   match ifelses with
@@ -177,7 +177,7 @@ let map_named_label_statement (env : env) ((v1, v2) : CST.named_label_statement)
 let map_variable_name (env : env) ((v1, v2) : CST.variable_name) : A.var =
   let v1 = (* "$" *) token env v1 in
   let v2str, v2tok = _str env v2 in
-  let combined = Parse_info.combine_infos v1 [ v2tok ] in
+  let combined = Tok.combine_toks v1 [ v2tok ] in
   ("$" ^ v2str, combined)
 
 let map_namespace_aliasing_clause (env : env)
@@ -506,7 +506,7 @@ let map_union_type (env : env) ((v1, v2) : CST.union_type) =
   in
   match v2 with
   | [] -> v1
-  | _ -> HintTuple (Parse_info.fake_bracket Parse_info.unsafe_sc (v1 :: v2))
+  | _ -> HintTuple (Tok.fake_bracket Tok.unsafe_sc (v1 :: v2))
 
 let map_type_ (env : env) (x : CST.type_) = map_union_type env x
 
@@ -764,7 +764,7 @@ and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
   let v2 =
     match v2 with
     | Some x -> map_anon_choice_choice_array_dest_abfb170 env x
-    | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
+    | None -> A.Id [ ("", Tok.fake_tok v1 "") ]
   in
   let v3 =
     Common.map
@@ -773,7 +773,7 @@ and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
         let v2 =
           match v2 with
           | Some x -> map_anon_choice_choice_array_dest_abfb170 env x
-          | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
+          | None -> A.Id [ ("", Tok.fake_tok v1 "") ]
         in
         v2)
       v3
@@ -1030,7 +1030,7 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) :
   let v4 =
     match v4 with
     | Some x -> map_variable_name env x
-    | None -> ("", Parse_info.fake_info v2 "")
+    | None -> ("", Tok.fake_tok v2 "")
   in
   let v5 = (* ")" *) token env v5 in
   let v6 = map_compound_statement env v6 in
@@ -1137,8 +1137,7 @@ and map_dynamic_variable_name (env : env) (x : CST.dynamic_variable_name) =
       let v1 = (* "$" *) token env v1 in
       let v2 = map_variable_name_ env v2 in
       A.Call
-        ( A.Id [ (A.builtin "eval_var", v1) ],
-          Parse_info.fake_bracket v1 [ A.Arg v2 ] )
+        (A.Id [ (A.builtin "eval_var", v1) ], Tok.fake_bracket v1 [ A.Arg v2 ])
   | `DOLLAR_LCURL_exp_RCURL (v1, v2, v3, v4) ->
       let v1 = (* "$" *) token env v1 in
       let v2 = (* "{" *) token env v2 in
@@ -1247,7 +1246,7 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       match v3 with
       | Some e -> A.CondExpr (v1, e, v5)
       | None ->
-          let elvis = (A.ArithOp G.Elvis, Parse_info.combine_infos v2 [ v4 ]) in
+          let elvis = (A.ArithOp G.Elvis, Tok.combine_toks v2 [ v4 ]) in
           A.Binop (v1, elvis, v5))
   | `Match_exp (v1, v2, v3) ->
       let v1 = (* pattern [mM][aA][tT][cC][hH] *) token env v1 in
@@ -1409,7 +1408,7 @@ and map_list_destructing (env : env)
   let v3 =
     match v3 with
     | Some x -> map_anon_choice_choice_list_dest_c865322 env x
-    | None -> A.Id [ ("", Parse_info.fake_info v2 "") ]
+    | None -> A.Id [ ("", Tok.fake_tok v2 "") ]
   in
   let v4 =
     Common.map
@@ -1418,7 +1417,7 @@ and map_list_destructing (env : env)
         let v2 =
           match v2 with
           | Some x -> map_anon_choice_choice_list_dest_c865322 env x
-          | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
+          | None -> A.Id [ ("", Tok.fake_tok v1 "") ]
         in
         v2)
       v4
@@ -1583,7 +1582,7 @@ and map_object_creation_expression (env : env)
       let v2 = map_class_type_designator env v2 in
       let v3 =
         match v3 with
-        | Some x -> Parse_info.unbracket (map_arguments env x)
+        | Some x -> Tok.unbracket (map_arguments env x)
         | None -> []
       in
       A.New (v1, v2, v3)
@@ -1600,7 +1599,8 @@ and map_object_creation_expression (env : env)
       in
       let v4 =
         match v4 with
-        | Some x -> Some (List.hd (map_base_clause env x))
+        | Some x ->
+            Some (Common.hd_exn "unexpected empty list" (map_base_clause env x))
         | None -> None
       in
       let v5 =
@@ -1710,7 +1710,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
           A.m_modifiers = v1;
           A.f_attrs = [];
           A.l_uses = [];
-          A.f_body = Expr (v7, Parse_info.unsafe_sc);
+          A.f_body = Expr (v7, Tok.unsafe_sc);
         }
   | `Obj_crea_exp x -> map_object_creation_expression env x
   | `Update_exp x -> map_update_expression env x
@@ -1719,8 +1719,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
       let tok = token env tok in
       A.Call
         ( A.Id [ (A.builtin "exec", tok (* not really an exec token *)) ],
-          Parse_info.fake_bracket tok
-            [ (* TODO insert content of backquote expr *) ] )
+          Tok.fake_bracket tok [ (* TODO insert content of backquote expr *) ]
+        )
   | `Paren_exp x -> map_parenthesized_expression env x
   | `Throw_exp (v1, v2) ->
       let v1 = (* pattern [tT][hH][rR][oO][wW] *) token env v1 in
@@ -1757,7 +1757,7 @@ and map_scoped_property_access_expression (env : env)
   let v1 = map_scope_resolution_qualifier env v1 in
   let v2 = (* "::" *) token env v2 in
   let v3 = map_variable_name_ env v3 in
-  A.Call (A.Class_get (v1, v2, v3), Parse_info.fake_bracket v2 [])
+  A.Call (A.Class_get (v1, v2, v3), Tok.fake_bracket v2 [])
 
 and map_sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression)
     =
@@ -1790,7 +1790,7 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 =
               match v3 with
               | Some x -> map_else_clause env x
-              | None -> map_empty_block env Parse_info.unsafe_sc
+              | None -> map_empty_block env Tok.unsafe_sc
             in
             (v1, v2, v3)
         | `Colon_blk_rep_else_if_clause_2_opt_else_clause_2_pat_endif_choice_auto_semi
@@ -1800,7 +1800,7 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 =
               match v3 with
               | Some x -> map_else_clause_2 env x
-              | None -> map_empty_block env Parse_info.unsafe_sc
+              | None -> map_empty_block env Tok.unsafe_sc
             in
             let v4 = (* pattern [eE][nN][dD][iI][fF] *) token env v4 in
             let v5 = map_semicolon env v5 in
@@ -2026,7 +2026,8 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v5 =
         match v5 with
-        | Some x -> Some (List.hd (map_base_clause env x))
+        | Some x ->
+            Some (Common.hd_exn "unexpected empty list" (map_base_clause env x))
         | None -> None
       in
       let v6 =
@@ -2160,7 +2161,7 @@ and map_statement (env : env) (x : CST.statement) =
         | `Name_name_choice_auto_semi (v1, v2) ->
             let v1 = map_namespace_name env v1 in
             let v2 = map_semicolon env v2 in
-            (v1, Parse_info.fake_bracket v2 [])
+            (v1, Tok.fake_bracket v2 [])
         | `Opt_name_name_comp_stmt (v1, v2) ->
             let v1 =
               match v1 with
@@ -2304,7 +2305,7 @@ and map_unary_op_expression (env : env) (x : CST.unary_op_expression) =
   | `AT_exp (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
       let v2 = A.Arg (map_expression env v2) in
-      A.Call (A.Id [ (A.builtin "at", v1) ], Parse_info.fake_bracket v1 [ v2 ])
+      A.Call (A.Id [ (A.builtin "at", v1) ], Tok.fake_bracket v1 [ v2 ])
   | `Choice_PLUS_exp (v1, v2) ->
       let v1 =
         match v1 with

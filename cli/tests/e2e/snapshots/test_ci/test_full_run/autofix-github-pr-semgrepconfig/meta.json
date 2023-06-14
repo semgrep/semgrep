@@ -23,10 +23,5 @@
       "tag1",
       "tag_key:tag_val"
     ]
-  },
-  "policy_names": [
-    "audit",
-    "comment",
-    "block"
-  ]
+  }
 }

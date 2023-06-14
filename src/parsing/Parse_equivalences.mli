@@ -1,1 +1,1 @@
-val parse : Common.filename -> Equivalence.equivalences
+val parse : Fpath.t -> Equivalence.equivalences

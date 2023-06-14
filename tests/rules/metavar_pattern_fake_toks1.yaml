@@ -1,0 +1,16 @@
+rules:
+  - id: regression-1.9.0
+    message: Match!
+    languages:
+      - php
+    severity: WARNING
+    patterns:
+      - pattern: |
+          if (cond) {
+            $NO_DIE_EXIT_RETURN;
+          }
+      - metavariable-pattern:
+          metavariable: $NO_DIE_EXIT_RETURN
+          patterns:
+            - pattern-not: die(...);
+

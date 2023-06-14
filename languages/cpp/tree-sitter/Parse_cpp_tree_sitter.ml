@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
 module HPfff = Parser_cpp_mly_helper
@@ -43,13 +42,13 @@ let recover_when_partial_error = ref true
 type env = unit H.env
 
 let token = H.token
-let fake = PI.fake_info
-let fb = PI.fake_bracket
+let fake = Tok.fake_tok
+let fb = Tok.fake_bracket
 let str = H.str
 
 (* for declarators *)
 let id x = x
-let error t s = raise (Parse_info.Other_error (s, t))
+let error t s = raise (Parsing_error.Other_error (s, t))
 
 (* To use in situations where we should raise an error, unless
  * tree-sitter partially parsed the file, in which case the AST may
@@ -62,7 +61,8 @@ let error_unless_partial_error _env t s =
    *)
   if not !recover_when_partial_error then error t s
   else
-    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
+    logger#error "error_unless_partial_error: %s, at %s" s
+      (Tok.stringpos_of_tok t)
 
 (* see tree-sitter-cpp/grammar.js *)
 let parse_operator _env (s, t) : operator wrap =
@@ -144,7 +144,7 @@ let id_of_dname_for_parameter env dname =
       error_unless_partial_error env (ii_of_dname dname)
         "expecting an ident for parameter";
       let ii = ii_of_dname dname in
-      (PI.str_of_info ii, ii)
+      (Tok.content_of_tok ii, ii)
 
 let name_of_dname_for_function dn =
   match dn with
@@ -208,7 +208,7 @@ let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
        * code as a StructuredBinding when it's not.
        *)
       logger#error "Weird DNStructuredBinding without an init at %s"
-        (PI.string_of_info (snd id));
+        (Tok.stringpos_of_tok (snd id));
       V ({ name = name_of_id id; specs = v_specs }, { v_type; v_init })
 
 (*****************************************************************************)
@@ -362,7 +362,7 @@ let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
     (* pattern "[^\\n']" *)
   in
   let v3 = token env v3 (* "'" *) in
-  let t = PI.combine_infos v1 [ v2; v3 ] in
+  let t = Tok.combine_toks v1 [ v2; v3 ] in
   Char (s, t)
 
 let map_preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
@@ -408,7 +408,7 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
   let s = v2 |> Common.map fst |> String.concat "" in
   let xs = v2 |> Common.map snd in
   let v3 = token env v3 (* "\"" *) in
-  let t = PI.combine_infos v1 (xs @ [ v3 ]) in
+  let t = Tok.combine_toks v1 (xs @ [ v3 ]) in
   (s, t)
 
 let map_preproc_def (env : env) ((v1, v2, v3, v4) : CST.preproc_def) =

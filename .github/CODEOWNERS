@@ -1,5 +1,5 @@
 
 # Matches all files in the .github/ dir, recursively.
-.github/ @spencerdrak @cgdolan @aryx @bmahe
+.github/ @spencerdrak @cgdolan @aryx @bmahe @apt-itude
 src/analyzing @IagoAbal
 src/tainting @IagoAbal

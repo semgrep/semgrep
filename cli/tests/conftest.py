@@ -20,16 +20,41 @@ from typing import Union
 
 import colorama
 import pytest
+from tests import fixtures
 from tests.semgrep_runner import SemgrepRunner
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
-from semgrep.lsp.server import SemgrepLSPServer
-
 
 TESTS_PATH = Path(__file__).parent
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-only-snapshots",
+        action="store_true",
+        default=False,
+        help="Filter test execution to tests that use pytest-snapshot",
+    )
+
+
+def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> None:
+    if config.getoption("--run-only-snapshots"):
+        selected_items: List[pytest.Item] = []
+        deselected_items: List[pytest.Item] = []
+
+        for item in items:
+            group = (
+                selected_items
+                if "snapshot" in getattr(item, "fixturenames", ())
+                else deselected_items
+            )
+            group.append(item)
+
+        config.hook.pytest_deselected(items=deselected_items)
+        items[:] = selected_items
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
@@ -159,15 +184,6 @@ def _clean_output_sarif(output_json: str) -> str:
     return json.dumps(output, indent=2, sort_keys=True)
 
 
-def _clean_output_lsp(out) -> str:
-    text = json.dumps(out, indent=2, sort_keys=True)
-    # Regex to match anything starting with file://
-    capture = re.compile(r"\"file:\/\/[^\s]+\"")
-
-    cleaned = capture.sub('"file:///tmp/masked/path"', text)
-    return cleaned
-
-
 Maskers = Iterable[Union[str, re.Pattern, Callable[[str], str]]]
 
 
@@ -186,6 +202,7 @@ ALWAYS_MASK: Maskers = (
     re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
+    re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
 )
 
 
@@ -214,6 +231,9 @@ class SemgrepResult:
                 text = pattern.sub(mask_capture_group, text)
             elif callable(pattern):
                 text = pattern(text)
+        # strip trailing whitespace characters that are emitted by pysemgrep,
+        # but we do not plan to emit them in osemgrep
+        text = re.sub(r"[ \t]+$", "", text, flags=re.M)
         # special code for JSON cleaning, used to be in ALWAYS_MASK
         # but sometimes we want fingerprint masking and sometimes not
         text = _clean_output_json(text, self.clean_fingerprint)
@@ -269,6 +289,7 @@ class SemgrepResult:
 
 
 def _run_semgrep(
+    # if you change these args, mypy will require updating tests.fixtures.RunSemgrep too
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
     target_name: Optional[str] = "basic",
@@ -355,6 +376,7 @@ def _run_semgrep(
     runner = SemgrepRunner(env=env, mix_stderr=False)
     click_result = runner.invoke(cli, args, input=stdin)
     result = SemgrepResult(
+        # the actual executable was either semgrep or osemgrep. Is it bad?
         f"{env_string} semgrep {args}",
         click_result.stdout,
         click_result.stderr,
@@ -372,7 +394,7 @@ def _run_semgrep(
 
 
 @pytest.fixture()
-def unique_home_dir(monkeypatch, tmp_path):
+def unique_home_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     """
     Assign the home directory to a unique temporary directory.
     """
@@ -381,12 +403,14 @@ def unique_home_dir(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def run_semgrep():
-    yield partial(_run_semgrep, strict=False, target_name=None, output_format=None)
+def run_semgrep() -> fixtures.RunSemgrep:
+    return partial(_run_semgrep, strict=False, target_name=None, output_format=None)
 
 
 @pytest.fixture
-def run_semgrep_in_tmp(monkeypatch, tmp_path):
+def run_semgrep_in_tmp(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> fixtures.RunSemgrep:
     """
     Note that this can cause failures if Semgrep pollutes either the targets or rules path
     """
@@ -394,11 +418,13 @@ def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
 
-    yield _run_semgrep
+    return _run_semgrep
 
 
 @pytest.fixture
-def run_semgrep_on_copied_files(monkeypatch, tmp_path):
+def run_semgrep_on_copied_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> fixtures.RunSemgrep:
     """
     Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
     directory pollution, also avoids issues with symlink navigation
@@ -407,11 +433,11 @@ def run_semgrep_on_copied_files(monkeypatch, tmp_path):
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    yield _run_semgrep
+    return _run_semgrep
 
 
 @pytest.fixture
-def git_tmp_path(monkeypatch, tmp_path):
+def git_tmp_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     monkeypatch.chdir(tmp_path)
     # Initialize State
     subprocess.run(["git", "init"], check=True, capture_output=True)
@@ -434,18 +460,7 @@ def git_tmp_path(monkeypatch, tmp_path):
 
 
 @pytest.fixture
-def lsp(monkeypatch, tmp_path):
-    """Return an initialized lsp"""
-
-    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
-    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
-    ls = SemgrepLSPServer(StringIO, StringIO)
-    monkeypatch.chdir(tmp_path)
-    return ls
-
-
-@pytest.fixture
-def parse_lockfile_path_in_tmp(monkeypatch, tmp_path):
+def parse_lockfile_path_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)

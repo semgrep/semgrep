@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open AST_generic
-module V = Visitor_AST
 
 (*****************************************************************************)
 (* Prelude *)
@@ -33,7 +32,6 @@ module V = Visitor_AST
  * This module is currently used by:
  *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
- *  - the bloom filter pattern extractor of Nathan and Emma
  *  - the Semgrep.ml engine to skip entire files!
  *
  * TODO:
@@ -50,72 +48,68 @@ let _error s = failwith s
 (* Extractions *)
 (*****************************************************************************)
 
-(* TODO(iago): This is partly redundant with Bloom_annotation.statement_strings,
- * it might be more maintainable if we had a single visitor that worked for both
- * statements and patterns. *)
-
 let extract_strings_and_mvars ?lang any =
   let strings = ref [] in
   let mvars = ref [] in
   let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kident =
-          (fun (_k, _) (str, _tok) ->
-            match () with
-            | _ when Metavariable.is_metavar_name str -> Common.push str mvars
-            | _ when not (Pattern.is_special_identifier ?lang str) ->
-                Common.push str strings
-            | _ -> ());
-        V.kname =
-          (fun (k, _) x ->
-            match x with
-            | Id (_id, { id_hidden = true; _ }) ->
-                (* This identifier is not present in the pattern source.
-                    We assume a match is possible without the identifier
-                    being present in the target source, so we ignore it. *)
-                ()
-            | _ -> k x);
-        V.kdir =
-          (fun (k, _) x ->
-            match x with
-            | { d = ImportFrom (_, FileName (str, _), _); _ }
-            | { d = ImportAs (_, FileName (str, _), _); _ }
-            | { d = ImportAll (_, FileName (str, _), _); _ }
-              when str <> "..."
-                   && (not (Metavariable.is_metavar_name str))
-                   && (* deprecated *) not (Pattern.is_regexp_string str) ->
-                (* Semgrep can match "foo" against "foo/bar", so we just
-                 * overapproximate taking the sub-strings, see
-                 * Generic_vs_generic.m_module_name_prefix. *)
-                Common.split {|/\|\\|} str
-                |> List.iter (fun s -> Common.push s strings);
-                k x
-            | _ -> k x);
-        V.kexpr =
-          (fun (k, _) x ->
-            match x.e with
-            (* less: we could extract strings for the other literals too?
-             * atoms, chars, even int?
-             * We do now semantic equivance on integers between values so
-             * 1000 is now equivalent to 1_000 so we can't "regexpize" it.
-             *)
-            | L (String (_, (str, _tok), _)) ->
-                if not (Pattern.is_special_string_literal str) then
-                  Common.push str strings
-            | IdSpecial (Eval, t) ->
-                if Parse_info.is_origintok t then
-                  Common.push (Parse_info.str_of_info t) strings
-            (* do not recurse there, the type does not have to be in the source *)
-            | TypedMetavar _ -> ()
-            (* for bloom_filters: do not recurse here (for ApplyEquivalence,
-             * this would be an error) *)
-            | DisjExpr _ -> ()
-            | _ -> k x);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_ident _env (str, _tok) =
+        match () with
+        | _ when Metavariable.is_metavar_name str -> Common.push str mvars
+        | _ when not (Pattern.is_special_identifier ?lang str) ->
+            Common.push str strings
+        | _ -> ()
+
+      method! visit_name env x =
+        match x with
+        | Id (_id, { id_hidden = true; _ }) ->
+            (* This identifier is not present in the pattern source.
+                We assume a match is possible without the identifier
+                being present in the target source, so we ignore it. *)
+            ()
+        | _ -> super#visit_name env x
+
+      method! visit_directive env x =
+        match x with
+        | { d = ImportFrom (_, FileName (str, _), _); _ }
+        | { d = ImportAs (_, FileName (str, _), _); _ }
+        | { d = ImportAll (_, FileName (str, _), _); _ }
+          when str <> "..."
+               && (not (Metavariable.is_metavar_name str))
+               && (* deprecated *) not (Pattern.is_regexp_string str) ->
+            (* Semgrep can match "foo" against "foo/bar", so we just
+             * overapproximate taking the sub-strings, see
+             * Generic_vs_generic.m_module_name_prefix. *)
+            Common.split {|/\|\\|} str
+            |> List.iter (fun s -> Common.push s strings);
+            super#visit_directive env x
+        | _ -> super#visit_directive env x
+
+      method! visit_expr env x =
+        match x.e with
+        (* less: we could extract strings for the other literals too?
+         * atoms, chars, even int?
+         * We do now semantic equivance on integers between values so
+         * 1000 is now equivalent to 1_000 so we can't "regexpize" it.
+         *)
+        | L (String (_, (str, _tok), _)) ->
+            if not (Pattern.is_special_string_literal str) then
+              Common.push str strings
+        | IdSpecial (Eval, t) ->
+            if Tok.is_origintok t then
+              Common.push (Tok.content_of_tok t) strings
+        (* do not recurse there, the type does not have to be in the source *)
+        | TypedMetavar _ -> ()
+        (* for bloom_filters: do not recurse here (for ApplyEquivalence,
+         * this would be an error)
+         * THINK: bloom filter was removed, something to re-consider here? *)
+        | DisjExpr _ -> ()
+        | _ -> super#visit_expr env x
+    end
   in
-  visitor any;
+  visitor#visit_any () any;
   (Common2.uniq !strings, Common2.uniq !mvars)
 
 let extract_specific_strings ?lang any =

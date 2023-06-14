@@ -1,4 +1,9 @@
-Findings:
+                  
+                  
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+                         
+    definitely_a_file.py 
+            1┆ x = 23478921
 
-  definitely_a_file.py 
-          1┆ x = 23478921

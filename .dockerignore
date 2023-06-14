@@ -1,11 +1,17 @@
 .git/
 # dune
-**/_build
+**/_build/
 # starting from dune 2.8.2, those are actually not generated anymore
 **/.merlin
 
+# opam files are now generated from dune-project when running 'dune build':
+*.opam
+# but we keep the one used for installing the project dependencies with
+# 'opam install --deps-only .':
+!semgrep.opam
+
 # bisect_ppx
-**/_coverage
+**/_coverage/
 **/*.coverage
 
 # pad's stuff (but better to put in ~pad/config/commons/gitignore)
@@ -65,6 +71,10 @@ top.ml
 **/*.py,cover
 **/.hypothesis/
 **/.pytest_cache/
+
+# src/targeting/Unit_guess_lang.ml creates a top-level tmp folder
+# "We don't delete the files when we're done because it's easier when troubleshooting tests."
+tmp/
 
 # Translations
 **/*.mo

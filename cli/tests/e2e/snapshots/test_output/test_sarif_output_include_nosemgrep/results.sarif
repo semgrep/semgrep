@@ -35,6 +35,7 @@
           "message": {
             "text": "AWS Account ID detected"
           },
+          "properties": {},
           "ruleId": "rules.detected-aws-account-id",
           "suppressions": [
             {
@@ -68,6 +69,7 @@
           "message": {
             "text": "AWS Account ID detected"
           },
+          "properties": {},
           "ruleId": "rules.detected-aws-account-id"
         }
       ],
@@ -89,7 +91,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "AWS Account ID detected"
+                "text": "Semgrep Finding: rules.detected-aws-account-id"
               }
             }
           ],

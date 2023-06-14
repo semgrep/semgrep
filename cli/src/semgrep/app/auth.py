@@ -2,21 +2,27 @@ import logging
 import sys
 from typing import Optional
 
+from boltons.iterutils import get_path
+
 from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
 
 
-def is_valid_token(token: str) -> bool:
+def get_deployment_from_token(token: str) -> Optional[str]:
     """
-    Returns true if token is valid
+    Returns the deployment name the token is for, if token is valid
     """
     state = get_state()
     r = state.app_session.get(
         f"{state.env.semgrep_url}/api/agent/deployments/current",
         headers={"Authorization": f"Bearer {token}"},
     )
-    return r.ok
+    if r.ok:
+        data = r.json()
+        return data.get("deployment", {}).get("name")  # type: ignore
+    else:
+        return None
 
 
 def get_deployment_id() -> Optional[int]:
@@ -28,11 +34,15 @@ def get_deployment_id() -> Optional[int]:
     state = get_state()
     r = state.app_session.get(f"{state.env.semgrep_url}/api/agent/deployments/current")
 
-    if r.ok:
-        data = r.json()
-        return data.get("deployment", {}).get("id")  # type: ignore
-    else:
+    if not r.ok:
         return None
+
+    deployment_id = get_path(r.json(), ("deployment", "id"))
+
+    if not isinstance(deployment_id, int):
+        return None
+
+    return deployment_id
 
 
 def get_token() -> Optional[str]:

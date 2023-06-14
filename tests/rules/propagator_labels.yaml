@@ -1,0 +1,54 @@
+rules:
+- id: propagator-labels 
+  mode: taint
+  pattern-sources:
+    - label: A
+      pattern: |
+        a
+    - label: B
+      pattern: |
+        b
+    - pattern: |
+        any
+  pattern-propagators:
+    - pattern: |
+        $TO.foo($FROM)
+      from: $FROM
+      to: $TO
+      requires: A
+    - pattern: |
+        $TO.bar($FROM)
+      from: $FROM
+      to: $TO
+      requires: B 
+      label: C 
+    - pattern: |
+        $TO.qux($FROM)
+      from: $FROM
+      to: $TO
+      label: D
+    - pattern: |
+        $TO.baz($FROM)
+      from: $FROM
+      to: $TO
+      requires: A or B or C
+      replace-labels: [A, B] 
+      label: E 
+  pattern-sinks:
+    - pattern: |
+        sink(...)
+      requires: A or B 
+    - pattern: |
+        sinkc(...)
+      requires: C
+    - pattern: |
+        sinkd(...)
+      requires: D
+    - pattern: |
+        sinke(...)
+      requires: E
+    - pattern: |
+        sinkany(...)
+  message: Test
+  languages: [python]
+  severity: ERROR

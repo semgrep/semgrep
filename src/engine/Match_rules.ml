@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
+open File.Operators
 module R = Rule
 module RP = Report
 module Resp = Output_from_core_t
@@ -49,7 +49,9 @@ let timeout_function rule file timeout f =
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
       AST_utils.busy_with_equal := saved_busy_with_equal;
-      logger#info "timeout for rule %s on file %s" (fst rule.R.id) file;
+      logger#info "timeout for rule %s on file %s"
+        (fst rule.R.id :> string)
+        file;
       None
 
 let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
@@ -59,45 +61,48 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     spf
       "No need to perform deeper matching because target does not contain some \
        elements necessary for the rule to match '%s'"
-      rule_id
+      (rule_id :> string)
   in
   {
-    path = file_and_more.file;
+    path = !!(file_and_more.file);
     reason = Irrelevant_rule;
     details;
-    rule_id = Some rule_id;
+    rule_id = Some (rule_id :> string);
   }
+
+let is_relevant_rule_for_xtarget r xconf xtarget =
+  let { Xtarget.file; lazy_content; _ } = xtarget in
+  let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
+  let is_relevant =
+    if xconf.filter_irrelevant_rules then (
+      match Analyze_rule.regexp_prefilter_of_rule r with
+      | None -> true
+      | Some (prefilter_formula, func) ->
+          let content = Lazy.force lazy_content in
+          let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
+          logger#trace "looking for %s in %s" s !!file;
+          func content)
+    else true
+  in
+  if not is_relevant then
+    logger#trace "skipping rule %s for %s" (fst r.R.id :> string) !!file;
+  is_relevant
 
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
 let group_rules xconf rules xtarget =
-  let { Xtarget.file; lazy_content; _ } = xtarget in
   let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
     rules
     |> Common.partition_either3 (fun r ->
-           let xconf =
-             Match_env.adjust_xconfig_with_rule_options xconf r.R.options
-           in
-           let relevant_rule =
-             if xconf.filter_irrelevant_rules then (
-               match Analyze_rule.regexp_prefilter_of_rule r with
-               | None -> true
-               | Some (prefilter_formula, func) ->
-                   let content = Lazy.force lazy_content in
-                   let s =
-                     Semgrep_prefilter_j.string_of_formula prefilter_formula
-                   in
-                   logger#trace "looking for %s in %s" s file;
-                   func content)
-             else true
-           in
-           if not relevant_rule then
-             logger#trace "skipping rule %s for %s" (fst r.R.id) file;
+           let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
            match r.R.mode with
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
-           | (`Extract _ | `Search _) as mode -> Middle3 { r with mode })
+           | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
+           | `Step _ ->
+               pr2 (Rule.show_rule r);
+               raise Common.Todo)
   in
   (* Taint rules are only relevant to each other if they are meant to be
      analyzing the same language.
@@ -126,7 +131,9 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
     let rule_id = fst rule.R.id in
     Rule.last_matched_rule := Some rule_id;
     let res_opt =
-      Profiling.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+      Profiling.profile_code
+        (spf "real_rule:%s" (rule_id :> string))
+        (fun () ->
           (* here we handle the rule! *)
           timeout_function rule file timeout f)
     in
@@ -136,7 +143,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         incr cnt_timeout;
         if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
           raise File_timeout;
-        let loc = Parse_info.first_loc_of_file file in
+        let loc = Tok.first_loc_of_file file in
         let error = E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout in
         RP.make_match_result []
           (Report.ErrorSet.singleton error)
@@ -148,14 +155,16 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
 
 let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
     rules xtarget =
-  let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
-  logger#trace "checking %s with %d rules" file (List.length rules);
-  if !Profiling.profile =*= Profiling.ProfAll then (
-    logger#info "forcing eval of ast outside of rules, for better profile";
-    Lazy.force lazy_ast_and_errors |> ignore);
-
+  let { Xtarget.file; lazy_ast_and_errors; xlang; _ } = xtarget in
+  logger#trace "checking %s with %d rules" !!file (List.length rules);
+  (match (!Profiling.profile, xlang) with
+  (* coupling: see Run_semgrep.xtarget_of_file() *)
+  | Profiling.ProfAll, Xlang.L (_lang, []) ->
+      logger#info "forcing parsing of AST outside of rules, for better profile";
+      Lazy.force lazy_ast_and_errors |> ignore
+  | _else_ -> ());
   let per_rule_boilerplate_fn =
-    per_rule_boilerplate_fn ~timeout ~timeout_threshold file
+    per_rule_boilerplate_fn ~timeout ~timeout_threshold !!file
   in
 
   (* We separate out the taint rules specifically, because we may want to
@@ -191,10 +200,13 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                | `Extract extract_spec ->
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
-                     match_hook xconf xtarget))
+                     match_hook xconf xtarget
+               | `Step _ as mode ->
+                   pr2 (Rule.show_rule { r with mode });
+                   raise Common.Todo))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
-  let res = RP.collate_rule_results xtarget.Xtarget.file res_total in
+  let res = RP.collate_rule_results !!(xtarget.Xtarget.file) res_total in
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->

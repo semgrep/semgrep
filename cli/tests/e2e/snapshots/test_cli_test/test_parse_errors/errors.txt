@@ -3,22 +3,15 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Rules:
 - rules.cli_test.parse_errors.eqeq-is-bad
 - rules.cli_test.parse_errors.func
-Scanning 1 file with 2 js rules.
 
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 2 Code rules:
+  Scanning 1 file with 2 js rules.
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Syntax error at line targets/cli_test/parse_errors/invalid_javascript.js:5:
  `key:` was unexpected
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
 
 ========================================
 Files skipped:
@@ -52,12 +45,17 @@ Files skipped:
 
    • <none>
 
-  [1m[24mSkipped by analysis failure due to parsing or internal Semgrep error[0m
+  [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
    • [36m[22m[24mtargets/cli_test/parse_errors/invalid_javascript.js (2 lines skipped)[0m
 
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
+  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
 
 Ran 2 rules on 1 file: 3 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

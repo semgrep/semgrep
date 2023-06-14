@@ -1,8 +1,10 @@
 import pytest
+from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
-def test_severity_error(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_severity_error(run_semgrep_in_tmp: RunSemgrep, snapshot):
     json_str = run_semgrep_in_tmp(
         "rules/inside.yaml", options=["--severity", "ERROR"]
     ).stdout
@@ -12,7 +14,8 @@ def test_severity_error(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_severity_info(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_severity_info(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Shouldn't return errors or results, since inside.yaml has 'severity: ERROR'
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/inside.yaml", options=["--severity", "INFO"]).stdout,
@@ -21,7 +24,8 @@ def test_severity_info(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_severity_warning(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_severity_warning(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Shouldn't return errors or results, since inside.yaml has 'severity: ERROR'
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -32,7 +36,8 @@ def test_severity_warning(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_severity_multiple(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_severity_multiple(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Shouldn't return errors or results, since inside.yaml has 'severity: ERROR'
     # Differs from the two preceding tests in that we're testing adding multiple severity strings
     snapshot.assert_match(

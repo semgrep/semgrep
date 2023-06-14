@@ -4,7 +4,6 @@ Using configs only from local files (like --config=xyz.yml) does not enable metr
 
 More information: https://semgrep.dev/docs/metrics
 
-Semgrep rule registry URL is https://semgrep.dev/registry.
 
 Rules downloaded from https://semgrep.dev/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.

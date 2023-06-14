@@ -14,7 +14,6 @@
  *)
 open Common
 open IL
-module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -34,6 +33,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+module IdentSet = Set.Make (String)
+
+type ctx = { entity_names : IdentSet.t }
+
 type env = {
   lang : Lang.t;
   (* stmts hidden inside expressions that we want to move out of 'exp',
@@ -46,10 +49,19 @@ type env = {
   *)
   break_labels : label list;
   cont_label : label option;
+  ctx : ctx;
 }
 
+let empty_ctx = { entity_names = IdentSet.empty }
+
 let empty_env (lang : Lang.t) : env =
-  { stmts = ref []; break_labels = []; cont_label = None; lang }
+  {
+    stmts = ref [];
+    break_labels = [];
+    cont_label = None;
+    ctx = empty_ctx;
+    lang;
+  }
 
 (*****************************************************************************)
 (* Error management *)
@@ -63,8 +75,8 @@ let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
 let locate opt_tok s =
   let opt_loc =
-    try Option.map Parse_info.string_of_info opt_tok with
-    | Parse_info.NoTokenLocation _ -> None
+    try Option.map Tok.stringpos_of_tok opt_tok with
+    | Tok.NoTokenLocation _ -> None
   in
   match opt_loc with
   | Some loc -> spf "%s: %s" loc s
@@ -74,7 +86,7 @@ let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
-  let toks = Visitor_AST.ii_of_any gany in
+  let toks = AST_generic_helpers.ii_of_any gany in
   let opt_tok = Common2.hd_opt toks in
   match kind with
   | ToDo ->
@@ -105,7 +117,7 @@ let fresh_var ?(str = "_tmp") _env tok =
     (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
        we confuse ourselves! E.g. during taint-tracking we don't want to add these
        variables to the taint trace. *)
-    if Parse_info.is_fake tok then tok else Parse_info.fake_info tok str
+    if Tok.is_fake tok then tok else Tok.fake_tok tok str
   in
   let i = G.SId.mk () in
   { ident = (str, tok); sid = i; id_info = G.empty_id_info () }
@@ -190,6 +202,14 @@ let pop_stmts env =
   env.stmts := [];
   xs
 
+let with_pre_stmts env f =
+  let saved_stmts = !(env.stmts) in
+  env.stmts := [];
+  let r = f env in
+  let f_stmts = pop_stmts env in
+  env.stmts := saved_stmts;
+  (f_stmts, r)
+
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
 let ident_of_entity_opt ent =
@@ -225,6 +245,18 @@ let is_hcl lang =
   match lang with
   | Lang.Terraform -> true
   | _ -> false
+
+let mk_class_constructor_name (ty : G.type_) cons_id_info =
+  match ty with
+  | { t = TyN (G.Id (id, _)); _ }
+  | { t = TyExpr { e = G.N (G.Id (id, _)); _ }; _ }
+  (* FIXME: JS parser produces this ^ although it should be parsed as a 'TyN'. *)
+    when Option.is_some !(cons_id_info.G.id_resolved) ->
+      Some (G.Id (id, cons_id_info))
+  | __else__ -> None
+
+let add_entity_name ctx ident =
+  { entity_names = IdentSet.add (H.str_of_ident ident) ctx.entity_names }
 
 (*****************************************************************************)
 (* lvalue *)
@@ -300,7 +332,7 @@ and pattern env pat =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List.mapi (fun i pat_i ->
+        |> Common.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
@@ -361,7 +393,7 @@ and assign env lhs tok rhs_exp e_gen =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List.mapi (fun i lhs_i ->
+        |> Common.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i =
                  {
@@ -442,11 +474,20 @@ and assign env lhs tok rhs_exp e_gen =
 (* less: we could pass in an optional lval that we know the caller want
  * to assign into, which would avoid creating useless fresh_var intermediates.
  *)
+(* We set `void` to `true` when the value of the expression is being discarded, in
+ * which case, for certain expressions and in certain languages, we assume that the
+ * expression has side-effects. See translation of operators below. *)
 and expr_aux env ?(void = false) e_gen =
   let eorig = SameAs e_gen in
   match e_gen.G.e with
+  | G.Call
+      ( { e = G.IdSpecial (G.Op ((G.And | G.Or) as op), tok); _ },
+        (_, arg0 :: args, _) )
+    when not void ->
+      expr_lazy_op env op tok arg0 args eorig
+  (* args_with_pre_stmts *)
   | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) -> (
-      let args = arguments env args in
+      let args = arguments env (Tok.unbracket args) in
       if not void then mk_e (Operator ((op, tok), args)) eorig
       else
         (* The operation's result is not being used, so it may have side-effects.
@@ -459,9 +500,7 @@ and expr_aux env ?(void = false) e_gen =
             let obj_var, _obj_lval =
               mk_aux_var env tok (IL_helpers.exp_of_arg obj)
             in
-            let method_name =
-              fresh_var env tok ~str:(Parse_info.str_of_info tok)
-            in
+            let method_name = fresh_var env tok ~str:(Tok.content_of_tok tok) in
             let offset = { o = Dot method_name; oorig = NoOrig } in
             let method_lval = { base = Var obj_var; rev_offset = [ offset ] } in
             let method_ = { e = Fetch method_lval; eorig = related_tok tok } in
@@ -483,7 +522,7 @@ and expr_aux env ?(void = false) e_gen =
        * we dont. Anyway, for our static analysis purpose it should not matter.
        * We don't do fancy path-sensitive-evaluation-order-sensitive analysis.
        *)
-      match PI.unbracket args with
+      match Tok.unbracket args with
       | [ G.Arg e ] ->
           let lval = lval env e in
           (* TODO: This `lval` should have a new svalue ref given that we
@@ -521,7 +560,7 @@ and expr_aux env ?(void = false) e_gen =
       (* obj.concat(args) *)
       (* NOTE: Often this will be string concatenation but not necessarily! *)
       let obj_arg' = Unnamed (expr env obj) in
-      let args' = arguments env args in
+      let args' = arguments env (Tok.unbracket args) in
       let res =
         match env.lang with
         (* Ruby's concat method is side-effectful and updates the object. *)
@@ -546,7 +585,7 @@ and expr_aux env ?(void = false) e_gen =
         args ) ->
       let lval = fresh_lval env tok in
       let special = (Eval, tok) in
-      let args = arguments env args in
+      let args = arguments env (Tok.unbracket args) in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Fetch lval) (related_tok tok)
   | G.Call
@@ -556,16 +595,18 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.New (tok, ty, args) ->
-      (* TODO: lift up New in IL like we did in AST_generic *)
-      let special = (New, tok) in
-      let arg = G.ArgType ty in
-      let args = arguments env args in
-      add_call env tok eorig ~void (fun res ->
-          CallSpecial (res, special, argument env arg :: args))
+  | G.New (tok, ty, _cons_id_info, args) ->
+      (* HACK: Fall-through case where we don't know to what variable the allocated
+       * object is being assigned to. See HACK(new), we expect to intercept `New`
+       * already in 'stmt_aux'.
+       *)
+      let lval = fresh_lval env tok in
+      let args = arguments env (Tok.unbracket args) in
+      add_instr env (mk_i (New (lval, type_ env ty, None, args)) eorig);
+      mk_e (Fetch lval) NoOrig
   | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
       let tok = snd spec in
-      let args = arguments env args in
+      let args = arguments env (Tok.unbracket args) in
       try
         let special = call_special env spec in
         add_call env tok eorig ~void (fun res ->
@@ -590,13 +631,28 @@ and expr_aux env ?(void = false) e_gen =
   | G.ArrayAccess (_, _)
   | G.DeRef (_, _) ->
       let lval = lval env e_gen in
-      mk_e (Fetch lval) eorig
+      let exp = mk_e (Fetch lval) eorig in
+      let ident_function_call_hack exp =
+        (* Taking into account Ruby's ability to allow function calls without
+         * parameters or parentheses, we are conducting a check to determine
+         * if a function with the same name as the identifier exists, specifically
+         * for Ruby. *)
+        match lval with
+        | { base = Var { ident; _ }; _ }
+          when env.lang =*= Lang.Ruby
+               && IdentSet.mem (H.str_of_ident ident) env.ctx.entity_names ->
+            let tok = G.fake "call" in
+            add_call env tok eorig ~void (fun res -> Call (res, exp, []))
+        | _ -> exp
+      in
+      ident_function_call_hack exp
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
-  | G.AssignOp (e1, (G.Eq, tok), e2) when Parse_info.str_of_info tok = ":=" ->
-      (* We encode Go's `:=` as `AssignOp(Eq)`,
-       * see "go_to_generic.ml" in Pfff. *)
+  | G.AssignOp (e1, (G.Eq, tok), e2) ->
+      (* AsssignOp(Eq) is used to represent plain assignment in some languages,
+       * e.g. Go's `:=` is represented as `AssignOp(Eq)`, and C#'s assignments
+       * are all represented this way too. *)
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
   | G.AssignOp (e1, op, e2) ->
@@ -725,7 +781,6 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ expr env e ], r))) NoOrig
-  | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml xml -> xml_expr env xml
   | G.Cast (typ, _, e) ->
       let e = expr env e in
@@ -762,6 +817,25 @@ and expr_opt env = function
       mk_e (Literal void) NoOrig
   | Some e -> expr env e
 
+and expr_lazy_op env op tok arg0 args eorig =
+  let arg0' = argument env arg0 in
+  let args' : exp argument list =
+    (* Consider A && B && C, side-effects in B must only take effect `if A`,
+       * and side-effects in C must only take effect `if A && B`. *)
+    args
+    |> List.fold_left_map
+         (fun cond argi ->
+           let ssi, argi' = arg_with_pre_stmts env argi in
+           if ssi <> [] then add_stmt env (mk_s @@ If (tok, cond, ssi, []));
+           let condi =
+             mk_e (Operator ((op, tok), [ Unnamed cond; argi' ])) eorig
+           in
+           (condi, argi'))
+         (IL_helpers.exp_of_arg arg0')
+    |> snd
+  in
+  mk_e (Operator ((op, tok), arg0' :: args')) eorig
+
 and call_generic env ?(void = false) tok e args =
   let eorig = SameAs (G.Call (e, args) |> G.e) in
   let e = expr env e in
@@ -774,7 +848,7 @@ and call_generic env ?(void = false) tok e args =
    * to return in expr multiple arguments and thread things around; Not
    * worth it.
    *)
-  let args = arguments env args in
+  let args = arguments env (Tok.unbracket args) in
   add_call env tok eorig ~void (fun res -> Call (res, e, args))
 
 and call_special _env (x, tok) =
@@ -811,7 +885,7 @@ and composite_kind = function
   | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> PI.unbracket |> Common.map (argument env)
+and arguments env xs = xs |> Common.map (argument env)
 
 and argument env arg =
   match arg with
@@ -820,7 +894,7 @@ and argument env arg =
   | G.ArgKwdOptional (id, e) ->
       Named (id, expr env e)
   | G.ArgType { t = TyExpr e; _ } -> Unnamed (expr env e)
-  | _ ->
+  | __else__ ->
       let any = G.Ar arg in
       Unnamed (fixme_exp ToDo any (Related any))
 
@@ -860,6 +934,41 @@ and record env ((_tok, origfields, _) as record_def) =
                _;
              } ->
              Some (Spread (expr env e))
+         | G.F
+             {
+               s =
+                 G.ExprStmt
+                   ( ({
+                        e =
+                          Call
+                            ( { e = N (Id (id, _)); _ },
+                              (_, [ Arg { e = Record fields; _ } ], _) );
+                        _;
+                      } as prior_expr),
+                     _ );
+               _;
+             }
+           when is_hcl env.lang ->
+             (* This is an inner block of the form
+                someblockhere {
+                  s {
+                    <args>
+                  }
+                }
+
+                We want this to be understood as a record of { <args> } being bound to
+                the name `s`.
+
+                So we just translate it to a field defining `s = <record>`.
+
+                We don't actually really care for it to be specifically defining the name `s`.
+                we just want it in there at all so that we can use it as a sink.
+             *)
+             let field_expr = record env fields in
+             (* We need to use the entire `prior_expr` here, or the range won't be quite
+                right (we'll leave out the identifier)
+             *)
+             Some (Field (id, { field_expr with eorig = SameAs prior_expr }))
          | _ when is_hcl env.lang ->
              (* For HCL constructs such as `lifecycle` blocks within a module call, the
                 IL translation engine will brick the whole record if it is encountered.
@@ -874,7 +983,7 @@ and record env ((_tok, origfields, _) as record_def) =
 and xml_expr env xml =
   let attrs =
     xml.G.xml_attrs
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlAttr (_, tok, eorig)
          | G.XmlAttrExpr (tok, eorig, _) ->
              let exp = expr env eorig in
@@ -884,7 +993,7 @@ and xml_expr env xml =
   in
   let body =
     xml.G.xml_body
-    |> List.filter_map (function
+    |> Common.map_filter (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -971,44 +1080,40 @@ and lval_of_ent env ent =
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
+  | G.EPattern (PatId (id, id_info)) -> lval env (G.N (Id (id, id_info)) |> G.e)
   | G.EPattern _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
   | G.OtherEntity _ -> (
       let any = G.En ent in
       log_fixme ToDo any;
-      let toks = Visitor_AST.ii_of_any any in
+      let toks = AST_generic_helpers.ii_of_any any in
       match toks with
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
 
 and expr_with_pre_stmts env ?void e =
-  let e = expr env ?void e in
-  let xs = pop_stmts env in
-  (xs, e)
+  with_pre_stmts env (fun env -> expr env ?void e)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
 and cond_with_pre_stmts env ?void cond =
-  match cond with
-  | G.Cond e ->
-      let e = expr env ?void e in
-      let xs = pop_stmts env in
-      (xs, e)
-  | G.OtherCond (categ, xs) ->
-      let e = G.OtherExpr (categ, xs) |> G.e in
-      log_fixme ToDo (G.E e);
-      let e = expr env ?void e in
-      let xs = pop_stmts env in
-      (xs, e)
+  with_pre_stmts env (fun env ->
+      match cond with
+      | G.Cond e -> expr env ?void e
+      | G.OtherCond (categ, xs) ->
+          let e = G.OtherExpr (categ, xs) |> G.e in
+          log_fixme ToDo (G.E e);
+          expr env ?void e)
+
+and arg_with_pre_stmts env arg =
+  with_pre_stmts env (fun env -> argument env arg)
 
 and args_with_pre_stmts env args =
-  let args = arguments env args in
-  let xs = pop_stmts env in
-  (xs, args)
+  with_pre_stmts env (fun env -> arguments env args)
 
 and expr_with_pre_stmts_opt env eopt =
   match eopt with
@@ -1017,7 +1122,7 @@ and expr_with_pre_stmts_opt env eopt =
 
 and for_var_or_expr_list env xs =
   xs
-  |> Common.map (function
+  |> List.concat_map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -1030,16 +1135,27 @@ and for_var_or_expr_list env xs =
                ss
                @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
            | _ -> []))
-  |> List.flatten
 
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
 and parameters _env params : name list =
-  params |> Parse_info.unbracket
-  |> List.filter_map (function
+  params |> Tok.unbracket
+  |> Common.map_filter (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
+
+(*****************************************************************************)
+(* Type *)
+(*****************************************************************************)
+
+and type_ env (ty : G.type_) : type_ =
+  let exps =
+    match ty.t with
+    | G.TyExpr e -> [ expr env e ]
+    | __TODO__ -> []
+  in
+  { type_ = ty; exps }
 
 (*****************************************************************************)
 (* Statement *)
@@ -1083,13 +1199,51 @@ and stmt_aux env st =
       mk_aux_var env tok e |> ignore;
       let ss' = pop_stmts env in
       ss @ ss'
+  | G.DefStmt
+      ( { name = EN obj; _ },
+        G.VarDef
+          {
+            G.vinit =
+              Some ({ e = G.New (_tok, ty, cons_id_info, args); _ } as new_exp);
+            _;
+          } ) ->
+      (* x = new T(args) *)
+      (* HACK(new): Because of field-sensitivity hacks, we need to know to which
+       * variable are we assigning the `new` object, so we intercept the assignment. *)
+      let obj' = var_of_name obj in
+      let obj_lval = lval_of_base (Var obj') in
+      let ss, args' = args_with_pre_stmts env (Tok.unbracket args) in
+      let opt_cons =
+        let* cons = mk_class_constructor_name ty cons_id_info in
+        let cons' = var_of_name cons in
+        let cons_exp =
+          mk_e
+            (Fetch
+               {
+                 obj_lval with
+                 rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
+               })
+            (SameAs (N cons |> G.e))
+          (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
+           * looks at the eorig, but maybe it shouldn't? *)
+        in
+        Some cons_exp
+      in
+      ss
+      @ [
+          mk_s
+            (Instr
+               (mk_i
+                  (New (obj_lval, type_ env ty, opt_cons, args'))
+                  (SameAs new_exp)));
+        ]
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> PI.unbracket |> Common.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (stmt env)
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
@@ -1218,7 +1372,7 @@ and stmt_aux env st =
       let ss, e = expr_with_pre_stmts_opt env eopt in
       ss @ [ mk_s (Return (tok, e)) ]
   | G.Assert (tok, args, _) ->
-      let ss, args = args_with_pre_stmts env args in
+      let ss, args = args_with_pre_stmts env (Tok.unbracket args) in
       let special = (Assert, tok) in
       (* less: wrong e? would not be able to match on Assert, or
        * need add sorig:
@@ -1544,8 +1698,8 @@ and function_definition env fdef =
 (* Entry points *)
 (*****************************************************************************)
 
-let function_definition lang def =
-  let env = empty_env lang in
+let function_definition lang ?ctx def =
+  let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
   let params = parameters env def.G.fparams in
   let body = function_body env def.G.fbody in
   (params, body)

@@ -1,0 +1,21 @@
+{
+  "exit_code": 1,
+  "stats": {
+    "findings": 10,
+    "errors": [],
+    "total_time": 0.5,
+    "unsupported_exts": {
+      ".txt": 1
+    },
+    "lockfile_scan_info": {},
+    "parse_rate": {
+      "python": {
+        "targets_parsed": 1,
+        "num_targets": 1,
+        "bytes_parsed": 366,
+        "num_bytes": 366
+      }
+    },
+    "engine_requested": "OSS"
+  }
+}

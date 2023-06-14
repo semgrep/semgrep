@@ -1,2 +1,2 @@
-2/2: ✓ All tests passed 
+2/2: ✓ All tests passed
 No tests for fixes found.

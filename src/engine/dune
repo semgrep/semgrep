@@ -4,7 +4,6 @@
  (wrapped false)
  (libraries
    pcre
-   comby-kernel
    alcotest
 
    commons
@@ -12,6 +11,7 @@
 
    parser_regexp
    spacegrep
+   aliengrep
 
    semgrep_core
    semgrep_fixing

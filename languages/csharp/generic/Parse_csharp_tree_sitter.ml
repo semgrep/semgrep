@@ -18,7 +18,6 @@ module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,7 +37,7 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (* less: we should check we consume all constraints *)
 let type_parameters_with_constraints tparams constraints : type_parameter list =
@@ -111,7 +110,7 @@ let param_from_lambda_params lambda_params =
 (* create lambda lambda_params -> expr *)
 let create_lambda lambda_params expr =
   let fparams =
-    PI.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
+    Tok.unsafe_fake_bracket [ param_from_lambda_params lambda_params ]
   in
   Lambda
     {
@@ -263,7 +262,11 @@ let new_index_from_end tok expr =
     H2.name_of_ids [ ("System", fake "System"); ("Index", fake "Index") ]
   in
   let index = TyN name |> G.t in
-  New (tok, index, fb [ Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ])
+  New
+    ( tok,
+      index,
+      empty_id_info (),
+      fb [ Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ] )
   |> G.e
 
 module List = struct
@@ -588,7 +591,7 @@ let literal (env : env) (x : CST.literal) : literal =
         (* escape_sequence *)
       in
       let v3 = token env v3 (* "'" *) in
-      Char (s, PI.combine_infos v1 [ t; v3 ])
+      Char (s, Tok.combine_toks v1 [ t; v3 ])
   | `Real_lit tok -> real_literal env tok (* real_literal *)
   | `Int_lit tok -> integer_literal env tok (* integer_literal *)
   | `Str_lit (v1, v2, v3) ->
@@ -944,7 +947,7 @@ and interpolated_verbatim_string_content (env : env)
     (x : CST.interpolated_verbatim_string_content) =
   match x with
   | `Inte_verb_str_text x -> L (interpolated_verbatim_string_text env x) |> G.e
-  | `Interp x -> PI.unbracket (interpolation env x)
+  | `Interp x -> Tok.unbracket (interpolation env x)
 
 and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
   let v1 = token env v1 (* "[" *) in
@@ -1072,7 +1075,7 @@ and interpolated_string_content (env : env)
     (x : CST.interpolated_string_content) =
   match x with
   | `Inte_str_text x -> L (interpolated_string_text env x) |> G.e
-  | `Interp x -> PI.unbracket (interpolation env x)
+  | `Interp x -> Tok.unbracket (interpolation env x)
 
 and checked_expression (env : env) (x : CST.checked_expression) =
   match x with
@@ -1246,7 +1249,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let lb, _, rb = v3 in
       let args = (lb, [ Arg (G.Container (G.Tuple, v3) |> G.e) ], rb) in
-      New (v1, v2, args) |> G.e
+      New (v1, v2, empty_id_info (), args) |> G.e
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "as" *) in
@@ -1387,7 +1390,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let lp, v3', rp = v3 in
       let args = (lp, v3' @ [ Arg (Container (Tuple, v4) |> G.e) ], rp) in
-      New (v1, v2, args) |> G.e
+      New (v1, v2, empty_id_info (), args) |> G.e
   | `Paren_exp x -> parenthesized_expression env x
   | `Post_un_exp x -> postfix_unary_expression env x
   | `Prefix_un_exp x -> prefix_unary_expression env x
@@ -1584,7 +1587,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "(" *) in
       let v3 = token env v3 (* ")" *) in
-      let tok = PI.combine_infos v1 [ v2; v3 ] in
+      let tok = Tok.combine_toks v1 [ v2; v3 ] in
       Left ("HasConstructor", tok)
   | `Type_cons x -> Right (type_constraint env x)
 
@@ -2319,7 +2322,7 @@ and type_ (env : env) (x : CST.type_) : G.type_ =
       (* When type_ is called, we expect an explicit type, not "var".
          The implicit type is handled in local_variable_type. *)
       raise
-        (Parse_info.Other_error
+        (Parsing_error.Other_error
            ("Expected explicit type", Parse_tree_sitter_helpers.token env _tok))
   | `Array_type x -> array_type env x
   | `Name x ->
@@ -2478,12 +2481,14 @@ let constructor_initializer (env : env)
   let v3 = argument_list env v3 in
   ExprStmt (Call (v2, v3) |> G.e, sc) |> G.s
 
-let enum_member_declaration (env : env)
-    ((v1, v2, v3) : CST.enum_member_declaration) =
-  let _v1TODO = List.concat_map (attribute_list env) v1 in
-  let v2 = identifier env v2 (* identifier *) in
-  let v3 = Option.map (equals_value_clause env) v3 in
-  OrEnum (v2, v3)
+let enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
+  match x with
+  | `Rep_attr_list_id_opt_EQ_exp (v1, v2, v3) ->
+      let _v1TODO = List.concat_map (attribute_list env) v1 in
+      let v2 = identifier env v2 (* identifier *) in
+      let v3 = Option.map (equals_value_clause env) v3 in
+      OrEnum (v2, v3)
+  | `Ellips tok -> OrEllipsis (token env tok)
 
 let base_list (env : env) ((v1, v2, v3) : CST.base_list) : G.class_parent list =
   let _v1 = token env v1 (* ":" *) in

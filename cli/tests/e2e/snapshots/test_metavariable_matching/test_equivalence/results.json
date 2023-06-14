@@ -90,6 +90,19 @@
               "line": 14,
               "offset": 261
             },
+            "propagated_value": {
+              "svalue_abstract_content": "request.get(\"unsafe\")",
+              "svalue_end": {
+                "col": 26,
+                "line": 12,
+                "offset": 239
+              },
+              "svalue_start": {
+                "col": 5,
+                "line": 12,
+                "offset": 218
+              }
+            },
             "start": {
               "col": 10,
               "line": 14,

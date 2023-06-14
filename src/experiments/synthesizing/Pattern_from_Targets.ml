@@ -47,7 +47,7 @@ exception UnsupportedTargetType
 type stage = DONE | ANY of any | LN (* literal name *) of any
 
 type env = {
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   prev : any;
   count : int;
   mapping : (expr * expr) list;
@@ -118,7 +118,7 @@ let lookup env e =
   in
   look mapping
 
-let fk = Parse_info.unsafe_fake_info "fake"
+let fk = Tok.unsafe_fake_tok "fake"
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
 let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 let _bk f (lp, x, rp) = (lp, f x, rp)
@@ -181,7 +181,15 @@ let rec transpose (list : 'a list list) : 'a list list =
   | [] -> []
   | [] :: xss -> transpose xss
   | (x :: xs) :: xss ->
-      (x :: Common.map List.hd xss) :: transpose (xs :: Common.map List.tl xss)
+      (x
+      :: Common.map
+           (Common.hd_exn "cannot transpose non-rectangular matrix")
+           xss)
+      :: transpose
+           (xs
+           :: Common.map
+                (Common.tl_exn "cannot transpose non-rectangular matrix")
+                xss)
 
 (* We can't handle lists of statements of unequal size yet.
  * Check that each target has the same number of statements.
@@ -191,8 +199,8 @@ let check_equal_length (targets : 'a list list) : bool =
   | [] -> true
   | _ ->
       let lengths = Common.map List.length targets in
-      let hdlen = List.hd lengths in
-      List.for_all (( == ) hdlen) lengths
+      let hdlen = Common.hd_exn "unexpected empty list" lengths in
+      List.for_all (phys_equal hdlen) lengths
 
 (*****************************************************************************)
 (* Pattern generation *)
@@ -455,7 +463,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   in
   (* Call recursively on these patterns *)
   if cont then generate_patterns_help included_patterns
-  else Common.map List.hd target_patterns
+  else Common.map (Common.hd_exn "unexpected empty list") target_patterns
 
 let extract_pattern (pats : pattern_instr) : Pattern.t =
   (fun (_, pattern, _) -> pattern) pats
@@ -507,11 +515,13 @@ let rec generate_with_env (target_patterns : pattern_instrs list list) :
     pattern_instrs =
   match target_patterns with
   | [] -> []
-  | [ cur ] -> [ List.hd (generate_patterns_help cur) ]
+  | [ cur ] ->
+      [ Common.hd_exn "unexpected empty list" (generate_patterns_help cur) ]
   | cur :: next :: rest ->
       let curpats = generate_patterns_help cur in
-      let next' = List.map2 cp_meta_env curpats next in
-      List.hd curpats :: generate_with_env (next' :: rest)
+      let next' = Common.map2 cp_meta_env curpats next in
+      Common.hd_exn "unexpected empty list" curpats
+      :: generate_with_env (next' :: rest)
 
 (*****************************************************************************)
 (* Entry point *)

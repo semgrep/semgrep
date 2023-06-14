@@ -1,4 +1,9 @@
-Findings:
+                  
+                  
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+                       
+    symlink_or_file.py 
+            1┆ x = 23478921
 
-  symlink_or_file.py 
-          1┆ x = 23478921

@@ -1,0 +1,14 @@
+rules:
+  - id: tainting
+    languages:
+      - python
+    message: Test
+    mode: taint
+    options:
+      taint_assume_safe_comparisons: true
+    pattern-sources:
+      - pattern: |
+          "tainted"
+    pattern-sinks:
+      - pattern: sink(...)
+    severity: ERROR

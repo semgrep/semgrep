@@ -16,7 +16,6 @@
 open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_go
-module PI = Parse_info
 module Lexer = Lexer_go
 
 (*****************************************************************************)
@@ -38,10 +37,10 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens file =
+let tokens input_source =
   let token lexbuf = Lexer.token lexbuf in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
@@ -49,7 +48,7 @@ let tokens file =
 (*****************************************************************************)
 let parse filename =
   (* this can throw Parse_info.Lexical_error *)
-  let toks_orig = tokens filename in
+  let toks_orig = tokens (Parsing_helpers.file filename) in
   let toks = Common.exclude TH.is_comment_or_space toks_orig in
   (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
   let toks = Parsing_hacks_go.fix_tokens toks in
@@ -74,13 +73,13 @@ let parse filename =
   | Parsing.Parse_error ->
       let cur = tr.Parsing_helpers.current in
       if not !Flag.error_recovery then
-        raise (PI.Parsing_error (TH.info_of_tok cur));
+        raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then (
         pr2 ("parse error \n = " ^ error_msg_tok cur);
         let filelines = Common2.cat_array filename in
         let checkpoint2 = Common.cat filename |> List.length in
-        let line_error = PI.line_of_info (TH.info_of_tok cur) in
+        let line_error = Tok.line_of_tok (TH.info_of_tok cur) in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       {
         Parsing_result.ast = [];
@@ -104,19 +103,18 @@ let (program_of_string : string -> Ast_go.program) =
 (* for sgrep/spatch *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"go" (fun file ->
-          let toks_orig = tokens file in
-          let toks = Common.exclude TH.is_comment_or_space toks_orig in
-          (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
-          let toks = Parsing_hacks_go.fix_tokens toks in
-          let tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks TH.is_irrelevant
-          in
-          (* -------------------------------------------------- *)
-          (* Call parser *)
-          (* -------------------------------------------------- *)
-          try Parser_go.sgrep_spatch_pattern lexer lexbuf_fake with
-          | Parsing.Parse_error ->
-              let cur = tr.Parsing_helpers.current in
-              pr2 ("parse error \n = " ^ error_msg_tok cur);
-              raise (PI.Parsing_error (TH.info_of_tok cur))))
+      let toks_orig = tokens (Parsing_helpers.Str s) in
+      let toks = Common.exclude TH.is_comment_or_space toks_orig in
+      (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)
+      let toks = Parsing_hacks_go.fix_tokens toks in
+      let tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks TH.is_irrelevant
+      in
+      (* -------------------------------------------------- *)
+      (* Call parser *)
+      (* -------------------------------------------------- *)
+      try Parser_go.sgrep_spatch_pattern lexer lexbuf_fake with
+      | Parsing.Parse_error ->
+          let cur = tr.Parsing_helpers.current in
+          pr2 ("parse error \n = " ^ error_msg_tok cur);
+          raise (Parsing_error.Syntax_error (TH.info_of_tok cur)))

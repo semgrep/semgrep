@@ -62,6 +62,7 @@
           "message": {
             "text": "Use `.get()` method to avoid a KeyNotFound error"
           },
+          "properties": {},
           "ruleId": "rules.autofix.use-dict-get"
         },
         {
@@ -117,6 +118,7 @@
           "message": {
             "text": "Use `.get()` method to avoid a KeyNotFound error"
           },
+          "properties": {},
           "ruleId": "rules.autofix.use-dict-get"
         }
       ],
@@ -138,7 +140,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "Use `.get()` method to avoid a KeyNotFound error"
+                "text": "Semgrep Finding: rules.autofix.use-dict-get"
               }
             }
           ],

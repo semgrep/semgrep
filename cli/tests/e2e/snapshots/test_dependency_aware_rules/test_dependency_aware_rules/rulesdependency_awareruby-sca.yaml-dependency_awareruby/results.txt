@@ -37,7 +37,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "dependency_pattern": {
               "ecosystem": "gem",
               "package": "parallel",
-              "semver_range": "== 1.21.0"
+              "semver_range": "== 1.19.0"
             },
             "found_dependency": {
               "allowed_hashes": {},
@@ -45,7 +45,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "line_number": 19,
               "package": "parallel",
               "transitivity": "transitive",
-              "version": "1.21.0"
+              "version": "1.19.0"
             },
             "lockfile": "targets/dependency_aware/ruby/Gemfile.lock"
           },
@@ -68,20 +68,24 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of stdout - plain
 
 === stderr - plain
-Scanning 1 file.
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 
 Ran 1 rule on 2 files: 1 finding.
 

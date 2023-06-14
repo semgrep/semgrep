@@ -13,6 +13,8 @@
  * LICENSE for more details.
  *)
 
+open Ppx_hash_lib.Std.Hash.Builtin
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -22,15 +24,21 @@
 (*****************************************************************************)
 
 type compiled_regexp = Regexp_engine.t [@@deriving show, eq]
-type regexp_string = string [@@deriving show, eq]
+type regexp_string = string [@@deriving show, eq, hash]
 (* see the NOTE "Regexp" below for the need to have this type *)
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 type pattern_id = int [@@deriving show, eq]
 
 type xpattern_kind =
-  | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
+  (* opti: parsing Semgrep patterns lazily improves speed significantly.
+   * Parsing 'p/default', which contains more than 1000 rules, including
+   * lots of Ruby rules (Dyp, used to parse Ruby, has a slow startup time),
+   * goes from 13s to just 0.2s!
+   *)
+  | Sem of Pattern.t Lazy.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
+  | Aliengrep of Aliengrep.Pat_compile.t
   | Regexp of regexp_string
       (** NOTE "Regexp":
       * We used to keep the compiled regexp of type `Regexp_engine.t', but
@@ -47,12 +55,19 @@ type xpattern_kind =
       * unevaluated thunks. Then Parmap will try to marshal this value and it will
       * crash if there is any "Custom" block involved.
       *)
-  | Comby of string
 [@@deriving show, eq]
 
 (* eXtended pattern *)
 type t = {
-  pat : xpattern_kind;
+  pat : xpattern_kind; [@hash.ignore]
+  (* w.r.t. hashing, these are just Generic ASTs, which can be rather large.
+     Whereas `Hashtbl.hash` will hash only to a certain depth, because it
+     is polymorphic, it will be sensitive to things like tokens, which should
+     be ignored by the hash function.
+     The generated hash function for Generic ASTs will be rather hefty though,
+     for the above reasoning. So we will choose to just decline to hash
+     the generic AST.
+  *)
   (* Regarding @equal below, even if two patterns have different indentation,
    * we still consider them equal in the metachecker context.
    * We rely only on the equality on pat, which will
@@ -66,9 +81,12 @@ type t = {
    * This is used to run the patterns in a formula in a batch all-at-once
    * and remember what was the matching results for a certain pattern id.
    *)
-  pid : pattern_id; [@equal fun _ _ -> true]
+  pid : pattern_id; [@equal fun _ _ -> true] [@hash.ignore]
 }
-[@@deriving show, eq]
+[@@deriving show, eq, hash]
+(* For hashing patterns, let's just hash the originating string. It's
+   a good enough proxy.
+*)
 
 (*****************************************************************************)
 (* Helpers *)

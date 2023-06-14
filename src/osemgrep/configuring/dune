@@ -9,6 +9,7 @@
   (wrapped false)
   (libraries
    uri
+   uuidm
    commons
 
    osemgrep_core ; for Error.ml

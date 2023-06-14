@@ -15,6 +15,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 from typing import Type
 
 import requests
@@ -92,7 +93,7 @@ def _build_time_target_json(
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
 
     return out.CliTargetTimes(
-        path=path_str,
+        path=out.Fpath(path_str),
         num_bytes=num_bytes,
         parse_times=[timing.parse_time for timing in timings],
         match_times=[timing.match_time for timing in timings],
@@ -206,11 +207,11 @@ class OutputHandler:
                 self.error_set.add(err)
 
                 if not err.core.rule_id:
-                    timeout_errors[Path(err.core.location.path)].append(
+                    timeout_errors[Path(err.core.location.path.value)].append(
                         "<unknown rule_id>"
                     )
                 else:
-                    timeout_errors[Path(err.core.location.path)].append(
+                    timeout_errors[Path(err.core.location.path.value)].append(
                         err.core.rule_id.value
                     )
             else:
@@ -273,19 +274,24 @@ class OutputHandler:
     @staticmethod
     def _make_failed_to_analyze(
         semgrep_core_errors: Sequence[SemgrepCoreError],
-    ) -> Mapping[Path, Optional[int]]:
+    ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
         def update_failed_to_analyze(
-            memo: Mapping[Path, Optional[int]], err: SemgrepCoreError
-        ) -> Mapping[Path, Optional[int]]:
-            path = Path(err.core.location.path)
-            so_far = memo.get(path, 0)
-            if err.spans is None or so_far is None:
+            memo: Mapping[Path, Tuple[Optional[int], List[out.RuleId]]],
+            err: SemgrepCoreError,
+        ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
+            path = Path(err.core.location.path.value)
+            so_far = memo.get(path, (0, []))
+            if err.spans is None or so_far[0] is None:
                 num_lines = None
             else:
-                num_lines = so_far + sum(
+                num_lines = so_far[0] + sum(
                     s.end.line - s.start.line + 1 for s in err.spans
                 )
-            return {**memo, path: num_lines}
+            rule_ids = so_far[1]
+            if err.core.rule_id is not None:
+                rule_ids.append(err.core.rule_id)
+
+            return {**memo, path: (num_lines, rule_ids)}
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
@@ -369,7 +375,8 @@ class OutputHandler:
             else:
                 if output:
                     try:
-                        console.print(Title("Results"))
+                        # console.print() would go to stderr; here we print() directly to stdout
+                        # the output string is already pre-formatted by semgrep.console
                         print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
@@ -385,8 +392,6 @@ class OutputHandler:
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
-
-            console.print(Title("Scan Summary"))
 
             ignores_line = str(ignore_log or "No ignore information available")
             suggestion_line = ""
@@ -405,14 +410,18 @@ class OutputHandler:
                 logger.verbose(ignore_log.verbose_output())
 
             output_text = ignores_line + suggestion_line + stats_line
+            console.print(Title("Scan Summary"))
             logger.info(output_text)
 
         self._final_raise(final_error)
 
     def _save_output(self, destination: str, output: str) -> None:
+        metrics = get_state().metrics
         if is_url(destination):
+            metrics.add_feature("output", "url")
             self._post_output(destination, output)
         else:
+            metrics.add_feature("output", "path")
             save_path = Path(destination)
             # create the folders if not exists
             save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -429,9 +438,7 @@ class OutputHandler:
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
-    def _build_output(
-        self,
-    ) -> str:
+    def _build_output(self) -> str:
         # CliOutputExtra members
         cli_paths = out.CliPaths(
             scanned=[str(path) for path in sorted(self.all_targets)],
@@ -463,7 +470,10 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths,
                 skipped=[
-                    out.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    out.CliSkippedTarget(
+                        path=out.Fpath(x["path"]),
+                        reason=out.SkipReason.from_json(x["reason"]),
+                    )
                     for x in skipped
                 ],
             )

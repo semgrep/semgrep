@@ -12,7 +12,6 @@
  * LICENSE for more details.
  *)
 open Common
-module PI = Parse_info
 module Out = Output_from_core_j
 module R = Rule
 
@@ -35,7 +34,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type error = {
   rule_id : Rule.rule_id option;
   typ : Out.core_error_kind;
-  loc : Parse_info.token_location;
+  loc : Tok.location;
   msg : string;
   details : string option;
 }
@@ -76,7 +75,7 @@ let mk_error ?(rule_id = None) loc msg err =
   { rule_id; loc; typ = err; msg; details = None }
 
 let mk_error_tok ?(rule_id = None) tok msg err =
-  let loc = PI.unsafe_token_location_of_info tok in
+  let loc = Tok.unsafe_loc_of_tok tok in
   mk_error ~rule_id loc msg err
 
 let error rule_id loc msg err =
@@ -95,17 +94,16 @@ let error rule_id loc msg err =
  *)
 let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   match Exception.get_exn e with
-  | Parse_info.Lexical_error (s, tok) ->
+  | Parsing_error.Lexical_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.LexicalError)
-  | Parse_info.Parsing_error tok ->
+  | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
-        | { token = PI.OriginTok { str; _ }; _ } ->
-            spf "`%s` was unexpected" str
+        | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
       Some (mk_error_tok tok msg Out.ParseError)
-  | Parse_info.Other_error (s, tok) ->
+  | Parsing_error.Other_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
   | R.Err err -> (
       match err with
@@ -116,7 +114,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
             {
               rule_id = Some rule_id;
               typ = Out.PatternParseError yaml_path;
-              loc = PI.unsafe_token_location_of_info pos;
+              loc = Tok.unsafe_loc_of_tok pos;
               msg =
                 spf
                   "Invalid pattern for %s:\n\
@@ -140,14 +138,14 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
       Some (mk_error ~rule_id loc msg Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
-      let loc = Parse_info.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file file in
       Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
@@ -164,7 +162,7 @@ let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
           Exception.reraise e
       | exn ->
           let trace = Exception.to_string e in
-          let loc = Parse_info.first_loc_of_file file in
+          let loc = Tok.first_loc_of_file file in
           {
             rule_id;
             typ = Out.FatalError;
@@ -189,8 +187,8 @@ let string_of_error err =
     | Some s -> spf "\n%s" s
   in
   spf "%s:%d:%d: %s: %s%s"
-    (source_of_string pos.PI.file)
-    pos.PI.line pos.PI.column
+    (source_of_string pos.Tok.pos.file)
+    pos.Tok.pos.line pos.Tok.pos.column
     (Out.string_of_core_error_kind err.typ)
     err.msg details
 
@@ -245,7 +243,7 @@ let (expected_error_lines_of_files :
       (Common.filename * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) test_files ->
   test_files
-  |> Common.map (fun file ->
+  |> List.concat_map (fun file ->
          Common.cat file |> Common.index_list_1
          |> Common.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
@@ -255,7 +253,6 @@ let (expected_error_lines_of_files :
                 if s =~ regexp (* + 1 because the comment is one line before *)
                 then Some (file, idx + 1)
                 else None))
-  |> List.flatten
 
 (* A copy-paste of Error_code.compare_actual_to_expected but
  * with Semgrep_error_code.error instead of Error_code.t for the error type.
@@ -265,7 +262,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
     actual_findings
     |> Common.map (fun err ->
            let loc = err.loc in
-           (loc.PI.file, loc.PI.line))
+           (loc.Tok.pos.file, loc.Tok.pos.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
@@ -283,7 +280,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
               (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
               |> List.find (fun err ->
                      let loc = err.loc in
-                     src = loc.PI.file && l =|= loc.PI.line)
+                     src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =

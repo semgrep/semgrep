@@ -33,8 +33,9 @@
             }
           ],
           "message": {
-            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
+            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`"
           },
+          "properties": {},
           "ruleId": "rules.eqeq-is-bad",
           "suppressions": [
             {
@@ -61,7 +62,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "possibly useless comparison but in eq function"
+                "text": "Semgrep Finding: rules.assert-eqeq-is-ok"
               }
             },
             {
@@ -69,7 +70,7 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "useless comparison operation `$X == $X` or `$X != $X`"
               },
               "id": "rules.eqeq-is-bad",
               "name": "rules.eqeq-is-bad",
@@ -78,7 +79,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "Semgrep Finding: rules.eqeq-is-bad"
               }
             },
             {
@@ -95,7 +96,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison"
+                "text": "Semgrep Finding: rules.javascript-basic-eqeq-bad"
               }
             },
             {
@@ -112,7 +113,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "this function is only available on Python 3.7+"
+                "text": "Semgrep Finding: rules.python37-compatability-os-module"
               }
             }
           ],

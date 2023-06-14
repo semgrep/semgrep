@@ -15,7 +15,6 @@
 open Common
 module Flag = Flag_parsing
 module TH = Token_helpers_scala
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -33,7 +32,7 @@ let _error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens file =
+let tokens input_source =
   Lexer_scala.reset ();
   let token lexbuf =
     let tok =
@@ -47,8 +46,8 @@ let tokens file =
     tok
   in
   (* set to false to parse correctly arrows *)
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
@@ -56,7 +55,7 @@ let tokens file =
 (*****************************************************************************)
 let parse filename =
   let stat = Parsing_stat.default_stat filename in
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.file filename) in
 
   (*
   let tr, lexer, lexbuf_fake =
@@ -74,12 +73,13 @@ let parse filename =
     let xs = Parser_scala_recursive_descent.parse toks in
     { Parsing_result.ast = xs; tokens = toks; stat }
   with
-  | PI.Parsing_error cur when !Flag.error_recovery && not !Flag.debug_parser ->
+  | Parsing_error.Syntax_error cur
+    when !Flag.error_recovery && not !Flag.debug_parser ->
       if !Flag.show_parsing_error then (
         pr2 ("parse error \n = " ^ Parsing_helpers.error_message_info cur);
         let filelines = Common2.cat_array filename in
         let checkpoint2 = Common.cat filename |> List.length in
-        let line_error = PI.line_of_info cur in
+        let line_error = Tok.line_of_tok cur in
         Parsing_helpers.print_bad line_error (0, checkpoint2) filelines);
       stat.PS.error_line_count <- stat.PS.total_line_count;
       { Parsing_result.ast = []; tokens = toks; stat }
@@ -95,19 +95,18 @@ let parse_program file =
 (* for semgrep *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"scala" (fun file ->
-          let toks = tokens file in
-          (* -------------------------------------------------- *)
-          (* Call parser *)
-          (* -------------------------------------------------- *)
-          Parser_scala_recursive_descent.semgrep_pattern toks))
+      let toks = tokens (Parsing_helpers.Str s) in
+      (* -------------------------------------------------- *)
+      (* Call parser *)
+      (* -------------------------------------------------- *)
+      Parser_scala_recursive_descent.semgrep_pattern toks)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let find_source_files_of_dir_or_files xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  File.files_of_dirs_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename ->
          match File_type.file_type_of_file filename with
          | File_type.PL File_type.Scala -> true

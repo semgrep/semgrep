@@ -14,9 +14,9 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 	test file path: <MASKED>/fixtest/test4.py
 
 
-0/1: 1 fix tests did not pass: 
+0/1: 1 fix tests did not pass:
 --------------------------------------------------------------------------------
-	✖ targets/fixtest/test4.fixed.py <> autofix applied to targets/fixtest/test4.py 
+	✖ targets/fixtest/test4.fixed.py <> autofix applied to targets/fixtest/test4.py
 
 	---
 	+++

@@ -122,7 +122,7 @@ type final_profiling = {
 }
 [@@deriving show]
 
-type rule_id_and_engine_kind = string * Pattern_match.engine_kind
+type rule_id_and_engine_kind = Rule.ID.t * Pattern_match.engine_kind
 [@@deriving show]
 
 type final_result = {
@@ -342,15 +342,11 @@ let collate_rule_results :
 let make_final_result results
     (rules_with_engine : (Rule.t * Pattern_match.engine_kind) list)
     ~rules_parse_time =
-  let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
+  let matches = results |> List.concat_map (fun x -> x.matches) in
   let errors =
-    results
-    |> Common.map (fun x -> x.errors |> ErrorSet.elements)
-    |> List.flatten
+    results |> List.concat_map (fun x -> x.errors |> ErrorSet.elements)
   in
-  let explanations =
-    results |> Common.map (fun x -> x.explanations) |> List.flatten
-  in
+  let explanations = results |> List.concat_map (fun x -> x.explanations) in
   let final_rules =
     Common.map (fun (r, ek) -> (fst r.Rule.id, ek)) rules_with_engine
   in
@@ -389,7 +385,7 @@ let make_final_result results
     match !mode with
     | MDebug ->
         let skipped_targets =
-          results |> Common.map (fun x -> get_skipped_targets x) |> List.flatten
+          results |> List.concat_map (fun x -> get_skipped_targets x)
         in
         Debug { skipped_targets; profiling = mk_profiling () }
     | MTime -> Time { profiling = mk_profiling () }

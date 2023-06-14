@@ -20,21 +20,34 @@ jobs:
   brew-build:
     name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
     runs-on: ["self-hosted", "macOS", "X64"]
+    # We've had issues with this workflow in the past, and needed to ensure that homebrew wouldn't use the API.
+    # See: https://github.com/orgs/Homebrew/discussions/4150, https://github.com/orgs/Homebrew/discussions/4136
+    # There's also much other discussion on this topic available on GH and in the brew discussions.
     steps:
       - name: Uninstall semgrep
         # This is sub-optimal - our workflows shouldn't have to conform to their environment.
         # However, on the runner side, we can't hook into the workflow run to clean up after.
-        run: brew uninstall semgrep || true
+        run: brew uninstall --force semgrep
       - name: Cleanup semgrep
         run: brew cleanup --prune=all semgrep
+        # When GHA cancels, locks can be leftover.
+      - name: Cleanup Locks
+        run: |
+          rm $(brew --prefix)/var/homebrew/locks/*
       - name: Brew update
-        run: brew update
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
+        run: brew update --debug --verbose
       - name: Brew Install
-        run: brew install semgrep --HEAD
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
+        run: brew install semgrep --HEAD --debug
       - name: Check installed correctly
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew test semgrep --HEAD
       - name: Clean up semgrep installation
-        run: brew uninstall semgrep
+        run: brew uninstall --force semgrep
 
   release-dry-run:
     uses: ./.github/workflows/release.yml

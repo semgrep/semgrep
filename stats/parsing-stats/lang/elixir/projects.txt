@@ -1,0 +1,34 @@
+#
+# Top elixir projects from GitHub, sorted by stars.
+# Created by ./most-starred-for-language.
+#
+https://github.com/elixir-lang/elixir
+https://github.com/phoenixframework/phoenix
+https://github.com/h4cc/awesome-elixir
+https://github.com/plausible/analytics
+https://github.com/elixir-ecto/ecto
+https://github.com/papercups-io/papercups
+https://github.com/phoenixframework/phoenix_live_view
+https://github.com/rrrene/credo
+https://github.com/supabase/realtime
+https://github.com/christopheradams/elixir_style_guide
+https://github.com/absinthe-graphql/absinthe
+https://github.com/ueberauth/guardian
+https://github.com/seven1m/30-days-of-elixir
+https://github.com/bitwalker/distillery
+https://github.com/sergiotapia/magnetissimo
+https://github.com/elixir-plug/plug
+https://github.com/thechangelog/changelog.com
+https://github.com/livebook-dev/livebook
+https://github.com/edgurgel/httpoison
+https://github.com/sorentwo/oban
+https://github.com/edeliver/edeliver
+https://github.com/adriankumpf/teslamate
+https://github.com/devinus/poison
+https://github.com/quantum-elixir/quantum-core
+https://github.com/asciinema/asciinema-server
+https://github.com/elixirkoans/elixir-koans
+https://github.com/thoughtbot/bamboo
+https://github.com/nerves-project/nerves
+https://github.com/boydm/scenic
+https://github.com/thoughtbot/ex_machina

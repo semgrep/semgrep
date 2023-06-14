@@ -14,9 +14,7 @@
  * license.txt for more details.
  *)
 open Common
-
 open Token_scala
-module PI = Parse_info
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -42,8 +40,8 @@ module Flag = Flag_parsing
 
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = Parse_info.tokinfo
-let error = Parse_info.lexical_error
+let tokinfo = Tok.tok_of_lexbuf
+let error = Parsing_error.lexical_error
 
 (* ---------------------------------------------------------------------- *)
 (* Lexer State *)
@@ -69,12 +67,12 @@ let reset () =
   ()
 
 let rec current_mode () =
-  try
-    Common2.top !_mode_stack
-  with Failure("hd") ->
-    pr2("mode_stack is empty, defaulting to INITIAL");
-    reset();
-    current_mode ()
+  match !_mode_stack with
+  | top :: _ -> top
+  | [] ->
+      pr2("mode_stack is empty, defaulting to INITIAL");
+      reset();
+      current_mode ()
 
 let push_mode mode = Common.push mode _mode_stack
 let pop_mode () = ignore(Common2.pop2 _mode_stack)
@@ -241,7 +239,7 @@ rule token = parse
       let buf = Buffer.create 127 in
       Buffer.add_string buf "/*";
       comment 0 buf lexbuf;
-      Comment(info |> PI.rewrap_str (Buffer.contents buf))
+      Comment(info |> Tok.rewrap_str (Buffer.contents buf))
     }
 
   (* don't keep the trailing \n; it will be in another token *)
@@ -335,15 +333,18 @@ rule token = parse
   | "'" (plainid as s)
     {
       let t = tokinfo lexbuf in
-      let (tcolon, trest) = PI.split_info_at_pos 1 t in
+      let (tcolon, trest) = Tok.split_tok_at_bytepos 1 t in
       SymbolLiteral(tcolon, (s, trest))
     }
   (* semgrep-ext: note that plainid above also allow $XXX for semgrep *)
   | "'..."
      { let t = tokinfo lexbuf in
-       let (tcolon, trest) = PI.split_info_at_pos 1 t in
+       let (tcolon, trest) = Tok.split_tok_at_bytepos 1 t in
        Flag_parsing.sgrep_guard (SymbolLiteral(tcolon, ("...", trest)))
      }
+  | "'" {
+    QUOTE (tokinfo lexbuf)
+  }
 
   (* ----------------------------------------------------------------------- *)
   (* Keywords and ident *)
@@ -378,7 +379,7 @@ rule token = parse
 
         | "class"      -> Kclass t
         | "trait"      -> Ktrait t
-        | "object"      -> Kobject t
+        | "object"     -> Kobject t
         | "new"      -> Knew t
         | "super" -> Ksuper t
         | "this" -> Kthis t
@@ -392,6 +393,16 @@ rule token = parse
 
         | "package"     -> Kpackage t
         | "import"   -> Kimport t
+
+        (* Scala 3: There are more keywords, but they are "soft" keywords,
+           meaning that we cannot lex them here as keywords!
+
+           Soft keywords behave like keywords only in certain contextual
+           situations, and otherwise behave as normal identifiers.
+
+           We just case on them as `ID_LOWER` in `Parser_scala_recursive_descent`,
+           such as `accept (ID_LOWER ("export", ab)) in_`.
+         *)
 
         | "abstract"       -> Kabstract t
         | "final"       -> Kfinal t
@@ -449,7 +460,7 @@ rule token = parse
       let buf = Buffer.create 127 in
       string buf lexbuf;
       let s = Buffer.contents buf in
-      StringLiteral(s, info |> PI.rewrap_str ("\"\"\"" ^ s ^ "\"\"\""))
+      StringLiteral(s, info |> Tok.rewrap_str ("\"\"\"" ^ s ^ "\"\"\""))
     }
   (* interpolated strings *)
   | alphaid as s '"'

@@ -1,0 +1,19 @@
+
+rules:
+  - id: js-pnpm-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: "axios"
+        version: "< 1.2.6"
+    message: oh no
+    languages: [js]
+    severity: WARNING
+  - id: js-pnpm-workspaces-sca
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: "vercel"
+        version: "< 28.16.13"
+    message: oh no
+    languages: [js]
+    severity: WARNING

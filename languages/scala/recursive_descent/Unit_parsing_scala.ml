@@ -4,8 +4,8 @@ open Common
 (* Unit tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let tests =
   Testutil.pack_tests "parsing_scala"
@@ -33,7 +33,7 @@ let tests =
                    let _ast = Parse_scala.parse file in
                    Alcotest.failf "it should have thrown a Parse_error %s" file
                  with
-                 | Parse_info.Parsing_error _ -> ()
+                 | Parsing_error.Syntax_error _ -> ()
                  | exn ->
                      Alcotest.failf "throwing wrong exn %s on %s"
                        (Common.exn_to_s exn) file) );

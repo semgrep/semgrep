@@ -18,7 +18,6 @@ module S = Yaml.Stream
 module E = Yaml.Stream.Event
 module M = Yaml.Stream.Mark
 module G = AST_generic
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -71,7 +70,7 @@ type env = {
 (* Helper functions *)
 (*****************************************************************************)
 
-exception UnrecognizedAlias of Parse_info.t
+exception UnrecognizedAlias of Tok.t
 
 let sgrep_ellipses_inline = "__sgrep_ellipses__"
 let sgrep_ellipses = "__sgrep_ellipses__: __sgrep_ellipses__"
@@ -98,12 +97,8 @@ let _pos_str
     s_index (s_line + 1) s_column e_index (e_line + 1) e_column
 
 let tok (index, line, column) str env =
-  {
-    Parse_info.token =
-      Parse_info.OriginTok
-        { str; charpos = index; line = line + 1; column; file = env.file };
-    Parse_info.transfo = NoTransfo;
-  }
+  Tok.OriginTok
+    { str; pos = { charpos = index; line = line + 1; column; file = env.file } }
 
 let mk_tok ?(style = `Plain)
     {
@@ -151,7 +146,7 @@ let mk_bracket
     tok (e_index', e_line, e_column) ")" env )
 
 let mk_id str pos env = G.Id ((str, mk_tok pos "" env), G.empty_id_info ())
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Error management *)
@@ -162,13 +157,13 @@ exception UnreachableList
 
 let error str v pos env =
   let t = mk_tok pos (p_token v) env in
-  raise (PI.Other_error (str, t))
+  raise (Parsing_error.Other_error (str, t))
 
 let get_res file = function
   | Result.Error (`Msg str) ->
-      let loc = PI.first_loc_of_file file in
-      let tok = PI.mk_info_of_loc loc in
-      raise (PI.Other_error (str, tok))
+      let loc = Tok.first_loc_of_file file in
+      let tok = Tok.tok_of_loc loc in
+      raise (Parsing_error.Other_error (str, tok))
   | Result.Ok v -> v
 
 let do_parse env =
@@ -178,13 +173,13 @@ let do_parse env =
       let prefix, tok =
         match env.last_event with
         | None ->
-            let loc = PI.first_loc_of_file env.file in
-            ("(incorrect error location) ", PI.mk_info_of_loc loc)
+            let loc = Tok.first_loc_of_file env.file in
+            ("(incorrect error location) ", Tok.tok_of_loc loc)
         | Some (v, pos) ->
             ( "(approximate error location; error nearby after) ",
               mk_tok pos (p_token v) env )
       in
-      raise (PI.Other_error (prefix ^ str, tok))
+      raise (Parsing_error.Other_error (prefix ^ str, tok))
   | Result.Ok (ev, pos) ->
       env.last_event <- Some (ev, pos);
       (ev, pos)
@@ -226,49 +221,51 @@ let scalar (_tag, pos, value, style) env : G.expr * E.pos =
   else
     let token = mk_tok ~style pos value env in
     let expr =
-      (match value with
-      | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
-      (* TODO: emma: I will put "" back to Null and have either a warning or
-       * an error when we try to parse a string and get Null in another PR.
-       *)
-      | "null"
-      | "NULL"
-      | "Null"
-      | "~" ->
-          G.L (G.Null token)
-      | "y"
-      | "Y"
-      | "yes"
-      | "Yes"
-      | "YES"
-      | "true"
-      | "True"
-      | "TRUE"
-      | "on"
-      | "On"
-      | "ON" ->
-          G.L (G.Bool (true, token))
-      | "n"
-      | "N"
-      | "no"
-      | "No"
-      | "NO"
-      | "false"
-      | "False"
-      | "FALSE"
-      | "off"
-      | "Off"
-      | "OFF" ->
-          G.L (G.Bool (false, token))
-      | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
-      | ".inf" -> G.L (G.Float (Some neg_infinity, token))
-      | ".nan"
-      | ".NaN"
-      | ".NAN" ->
-          G.L (G.Float (Some nan, token))
-      | _ -> (
-          try G.L (G.Float (Some (float_of_string value), token)) with
-          | _ -> G.L (G.String (fb (value, token)))))
+      (if quoted then G.L (G.String (fb (value, token)))
+      else
+        match value with
+        | "__sgrep_ellipses__" -> G.Ellipsis (Tok.fake_tok token "...")
+        (* TODO: emma: I will put "" back to Null and have either a warning or
+         * an error when we try to parse a string and get Null in another PR.
+         *)
+        | "null"
+        | "NULL"
+        | "Null"
+        | "~" ->
+            G.L (G.Null token)
+        | "y"
+        | "Y"
+        | "yes"
+        | "Yes"
+        | "YES"
+        | "true"
+        | "True"
+        | "TRUE"
+        | "on"
+        | "On"
+        | "ON" ->
+            G.L (G.Bool (true, token))
+        | "n"
+        | "N"
+        | "no"
+        | "No"
+        | "NO"
+        | "false"
+        | "False"
+        | "FALSE"
+        | "off"
+        | "Off"
+        | "OFF" ->
+            G.L (G.Bool (false, token))
+        | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
+        | ".inf" -> G.L (G.Float (Some neg_infinity, token))
+        | ".nan"
+        | ".NaN"
+        | ".NAN" ->
+            G.L (G.Float (Some nan, token))
+        | _ -> (
+            try G.L (G.Float (Some (float_of_string value), token)) with
+            | _ -> G.L (G.String (fb (value, token)))))
       |> G.e
     in
     (expr, pos)
@@ -289,7 +286,7 @@ let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
   match (key.G.e, value.G.e) with
   | G.Ellipsis _, G.Ellipsis _ ->
       let tok = mk_tok pos1 "..." env in
-      (G.Ellipsis (Parse_info.fake_info tok "...") |> G.e, pos2)
+      (G.Ellipsis (Tok.fake_tok tok "...") |> G.e, pos2)
   (* less: use G.keyval? *)
   | _ ->
       ( G.Container (G.Tuple, mk_bracket (pos1, pos2) [ key; value ] env) |> G.e,
@@ -572,7 +569,7 @@ let mask_unicode str =
 let parse_yaml_file ~is_target file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
-  let charpos_to_pos = Some (Parsing_helpers.full_charpos_to_pos_large file) in
+  let charpos_to_pos = Some (Pos.full_charpos_to_pos_large file) in
   let parser = get_res file (S.parser str) in
   let env =
     {

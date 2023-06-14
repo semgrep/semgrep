@@ -3,6 +3,8 @@ import time
 from io import StringIO
 from os import environ
 from pathlib import Path
+from sys import getrecursionlimit
+from sys import setrecursionlimit
 from typing import Any
 from typing import Collection
 from typing import Dict
@@ -13,16 +15,22 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from boltons.iterutils import get_path
 from boltons.iterutils import partition
+from rich.padding import Padding
 
 from semdep.parse_lockfile import parse_lockfile_path
+from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
+from semgrep.console import console
+from semgrep.console import Title
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -40,6 +48,7 @@ from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
+from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -115,6 +124,7 @@ def invoke_semgrep(
         output_extra,
         shown_severities,
         _,
+        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -137,6 +147,59 @@ def invoke_semgrep(
     return json.loads(output_handler._build_output())  # type: ignore
 
 
+def print_summary_line(
+    target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
+) -> None:
+    file_count = len(target_manager.get_all_files())
+    summary_line = f"Scanning {unit_str(file_count, 'file')}"
+    if target_manager.respect_git_ignore:
+        summary_line += " tracked by git"
+
+    sast_rule_count = len(sast_plan.rules)
+    summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
+
+    sca_rule_count = len(sca_plan.rules)
+    if sca_rule_count:
+        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+
+    pro_rule_count = sum(
+        1
+        for rule in sast_plan.rules
+        if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
+        == "pro_rules"
+    )
+    if pro_rule_count:
+        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+
+    console.print(summary_line + ":")
+
+
+def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> None:
+    """Print a section like:"""
+    console.print(Title("Scan Status"))
+
+    sast_plan = CoreRunner.plan_core_run(
+        [rule for rule in rules if rule.product == RuleProduct.sast],
+        target_manager,
+    )
+    sca_plan = CoreRunner.plan_core_run(
+        [rule for rule in rules if rule.product == RuleProduct.sca],
+        target_manager,
+    )
+
+    print_summary_line(target_manager, sast_plan, sca_plan)
+
+    if not sca_plan.rules:
+        # just print these tables without the section headers
+        sast_plan.print(with_tables_for=RuleProduct.sast)
+        return
+
+    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
+    sast_plan.print(with_tables_for=RuleProduct.sast)
+    console.print(Title("Supply Chain Rules", order=2))
+    sca_plan.print(with_tables_for=RuleProduct.sca)
+
+
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -145,8 +208,14 @@ def run_rules(
     dump_command_for_core: bool,
     engine_type: EngineType,
 ) -> Tuple[
-    RuleMatchMap, List[SemgrepError], OutputExtra, Dict[str, List[FoundDependency]]
+    RuleMatchMap,
+    List[SemgrepError],
+    OutputExtra,
+    Dict[str, List[FoundDependency]],
+    List[DependencyParserError],
 ]:
+    print_scan_status(filtered_rules, target_manager)
+
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -176,6 +245,7 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     dependencies = {}
+    dependency_parser_errors = []
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import (
             generate_unreachable_sca_findings,
@@ -223,13 +293,19 @@ def run_rules(
             for lockfile in target_manager.get_lockfiles(ecosystem):
                 # Add lockfiles as a target that was scanned
                 output_extra.all_targets.add(lockfile)
-                dependencies[str(lockfile)] = parse_lockfile_path(lockfile)
-
+                # Warning temporal assumption: this is the only place we process
+                # parse errors. We silently toss them in other places we call parse_lockfile_path
+                # It doesn't really matter where it gets handled as long as we collect the parse errors somewhere
+                deps, parse_error = parse_lockfile_path(lockfile)
+                dependencies[str(lockfile)] = deps
+                if parse_error:
+                    dependency_parser_errors.append(parse_error)
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
         dependencies,
+        dependency_parser_errors,
     )
 
 
@@ -306,8 +382,22 @@ def main(
     OutputExtra,
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
+    List[DependencyParserError],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
+
+    # Some of the lockfile parsers are defined recursively
+    # This does not play well with python's conservative recursion limit, so we manually increase
+
+    if "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE" in environ:
+        recursion_limit_increase = int(
+            environ["SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"]
+        )
+    else:
+        recursion_limit_increase = 500
+
+    setrecursionlimit(getrecursionlimit() + recursion_limit_increase)
+
     if include is None:
         include = []
 
@@ -333,6 +423,7 @@ def main(
     metrics = get_state().metrics
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
+        metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
         metrics.add_configs(configs)
         metrics.add_engine_type(engine_type)
 
@@ -427,7 +518,13 @@ def main(
         for ruleid in sorted(rule.id for rule in experimental_rules):
             logger.verbose(f"- {ruleid}")
 
-    (rule_matches_by_rule, semgrep_errors, output_extra, dependencies) = run_rules(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+        dependencies,
+        dependency_parser_errors,
+    ) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -460,7 +557,9 @@ def main(
                 "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
             )
         else:
-            logger.info(f"Switching repository to baseline commit '{baseline_commit}'.")
+            logger.info(
+                f"Creating git worktree from '{baseline_commit}' to scan baseline."
+            )
             baseline_handler.print_git_log()
             logger.info("")
             try:
@@ -483,6 +582,7 @@ def main(
                     (
                         baseline_rule_matches_by_rule,
                         baseline_semgrep_errors,
+                        _,
                         _,
                         _,
                     ) = run_rules(
@@ -543,4 +643,5 @@ def main(
         output_extra,
         shown_severities,
         dependencies,
+        dependency_parser_errors,
     )

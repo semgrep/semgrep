@@ -4,7 +4,10 @@
  (wrapped false)
  (libraries
    commons
-
+   fmt
+   terminal_size
+   osemgrep_core
+   semgrep.reporting
  )
  (preprocess
    (pps

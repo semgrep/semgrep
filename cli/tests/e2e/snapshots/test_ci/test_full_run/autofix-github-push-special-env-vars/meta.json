@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "semgrep_version": "<sanitized version>",
+    "repository": "project_name/project_name",
+    "repo_url": "https://github.com/project_name/project_name",
+    "branch": "some/branch-name",
+    "ci_job_url": "customjoburl.com",
+    "commit": "sanitized",
+    "commit_author_email": "test_environment@test.r2c.dev",
+    "commit_author_name": "Environment Test",
+    "commit_author_username": null,
+    "commit_author_image_url": null,
+    "commit_title": "Some other commit/ message",
+    "on": "push",
+    "pull_request_author_username": null,
+    "pull_request_author_image_url": null,
+    "pull_request_id": "312",
+    "pull_request_title": "PR_TITLE",
+    "scan_environment": "github-actions",
+    "is_full_scan": true,
+    "is_sca_scan": false
+  }
+}

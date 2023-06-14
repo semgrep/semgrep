@@ -35,4 +35,5 @@ val parse_fuzzy:
 val program_of_string : string -> AST_python.program
 
 (* internal *)
-val tokens : parsing_mode -> Common.filename -> Parser_python.token list
+val tokens :
+  parsing_mode -> Parsing_helpers.input_source -> Parser_python.token list

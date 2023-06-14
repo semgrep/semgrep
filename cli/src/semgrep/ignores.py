@@ -98,7 +98,7 @@ class FileIgnore:
         )
 
     def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
-        kept, removed = partition(candidates, self._filter)
+        kept, removed = partition(sorted(candidates), self._filter)
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @classmethod

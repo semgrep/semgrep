@@ -69,19 +69,19 @@
 (*************************************************************************)
 
 (* unrecognized token, will generate parse error *)
-%token <Parse_info.t> Unknown
-%token <Parse_info.t> EOF
+%token <Tok.t> Unknown
+%token <Tok.t> EOF
 
 (*-----------------------------------------*)
 (* The space/comment tokens *)
 (*-----------------------------------------*)
 (* coupling: Token_helpers.is_real_comment *)
-%token <Parse_info.t> Space Comment
+%token <Tok.t> Space Comment
 
 (* This is actually treated specially in Scala *)
-%token <Parse_info.t> Nl
+%token <Tok.t> Nl
 (* inserted after tokenizing *)
-%token <Parse_info.t> NEWLINE NEWLINES
+%token <Tok.t> NEWLINE NEWLINES
 
 (*-----------------------------------------*)
 (* The normal tokens *)
@@ -89,97 +89,97 @@
 
 (* tokens with "values" *)
 (* old ambiguous, split in different Ids *)
-(* %token <string * Parse_info.t> Id Boundvarid Varid *)
+(* %token <string * Tok.t> Id Boundvarid Varid *)
 (* split of Id in multiple tokens *)
-%token <string * Parse_info.t> ID_LOWER ID_UPPER ID_BACKQUOTED ID_DOLLAR
-%token <string * Parse_info.t> OP
+%token <string * Tok.t> ID_LOWER ID_UPPER ID_BACKQUOTED ID_DOLLAR
+%token <string * Tok.t> OP
 
-%token <string * Parse_info.t> SymbolLiteral
+%token <string * Tok.t> SymbolLiteral
 
-%token <bool * Parse_info.t> BooleanLiteral
-%token <string * Parse_info.t> CharacterLiteral
-%token <float option * Parse_info.t> FloatingPointLiteral
-%token <int option * Parse_info.t> IntegerLiteral
+%token <bool * Tok.t> BooleanLiteral
+%token <string * Tok.t> CharacterLiteral
+%token <float option * Tok.t> FloatingPointLiteral
+%token <int option * Tok.t> IntegerLiteral
 
-%token <string * Parse_info.t> StringLiteral
+%token <string * Tok.t> StringLiteral
 (* like for JS/PHP/Python *)
-%token <string * Parse_info.t> T_INTERPOLATED_START
-%token <Parse_info.t> T_INTERPOLATED_END
+%token <string * Tok.t> T_INTERPOLATED_START
+%token <Tok.t> T_INTERPOLATED_END
 
 (* keywords tokens *)
-%token <Parse_info.t> Kabstract "abstract"
-%token <Parse_info.t> Kcase "case"
-%token <Parse_info.t> Kcatch "catch"
-%token <Parse_info.t> Kclass "class"
-%token <Parse_info.t> Kdef "def"
-%token <Parse_info.t> Kdo "do"
-%token <Parse_info.t> Kelse "else"
-%token <Parse_info.t> Kextends "extends"
-%token <Parse_info.t> Kfinal "final"
-%token <Parse_info.t> Kfinally "finally"
-%token <Parse_info.t> Kfor "for"
-%token <Parse_info.t> KforSome "forSome"
-%token <Parse_info.t> Kif "if"
-%token <Parse_info.t> Kimplicit "implicit"
-%token <Parse_info.t> Kimport "import"
-%token <Parse_info.t> Klazy "lazy"
-%token <Parse_info.t> Kmatch "match"
-%token <Parse_info.t> Knew "new"
-%token <Parse_info.t> Knull "null"
-%token <Parse_info.t> Kobject "object"
-%token <Parse_info.t> Koverride "override"
-%token <Parse_info.t> Kpackage "package"
-%token <Parse_info.t> Kprivate "private"
-%token <Parse_info.t> Kprotected "protected"
-%token <Parse_info.t> Kreturn "return"
-%token <Parse_info.t> Ksealed "sealed"
-%token <Parse_info.t> Ksuper "super"
-%token <Parse_info.t> Kthis "this"
-%token <Parse_info.t> Kthrow "throw"
-%token <Parse_info.t> Ktrait "trait"
-%token <Parse_info.t> Ktry "try"
-%token <Parse_info.t> Ktype "type"
-%token <Parse_info.t> Kval "val"
-%token <Parse_info.t> Kvar "var"
-%token <Parse_info.t> Kwhile "while"
-%token <Parse_info.t> Kwith "with"
-%token <Parse_info.t> Kyield "yield"
+%token <Tok.t> Kabstract "abstract"
+%token <Tok.t> Kcase "case"
+%token <Tok.t> Kcatch "catch"
+%token <Tok.t> Kclass "class"
+%token <Tok.t> Kdef "def"
+%token <Tok.t> Kdo "do"
+%token <Tok.t> Kelse "else"
+%token <Tok.t> Kextends "extends"
+%token <Tok.t> Kfinal "final"
+%token <Tok.t> Kfinally "finally"
+%token <Tok.t> Kfor "for"
+%token <Tok.t> KforSome "forSome"
+%token <Tok.t> Kif "if"
+%token <Tok.t> Kimplicit "implicit"
+%token <Tok.t> Kimport "import"
+%token <Tok.t> Klazy "lazy"
+%token <Tok.t> Kmatch "match"
+%token <Tok.t> Knew "new"
+%token <Tok.t> Knull "null"
+%token <Tok.t> Kobject "object"
+%token <Tok.t> Koverride "override"
+%token <Tok.t> Kpackage "package"
+%token <Tok.t> Kprivate "private"
+%token <Tok.t> Kprotected "protected"
+%token <Tok.t> Kreturn "return"
+%token <Tok.t> Ksealed "sealed"
+%token <Tok.t> Ksuper "super"
+%token <Tok.t> Kthis "this"
+%token <Tok.t> Kthrow "throw"
+%token <Tok.t> Ktrait "trait"
+%token <Tok.t> Ktry "try"
+%token <Tok.t> Ktype "type"
+%token <Tok.t> Kval "val"
+%token <Tok.t> Kvar "var"
+%token <Tok.t> Kwhile "while"
+%token <Tok.t> Kwith "with"
+%token <Tok.t> Kyield "yield"
 
 (* syntax *)
-%token <Parse_info.t> LPAREN   "(" RPAREN ")"
-%token <Parse_info.t> LBRACKET "[" RBRACKET "]"
-%token <Parse_info.t> LBRACE   "{" RBRACE "}"
+%token <Tok.t> LPAREN   "(" RPAREN ")"
+%token <Tok.t> LBRACKET "[" RBRACKET "]"
+%token <Tok.t> LBRACE   "{" RBRACE "}"
 
-%token <Parse_info.t> SEMI ";"
-%token <Parse_info.t> COMMA ","
-%token <Parse_info.t> DOT "."
-%token <Parse_info.t> COLON ":"
-%token <Parse_info.t> EQUALS "="
+%token <Tok.t> SEMI ";"
+%token <Tok.t> COMMA ","
+%token <Tok.t> DOT "."
+%token <Tok.t> COLON ":"
+%token <Tok.t> EQUALS "="
 
 (* operators *)
-%token <Parse_info.t> PLUS "+"
-%token <Parse_info.t> MINUS "-"
-%token <Parse_info.t> STAR "*"
+%token <Tok.t> PLUS "+"
+%token <Tok.t> MINUS "-"
+%token <Tok.t> STAR "*"
 
-%token <Parse_info.t> BANG "!"
-%token <Parse_info.t> HASH "#"
-%token <Parse_info.t> TILDE "~"
-%token <Parse_info.t> PIPE "|"
-%token <Parse_info.t> USCORE "_"
+%token <Tok.t> BANG "!"
+%token <Tok.t> HASH "#"
+%token <Tok.t> TILDE "~"
+%token <Tok.t> PIPE "|"
+%token <Tok.t> USCORE "_"
 
-%token <Parse_info.t> VIEWBOUND "<%"
-%token <Parse_info.t> LARROW "<-"
-%token <Parse_info.t> SUBTYPE "<:"
-%token <Parse_info.t> SUPERTYPE ">:"
-%token <Parse_info.t> ARROW "=>"
-%token <Parse_info.t> AT "@"
+%token <Tok.t> VIEWBOUND "<%"
+%token <Tok.t> LARROW "<-"
+%token <Tok.t> SUBTYPE "<:"
+%token <Tok.t> SUPERTYPE ">:"
+%token <Tok.t> ARROW "=>"
+%token <Tok.t> AT "@"
 
 (*-----------------------------------------*)
 (* extra tokens: *)
 (*-----------------------------------------*)
 (* semgrep-ext: *)
-%token <Parse_info.t> Ellipsis "..."
-%token <Parse_info.t> LDots "<..." RDots "...>"
+%token <Tok.t> Ellipsis "..."
+%token <Tok.t> LDots "<..." RDots "...>"
 
 (*************************************************************************)
 (* Priorities *)

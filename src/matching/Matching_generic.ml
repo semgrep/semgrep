@@ -19,7 +19,6 @@ module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module Env = Metavariable_capture
-module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -80,7 +79,7 @@ type tin = {
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
-  config : Config_semgrep.t;
+  config : Rule_options.t;
   deref_sym_vals : int;
 }
 
@@ -210,7 +209,7 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let rec equal_ast_bound_code (config : Config_semgrep.t) (a : MV.mvalue)
+let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
     match (a, b) with
@@ -419,8 +418,7 @@ let rec all_splits = function
   | [] -> [ ([], []) ]
   | x :: xs ->
       all_splits xs
-      |> Common.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
-      |> List.flatten
+      |> List.concat_map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
 
 (* let _ = Common2.example
     (all_elem_and_rest_of_list ['a';'b';'c'] =
@@ -609,15 +607,13 @@ let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
   let rec loop = function
     | [] -> []
     | (bs, tout) :: comb_matches' ->
-        let bs_matches =
-          tout |> Common.map (fun tin -> f bs tin) |> List.flatten
-        in
+        let bs_matches = tout |> List.concat_map (fun tin -> f bs tin) in
         bs_matches @ loop comb_matches'
   in
   loop (comb_result tin)
 
 let m_comb_flatten (comb_result : _ comb_result) (tin : tin) : tout =
-  comb_result tin |> Common.map snd |> List.flatten
+  comb_result tin |> List.concat_map snd
 
 let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
     (comb_result : _ comb_result) : _ comb_result =
@@ -628,7 +624,7 @@ let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
 let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
  fun tin ->
   bs |> all_elem_and_rest_of_list
-  |> List.filter_map (fun (b, other_bs) ->
+  |> Common.map_filter (fun (b, other_bs) ->
          match m a b tin with
          | [] -> None
          | tout -> Some (Lazy.force other_bs, tout))
@@ -636,7 +632,7 @@ let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
 let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->
   bs |> all_splits
-  |> List.filter_map (fun (l, r) ->
+  |> Common.map_filter (fun (l, r) ->
          match m_1toN a l tin with
          | [] -> None
          | tout -> Some (r, tout))
@@ -700,25 +696,28 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  match PI.token_location_of_info info with
+  match Tok.loc_of_tok info with
   | Error _ ->
       (* We have no token location to adjust (typically a fake token),
        * this happens if the string is the result of constant folding. *)
       (s, info)
   | Ok loc -> (
-      let raw_str = loc.PI.str in
+      let raw_str = loc.Tok.str in
       let re = Str.regexp_string s in
       try
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
-            loc with
-            PI.str = s;
-            charpos = loc.charpos + pos;
-            column = loc.column + pos;
+            Tok.str = s;
+            pos =
+              {
+                loc.pos with
+                charpos = loc.pos.charpos + pos;
+                column = loc.pos.column + pos;
+              };
           }
         in
-        let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+        let info = Tok.OriginTok loc in
         (s, info)
       with
       | Not_found ->

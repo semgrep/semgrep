@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from tests.conftest import _clean_output_json
 from tests.conftest import _clean_stdout
+from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SEMGREP_BASE_COMMAND
 from tests.semgrep_runner import SEMGREP_BASE_COMMAND_STR
 
@@ -37,12 +38,17 @@ GITHUB_TEST_GIST_URL = (
 
 
 @pytest.mark.kinda_slow
-def test_basic_rule__local(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(run_semgrep_in_tmp("rules/eqeq.yaml").stdout, "results.json")
+@pytest.mark.osempass
+def test_basic_rule__local(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/eqeq.yaml").stdout,
+        "results.json",
+    )
 
 
 @pytest.mark.kinda_slow
-def test_basic_rule__relative(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_basic_rule__relative(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/../rules/eqeq.yaml").stdout,
         "results.json",
@@ -50,7 +56,19 @@ def test_basic_rule__relative(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_deduplication(run_semgrep_in_tmp, snapshot):
+def test_basic_jsonnet_rule(
+    monkeypatch: pytest.MonkeyPatch, run_semgrep_in_tmp: RunSemgrep, snapshot
+):
+    monkeypatch.setenv("R2C_INTERNAL_JSONNET_LIB", "rules/jsonnet/lib")
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/jsonnet/python/basic.jsonnet").stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osempass
+def test_deduplication(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Check that semgrep runs a rule only once even when different in the metadata
     """
@@ -63,7 +81,7 @@ def test_deduplication(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
+def test_noextension_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Check that semgrep does not filter out files without extensions when
     said file is explicitly passed AND when we use --scan-unknown-extensions.
@@ -79,7 +97,7 @@ def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_noextension_filtering_optimizations(run_semgrep_in_tmp, snapshot):
+def test_noextension_filtering_optimizations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Check that semgrep does not filter out files without extensions when
     said file is explicitly passed AND when we use --scan-unknown-extensions.
@@ -95,7 +113,8 @@ def test_noextension_filtering_optimizations(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_script(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_script(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Validates that Semgrep scans scripts with matching shebangs
     """
@@ -109,15 +128,59 @@ def test_script(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
+def test_extract(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/js_html_concat.yaml",
+            target_name="extract/js_html_concat.html",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_extract_exclude(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/python_jupyter_paths_exclude.yaml",
+            target_name="extract/python_jupyter_paths_exclude.ipynb",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_extract_include(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """
+    Validates that Semgrep works with extract mode
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/extract_rules/python_jupyter_paths_include.yaml",
+            target_name="extract/python_jupyter_paths_include.ipynb",
+        ).stdout,
+        "results.json",
+    )
+
+
+@pytest.mark.osempass
+@pytest.mark.kinda_slow
+def test_basic_rule__absolute(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(Path.cwd() / "rules" / "eqeq.yaml").stdout,
         "results.json",
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
-def test_terminal_output(run_semgrep_in_tmp, snapshot):
+def test_terminal_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Have shared settings file to test second run doesnt show metric output
     settings_file = tempfile.NamedTemporaryFile().name
 
@@ -139,8 +202,9 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(results.as_snapshot(), "results_second.txt")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
+def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Quiet output should just have finding output
     """
@@ -224,22 +288,25 @@ def test_multi_subshell_input(snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_multiline(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_multiline(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/multiline.yaml", target_name="multiline").stdout,
         "results.json",
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
-def test_url_rule(run_semgrep_in_tmp, snapshot):
+def test_url_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(GITHUB_TEST_GIST_URL).stdout, "results.json"
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.slow
-def test_auto_config(run_semgrep_in_tmp, mocker):
+def test_auto_config(run_semgrep_in_tmp: RunSemgrep, mocker):
     # --config auto will change over time, so lets just make sure this doesn't error out
     # TODO: Mock config response for more detailed testing
     # Use --no-strict to avoid error from unmatched nosem comment
@@ -250,15 +317,16 @@ def test_auto_config(run_semgrep_in_tmp, mocker):
     assert True
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
+def test_hidden_rule__explicit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/hidden/.hidden").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
+def test_hidden_rule__implicit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, _ = run_semgrep_in_tmp("rules/hidden", assert_exit_code=7)
     snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
@@ -269,13 +337,13 @@ def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_default_rule__file(run_semgrep_in_tmp, snapshot):
+def test_default_rule__file(run_semgrep_in_tmp: RunSemgrep, snapshot):
     Path(".semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
     snapshot.assert_match(run_semgrep_in_tmp().stdout, "results.json")
 
 
 @pytest.mark.kinda_slow
-def test_default_rule__folder(run_semgrep_in_tmp, snapshot):
+def test_default_rule__folder(run_semgrep_in_tmp: RunSemgrep, snapshot):
     Path(".semgrep").mkdir()
     Path(".semgrep/.semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
 
@@ -283,14 +351,16 @@ def test_default_rule__folder(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__top(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__top(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/regex-top.yaml").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__utf8(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__utf8(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-utf8.yaml", target_name="basic/regex-utf8.txt"
@@ -300,7 +370,8 @@ def test_regex_rule__utf8(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__utf8_on_image(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__utf8_on_image(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # https://github.com/returntocorp/semgrep/issues/4258
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -311,14 +382,16 @@ def test_regex_rule__utf8_on_image(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__child(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/regex-child.yaml").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__not(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/pattern-not-regex/regex-not.yaml", target_name="basic/stupid.py"
@@ -328,7 +401,8 @@ def test_regex_rule__not(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__not2(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/pattern-not-regex/regex-not2.yaml",
@@ -339,7 +413,10 @@ def test_regex_rule__not2(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__pattern_regex_and_pattern_not_regex(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__pattern_regex_and_pattern_not_regex(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/pattern-not-regex/regex-not-with-pattern-regex.yaml",
@@ -350,7 +427,8 @@ def test_regex_rule__pattern_regex_and_pattern_not_regex(run_semgrep_in_tmp, sna
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__issue2465(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_regex_rule__issue2465(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/pattern-not-regex/issue2465.yaml",
@@ -361,35 +439,38 @@ def test_regex_rule__issue2465(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
+def test_regex_rule__invalid_expression(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, stderr = run_semgrep_in_tmp("rules/regex-invalid.yaml", assert_exit_code=2)
     snapshot.assert_match(stderr, "error.txt")
     snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
 
 @pytest.mark.kinda_slow
-def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_nested_patterns_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/nested-patterns.yaml").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_nested_pattern_either_rule(run_semgrep_in_tmp, snapshot):
+def test_nested_pattern_either_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/nested-pattern-either.yaml").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_regex_rule(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-regex.yaml").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_regex_multi_rule(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_regex_multi_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-regex-multi-rule.yaml").stdout,
         "results.json",
@@ -397,15 +478,17 @@ def test_metavariable_regex_multi_rule(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_multi_regex_rule(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_multi_regex_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-regex-multi-regex.yaml").stdout,
         "results.json",
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
+def test_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-any-language.yaml", target_name="basic/regex-any-language.html"
@@ -414,8 +497,11 @@ def test_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_regex_with_any_language_multiple_rule(run_semgrep_in_tmp, snapshot):
+def test_regex_with_any_language_multiple_rule(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-any-language-multiple.yaml",
@@ -426,7 +512,7 @@ def test_regex_with_any_language_multiple_rule(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
+def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/regex-any-language-invalid.yaml",
         target_name="basic/regex-any-language.html",
@@ -436,8 +522,11 @@ def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_regex_with_any_language_rule_none_alias(run_semgrep_in_tmp, snapshot):
+def test_regex_with_any_language_rule_none_alias(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-any-language-alias-none.yaml",
@@ -447,8 +536,11 @@ def test_regex_with_any_language_rule_none_alias(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_regex_with_any_language_multiple_rule_none_alias(run_semgrep_in_tmp, snapshot):
+def test_regex_with_any_language_multiple_rule_none_alias(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-any-language-multiple-alias-none.yaml",
@@ -459,7 +551,7 @@ def test_regex_with_any_language_multiple_rule_none_alias(run_semgrep_in_tmp, sn
 
 
 @pytest.mark.slow
-def test_timeout(run_semgrep_in_tmp, snapshot):
+def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check that semgrep-core timeouts are properly handled
 
     snapshot.assert_match(
@@ -474,7 +566,7 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
+def test_spacegrep_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check that spacegrep timeouts are handled gracefully.
     #
     # The pattern is designed to defeat any optimization that would
@@ -496,7 +588,7 @@ def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_max_memory(run_semgrep_in_tmp, snapshot):
+def test_max_memory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/long.yaml",
         options=["--verbose", "--max-memory", "1"],
@@ -508,7 +600,7 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_stack_size(run_semgrep_in_tmp, snapshot):
+def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     Verify that semgrep raises the soft stack limit if possible
     when calling semgrep core
@@ -549,7 +641,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
+def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results = run_semgrep_in_tmp(
         "rules/multiple-long.yaml",
         options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
@@ -587,14 +679,16 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_comparison_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-comparison.yaml").stdout, "results.json"
     )
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule_base(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_comparison_rule_base(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-comparison-base.yaml").stdout,
         "results.json",
@@ -602,7 +696,8 @@ def test_metavariable_comparison_rule_base(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-comparison-strip.yaml").stdout,
         "results.json",
@@ -610,7 +705,10 @@ def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule_bad_content(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_comparison_rule_bad_content(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/metavariable-comparison-bad-content.yaml").stdout,
         "results.json",
@@ -618,7 +716,8 @@ def test_metavariable_comparison_rule_bad_content(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_multiple_configs_file(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_multiple_configs_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(["rules/eqeq.yaml", "rules/eqeq-python.yaml"]).stdout,
         "results.json",
@@ -626,7 +725,7 @@ def test_multiple_configs_file(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_multiple_configs_different_origins(run_semgrep_in_tmp, snapshot):
+def test_multiple_configs_different_origins(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(["rules/eqeq.yaml", GITHUB_TEST_GIST_URL]).stdout,
         "results.json",
@@ -634,7 +733,8 @@ def test_multiple_configs_different_origins(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_propagation_regex(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_propagation_regex(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable_propagation/metavariable-regex-propagation.yaml",
@@ -645,7 +745,8 @@ def test_metavariable_propagation_regex(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_propagation_comparison(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_metavariable_propagation_comparison(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable_propagation/metavariable-comparison-propagation.yaml",
@@ -656,7 +757,7 @@ def test_metavariable_propagation_comparison(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_taint_mode(run_semgrep_in_tmp, snapshot):
+def test_taint_mode(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/taint.yaml",
@@ -667,7 +768,7 @@ def test_taint_mode(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_deduplication_same_message(run_semgrep_in_tmp, snapshot):
+def test_deduplication_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
     """
     With same message, should deduplicate and only have one finding
     """
@@ -681,7 +782,8 @@ def test_deduplication_same_message(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_deduplication_different_message(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_deduplication_different_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/deduplication/duplication-different-message.yaml",
         target_name="deduplication/deduplication.py",
@@ -692,7 +794,8 @@ def test_deduplication_different_message(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
+@pytest.mark.osempass
+def test_pattern_regex_empty_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/pattern-regex-empty-file.yaml",
@@ -703,7 +806,7 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_inventory_finding_output(run_semgrep_in_tmp, snapshot):
+def test_inventory_finding_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/inventory-rule.yaml",
@@ -716,7 +819,7 @@ def test_inventory_finding_output(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_experiment_finding_output(run_semgrep_in_tmp, snapshot):
+def test_experiment_finding_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/experiment-rule.yaml",
@@ -729,7 +832,7 @@ def test_experiment_finding_output(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.quick
-def multi_focus_metavariable(run_semgrep_in_tmp, snapshot):
+def multi_focus_metavariable(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/multi-focus-metavariable.yaml",

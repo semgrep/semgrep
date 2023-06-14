@@ -15,7 +15,6 @@
 open Common
 module AST = Ast_java
 module CST = Tree_sitter_java.CST
-module PI = Parse_info
 open Ast_java
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
@@ -39,7 +38,7 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 type env = unit H.env
 
-let fake = PI.fake_info
+let fake = Tok.fake_tok
 let token = H.token
 let str = H.str
 let option = Option.map
@@ -122,14 +121,53 @@ let int_literal env tok =
   let s, t = str env tok in
   (Common2.int_of_string_c_octal_opt s, t)
 
-let string_literal env tok =
-  let s, t = str env tok in
-  (* remove enclosing quotes *)
-  let s =
-    if s =~ "^\"\\(.*\\)\"$" then Common.matched1 s
-    else failwith (spf "not a Java string: %s" s)
-  in
-  (s, t)
+let multiline_string_fragment (env : env) (x : CST.multiline_string_fragment) =
+  match x with
+  | `Pat_98d585a x -> str env x
+  | `Pat_9347a80_rep_pat_98d585a (v1, v2) ->
+      (* pattern "\"[^\"]*" *)
+      let s, t = str env v1 in
+      let strs, toks =
+        Common.map
+          (fun x ->
+            (* pattern "[^\"]+" *)
+            str env x)
+          v2
+        |> Common2.unzip
+      in
+      (s ^ String.concat "" strs, Tok.combine_toks t toks)
+
+let escape_sequence_ (env : env) (x : CST.escape_sequence_) =
+  match x with
+  | `Imm_tok_bslash_pat_36cdeeb x -> str env x
+  | `Esc_seq tok -> (* escape_sequence *) str env tok
+
+let string_literal env s =
+  match s with
+  | `Str_lit_ (quote1, contents, quote2) ->
+      let tok1 = token env quote1 in
+      let strs, toks =
+        Common.map
+          (function
+            | `Str_frag x -> str env x
+            | `Esc_seq x -> str env x)
+          contents
+        |> Common2.unzip
+      in
+      let tok2 = token env quote2 in
+      (String.concat "" strs, Tok.combine_toks tok1 (toks @ [ tok2 ]))
+  | `Mult_str_lit (quote1, contents, quote2) ->
+      let tok1 = token env quote1 in
+      let strs, toks =
+        Common.map
+          (function
+            | `Mult_str_frag x -> multiline_string_fragment env x
+            | `Esc_seq_ x -> escape_sequence_ env x)
+          contents
+        |> Common2.unzip
+      in
+      let tok2 = token env quote2 in
+      (String.concat "" strs, Tok.combine_toks tok1 (toks @ [ tok2 ]))
 
 let float_literal env tok =
   let s, t = str env tok in
@@ -148,10 +186,9 @@ let literal (env : env) (x : CST.literal) =
   | `True tok -> Bool (true, token env tok) (* "true" *)
   | `False tok -> Bool (false, token env tok) (* "false" *)
   | `Char_lit tok -> Char (str env tok) (* character_literal *)
-  | `Str_lit tok -> String (string_literal env tok) (* string_literal *)
-  | `Null_lit tok -> Null (token env tok) (* "null" *)
-  (* TODO: remove enclosing triple quotes? *)
-  | `Text_blk tok -> TextBlock (str env tok)
+  | `Str_lit s -> String (string_literal env s) (* string_literal *)
+  | `Null_lit tok -> Null (token env tok)
+(* "null" *)
 
 (* TODO: add in AST *)
 let module_directive (env : env) (v : CST.module_directive) : unit =
@@ -241,12 +278,18 @@ let rec expression (env : env) (x : CST.expression) =
       | Left (), t -> Assign (v1, t, v3)
       | Right op, t -> AssignOp (v1, (op, t), v3))
   | `Bin_exp x -> binary_expression env x
-  | `Inst_exp (v1, v2, v3, _identifier) ->
+  | `Inst_exp (v1, v2, v3, v4, _v5) ->
       let v1 = expression env v1 in
       let _v2 = token env v2 (* "instanceof" *) in
-      let v3 = type_ env v3 in
+      (* TODO: use attrs *)
+      let _attrs =
+        match v3 with
+        | Some _ -> Some "final"
+        | None -> None
+      in
+      let v4 = type_ env v4 in
       (* TODO make identifier available to the AST*)
-      InstanceOf (v1, v3)
+      InstanceOf (v1, v4)
   | `Lambda_exp (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -714,9 +757,9 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
       ((true, v1), v2)
 
 and stmt1 tok = function
-  | [] -> EmptyStmt (PI.fake_info tok ";")
+  | [] -> EmptyStmt (Tok.fake_tok tok ";")
   | [ x ] -> x
-  | xs -> Block (PI.fake_bracket tok xs)
+  | xs -> Block (Tok.fake_bracket tok xs)
 
 and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
   statement_aux env x |> stmt1 tok
@@ -810,11 +853,7 @@ and statement_aux env x : Ast_java.stmt list =
       | `Enha_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
           let v1 = token env v1 (* "for" *) in
           let _v2 = token env v2 (* "(" *) in
-          let v3 =
-            match v3 with
-            | Some x -> modifiers env x
-            | None -> []
-          in
+          let v3 = modifiers_opt env v3 in
           let v4 = unannotated_type env v4 in
           let v5 = variable_declarator_id env v5 in
           let _v6 = token env v6 (* ":" *) in
@@ -982,11 +1021,7 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5) : CST.catch_clause) =
 
 and catch_formal_parameter (env : env)
     ((v1, v2, v3) : CST.catch_formal_parameter) =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let vtyp, vothertyps = catch_type env v2 in
   let v3 = variable_declarator_id env v3 in
   let vdef = canon_var v1 (Some vtyp) v3 in
@@ -1032,11 +1067,7 @@ and resource_specification (env : env)
 and resource (env : env) (x : CST.resource) =
   match x with
   | `Opt_modifs_unan_type_var_decl_id_EQ_exp (v1, v2, v3, v4, v5) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 = unannotated_type env v2 in
       let v3 = variable_declarator_id env v3 in
       let _v4 = token env v4 (* "=" *) in
@@ -1169,11 +1200,7 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
 
 and enum_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.enum_declaration) :
     enum_decl =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let _v2 = token env v2 (* "enum" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
@@ -1215,43 +1242,64 @@ and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
   (v2, v4)
 
 and record_declaration (env : env)
-    ((v1, v2, v3, _type_parameter, v5, v6) : CST.record_declaration) :
-    class_decl =
-  (* TODO add support for type parameters. Don't ignore them *)
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+    ((v1, v2, v3, v4, v5, v6, v7) : CST.record_declaration) : class_decl =
+  let v1 = modifiers_opt env v1 in
   let v2 = token env v2 (* "record" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
+  let v4 =
+    match v4 with
+    | Some x -> type_parameters env x
+    | None -> []
+  in
   let v5 = formal_parameters env v5 in
-  let v6 = class_body env v6 in
+  let v6 =
+    match v6 with
+    | Some x -> super_interfaces env x
+    | None -> []
+  in
+  let v7 = class_body env v7 in
   {
     cl_name = v3;
     cl_kind = (Record, v2);
-    cl_tparams = [];
+    cl_tparams = v4;
     cl_mods = v1;
     cl_extends = None;
-    cl_impls = [];
+    cl_impls = v6;
     cl_formals = v5;
-    cl_body = v6;
+    cl_body = v7;
   }
 
-and class_body_decl env = function
-  | `Record_decl x -> [ Class (record_declaration env x) ]
-  | `Field_decl x -> field_declaration env x
-  | `Meth_decl x -> [ Method (method_declaration env x) ]
-  | `Class_decl x -> [ Class (class_declaration env x) ]
-  | `Inte_decl x -> [ Class (interface_declaration env x) ]
-  | `Anno_type_decl x -> [ Class (annotation_type_declaration env x) ]
-  | `Enum_decl x -> [ Enum (enum_declaration env x) ]
-  | `Blk x ->
-      let x = block env x in
-      [ Init (None, x) ]
-  | `Static_init x -> [ static_initializer env x ]
-  | `Cons_decl x -> [ Method (constructor_declaration env x) ]
-  | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ]
+and comp_cons_decl env (v1, v2, v3) =
+  (* Compact constructors are a way to rewrite the default constructors for
+     a record, a kind of metaprogramming. We won't be able to analyze it
+     super meaningfully, but that should be fine.
+  *)
+  let v1 = modifiers_opt env v1 in
+  let v2 = (* pattern [\p{L}_$][\p{L}\p{Nd}_$]* *) str env v2 in
+  let ent = { name = v2; mods = v1; type_ = None } in
+  let v3 = block env v3 in
+  { m_var = ent; m_formals = []; m_throws = []; m_body = v3 }
+
+and class_body_decl env (x : CST.class_body_declaration) =
+  match x with
+  | `Choice_field_decl x -> (
+      match x with
+      | `Record_decl x -> [ Class (record_declaration env x) ]
+      | `Field_decl x -> field_declaration env x
+      | `Meth_decl x -> [ Method (method_declaration env x) ]
+      | `Comp_cons_decl (v1, v2, v3) ->
+          [ Method (comp_cons_decl env (v1, v2, v3)) ]
+      | `Class_decl x -> [ Class (class_declaration env x) ]
+      | `Inte_decl x -> [ Class (interface_declaration env x) ]
+      | `Anno_type_decl x -> [ Class (annotation_type_declaration env x) ]
+      | `Enum_decl x -> [ Enum (enum_declaration env x) ]
+      | `Blk x ->
+          let x = block env x in
+          [ Init (None, x) ]
+      | `Static_init x -> [ static_initializer env x ]
+      | `Cons_decl x -> [ Method (constructor_declaration env x) ]
+      | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ])
+  | `Semg_ellips tok -> [ DeclEllipsis (token env tok) ]
 
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let _v1 = token env v1 (* ";" *) in
@@ -1259,11 +1307,7 @@ and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   List.flatten v2
 
 and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
-  let _v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let _v1 = modifiers_opt env v1 in
   let v2 = identifier env v2 (* pattern [a-zA-Z_]\w* *) in
   let v3 =
     match v3 with
@@ -1279,11 +1323,7 @@ and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
 
 and class_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.class_declaration) : class_decl =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = token env v2 (* "class" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
@@ -1322,6 +1362,11 @@ and map_permits (env : env) ((v1, v2) : CST.permits) =
   let _v1 = (* "permits" *) token env v1 in
   let v2 = interface_type_list env v2 in
   v2
+
+and modifiers_opt env xopt =
+  match xopt with
+  | None -> []
+  | Some v1 -> modifiers env v1
 
 and modifiers (env : env) (xs : CST.modifiers) =
   Common.map
@@ -1420,11 +1465,7 @@ and static_initializer (env : env) ((v1, v2) : CST.static_initializer) =
 
 and constructor_declaration (env : env)
     ((v1, v2, v3, v4) : CST.constructor_declaration) : constructor_decl =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = constructor_declarator env v2 in
   let v3 =
     match v3 with
@@ -1486,11 +1527,7 @@ and explicit_constructor_invocation (env : env)
   Expr (Call (v1, v2), v3)
 
 and field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration) =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_list env v3 in
   let _v4 = token env v4 (* ";" *) in
@@ -1498,11 +1535,7 @@ and field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration) =
 
 and annotation_type_declaration (env : env)
     ((v1, v2, v3, v4) : CST.annotation_type_declaration) : class_decl =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = token env v2 (* "@interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 = annotation_type_body env v4 in
@@ -1538,11 +1571,7 @@ and annotation_type_body (env : env) ((v1, v2, v3) : CST.annotation_type_body) =
 and annotation_type_element_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.annotation_type_element_declaration)
     =
-  let _v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let _v1 = modifiers_opt env v1 in
   let _v2 = unannotated_type env v2 in
   let v3 = token env v3 (* pattern [a-zA-Z_]\w* *) in
   let _v4 = token env v4 (* "(" *) in
@@ -1567,11 +1596,7 @@ and default_value (env : env) ((v1, v2) : CST.default_value) =
 
 and interface_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.interface_declaration) : class_decl =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = token env v2 (* "interface" *) in
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 =
@@ -1617,6 +1642,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
         | `Meth_decl x -> [ Method (method_declaration env x) ]
         | `Class_decl x -> [ Class (class_declaration env x) ]
         | `Inte_decl x -> [ Class (interface_declaration env x) ]
+        | `Record_decl x -> [ Class (record_declaration env x) ]
         | `Anno_type_decl x -> [ Class (annotation_type_declaration env x) ]
         | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ])
       v2
@@ -1626,11 +1652,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
 
 and constant_declaration (env : env)
     ((v1, v2, v3, v4) : CST.constant_declaration) =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_list env v3 in
   let _v4 = token env v4 (* ";" *) in
@@ -1815,11 +1837,7 @@ and formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters) =
 and formal_parameter (env : env) (x : CST.formal_parameter) =
   match x with
   | `Opt_modifs_unan_type_var_decl_id (v1, v2, v3) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 = unannotated_type env v2 in
       let v3 = variable_declarator_id env v3 in
       ParamClassic (AST.canon_var v1 (Some v2) v3)
@@ -1844,11 +1862,7 @@ and receiver_parameter (env : env) ((v1, v2, v3, v4) : CST.receiver_parameter) =
   ParamReceiver (AST.canon_var [] (Some v2) (IdentDecl v4))
 
 and spread_parameter (env : env) ((v1, v2, v3, v4) : CST.spread_parameter) =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = unannotated_type env v2 in
   let v3 = token env v3 (* "..." *) in
   let v4 = variable_declarator env v4 in
@@ -1870,22 +1884,14 @@ and throws (env : env) ((v1, v2, v3) : CST.throws) : typ list =
 
 and local_variable_declaration (env : env)
     ((v1, v2, v3, v4) : CST.local_variable_declaration) : var_with_init list =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = unannotated_type env v2 in
   let v3 = variable_declarator_list env v3 in
   let _v4 = token env v4 (* ";" *) in
   decls (fun x -> x) v1 v2 v3
 
 and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = method_header env v2 in
   let v3 =
     match v3 with
@@ -1896,13 +1902,28 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
   let _tparams, t, id, params, throws = v2 in
   { (AST.method_header v1 t (IdentDecl id, params) throws) with m_body = v3 }
 
+let partials (env : env) (x : CST.partials) =
+  match x with
+  | `Part_meth (v1, v2) ->
+      let v1 = modifiers_opt env v1 in
+      let v2 = method_header env v2 in
+      let v3 = EmptyStmt (Tok.unsafe_fake_tok "") in
+      let _tparams, t, id, params, throws = v2 in
+      PartialDecl
+        (Method
+           {
+             (AST.method_header v1 t (IdentDecl id, params) throws) with
+             m_body = v3;
+           })
+
 let program (env : env) file (x : CST.program) =
   match x with
   | `Rep_stmt xs ->
-      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let tok = Tok.first_tok_of_file file in
       AProgram (Common.map (statement env ~tok) xs)
   | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
   | `Exp x -> AExpr (expression env x)
+  | `Partis x -> Partial (partials env x)
 
 (*****************************************************************************)
 (* Entry point *)

@@ -66,11 +66,7 @@
 (* Tokens *)
 (*****************************************************************************)
 
-(* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
- * transformation field that makes possible spatch on C/C++/cpp code.
- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show]
@@ -1015,6 +1011,12 @@ let expr_to_arg e = Arg e
 (* often used for fake return type for constructor *)
 let tvoid ii = (nQ, TPrimitive (TVoid, ii))
 
+let get_original_token_location = function
+  | Tok.OriginTok pi -> pi
+  | Tok.ExpandedTok (pi, _) -> pi
+  | Tok.FakeTokStr (_, _) -> raise (Tok.NoTokenLocation "FakeTokStr")
+  | Tok.Ab -> raise (Tok.NoTokenLocation "Ab")
+
 (* When want add some info in AST that does not correspond to
  * an existing C element.
  * old: when don't want 'synchronize' on it in unparse_c.ml
@@ -1022,22 +1024,18 @@ let tvoid ii = (nQ, TPrimitive (TVoid, ii))
  * used by parsing hacks
  *)
 let make_expanded ii =
-  let noVirtPos =
-    ({ Parse_info.str = ""; charpos = 0; line = 0; column = 0; file = "" }, -1)
+  (* TODO? use Pos.fake_pos? *)
+  let no_virt_loc =
+    ( { Tok.str = ""; pos = { charpos = 0; line = 0; column = 0; file = "" } },
+      -1 )
   in
-  let a, b = noVirtPos in
-  {
-    ii with
-    Parse_info.token =
-      Parse_info.ExpandedTok
-        (Parse_info.get_original_token_location ii.Parse_info.token, a, b);
-  }
+  Tok.ExpandedTok (get_original_token_location ii, no_virt_loc)
 
 let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =
   { p_name; p_type = t; p_specs; p_val }
 
 (* used by parsing hacks *)
-let rewrap_pinfo pi ii = { ii with Parse_info.token = pi }
+let rewrap_pinfo pi _ii = pi
 
 (* used while migrating the use of 'string' to 'name' in check_variables *)
 let (string_of_name_tmp : name -> string) =

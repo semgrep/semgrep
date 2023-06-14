@@ -14,50 +14,51 @@ foo.py:11:5:error(eqeq-bad):    y == y:useless comparison
 foo.py:15:5:error(eqeq-five):    x == 5:useless comparison to 5
 foo.py:19:5:error(eqeq-four):    baz == 4:useless comparison to 4
 foo.py:27:5:warning(taint-test):    sink(d2):unsafe use of danger
-poetry.lock:0:0:error(supply-chain1)::found a dependency
+poetry.lock:1:0:error(supply-chain1):[[package]]:found a dependency
 
 === end of stdout - plain
 
 === stderr - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown         
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
+
+  CONNECTION
+  Reporting start of scan for deployment_name
+  Fetching configuration from Semgrep Cloud Platform
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+
+
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep App:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stderr - plain

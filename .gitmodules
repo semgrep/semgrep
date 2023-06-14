@@ -41,7 +41,7 @@
 	path = languages/tree-sitter-lang/semgrep-hack
 	url = https://github.com/returntocorp/semgrep-hack.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-html"]
-	path = languages/tree-sitter-lang/semgrep-html
+	path = languages/html/tree-sitter/semgrep-html
 	url = https://github.com/returntocorp/semgrep-html.git
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-vue"]
 	path = languages/tree-sitter-lang/semgrep-vue
@@ -97,3 +97,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-clojure"]
 	path = languages/lisp/tree-sitter/semgrep-clojure
 	url = https://github.com/returntocorp/semgrep-clojure.git
+[submodule "languages/cairo/tree-sitter/semgrep-cairo"]
+	path = languages/cairo/tree-sitter/semgrep-cairo
+	url = https://github.com/returntocorp/semgrep-cairo

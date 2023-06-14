@@ -16,7 +16,6 @@ open Common
 open IL
 module G = AST_generic
 module H = AST_generic_helpers
-module V = Visitor_AST
 module D = Datalog_fact
 
 (*****************************************************************************)
@@ -72,7 +71,7 @@ let todo any =
   failwith "Datalog_experiment: TODO: IL element not handled (see above)"
 
 let var_of_name _env name = spf "%s__%s" (fst name.ident) (G.SId.show name.sid)
-let heap_of_int _env (_, tok) = spf "int %s" (Parse_info.str_of_info tok)
+let heap_of_int _env (_, tok) = spf "int %s" (Tok.content_of_tok tok)
 
 (*****************************************************************************)
 (* Fact extractor *)
@@ -106,8 +105,8 @@ let facts_of_function lang def =
 (* Entry point *)
 (*****************************************************************************)
 let gen_facts file outdir =
-  let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
+  let lang = Lang.lang_of_filename_exn (Fpath.v file) in
   Naming_AST.resolve lang ast;
 
   (* less: use treesitter also later
@@ -116,14 +115,14 @@ let gen_facts file outdir =
   let facts = ref [] in
 
   let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def -> Common.push (facts_of_function lang def) facts);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info
+
+      method! visit_function_definition _env def =
+        Common.push (facts_of_function lang def) facts
+    end
   in
-  v (G.Pr ast);
+  v#visit_program () ast;
 
   let facts = !facts |> List.rev |> List.flatten in
   pr2 (spf "generating %d facts in %s" (List.length facts) outdir);

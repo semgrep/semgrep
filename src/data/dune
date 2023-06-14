@@ -1,0 +1,12 @@
+; Similar to ../parsing_languages/ with ../parsing/, the goal here is to move
+; data out of ../engine/ that was taking space in engine.js; data that
+; can be loaded dynamically instead from another JS bundle (e.g., data.js).
+
+(library
+ (public_name semgrep.data)
+ (name semgrep_data)
+ (wrapped false)
+ (libraries
+   semgrep.engine
+ )
+)

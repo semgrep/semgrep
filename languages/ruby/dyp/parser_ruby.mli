@@ -1,225 +1,225 @@
 type token =
-  | T_UAMPER of Parse_info.t
-  | T_AMPER of Parse_info.t
-  | T_TILDE of Parse_info.t
-  | T_BANG of Parse_info.t
-  | T_VBAR of Parse_info.t
-  | T_CARROT of Parse_info.t
-  | T_RARROW of Parse_info.t
-  | T_PERCENT of Parse_info.t
-  | T_SLASH of Parse_info.t
-  | T_USTAR of Parse_info.t
-  | T_STAR of Parse_info.t
-  | T_OP_ASGN of (string * Parse_info.t)
-  | T_RSHFT of Parse_info.t
-  | T_LSHFT of Parse_info.t
-  | RDots of Parse_info.t
-  | LDots of Parse_info.t
-  | T_DOT3 of Parse_info.t
-  | T_DOT2 of Parse_info.t
-  | T_NMATCH of Parse_info.t
-  | T_MATCH of Parse_info.t
-  | T_OROP of Parse_info.t
-  | T_ANDOP of Parse_info.t
-  | T_GT of Parse_info.t
-  | T_LT of Parse_info.t
-  | T_LEQ of Parse_info.t
-  | T_GEQ of Parse_info.t
-  | T_NEQ of Parse_info.t
-  | T_EQQ of Parse_info.t
-  | T_EQ of Parse_info.t
-  | T_ASSIGN of Parse_info.t
-  | T_CMP of Parse_info.t
-  | T_POW of Parse_info.t
-  | T_UMINUS of Parse_info.t
-  | T_MINUS of Parse_info.t
-  | T_UPLUS of Parse_info.t
-  | T_PLUS of Parse_info.t
-  | T_USCOPE of Parse_info.t
-  | T_SCOPE of Parse_info.t
-  | T_SEMICOLON of Parse_info.t
-  | T_COLON of Parse_info.t
-  | T_QUESTION of Parse_info.t
-  | T_RBRACE of Parse_info.t
-  | T_LBRACE_ARG of Parse_info.t
-  | T_LBRACE of Parse_info.t
-  | T_RBRACK of Parse_info.t
-  | T_LBRACK of Parse_info.t
-  | T_LBRACK_ARG of Parse_info.t
-  | T_RPAREN of Parse_info.t
-  | T_LPAREN_ARG of Parse_info.t
-  | T_LPAREN of Parse_info.t
-  | T_ASSOC of Parse_info.t
-  | T_COMMA of Parse_info.t
-  | T_DOT of Parse_info.t
-  | K_FALSE of Parse_info.t
-  | K_TRUE of Parse_info.t
-  | K_SUPER of Parse_info.t
-  | K_SELF of Parse_info.t
-  | K_YIELD of Parse_info.t
-  | K_NIL of Parse_info.t
-  | K_lEND of Parse_info.t
-  | K_lBEGIN of Parse_info.t
-  | K_NOT of Parse_info.t
-  | K_OR of Parse_info.t
-  | K_AND of Parse_info.t
-  | K_RETURN of Parse_info.t
-  | K_DO of Parse_info.t
-  | K_IN of Parse_info.t
-  | K_FOR of Parse_info.t
-  | K_UNTIL of Parse_info.t
-  | K_WHILE of Parse_info.t
-  | K_WHEN of Parse_info.t
-  | K_CASE of Parse_info.t
-  | K_ELSE of Parse_info.t
-  | K_ELSIF of Parse_info.t
-  | K_THEN of Parse_info.t
-  | K_UNLESS of Parse_info.t
-  | K_IF of Parse_info.t
-  | K_ENSURE of Parse_info.t
-  | K_RESCUE of Parse_info.t
-  | K_UNDEF of Parse_info.t
-  | K_ALIAS of Parse_info.t
-  | K_END of Parse_info.t
-  | K_BEGIN of Parse_info.t
-  | K_DEF of Parse_info.t
-  | K_MODULE of Parse_info.t
-  | K_CLASS of Parse_info.t
-  | T_REGEXP_MOD of (string * Parse_info.t)
-  | T_REGEXP_BEG of Parse_info.t
-  | T_USER_BEG of (string * Parse_info.t)
-  | T_TICK_BEG of Parse_info.t
-  | T_INTERP_END of (string * Parse_info.t)
-  | T_INTERP_STR of (string * Parse_info.t)
-  | T_DOUBLE_BEG of Parse_info.t
-  | T_SINGLE_STRING of (string * Parse_info.t)
-  | T_ATOM_BEG of Parse_info.t
-  | T_ATOM of (Parse_info.t * (string * Parse_info.t))
-  | T_FLOAT of (string * Parse_info.t)
-  | T_NUM of (string * Parse_info.t)
-  | T_CLASS_VAR of (string * Parse_info.t)
-  | T_INST_VAR of (string * Parse_info.t)
-  | T_GLOBAL_VAR of (string * Parse_info.t)
-  | T_LID of (string * Parse_info.t)
-  | T_UID of (string * Parse_info.t)
-  | T_EOL of Parse_info.t
-  | T_UNKNOWN of Parse_info.t
-  | T_EOF of Parse_info.t
-  | T_COMMENT of Parse_info.t
-  | T_SPACE of Parse_info.t
+  | T_UAMPER of Tok.t
+  | T_AMPER of Tok.t
+  | T_TILDE of Tok.t
+  | T_BANG of Tok.t
+  | T_VBAR of Tok.t
+  | T_CARROT of Tok.t
+  | T_RARROW of Tok.t
+  | T_PERCENT of Tok.t
+  | T_SLASH of Tok.t
+  | T_USTAR of Tok.t
+  | T_STAR of Tok.t
+  | T_OP_ASGN of (string * Tok.t)
+  | T_RSHFT of Tok.t
+  | T_LSHFT of Tok.t
+  | RDots of Tok.t
+  | LDots of Tok.t
+  | T_DOT3 of Tok.t
+  | T_DOT2 of Tok.t
+  | T_NMATCH of Tok.t
+  | T_MATCH of Tok.t
+  | T_OROP of Tok.t
+  | T_ANDOP of Tok.t
+  | T_GT of Tok.t
+  | T_LT of Tok.t
+  | T_LEQ of Tok.t
+  | T_GEQ of Tok.t
+  | T_NEQ of Tok.t
+  | T_EQQ of Tok.t
+  | T_EQ of Tok.t
+  | T_ASSIGN of Tok.t
+  | T_CMP of Tok.t
+  | T_POW of Tok.t
+  | T_UMINUS of Tok.t
+  | T_MINUS of Tok.t
+  | T_UPLUS of Tok.t
+  | T_PLUS of Tok.t
+  | T_USCOPE of Tok.t
+  | T_SCOPE of Tok.t
+  | T_SEMICOLON of Tok.t
+  | T_COLON of Tok.t
+  | T_QUESTION of Tok.t
+  | T_RBRACE of Tok.t
+  | T_LBRACE_ARG of Tok.t
+  | T_LBRACE of Tok.t
+  | T_RBRACK of Tok.t
+  | T_LBRACK of Tok.t
+  | T_LBRACK_ARG of Tok.t
+  | T_RPAREN of Tok.t
+  | T_LPAREN_ARG of Tok.t
+  | T_LPAREN of Tok.t
+  | T_ASSOC of Tok.t
+  | T_COMMA of Tok.t
+  | T_DOT of Tok.t
+  | K_FALSE of Tok.t
+  | K_TRUE of Tok.t
+  | K_SUPER of Tok.t
+  | K_SELF of Tok.t
+  | K_YIELD of Tok.t
+  | K_NIL of Tok.t
+  | K_lEND of Tok.t
+  | K_lBEGIN of Tok.t
+  | K_NOT of Tok.t
+  | K_OR of Tok.t
+  | K_AND of Tok.t
+  | K_RETURN of Tok.t
+  | K_DO of Tok.t
+  | K_IN of Tok.t
+  | K_FOR of Tok.t
+  | K_UNTIL of Tok.t
+  | K_WHILE of Tok.t
+  | K_WHEN of Tok.t
+  | K_CASE of Tok.t
+  | K_ELSE of Tok.t
+  | K_ELSIF of Tok.t
+  | K_THEN of Tok.t
+  | K_UNLESS of Tok.t
+  | K_IF of Tok.t
+  | K_ENSURE of Tok.t
+  | K_RESCUE of Tok.t
+  | K_UNDEF of Tok.t
+  | K_ALIAS of Tok.t
+  | K_END of Tok.t
+  | K_BEGIN of Tok.t
+  | K_DEF of Tok.t
+  | K_MODULE of Tok.t
+  | K_CLASS of Tok.t
+  | T_REGEXP_MOD of (string * Tok.t)
+  | T_REGEXP_BEG of Tok.t
+  | T_USER_BEG of (string * Tok.t)
+  | T_TICK_BEG of Tok.t
+  | T_INTERP_END of (string * Tok.t)
+  | T_INTERP_STR of (string * Tok.t)
+  | T_DOUBLE_BEG of Tok.t
+  | T_SINGLE_STRING of (string * Tok.t)
+  | T_ATOM_BEG of Tok.t
+  | T_ATOM of (Tok.t * (string * Tok.t))
+  | T_FLOAT of (string * Tok.t)
+  | T_NUM of (string * Tok.t)
+  | T_CLASS_VAR of (string * Tok.t)
+  | T_INST_VAR of (string * Tok.t)
+  | T_GLOBAL_VAR of (string * Tok.t)
+  | T_LID of (string * Tok.t)
+  | T_UID of (string * Tok.t)
+  | T_EOL of Tok.t
+  | T_UNKNOWN of Tok.t
+  | T_EOF of Tok.t
+  | T_COMMENT of Tok.t
+  | T_SPACE of Tok.t
 
 val pp :
   unit ->
   ( token,
     [> `Lexeme_matched of string
-    | `Obj_K_ALIAS of Parse_info.t
-    | `Obj_K_AND of Parse_info.t
-    | `Obj_K_BEGIN of Parse_info.t
-    | `Obj_K_CASE of Parse_info.t
-    | `Obj_K_CLASS of Parse_info.t
-    | `Obj_K_DEF of Parse_info.t
-    | `Obj_K_DO of Parse_info.t
-    | `Obj_K_ELSE of Parse_info.t
-    | `Obj_K_ELSIF of Parse_info.t
-    | `Obj_K_END of Parse_info.t
-    | `Obj_K_ENSURE of Parse_info.t
-    | `Obj_K_FALSE of Parse_info.t
-    | `Obj_K_FOR of Parse_info.t
-    | `Obj_K_IF of Parse_info.t
-    | `Obj_K_IN of Parse_info.t
-    | `Obj_K_MODULE of Parse_info.t
-    | `Obj_K_NIL of Parse_info.t
-    | `Obj_K_NOT of Parse_info.t
-    | `Obj_K_OR of Parse_info.t
-    | `Obj_K_RESCUE of Parse_info.t
-    | `Obj_K_RETURN of Parse_info.t
-    | `Obj_K_SELF of Parse_info.t
-    | `Obj_K_SUPER of Parse_info.t
-    | `Obj_K_THEN of Parse_info.t
-    | `Obj_K_TRUE of Parse_info.t
-    | `Obj_K_UNDEF of Parse_info.t
-    | `Obj_K_UNLESS of Parse_info.t
-    | `Obj_K_UNTIL of Parse_info.t
-    | `Obj_K_WHEN of Parse_info.t
-    | `Obj_K_WHILE of Parse_info.t
-    | `Obj_K_YIELD of Parse_info.t
-    | `Obj_K_lBEGIN of Parse_info.t
-    | `Obj_K_lEND of Parse_info.t
-    | `Obj_LDots of Parse_info.t
-    | `Obj_RDots of Parse_info.t
-    | `Obj_T_AMPER of Parse_info.t
-    | `Obj_T_ANDOP of Parse_info.t
-    | `Obj_T_ASSIGN of Parse_info.t
-    | `Obj_T_ASSOC of Parse_info.t
-    | `Obj_T_ATOM of Parse_info.t * (string * Parse_info.t)
-    | `Obj_T_ATOM_BEG of Parse_info.t
-    | `Obj_T_BANG of Parse_info.t
-    | `Obj_T_CARROT of Parse_info.t
-    | `Obj_T_CLASS_VAR of string * Parse_info.t
-    | `Obj_T_CMP of Parse_info.t
-    | `Obj_T_COLON of Parse_info.t
-    | `Obj_T_COMMA of Parse_info.t
-    | `Obj_T_COMMENT of Parse_info.t
-    | `Obj_T_DOT of Parse_info.t
-    | `Obj_T_DOT2 of Parse_info.t
-    | `Obj_T_DOT3 of Parse_info.t
-    | `Obj_T_DOUBLE_BEG of Parse_info.t
-    | `Obj_T_EOF of Parse_info.t
-    | `Obj_T_EOL of Parse_info.t
-    | `Obj_T_EQ of Parse_info.t
-    | `Obj_T_EQQ of Parse_info.t
-    | `Obj_T_FLOAT of string * Parse_info.t
-    | `Obj_T_GEQ of Parse_info.t
-    | `Obj_T_GLOBAL_VAR of string * Parse_info.t
-    | `Obj_T_GT of Parse_info.t
-    | `Obj_T_INST_VAR of string * Parse_info.t
-    | `Obj_T_INTERP_END of string * Parse_info.t
-    | `Obj_T_INTERP_STR of string * Parse_info.t
-    | `Obj_T_LBRACE of Parse_info.t
-    | `Obj_T_LBRACE_ARG of Parse_info.t
-    | `Obj_T_LBRACK of Parse_info.t
-    | `Obj_T_LBRACK_ARG of Parse_info.t
-    | `Obj_T_LEQ of Parse_info.t
-    | `Obj_T_LID of string * Parse_info.t
-    | `Obj_T_LPAREN of Parse_info.t
-    | `Obj_T_LPAREN_ARG of Parse_info.t
-    | `Obj_T_LSHFT of Parse_info.t
-    | `Obj_T_LT of Parse_info.t
-    | `Obj_T_MATCH of Parse_info.t
-    | `Obj_T_MINUS of Parse_info.t
-    | `Obj_T_NEQ of Parse_info.t
-    | `Obj_T_NMATCH of Parse_info.t
-    | `Obj_T_NUM of string * Parse_info.t
-    | `Obj_T_OP_ASGN of string * Parse_info.t
-    | `Obj_T_OROP of Parse_info.t
-    | `Obj_T_PERCENT of Parse_info.t
-    | `Obj_T_PLUS of Parse_info.t
-    | `Obj_T_POW of Parse_info.t
-    | `Obj_T_QUESTION of Parse_info.t
-    | `Obj_T_RARROW of Parse_info.t
-    | `Obj_T_RBRACE of Parse_info.t
-    | `Obj_T_RBRACK of Parse_info.t
-    | `Obj_T_REGEXP_BEG of Parse_info.t
-    | `Obj_T_REGEXP_MOD of string * Parse_info.t
-    | `Obj_T_RPAREN of Parse_info.t
-    | `Obj_T_RSHFT of Parse_info.t
-    | `Obj_T_SCOPE of Parse_info.t
-    | `Obj_T_SEMICOLON of Parse_info.t
-    | `Obj_T_SINGLE_STRING of string * Parse_info.t
-    | `Obj_T_SLASH of Parse_info.t
-    | `Obj_T_SPACE of Parse_info.t
-    | `Obj_T_STAR of Parse_info.t
-    | `Obj_T_TICK_BEG of Parse_info.t
-    | `Obj_T_TILDE of Parse_info.t
-    | `Obj_T_UAMPER of Parse_info.t
-    | `Obj_T_UID of string * Parse_info.t
-    | `Obj_T_UMINUS of Parse_info.t
-    | `Obj_T_UNKNOWN of Parse_info.t
-    | `Obj_T_UPLUS of Parse_info.t
-    | `Obj_T_USCOPE of Parse_info.t
-    | `Obj_T_USER_BEG of string * Parse_info.t
-    | `Obj_T_USTAR of Parse_info.t
-    | `Obj_T_VBAR of Parse_info.t
+    | `Obj_K_ALIAS of Tok.t
+    | `Obj_K_AND of Tok.t
+    | `Obj_K_BEGIN of Tok.t
+    | `Obj_K_CASE of Tok.t
+    | `Obj_K_CLASS of Tok.t
+    | `Obj_K_DEF of Tok.t
+    | `Obj_K_DO of Tok.t
+    | `Obj_K_ELSE of Tok.t
+    | `Obj_K_ELSIF of Tok.t
+    | `Obj_K_END of Tok.t
+    | `Obj_K_ENSURE of Tok.t
+    | `Obj_K_FALSE of Tok.t
+    | `Obj_K_FOR of Tok.t
+    | `Obj_K_IF of Tok.t
+    | `Obj_K_IN of Tok.t
+    | `Obj_K_MODULE of Tok.t
+    | `Obj_K_NIL of Tok.t
+    | `Obj_K_NOT of Tok.t
+    | `Obj_K_OR of Tok.t
+    | `Obj_K_RESCUE of Tok.t
+    | `Obj_K_RETURN of Tok.t
+    | `Obj_K_SELF of Tok.t
+    | `Obj_K_SUPER of Tok.t
+    | `Obj_K_THEN of Tok.t
+    | `Obj_K_TRUE of Tok.t
+    | `Obj_K_UNDEF of Tok.t
+    | `Obj_K_UNLESS of Tok.t
+    | `Obj_K_UNTIL of Tok.t
+    | `Obj_K_WHEN of Tok.t
+    | `Obj_K_WHILE of Tok.t
+    | `Obj_K_YIELD of Tok.t
+    | `Obj_K_lBEGIN of Tok.t
+    | `Obj_K_lEND of Tok.t
+    | `Obj_LDots of Tok.t
+    | `Obj_RDots of Tok.t
+    | `Obj_T_AMPER of Tok.t
+    | `Obj_T_ANDOP of Tok.t
+    | `Obj_T_ASSIGN of Tok.t
+    | `Obj_T_ASSOC of Tok.t
+    | `Obj_T_ATOM of Tok.t * (string * Tok.t)
+    | `Obj_T_ATOM_BEG of Tok.t
+    | `Obj_T_BANG of Tok.t
+    | `Obj_T_CARROT of Tok.t
+    | `Obj_T_CLASS_VAR of string * Tok.t
+    | `Obj_T_CMP of Tok.t
+    | `Obj_T_COLON of Tok.t
+    | `Obj_T_COMMA of Tok.t
+    | `Obj_T_COMMENT of Tok.t
+    | `Obj_T_DOT of Tok.t
+    | `Obj_T_DOT2 of Tok.t
+    | `Obj_T_DOT3 of Tok.t
+    | `Obj_T_DOUBLE_BEG of Tok.t
+    | `Obj_T_EOF of Tok.t
+    | `Obj_T_EOL of Tok.t
+    | `Obj_T_EQ of Tok.t
+    | `Obj_T_EQQ of Tok.t
+    | `Obj_T_FLOAT of string * Tok.t
+    | `Obj_T_GEQ of Tok.t
+    | `Obj_T_GLOBAL_VAR of string * Tok.t
+    | `Obj_T_GT of Tok.t
+    | `Obj_T_INST_VAR of string * Tok.t
+    | `Obj_T_INTERP_END of string * Tok.t
+    | `Obj_T_INTERP_STR of string * Tok.t
+    | `Obj_T_LBRACE of Tok.t
+    | `Obj_T_LBRACE_ARG of Tok.t
+    | `Obj_T_LBRACK of Tok.t
+    | `Obj_T_LBRACK_ARG of Tok.t
+    | `Obj_T_LEQ of Tok.t
+    | `Obj_T_LID of string * Tok.t
+    | `Obj_T_LPAREN of Tok.t
+    | `Obj_T_LPAREN_ARG of Tok.t
+    | `Obj_T_LSHFT of Tok.t
+    | `Obj_T_LT of Tok.t
+    | `Obj_T_MATCH of Tok.t
+    | `Obj_T_MINUS of Tok.t
+    | `Obj_T_NEQ of Tok.t
+    | `Obj_T_NMATCH of Tok.t
+    | `Obj_T_NUM of string * Tok.t
+    | `Obj_T_OP_ASGN of string * Tok.t
+    | `Obj_T_OROP of Tok.t
+    | `Obj_T_PERCENT of Tok.t
+    | `Obj_T_PLUS of Tok.t
+    | `Obj_T_POW of Tok.t
+    | `Obj_T_QUESTION of Tok.t
+    | `Obj_T_RARROW of Tok.t
+    | `Obj_T_RBRACE of Tok.t
+    | `Obj_T_RBRACK of Tok.t
+    | `Obj_T_REGEXP_BEG of Tok.t
+    | `Obj_T_REGEXP_MOD of string * Tok.t
+    | `Obj_T_RPAREN of Tok.t
+    | `Obj_T_RSHFT of Tok.t
+    | `Obj_T_SCOPE of Tok.t
+    | `Obj_T_SEMICOLON of Tok.t
+    | `Obj_T_SINGLE_STRING of string * Tok.t
+    | `Obj_T_SLASH of Tok.t
+    | `Obj_T_SPACE of Tok.t
+    | `Obj_T_STAR of Tok.t
+    | `Obj_T_TICK_BEG of Tok.t
+    | `Obj_T_TILDE of Tok.t
+    | `Obj_T_UAMPER of Tok.t
+    | `Obj_T_UID of string * Tok.t
+    | `Obj_T_UMINUS of Tok.t
+    | `Obj_T_UNKNOWN of Tok.t
+    | `Obj_T_UPLUS of Tok.t
+    | `Obj_T_USCOPE of Tok.t
+    | `Obj_T_USER_BEG of string * Tok.t
+    | `Obj_T_USTAR of Tok.t
+    | `Obj_T_VBAR of Tok.t
     | `Obj_any_LPAREN of Ast_ruby.tok
     | `Obj_arg of Ast_ruby.expr
     | `Obj_arg_comma_list_trail of Ast_ruby.arguments
@@ -230,7 +230,7 @@ val pp :
     | `Obj_array_body of Ast_ruby.program
     | `Obj_array_body_rest of Ast_ruby.program
     | `Obj_array_item of Ast_ruby.expr
-    | `Obj_assign_op of Ast_ruby.binary_op * Parse_info.t
+    | `Obj_assign_op of Ast_ruby.binary_op * Tok.t
     | `Obj_bin_op of Ast_ruby.binary_op * Ast_ruby.tok
     | `Obj_body_exn of Ast_ruby.body_exn
     | `Obj_brace_codeblock of Ast_ruby.expr
@@ -268,7 +268,7 @@ val pp :
     | `Obj_lambda_args of Ast_ruby.formal_param list option
     | `Obj_lambda_body of Ast_ruby.stmts
     | `Obj_lhs of Ast_ruby.expr
-    | `Obj_lhs_assign_op of Ast_ruby.expr * Ast_ruby.binary_op * Parse_info.t
+    | `Obj_lhs_assign_op of Ast_ruby.expr * Ast_ruby.binary_op * Tok.t
     | `Obj_lhs_prune_binop of Ast_ruby.expr
     | `Obj_lhs_pruned_assign_op of
       Ast_ruby.expr * Ast_ruby.binary_op * Ast_ruby.tok

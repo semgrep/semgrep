@@ -2,7 +2,7 @@
    Regexp AST
 *)
 
-type loc = Parse_info.t * Parse_info.t
+type loc = Tok_range.t
 
 (*
    Matching options set with (?X) or (?-X), where X is a letter that specify

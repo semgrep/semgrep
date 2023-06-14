@@ -12,7 +12,7 @@
  *)
 open Common
 open Ast_java
-module PI = Parse_info
+open File.Operators
 module PS = Parsing_stat
 module V = Visitor_java
 module Flag = Flag_parsing
@@ -23,7 +23,7 @@ module Ast = Ast_java
 (*****************************************************************************)
 
 let test_parse xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Lib_parsing_java.find_source_files_of_dir_or_files xs
@@ -42,18 +42,19 @@ let test_parse xs =
                try
                  Common.save_excursion Flag.error_recovery true (fun () ->
                      Common.save_excursion Flag.exn_when_lexical_error false
-                       (fun () -> Parse_java.parse file))
+                       (fun () -> Parse_java.parse !!file))
                with
                | exn ->
                    let e = Exception.catch exn in
-                   pr2 (spf "PB with %s (exn = %s)" file (Common.exn_to_s exn));
+                   pr2
+                     (spf "PB with %s (exn = %s)" !!file (Common.exn_to_s exn));
                    Exception.reraise e
              in
              Common.push stat stat_list;
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
-               Hashtbl.add newscore file Common2.Ok
-             else Hashtbl.add newscore file (Common2.Pb s)));
+               Hashtbl.add newscore !!file Common2.Ok
+             else Hashtbl.add newscore !!file (Common2.Pb s)));
   flush stdout;
   flush stderr;
 
@@ -111,7 +112,7 @@ let test_visitor_print file =
       Visitor_java.default_visitor with
       Visitor_java.kinfo =
         (fun (_k, _) info ->
-          let s = Parse_info.str_of_info info in
+          let s = Tok.content_of_tok info in
           pr2 s);
       Visitor_java.kexpr =
         (fun (k, _) e ->

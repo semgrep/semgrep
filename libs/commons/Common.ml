@@ -228,8 +228,104 @@ let rec fast_map rec_calls_remaining f l =
 let map f l = fast_map 1000 f l
 
 (*****************************************************************************)
+(* List.map2 *)
+(*****************************************************************************)
+
+let rec slow_map2 acc f l1 l2 =
+  match (l1, l2) with
+  | [], [] -> rev5 acc
+  | [ a1 ], [ a2 ] -> rev5 (Elt (f a1 a2, acc))
+  | [ a1; b1 ], [ a2; b2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      rev5 (Elt (b, Elt (a, acc)))
+  | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      rev5 (Elt (c, Elt (b, Elt (a, acc))))
+  | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      let d = f d1 d2 in
+      rev5 (Elt (d, Elt (c, Elt (b, Elt (a, acc)))))
+  | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      let d = f d1 d2 in
+      let e = f e1 e2 in
+      rev5 (Elt (e, Elt (d, Elt (c, Elt (b, Elt (a, acc))))))
+  | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
+      let a = f a1 a2 in
+      let b = f b1 b2 in
+      let c = f c1 c2 in
+      let d = f d1 d2 in
+      let e = f e1 e2 in
+      slow_map2 (Tuple (e, d, c, b, a, acc)) f l1 l2
+  | _other -> raise (Failure "Common.map2: lists not equal length")
+
+let rec fast_map2 rec_calls_remaining f l1 l2 =
+  if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
+  else
+    match (l1, l2) with
+    | [], [] -> []
+    | [ a1 ], [ a2 ] -> [ f a1 a2 ]
+    | [ a1; b1 ], [ a2; b2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        [ a; b ]
+    | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        [ a; b; c ]
+    | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        [ a; b; c; d ]
+    | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        let e = f e1 e2 in
+        [ a; b; c; d; e ]
+    | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
+        let a = f a1 a2 in
+        let b = f b1 b2 in
+        let c = f c1 c2 in
+        let d = f d1 d2 in
+        let e = f e1 e2 in
+        a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
+    | _other -> raise (Failure "Common.map2: lists not equal length")
+
+(*
+   This implementation of List.map makes at most 1000 non-tailrec calls
+   before switching to a slower tailrec implementation.
+
+   Additionally, this implementation guarantees left-to-right evaluation.
+*)
+let map2 f l1 l2 = fast_map2 1000 f l1 l2
+
+(*****************************************************************************)
 (* Other list functions *)
 (*****************************************************************************)
+
+let hd_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | head :: _ -> head
+
+let tl_exn errmsg xs =
+  match xs with
+  | [] -> failwith errmsg
+  | _ :: tail -> tail
+
+let mapi f l = map2 f (List.init (List.length l) Fun.id) l
 
 (* Tail-recursive to prevent stack overflows. *)
 let flatten xss =
@@ -410,24 +506,6 @@ let exn_to_s exn = Printexc.to_string exn
 (* Test *)
 (*****************************************************************************)
 (* See Testutil *)
-
-(*****************************************************************************)
-(* Persistence *)
-(*****************************************************************************)
-
-let get_value filename =
-  let chan = open_in_bin filename in
-  let x = input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
-
-let write_value valu filename =
-  let chan = open_out_bin filename in
-  output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
 
 (*****************************************************************************)
 (* Composition/Control *)
@@ -663,15 +741,6 @@ let null_string s = s = ""
 type filename = string (* TODO could check that exist :) type sux *)
 [@@deriving show, eq]
 
-(* with sexp *)
-type dirname = string
-
-(* TODO could check that exist :) type sux *)
-(* with sexp *)
-
-(* file or dir *)
-type path = string
-
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
   | s -> s
@@ -687,7 +756,7 @@ let filename_without_leading_path prj_path s =
   else
     failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
 
-(* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
+(* Deprecated: use the Ppath.ml module instead! *)
 let readable ~root s =
   match root with
   | "/" -> s
@@ -828,21 +897,27 @@ let cat file =
    unclear.
 *)
 let read_file ?(max_len = max_int) path =
-  let buf_len = 4096 in
-  let extbuf = Buffer.create 4096 in
-  let buf = Bytes.create buf_len in
-  let rec loop fd =
-    match Unix.read fd buf 0 buf_len with
-    | 0 -> Buffer.contents extbuf
-    | num_bytes ->
-        assert (num_bytes > 0);
-        assert (num_bytes <= buf_len);
-        Buffer.add_subbytes extbuf buf 0 num_bytes;
-        if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
-        else loop fd
-  in
-  let fd = Unix.openfile path [ Unix.O_RDONLY ] 0 in
-  Fun.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
+  if !jsoo then (
+    let ic = open_in_bin path in
+    let s = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    s)
+  else
+    let buf_len = 4096 in
+    let extbuf = Buffer.create 4096 in
+    let buf = Bytes.create buf_len in
+    let rec loop fd =
+      match Unix.read fd buf 0 buf_len with
+      | 0 -> Buffer.contents extbuf
+      | num_bytes ->
+          assert (num_bytes > 0);
+          assert (num_bytes <= buf_len);
+          Buffer.add_subbytes extbuf buf 0 num_bytes;
+          if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
+          else loop fd
+    in
+    let fd = Unix.openfile path [ Unix.O_RDONLY ] 0 in
+    Fun.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
 let write_file ~file s =
   let chan = open_out_bin file in
@@ -851,11 +926,10 @@ let write_file ~file s =
 
 (* could be in control section too *)
 
-let filemtime file =
-  if !jsoo then failwith "JSOO: Common.filemtime"
-  else (Unix.stat file).Unix.st_mtime
-
 (*
+Update 2023-01-20: OCaml >= 4.13 provides a Unix.realpath which works
+on all platforms.
+
 Using an external C functions complicates the linking process of
 programs using commons/. Thus, I replaced realpath() with an OCaml-only
 similar functions fullpath().
@@ -904,26 +978,6 @@ let fullpath file =
   match base with
   | None -> here
   | Some x -> Filename.concat here x
-
-(* Why a use_cache argument ? because sometimes want disable it but dont
- * want put the cache_computation funcall in comment, so just easier to
- * pass this extra option.
- *)
-let cache_computation ?(use_cache = true) file ext_cache f =
-  if not use_cache then f ()
-  else if not (Sys.file_exists file) then (
-    logger#error "WARNING: cache_computation: can't find %s" file;
-    logger#error "defaulting to calling the function";
-    f ())
-  else
-    let file_cache = file ^ ext_cache in
-    if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
-      logger#info "using cache: %s" file_cache;
-      get_value file_cache)
-    else
-      let res = f () in
-      write_value res file_cache;
-      res
 
 (* emacs/lisp inspiration (eric cooper and yaron minsky use that too) *)
 let (with_open_outfile :
@@ -1181,3 +1235,30 @@ let files_of_dir_or_files_no_vcs_nofilter xs =
 module SMap = Map.Make (String)
 
 type 'a smap = 'a SMap.t
+
+(*****************************************************************************)
+(* Disable physical equality/inequality operators *)
+(*****************************************************************************)
+
+let phys_equal = Stdlib.( == )
+let phys_not_equal = Stdlib.( != )
+
+type hidden_by_your_nanny = unit
+
+let ( == ) : hidden_by_your_nanny = ()
+let ( != ) : hidden_by_your_nanny = ()
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+
+module Operators = struct
+  let ( =~ ) = ( =~ )
+  let ( = ) = ( = ) (* already shadowed *)
+  let ( =|= ) = ( =|= )
+  let ( =$= ) = ( =$= )
+  let ( =:= ) = ( =:= )
+  let ( =*= ) = ( =*= )
+  let ( == ) = ( == ) (* already shadowed *)
+  let ( != ) = ( != ) (* already shadowed *)
+end

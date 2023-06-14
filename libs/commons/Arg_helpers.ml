@@ -124,7 +124,7 @@ let arg_parse2 l msg short_usage_fun =
       (* eprintf "%s" msg; exit 2; *)
       let xs = lines msg in
       (* take only head, it's where the error msg is *)
-      pr2 (List.hd xs);
+      pr2 (Common.hd_exn "unexpected empty list" xs);
       short_usage_fun ();
       raise (UnixExit 2)
   | Arg.Help _msg ->
@@ -181,3 +181,5 @@ let mk_action_4_arg f = function
   | _ -> raise WrongNumberOfArguments
 
 let mk_action_n_arg f = f
+let mk_action_1_conv conv f = mk_action_1_arg (fun str -> f (conv str))
+let mk_action_n_conv conv f = mk_action_n_arg (fun xs -> f (Common.map conv xs))

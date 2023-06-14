@@ -1,44 +1,46 @@
 {
   "errors": [
     {
-      "code": 3,
-      "level": "warn",
-      "message": "Syntax error at line targets/bad/invalid_go.go:9:\n `str` was unexpected",
-      "path": "targets/bad/invalid_go.go",
+      "code": 2,
+      "level": "error",
+      "message": "Pattern parse error in rule rules.broken-rule:\n Invalid pattern for Java:\n--- pattern ---\n@$HTTP_METHOD\npublic $RET $FUNC(..., @Auth $REQ, ...) { ... }\n\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
+      "rule_id": "rules.broken-rule",
       "spans": [
         {
-          "end": {
-            "col": 13,
-            "line": 9
+          "config_end": {
+            "col": 67,
+            "line": 0
           },
-          "file": "targets/bad/invalid_go.go",
-          "start": {
-            "col": 10,
-            "line": 9
-          }
-        },
-        {
-          "end": {
-            "col": 14,
-            "line": 10
+          "config_path": [
+            "rules",
+            "0",
+            "patterns",
+            "1",
+            "pattern-not"
+          ],
+          "config_start": {
+            "col": 1,
+            "line": 0
           },
-          "file": "targets/bad/invalid_go.go",
+          "end": {
+            "col": 92,
+            "line": 14
+          },
+          "file": "tmp/masked/path",
           "start": {
-            "col": 13,
-            "line": 10
+            "col": 26,
+            "line": 14
           }
         }
       ],
-      "type": "Syntax error"
+      "type": "Pattern parse error"
     }
   ],
   "paths": {
-    "scanned": [
-      "targets/bad/invalid_go.go"
-    ],
+    "scanned": [],
     "skipped": [
       {
-        "path": "targets/bad/invalid_go.go",
+        "path": "/tmp/masked/path",
         "reason": "analysis_failed_parser_or_internal_error"
       }
     ]

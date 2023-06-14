@@ -1,0 +1,1 @@
+YAML_EXPORTED_METHODS := _print_event,_get_sizeof_yaml_parser_t,_get_sizeof_yaml_event_t,_yaml_get_version_string,_yaml_get_version,_yaml_parser_initialize,_yaml_parser_set_input_string,_yaml_parser_parse,_yaml_event_delete,_yaml_parser_delete

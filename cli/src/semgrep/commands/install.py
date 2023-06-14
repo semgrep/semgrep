@@ -14,6 +14,7 @@ from rich.progress import TextColumn
 from rich.progress import TimeRemainingColumn
 from rich.progress import TransferSpeedColumn
 
+from semgrep import __VERSION__
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
@@ -70,14 +71,14 @@ def run_install_semgrep_pro() -> None:
             "Running on potentially unsupported platform. Installing linux compatible binary"
         )
 
-    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}"
+    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform_kind}?version={__VERSION__}"
 
     # Download the binary into a temporary location, check it, then install it.
     # This should prevent bad installations.
 
     semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
 
-    with state.app_session.get(url, timeout=60, stream=True) as r:
+    with state.app_session.get(url, timeout=180, stream=True) as r:
         if r.status_code == 401:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again."

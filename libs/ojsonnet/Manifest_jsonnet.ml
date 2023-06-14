@@ -31,7 +31,7 @@ module A = AST_jsonnet
 (* Types and constants *)
 (*****************************************************************************)
 
-exception Error of string * Parse_info.t
+exception Error of string * Tok.t
 
 (*****************************************************************************)
 (* Helpers *)

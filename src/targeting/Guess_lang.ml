@@ -4,6 +4,7 @@
 *)
 
 open Common
+open File.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -19,7 +20,7 @@ type test =
   | And of test * test
   | Or of test * test
   | Not of test
-  | Test_path of (string -> bool)
+  | Test_path of (Fpath.t -> bool)
 
 let eval test path =
   let rec eval = function
@@ -43,13 +44,13 @@ let string_chop_prefix ~pref s =
 
 let has_suffix suffixes =
   let f path =
-    List.exists (fun suf -> Filename.check_suffix path suf) suffixes
+    List.exists (fun suf -> Filename.check_suffix !!path suf) suffixes
   in
   Test_path f
 
 let is_named valid_names =
   let f path =
-    let name = Filename.basename path in
+    let name = Filename.basename !!path in
     List.mem name valid_names
   in
   Test_path f
@@ -71,14 +72,14 @@ let has_excluded_lang_extension lang =
   has_extension (Lang.excluded_exts_of_lang lang)
 
 let has_an_extension =
-  let f path = Filename.extension path <> "" in
+  let f path = Filename.extension !!path <> "" in
   Test_path f
 
 let is_executable =
   let f path =
-    Sys.file_exists path
+    Sys.file_exists !!path
     &&
-    let st = Unix.stat path in
+    let st = Unix.stat !!path in
     match st.st_kind with
     | S_REG ->
         (* at least some user has exec permission *)
@@ -90,7 +91,7 @@ let is_executable =
   Or (has_extension [ ".exe" ], Test_path f)
 
 let get_first_line path =
-  Common.with_open_infile path (fun ic ->
+  Common.with_open_infile !!path (fun ic ->
       try input_line ic with
       | End_of_file -> (* empty file *) "")
 
@@ -99,7 +100,7 @@ let get_first_line path =
    a single filesystem block.
 *)
 let get_first_block ?(block_size = 4096) path =
-  Common.with_open_infile path (fun ic ->
+  Common.with_open_infile !!path (fun ic ->
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
@@ -156,7 +157,7 @@ let get_shebang_command path = get_first_line path |> parse_shebang_line
 
 let uses_shebang_command_name cmd_names =
   let f path =
-    logger#info "checking for a #! in %s" path;
+    logger#info "checking for a #! in %s" !!path;
     match get_shebang_command path with
     | Some ("/usr/bin/env" :: cmd_name :: _) -> List.mem cmd_name cmd_names
     | Some (cmd_path :: _) ->
@@ -240,6 +241,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Apex
     | Bash
     | C
+    | Cairo
     | Clojure
     | Cpp
     | Csharp
@@ -277,13 +279,13 @@ let inspect_file_p (lang : Lang.t) path =
   eval test path
 
 let wrap_with_error_message lang path bool_res :
-    (string, Output_from_core_t.skipped_target) result =
+    (Fpath.t, Output_from_core_t.skipped_target) result =
   match bool_res with
   | true -> Ok path
   | false ->
       Error
         {
-          path;
+          path = !!path;
           reason = Wrong_language;
           details =
             spf "target file doesn't look like language %s"

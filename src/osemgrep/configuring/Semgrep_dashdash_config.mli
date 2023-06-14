@@ -1,17 +1,18 @@
 (* ex: "p/python" *)
-type config_str = string [@@deriving show]
+type config_string = string [@@deriving show]
 
-(* config_str in a parsed form *)
+(* config_string in a parsed form *)
 type config_kind =
   (* ex: 'foo.yaml' *)
-  | File of Common.filename
+  | File of Fpath.t
   (* ex: 'myrules/' (will go also recursively in subdirs of myrules) *)
-  | Dir of Common.filename
+  | Dir of Fpath.t
   (* ex: 'https://raw.githubusercontent.com/r2c/semgrep-rules/template.yaml' *)
   | URL of Uri.t
-  | R of registry_kind
+  | R of registry_config_kind
+  | A of app_config_kind
 
-and registry_kind =
+and registry_config_kind =
   (* r/... *)
   | Registry of string
   (* p/... *)
@@ -25,10 +26,12 @@ and registry_kind =
   | Auto
   (* p/r2c *)
   | R2c
-  (* Semgrep App shortcuts *)
+
+(* Semgrep App shortcuts *)
+and app_config_kind =
+  (* this requires also SEMGREP_REPO_NAME to be set *)
   | Policy
   | SupplyChain
 [@@deriving show]
 
-val config_kind_of_config_str : config_str -> config_kind
-val url_of_registry_kind : registry_kind -> Uri.t
+val parse_config_string : config_string -> config_kind

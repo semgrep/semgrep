@@ -29,7 +29,7 @@ module G = AST_generic
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let replace metavar_tbl pattern_ast =
   (* Use a mapper to traverse the AST. For each metavar, look up what it is
@@ -46,101 +46,86 @@ let replace metavar_tbl pattern_ast =
    * metavariable bound to an argument, and if so, do the replacement at that
    * point in the tree traversal. *)
   let mapper =
-    Map_AST.(
-      mk_visitor
-        {
-          default_visitor with
-          (* TODO handle:
-           * [x] ident
-           * [ ] name
-           * [x] expr
-           * [ ] stmt
-           * [ ] type_
-           * [ ] pattern
-           * [ ] stmt list
-           * [x] argument list
-           * [ ] parameter list
-           * [ ] xml_body list
-           * [x] text
-           *)
-          kargs =
-            (fun (k, _) args ->
-              (* A metavariable can appear as a single argument, but can be
-               * bound to zero or more arguments, so we have to handle this case
-               * by looking at an argument list as a whole. For example,
-               * `foo(1, $...X)` matches `foo(1)` *)
-              let map_arg arg =
-                match arg with
-                | Arg { e = N (Id ((id_str, _), _)); _ } -> (
-                    match Hashtbl.find_opt metavar_tbl id_str with
-                    | Some (MV.Args args) -> args
-                    | _ -> [ arg ])
-                | _ -> [ arg ]
-              in
-              let args = List.concat_map map_arg args in
-              k args);
-          kexpr =
-            (fun (k, _) orig ->
-              let replacement =
-                match orig.e with
-                | N (Id ((id_str, _), _)) -> (
-                    match Hashtbl.find_opt metavar_tbl id_str with
-                    | Some (MV.E e) -> Some e
-                    | _ -> None)
-                | _ -> None
-              in
-              match replacement with
-              | None ->
-                  (* The mapper changes the ID of expressions. This stymies the
-                   * print-avoidance implemented later in the autofix process,
-                   * because the resulting AST nodes cannot be recognized as the
-                   * same as the original ones.
-                   *
-                   * To work around this, we use the original expression, except
-                   * for the mapped kind.
-                   *
-                   * There is a note in the mapper expressing uncertainty about
-                   * whether the ID should be reused or not. We should consider
-                   * changing that behavior in the mapper, in which case this
-                   * workaround would no longer be necessary. *)
-                  { orig with e = (k orig).e }
-              | Some e ->
-                  (* We found a matching metavariable binding. There is no point
-                   * searching through the metavariable value that came from the
-                   * target file for more metavariables, so we won't call `k`
-                   * here. *)
-                  e);
-          klit =
-            (fun (k, _) lit ->
-              match lit with
-              | String (_l, (str, _), _r) -> (
-                  (* TODO handle the case where the metavar appears within the
-                   * string but is not the entire contents of the string *)
-                  match Hashtbl.find_opt metavar_tbl str with
-                  | Some (MV.Text (str, _info, originfo)) ->
-                      (* Don't use `Metavariable.mvalue_to_any` here. It uses
-                       * the modified token info, which drops the quotes. *)
-                      (* TODO? reuse l and r from String above? *)
-                      String (fb (str, originfo))
-                  | _ -> k lit)
-              | _ -> k lit);
-          kname =
-            (fun (k, _) name ->
-              match name with
-              | Id ((id_str, _), _) -> (
-                  match Hashtbl.find_opt metavar_tbl id_str with
-                  | Some (MV.Id (id, info)) ->
-                      let info =
-                        match info with
-                        | Some x -> x
-                        | None -> G.empty_id_info ()
-                      in
-                      Id (id, info)
-                  | _ -> k name)
-              | _ -> k name);
-        })
+    object (_self : 'self)
+      inherit [_] AST_generic.map as super
+
+      (* TODO handle:
+       * [x] ident
+       * [ ] name
+       * [x] expr
+       * [ ] stmt
+       * [ ] type_
+       * [ ] pattern
+       * [ ] stmt list
+       * [x] argument list
+       * [ ] parameter list
+       * [ ] xml_body list
+       * [x] text
+       *)
+      method! visit_arguments env (l, args, r) =
+        (* A metavariable can appear as a single argument, but can be
+         * bound to zero or more arguments, so we have to handle this case
+         * by looking at an argument list as a whole. For example,
+         * `foo(1, $...X)` matches `foo(1)` *)
+        let map_arg arg =
+          match arg with
+          | Arg { e = N (Id ((id_str, _), _)); _ } -> (
+              match Hashtbl.find_opt metavar_tbl id_str with
+              | Some (MV.Args args) -> args
+              | _ -> [ arg ])
+          | _ -> [ arg ]
+        in
+        let args = List.concat_map map_arg args in
+        super#visit_arguments env (l, args, r)
+
+      method! visit_expr env orig =
+        let replacement =
+          match orig.e with
+          | N (Id ((id_str, _), _)) -> (
+              match Hashtbl.find_opt metavar_tbl id_str with
+              | Some (MV.E e) -> Some e
+              | _ -> None)
+          | _ -> None
+        in
+        match replacement with
+        | None -> super#visit_expr env orig
+        | Some e ->
+            (* We found a matching metavariable binding. There is no point
+             * searching through the metavariable value that came from the
+             * target file for more metavariables, so we won't call `k`
+             * here. *)
+            e
+
+      method! visit_literal env lit =
+        match lit with
+        | String (_l, (str, _), _r) -> (
+            (* TODO handle the case where the metavar appears within the
+             * string but is not the entire contents of the string *)
+            match Hashtbl.find_opt metavar_tbl str with
+            | Some (MV.Text (str, _info, originfo)) ->
+                (* Don't use `Metavariable.mvalue_to_any` here. It uses
+                 * the modified token info, which drops the quotes. *)
+                (* TODO? reuse l and r from String above? *)
+                String (fb (str, originfo))
+            | _ -> super#visit_literal env lit)
+        | _ -> super#visit_literal env lit
+
+      method! visit_name env name =
+        match name with
+        | Id ((id_str, _), _) -> (
+            match Hashtbl.find_opt metavar_tbl id_str with
+            | Some (MV.Id (id, info)) ->
+                let info =
+                  match info with
+                  | Some x -> x
+                  | None -> G.empty_id_info ()
+                in
+                Id (id, info)
+            | _ -> super#visit_name env name)
+        | _ -> super#visit_name env name
+    end
   in
-  mapper.Map_AST.vany pattern_ast
+  mapper#visit_any () pattern_ast
 
 (* Check for remaining metavars in the fixed pattern AST. If there are any, that
  * indicates a failure to properly replace them in the previous step, and the
@@ -170,33 +155,28 @@ let find_remaining_metavars metavar_tbl ast =
        spf ".*\\(%s\\).*" regex_body)
   in
   let visitor =
-    Visitor_AST.(
-      mk_visitor
-        {
-          default_visitor with
-          kident =
-            (fun (k, _) id ->
-              let idstr, _ = id in
-              if Hashtbl.mem metavar_tbl idstr then
-                Common.push idstr seen_metavars;
-              k id);
-          klit =
-            (fun (k, _) lit ->
-              (match lit with
-              | String (_, (str, _), _) ->
-                  (* Textual autofix allows metavars to appear anywhere within
-                   * string literals. This is useful when the pattern is
-                   * something like `foo("$X")` and you'd like the fix to modify
-                   * the string literal, e.g. `foo("bar $X")`. So, we have to
-                   * look for a lingering metavariable anywhere within a string,
-                   * and abort if we find one that hasn't been replaced. *)
-                  if str =~ Lazy.force str_metavars_regexp then
-                    Common.push (Common.matched1 str) seen_metavars
-              | _ -> ());
-              k lit);
-        })
+    object
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_ident env id =
+        let idstr, _ = id in
+        if Hashtbl.mem metavar_tbl idstr then Common.push idstr seen_metavars;
+        super#visit_ident env id
+
+      method! visit_String env lit =
+        let _, (str, _tok), _ = lit in
+        (* Textual autofix allows metavars to appear anywhere within string
+         * literals. This is useful when the pattern is something like
+         * `foo("$X")` and you'd like the fix to modify the string literal, e.g.
+         * `foo("bar $X")`. So, we have to look for a lingering metavariable
+         * anywhere within a string, and abort if we find one that hasn't been
+         * replaced. *)
+        if str =~ Lazy.force str_metavars_regexp then
+          Common.push (Common.matched1 str) seen_metavars;
+        super#visit_String env lit
+    end
   in
-  visitor ast;
+  visitor#visit_any () ast;
   !seen_metavars
 
 (******************************************************************************)

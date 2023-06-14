@@ -25,6 +25,8 @@ module VarMap = Var_env.VarMap
 module LvalMap = Map.Make (LV.LvalOrdered)
 module LvalSet = Set.Make (LV.LvalOrdered)
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 type t = {
   tainted : T.taints LvalMap.t;
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
@@ -121,6 +123,14 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
+  | Some _
+    when (not (LvalMap.mem lval tainted))
+         && !Flag_semgrep.max_tainted_lvals > 0
+         && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals ->
+      logger#warning
+        "Already tracking too many tainted l-values, will not track %s"
+        (Display_IL.string_of_lval lval);
+      lval_env
   | Some lval ->
       let taints =
         (* If the lvalue is a simple variable, we record it as part of
@@ -128,7 +138,7 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
         match lval with
         | { IL.base = Var var; rev_offset = [] } ->
             let var_tok = snd var.ident in
-            if Parse_info.is_fake var_tok then taints
+            if Tok.is_fake var_tok then taints
             else
               taints
               |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
@@ -142,7 +152,18 @@ let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
               (function
                 | None -> Some taints
                 (* THINK: couldn't we just replace the existing taints? *)
-                | Some taints' -> Some (Taints.union taints taints'))
+                | Some taints' ->
+                    if
+                      !Flag_semgrep.max_taint_set_size = 0
+                      || Taints.cardinal taints'
+                         < !Flag_semgrep.max_taint_set_size
+                    then Some (Taints.union taints taints')
+                    else (
+                      logger#warning
+                        "Already tracking too many taint sources for %s, will \
+                         not track more"
+                        (Display_IL.string_of_lval lval);
+                      Some taints'))
               tainted;
           propagated;
           cleaned = LvalSet.remove lval cleaned;
@@ -207,3 +228,5 @@ let to_string taint_to_str { tainted; propagated; cleaned } =
   ^ LvalSet.fold
       (fun dn s -> s ^ Display_IL.string_of_lval dn ^ " ")
       cleaned "[CLEANED]"
+
+let seq_of_tainted env = LvalMap.to_seq env.tainted

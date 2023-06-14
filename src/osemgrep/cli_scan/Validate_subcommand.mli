@@ -4,7 +4,7 @@
  *)
 
 type conf = {
-  rules_source : Rule_fetching.rules_source;
+  rules_source : Rules_source.t;
   core_runner_conf : Core_runner.conf;
   logging_level : Logs.level option;
 }

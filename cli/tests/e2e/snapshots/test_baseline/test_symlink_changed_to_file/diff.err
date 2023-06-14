@@ -1,25 +1,28 @@
-Scanning 1 file.
-
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
   Current version has 1 finding.
 
-Switching repository to baseline commit 'HEAD^'.
+Creating git worktree from 'HEAD^' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ea47e9e commit #2
 
-Nothing to scan.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 0 files tracked by git with 1 Code rule:
+  Nothing to scan.
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

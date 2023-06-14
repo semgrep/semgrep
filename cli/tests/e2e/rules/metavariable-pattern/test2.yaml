@@ -1,0 +1,15 @@
+rules:
+- id: test
+  languages: [generic]
+  severity: ERROR
+  message: Test
+  patterns:
+    - pattern-inside: <$TAG .../>
+    - pattern: $ATTR="$...CODE"
+    - metavariable-regex:
+        metavariable: $...CODE
+        regex: ^\s*<\?(?:php|=)\s+.*
+    - metavariable-pattern:
+        metavariable: $...CODE
+        language: php
+        pattern: echo ...;

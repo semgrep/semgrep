@@ -13,13 +13,15 @@
  * license.txt for more details.
  *)
 open Common
+open File.Operators
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
+(* Skipping code using a skip_list.txt config file.
+ *
  * It is often useful to skip certain parts of a codebase. Large codebase
  * often contains special code that can not be parsed, that contains
  * dependencies that should not exist, old code that we don't want
@@ -29,6 +31,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * dir or file, and maybe sometimes instead of skip we would like
  * to specify the opposite, what we want to keep, so maybe a simple
  *  +/- syntax would be better.
+ * update: actually gitignore supports the ! negative patterns as
+ * well as the include extra config.
+ *
+ * This module is deprecated. You should prefer the gitignore library
+ * to skip files.
  *)
 
 (*****************************************************************************)
@@ -37,32 +44,34 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 (* the filename are in readable path format *)
 type skip =
-  | Dir of Common.dirname
-  | File of Common.filename
-  | DirElement of Common.dirname
-  | SkipErrorsDir of Common.dirname
+  | Dir of Fpath.t
+  | File of Fpath.t
+  | DirElement of Fpath.t
+  | SkipErrorsDir of Fpath.t
 
 (*****************************************************************************)
 (* IO *)
 (*****************************************************************************)
 let load file =
-  Common.cat file
+  Common.cat !!file
   |> Common.exclude (fun s -> s =~ "#.*" || s =~ "^[ \t]*$")
   |> List.map (fun s ->
          match s with
-         | _ when s =~ "^dir:[ ]*\\([^ ]+\\)" -> Dir (Common.matched1 s)
+         | _ when s =~ "^dir:[ ]*\\([^ ]+\\)" ->
+             Dir (Fpath.v (Common.matched1 s))
          | _ when s =~ "^skip_errors_dir:[ ]*\\([^ ]+\\)" ->
-             SkipErrorsDir (Common.matched1 s)
-         | _ when s =~ "^file:[ ]*\\([^ ]+\\)" -> File (Common.matched1 s)
+             SkipErrorsDir (Fpath.v (Common.matched1 s))
+         | _ when s =~ "^file:[ ]*\\([^ ]+\\)" ->
+             File (Fpath.v (Common.matched1 s))
          | _ when s =~ "^dir_element:[ ]*\\([^ ]+\\)" ->
-             DirElement (Common.matched1 s)
+             DirElement (Fpath.v (Common.matched1 s))
          | _ -> failwith ("wrong line format in skip file: " ^ s))
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let filter_files skip_list ~root relative_paths : string list * string list =
+let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
   let skip_files =
     skip_list
     |> Common.map_filter (function
@@ -86,12 +95,12 @@ let filter_files skip_list ~root relative_paths : string list * string list =
   let relative_paths =
     relative_paths
     |> List.filter (fun rel_path ->
-           let path = Common.readable ~root rel_path in
+           let path = File.readable ~root rel_path in
            if
              Hashtbl.mem skip_files path
-             || skip_dirs |> List.exists (fun dir -> path =~ dir ^ ".*")
+             || skip_dirs |> List.exists (fun dir -> !!path =~ !!dir ^ ".*")
              || skip_dir_elements
-                |> List.exists (fun dir -> path =~ ".*/" ^ dir ^ "/.*")
+                |> List.exists (fun dir -> !!path =~ ".*/" ^ !!dir ^ "/.*")
            then (
              skipped_abs_paths := path :: !skipped_abs_paths;
              false)
@@ -101,7 +110,7 @@ let filter_files skip_list ~root relative_paths : string list * string list =
 
 (* copy paste of h_version_control/git.ml *)
 let find_vcs_root_from_absolute_path file =
-  let xs = Common.split "/" (Common2.dirname file) in
+  let xs = Common.split "/" (Common2.dirname !!file) in
   let xxs = Common2.inits xs in
   xxs |> List.rev
   |> Common.find_some_opt (fun xs ->
@@ -110,23 +119,27 @@ let find_vcs_root_from_absolute_path file =
            Sys.file_exists (Filename.concat dir ".git")
            || Sys.file_exists (Filename.concat dir ".hg")
            || false
-         then Some dir
+         then Some (Fpath.v dir)
          else None)
 
 let find_skip_file_from_root root =
-  let candidates =
-    [
-      "skip_list.txt";
-      (* fbobjc specific *)
-      "Configurations/Sgrep/skip_list.txt";
-      (* www specific *)
-      "conf/codegraph/skip_list.txt";
-    ]
-  in
-  candidates
-  |> Common.find_some_opt (fun f ->
-         let full = Filename.concat root f in
-         if Sys.file_exists full then Some full else None)
+  (* TODO: figure out why this doesnt work in windows *)
+  if !Common.jsoo then None
+  else
+    let candidates =
+      [
+        "skip_list.txt";
+        (* fbobjc specific *)
+        "Configurations/Sgrep/skip_list.txt";
+        (* www specific *)
+        "conf/codegraph/skip_list.txt";
+      ]
+      |> File.Path.of_strings
+    in
+    candidates
+    |> Common.find_some_opt (fun f ->
+           let full = Fpath.append root f in
+           if Sys.file_exists !!full then Some full else None)
 
 let filter_files_if_skip_list ~root xs =
   let root =
@@ -134,16 +147,16 @@ let filter_files_if_skip_list ~root xs =
     | [ x ] -> x
     | _ -> (
         match xs with
-        | [] -> "/"
+        | [] -> Fpath.v "/"
         | x :: _ -> (
             match find_vcs_root_from_absolute_path x with
             | Some root -> root
-            | None -> "/"))
+            | None -> Fpath.v "/"))
   in
   match find_skip_file_from_root root with
   | Some skip_file ->
       let skip_list = load skip_file in
-      logger#info "using skip list in %s" skip_file;
+      logger#info "using skip list in %s" !!skip_file;
       filter_files skip_list root xs
   | None -> (xs, [])
 
@@ -157,14 +170,15 @@ let build_filter_errors_file skip_list =
          | SkipErrorsDir dir -> Some dir
          | _ -> None)
   in
-  fun readable -> skip_dirs |> List.exists (fun dir -> readable =~ "^" ^ dir)
+  fun readable ->
+    skip_dirs |> List.exists (fun dir -> !!readable =~ "^" ^ !!dir)
 
 let reorder_files_skip_errors_last skip_list root xs =
   let is_file_want_to_skip_error = build_filter_errors_file skip_list in
   let skip_errors, ok =
     xs
     |> List.partition (fun file ->
-           let readable = Common.readable ~root file in
+           let readable = File.readable ~root file in
            is_file_want_to_skip_error readable)
   in
   ok @ skip_errors

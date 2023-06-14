@@ -1,0 +1,8 @@
+(library
+ (name libyaml_stubs_js)
+ (wrapped false)
+ (libraries js_of_ocaml)
+ (js_of_ocaml
+  (javascript_files runtime.js ctypes.js))
+ (preprocess
+  (pps js_of_ocaml-ppx)))

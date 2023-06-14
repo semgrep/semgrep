@@ -1,5 +1,7 @@
 import hashlib
 import json
+from enum import auto
+from enum import Enum
 from typing import Any
 from typing import AnyStr
 from typing import cast
@@ -25,6 +27,11 @@ from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
 
 
+class RuleProduct(Enum):
+    sast = auto()
+    sca = auto()
+
+
 class Rule:
     def __init__(
         self, raw: Dict[str, Any], yaml: Optional[YamlTree[YamlMap]] = None
@@ -34,14 +41,26 @@ class Rule:
         self._id = str(self._raw["id"])
 
         path_dict = self._raw.get("paths", {})
+        self.options_dict = self._raw.get("options", {})
         self._includes = cast(Sequence[str], path_dict.get("include", []))
         self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
 
         lang_span = (
             yaml.value["languages"].span if yaml and "languages" in yaml.value else None
         )
+
+        def resolve_language_string(language_str: str) -> Language:
+            # Replace "generic" in the "languages" list by the engine specified
+            # in the options section.
+            xlang_str = (
+                self.options_dict.get("generic_engine", "spacegrep")
+                if language_str == "generic"
+                else language_str
+            )
+            return LANGUAGE.resolve(xlang_str, lang_span)
+
         rule_languages: Set[Language] = {
-            LANGUAGE.resolve(l, lang_span) for l in self._raw.get("languages", [])
+            resolve_language_string(l) for l in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
@@ -233,6 +252,14 @@ class Rule:
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
         return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
+
+    @property
+    def product(self) -> RuleProduct:
+        return (
+            RuleProduct.sca
+            if "r2c-internal-project-depends-on" in self._raw
+            else RuleProduct.sast
+        )
 
     @property
     def formula_string(self) -> str:

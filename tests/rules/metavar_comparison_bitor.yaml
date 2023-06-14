@@ -1,0 +1,11 @@
+rules:
+  - id: MSTG-STORAGE-5.1
+    severity: WARNING
+    languages:
+      - java
+    message: test
+    patterns:
+      - pattern: return $X;
+      - metavariable-comparison:
+          comparison: $X | 1 == 1
+          metavariable: $X

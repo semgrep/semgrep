@@ -1,0 +1,8 @@
+Added lone decorators as a valid Python semgrep pattern, so for example `$NAME($X)` will
+generate two seperate findings here:
+```
+@hello("world")
+@hi("semgrep!")
+def shift():
+  return "left!"
+```

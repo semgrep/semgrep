@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Flag = Flag_parsing
 
 (*****************************************************************************)
@@ -12,12 +13,13 @@ let test_tokens_ml file =
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
-  let toks = Parse_ml.tokens file in
+  let toks = Parse_ml.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
 let test_parse_ml_or_mli xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = File.Path.of_strings xs in
+  let xs = List.map File.fullpath xs in
 
   let fullxs, _skipped_paths =
     Lib_parsing_ml.find_source_files_of_dir_or_files xs
@@ -32,7 +34,7 @@ let test_parse_ml_or_mli xs =
 
              let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
-                   Parse_ml.parse file)
+                   Parse_ml.parse !!file)
              in
              Common.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;

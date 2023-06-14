@@ -1,7 +1,7 @@
 #!/bin/sh
 # Start ocamldebug with a few conveniences.
 
-# This script is meant to be run from 'src', the parent directory.
+# This script is meant to be run from the project root.
 
 if [ "$1" = "" ]; then
     echo "usage: $0 ./_build/default/dir/prog.bc [args...]"
@@ -37,6 +37,7 @@ cat <<EOF
 
 ocamldebug hints:
 * info modules: List all program modules.  Helpful to get their names.
+* set arguments: to set the command-line arguments of the debugged program
 * break @ [<module>] <line>: Insert breakpoint at line.
   - NOTE: Always defaults to frame 0 module even after "up"!
   - Sometimes has to be placed on the preceding line to work.

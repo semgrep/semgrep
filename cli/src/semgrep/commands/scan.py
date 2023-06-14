@@ -23,6 +23,7 @@ from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
+from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
@@ -540,6 +541,7 @@ _scan_options: List[Callable] = [
         flag_value=EngineType.OSS,
         help="Run using only OSS features, even if the Semgrep Pro toggle is on.",
     ),
+    optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
 ]
 
 
@@ -657,7 +659,6 @@ def scan_options(func: Callable) -> Callable:
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
-@click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--dump-engine-path",
     is_flag=True,
@@ -744,15 +745,18 @@ def scan(
             version_check()
         return None
 
-    if dump_engine_path:
-        print(SemgrepCore.path())
-        return None
-
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
+
+    if dump_engine_path:
+        if engine_type == EngineType.OSS:
+            print(SemgrepCore.path())
+        else:
+            print(determine_semgrep_pro_path())
+        return None
 
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
@@ -899,6 +903,7 @@ def scan(
                     output_extra,
                     shown_severities,
                     _dependencies,
+                    _dependency_parser_errors,
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,

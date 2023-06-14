@@ -1,7 +1,7 @@
-# The goal of this workflow is mostly to run pre-commit on every pull requests.
+# The main goal of this workflow is to run pre-commit on every pull requests.
+# It also runs some Github Actions (GHA) lint checks
+# TODO: we should port those GHA checks to semgrep and add then in semgrep-rules
 
-#TODO? we could rename to 'pre-commit' really. We used to run another "lint-style" command
-# for the changelog, but we don't anymore, so all that remains is just pre-commit stuff
 name: lint
 
 on:
@@ -26,11 +26,11 @@ jobs:
       # runs as part of pre-commit to check our Python code.
       # alt: we could also use 'submodules: recursive' instead, but that would be a bit slower
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       # pre-commit is a Python script, this speedup things from Xmin to Ymin?
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           # This caches the pip installed dependencies that pre-commit uses.
           # Otherwise it will need to reinstall everytime.
           # TODO? who will need to reinstall everytime? github action? How much does this
@@ -71,7 +71,7 @@ jobs:
     # This custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in dev/dev.opam)
     # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: returntocorp/ocaml:ubuntu-2022-09-24
+    container: returntocorp/ocaml:ubuntu-2023-04-17
     # HOME in the container is tampered by GHA and modified from /root to /home/github
     # which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
     # hence the ugly use of 'env: HOME ...' below.
@@ -108,3 +108,4 @@ jobs:
       - uses: reviewdog/action-actionlint@v1
         with:
           fail_on_error: true
+          actionlint_flags: -ignore 'workflow command "set-output" was deprecated. ".+"'

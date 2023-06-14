@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
-from time import time
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from ..conftest import TESTS_PATH
 from semdep.package_restrictions import is_in_range
@@ -20,6 +20,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/awscli",
         ),
         (
+            "rules/dependency_aware/awscli_vuln.yaml",
+            "dependency_aware/awscli-with-manifest",
+        ),
+        (
             "rules/dependency_aware/lodash-4.17.19.yaml",
             "dependency_aware/lodash",
         ),
@@ -28,11 +32,19 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/yarn",
         ),
         (
+            "rules/dependency_aware/no-pattern.yaml",
+            "dependency_aware/yarn-v1-without-version-constraint",
+        ),
+        (
             "rules/dependency_aware/yarn-sass.yaml",
             "dependency_aware/yarn",
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/go"),
         ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/ruby"),
+        (
+            "rules/dependency_aware/ruby-sca.yaml",
+            "dependency_aware/ruby-with-multiple-remotes",
+        ),
         ("rules/dependency_aware/log4shell.yaml", "dependency_aware/log4j"),
         ("rules/dependency_aware/rust-sca.yaml", "dependency_aware/rust"),
         ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi"),
@@ -51,6 +63,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/poetry",
         ),
         (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_with_arbitrary_starting_comment",
+        ),
+        (
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
         ),
@@ -59,9 +75,15 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/nested_package_lock/",
         ),
         ("rules/dependency_aware/js-yarn2-sca.yaml", "dependency_aware/yarn2"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm"),
+        ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-workspaces"),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements3",
         ),
         (
             "rules/dependency_aware/transitive_and_direct.yaml",
@@ -85,6 +107,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         (
             "rules/dependency_aware/maven-guice.yaml",
+            "dependency_aware/maven_dep_tree_joined",
+        ),
+        (
+            "rules/dependency_aware/maven-guice.yaml",
             "dependency_aware/maven_dep_tree_optional",
         ),
         (
@@ -95,9 +121,23 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/js-sca.yaml",
             "dependency_aware/package-lock_resolved_false",
         ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/deeply_nested_package_lock",
+        ),
+        (
+            "rules/dependency_aware/js-yarn2-sca.yaml",
+            "dependency_aware/package-lock-v3",
+        ),
+        (
+            "rules/dependency_aware/php-sca.yaml",
+            "dependency_aware/php",
+        ),
     ],
 )
-def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, target):
+def test_dependency_aware_rules(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
+):
     snapshot.assert_match(
         run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
         "results.txt",
@@ -110,7 +150,6 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         ("1.2-beta-2", "> 1.0, < 1.2", True),
         ("1.2-beta-2", "> 1.2-alpha-6, < 1.2-beta-3", True),
         ("1.0.10.1", "< 1.0.10.2", True),
-        ("1.0.10.2", "> 1.0.10.1, < 1.0.9.3", True),  # Yes, seriously
         ("1.3.4-SNAPSHOT", "< 1.3.4", True),
         ("1.0-SNAPSHOT", "> 1.0-alpha", True),
         ("2.17.2", "< 2.3.1", False),
@@ -118,42 +157,14 @@ def test_dependency_aware_rules(run_semgrep_on_copied_files, snapshot, rule, tar
         ("2.0.0", "< 10.0.0", True),
         ("0.2.0", "< 0.10.0", True),
         ("0.0.2", "< 0.0.10", True),
+        ("2.14.0", "< 2.9.10.3", False),
+        ("2.14.0-beta", "< 2.9.10.3", False),
+        ("1.1.1.1-SNAPSHOT", "< 1.1.1.1", True),
     ],
 )
+@pytest.mark.no_semgrep_cli
 def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
-
-
-@pytest.mark.parametrize(
-    "file_size,target,max_time",
-    [
-        (file_size, target, max_time)
-        # These times are set relative to Github Actions, they should be lower when running locally
-        # Local time expectation is more like 1, 5, 10
-        for file_size, max_time in [("10k", 3), ("50k", 15), ("100k", 30)]
-        for target in [
-            "Gemfile.lock",
-            "go.sum",
-            "gradle.lockfile",
-            "maven_dep_tree.txt",
-            "package-lock.json",
-            "poetry.lock",
-            "requirements.txt",
-            "yarn.lock",
-            "Pipfile.lock",
-        ]
-    ],
-)
-def test_dependency_aware_timing(
-    parse_lockfile_path_in_tmp, file_size, target, max_time
-):
-    start = time()
-    parse_lockfile_path_in_tmp(
-        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
-    )
-    end = time()
-    exec_time = end - start
-    assert exec_time < max_time
 
 
 @pytest.mark.parametrize(
@@ -221,17 +232,19 @@ def test_dependency_aware_timing(
 # These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
 # With some minor edits, namely removing the "this isn't even a lockfile" tests
 # And removing some human written comments that would never appear in a real lockfile from some tests
+@pytest.mark.no_semgrep_cli
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
-    parse_lockfile_path_in_tmp(Path(target))
+    _, error = parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
+    assert error is None
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
-def test_no_lockfiles(run_semgrep, monkeypatch, tmp_path, snapshot):
+def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path / "targets" / "basic")

@@ -12,6 +12,9 @@ from typing import Tuple
 
 import click
 from rich.padding import Padding
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
 from rich.table import Table
 
 import semgrep.semgrep_main
@@ -23,8 +26,6 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
-from semgrep.constants import DEFAULT_MAX_MEMORY_PRO_CI
-from semgrep.constants import DEFAULT_PRO_TIMEOUT_CI
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
@@ -167,6 +168,7 @@ def ci(
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -229,7 +231,7 @@ def ci(
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
-        logger.info(f"Running `semgrep ci` without API token but with configs {config}")
+        pass
     elif token and config:
         # Logged in but has explicit config
         logger.info(
@@ -237,12 +239,13 @@ def ci(
         )
         sys.exit(FATAL_EXIT_CODE)
     elif token:
-        if not auth.is_valid_token(token):
+        deployment_name = auth.get_deployment_from_token(token)
+        if not deployment_name:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
-        scan_handler = ScanHandler(dry_run)
+        scan_handler = ScanHandler(dry_run=dry_run, deployment_name=deployment_name)
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
@@ -259,18 +262,20 @@ def ci(
     metadata = generate_meta_from_environment(baseline_commit)
 
     console.print(Title("Debugging Info"))
-
-    scan_env = Table.grid(padding=(0, 1))
-    scan_env.add_row(
+    debugging_table = Table.grid(padding=(0, 1))
+    debugging_table.add_row(
         "versions",
         "-",
         f"semgrep [bold]{semgrep.__VERSION__}[/bold] on python [bold]{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}[/bold]",
     )
-    scan_env.add_row(
+    debugging_table.add_row(
         "environment",
         "-",
         f"running in environment [bold]{metadata.environment}[/bold], triggering event is [bold]{metadata.event_name}[/bold]",
     )
+
+    console.print(Title("Scan Environment", order=2))
+    console.print(debugging_table, markup=True)
 
     fix_head_if_github_action(metadata)
 
@@ -278,20 +283,35 @@ def ci(
         # Note this needs to happen within fix_head_if_github_action
         # so that metadata of current commit is correct
         if scan_handler:
+            console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
-            scan_handler.fetch_and_init_scan_config(metadata_dict)
-            scan_handler.start_scan(metadata_dict)
+            with Progress(
+                TextColumn("  {task.description}"),
+                SpinnerColumn(spinner_name="simpleDotsScrolling"),
+                console=console,
+            ) as progress_bar:
+                at_url_maybe = (
+                    f" at [bold]{state.env.semgrep_url}[/bold]"
+                    if state.env.semgrep_url != "https://semgrep.dev"
+                    else ""
+                )
+
+                start_scan_task = progress_bar.add_task(
+                    f"Reporting start of scan for [bold]{scan_handler.deployment_name}[/bold]"
+                )
+                scan_handler.start_scan(metadata_dict)
+                progress_bar.update(start_scan_task, completed=100)
+
+                connection_task = progress_bar.add_task(
+                    f"Fetching configuration from Semgrep Cloud Platform{at_url_maybe}"
+                )
+                scan_handler.fetch_and_init_scan_config(metadata_dict)
+                progress_bar.update(connection_task, completed=100)
 
             config = (scan_handler.rules,)
-
-            scan_env.add_row(
-                "server",
-                "-",
-                f"logged in as [bold]{scan_handler.deployment_name}[/bold] on [bold]{state.env.semgrep_url}[/bold]",
-            )
 
     except Exception as e:
         import traceback
@@ -306,50 +326,35 @@ def ci(
         git_meta=metadata,
     )
 
+    # set default settings for selected engine type
     if dataflow_traces is None:
         dataflow_traces = engine_type.has_dataflow_traces
 
-    console.print(Title("Scan Environment", order=2))
-    console.print(Padding(scan_env, (0, 2)))
+    if max_memory is None:
+        max_memory = engine_type.default_max_memory
+
+    if interfile_timeout is None:
+        interfile_timeout = engine_type.default_interfile_timeout
 
     if engine_type.is_pro:
         console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
         if engine_type.check_if_installed():
             console.print(
-                f"  Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]"
+                f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]",
+                markup=True,
             )
             console.print(
-                f"  Installed at [bold]{engine_type.get_binary_path()}[/bold]"
+                f"Installed at [bold]{engine_type.get_binary_path()}[/bold]",
+                markup=True,
             )
         else:
             run_install_semgrep_pro()
 
     try:
-        console.print(Title("Scan Status"))
-
-        # Set a default max_memory for CI runs when DeepSemgrep is on because
-        # DeepSemgrep is likely to run out
-        if max_memory is None:
-            if engine_type is EngineType.PRO_INTERFILE:
-                max_memory = DEFAULT_MAX_MEMORY_PRO_CI
-            else:
-                max_memory = 0  # unlimited
-        # Same for timeout (Github actions has a 6 hour timeout)
-        if interfile_timeout is None:
-            if engine_type is EngineType.PRO_INTERFILE:
-                interfile_timeout = DEFAULT_PRO_TIMEOUT_CI
-            else:
-                interfile_timeout = 0  # unlimited
-
-        # Append ignores configured on semgrep.dev
-        requested_excludes = scan_handler.ignore_patterns if scan_handler else []
-        if requested_excludes:
-            logger.info(
-                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-            )
+        excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
 
         assert exclude is not None  # exclude is default empty tuple
-        exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+        exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
         (
@@ -362,6 +367,7 @@ def ci(
             output_extra,
             shown_severities,
             dependencies,
+            dependency_parser_errors,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -371,6 +377,7 @@ def ci(
             lang=None,
             configs=config,
             no_rewrite_rule_ids=(not rewrite_rule_ids),
+            dump_command_for_core=dump_command_for_core,
             jobs=jobs,
             include=include,
             exclude=exclude,
@@ -470,9 +477,12 @@ def ci(
     logger.info(
         f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
+
+    app_block_override = False
+    reason = ""
     if scan_handler:
         logger.info("  Uploading findings.")
-        scan_handler.report_findings(
+        app_block_override, reason = scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
             filtered_rules,
@@ -483,9 +493,10 @@ def ci(
             total_time,
             metadata.commit_datetime,
             dependencies,
+            dependency_parser_errors,
             engine_type,
         )
-        logger.info("  View results in Semgrep App:")
+        logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"
         )
@@ -507,6 +518,10 @@ def ci(
     else:
         logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
+
+    if app_block_override and not audit_mode:
+        logger.info(f"  semgrep.dev is suggesting a non-zero exit code ({reason})")
+        exit_code = 1
 
     if enable_version_check:
         from semgrep.app.version import version_check

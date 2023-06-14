@@ -3,12 +3,13 @@ import shutil
 from pathlib import Path
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
 
 @pytest.mark.kinda_slow
-def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
+def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/match_based_id/duplicates.yaml",
         target_name="match_based_id/duplicates",
@@ -18,21 +19,14 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(results, "results.json")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target_name,expect_change",
-    [
-        # ("rules/match_based_id/","",True)
-        ("rules/match_based_id/formatting.yaml", "formatting.c", False),
-        ("rules/match_based_id/formatting.yaml", "ellipse.c", False),
-        ("rules/taint.yaml", "taint.py", False),
-        ("rules/match_based_id/operator.yaml", "operator.c", True),
-        ("rules/match_based_id/formatting.yaml", "meta-change.c", True),
-        ("rules/match_based_id/join.yaml", "join.py", True),
-    ],
+    [],
 )
 def test_id_change(
-    run_semgrep_on_copied_files, tmp_path, rule, target_name, expect_change
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
 ):
     """
     Ensures that match-based IDs are resistant to various types of changes in code.
@@ -71,3 +65,24 @@ def test_id_change(
     after_id = run_on_target("after")
 
     assert (after_id != before_id) == expect_change
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "rule,target_name,expect_change",
+    [
+        ("rules/match_based_id/formatting.yaml", "formatting.c", False),
+        ("rules/match_based_id/formatting.yaml", "ellipse.c", False),
+        ("rules/taint.yaml", "taint.py", False),
+        # ("rules/match_based_id/","",True)
+        ("rules/match_based_id/operator.yaml", "operator.c", True),
+        ("rules/match_based_id/formatting.yaml", "meta-change.c", True),
+        ("rules/match_based_id/join.yaml", "join.py", True),
+    ],
+)
+def test_id_change_osemfail(
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
+):
+    test_id_change(
+        run_semgrep_on_copied_files, tmp_path, rule, target_name, expect_change
+    )

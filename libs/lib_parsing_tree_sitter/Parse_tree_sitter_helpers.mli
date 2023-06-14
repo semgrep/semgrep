@@ -5,14 +5,12 @@ type 'a env = {
   extra : 'a;
 }
 
+(* to fill in conv *)
 val line_col_to_pos : Common.filename -> (int * int, int) Hashtbl.t
-val token : 'a env -> Tree_sitter_run.Token.t -> Parse_info.t
-val str : 'a env -> Tree_sitter_run.Token.t -> string * Parse_info.t
 
-(* Use Parse_info.combine_infos instead *)
-val combine_tokens_DEPRECATED :
-  'a env -> Tree_sitter_run.Token.t list -> Parse_info.t
-
+(* Tree_sitter_run tokens to Tok.t converters *)
+val token : 'a env -> Tree_sitter_run.Token.t -> Tok.t
+val str : 'a env -> Tree_sitter_run.Token.t -> string * Tok.t
 val debug_sexp_cst_after_error : Sexplib.Sexp.t -> unit
 
 (*

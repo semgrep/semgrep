@@ -6,13 +6,25 @@
 - id: semgrep
   name: semgrep
   entry: semgrep
-  # If you use 'language: python', then pre-commit expects a toplevel 'setup.py'.
-  # This ./setup.py was defined just for pre-commit. Essentially, setup.py
-  # runs 'pip install semgrep==0.xxx.yyy'. It means that this hook does not even
-  # rely on the code in this repository; it just relies on pip and the availability
-  # of semgrep in pypy.
+  # language: python here provides pip as a dep for the hook, as pre-commit
+  # installs tools in local environments.
+  #
+  # If you use 'language: python', then
+  # pre-commit expects a toplevel 'setup.py'. This ./setup.py was defined just
+  # for pre-commit. Essentially, setup.py runs 'pip install semgrep==0.xxx.yyy'.
+  # It means that this hook does not even rely on the code in this repository;
+  # it just relies on pip and the availability of semgrep in pypy.
   language: python
   args: ["--disable-version-check", "--quiet", "--skip-unknown-extensions"]
+
+- id: semgrep-ci
+  name: semgrep
+  entry: semgrep
+  # See above about why we need this
+  language: python
+  # Needed as ci command does not accept filenames as parameters
+  pass_filenames: false
+  args: ["ci", "--dry-run", "--baseline-commit", "HEAD"]
 
 # docker-based hooks, to use the bleeding edge Semgrep!
 - id: semgrep-docker-develop

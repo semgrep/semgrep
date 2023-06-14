@@ -4,7 +4,7 @@
 (* This module contains functions (and types) which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second Pervasive.ml (now called Stdlib.ml).
+ * This file acts like a second Stdlib.ml (used to be called Pervasives.ml).
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
@@ -23,6 +23,8 @@
  * To enforce this rule, this module redefines '=' to just operate
  * on strings, so ocaml can statically detect when you wrongly use '='
  * on other types.
+ *
+ * See also the Operators submodule at the end of this file.
  *)
 val ( = ) : string -> string -> bool
 
@@ -111,6 +113,9 @@ val i_to_s : int -> string
 val s_to_i : string -> int
 val null_string : string -> bool
 
+(* Shortcut for Printf.sprintf *)
+val spf : ('a, unit, string) format -> 'a
+
 (* Perl-like regexp pattern matching. We need the many matchedxxx()
  * because OCaml does not support polytypic functions (same problem
  * with zip1/zip2/etc.).
@@ -132,15 +137,18 @@ val matched6 : string -> string * string * string * string * string * string
 val matched7 :
   string -> string * string * string * string * string * string * string
 
-(* Shortcut for Printf.sprintf *)
-val spf : ('a, unit, string) format -> 'a
+(* join/split strings *)
 val join : string (* sep *) -> string list -> string
 val split : string (* sep regexp *) -> string -> string list
 
 (*****************************************************************************)
-(* File path *)
+(* Real file paths - deprecated, use File.mli *)
 (*****************************************************************************)
-(* Deprecated? Should we start to use FPath.ml from dbunzli? *)
+(* Deprecated!
+
+   Migration in progress: File.ml reproduces the functions below and uses
+   Fpath.t instead of strings to represent file/directory paths.
+*)
 
 (* Some signatures are arguably clearer when using 'filename' instead of
  * 'string' (see write_file below for an example).
@@ -148,24 +156,14 @@ val split : string (* sep regexp *) -> string -> string list
  * Path module: https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
  *)
 type filename = string [@@deriving show, eq]
-(* the deriving above will define those functions below, which
- * are needed if one use 'deriving eq, show' on other types
- * using internally 'filename'
- * (e.g., 'type foo = Foo of filename [@@deriving show]')
- *
- * val pp_filename: Format.formatter -> filename -> unit
- * val equal_filename: filename -> filename -> bool
- *)
 
-(* TODO: those are not used very often, maybe we should delete them *)
-type dirname = string
-type path = string
-
-(* for realpath, see efuns_c library  *)
 (*
    Check that the file exists and produce a valid absolute path for the file.
+   Deprecated: use the Rpath module instead!
 *)
 val fullpath : filename -> filename
+
+(* Deprecated: use the Ppath module instead! *)
 val filename_without_leading_path : string -> filename -> filename
 val readable : root:string -> filename -> filename
 
@@ -179,7 +177,7 @@ val files_of_dir_or_files_no_vcs_nofilter : string list -> filename list
 val follow_symlinks : bool ref
 
 (*****************************************************************************)
-(* IO *)
+(* IO - deprecated, use File.mli *)
 (*****************************************************************************)
 
 (* Inputs a line of text in a platform-agnostic way. Should be preferred over
@@ -232,6 +230,7 @@ val erase_this_temp_file : filename -> unit
 (*****************************************************************************)
 (* Subprocess *)
 (*****************************************************************************)
+(* Deprecated? Use Bos instead? *)
 
 (* This allows to capture the output of an external command.
  * It is more convenient to use than Unix.open_process_in.
@@ -259,6 +258,42 @@ val null : 'a list -> bool
 
 val map : ('a -> 'b) -> 'a list -> 'b list
 (** Same as [List.map] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
+(* Replacement for 'Common.hd_exn "unexpected empty list"', which returns the
+   first element of a list or
+   fails with an unhelpful exception. 'Common.hd_exn msg []' will raise
+   the exception 'Failure msg' which is only a slight improvement over
+   'Common.hd_exn "unexpected empty list"'.
+
+   In general, you should prefer a match-with and not have to call a
+   function to extract the first element of a list.
+
+   Usage: Common.hd_exn "found an empty list of things" xs
+
+   If receiving an empty list is a bug, prefer the following:
+
+     match xs with
+     | [] -> assert false
+     | xs -> ...
+*)
+val hd_exn : string -> 'a list -> 'a
+
+(* Replacement for 'Common.tl_exn "unexpected empty list"' but not a great
+   improvement. The same recommendations as for 'Common.hd_exn "unexpected
+   empty list"' apply. *)
+val tl_exn : string -> 'a list -> 'a list
+
+val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
+(** Same as [List.map2] but stack-safe and slightly faster on short lists.
+    Additionally, we guarantee that the mapping function is applied from
+    left to right like for [List.iter].
+*)
+
+val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
+(** Same as [List.mapi] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from
     left to right like for [List.iter].
 *)
@@ -349,6 +384,7 @@ val optlist_to_list : 'a list option -> 'a list
  * (see https://v2.ocaml.org/manual/bindingops.html)
  * 'let*' is one such binding operator and an alias to Option.bind.
  * [bind o f] is [f v] if [o] is [Some v] and [None] if [o] is [None].
+ *
  * Here is an example of use:
  *  let* x1 = xs |> List.find_opt (fun x -> x > 1) in
  *  let* x2 = xs |> List.find_opt (fun x -> x > 2) in
@@ -401,13 +437,10 @@ val partition_result :
 
 val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 
-val cache_computation :
-  ?use_cache:bool -> filename -> string (* extension *) -> (unit -> 'a) -> 'a
-
 (*****************************************************************************)
 (* Profiling *)
 (*****************************************************************************)
-(* see also the profiling library and ppx_profiling [@@profiling] annot *)
+(* See also the profiling library and profiling.ppx [@@profiling] annot *)
 
 (*
    Measure how long it takes for a function to run, returning the result
@@ -421,6 +454,43 @@ val with_time : (unit -> 'a) -> 'a * float
 *)
 val pr_time : string -> (unit -> 'a) -> 'a
 val pr2_time : string -> (unit -> 'a) -> 'a
+
+(*****************************************************************************)
+(* Disable physical equality/inequality operators *)
+(*****************************************************************************)
+
+(*
+   Disable the use of (==) since some people confuse it with structural
+   equality. We do this here since we're disabling in with semgrep anyway
+   and it's quicker if the compiler can report it.
+*)
+
+(* Physical (shallow) equality, normally available as (==) *)
+val phys_equal : 'a -> 'a -> bool
+
+(* Physical (shallow) inequality, normally available as (!=) *)
+val phys_not_equal : 'a -> 'a -> bool
+
+type hidden_by_your_nanny
+
+val ( == ) : hidden_by_your_nanny
+val ( != ) : hidden_by_your_nanny
+
+(*****************************************************************************)
+(* Operators *)
+(*****************************************************************************)
+
+(* if you just want to use the operators *)
+module Operators : sig
+  val ( =~ ) : string -> string -> bool
+  val ( = ) : string -> string -> bool
+  val ( =|= ) : int -> int -> bool
+  val ( =$= ) : char -> char -> bool
+  val ( =:= ) : bool -> bool -> bool
+  val ( =*= ) : 'a -> 'a -> bool
+  val ( == ) : hidden_by_your_nanny
+  val ( != ) : hidden_by_your_nanny
+end
 
 (*****************************************************************************)
 (* Misc *)

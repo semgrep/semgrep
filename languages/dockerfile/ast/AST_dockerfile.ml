@@ -13,10 +13,10 @@ module B = AST_bash
 (* Token info *)
 (*****************************************************************************)
 
-type tok = Parse_info.t
-type loc = Loc.t
+type tok = Tok.t
 type 'a wrap = 'a * tok
 type 'a bracket = tok * 'a * tok
+type loc = Tok_range.t
 
 (*****************************************************************************)
 (* AST definition *)

@@ -1,20 +1,7 @@
-import subprocess
 from contextlib import contextmanager
-from pathlib import Path
 from textwrap import indent
-from typing import Dict
-from typing import Iterator
-from typing import List
-from typing import NamedTuple
-from typing import Optional
 
-from semgrep.state import get_state
 from semgrep.util import git_check_output
-from semgrep.verbose_logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 def zsplit(s: str) -> List[str]:
     """Split a string on null characters."""

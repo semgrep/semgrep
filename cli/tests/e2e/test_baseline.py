@@ -632,7 +632,7 @@ def test_run_in_subdirectory(git_tmp_path, snapshot):
 
 
 def test_unstaged_changes(git_tmp_path, snapshot):
-    # Should abort if have unstaged changes
+    # Should not abort if have unstaged changes
     foo = git_tmp_path / "foo"
     foo.mkdir()
     foo_a = foo / "a.py"
@@ -645,7 +645,33 @@ def test_unstaged_changes(git_tmp_path, snapshot):
 
     foo_a.write_text(f"y = {SENTINEL_1}\n")
     output = run_sentinel_scan(base_commit=base_commit, check=False)
-    assert output.returncode != 0
+    assert output.returncode == 0
+    snapshot.assert_match(output.stdout, "output.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
+
+
+def test_staged_changes(git_tmp_path, snapshot):
+    # Should report findings in staged changes
+
+    # Should not abort if have unstaged changes
+    foo = git_tmp_path / "foo"
+    foo.mkdir()
+    foo_a = foo / "a.py"
+    foo_a.touch()
+    foo_a.write_text(f"y = {SENTINEL_1}\n")
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+
+    _git_commit(1)
+
+    foo_a.write_text(f"y = {SENTINEL_1}\nx = {SENTINEL_1}")
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    output = run_sentinel_scan(base_commit=base_commit, check=False)
+    assert output.returncode == 0
+    snapshot.assert_match(output.stdout, "output.txt")
     snapshot.assert_match(output.stderr, "error.txt")
 
 
@@ -654,6 +680,7 @@ def test_baseline_has_head_untracked(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.no_semgrep_cli
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)

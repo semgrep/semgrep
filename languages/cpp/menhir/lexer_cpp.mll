@@ -23,7 +23,6 @@ open Ast_cpp (* to factorise tokens with OpAssign, ... *)
 module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
 module Ast = Ast_cpp
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -55,9 +54,9 @@ module PI = Parse_info
 
 (* shortcuts *)
 let tok = Lexing.lexeme
-let tokinfo = Parse_info.tokinfo
-let error = Parse_info.lexical_error
-let tok_add_s = Parse_info.tok_add_s
+let tokinfo = Tok.tok_of_lexbuf
+let error = Parsing_error.lexical_error
+let tok_add_s = Tok.tok_add_s
 
 (* ---------------------------------------------------------------------- *)
 (* Keywords *)
@@ -579,7 +578,7 @@ rule token = parse
  | ['0'-'1']+'b' { TInt (((tok lexbuf)<!!>(0,-2)) |> int_of_stringbits) }
 *)
   (*------------------------------------------------------------------------ *)
-  | eof { EOF (tokinfo lexbuf |> PI.rewrap_str "") }
+  | eof { EOF (tokinfo lexbuf |> Tok.rewrap_str "") }
 
   | _ {
       error("unrecognised symbol, in token rule:" ^ tok lexbuf) lexbuf;

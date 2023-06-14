@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from typing import Dict
 from typing import Iterable
 from typing import Mapping
 from typing import Optional
@@ -35,7 +36,7 @@ class SarifFormatter(BaseFormatter):
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
             content = "".join(taint_source.value.value[1]).strip()
-            source_message_text = f"Source: '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+            source_message_text = f"Source: '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             taint_source_location_sarif = {
                 "location": {
@@ -51,7 +52,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": source_message_text},
                         },
                     },
-                }
+                },
+                "nestingLevel": 0,
             }
             return taint_source_location_sarif
 
@@ -67,7 +69,7 @@ class SarifFormatter(BaseFormatter):
         for intermediate_var in intermediate_vars:
             location = intermediate_var.location
             content = "".join(intermediate_var.content).strip()
-            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+            propagation_message_text = f"Propagator : '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             intermediate_vars_location_sarif = {
                 "location": {
@@ -83,7 +85,8 @@ class SarifFormatter(BaseFormatter):
                             "message": {"text": propagation_message_text},
                         },
                     },
-                }
+                },
+                "nestingLevel": 0,
             }
             intermediate_var_locations.append(intermediate_vars_location_sarif)
         return intermediate_var_locations
@@ -109,13 +112,13 @@ class SarifFormatter(BaseFormatter):
                         "message": {"text": sink_message_text},
                     },
                 },
-            }
+            },
+            "nestingLevel": 1,
         }
         return sink_location_sarif
 
     @staticmethod
     def _dataflow_trace_to_thread_flows_sarif(rule_match: RuleMatch) -> Any:
-
         thread_flows = []
         locations = []
 
@@ -165,7 +168,7 @@ class SarifFormatter(BaseFormatter):
             return None
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
-            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+            code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
             code_flow_sarif = {
                 "message": {"text": code_flow_message},
             }
@@ -181,7 +184,7 @@ class SarifFormatter(BaseFormatter):
     def _rule_match_to_sarif(
         rule_match: RuleMatch, dataflow_traces: bool
     ) -> Mapping[str, Any]:
-        rule_match_sarif = {
+        rule_match_sarif: Dict[str, Any] = {
             "ruleId": rule_match.rule_id,
             "message": {"text": rule_match.message},
             "locations": [
@@ -202,6 +205,7 @@ class SarifFormatter(BaseFormatter):
                 }
             ],
             "fingerprints": {"matchBasedId/v1": rule_match.match_based_id},
+            "properties": {},
         }
 
         if dataflow_traces and rule_match.dataflow_trace:
@@ -217,29 +221,13 @@ class SarifFormatter(BaseFormatter):
         if fix is not None:
             rule_match_sarif["fixes"] = [fix]
 
-        if "sca_info" in rule_match.extra:
-            # Mimics the exposure catergories on semgrep.dev for supply chain:
-            # "reachable": dependency is used in the codebase or is vulnerable even without usage
-            # "unreachable": dependency is not used in the codebase
-            # "undetermined": rule for dependency doesn't look for reachability
-            if rule_match.metadata.get("sca-kind") == "upgrade-only":
-                exposure = "reachable"
-            elif rule_match.metadata.get("sca-kind") == "legacy":
-                exposure = "undetermined"
-            else:
-                # rule_match.metadata.get("sca-kind") == "reachable":
-                if rule_match.extra["sca_info"].reachable:
-                    exposure = "reachable"
-                else:
-                    exposure = "unreachable"
-
-            rule_match_sarif["properties"] = {"exposure": exposure}
+        if rule_match.exposure_type:
+            rule_match_sarif["properties"]["exposure"] = rule_match.exposure_type
 
         return rule_match_sarif
 
     @staticmethod
     def _rule_match_to_sarif_fix(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
-
         # if rule_match.extra.get("dependency_matches"):
         fixed_lines = rule_match.extra.get("fixed_lines")
 
@@ -273,11 +261,12 @@ class SarifFormatter(BaseFormatter):
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
         security_severity = rule.metadata.get("security-severity")
+
         if security_severity is not None:
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {
@@ -290,16 +279,35 @@ class SarifFormatter(BaseFormatter):
             rule_json = {
                 "id": rule.id,
                 "name": rule.id,
-                "shortDescription": {"text": rule.message},
+                "shortDescription": {"text": f"Semgrep Finding: {rule.id}"},
                 "fullDescription": {"text": rule.message},
                 "defaultConfiguration": {"level": severity},
                 "properties": {"precision": "very-high", "tags": tags},
             }
 
         rule_url = rule.metadata.get("source")
+        references = []
+
         if rule_url is not None:
             rule_json["helpUri"] = rule_url
+            references.append(f"[Semgrep Rule]({rule_url})")
 
+        if rule.metadata.get("references"):
+            ref = rule.metadata["references"]
+            # TODO: Handle cases which aren't URLs in custom rules, wont be a problem semgrep-rules.
+            references.extend(
+                [f"[{r}]({r})" for r in ref]
+                if isinstance(ref, list)
+                else [f"[{ref}]({ref})"]
+            )
+        if references:
+            r = "".join(
+                [f" - {references_markdown}\n" for references_markdown in references]
+            )
+            rule_json["help"] = {
+                "text": rule.message,
+                "markdown": f"{rule.message}\n\n<b>References:</b>\n{r}",
+            }
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
             rule_json["shortDescription"] = {"text": rule_short_description}
@@ -341,6 +349,9 @@ class SarifFormatter(BaseFormatter):
                 if isinstance(owasp, list)
                 else [f"OWASP-{owasp}"]
             )
+        if rule.metadata.get("confidence"):
+            confidence = rule.metadata["confidence"]
+            result.append(f"{confidence} CONFIDENCE")
         if (
             "semgrep.policy" in rule.metadata
             and "slug" in rule.metadata["semgrep.policy"]

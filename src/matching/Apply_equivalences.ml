@@ -18,7 +18,6 @@ module G = AST_generic
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module MV = Metavariable
-module M = Map_AST
 module Eq = Equivalence
 module Env = Metavariable_capture
 
@@ -30,7 +29,7 @@ let match_e_e_for_equivalences _ruleid lang a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
       let config =
         {
-          Config_semgrep.default_config with
+          Rule_options.default_config with
           go_deeper_expr = false;
           go_deeper_stmt = false;
         }
@@ -45,30 +44,29 @@ let match_e_e_for_equivalences _ruleid lang a b =
 let subst_e (env : Env.t) e =
   let bindings = env.full_env in
   let visitor =
-    M.mk_visitor
-      {
-        M.default_visitor with
-        M.kexpr =
-          (fun (k, _) x ->
-            match x.e with
-            | N (Id ((str, _tok), _id_info)) when MV.is_metavar_name str -> (
-                match List.assoc_opt str bindings with
-                | Some (MV.Id (id, Some idinfo)) ->
-                    (* less: abstract-line? *)
-                    N (Id (id, idinfo)) |> G.e
-                | Some (MV.E e) ->
-                    (* less: abstract-line? *)
-                    e
-                | Some _ ->
-                    failwith
-                      (spf "incompatible metavar: %s, was expecting an expr" str)
-                | None ->
-                    failwith
-                      (spf "could not find metavariable %s in environment" str))
-            | __else__ -> k x);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.map_legacy as super
+
+      method! visit_expr env x =
+        match x.e with
+        | N (Id ((str, _tok), _id_info)) when MV.is_metavar_name str -> (
+            match List.assoc_opt str bindings with
+            | Some (MV.Id (id, Some idinfo)) ->
+                (* less: abstract-line? *)
+                N (Id (id, idinfo)) |> G.e
+            | Some (MV.E e) ->
+                (* less: abstract-line? *)
+                e
+            | Some _ ->
+                failwith
+                  (spf "incompatible metavar: %s, was expecting an expr" str)
+            | None ->
+                failwith
+                  (spf "could not find metavariable %s in environment" str))
+        | __else__ -> super#visit_expr env x
+    end
   in
-  visitor.M.vexpr e
+  visitor#visit_expr () e
 
 let apply equivs lang any =
   let expr_rules = ref [] in
@@ -92,39 +90,39 @@ let apply equivs lang any =
   let _stmt_rulesTODO = List.rev !stmt_rules in
 
   let visitor =
-    M.mk_visitor
-      {
-        M.default_visitor with
-        M.kexpr =
-          (fun (k, _) x ->
-            (* transform the children *)
-            let x' = k x in
+    object (_self : 'self)
+      inherit [_] AST_generic.map_legacy as super
 
-            let rec aux xs =
-              match xs with
-              | [] -> x'
-              | (l, r) :: xs -> (
-                  (* look for a match on original x, not x' *)
-                  let matches_with_env =
-                    match_e_e_for_equivalences "<equivalence>" lang l x
-                  in
-                  match matches_with_env with
-                  (* todo: should generate a Disj for each possibilities? *)
-                  | env :: _xs ->
-                      (* Found a match *)
-                      let alt = subst_e env.mv r (* recurse on r? *) in
-                      (* TODO: use AST_generic.equal_any*)
-                      if
-                        H.abstract_for_comparison_any (E x)
-                        =*= H.abstract_for_comparison_any (E alt)
-                      then x' (* disjunction (if different) *)
-                      else DisjExpr (x', alt) |> G.e
-                  (* no match yet, trying another equivalence *)
-                  | [] -> aux xs)
-            in
-            aux expr_rules);
-        M.kstmt = (fun (_k, _) x -> x);
-      }
+      method! visit_expr env x =
+        (* transform the children *)
+        let x' = super#visit_expr env x in
+
+        let rec aux xs =
+          match xs with
+          | [] -> x'
+          | (l, r) :: xs -> (
+              (* look for a match on original x, not x' *)
+              let matches_with_env =
+                match_e_e_for_equivalences "<equivalence>" lang l x
+              in
+              match matches_with_env with
+              (* todo: should generate a Disj for each possibilities? *)
+              | env :: _xs ->
+                  (* Found a match *)
+                  let alt = subst_e env.mv r (* recurse on r? *) in
+                  (* TODO: use AST_generic.equal_any*)
+                  if
+                    H.abstract_for_comparison_any (E x)
+                    =*= H.abstract_for_comparison_any (E alt)
+                  then x' (* disjunction (if different) *)
+                  else DisjExpr (x', alt) |> G.e
+              (* no match yet, trying another equivalence *)
+              | [] -> aux xs)
+        in
+        aux expr_rules
+
+      method! visit_stmt _env x = x
+    end
   in
-  visitor.M.vany any
+  visitor#visit_any () any
   [@@profiling]

@@ -1,7 +1,7 @@
 open Utils_ruby
 open Il_ruby
 
-type pos2 = Parse_info.t
+type pos2 = Tok.t
 
 let uniq_counter = ref 0
 
@@ -296,7 +296,7 @@ end
 let pos_of s = s.pos
 
 let empty_stmt () =
-  mkstmt (I (Expression (EId Nil))) (Parse_info.unsafe_fake_info "empty_stmt")
+  mkstmt (I (Expression (EId Nil))) (Tok.unsafe_fake_tok "empty_stmt")
 
 let fresh_local _s =
   let i = uniq () in

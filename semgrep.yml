@@ -87,6 +87,24 @@ rules:
       exclude:
         - SPcre.ml
 
+  - id: no-list-map2
+    pattern: List.map2
+    message: >-
+      `List.map2` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.map2` instead.
+    fix: Common.map2
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: no-list-map
     pattern: List.map
     message: >-
@@ -105,12 +123,52 @@ rules:
         - graph_code/*
         - lib_parsing/*
 
+  - id: no-list-filter-map
+    pattern: List.filter_map
+    message: >-
+      `List.filter_map` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.map_filter` instead.
+    fix: Common.map_filter
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
+  - id: no-list-mapi
+    pattern: List.mapi
+    message: >-
+      `List.mapi` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.mapi` instead.
+    fix: Common.mapi
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - src/*
+      exclude:
+        - profiling/*
+        - ppx_profiling/*
+        - commons/*
+        - graph_code/*
+        - lib_parsing/*
+
   - id: use-concat-map
     pattern-either:
       - pattern: List.map ... |> List.flatten
       - pattern: Common.map ... |> List.flatten
       - pattern: List.map ... |> List.concat
       - pattern: Common.map ... |> List.concat
+      - pattern: ... |> List.map ... |> List.flatten
+      - pattern: ... |> Common.map ... |> List.flatten
+      - pattern: ... |> List.map ... |> List.concat
+      - pattern: ... |> Common.map ... |> List.concat
       - pattern: List.flatten ( List.map ... )
       - pattern: List.flatten ( Common.map ... )
       - pattern: List.concat ( List.map ... )
@@ -175,6 +233,26 @@ rules:
     paths:
       include:
         - cli/src/*
+
+  - id: typehint-run-semgrep
+    patterns:
+      - focus-metavariable: $FIXTURE
+      - pattern-inside: |
+          def $FUNC(..., $FIXTURE, ...): ...
+      - pattern-not-inside: |
+          def $FUNC(..., $FIXTURE: tests.fixtures.RunSemgrep, ...): ...
+      - metavariable-regex:
+          metavariable: $FIXTURE
+          regex: ^run_semgrep.*$
+    message: >-
+      Please add a type hint for your use of $FIXTURE.
+      It should look like this: `$FIXTURE: RunSemgrep`,
+      and you should import it like this: `from tests.fixtures import RunSemgrep`.
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - cli/tests/*
 
   - id: use-git-check-output-helper
     pattern-either:
@@ -258,3 +336,75 @@ rules:
         - changelog.d/*.changed
         - changelog.d/*.fixed
         - changelog.d/*.infra
+  - id: pass-console-to-rich-progress
+    patterns:
+      - pattern: rich.progress.track(...)
+      - pattern-not: rich.progress.track(..., console=semgrep.console.console)
+    message: >-
+      You need to pass our custom console to rich progress bars
+      so that it progress to the correct output stream (usually stderr).
+    languages: [python]
+    severity: ERROR
+
+  - id: list-hd
+    pattern: List.hd
+    message: >-
+      Don't use 'List.hd' because it raises an unhelpful exception if its
+      argument is an empty list. Prefer a match-with, possibly combined with
+      'assert false' e.g. 'match xs with [] -> assert false | x :: _ -> ...'.
+    fix: Common.hd_exn "unexpected empty list"
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: list-tl
+    pattern: List.tl
+    message: >-
+      Don't use 'List.tl' because it raises an unhelpful exception if its
+      argument is an empty list. Prefer a match-with, possibly combined with
+      'assert false' e.g. 'match xs with [] -> assert false | _ :: xs -> ...'.
+    fix: Common.tl_exn "unexpected empty list"
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: no-metavariable-equal-xyz
+    patterns:
+      - pattern: Metavariable.$F
+      - pattern-not: Metavariable.equal_mvar
+      - metavariable-regex:
+          metavariable: $F
+          regex: equal_.*
+    message: >-
+      Don't use 'Metavariable.$F' directly, see 'AST_utils'. Instead use
+      either 'Metavariable.Structural.$F' or 'Metavariable.Referential.$F'.
+      You can also consider replacing `equal_mvalue` with
+      'Matching_generic.equal_ast_bound_code'.
+    fix: Metavariable.Structural.$F
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: no-direct-assign-to-id_svalue
+    patterns:
+      - pattern-not-inside: |
+          if no_cycles_in_svalue ... then
+            ...
+      # FIXME: This doesn't work: $X.id_svalue := Some $E
+      - pattern-regex: \s([a-z0-5_]+)\.id_svalue\s+:=\s+Some\s+([a-z0-5_]+)
+    message: >-
+      Dot not set '$1.id_svalue' directly, instead use
+      'Dataflow_svalue.set_svalue_ref' which performs a cycle check.
+    fix: Dataflow_svalue.set_svalue_ref $1 $2
+    languages: [ocaml]
+    severity: WARNING
+
+  - id: no-logger-flash
+    patterns:
+      # FIXME: This doesn't work as expected
+      # - pattern-inside: |
+      #     let $LOGGER = Logging.get_logger ...
+      #     ...
+      - pattern: $LOGGER#flash ...
+    message: >-
+      $LOGGER#flash is just for debuggging purposes.
+    fix: ""
+    languages: [ocaml]
+    severity: WARNING

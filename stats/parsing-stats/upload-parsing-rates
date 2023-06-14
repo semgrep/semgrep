@@ -14,7 +14,7 @@ from typing import List
 
 HOST = "https://dashboard.semgrep.dev"
 
-Stat = namedtuple("Stat", ["lang", "line_count", "parse_success"])
+Stat = namedtuple("Stat", ["lang", "line_count", "parse_success", "translation_rate"])
 
 #
 # Return an array of 0 or 1 dicts, whose field values will be posted over HTTP.
@@ -29,9 +29,17 @@ def load_stat_file(in_file: str) -> List[Stat]:
     stat = root["global"]
     line_count = stat["line_count"]
     parse_success = stat["parsing_rate"]
+    translation_rate = 1 - (stat["untranslated_node_count"] / stat["total_node_count"])
 
     if lang is not None and line_count is not None and parse_success is not None:
-        res.append(Stat(lang=lang, line_count=line_count, parse_success=parse_success))
+        res.append(
+            Stat(
+                lang=lang,
+                line_count=line_count,
+                parse_success=parse_success,
+                translation_rate=translation_rate,
+            )
+        )
     return res
 
 
@@ -46,6 +54,11 @@ def upload_stats(stats: List[Stat]) -> None:
         url = f"{HOST}/api/metric/semgrep.core.{stat.lang}.parse-coverage-lines.num"
         r = urllib.request.urlopen(  # nosemgrep
             url=url, data=str(stat.line_count).encode("ascii")
+        )
+        print(r.read().decode())
+        url = f"{HOST}/api/metric/semgrep.core.{stat.lang}.parse-translation-rate.pct"
+        r = urllib.request.urlopen(  # nosemgrep
+            url=url, data=str(100 * stat.translation_rate).encode("ascii")
         )
         print(r.read().decode())
 

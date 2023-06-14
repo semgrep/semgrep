@@ -15,7 +15,6 @@
 
 open Common
 module G = AST_generic
-module V = Visitor_AST
 open Range (* for the $..$ range operators *)
 
 (*****************************************************************************)
@@ -29,7 +28,7 @@ open Range (* for the $..$ range operators *)
 (*****************************************************************************)
 
 (* Returns range of tokens in AST. *)
-let range_of_ast ast = Range.range_of_tokens (V.ii_of_any ast)
+let range_of_ast ast = Range.range_of_tokens (AST_generic_helpers.ii_of_any ast)
 let any_to_str ast = OCaml.string_of_v (Meta_AST.vof_any ast)
 
 (*****************************************************************************)
@@ -47,23 +46,23 @@ let expr_at_range r1 ast =
    * range for subexpressions.
    *)
   let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kexpr =
-          (fun (k, _) e ->
-            let r2_opt = range_of_ast (G.E e) in
-            match r2_opt with
-            (* NoTokenLocation issue for the expression, should fix! *)
-            | None -> ()
-            | Some r2 ->
-                if not (r1 $<>$ r2) then
-                  if r2 $<=$ r1 then raise (FoundExpr e) (* recurse *) else k e);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_expr env e =
+        let r2_opt = range_of_ast (G.E e) in
+        match r2_opt with
+        (* NoTokenLocation issue for the expression, should fix! *)
+        | None -> ()
+        | Some r2 ->
+            if not (r1 $<>$ r2) then
+              if r2 $<=$ r1 then raise (FoundExpr e) (* recurse *)
+              else super#visit_expr env e
+    end
   in
 
   try
-    visitor (G.Pr ast);
+    visitor#visit_program () ast;
     None
   with
   | FoundExpr e -> Some e
@@ -82,27 +81,26 @@ let function_at_range r1 ast =
    * range for subexpressions.
    *)
   let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kstmt =
-          (fun (k, _) s ->
-            match s.G.s with
-            | G.DefStmt (entity, FuncDef _def) -> (
-                let r2_opt = range_of_ast (G.S s) in
-                match r2_opt with
-                (* NoTokenLocation issue for the expression, should fix! *)
-                | None -> ()
-                | Some r2 ->
-                    if r1 $<=$ r2 then find_function_name_in_entity entity
-                      (* recurse *)
-                    else k s)
-            | _ -> k s);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_stmt env s =
+        match s.G.s with
+        | G.DefStmt (entity, FuncDef _def) -> (
+            let r2_opt = range_of_ast (G.S s) in
+            match r2_opt with
+            (* NoTokenLocation issue for the expression, should fix! *)
+            | None -> ()
+            | Some r2 ->
+                if r1 $<=$ r2 then find_function_name_in_entity entity
+                  (* recurse *)
+                else super#visit_stmt env s)
+        | _ -> super#visit_stmt env s
+    end
   in
 
   try
-    visitor (G.Pr ast);
+    visitor#visit_program () ast;
     None
   with
   | Found a -> Some a
@@ -115,24 +113,23 @@ let any_at_range_first r1 ast =
    * range for subexpressions.
    *)
   let visitor =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kstmt =
-          (fun (k, _) s ->
-            let r2_opt = range_of_ast (G.S s) in
-            match r2_opt with
-            (* NoTokenLocation issue for the expression, should fix! *)
-            | None -> ()
-            | Some r2 ->
-                if not (r1 $<>$ r2) then
-                  if r2 $<=$ r1 then raise (Found (G.S s)) (* recurse *)
-                  else k s);
-      }
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_stmt env s =
+        let r2_opt = range_of_ast (G.S s) in
+        match r2_opt with
+        (* NoTokenLocation issue for the expression, should fix! *)
+        | None -> ()
+        | Some r2 ->
+            if not (r1 $<>$ r2) then
+              if r2 $<=$ r1 then raise (Found (G.S s)) (* recurse *)
+              else super#visit_stmt env s
+    end
   in
 
   try
-    visitor (G.Pr ast);
+    visitor#visit_program () ast;
     match expr_at_range r1 ast with
     | None -> None
     | Some e -> Some (G.E e)

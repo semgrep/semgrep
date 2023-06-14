@@ -16,7 +16,6 @@ open Common
 module R = Rule
 module XP = Xpattern
 module MV = Metavariable
-module PI = Parse_info
 module J = JSON
 module SP = Semgrep_prefilter_t
 
@@ -204,15 +203,22 @@ let rec (cnf : Rule.formula -> cnf_step0) =
   | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
-      And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
+      And (ys @ zs |> List.concat_map (function And ors -> ors))
   | R.Or (_, xs) ->
-      let is_dangerously_large l = List.compare_length_with l 1_000_000 > 0 in
+      let is_dangerously_large p q =
+        List.compare_length_with p 1_000_000 > 0
+        || List.compare_length_with q 1_000_000 > 0
+        ||
+        let p_len = List.length p in
+        let q_len = List.length q in
+        (* Divide rather than multiply to avoid integer overflow *)
+        p_len > Int.div 10_000_000 q_len
+      in
       let ys = Common.map cnf xs in
       List.fold_left
         (fun (And ps) (And qs) ->
           (* Abort before this starts consuming insane amounts of memory. *)
-          if is_dangerously_large ps || is_dangerously_large qs then
-            raise CNF_exploded;
+          if is_dangerously_large ps qs then raise CNF_exploded;
           (* Distributive law *)
           And
             (ps
@@ -294,7 +300,7 @@ and leaf_step1 f =
 
 and xpat_step1 pat =
   match pat.XP.pat with
-  | XP.Sem (pat, lang) ->
+  | XP.Sem ((lazy pat), lang) ->
       let ids, mvars = Analyze_pattern.extract_strings_and_mvars ~lang pat in
       Some (StringsAndMvars (ids, mvars))
   (* less: could also extract ids and mvars, but maybe no need to
@@ -303,7 +309,7 @@ and xpat_step1 pat =
   | XP.Regexp re -> Some (Regexp re)
   (* todo? *)
   | XP.Spacegrep _ -> None
-  | XP.Comby _ -> None
+  | XP.Aliengrep _ -> None
 
 and metavarcond_step1 x =
   match x with
@@ -394,7 +400,7 @@ let or_step2 (Or xs) =
   | GeneralPattern -> None
 
 let and_step2 (And xs) =
-  let ys = xs |> List.filter_map or_step2 in
+  let ys = xs |> Common.map_filter or_step2 in
   if null ys then raise GeneralPattern;
   And ys
 
@@ -597,11 +603,13 @@ let regexp_prefilter_of_rule (r : R.rule) =
         | `Extract { formula = f; _ } ->
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+        | `Step _ -> (* TODO *) None
       with
-      (* TODO: see tests/rules/tainted-filename.yaml *)
+      (* TODO: see tests/rules/tainted-filename.yaml,
+                   tests/rules/kotlin_slow_import.yaml *)
       | CNF_exploded ->
-          logger#error "CNF size exploded on rule id %s" rule_id;
+          logger#error "CNF size exploded on rule id %s" (rule_id :> string);
           None
       | Stack_overflow ->
-          logger#error "Stack overflow on rule id %s" rule_id;
+          logger#error "Stack overflow on rule id %s" (rule_id :> string);
           None)

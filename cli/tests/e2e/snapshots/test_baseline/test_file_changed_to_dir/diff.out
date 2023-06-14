@@ -1,4 +1,9 @@
-Findings:
+                  
+                  
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+                          
+    file_or_dir.py/bar.py 
+            1┆ y = 23478921
 
-  file_or_dir.py/bar.py 
-          1┆ y = 23478921

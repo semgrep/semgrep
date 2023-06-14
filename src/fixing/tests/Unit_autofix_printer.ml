@@ -32,8 +32,9 @@ type autofix_printer_test_case = {
  * fixes tested there are correct.
  *)
 let check lang { target; pattern; fix_pattern; expected } =
-  let ext = List.hd (Lang.ext_of_lang lang) in
+  let ext = Common.hd_exn "unexpected empty list" (Lang.ext_of_lang lang) in
   Common2.with_tmp_file ~str:target ~ext (fun target_file ->
+      let target_file = Fpath.v target_file in
       let matches =
         Unit_engine.match_pattern ~lang
           ~hook:(fun _ -> ())
@@ -78,8 +79,8 @@ let check lang { target; pattern; fix_pattern; expected } =
       (* Replace the fake target contents with the rendered fix *)
       let start, end_ =
         let start, end_ = match_.Pattern_match.range_loc in
-        let _, _, end_charpos = Parsing_helpers.get_token_end_info end_ in
-        (start.Parse_info.charpos, end_charpos)
+        let _, _, end_charpos = Tok.end_pos_of_loc end_ in
+        (start.Tok.pos.charpos, end_charpos)
       in
       let full_fixed_text =
         let before = Str.first_chars fake_target_contents start in

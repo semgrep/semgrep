@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 module CST = Tree_sitter_swift.CST
-module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
@@ -34,7 +33,7 @@ type env = context H.env
 
 let token = H.token
 let str = H.str
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let todo (_env : env) _ = failwith "not implemented"
 
 (* Semicolons are associated in the CST with the following statement rather
@@ -434,7 +433,7 @@ let map_str_escaped_char (env : env) (x : CST.str_escaped_char) =
       let s1, t1 = (* "\\" *) str env v1 in
       let s2, t2 = (* "u" *) str env v2 in
       let s3, t3 = (* pattern \{[0-9a-fA-F]+\} *) str env v3 in
-      (String.concat "" [ s1; s2; s3 ], PI.combine_infos t1 [ t2; t3 ])
+      (String.concat "" [ s1; s2; s3 ], Tok.combine_toks t1 [ t2; t3 ])
 
 let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
     (e : G.expr) =
@@ -478,7 +477,7 @@ let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
       G.DotAccess (receiver, dot, field_name) |> G.e
   | `Custom_op x ->
       let op = map_custom_operator env x in
-      G.Call (G.N (H2.name_of_id op) |> G.e, PI.unsafe_fake_bracket [ G.Arg e ])
+      G.Call (G.N (H2.name_of_id op) |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
       |> G.e
 
 let map_as_operator (env : env) (x : CST.as_operator) =
@@ -590,16 +589,6 @@ let map_identifier (env : env) ((v1, v2) : CST.identifier) =
   in
   v1 :: v2
 
-let map_navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) :
-    G.tok * G.field_name =
-  let v1 = (* dot_custom *) token env v1 in
-  let v2 =
-    match v2 with
-    | `Simple_id x -> G.FN (map_simple_identifier env x |> H2.name_of_id)
-    | `Int_lit tok -> G.FDynamic (G.L (map_integer_literal env tok) |> G.e)
-  in
-  (v1, v2)
-
 let map_precedence_group_attribute (env : env)
     ((v1, v2, v3) : CST.precedence_group_attribute) =
   let name = map_simple_identifier env v1 |> H2.name_of_id in
@@ -610,7 +599,7 @@ let map_precedence_group_attribute (env : env)
         G.NamedAttr
           ( v2,
             name,
-            PI.unsafe_fake_bracket
+            Tok.unsafe_fake_bracket
               [
                 G.Arg (G.N (map_simple_identifier env x |> H2.name_of_id) |> G.e);
               ] )
@@ -618,7 +607,7 @@ let map_precedence_group_attribute (env : env)
         G.NamedAttr
           ( v2,
             name,
-            PI.unsafe_fake_bracket
+            Tok.unsafe_fake_bracket
               [ G.Arg (G.L (map_boolean_literal env x) |> G.e) ] )
   in
   G.At v3
@@ -776,7 +765,7 @@ and map_enum_entry_suffix (env : env) (ent : G.entity)
       let defkind =
         G.EnumEntryDef
           {
-            ee_args = Some (PI.unsafe_fake_bracket [ G.ArgType ty ]);
+            ee_args = Some (Tok.unsafe_fake_bracket [ G.ArgType ty ]);
             ee_body = None;
           }
       in
@@ -787,7 +776,7 @@ and map_enum_entry_suffix (env : env) (ent : G.entity)
       let defkind =
         G.EnumEntryDef
           {
-            ee_args = Some (PI.unsafe_fake_bracket [ G.arg exp ]);
+            ee_args = Some (Tok.unsafe_fake_bracket [ G.arg exp ]);
             ee_body = None;
           }
       in
@@ -1002,7 +991,7 @@ and map_attribute (env : env) ((v1, v2, v3) : CST.attribute) =
         in
         let v4 = (* ")" *) token env v4 in
         (v1, v2 :: v3, v4)
-    | None -> PI.unsafe_fake_bracket []
+    | None -> Tok.unsafe_fake_bracket []
   in
   G.NamedAttr (at_tok, attr_name, args)
 
@@ -1046,7 +1035,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let v3 = map_expr_hack_at_ternary_binary_suffix env v3 in
       G.Call
         ( G.N (H2.name_of_id v2) |> G.e,
-          PI.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
+          Tok.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Nil_coal_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1059,7 +1048,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let ty = map_type_ env v3 in
       G.Call
         ( G.IdSpecial (G.Instanceof, tis) |> G.e,
-          PI.unsafe_fake_bracket [ G.Arg e; G.ArgType ty ] )
+          Tok.unsafe_fake_bracket [ G.Arg e; G.ArgType ty ] )
       |> G.e
   | `Equa_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1138,11 +1127,11 @@ and map_call_suffix (env : env) (v1 : CST.call_suffix) : G.arguments =
   match v1 with
   | `Value_args x -> map_expr_hack_at_ternary_binary_call_suffix env x
   | `Fn_call_lambda_args x ->
-      map_fn_call_lambda_arguments env x |> PI.unsafe_fake_bracket
+      map_fn_call_lambda_arguments env x |> Tok.unsafe_fake_bracket
   | `Value_args_fn_call_lambda_args (v1, v2) ->
       let _b1, v1, _b2 = map_expr_hack_at_ternary_binary_call_suffix env v1 in
       let v2 = map_fn_call_lambda_arguments env v2 in
-      v1 @ v2 |> PI.unsafe_fake_bracket
+      v1 @ v2 |> Tok.unsafe_fake_bracket
 
 and map_fn_call_lambda_arguments (env : env)
     ((v1, v2) : CST.fn_call_lambda_arguments) : G.argument list =
@@ -1204,7 +1193,7 @@ and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
   let pat =
     match (v2, v3) with
     (* Similar to how Python does it: *)
-    | None, None -> G.PatUnderscore (Parse_info.fake_info catch_tok "_")
+    | None, None -> G.PatUnderscore (Tok.fake_tok catch_tok "_")
     | Some v2, None -> map_binding_pattern_no_expr env v2
     (* This is impossible according to the Swift grammar - you can't have a `where`
        on the caught thing unless there was a pattern to modify in the first place.
@@ -1260,11 +1249,11 @@ and map_constructor_suffix (env : env) (v1 : CST.constructor_suffix) =
   match v1 with
   | `Cons_value_args x -> map_constructor_value_arguments env x
   | `Fn_call_lambda_args x ->
-      map_fn_call_lambda_arguments env x |> PI.unsafe_fake_bracket
+      map_fn_call_lambda_arguments env x |> Tok.unsafe_fake_bracket
   | `Cons_value_args_fn_call_lambda_args (v1, v2) ->
       let _b1, v1, _b2 = map_constructor_value_arguments env v1 in
       let v2 = map_fn_call_lambda_arguments env v2 in
-      v1 @ v2 |> PI.unsafe_fake_bracket
+      v1 @ v2 |> Tok.unsafe_fake_bracket
 
 and map_constructor_value_arguments (env : env)
     ((v1, v2, v3) : CST.constructor_value_arguments) : G.arguments =
@@ -1302,7 +1291,7 @@ and map_dictionary_literal_item (env : env)
   let v1 = map_expression env v1 in
   let _v2 = (* ":" *) token env v2 in
   let v3 = map_expression env v3 in
-  G.Container (G.Tuple, PI.unsafe_fake_bracket [ v1; v3 ]) |> G.e
+  G.Container (G.Tuple, Tok.unsafe_fake_bracket [ v1; v3 ]) |> G.e
 
 and map_dictionary_type (env : env) ((v1, v2, v3, v4, v5) : CST.dictionary_type)
     =
@@ -1444,6 +1433,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
+  | `Semg_ellips_meta tok -> G.N (Id (str env tok, G.empty_id_info ())) |> G.e
   | `Semg_deep_ellips (v1, v2, v3) ->
       let l = (* "<..." *) token env v1 in
       let e = map_expression env v2 in
@@ -1457,7 +1447,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
        * something similar.
        * *)
       if str = "...>" then G.DeepEllipsis (l, e, r) |> G.e
-      else raise (PI.Parsing_error r)
+      else raise (Parsing_error.Syntax_error r)
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =
@@ -1595,7 +1585,7 @@ and combine_conds cond conds =
     (fun acc x ->
       G.Call
         ( G.IdSpecial (G.Op G.And, G.fake "&&") |> G.e,
-          PI.unsafe_fake_bracket [ G.Arg acc; G.Arg x ] )
+          Tok.unsafe_fake_bracket [ G.Arg acc; G.Arg x ] )
       |> G.e)
     cond conds
 
@@ -1605,12 +1595,15 @@ and map_if_condition_sequence_item (env : env)
   | `If_let_bind (v1, v2, v3) ->
       let v1 = map_direct_or_indirect_binding env v1 in
       let v2 =
-        match v2 with
-        | Some (v1, v2) ->
+        match (v1, v2) with
+        | _, Some (v1, v2) ->
             let _v1TODO = (* eq_custom *) token env v1 in
             let v2 = map_expression env v2 in
             v2
-        | None ->
+        | G.OtherPat (_, G.P (G.PatId (ident, info)) :: _), None ->
+            (* if let shorthand for shadowing an existing optional variable since Swift 5.7 *)
+            G.N (G.Id (ident, info)) |> G.e
+        | _, None ->
             (* Does not appear to be valid Swift code *)
             failwith "Missing initializer in condition"
       in
@@ -1672,7 +1665,7 @@ and map_import_declaration (env : env)
   (* TODO Use ImportFrom for `import foo.bar.baz`? *)
   G.DirectiveStmt
     {
-      G.d = G.ImportAll (v2, G.DottedName v4, PI.unsafe_fake_info "");
+      G.d = G.ImportAll (v2, G.DottedName v4, Tok.unsafe_fake_tok "");
       d_attrs = attrs;
     }
   |> G.s
@@ -1728,7 +1721,7 @@ and map_interpolation_contents (env : env)
    * something like "\(_: 2)", which there is no real reason to use, and Swift
    * won't allow the others at all. *)
   | _ ->
-      G.OtherExpr (("UnknownInterpolation", PI.unsafe_fake_info ""), []) |> G.e
+      G.OtherExpr (("UnknownInterpolation", Tok.unsafe_fake_tok ""), []) |> G.e
 
 and map_arguments (env : env) ((v1, v2) : CST.interpolation_contents) :
     G.argument list =
@@ -1765,7 +1758,7 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
     let ident_of x =
       let tok = token env x in
-      (PI.str_of_info tok, tok)
+      (Tok.content_of_tok tok, tok)
     in
     Option.map ident_of v1
   in
@@ -1847,16 +1840,20 @@ and map_lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) :
     (* Fake brackets here since the brackets delimit the lambda expression as a
      * whole, not just the statements *)
     (* TODO consider using `in` and the closing bracket as the delimiters *)
-    (* We inject into an `OtherStmtWithStmt` here because we needed somewhere for the
-       capture list to go. This is not permitted with just a regular statement, so there is
-       a new variant `OSWS_Closure` to signify this.
+    (* We put it into the top-level statements so that we do not prevent the inner statements
+       from surviving IL translation. It shouldn't mess anything up, because it shouldn't be
+       translated.
+       We need somewhere for the capture list to go, however, so we just put it first in the
+       list of statements. It shouldn't survive to semantic analysis anyways.
     *)
+    let capture_group_stmt =
+      G.exprstmt
+        (G.OtherExpr
+           (("CaptureGroup", v1), Common.map (fun x -> G.Pa x) captures)
+        |> G.e)
+    in
     G.FBStmt
-      (G.OtherStmtWithStmt
-         ( G.OSWS_Closure,
-           Common.map (fun x -> G.Pa x) captures,
-           G.Block (PI.unsafe_fake_bracket stmts) |> G.s )
-      |> G.s)
+      (G.Block (Tok.unsafe_fake_bracket (capture_group_stmt :: stmts)) |> G.s)
   in
   let _rb = (* "}" *) token env v4 in
   let def =
@@ -2216,11 +2213,21 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
          * It's quite clear that a type can appear in this position, but the
          * generic AST expects an expression. *)
         let type_ = map_navigable_type_expression env x in
-        G.OtherExpr (("TypeExpr", PI.unsafe_fake_info ""), [ G.T type_ ]) |> G.e
+        G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ]) |> G.e
     | `Exp x -> map_expression env x
   in
-  let dot, suffix = map_navigation_suffix env v2 in
-  G.DotAccess (v1, dot, suffix) |> G.e
+  match v2 with
+  | `Dot_choice_simple_id (s1, s2) ->
+      let s1 = (* dot_custom *) token env s1 in
+      let s2 =
+        match s2 with
+        | `Simple_id x -> G.FN (map_simple_identifier env x |> H2.name_of_id)
+        | `Int_lit tok -> G.FDynamic (G.L (map_integer_literal env tok) |> G.e)
+      in
+      G.DotAccess (v1, s1, s2) |> G.e
+  | `Dot_semg_ellips (s1, _) ->
+      let s1 = (* dot_custom *) token env s1 in
+      G.DotAccessEllipsis (v1, s1) |> G.e
 
 and map_tuple_pattern_item (env : env) (x : CST.tuple_pattern_item) : G.pattern
     =
@@ -2708,7 +2715,7 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
     | `Defa_kw tok -> (* default_keyword *) G.Default (token env tok)
   in
   let _tcolon = (* ":" *) token env v3 in
-  let stmt = G.Block (PI.unsafe_fake_bracket (map_statements env v4)) in
+  let stmt = G.Block (Tok.unsafe_fake_bracket (map_statements env v4)) in
   (* For now, don't deal with fallthrough. *)
   let _TODO = Option.map (* "fallthrough" *) (token env) v5 in
   G.CasesAndBody ([ case ], stmt |> G.s)
@@ -2876,7 +2883,7 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
       G.NamedAttr
         ( token env v3,
           H2.name_of_id (str env v3),
-          PI.unsafe_fake_bracket [ base_type; conformed_protocol ] )
+          Tok.unsafe_fake_bracket [ base_type; conformed_protocol ] )
   | `Equa_cons (v1, v2, v3, v4) ->
       let _v1TODO = Common.map (map_attribute env) v1 in
       let v2 = map_identifier env v2 in
@@ -2890,7 +2897,7 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
       G.NamedAttr
         ( v3_tok,
           H2.name_of_id v3_str,
-          PI.unsafe_fake_bracket [ first_type; G.ArgType v4 ] )
+          Tok.unsafe_fake_bracket [ first_type; G.ArgType v4 ] )
 
 and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   let _v1TODO = (* where_keyword *) token env v1 in
@@ -3040,7 +3047,7 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
         | `User_type x -> map_user_type env x
       in
       let v2 = map_constructor_suffix env v2 in
-      G.New (G.fake "new", v1, v2) |> G.e
+      G.New (G.fake "new", v1, G.empty_id_info (), v2) |> G.e
   | `Navi_exp x -> map_navigation_expression env x
   | `Prefix_exp (v1, v2) ->
       let e = map_expression env v2 in

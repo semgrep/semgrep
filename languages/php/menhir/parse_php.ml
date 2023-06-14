@@ -17,7 +17,6 @@ module Ast = Cst_php
 module Flag = Flag_parsing
 module Flag_php = Flag_parsing_php
 module TH = Token_helpers_php
-module PI = Parse_info
 module PS = Parsing_stat
 
 (*****************************************************************************)
@@ -39,7 +38,7 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 (* Lexing only *)
 (*****************************************************************************)
-let tokens2 ?(init_state = Lexer_php.INITIAL) file =
+let tokens ?(init_state = Lexer_php.INITIAL) input_source =
   Lexer_php.reset ();
   Lexer_php._mode_stack := [ init_state ];
 
@@ -69,11 +68,9 @@ let tokens2 ?(init_state = Lexer_php.INITIAL) file =
       Lexer_php._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
-
-let tokens ?init_state a =
-  Profiling.profile_code "Parse_php.tokens" (fun () -> tokens2 ?init_state a)
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
+  [@@profiling]
 
 let is_comment v =
   TH.is_comment v
@@ -88,7 +85,7 @@ let is_comment v =
 (* Main entry point *)
 (*****************************************************************************)
 
-let parse2 ?(pp = !Flag_php.pp_default) filename =
+let parse ?(pp = !Flag_php.pp_default) filename =
   let orig_filename = filename in
   let filename =
     (* note that now that pfff support XHP constructs directly,
@@ -128,7 +125,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   let stat = Parsing_stat.default_stat filename in
   let filelines = Common2.cat_array filename in
 
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.file filename) in
   (* note that now that pfff support XHP constructs directly,
    * this code is not that needed.
    *)
@@ -175,7 +172,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
   | Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Right (info_of_bads, line_error, cur) ->
       if not !Flag.error_recovery then
-        raise (PI.Parsing_error (TH.info_of_tok cur));
+        raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
       if !Flag.show_parsing_error then
         pr2 ("parse error\n = " ^ error_msg_tok cur);
@@ -192,9 +189,7 @@ let parse2 ?(pp = !Flag_php.pp_default) filename =
         tokens = info_item;
         stat;
       }
-
-let parse ?pp a =
-  Profiling.profile_code "Parse_php.parse" (fun () -> parse2 ?pp a)
+  [@@profiling]
 
 let parse_program ?pp file =
   let res = parse ?pp file in
@@ -206,13 +201,14 @@ let parse_program ?pp file =
 
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"java" (fun file ->
-          let toks = tokens ~init_state:Lexer_php.ST_IN_SCRIPTING file in
-          let toks = Parsing_hacks_php.fix_tokens toks in
-          let _tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks is_comment
-          in
-          Parser_php.semgrep_pattern lexer lexbuf_fake))
+      let toks =
+        tokens ~init_state:Lexer_php.ST_IN_SCRIPTING (Parsing_helpers.Str s)
+      in
+      let toks = Parsing_hacks_php.fix_tokens toks in
+      let _tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks is_comment
+      in
+      Parser_php.semgrep_pattern lexer lexbuf_fake)
 
 (*
  * todo: obsolete now with parse_any ? just redirect to parse_any ?
@@ -256,12 +252,9 @@ let tmp_php_file_from_string ?(header = "<?php\n") s =
 
 (* this function is useful mostly for our unit tests *)
 let (tokens_of_string : string -> Parser_php.token list) =
- fun s ->
-  let tmpfile = Common.new_temp_file "pfff_tokens_of_s" "php" in
-  Common.write_file tmpfile ("<?php \n" ^ s ^ "\n");
-  let toks = tokens tmpfile in
-  Common.erase_this_temp_file tmpfile;
-  toks
+ fun str ->
+  let str = "<?php \n" ^ str ^ "\n" in
+  tokens (Parsing_helpers.Str str)
 
 (* A fast-path parser of xdebug expressions in xdebug dumpfiles.
  * See xdebug.ml *)

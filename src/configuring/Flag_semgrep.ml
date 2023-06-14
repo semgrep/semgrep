@@ -20,39 +20,24 @@ let pfff_only = ref false
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
 
-(* check for identifiers before attempting to match a stmt or stmt list
- *
- * We disabled the Bloom filter optimization by default in 0.116.0 due to its
- * bad interaction with const-prop and sym-prop, and because nowadays it appears
- * to only have a marginal benefit on performance. If we don't notice any major
- * perf regressions, we could completely drop the optimization in the future.
- *
- * For an example of how it interacts badly with const-prop see GH #4670, and for
- * an example of how it interacts badly with sym-prop see PA-1920 (or GH PR #6179).
- * Regarding performance, we ran Semgrep with and without this optimization on
- * nine of the repos in our stress-test monorepo (using p/default):
- *
- * - In four cases (elasticsearch, maven, metabase, and kubernetes) using the
- *   Bloom filter was about 4-5% slower.
- * - In four cases (hadoop, mypy, react, mediawiki) using the Bloom filter was an
- *   average of 9.5% faster, with the largest effect seen on mypy (15% faster).
- * - In the remaining case (flask) there was no meaningful difference.
- *
- * That said take these %'s with a grain of salt, since we only did one run each,
- * and it was done on a laptop with other stuff running on the bakground, so there
- * was noise. And the absolute difference in seconds between runs was less than
- * 8 seconds, with an average (and also median) of 4 seconds.
- *)
-let use_bloom_filter = ref false
-
+(* TODO: This was turned off by default in 1.22.0, the matching-cache's code
+ * should be removed after a few releases once we confirm that disabling it
+ * has no major impact on performance for our community users and customers. *)
 (* opt = optimization *)
-let with_opt_cache = ref true
+let with_opt_cache = ref false
 
+(* TODO: To be removed with `with_opt_cache` a few releases after 1.22.0. *)
 (* Improves performance on some patterns, degrades performance on others. *)
 let max_cache = ref false
 
 (* Maximum size of a single target file, in bytes (exceptions apply). *)
 let max_target_bytes = ref 5_000_000
+
+(* Maximum number of tainted lvals to save. *)
+let max_tainted_lvals = ref Limits_semgrep.taint_MAX_TAINTED_LVALS
+
+(* Maximum size of the taints set for each lval *)
+let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
 
 (* Whether or not to skip files believed to be minified. *)
 let skip_minified_files = ref true
@@ -68,3 +53,6 @@ let equivalence_mode = ref false
 (* Note that an important flag used during parsing is actually in pfff in
  * Flag_parsing.sgrep_mode
  *)
+
+(* One-off experiment for Raja (See Raja_experiment.ml) *)
+let raja = ref false

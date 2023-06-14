@@ -1,0 +1,12 @@
+rules:
+- id: tainted-pattern-lval 
+  mode: taint
+  pattern-sources:
+    - pattern: |
+        tainted 
+  pattern-sinks: 
+    - pattern: |
+        sink(...)
+  message: Working!
+  severity: WARNING
+  languages: [rust]

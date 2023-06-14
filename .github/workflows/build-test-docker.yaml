@@ -1,3 +1,5 @@
+# Build and test our semgrep docker image.
+
 name: build-test-docker
 
 on:
@@ -52,8 +54,7 @@ jobs:
     name: Build and test Semgrep Docker image
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v2
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
@@ -74,13 +75,11 @@ jobs:
       - name: Load image
         run: |
           docker load --input /tmp/image.tar
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       - name: Test Image
         if: ${{ inputs.enable-tests }}
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}
           path: /tmp/image.tar

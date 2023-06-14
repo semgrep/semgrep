@@ -1,7 +1,6 @@
 #
 # Collection of public git repositories of java code.
 #
-https://github.com/elastic/elasticsearch
 https://github.com/spring-projects/spring-boot
 https://github.com/ReactiveX/RxJava
 https://github.com/google/guava
@@ -9,6 +8,12 @@ https://github.com/google/guava
 https://github.com/square/okhttp
 https://github.com/square/retrofit
 https://github.com/PhilJay/MPAndroidChart
+https://github.com/quarkusio/quarkus
+https://github.com/facebook/react-native
+https://github.com/apache/doris
+https://github.com/seata/seata
+https://github.com/alibaba/nacos
+https://github.com/apache/dubbo
 # project in "maintenance-mode"
 https://github.com/zxing/zxing
 # last update was 1 year ago, seems dead

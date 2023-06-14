@@ -24,14 +24,13 @@
 open Common
 open AST_generic (* for the arithmetic operator *)
 open Ast_go
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let error tok s =
-  raise (Parse_info.Other_error (s, tok))
+  raise (Parsing_error.Other_error (s, tok))
 
 let rev = true
 

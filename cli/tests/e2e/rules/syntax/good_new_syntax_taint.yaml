@@ -1,0 +1,26 @@
+rules:
+- id: new-syntax
+  mode: taint
+  taint:
+    sources:
+      - all: 
+          - foo(...)
+          - |
+            bar()
+      - "hi"
+    sinks:
+      - any:
+          - "sink(...)"
+    sanitizers:
+      - clean(...)
+    propagators:
+      - pattern: |
+          $TO.foo($FROM)
+        from: $FROM
+        to: $TO
+        label: A
+        requires: B
+        replace-labels: [C, D]
+  message: xxx
+  languages: [python]
+  severity: WARNING

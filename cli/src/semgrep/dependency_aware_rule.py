@@ -76,7 +76,8 @@ def generate_unreachable_sca_findings(
         lockfile_paths = target_manager.get_lockfiles(ecosystem)
 
         for lockfile_path in lockfile_paths:
-            deps = parse_lockfile_path(lockfile_path)
+            # Ignore errors here because we assume they are processed later
+            deps, _ = parse_lockfile_path(lockfile_path)
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
@@ -97,9 +98,17 @@ def generate_unreachable_sca_findings(
                     match=core.CoreMatch(
                         rule_id=core.RuleId(rule.id),
                         location=core.Location(
-                            path=str(lockfile_path),
-                            start=core.Position(0, 0, 0),
-                            end=core.Position(0, 0, 0),
+                            path=core.Fpath(str(lockfile_path)),
+                            start=core.Position(found_dep.line_number or 0, 0, 0),
+                            end=core.Position(
+                                (
+                                    found_dep.line_number + 1
+                                    if found_dep.line_number
+                                    else 0
+                                ),
+                                0,
+                                0,
+                            ),
                         ),
                         # TODO: we need to define the fields below in
                         # Output_from_core.atd so we can reuse core.MatchExtra
@@ -154,7 +163,8 @@ def generate_reachable_sca_findings(
                 )
                 if lockfile_path is None:
                     continue
-                deps = parse_lockfile_path(lockfile_path)
+                # Ignore errors here because we assume they are processed later
+                deps, _ = parse_lockfile_path(lockfile_path)
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
                 dependency_matches = list(

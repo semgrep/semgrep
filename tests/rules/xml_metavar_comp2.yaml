@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    severity: WARNING
+    message: test
+    languages:
+      - xml
+    metadata:
+      category: security
+    patterns:
+      - pattern: <a>$X</a>
+      - metavariable-comparison:
+          comparison: int($X) == 20

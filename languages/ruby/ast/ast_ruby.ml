@@ -57,7 +57,7 @@
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Parse_info.t [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
 
 (* Below we derive also eq, and ord, which is unusual compared to our other
  * parsers. Indeed, we use the GLR parser generator dypgen to parse Ruby
@@ -431,7 +431,6 @@ and method_kind =
   | M of method_name
   | SingletonM of expr (* TODO (variable | expr) * scope_op * method_name *)
 [@@deriving show { with_path = false }, eq, ord]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Type *)
@@ -446,7 +445,7 @@ and method_kind =
 (* Toplevel *)
 (*****************************************************************************)
 
-type program = stmts [@@deriving show, eq, ord] (* with tarzan *)
+type program = stmts [@@deriving show, eq, ord]
 
 (*****************************************************************************)
 (* Any *)
@@ -463,7 +462,6 @@ type any =
   | Pa of formal_param
   | Pr of program
 [@@deriving show { with_path = false }, eq]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)

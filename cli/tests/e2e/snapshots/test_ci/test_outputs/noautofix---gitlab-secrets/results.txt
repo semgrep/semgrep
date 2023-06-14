@@ -9,16 +9,42 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === stdout - plain
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-  "version": "14.1.2",
+  "scan": {
+    "analyzer": {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "url": "https://semgrep.dev",
+      "vendor": {
+        "name": "Semgrep"
+      },
+      "version": "<MASKED>"
+    },
+    "end_time": "<MASKED>",
+    "scanner": {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "url": "https://semgrep.dev",
+      "vendor": {
+        "name": "Semgrep"
+      },
+      "version": "<MASKED>"
+    },
+    "start_time": "<MASKED>",
+    "status": "success",
+    "type": "sast",
+    "version": "<MASKED>"
+  },
+  "version": "15.0.4",
   "vulnerabilities": [
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "details": {},
+      "flags": [],
       "id": "8c695a6a-4ab5-ffff-33d0-103309a310c1",
       "identifiers": [
         {
@@ -49,11 +75,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "details": {},
+      "flags": [],
       "id": "8abb389b-2f01-d0e5-2d66-3251e1d24ba7",
       "identifiers": [
         {
@@ -84,11 +111,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "details": {},
+      "flags": [],
       "id": "f6c666e6-921a-4402-8a20-15d0de15cc14",
       "identifiers": [
         {
@@ -119,11 +147,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
+      "details": {},
+      "flags": [],
       "id": "d4404942-1636-e370-e790-6a6bed5fce54",
       "identifiers": [
         {
@@ -154,11 +183,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-four",
+      "details": {},
+      "flags": [],
       "id": "87cd1247-dfc8-4bbd-502c-872035c71a63",
       "identifiers": [
         {
@@ -189,11 +219,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:taint-test",
+      "details": {},
+      "flags": [],
       "id": "05a6d679-3a62-42a4-9ff8-3113ef4a83b3",
       "identifiers": [
         {
@@ -224,11 +255,12 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
+      "details": {},
+      "flags": [],
       "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
       "identifiers": [
         {
@@ -259,12 +291,19 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     {
       "category": "secret_detection",
       "commit": {
-        "date": "1970-01-01T00:00:00Z",
+        "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "confidence": "High",
       "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
-      "id": "ff8806e5-d262-f88a-eebb-c15b80d84f12",
+      "details": {
+        "exposure": {
+          "name": "exposure",
+          "type": "text",
+          "value": "reachable"
+        }
+      },
+      "flags": [],
+      "id": "6090c1ba-b6c8-853d-a43c-7119a6eb2ad0",
       "identifiers": [
         {
           "name": "Semgrep - supply-chain1",
@@ -274,12 +313,15 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "end_line": 0,
+        "end_line": 2,
         "file": "poetry.lock",
-        "start_line": 0
+        "start_line": 1
       },
       "message": "found a dependency",
-      "raw_source_code_extract": [],
+      "raw_source_code_extract": [
+        "[[package]]\n",
+        "name = \"badlib\"\n"
+      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -294,45 +336,46 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of stdout - plain
 
 === stderr - plain
-                                                                                
-                                                                                
-┌────────────────┐                                                              
-│ Debugging Info │                                                              
-└────────────────┘                                                              
-                                                                                
-  SCAN ENVIRONMENT                                                              
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment git, triggering event is unknown         
-  server      - logged in as org_name on https://semgrep.dev                    
-                                                                                
-                                                                                
-┌─────────────┐                                                                 
-│ Scan Status │                                                                 
-└─────────────┘                                                                 
-                                                                                
-Scanning 1 file with 4 python rules.
 
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
+
+  CONNECTION
+  Reporting start of scan for deployment_name
+  Fetching configuration from Semgrep Cloud Platform
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+
+
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep App:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stderr - plain

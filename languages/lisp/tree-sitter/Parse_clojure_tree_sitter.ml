@@ -12,9 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 module CST = Tree_sitter_clojure.CST
 module R = Raw_tree
-module PI = Parse_info
 open AST_generic
 module G = AST_generic
 module H = Parse_tree_sitter_helpers
@@ -39,6 +39,18 @@ let _str = H.str
 let _todo (_env : env) _ = failwith "not implemented lol"
 let token (env : env) (tok : Tree_sitter_run.Token.t) = R.Token (H.str env tok)
 
+let name (env : env) (tok : Tree_sitter_run.Token.t) =
+  let s, t = H.str env tok in
+  (* alt: detect / and . in tree-sitter-clojure instead *)
+  (* TODO: also split for '.' *)
+  if s =~ "^\\(.*\\)/\\(.*\\)$" then
+    let before, after = Common.matched2 s in
+    let t1, t2 = Tok.split_tok_at_bytepos (String.length before) t in
+    let id1 = R.Token (before, t1) in
+    let id2 = R.Token (after, t2) in
+    R.List [ id1; id2 ]
+  else R.Token (s, t)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -51,10 +63,6 @@ let map_tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot
     =
   (* tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot *)
   token env tok
-
-let map_tok_pat_0a702c4_rep_choice_pat_0a702c4 (env : env)
-    (tok : CST.tok_pat_0a702c4_rep_choice_pat_0a702c4) =
-  (* tok_pat_0a702c4_rep_choice_pat_0a702c4 *) token env tok
 
 let rec map_anon_choice_read_cond_lit_137feb9 (env : env)
     (x : CST.anon_choice_read_cond_lit_137feb9) =
@@ -297,7 +305,7 @@ and map_source (env : env) (xs : CST.source) =
 
 and map_sym_lit (env : env) ((v1, v2) : CST.sym_lit) =
   let _v1 = R.List (Common.map (map_metadata_lit env) v1) in
-  let v2 = map_tok_pat_0a702c4_rep_choice_pat_0a702c4 env v2 in
+  let v2 = name env v2 in
   v2
 
 (*****************************************************************************)

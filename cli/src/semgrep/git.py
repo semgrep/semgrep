@@ -1,4 +1,6 @@
+import os
 import subprocess
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import indent
@@ -6,7 +8,6 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
-from typing import Optional
 
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -68,20 +69,15 @@ class BaselineHandler:
         Raises Exception if
         - cwd is not in git repo
         - base_commit is not valid git hash
-        - there are tracked files with pending changes
-        - there are untracked files that will be overwritten by a file in the base commit
         """
         self._base_commit = base_commit
         self._is_mergebase = is_mergebase
-        self._dirty_paths_by_status: Optional[Dict[str, List[Path]]] = None
 
         try:
             # Check commit hash exists
             git_check_output(["git", "cat-file", "-e", base_commit])
 
             self.status = self._get_git_status()
-            self._abort_on_pending_changes()
-            self._abort_on_conflicting_untracked_paths(self.status)
         except subprocess.CalledProcessError as e:
             raise Exception(
                 f"Error initializing baseline. While running command {e.cmd} recieved non-zero exit status of {e.returncode}.\n(stdout)->{e.stdout}\n(strerr)->{e.stderr}"
@@ -206,79 +202,6 @@ class BaselineHandler:
         else:
             return git_check_output(["git", "merge-base", self._base_commit, "HEAD"])
 
-    def _get_dirty_paths_by_status(self) -> Dict[str, List[Path]]:
-        """
-        Returns all paths that have a git status, grouped by change type.
-
-        Raises CalledProcessError if `git status` command fails though
-        not clear how that would happen since at this point cwd must be valid repo
-
-        These can be staged, unstaged, or untracked.
-        """
-        if self._dirty_paths_by_status is not None:
-            return self._dirty_paths_by_status
-
-        logger.debug("Initializing dirty paths")
-        git_status_output = git_check_output(
-            ["git", "status", "--porcelain", "-z", "--ignore-submodules"]
-        )
-        logger.debug(f"Git status output: {git_status_output}")
-        output = zsplit(git_status_output)
-        logger.debug("finished getting dirty paths")
-
-        dirty_paths: Dict[str, List[Path]] = {}
-        for line in output:
-            status_code = line[0]
-            path = Path(line[3:])
-
-            if status_code in dirty_paths:
-                dirty_paths[status_code].append(path)
-            else:
-                dirty_paths[status_code] = [path]
-
-        logger.debug(str(dirty_paths))
-
-        # Cache dirty paths
-        self._dirty_paths_by_status = dirty_paths
-        return dirty_paths
-
-    def _abort_on_pending_changes(self) -> None:
-        """
-        Raises Exception if any tracked files are changed.
-
-        We are aborting for now to prevent inadvertently deleting files while
-        doing a baseline scan until we confidently stash and unstash said changes
-        """
-        if set(self._get_dirty_paths_by_status()) - {StatusCode.Untracked}:
-            raise Exception(
-                "Found pending changes in tracked files. Baseline scans runs require a clean git state."
-            )
-
-    def _abort_on_conflicting_untracked_paths(self, status: GitStatus) -> None:
-        """
-        Raises Exception if untracked paths in head were touched in baseline commit
-        This would mean checking out the baseline would overwrite said file
-
-        :raises Exception: If the git repo is not in a clean state
-        """
-        changed_paths = set(
-            status.added + status.modified + status.removed + status.unmerged
-        )
-        untracked_paths = {
-            str(path)
-            for path in (
-                self._get_dirty_paths_by_status().get(StatusCode.Untracked, [])
-            )
-        }
-        overlapping_paths = untracked_paths & changed_paths
-
-        if overlapping_paths:
-            raise Exception(
-                f"Found files that are untracked by git but exist in {self._base_commit}",
-                "Running a baseline scan will cause changes to be overwritten, so aborting.",
-                f"Please commit or stash your untracked changes in these paths: {overlapping_paths}.",
-            )
-
     @contextmanager
     def baseline_context(self) -> Iterator[None]:
         """
@@ -296,63 +219,59 @@ class BaselineHandler:
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
-        env = get_state().env
         # Reabort in case for some reason aborting in __init__ did not cause
         # semgrep to exit
-        self._abort_on_pending_changes()
-        self._abort_on_conflicting_untracked_paths(self.status)
 
-        logger.debug("Running git write-tree")
+        cwd = Path.cwd()
+        git_root = get_git_root_path()
+        relative_path = cwd.relative_to(git_root)
+        # `git worktree` is doing 90% of the heavy lifting here. Docs:
+        # https://git-scm.com/docs/git-worktree
+        #
+        # In short, git allows you to have multiple working trees checked out at
+        # the same time. This means you can essentially have X different
+        # branches/commits checked out from the same repo, in different locations
+        #
+        # Different worktrees share the same .git directory, so this is a lot
+        # faster/cheaper than cloning the repo multiple times
+        #
+        # This also allows us to not worry about git state, since
+        # unstaged/staged files are not shared between worktrees. This means we
+        # don't need to git stash anything, or expect a clean working tree.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            try:
+                merge_base_sha = self._get_git_merge_base()
+                logger.debug("Running git checkout for baseline context")
+                # Add a new working tree at the temporary directory
+                git_check_output(["git", "worktree", "add", tmpdir, merge_base_sha])
+                logger.debug("Finished git checkout for baseline context")
 
-        current_head = git_check_output(["git", "rev-parse", "HEAD"])
-        try:
-            merge_base_sha = self._get_git_merge_base()
-            logger.debug("Running git checkout for baseline context")
-            git_check_output(["git", "reset", "--hard", merge_base_sha])
-            logger.debug("Finished git checkout for baseline context")
-            yield
-        finally:
-            # Return to non-baseline state
+                # Change the working directory to the new working tree
+                os.chdir(Path(tmpdir) / relative_path)
 
-            # git checkout will fail if the checked-out index deletes all files in the repo
-            # In this case, we still want to continue without error.
-            # Note that we have no good way of detecting this issue without inspecting the checkout output
-            # message, which means we are fragile with respect to git version here.
-            logger.debug("Running git reset to return original context")
-            # nosem: use-git-check-output-helper
-            x = subprocess.run(
-                ["git", "reset", "--hard", current_head],
-                capture_output=True,
-                timeout=env.git_command_timeout,
-            )
-            logger.debug("Finished git reset to return original context")
-
-            if x.returncode != 0:
-                output = x.stderr.decode()
-                if (
-                    output
-                    and len(output) >= 2
-                    and "pathspec '.' did not match any file(s) known to git"
-                    in output.strip()
-                ):
-                    logger.debug(
-                        "Restoring git index failed due to total repository deletion; skipping checkout"
-                    )
-                else:
-                    raise Exception(
-                        f"Fatal error restoring Git state; please restore your repository state manually:\n{output}"
-                    )
+                # We are now in the temporary working tree, and scans should be
+                # identical to as if we had checked out the baseline commit
+                yield
+            finally:
+                os.chdir(cwd)
+                logger.debug("Cleaning up git worktree")
+                # Remove the working tree
+                git_check_output(["git", "worktree", "remove", tmpdir])
+                logger.debug("Finished cleaning up git worktree")
 
     def print_git_log(self) -> None:
         base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])
+        head_commit_sha = git_check_output(["git", "rev-parse", "HEAD"])
         merge_base_sha = self._get_git_merge_base()
-        logger.info(
-            "  Will report findings introduced by these commits (may be incomplete for shallow checkouts):"
-        )
-        log = git_check_output(
-            ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
-        )
-        logger.info(indent(log, "    "))
+        if head_commit_sha != merge_base_sha:
+            logger.info(
+                "  Will report findings introduced by these commits (may be incomplete for shallow checkouts):"
+            )
+            log = git_check_output(
+                ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
+            )
+            logger.info(indent(log, "    "))
+
         if merge_base_sha != base_commit_sha:
             logger.warning(
                 "  The current branch is missing these commits from the baseline branch:"

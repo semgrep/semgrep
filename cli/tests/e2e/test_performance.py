@@ -1,11 +1,12 @@
 import time
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.slow
 @pytest.mark.flaky(reruns=2)
-def test_debug_performance(run_semgrep_in_tmp):
+def test_debug_performance(run_semgrep_in_tmp: RunSemgrep):
     """
     Verify that running semgrep with --debug does not result in
     performance slowdown wrt running without --debug

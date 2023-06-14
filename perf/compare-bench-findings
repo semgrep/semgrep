@@ -10,8 +10,6 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 
-FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
-
 
 def findings_differ(expected: Dict[str, Any], findings: Dict[str, Any]) -> bool:
     name = findings["name"]
@@ -44,13 +42,27 @@ def read_findings(filename: Path) -> Dict[str, Any]:
         return json.load(f)
 
 
-def main() -> None:
+def expected_snapshot_for_findings(findings_path: Path):
+    # Finding snapshot should have path `dir/configname_findings.json`
+    # Return the snapshot path `file_dir/configname_baseline.json`
     file_dir = os.path.dirname(os.path.abspath(__file__))
 
-    expected = read_findings(Path(file_dir + "/" + FINDINGS_SNAPSHOT_PATH))
-    findings = read_findings(Path(sys.argv[1]))
+    dir, filename = os.path.split(findings_path)
+    configname = "_".join(filename.split("_")[0:-1])
+    return os.path.join(file_dir, f"snapshots/{configname}_baseline.json")
+
+
+def main() -> None:
+
+    findings_path = Path(sys.argv[1])
+    findings = read_findings(findings_path)
+    expected = read_findings(Path(expected_snapshot_for_findings(findings_path)))
 
     errors = 0
+
+    if len(expected) != len(findings):
+        print(f"Error: expected {len(expected)} results, got {len(findings)}")
+        errors += 1
 
     for expected, findings in zip(expected, findings):
         if findings_differ(expected, findings):

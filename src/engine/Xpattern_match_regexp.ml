@@ -27,12 +27,12 @@ let regexp_matcher big_str file regexp =
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
          let str = matched_str in
          let line, column = line_col_of_charpos file charpos in
-         let loc1 = { PI.str; charpos; file; line; column } in
+         let loc1 = { Tok.str; pos = { charpos; file; line; column } } in
 
          let charpos = charpos + String.length str in
          let str = "" in
          let line, column = line_col_of_charpos file charpos in
-         let loc2 = { PI.str; charpos; file; line; column } in
+         let loc2 = { Tok.str; pos = { charpos; file; line; column } } in
 
          (* return regexp bound group $1 $2 etc *)
          let n = Pcre.num_of_subs sub in
@@ -47,8 +47,10 @@ let regexp_matcher big_str file regexp =
                         let charpos, _ = Pcre.get_substring_ofs sub n in
                         let str = Pcre.get_substring sub n in
                         let line, column = line_col_of_charpos file charpos in
-                        let loc = { PI.str; charpos; file; line; column } in
-                        let t = PI.mk_info_of_loc loc in
+                        let loc =
+                          { Tok.str; pos = { charpos; file; line; column } }
+                        in
+                        let t = Tok.tok_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
                       | Not_found ->

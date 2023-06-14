@@ -1,7 +1,7 @@
 open Utils_ruby
 open Il_ruby
 
-type pos2 = Parse_info.t
+type pos2 = Tok.t
 
 val mkstmt : stmt_node -> pos2 -> stmt
 val update_stmt : stmt -> stmt_node -> stmt

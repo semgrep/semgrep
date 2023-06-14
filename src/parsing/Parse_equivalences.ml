@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module Eq = Equivalence
 
 (*****************************************************************************)
@@ -25,7 +26,7 @@ let error s = failwith (spf "sgrep_equivalence: wrong format. %s" s)
 (*****************************************************************************)
 
 let parse file =
-  let str = Common.read_file file in
+  let str = File.read_file file in
   let yaml_res = Yaml.of_string str in
   match yaml_res with
   | Result.Ok v -> (
@@ -98,4 +99,5 @@ let parse file =
                      error "wrong equivalence fields")
       | _ -> error "missing equivalences entry")
   | Result.Error (`Msg s) ->
-      failwith (spf "sgrep_equivalence: could not parse %s (error = %s)" file s)
+      failwith
+        (spf "sgrep_equivalence: could not parse %s (error = %s)" !!file s)

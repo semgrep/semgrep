@@ -4,7 +4,7 @@
  * of_files_and_dirs> and compares it with any previous run, providing some
  * form of regression testing.
  *)
-val test_parse_js : Common.path list -> unit
+val test_parse_js : Common.filename list -> unit
 
 (* Print the set of tokens in a JS file *)
 val test_tokens_js : Common.filename -> unit

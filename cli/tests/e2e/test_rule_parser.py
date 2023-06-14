@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from tests.fixtures import RunSemgrep
 
 from ..conftest import TESTS_PATH
 from semgrep.constants import OutputFormat
@@ -14,31 +15,45 @@ syntax_fails = [
 ]
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_passes)
-def test_rule_parser__success(run_semgrep_in_tmp, snapshot, filename):
+def test_rule_parser__success(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
-def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
+def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8})
 
 
+# TODO: osemgrep does not return exit code 8 yet, since all errors are handled
+# by Core_runner, which returns invalid_code (3) or fatal (2), using
+# Cli_json_output.exit_code_of_error_type
 @pytest.mark.kinda_slow
-def test_regex_with_bad_language(run_semgrep_in_tmp, snapshot):
-    run_semgrep_in_tmp("rules/badlanguage.yaml", assert_exit_code=7)
+def test_regex_with_bad_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=8)
 
 
+@pytest.mark.osempass
 @pytest.mark.kinda_slow
-def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
+def test_nonexisting_file(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    run_semgrep_in_tmp("rules/does_not_exist.yaml", assert_exit_code=7)
+
+
+@pytest.mark.osempass
+@pytest.mark.kinda_slow
+def test_rule_parser__empty(run_semgrep_in_tmp: RunSemgrep, snapshot):
     run_semgrep_in_tmp(f"rules/syntax/empty.yaml", assert_exit_code=7)
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
-def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
+def test_rule_parser__failure__error_messages(
+    run_semgrep_in_tmp: RunSemgrep, snapshot, filename
+):
     stdout, _ = run_semgrep_in_tmp(
         f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8}
     )
@@ -61,7 +76,7 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
 
 # https://github.com/returntocorp/semgrep/issues/1095
 @pytest.mark.kinda_slow
-def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
+def test_rule_parser_cli_pattern(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check json output
     stdout, _ = run_semgrep_in_tmp(
         options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=2
@@ -79,7 +94,7 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_rule_parser_error_key_name_text(run_semgrep_in_tmp, snapshot):
+def test_rule_parser_error_key_name_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Check pretty print output
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/invalid-key-name.yml",
@@ -91,7 +106,7 @@ def test_rule_parser_error_key_name_text(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp, snapshot):
+def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/invalid-metavariable-regex.yml",
         output_format=OutputFormat.TEXT,
@@ -102,7 +117,9 @@ def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_rule_parser_error_invalid_key_name_text(run_semgrep_in_tmp, snapshot):
+def test_rule_parser_error_invalid_key_name_text(
+    run_semgrep_in_tmp: RunSemgrep, snapshot
+):
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/invalid-patterns-key.yml",
         output_format=OutputFormat.TEXT,

@@ -13,7 +13,7 @@ on:
         description: "Run the release in dry-run mode, e.g., without changing external state (like pushing to PyPI/Docker)"
         required: true
         type: boolean
-        default: true
+        default: false
 
   workflow_call:
     inputs:
@@ -41,10 +41,10 @@ jobs:
         id: dry-run
         run: |
           if [ "${{ inputs.dry-run }}" = "true" ]; then
-            echo ::set-output name=dry-run::true
+            echo "dry-run=true" >> $GITHUB_OUTPUT
             echo "Setting dry-run to TRUE"
           else
-            echo ::set-output name=dry-run::false
+            echo "dry-run=false" >> $GITHUB_OUTPUT
             echo "Setting dry-run to FALSE"
           fi
 
@@ -111,11 +111,6 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
-    secrets: inherit
-
   build-test-manylinux-x86:
     needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-manylinux-x86.yaml
@@ -130,7 +125,6 @@ jobs:
         build-test-manylinux-x86,
         build-test-osx-x86,
         build-test-osx-m1,
-        build-test-ubuntu-16-04,
       ]
     steps:
       - name: Continue
@@ -189,7 +183,7 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       # wait for the draft release since these may not be ready after the refactor of the start-release.
       - name: Wait for Draft Release if not Ready
         id: wait-draft-release
@@ -200,52 +194,6 @@ jobs:
             echo "release not yet ready, sleeping for 5 seconds"
             sleep 5
           done
-      # OSX
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-osx-${{ github.sha }}
-          path: semgrep-osx
-      - name: Compute checksum
-        run: cat ./semgrep-osx/artifacts.zip | sha256sum > ./semgrep-osx/artifacts.zip.sha256
-      - name: Upload Release Asset
-        id: upload-release-asset-osx
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-osx/artifacts.zip semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip
-      - name: Upload Release Checksum
-        id: upload-checksum-asset-osx
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-osx/artifacts.zip.sha256 semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip.sha256
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip.sha256
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-osx.zip.sha256
-          ## UBUNTU
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: semgrep-ubuntu
-      - name: Compute checksum
-        run: cat ./semgrep-ubuntu/artifacts.tar.gz | sha256sum > ./semgrep-ubuntu/artifacts.tar.gz.sha256
-      - name: Upload Release Asset
-        id: upload-release-asset-ubuntu
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-ubuntu/artifacts.tar.gz semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz
-      - name: Upload Release Checksum
-        id: upload-release-checksum-ubuntu
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cp ./semgrep-ubuntu/artifacts.tar.gz.sha256 semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
-          gh release --repo returntocorp/semgrep upload ${{ steps.get-version.outputs.VERSION }} semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
-          rm semgrep-${{ steps.get-version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
       - name: Publish Release
         id: publish_release
         env:
@@ -261,7 +209,7 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
@@ -278,7 +226,7 @@ jobs:
           "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
-          echo "::set-output name=token::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -314,7 +262,15 @@ jobs:
     steps:
       - name: Get the version
         id: get-version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: |
+          TAG=${GITHUB_REF/refs\/tags\//}
+          if [ "${{ needs.dry-run.outputs.dry-run }}" = "true" ]; then
+            TAG=v99.99.99
+          fi
+          echo "Using TAG=${TAG}"
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using VERSION=${TAG#v}"
+          echo "VERSION=${TAG#v}" >> $GITHUB_OUTPUT
       - uses: actions/setup-python@v4
         id: python-setup
         with:
@@ -332,49 +288,46 @@ jobs:
         # This step does some brew oddities (setting a fake version, and setting a revision) to allow the brew PR prep to succeed
         # The `brew bump-formula-pr` does checks to ensure your PR is legit, but we want to do a phony PR (or at least prep it) for Dry Run only
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         if: ${{ contains(github.ref, '-test-release') || needs.dry-run.outputs.dry-run == 'true' }}
         run: |
           brew bump-formula-pr --force --no-audit --no-browse --write-only \
-            --message="Bump semgrep to version v99.99.99" \
-            --fork-org=returntocorp --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
-      - name: Prepare Brew PR
+            --message="semgrep 99.99.99" \
+            --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
+      - name: Open Brew PR
         if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         run: |
           brew bump-formula-pr --force --no-audit --no-browse --write-only \
-            --message="Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}" \
-            --fork-org=returntocorp --tag="${{ steps.get-version.outputs.VERSION }}" semgrep
+            --message="semgrep ${{ steps.get-version.outputs.VERSION }}" \
+            --tag="${{ steps.get-version.outputs.TAG }}" semgrep
       - name: Prepare Branch
         env:
-          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
-          R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/returntocorp/homebrew-core.git
+          GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
+          R2C_HOMEBREW_CORE_FORK_HTTPS_URL: https://github.com/semgrep-release/homebrew-core.git
         run: |
           cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
           git status
           git diff
-
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
-
           gh auth setup-git
           git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
-
           git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}
           git add Formula/semgrep.rb
-          git commit -m "Bump semgrep to version ${{ steps.get-version.outputs.VERSION }}"
+          git commit -m "semgrep ${{ steps.get-version.outputs.VERSION }}"
       - name: Push Branch to Fork
         env:
-          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         run: |
           cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
           git push --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION }}"
       - name: Push to Fork
         env:
-          GITHUB_TOKEN: ${{ secrets.HOMEBREW_PR_TOKEN }}
-          R2C_HOMEBREW_CORE_OWNER: returntocorp
+          GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
+          R2C_HOMEBREW_CORE_OWNER: semgrep-release
         if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
         run: |
           gh pr create --repo homebrew/homebrew-core \

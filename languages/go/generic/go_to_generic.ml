@@ -14,7 +14,6 @@
  *)
 open Common
 open Ast_go
-module PI = Parse_info
 module G = AST_generic
 module H = AST_generic_helpers
 
@@ -47,11 +46,11 @@ let name_of_qualified_ident x =
   in
   H.name_of_ids xs
 
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 let _fake_id tok s = (s, fake tok s)
 let unsafe_fake_id s = (s, unsafe_fake s)
-let fb = Parse_info.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let mk_name s tok = G.Id ((s, tok), G.empty_id_info ())
 
 (* TODO? do results "parameters" can have names? *)
@@ -77,7 +76,7 @@ let list_to_tuple_or_expr xs =
   match xs with
   | [] -> raise Impossible
   | [ x ] -> x
-  | xs -> G.Container (G.Tuple, PI.unsafe_fake_bracket xs) |> G.e
+  | xs -> G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e
 
 let mk_func_def fkind params ret st : G.function_definition =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
@@ -250,10 +249,10 @@ let top_func () =
     | Cast (t, (l, e, r)) ->
         let t = type_ t and e = expr e in
         (* for semgrep and autofix to get the right range by including
-         * 'r' in the AST.
+         * 'r' in the range.
          * alt: change G.Cast to take a bracket
          *)
-        let e = G.ParenExpr (l, e, r) |> G.e in
+        AST_generic_helpers.set_e_range l r e;
         G.Cast (t, l, e)
     | Deref (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
@@ -274,7 +273,7 @@ let top_func () =
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and l, v2, r = bracket (list init_for_composite_lit) v2 in
-        G.New (fake l "new", v1, (l, v2, r))
+        G.New (fake l "new", v1, G.empty_id_info (), (l, v2, r))
     | Slice (v1, (t1, v2, t2)) ->
         let e = expr v1 in
         let v1, v2, v3 = v2 in
@@ -312,7 +311,7 @@ let top_func () =
     | ParenType v1 ->
         let v1 = type_ v1 in
         error
-          (Visitor_AST.ii_of_any (G.T v1) |> List.hd)
+          (AST_generic_helpers.info_of_any (G.T v1))
           ("ParenType should disappear" ^ Dumper.dump v1))
     |> G.e
   and literal = function
@@ -353,7 +352,7 @@ let top_func () =
         v1
     | InitKeyValue (v1, v2, v3) ->
         let v1 = init v1 and _v2 = tok v2 and v3 = init v3 in
-        G.Container (G.Tuple, PI.unsafe_fake_bracket [ v1; v3 ]) |> G.e
+        G.Container (G.Tuple, Tok.unsafe_fake_bracket [ v1; v3 ]) |> G.e
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         (* Note that here we generate a List instead of a Dict
@@ -532,7 +531,7 @@ let top_func () =
         | Some (xs, _tokEqOrColonEqTODO) ->
             let pattern =
               G.PatTuple
-                (xs |> Common.map H.expr_to_pattern |> PI.unsafe_fake_bracket)
+                (xs |> Common.map H.expr_to_pattern |> Tok.unsafe_fake_bracket)
             in
             G.ForEach (pattern, v2, v3))
   and case_clause = function
@@ -623,7 +622,12 @@ let top_func () =
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, ftok) params ret (G.FBStmt v4) in
-        let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
+        let receiver =
+          match v2 with
+          | G.Param x -> G.ParamReceiver x
+          (* Can this happen? Probably not, but the Go AST allows it *)
+          | _ -> G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ])
+        in
         let l, params, r = def.G.fparams in
         let fparams = (l, receiver :: params, r) in
         G.DefStmt (ent, G.FuncDef { def with G.fparams }) |> G.s

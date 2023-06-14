@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+# pipfiles can have comments
+awscli = "==1.11.82"  # comments can be anywhere
+
+# TODO: we don't support inline comments without a space before them
+# TODO: we break if there's a # character within a "quoted string"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
+python_full_version = "3.8.13"

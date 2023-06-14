@@ -1,3 +1,0 @@
-taint-mode: Code such as `sink(sanitizer(source) if source else ok)` will not be
-incorrectly reported as a tainted sink. This follows a previous attempt at fixing
-these issues in version 1.1.0.

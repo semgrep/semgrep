@@ -1,2 +1,2 @@
-val translate_files :
-  (Common.filename -> Rule.t list) -> Common.filename list -> unit
+(* TODO: what's this strange signature? *)
+val translate_files : (Fpath.t -> Rule.t list) -> Fpath.t list -> unit

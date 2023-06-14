@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 module Flag = Flag_parsing
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -14,12 +15,12 @@ let test_tokens file =
   Flag.verbose_parsing := true;
   Flag.exn_when_lexical_error := true;
 
-  let toks = Parse_scala.tokens file in
+  let toks = Parse_scala.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
 let test_parse xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = xs |> File.Path.of_strings |> List.map File.fullpath in
 
   let fullxs, _skipped_paths =
     Parse_scala.find_source_files_of_dir_or_files xs
@@ -30,12 +31,12 @@ let test_parse xs =
   fullxs
   |> Console.progress (fun k ->
          List.iter (fun file ->
-             logger#info "processing %s" file;
+             logger#info "processing %s" !!file;
              k ();
 
              let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
-                   Parse_scala.parse file)
+                   Parse_scala.parse !!file)
              in
              Common.push stat stat_list));
   Parsing_stat.print_parsing_stat_list !stat_list;

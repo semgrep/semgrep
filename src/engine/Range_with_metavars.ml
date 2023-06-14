@@ -37,12 +37,12 @@ let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
  fun r range ->
   let m = range.origin in
   let rule_id = m.rule_id in
-  let languages = Xlang.to_langs r.Rule.languages in
+  let languages = Xlang.to_langs r.Rule.languages.target_analyzer in
   (* adjust the rule id *)
-  let rule_id =
+  let rule_id : Pattern_match.rule_id =
     {
       rule_id with
-      Pattern_match.id = fst r.Rule.id;
+      id = fst r.Rule.id;
       fix = r.Rule.fix;
       languages;
       message =
@@ -108,7 +108,7 @@ let intersect_ranges config debug_matches xs ys =
     us
     |> Common2.map_flatten (fun u ->
            vs
-           |> List.filter_map (fun v ->
+           |> Common.map_filter (fun v ->
                   if included_in config u v && inside_compatible u v then
                     Some (left_merge u v)
                   else None))

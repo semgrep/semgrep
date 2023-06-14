@@ -15,7 +15,6 @@
 open Common
 module AST = Ast_c
 module CST = Tree_sitter_c.CST
-module PI = Parse_info
 open Ast_cpp
 open Ast_c
 module G = AST_generic
@@ -145,7 +144,7 @@ let string_literal (env : env) ((v1, v2, v3) : CST.string_literal) : string wrap
   in
   let v3 = token env v3 (* "\"" *) in
   let s = v2 |> Common.map fst |> String.concat "" in
-  (s, PI.combine_infos v1 (Common.map snd v2 @ [ v3 ]))
+  (s, Tok.combine_toks v1 (Common.map snd v2 @ [ v3 ]))
 
 let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) : string wrap =
   let v1 =
@@ -165,7 +164,7 @@ let char_literal (env : env) ((v1, v2, v3) : CST.char_literal) : string wrap =
   in
   let v3 = token env v3 (* "'" *) in
   let s = fst v2 in
-  (s, PI.combine_infos v1 [ snd v2; v3 ])
+  (s, Tok.combine_toks v1 [ snd v2; v3 ])
 
 let anon_choice_pat_25b90ba_4a37f8c (env : env)
     (x : CST.anon_choice_pat_25b90ba_4a37f8c) =
@@ -616,7 +615,7 @@ and anon_choice_type_id_opt_field_decl_list_9aebd83 (env : env)
       let v2 =
         match v2 with
         | Some x -> field_declaration_list env x
-        | None -> PI.unsafe_fake_bracket []
+        | None -> Tok.unsafe_fake_bracket []
       in
       (Some v1, v2)
   | `Field_decl_list x -> (None, field_declaration_list env x)
@@ -1283,8 +1282,12 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
       let xs = v1 @ v2 in
       let s = xs |> Common.map fst |> String.concat " " in
       let ys = xs |> Common.map snd in
-      (* repeat1 in grammar.js so List.hd is safe *)
-      let tk = PI.combine_infos (List.hd ys) (List.tl ys) in
+      (* repeat1 in grammar.js so Common.hd_exn "unexpected empty list" is safe *)
+      let tk =
+        Tok.combine_toks
+          (Common.hd_exn "impossible!!!" ys)
+          (Common.tl_exn "unexpected empty list" ys)
+      in
       TBase (s, tk)
   | `Prim_type tok ->
       let t = str env tok (* primitive_type *) in

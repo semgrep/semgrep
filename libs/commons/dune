@@ -4,31 +4,28 @@
  (libraries
    str
    unix
+   fpath
+   uri
    yojson
+   fmt
    ANSITerminal
    logs logs.fmt
    easy_logging easy_logging_yojson
    alcotest
    cmdliner
+   bos
    re
    pcre
    parmap
+   digestif.c
  )
+ ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
    (pps
      ppx_deriving.show
      ppx_deriving.eq
      ppx_deriving.ord
      ppx_hash
-   )
- )
- (foreign_stubs
-   (language c)
-   (include_dirs
-     %{ocaml_where}
-   )
-   (names
-     fnptr_impl
    )
  )
 )

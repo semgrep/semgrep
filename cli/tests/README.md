@@ -6,8 +6,6 @@
 
 ## Structure
 
-Sections marked with :construction: have no tests added yet.
-
 ### `unit/`
 
 Unit tests are meant to be the primary test type.
@@ -15,12 +13,6 @@ This directory has tests for modules or classes
 that mock out any external dependencies.
 
 This is the only directory that counts for test coverage.
-
-### :construction: `unit/property/`
-
-This directory is for property-based tests
-which programmatically generate a wide array of inputs to ensure
-our general-purpose utils aren't tripped up by any kind of possible input.
 
 ### `e2e/`
 
@@ -46,10 +38,14 @@ and can be run with `make qa` instead of `make test`.
 Look into the makefile for exact for what's being run and how to tweak
 it.
 
-### :construction: `performance/`
+### `performance/`
 
 This directory is for benchmarking tests
 that ensure that Semgrep runs fast enough.
+Right now this is used only to test the performance
+of semdep parsers.
+
+See also ../perf for semgrep-core benchmarking tests.
 
 ## Fixtures
 
@@ -106,22 +102,3 @@ To call semgrep with the `--junit-xml` flag:
 To call semgrep with the `--sarif` flag instead of `--json`:
 
 `run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.SARIF)`
-
-## pytest-split and `.test_durations`
-
-The `cli/.test_durations` file is a snapshot of how long tests took to run at a given time.
-This informs the pytest-split plugin on how to optimally distribute tests to parallel workers.
-The durations file helps even if it's out of date and missing half the tests we're currently running.
-If you ever want to update the durations, run this command:
-
-```terminal
-$ pipenv run pytest --store-durations tests/*(/)
-================== test session starts ==================
-platform darwin -- Python 3.11.0b3, pytest-7.1.2, pluggy-1.0.0
-rootdir: /Users/underyx/r2c/semgrep/cli, configfile: pyproject.toml
-plugins: snapshot-0.9.0, xdist-2.5.0, freezegun-0.4.2, forked-1.4.0, split-0.8.0, mock-3.7.0
-collected 1251 items
-```
-
-The `tests/*(/)` glob is a zsh feature to match all directories.
-We explicitly target each directory to undo the exclusion of `tests/qa` set in `pyproject.toml`.

@@ -4,8 +4,8 @@
 
 open Common
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
+(* ran from the root of the semgrep repository *)
+let tests_path = "tests"
 
 let test_valid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in
@@ -13,7 +13,7 @@ let test_valid_files dialect rel_path () =
   files
   |> List.iter (fun file ->
          try
-           let _ = Parse.parse ~conf:(Dialect.conf dialect) file in
+           let _ = Parse.parse ~conf:(Dialect.conf dialect) (Fpath.v file) in
            ()
          with
          | exn ->
@@ -26,10 +26,10 @@ let test_invalid_files dialect rel_path () =
   files
   |> List.iter (fun file ->
          try
-           let _ast = Parse.file ~conf:(Dialect.conf dialect) file in
+           let _ast = Parse.file ~conf:(Dialect.conf dialect) (Fpath.v file) in
            Alcotest.failf "it should have thrown a Parse_error %s" file
          with
-         | Parse_info.Parsing_error _ -> ()
+         | Parsing_error.Syntax_error _ -> ()
          | exn ->
              Alcotest.failf "throwing wrong exn %s on %s" (Common.exn_to_s exn)
                file)

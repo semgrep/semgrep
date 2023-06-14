@@ -68,11 +68,7 @@
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
 
-(* Contains among other things the position of the token through
- * the Parse_info.token_location embedded inside it, as well as the
- * transformation field that makes possible spatch on the code.
- *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 
 (* a shortcut to annotate some information with token/position information *)
 type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
@@ -170,6 +166,7 @@ type expr =
   | DeepEllipsis of expr bracket
   | TypedMetavar of name * tok * type_
   | DotAccessEllipsis of expr * tok (* ... *)
+  | ParenExpr of expr bracket
 
 and number =
   | Int of int option wrap
@@ -467,6 +464,7 @@ type any =
   | Expr of expr
   | Stmt of stmt
   | Stmts of stmt list
+  | Decorator of decorator
   | Program of program
   | DictElem of dictorset_elt
 [@@deriving show { with_path = false }]

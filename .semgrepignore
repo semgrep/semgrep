@@ -16,19 +16,23 @@
 # using this syntax will be dropped from the ignore list:
 # - Explicit "include syntax", e.g. "!kept/".
 # - Multi-character expansion syntax, e.g. "*.py[cod]"
-#
 # To include ignore patterns from another file, start a line
 # with ':include', followed by the path of the file. E.g.
 # ":include path/to/other/ignore/file".
+# UPDATE: this will not be be needed in osemgrep which supports
+# all of the .gitignore syntax (!kept/, *.py[cod])
 #
 # To ignore a file with a literal ':' character, escape it with
 # a backslash, e.g. "\:foo".
 
-tests/
-cli/tests/e2e/targets/
-cli/tests/performance/targets/
-cli/tests/e2e/snapshots/
+/tests/
+/cli/tests/e2e/targets/
+/cli/tests/e2e/snapshots/
+/cli/tests/performance/targets/
 
 # rules being tested for performance
-perf/rules/
-perf/r2c-rules/
+/perf/rules/
+/perf/r2c-rules/
+
+#TODO: fix, can't parse currently, weird
+/src/osemgrep/cli_scan/Cli_json_output.ml

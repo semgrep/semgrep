@@ -1,5 +1,6 @@
 (*s: test_parsing_php.ml *)
 open Common
+open File.Operators
 module Flag = Flag_parsing
 module PS = Parsing_stat
 
@@ -13,21 +14,22 @@ let test_tokens_php file =
   Flag.verbose_lexing := true;
   Flag.verbose_parsing := true;
 
-  let toks = Parse_php.tokens file in
+  let toks = Parse_php.tokens (Parsing_helpers.file file) in
   toks |> List.iter (fun x -> pr2_gen x);
   ()
 
 (*e: test_tokens_php *)
 (*s: test_parse_php *)
 let test_parse_php xs =
+  let xs = File.Path.of_strings xs in
   let fullxs = Lib_parsing_php.find_source_files_of_dir_or_files xs in
 
   let fullxs, _skipped_paths =
     match xs with
-    | [ x ] when Common2.is_directory x ->
+    | [ x ] when Common2.is_directory !!x ->
         let skip_list =
-          if Sys.file_exists (x ^ "/skip_list.txt") then
-            Skip_code.load (x ^ "/skip_list.txt")
+          if Sys.file_exists !!(x / "skip_list.txt") then
+            Skip_code.load (x / "skip_list.txt")
           else []
         in
         Skip_code.filter_files skip_list x fullxs
@@ -48,14 +50,14 @@ let test_parse_php xs =
 
              let { Parsing_result.stat; _ } =
                Common.save_excursion Flag.error_recovery true (fun () ->
-                   Parse_php.parse file)
+                   Parse_php.parse !!file)
              in
              Common.push stat stat_list;
              (*s: add stat for regression testing in hash *)
              let s = spf "bad = %d" stat.PS.error_line_count in
              if stat.PS.error_line_count =|= 0 then
-               Hashtbl.add newscore file Common2.Ok
-             else Hashtbl.add newscore file (Common2.Pb s)
+               Hashtbl.add newscore !!file Common2.Ok
+             else Hashtbl.add newscore !!file (Common2.Pb s)
              (*e: add stat for regression testing in hash *)));
 
   Parsing_stat.print_parsing_stat_list !stat_list;

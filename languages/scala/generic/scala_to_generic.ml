@@ -16,7 +16,6 @@ open Common
 open AST_scala
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,7 +35,7 @@ module PI = Parse_info
 (*****************************************************************************)
 
 let fake = G.fake
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 let id x = x
 let v_string = id
 let v_int = id
@@ -110,58 +109,74 @@ let v_path (v1, v2) =
   let v1 = v_simple_ref v1 and v2 = v_selectors v2 in
   (v1, v2)
 
-let rec v_import_selector (v1, v2) =
-  let v1 = v_ident_or_wildcard v1 and v2 = v_option v_alias v2 in
-  (v1, v2)
+let rec v_import_selector tk (path : G.dotted_ident) = function
+  | NamedSelector x -> v_named_selector tk path x
+  | WildCardSelector x -> v_wildcard_selector tk path x
 
-and v_alias (v1, v2) =
-  let v1 = v_tok v1 and v2 = v_ident_or_wildcard v2 in
-  (v1, v2)
-
-let v_dotted_name_of_stable_id (v1, v2) =
+and v_dotted_name_of_stable_id (v1, v2) =
   let id = id_of_simple_ref v1 in
   id :: v2
 
-let rec v_import_expr tk import_expr =
+and id_of_import_path_elem = function
+  | ImportId id -> id
+  | ImportThis t -> ("this", t)
+  | ImportSuper t -> ("super", t)
+
+and v_dotted_name_of_import_path v1 = Common.map id_of_import_path_elem v1
+
+and v_import_expr tk import_expr =
   match import_expr with
-  | Left id ->
-      [
-        { G.d = G.ImportFrom (tk, DottedName [], [ (id, None) ]); d_attrs = [] };
-      ]
-  | Right (v1, v2) ->
-      let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
-      let v2 = v_import_spec v2 in
-      v2 tk module_name
+  | ImportExprSpec (path, spec) ->
+      let module_name = v_dotted_name_of_import_path path in
+      v_import_spec tk module_name spec
+  | ImportExprMvar id ->
+      (* same as Java *)
+      [ G.ImportFrom (tk, G.DottedName [], [ (v_ident id, None) ]) |> G.d ]
 
-and v_import_spec = function
-  | ImportId v1 ->
-      let v1 = v_ident v1 in
-      fun tk path -> [ G.ImportFrom (tk, path, [ (v1, None) ]) |> G.d ]
-  | ImportWildcard v1 ->
-      let v1 = v_tok v1 in
-      fun tk path -> [ G.ImportAll (tk, path, v1) |> G.d ]
-  | ImportSelectors (_, v1, _) ->
-      let v1 = (v_list v_import_selector) v1 in
-      fun tk path ->
-        v1
-        |> Common.map (fun (id, opt) ->
-               let alias =
-                 match opt with
-                 | None -> None
-                 | Some (_, id) -> Some (id, G.empty_id_info ())
-               in
-               G.ImportFrom (tk, path, [ (id, alias) ]) |> G.d)
+and v_named_selector tk path ((v1, v2) : named_selector) =
+  let id = id_of_import_path_elem v1 in
+  let alias =
+    match v2 with
+    | None -> None
+    | Some id -> Some (v_ident_or_wildcard id, G.empty_id_info ())
+  in
+  G.ImportFrom (tk, G.DottedName path, [ (id, alias) ]) |> G.d
 
-let v_import (v1, v2) : G.directive list =
+and v_wildcard_selector tk path (x : wildcard_selector) =
+  match x with
+  | Left id -> G.ImportAll (tk, G.DottedName path, snd id) |> G.d
+  | Right (tok, tyopt) ->
+      (* given *)
+      let anys =
+        match tyopt with
+        | None -> []
+        | Some ty -> [ G.T (v_type_ ty) ]
+      in
+      G.OtherDirective (("ImportGiven", tok), anys) |> G.d
+
+and v_import_spec tk path = function
+  | ImportNamed v1 -> [ v_named_selector tk path v1 ]
+  | ImportWildcard v1 -> [ v_wildcard_selector tk path v1 ]
+  | ImportSelectors (_, v1, _) -> v_list (v_import_selector tk path) v1
+
+and v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
   List.flatten v2
 
-let v_package (v1, v2) =
+and v_export (v1, v2) : G.directive list =
+  let v1 = v_tok v1 in
+  let v2 = v_list (v_import_expr v1) v2 in
+  List.flatten v2
+  |> Common.map (fun x ->
+         G.OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
+         |> G.d)
+
+and v_package (v1, v2) =
   let v1 = v_tok v1 and v2 = v_qualified_ident v2 in
   (v1, v2)
 
-let rec v_literal = function
+and v_literal = function
   | Symbol (tquote, id) -> Left (G.Atom (tquote, id))
   | Int v1 ->
       let v1 = v_wrap (v_option v_int) v1 in
@@ -236,6 +251,25 @@ and v_type_kind = function
       | _ ->
           todo_type "TyAppliedComplex"
             (G.T v1 :: (xs |> Common.map (fun x -> G.T x))))
+  | TyAnon (v1, v2) ->
+      (* We'd prefer to see type bounds in a `type_parameter`, but this
+         nonterminal needs to become a `type_` argument anyways, and we
+         don't really have a way of embedding `type_parameter` into a
+         `type`. This won't matter semantically, so let's just keep it
+         as an `OtherType`.
+      *)
+      let bound1, bound2 = v_type_bounds v2 in
+      let bound1 =
+        match bound1 with
+        | None -> []
+        | Some (_tok, ty) -> [ G.T ty ]
+      in
+      let bound2 =
+        match bound2 with
+        | None -> []
+        | Some (_tok, ty) -> [ G.T ty ]
+      in
+      G.OtherType (("?", v1), bound1 @ bound2)
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])
@@ -247,9 +281,22 @@ and v_type_kind = function
       and _v2 = v_tok v2
       and v3 = v_type_ v3 in
       let ts =
-        v1 |> PI.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
+        v1 |> Tok.unbracket |> Common.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
+  | TyPoly (v1, _v2, v3) ->
+      let v1 = v_list (v_binding None) v1 in
+      let v3 = v_type_ v3 in
+      G.TyFun (v1, v3)
+  | TyDependent (v1, _v2, v3) ->
+      let v1 =
+        v_list
+          (fun (v1, v2) ->
+            G.Param (G.param_of_type ~pname:(Some (v_ident v1)) (v_type_ v2)))
+          v1
+      in
+      let v3 = v_type_ v3 in
+      G.TyFun (v1, v3)
   | TyTuple v1 ->
       let v1 = v_bracket (v_list v_type_) v1 in
       G.TyTuple v1
@@ -270,6 +317,14 @@ and v_type_kind = function
          | None -> []
          | Some t -> [ G.T t ])
         @ (defs |> Common.map (fun def -> G.Def def)))
+  | TyMatch (ty, tok, cases) ->
+      let cases = v_type_case_clauses cases in
+      let ty_expr =
+        G.OtherExpr (("type_expr", fake "type_expr"), [ G.T (v_type_ ty) ])
+        |> G.e
+      in
+      let st = G.Switch (tok, Some (G.Cond ty_expr), cases) |> G.s in
+      todo_type "TyMatch" [ G.S st ]
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
@@ -355,6 +410,14 @@ and v_pattern = function
   | PatDisj (v1, v2, v3) ->
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
+  | PatQuoted quote -> (
+      match quote with
+      | QuotedBlock (quote_tok, (_, v1, _)) ->
+          let stmts = v_block v1 in
+          G.OtherPat (("QuotedBlock", quote_tok), [ G.Ss stmts ])
+      | QuotedType (quote_tok, (_, v1, _)) ->
+          let ty = v_type_ v1 in
+          G.OtherPat (("QuotedBlock", quote_tok), [ G.T ty ]))
   | PatEllipsis v1 -> G.PatEllipsis v1
 
 and todo_expr msg any = G.OtherExpr ((msg, fake msg), any) |> G.e
@@ -438,13 +501,21 @@ and v_expr e : G.expr =
       } ->
           let args =
             match args with
-            | None -> PI.unsafe_fake_bracket []
+            | None -> Tok.unsafe_fake_bracket []
             | Some args -> args
           in
-          G.New (v1, tp, args) |> G.e
+          G.New (v1, tp, G.empty_id_info (), args) |> G.e
       | _ ->
           let cl = G.AnonClass v2 |> G.e in
           G.Call (cl, fb []) |> G.e)
+  | Quoted quote -> (
+      match quote with
+      | QuotedBlock (quote_tok, (_, v1, _)) ->
+          let stmts = v_block v1 in
+          G.OtherExpr (("QuotedBlock", quote_tok), [ G.Ss stmts ]) |> G.e
+      | QuotedType (quote_tok, (_, v1, _)) ->
+          let ty = v_type_ v1 in
+          G.OtherExpr (("QuotedBlock", quote_tok), [ G.T ty ]) |> G.e)
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
@@ -455,7 +526,7 @@ and v_expr e : G.expr =
       let v1 = v_expr v1
       and v2 = v_tok v2
       and v3 = v_bracket v_case_clauses v3 in
-      let st = G.Switch (v2, Some (G.Cond v1), PI.unbracket v3) |> G.s in
+      let st = G.Switch (v2, Some (G.Cond v1), Tok.unbracket v3) |> G.s in
       G.stmt_to_expr st
   | S v1 ->
       let v1 = v_stmt v1 in
@@ -469,8 +540,20 @@ and expr_of_block xs : G.expr =
 and v_lhs v = v_expr v
 
 and v_arguments = function
-  | Args v1 ->
-      let v1 = v_bracket (v_list v_argument) v1 in
+  | Args v1 -> (
+      let lb, v1, rb = v_bracket (v_list (v_argument ~is_using:false)) v1 in
+      match List.rev v1 with
+      | G.Arg
+          { e = Call ({ e = N (Id (("*", tok), _)); _ }, (lb', [ e ], rb')); _ }
+        :: rest ->
+          let splatted_last_arg =
+            G.Call (G.IdSpecial (G.Spread, tok) |> G.e, (lb', [ e ], rb'))
+            |> G.e
+          in
+          (lb, List.rev rest @ [ G.Arg splatted_last_arg ], rb)
+      | _ -> (lb, v1, rb))
+  | ArgUsing v1 ->
+      let v1 = v_bracket (v_list (v_argument ~is_using:true)) v1 in
       v1
   | ArgBlock v1 -> (
       let lb, kind, rb = v_block_expr v1 in
@@ -479,11 +562,27 @@ and v_arguments = function
       | Right cases ->
           (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases) |> G.e) ], rb))
 
-and v_argument v =
+and v_argument ?(is_using = false) v =
   let v = v_expr v in
-  G.Arg v
+  if is_using then (* TODO: For now, just pass as a regular argument. *)
+    G.Arg v
+  else G.Arg v
 
 and v_case_clauses v : G.case_and_body list = v_list v_case_clause v
+and v_type_case_clauses v : G.case_and_body list = v_list v_type_case_clause v
+
+and v_type_case_clause v : G.case_and_body =
+  match v with
+  | CC x ->
+      let icase, l_ty, r_ty = v_type_case_clause_classic x in
+      let pat =
+        match l_ty with
+        | Left tok -> G.PatUnderscore tok
+        | Right ty -> PatType ty
+      in
+      G.CasesAndBody
+        ([ Case (icase, pat) ], G.OtherStmt (OS_Todo, [ G.T r_ty ]) |> G.s)
+  | CaseEllipsis ii -> G.CaseEllipsis ii
 
 and v_case_clause v : G.case_and_body =
   match v with
@@ -495,9 +594,9 @@ and v_case_clause v : G.case_and_body =
 and v_case_clause_classic
     {
       casetoks = v_casetoks;
-      casepat = v_casepat;
+      case_left = v_casepat;
       caseguard = v_caseguard;
-      casebody = v_casebody;
+      case_right = v_casebody;
     } =
   let icase, _iarrow =
     match v_casetoks with
@@ -514,6 +613,28 @@ and v_case_clause_classic
     | Some (_t, e) -> PatWhen (pat, e)
   in
   (icase, pat, G.Block (fb block) |> G.s)
+
+and v_type_case_clause_classic
+    {
+      casetoks = v_casetoks;
+      case_left = v_case_ty_left;
+      caseguard = v_caseguard;
+      case_right = v_case_ty_right;
+    } =
+  let icase, _iarrow =
+    match v_casetoks with
+    | v1, v2 ->
+        let v1 = v_tok v1 and v2 = v_tok v2 in
+        (v1, v2)
+  in
+  let left =
+    match v_case_ty_left with
+    | Left tok -> Left tok
+    | Right ty -> Right (v_type_ ty)
+  in
+  let _guardopt = v_option v_guard v_caseguard in
+  let right = v_type_ v_case_ty_right in
+  (icase, left, right)
 
 and v_guard (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr v2 in
@@ -553,24 +674,24 @@ and v_stmt = function
             v2)
           v4
       in
-      G.If (v1, G.Cond (PI.unbracket v2), v3, v4) |> G.s
+      G.If (v1, G.Cond (Tok.unbracket v2), v3, v4) |> G.s
   | While (v1, v2, v3) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2
       and v3 = v_expr_for_stmt v3 in
-      G.While (v1, G.Cond (PI.unbracket v2), v3) |> G.s
+      G.While (v1, G.Cond (Tok.unbracket v2), v3) |> G.s
   | DoWhile (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_expr_for_stmt v2
       and _v3 = v_tok v3
       and v4 = v_bracket v_expr v4 in
-      G.DoWhile (v1, v2, PI.unbracket v4) |> G.s
+      G.DoWhile (v1, v2, Tok.unbracket v4) |> G.s
   | For (v1, v2, v3) ->
       (* See https://scala-lang.org/files/archive/spec/2.13/06-expressions.html#for-comprehensions-and-for-loops
        * for an explanation of for loops in scala
        *)
       let v1 = v_tok v1
-      and v2 = v2 |> PI.unbracket |> v_enumerators
+      and v2 = v2 |> Tok.unbracket |> v_enumerators
       and v3 = v_for_body v3 in
       G.For (v1, G.MultiForEach v2, v3) |> G.s
   | Return (v1, v2) ->
@@ -661,9 +782,16 @@ and v_block_stat x : G.item list =
   | I v1 ->
       let v1 = v_import v1 in
       v1 |> Common.map (fun dir -> G.DirectiveStmt dir |> G.s)
+  | Ex v1 ->
+      let v1 = v_export v1 in
+      v1 |> Common.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
+  | End v1 ->
+      let v1 = v_end_marker v1 in
+      [ v1 ]
+  | Ext v1 -> v_extension v1
   | Package v1 ->
       let ipak, ids = v_package v1 in
       [ G.DirectiveStmt (G.Package (ipak, ids) |> G.d) |> G.s ]
@@ -695,14 +823,18 @@ and v_modifier_kind = function
       let _v1TODO = v_option (v_bracket v_ident_or_this) v1 in
       Left G.Protected
   | Override -> Left G.Override
+  | Inline -> Right "inline"
+  | Open -> Right "open"
+  | Opaque -> Right "opaque"
   | CaseClassOrObject -> Left G.RecordClass
   | PackageObject -> Right "PackageObject"
   | Val -> Left G.Const
   | Var -> Left G.Mutable
+  | EnumClass -> Left G.EnumClass
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  let args = v3 |> Common.map PI.unbracket |> List.flatten in
+  let args = v3 |> Common.map Tok.unbracket |> List.flatten in
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
@@ -752,7 +884,131 @@ and v_definition x : G.definition list =
   | DefEnt (v1, v2) ->
       let v1 = v_entity v1 and v2 = v_definition_kind v2 in
       [ (v1, v2) ]
+  | EnumCaseDef (attrs, v1) ->
+      let attrs = v_list v_attribute attrs in
+      v_enum_case_definition attrs v1
+  | GivenDef v1 -> v_given_definition v1
   | VarDefs v1 -> v_variable_definitions v1
+
+and v_given_definition { gsig; gkind } =
+  let v1 =
+    match gsig with
+    | None -> []
+    | Some { g_id; g_tparams; g_using; g_colon = _ } ->
+        let g_id =
+          match g_id with
+          | None -> []
+          | Some id -> [ G.I (v_ident id) ]
+        in
+        let g_tparams =
+          [
+            G.Anys (v_type_parameters g_tparams |> Common.map (fun x -> G.Tp x));
+          ]
+        in
+        let g_using =
+          [
+            G.Anys
+              (v_list v_bindings g_using |> List.concat
+              |> Common.map (fun x -> G.Pa x));
+          ]
+        in
+        g_id @ g_tparams @ g_using
+  in
+  let v2 =
+    match gkind with
+    | GivenStructural (constr_apps, body) ->
+        let v1 =
+          v_list v_constr_app constr_apps
+          |> Common.map (fun (ty, argss) ->
+                 let flat_args =
+                   List.concat_map (fun (_, args, _) -> args) argss
+                 in
+                 G.Anys
+                   [ G.T ty; G.Anys (Common.map (fun x -> G.Ar x) flat_args) ])
+        in
+        let v2 =
+          match body with
+          | None -> []
+          | Some body ->
+              let body = v_template_body body in
+              [ G.S (G.Block body |> G.s) ]
+        in
+        v1 @ v2
+    | GivenType (ty, exp) ->
+        let v1 = [ G.T (v_type_ ty) ] in
+        let v2 =
+          match exp with
+          | None -> []
+          | Some exp -> [ G.E (v_expr exp) ]
+        in
+        v1 @ v2
+  in
+  let todo_kind = ("given", Tok.unsafe_fake_tok "given") in
+  [
+    ( { name = G.OtherEntity (todo_kind, []); attrs = []; tparams = [] },
+      G.OtherDef (todo_kind, v1 @ [ G.Anys v2 ]) );
+  ]
+
+and v_end_marker { end_tok; end_kind } : G.stmt =
+  G.OtherStmt (OS_Todo, [ G.Tk end_tok; G.Tk end_kind ]) |> G.s
+
+and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
+    : G.stmt list =
+  let tparams =
+    G.Anys (v_type_parameters ext_tparams |> Common.map (fun tp -> G.Tp tp))
+  in
+  let using =
+    G.Anys
+      (v_list v_bindings ext_using |> Common.map (fun params -> G.Params params))
+  in
+  let params = G.Pa (v_binding None ext_param) in
+  let methods = G.Anys (List.concat_map v_ext_method ext_methods) in
+  (* Extensions are definitions and methods that extend an existing class. It's not
+     super important for semantic analysis right now.
+  *)
+  [ G.OtherStmt (OS_Extension, [ tparams; using; params; methods ]) |> G.s ]
+
+and v_ext_method ext_method : G.any list =
+  match ext_method with
+  | ExtDef def -> v_definition def |> Common.map (fun def -> G.Def def)
+  | ExtExport import -> v_import import |> Common.map (fun dir -> G.Dir dir)
+
+and v_constr_app (ty, args) = (v_type_ ty, v_list v_arguments args)
+
+and v_enum_case_definition attrs v1 =
+  match v1 with
+  | EnumIds ids ->
+      let ids = v_list v_ident ids in
+      ids
+      |> Common.map (fun id ->
+             ( G.basic_entity id,
+               G.EnumEntryDef { ee_args = None; ee_body = None } ))
+  | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
+      let id = v_ident eid in
+      let tparams = v_type_parameters etyparams in
+      let params = v_list v_bindings eparams |> List.concat in
+      let attrs = v_list v_attribute eattrs @ attrs in
+      (* TODO *)
+      let _extends = v_list v_constr_app eextends in
+      let fake = Tok.unsafe_fake_tok "Param" in
+      (* Here, we turn the params into arguments.
+         They are represented syntactically as parameters, but they'll fit
+         fine here too. This is with the understanding that this probably
+         won't matter semantically.
+      *)
+      let args =
+        match
+          Common.map
+            (fun param -> G.OtherArg (("Param", fake), [ G.Pa param ]))
+            params
+        with
+        | [] -> None
+        | args -> Some (fb args)
+      in
+      [
+        ( G.basic_entity ~attrs ~tparams id,
+          G.EnumEntryDef { ee_args = args; ee_body = None } );
+      ]
 
 and v_variable_definitions
     {
@@ -838,11 +1094,18 @@ and v_fbody body : G.function_body =
       let _v1 = v_tok v1 and v2 = v_expr v2 in
       G.FBExpr v2
 
-and v_bindings v = v_bracket (v_list v_binding) v |> PI.unbracket
+and v_bindings v =
+  v_bracket (fun (a, b) -> v_list (v_binding b) a) v |> Tok.unbracket
 
-and v_binding v : G.parameter =
+and v_binding using_opt v : G.parameter =
+  let pattrs =
+    match using_opt with
+    | None -> []
+    | Some tok -> [ G.OtherAttribute (("using", tok), []) ]
+  in
   match v with
   | ParamEllipsis t -> G.ParamEllipsis t
+  | ParamType ty -> G.Param (G.param_of_type ~pattrs (v_type_ ty))
   | ParamClassic
       {
         p_name = v_p_name;
@@ -851,7 +1114,7 @@ and v_binding v : G.parameter =
         p_default = v_p_default;
       } -> (
       let id = v_ident_or_wildcard v_p_name in
-      let attrs = v_list v_attribute v_p_attrs in
+      let attrs = pattrs @ v_list v_attribute v_p_attrs in
       let default = v_option v_expr v_p_default in
       let pclassic =
         { (G.param_of_id id) with pattrs = attrs; pdefault = default }
@@ -861,14 +1124,18 @@ and v_binding v : G.parameter =
       | Some (PT v1) ->
           let v1 = v_type_ v1 in
           G.Param { pclassic with ptype = Some v1 }
-      | Some (PTByNameApplication (v1, v2)) ->
+      | Some (PTByNameApplication (v1, v2, v3)) -> (
           let v1 = v_tok v1 and v2 = v_type_ v2 in
-          G.Param
+          let pclassic =
             {
               pclassic with
               ptype = Some v2;
               pattrs = G.KeywordAttr (G.Lazy, v1) :: pclassic.pattrs;
             }
+          in
+          match v3 with
+          | Some ii -> G.ParamRest (ii, pclassic)
+          | _ -> G.Param pclassic)
       | Some (PTRepeatedApplication (v1, v2)) ->
           let v1 = v_type_ v1 and v2 = v_tok v2 in
           G.ParamRest (v2, { pclassic with ptype = Some v1 }))
@@ -924,6 +1191,7 @@ and v_self_type (v1, v2, v3) =
   ()
 
 and v_template_kind = function
+  | Enum -> G.Class
   | Class -> G.Class
   | Trait -> G.Trait
   | Object -> G.Object

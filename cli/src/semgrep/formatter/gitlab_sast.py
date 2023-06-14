@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import datetime
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -12,6 +13,7 @@ from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.state import get_state
 
 
 def _to_gitlab_severity(semgrep_severity: RuleSeverity) -> str:
@@ -37,9 +39,8 @@ def _construct_semgrep_rule_url(rule_id: str) -> str:
 
 class GitlabSastFormatter(BaseFormatter):
     def _format_rule_match(self, rule_match: RuleMatch) -> Mapping[str, Any]:
-        # create UUID from sha256 hash
-        return {
-            "id": str(rule_match.uuid),
+        result: Dict[str, Any] = {
+            "id": str(rule_match.uuid),  # create UUID from sha256 hash
             "category": "sast",
             # CVE is a required field from Gitlab schema.
             # It also is part of the determination for uniqueness
@@ -55,9 +56,6 @@ class GitlabSastFormatter(BaseFormatter):
             ),
             "message": rule_match.message,
             "severity": _to_gitlab_severity(rule_match.severity),
-            # Semgrep is designed to be a low-FP tool by design.
-            # Does hard-coding confidence make sense here?
-            "confidence": "High",
             "scanner": {
                 "id": "semgrep",
                 "name": "Semgrep",
@@ -77,7 +75,45 @@ class GitlabSastFormatter(BaseFormatter):
                     "url": _construct_semgrep_rule_url(rule_match.rule_id),
                 }
             ],
+            "flags": [],
+            "details": {},
         }
+
+        confidence = rule_match.metadata.get("confidence")
+        if confidence:
+            result["details"]["confidence"] = {
+                "type": "text",
+                "name": "confidence",
+                "value": confidence,
+            }
+            if confidence == "LOW":
+                result["flags"].append(
+                    {
+                        "type": "flagged-as-likely-false-positive",
+                        "origin": "Semgrep",
+                        "description": "This finding is from a low confidence rule.",
+                    }
+                )
+
+        if rule_match.exposure_type:
+            result["details"]["exposure"] = {
+                "type": "text",
+                "name": "exposure",
+                "value": rule_match.exposure_type,
+            }
+            if rule_match.exposure_type == "unreachable":
+                result["flags"].append(
+                    {
+                        "type": "flagged-as-likely-false-positive",
+                        "origin": "Semgrep Supply Chain",
+                        "description": (
+                            "Semgrep found no way to reach this vulnerability "
+                            "while scanning your code."
+                        ),
+                    }
+                )
+
+        return result
 
     def format(
         self,
@@ -98,9 +134,35 @@ class GitlabSastFormatter(BaseFormatter):
         - Schema:
             https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json
         """
+        metrics = get_state().metrics
+        start_time = datetime.fromisoformat(metrics.payload.started_at.value)
+        start_time = start_time.replace(tzinfo=None)
         output_dict = {
             "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-            "version": "14.1.2",
+            "version": "15.0.4",
+            "scan": {
+                "start_time": start_time.isoformat(
+                    timespec="seconds",
+                ),
+                "end_time": datetime.now().isoformat(timespec="seconds"),
+                "analyzer": {
+                    "id": "semgrep",
+                    "name": "Semgrep",
+                    "url": "https://semgrep.dev",
+                    "version": metrics.payload.environment.version,
+                    "vendor": {"name": "Semgrep"},
+                },
+                "scanner": {
+                    "id": "semgrep",
+                    "name": "Semgrep",
+                    "url": "https://semgrep.dev",
+                    "version": metrics.payload.environment.version,
+                    "vendor": {"name": "Semgrep"},
+                },
+                "version": metrics.payload.environment.version,
+                "status": "success",
+                "type": "sast",
+            },
             "vulnerabilities": [
                 self._format_rule_match(rule_match)
                 for rule_match in rule_matches

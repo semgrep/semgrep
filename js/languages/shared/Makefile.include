@@ -1,0 +1,85 @@
+TREESITTER_SRCDIR := ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter/lib/src
+
+ifndef NO_WASM
+TREE_SITTER_SOURCES := $(shell find ../../../languages/$(SEMGREP_LANG)/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
+endif
+
+ESBUILD_DEFAULTS = \
+	--bundle \
+	--minify \
+	--platform=neutral \
+	--log-override:duplicate-case=silent \
+	--external:path \
+	--external:fs \
+	--external:constants \
+	--external:tty \
+	--external:child_process
+
+COMMON_TS_EXPORTED_FUNCTIONS = _malloc,_free,_ts_parser_new,_ts_parser_set_language,_ts_parser_parse_string,_ts_tree_root_node,_ts_node_type,_ts_node_start_point,_ts_node_end_point,_ts_node_is_named,_ts_node_child_count,_ts_node_child,_ts_tree_delete
+
+EMCC_DEFAULTS = \
+   -sALLOW_MEMORY_GROWTH=1 \
+   -sEXPORTED_RUNTIME_METHODS=UTF8ToString,AsciiToString,stringToAscii,stringToUTF8,getValue,setValue \
+   -sMODULARIZE
+
+SEMGREP_TS_LANG ?= $(SEMGREP_LANG)
+TS_EXPORTED_FUNCTIONS ?= _tree_sitter_$(SEMGREP_TS_LANG)
+VERSION ?= 0.0.1
+
+.PHONY: default
+default: build
+
+.PHONY: build
+build: dist/index.cjs dist/index.mjs dist/index.d.ts
+
+.PHONY: test
+test: build
+	npm test
+
+.PHONY: package
+package: build
+	npm pack
+
+.PHONY: clean
+clean:
+	rm -rf dist
+
+ifndef NO_WASM
+dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
+	mkdir -p dist
+	emcc \
+		-O3 \
+		-I$(TREESITTER_SRCDIR) \
+		-I${TREESITTER_INCDIR} \
+		$^ \
+		$(EMCC_DEFAULTS) \
+		-sEXPORTED_FUNCTIONS=$(TS_EXPORTED_FUNCTIONS),$(COMMON_TS_EXPORTED_FUNCTIONS) \
+		-o $@
+WASM_DEP := dist/semgrep-parser.js
+WASM_NAME := semgrep-parser
+endif
+
+package.json: ../shared/generate-package-json.sh
+	$< $(SEMGREP_LANG) $(VERSION) > $@
+
+package-lock.json: package.json
+	npm install
+
+node_modules/.package-lock.json: package-lock.json
+	npm ci
+
+dist/entrypoint.js: ../shared/entrypoint.js.liquid node_modules/.package-lock.json
+	mkdir -p dist
+	npx liquidjs -t @$< -o $@ --context '{"lang": "$(SEMGREP_LANG)", "wasm": "$(WASM_NAME)"}'
+
+dist/index.cjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+	mkdir -p dist
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=cjs --outfile=$@
+
+dist/index.mjs: dist/entrypoint.js $(WASM_DEP) ../../../_build/default/js/languages/$(SEMGREP_LANG)/Parser.bc.js node_modules/.package-lock.json
+	mkdir -p dist
+	npx esbuild $< $(ESBUILD_DEFAULTS) --format=esm --outfile=$@
+
+dist/index.d.ts: ../shared/index.d.ts
+	mkdir -p dist
+	cp $^ $@

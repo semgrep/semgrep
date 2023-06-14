@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 open Testutil
 module R = Rule
 module MR = Mini_rule
@@ -24,10 +25,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 (* TODO: move these to the "main" for the test suite. *)
-(* ran from _build/default/tests/ hence the '..'s below *)
-let tests_path = "../../../tests"
-let tests_path_patterns = "../../../tests/patterns"
-let polyglot_pattern_path = Filename.concat tests_path_patterns "POLYGLOT"
+(* ran from the root of the semgrep repository *)
+let tests_path = Fpath.v "tests"
+let tests_path_patterns = tests_path / "patterns"
+let polyglot_pattern_path = tests_path_patterns / "POLYGLOT"
 
 (*****************************************************************************)
 (* Helpers *)
@@ -156,7 +157,7 @@ let maturity_tests () =
   let check_maturity lang dir ext maturity =
     pack_tests
       (spf "Maturity %s for %s" (show_maturity_level maturity) (Lang.show lang))
-      (let dir = Filename.concat tests_path_patterns dir in
+      (let dir = tests_path_patterns / dir in
        let features = assoc_maturity_level |> List.assoc maturity in
        let exns =
          try List.assoc lang language_exceptions with
@@ -165,22 +166,22 @@ let maturity_tests () =
        (* sanity check exns *)
        exns
        |> List.iter (fun base ->
-              let path = Filename.concat dir (base ^ ext) in
-              if Sys.file_exists path then
+              let path = dir / (base ^ ext) in
+              if Sys.file_exists !!path then
                 failwith
-                  (spf "%s actually exist! remove it from exceptions" path));
+                  (spf "%s actually exist! remove it from exceptions" !!path));
        let features = Common2.minus_set features exns in
        features
        |> Common.map (fun base ->
               ( base,
                 fun () ->
-                  let path = Filename.concat dir (base ^ ext) in
+                  let path = dir / (base ^ ext) in
                   (* if it's a does-not-apply (NA) case, consider adding it
                    * to language_exceptions above
                    *)
-                  if not (Sys.file_exists path) then
+                  if not (Sys.file_exists !!path) then
                     failwith
-                      (spf "missing test file %s for maturity %s" path
+                      (spf "missing test file %s for maturity %s" !!path
                          (show_maturity_level maturity)) )))
   in
   (* coupling: https://semgrep.dev/docs/language-support/ *)
@@ -229,18 +230,18 @@ let maturity_tests () =
 (*****************************************************************************)
 
 let related_file_of_target ~polyglot_pattern_path ~ext ~file =
-  let dirname, basename, _e = Common2.dbe_of_filename file in
+  let dirname, basename, _e = Common2.dbe_of_filename !!file in
   let candidate1 = Common2.filename_of_dbe (dirname, basename, ext) in
-  if Sys.file_exists candidate1 then Ok candidate1
+  if Sys.file_exists candidate1 then Ok (Fpath.v candidate1)
   else
     let candidate2 =
-      Common2.filename_of_dbe (polyglot_pattern_path, basename, ext)
+      Common2.filename_of_dbe (!!polyglot_pattern_path, basename, ext)
     in
-    if Sys.file_exists candidate2 then Ok candidate2
+    if Sys.file_exists candidate2 then Ok (Fpath.v candidate2)
     else
       let msg =
         spf "could not find %s file for test '%s' in either %s or %s" ext
-          basename dirname polyglot_pattern_path
+          basename dirname !!polyglot_pattern_path
       in
       Error msg
 
@@ -267,9 +268,9 @@ let compare_fixes ~polyglot_pattern_path ~file matches =
       | Ok file -> file
       | Error msg -> failwith msg
     in
-    Common.read_file expected_fixed_file
+    File.read_file expected_fixed_file
   in
-  let fixed_text = Autofix.apply_fixes_to_file matches ~file in
+  let fixed_text = Autofix.apply_fixes_to_file matches ~file:!!file in
   Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text
 
 let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
@@ -282,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = "unit testing";
+      MR.id = Rule.ID.of_string "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -293,14 +294,15 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
     }
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_fail_if_partial lang file with
+    try Parse_target.parse_and_resolve_name_fail_if_partial lang !!file with
     | exn ->
-        failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
+        failwith
+          (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
   in
   let equiv = [] in
   Match_patterns.check ~hook
-    (Config_semgrep.default_config, equiv)
-    [ rule ] (file, lang, ast)
+    (Rule_options.default_config, equiv)
+    [ rule ] (!!file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -311,7 +313,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
 let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
   files
   |> Common.map (fun file ->
-         ( Filename.basename file,
+         ( Fpath.basename file,
            fun () ->
              let sgrep_file =
                match
@@ -321,12 +323,12 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
                | Ok file -> file
                | Error msg -> failwith msg
              in
-             let pattern = Common.read_file sgrep_file in
+             let pattern = File.read_file sgrep_file in
              let fix_pattern =
                match
                  related_file_of_target ~polyglot_pattern_path ~ext:"fix" ~file
                with
-               | Ok fix_file -> Some (Common.read_file fix_file)
+               | Ok fix_file -> Some (File.read_file fix_file)
                | Error _ -> None
              in
 
@@ -345,30 +347,28 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
                (fun () ->
                  let matches =
                    match_pattern ~lang
-                     ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
-                       (* there are a few fake tokens in the generic ASTs now (e.g.,
-                        * for DotAccess generated outside the grammar) *)
-                       let toks = xs |> List.filter Parse_info.is_origintok in
-                       let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
-                       let minii_loc =
-                         Parse_info.unsafe_token_location_of_info minii
-                       in
-                       E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
+                     ~hook:(fun { Pattern_match.range_loc; _ } ->
+                       let start_loc, _end_loc = range_loc in
+                       E.error
+                         (Rule.ID.of_string "test-pattern")
+                         start_loc "" Out.SemgrepMatchFound)
                      ~file ~pattern ~fix_pattern
                  in
                  (match fix_pattern with
                  | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches
                  | None -> ());
                  let actual = !E.g_errors in
-                 let expected = E.expected_error_lines_of_files [ file ] in
+                 let expected = E.expected_error_lines_of_files [ !!file ] in
                  E.compare_actual_to_expected_for_alcotest actual expected) ))
 
 let pack_regression_tests_for_lang ~test_pattern_path ~polyglot_pattern_path
     ~with_caching lang dir ext =
   pack_tests
     (spf "semgrep %s" (Lang.show lang))
-    (let dir = Filename.concat test_pattern_path dir in
-     let files = Common2.glob (spf "%s/*%s" dir ext) in
+    (let dir = test_pattern_path / dir in
+     let files =
+       Common2.glob (spf "%s/*%s" !!dir ext) |> File.Path.of_strings
+     in
      regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang)
 
 let pack_regression_tests ~with_caching lang_tests =
@@ -409,6 +409,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
         (Lang.Csharp, "csharp", ".cs");
         (Lang.Lua, "lua", ".lua");
         (Lang.Rust, "rust", ".rs");
+        (Lang.Cairo, "cairo", ".cairo");
         (Lang.Yaml, "yaml", ".yaml");
         (Lang.Scala, "scala", ".scala");
         (Lang.Swift, "swift", ".swift");
@@ -432,17 +433,20 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
     pack_regression_tests ~with_caching
       [
         pack_tests "semgrep Typescript on Javascript (no JSX)"
-          (let dir = Filename.concat test_pattern_path "js" in
-           let files = Common2.glob (spf "%s/*.js" dir) in
+          (let dir = test_pattern_path / "js" in
+           let files = Common2.glob (spf "%s/*.js" !!dir) in
            let files =
              Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
+             |> File.Path.of_strings
            in
            let lang = Lang.Ts in
            regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
              lang);
         pack_tests "semgrep C++ on C tests"
-          (let dir = Filename.concat test_pattern_path "c" in
-           let files = Common2.glob (spf "%s/*.c" dir) in
+          (let dir = test_pattern_path / "c" in
+           let files =
+             Common2.glob (spf "%s/*.c" !!dir) |> File.Path.of_strings
+           in
            let lang = Lang.Cpp in
            regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
              lang);
@@ -458,8 +462,8 @@ let eval_regression_tests () =
   [
     ( "eval regression testing",
       fun () ->
-        let dir = Filename.concat tests_path "eval" in
-        let files = Common2.glob (spf "%s/*.json" dir) in
+        let dir = tests_path / "eval" in
+        let files = Common2.glob (spf "%s/*.json" !!dir) in
         files
         |> List.iter (fun file ->
                let env, code = Eval_generic.parse_json file in
@@ -481,25 +485,28 @@ let test_irrelevant_rule rule_file target_file =
          match Analyze_rule.regexp_prefilter_of_rule rule with
          | None ->
              Alcotest.fail
-               (spf "Rule %s: no regex prefilter formula" (fst rule.id))
+               (spf "Rule %s: no regex prefilter formula"
+                  (fst rule.id :> string))
          | Some (f, func) ->
-             let content = read_file target_file in
+             let content = File.read_file target_file in
              let s = Semgrep_prefilter_j.string_of_formula f in
              if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id) s))
+                    (fst rule.id :> string)
+                    s))
 
 let test_irrelevant_rule_file target_file =
-  ( Filename.basename target_file,
+  ( Fpath.basename target_file,
     fun () ->
       let rules_file =
-        let d, b, _e = Common2.dbe_of_filename target_file in
+        let d, b, _e = Common2.dbe_of_filename !!target_file in
         let candidate1 = Common2.filename_of_dbe (d, b, "yaml") in
-        if Sys.file_exists candidate1 then candidate1
+        if Sys.file_exists candidate1 then Fpath.v candidate1
         else
           failwith
-            (spf "could not find target file for irrelevant rule %s" target_file)
+            (spf "could not find target file for irrelevant rule %s"
+               !!target_file)
       in
       test_irrelevant_rule rules_file target_file )
 
@@ -512,9 +519,10 @@ let test_irrelevant_rule_file target_file =
    future debuggers. *)
 let filter_irrelevant_rules_tests () =
   pack_tests "filter irrelevant rules testing"
-    (let dir = Filename.concat tests_path "irrelevant_rules" in
+    (let dir = tests_path / "irrelevant_rules" in
      let target_files =
-       Common2.glob (spf "%s/*" dir)
+       Common2.glob (spf "%s/*" !!dir)
+       |> File.Path.of_strings
        |> File_type.files_of_dirs_or_files (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
@@ -527,23 +535,24 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules = R.partition_rules rules in
+  let _, _, erules, _ = R.partition_rules rules in
   let erule_langs =
     erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
   in
   match erule_langs with
-  | [] -> failwith (spf "no language for extract rule found in %s" file)
-  | [ x ] -> x
+  | [] -> failwith (spf "no language for extract rule found in %s" !!file)
+  | [ x ] -> x.target_analyzer
   | x :: _ ->
+      let xlang = x.target_analyzer in
       pr2
         (spf
            "too many languages from extract rules found in %s, picking the \
             first one: %s"
-           file (Xlang.show x));
-      x
+           !!file (Xlang.show xlang));
+      xlang
 
 let extract_tests () =
-  let path = Filename.concat tests_path "extract" in
+  let path = tests_path / "extract" in
   pack_tests "extract mode"
     (let tests, _print_summary =
        Test_engine.make_tests ~unit_testing:true
@@ -560,34 +569,38 @@ let tainting_test lang rules_file file =
     try Parse_rule.parse rules_file with
     | exn ->
         failwith
-          (spf "fail to parse tainting rules %s (exn = %s)" rules_file
+          (spf "fail to parse tainting rules %s (exn = %s)" !!rules_file
              (Common.exn_to_s exn))
   in
   let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang !!file with
     | exn ->
-        failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
+        failwith
+          (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
   in
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages with
+           match r.Rule.languages.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let search_rules, taint_rules, extract_rules = Rule.partition_rules rules in
+  let search_rules, taint_rules, extract_rules, join_rules =
+    Rule.partition_rules rules
+  in
   assert (search_rules =*= []);
   assert (extract_rules =*= []);
+  assert (join_rules =*= []);
   let xconf = Match_env.default_xconfig in
 
   let matches =
     taint_rules
-    |> Common.map (fun rule ->
+    |> List.concat_map (fun rule ->
            let xtarget =
              {
                Xtarget.file;
                xlang = Xlang.L (lang, []);
-               lazy_content = lazy (Common.read_file file);
+               lazy_content = lazy (File.read_file file);
                lazy_ast_and_errors = lazy (ast, []);
              }
            in
@@ -606,7 +619,6 @@ let tainting_test lang rules_file file =
            | []
            | _ :: _ :: _ ->
                raise Impossible)
-    |> List.flatten
   in
   let actual =
     matches
@@ -619,60 +631,75 @@ let tainting_test lang rules_file file =
              details = None;
            })
   in
-  let expected = E.expected_error_lines_of_files [ file ] in
+  let expected = E.expected_error_lines_of_files [ !!file ] in
   E.compare_actual_to_expected_for_alcotest actual expected
 
 let tainting_tests_for_lang files lang =
   files
   |> Common.map (fun file ->
-         ( Filename.basename file,
+         ( Fpath.basename file,
            fun () ->
              let rules_file =
-               let d, b, _e = Common2.dbe_of_filename file in
+               let d, b, _e = Common2.dbe_of_filename !!file in
                let candidate1 = Common2.filename_of_dbe (d, b, "yaml") in
-               if Sys.file_exists candidate1 then candidate1
+               if Sys.file_exists candidate1 then Fpath.v candidate1
                else
-                 failwith (spf "could not find tainting rules file for %s" file)
+                 failwith
+                   (spf "could not find tainting rules file for %s" !!file)
              in
              tainting_test lang rules_file file ))
 
 let lang_tainting_tests () =
-  let taint_tests_path = Filename.concat tests_path "tainting_rules" in
+  let taint_tests_path = tests_path / "tainting_rules" in
   pack_suites "lang tainting rules testing"
     [
       pack_tests "tainting Go"
-        (let dir = Filename.concat taint_tests_path "go" in
-         let files = Common2.glob (spf "%s/*.go" dir) in
+        (let dir = taint_tests_path / "go" in
+         let files =
+           Common2.glob (spf "%s/*.go" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
       pack_tests "tainting PHP"
-        (let dir = Filename.concat taint_tests_path "php" in
-         let files = Common2.glob (spf "%s/*.php" dir) in
+        (let dir = taint_tests_path / "php" in
+         let files =
+           Common2.glob (spf "%s/*.php" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Python"
-        (let dir = Filename.concat taint_tests_path "python" in
-         let files = Common2.glob (spf "%s/*.py" dir) in
+        (let dir = taint_tests_path / "python" in
+         let files =
+           Common2.glob (spf "%s/*.py" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Java"
-        (let dir = Filename.concat taint_tests_path "java" in
-         let files = Common2.glob (spf "%s/*.java" dir) in
+        (let dir = taint_tests_path / "java" in
+         let files =
+           Common2.glob (spf "%s/*.java" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Javascript"
-        (let dir = Filename.concat taint_tests_path "js" in
-         let files = Common2.glob (spf "%s/*.js" dir) in
+        (let dir = taint_tests_path / "js" in
+         let files =
+           Common2.glob (spf "%s/*.js" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Typescript"
-        (let dir = Filename.concat taint_tests_path "ts" in
-         let files = Common2.glob (spf "%s/*.ts" dir) in
+        (let dir = taint_tests_path / "ts" in
+         let files =
+           Common2.glob (spf "%s/*.ts" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
       pack_tests "tainting Scala"
-        (let dir = Filename.concat taint_tests_path "scala" in
-         let files = Common2.glob (spf "%s/*.scala" dir) in
+        (let dir = taint_tests_path / "scala" in
+         let files =
+           Common2.glob (spf "%s/*.scala" !!dir) |> File.Path.of_strings
+         in
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
     ]
@@ -681,8 +708,23 @@ let lang_tainting_tests () =
 (* Full rule tests *)
 (*****************************************************************************)
 
+(* TODO: For now we only have taint maturity tests for Beta, there are no specific
+ * tests for GA. *)
+(* TODO: We should also have here an explicit list of test filenames, like "taint_if",
+ * that is then checked for every language, like we do for the search mode maturity
+ * tests. *)
+(* TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable rules
+ * that can work for multiple languages (like we have for tests/patterns/POLYGLOT/ *)
+let full_rule_taint_maturity_tests () =
+  let path = tests_path / "taint_maturity" in
+  pack_tests "taint maturity"
+    (let tests, _print_summary =
+       Test_engine.make_tests ~unit_testing:true [ path ]
+     in
+     tests)
+
 let full_rule_regression_tests () =
-  let path = Filename.concat tests_path "rules" in
+  let path = tests_path / "rules" in
   pack_tests "full rule"
     (let tests, _print_summary =
        Test_engine.make_tests ~unit_testing:true [ path ]
@@ -696,7 +738,7 @@ let full_rule_regression_tests () =
  * in a Unit_runner.ml instead of using Test_engine.make_tests
  *)
 let full_rule_semgrep_rules_regression_tests () =
-  let path = Filename.concat tests_path "semgrep-rules" in
+  let path = tests_path / "semgrep-rules" in
   let tests, _print_summary =
     Test_engine.make_tests ~unit_testing:true [ path ]
   in
@@ -818,6 +860,7 @@ let tests () =
       extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
+      full_rule_taint_maturity_tests ();
       full_rule_regression_tests ();
       full_rule_semgrep_rules_regression_tests ();
     ]

@@ -31,7 +31,7 @@
 (* same than in AST_jsonnet.ml
  * TODO: handle origin of file to track imports
  *)
-type tok = Parse_info.t [@@deriving show]
+type tok = Tok.t [@@deriving show]
 type 'a wrap = 'a * tok [@@deriving show]
 type 'a bracket = tok * 'a * tok [@@deriving show]
 type todo_kind = string wrap [@@deriving show]

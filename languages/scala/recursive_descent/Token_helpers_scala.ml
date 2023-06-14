@@ -12,9 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-
 open Token_scala
-module PI = Parse_info
+module PI = Lib_ast_fuzzy
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -28,11 +27,11 @@ let is_eof = function
 
 let is_comment = function
   | Comment _
-  | Space _ ->
-      true
+  | Space _
   (* newline has a meaning in the parser, so should not skip *)
   (* old: | Nl _ -> true *)
-  | _ -> false
+  | _ ->
+      false
 
 let token_kind_of_tok t =
   match t with
@@ -45,6 +44,7 @@ let token_kind_of_tok t =
   | Comment _ -> PI.Esthet PI.Comment
   | Space _ -> PI.Esthet PI.Space
   | Nl _ -> PI.Esthet PI.Newline
+  (* TODO? indent and dedent *)
   | _ -> PI.Other
 
 (*****************************************************************************)
@@ -108,6 +108,7 @@ let visitor_info_of_tok f = function
   | BANG ii -> BANG (f ii)
   | AT ii -> AT (f ii)
   | DOT ii -> DOT (f ii)
+  | QUOTE ii -> QUOTE (f ii)
   | COMMA ii -> COMMA (f ii)
   | COLON ii -> COLON (f ii)
   | Kyield ii -> Kyield (f ii)
@@ -147,6 +148,7 @@ let visitor_info_of_tok f = function
   | Kcatch ii -> Kcatch (f ii)
   | Kcase ii -> Kcase (f ii)
   | Kabstract ii -> Kabstract (f ii)
+  | DEDENT (i1, i2) -> DEDENT (i1, i2)
   | Ellipsis ii -> Ellipsis (f ii)
 
 let info_of_tok tok =
@@ -159,7 +161,7 @@ let info_of_tok tok =
   |> ignore;
   Common2.some !res
 
-let abstract_info_tok tok = visitor_info_of_tok (fun _ -> PI.abstract_info) tok
+let abstract_info_tok tok = visitor_info_of_tok (fun _ -> Tok.abstract_tok) tok
 
 (*****************************************************************************)
 (* More token Helpers for Parse_scala_recursive_descent.ml *)
@@ -197,7 +199,8 @@ let inFirstOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
-  | LBRACKET _ ->
+  | LBRACKET _
+  | DEDENT _ ->
       false
   | _ ->
       logger#info "inFirstOfStat: true for %s" (Dumper.dump x);
@@ -233,6 +236,7 @@ let inLastOfStat x =
   | RPAREN _
   | RBRACKET _
   | RBRACE _
+  | DEDENT _
   (* semgrep-ext: *)
   | Ellipsis _
   | RDots _ ->
@@ -244,7 +248,25 @@ let inLastOfStat x =
 (* Used in the parser *)
 (* ------------------------------------------------------------------------- *)
 
+(* This function is for using a token of lookahead to check whether we should
+   enter an exportClause.
+   Since an `export` used as a keyword is always followed by an `id`, we can
+   prevent more false positives of `export` used as a keyword when it shouldn't,
+   by looking ahead a token.
+*)
+let isPathStart = function
+  | ID_LOWER _
+  | ID_UPPER _
+  | ID_BACKQUOTED _
+  | OP _
+  | ID_DOLLAR _
+  | Kthis _
+  | Ksuper _ ->
+      true
+  | _ -> false
+
 let isIdent = function
+  | ID_LOWER ("given", _) -> None
   | ID_LOWER (s, info)
   | ID_UPPER (s, info)
   | ID_BACKQUOTED (s, info)
@@ -321,6 +343,7 @@ let isNumericLit = function
 (* Statement separators *)
 (* ------------------------------------------------------------------------- *)
 
+(* TODO? indent and dedent *)
 let isStatSep = function
   | NEWLINE _
   | NEWLINES _
@@ -330,6 +353,18 @@ let isStatSep = function
 
 let isStatSeqEnd = function
   | RBRACE _
+  | DEDENT _
+  (* This is here so we know how to end a blockStatSeq which is the "then"
+     expression in an if-then-else, like
+     if (true)
+       val x = 2
+       val y = 3
+     else
+       4
+     It should be safe to put this here, because there shouldn't be another reason
+     to see an `else`.
+  *)
+  | Kelse _
   | EOF _ ->
       true
   | _ -> false
@@ -368,19 +403,27 @@ let isLocalModifier = function
 (* Construct Intro *)
 (* ------------------------------------------------------------------------- *)
 
-let isTemplateIntro = function
-  | Kobject _
-  | Kclass _
-  | Ktrait _ ->
+(* Some keywords are "soft keywords", which means they are lexed as identifiers,
+   but contextually may act as keywords.
+   When deciding if we want to parse a templateStat, we first check for
+   expressions. This would incorrectly flag these soft keywords, which can
+   otherwise start a templateStat, so this function whitelists them to not
+   enter the `expr` case, in favor of parsing them as templateStat keywords.
+*)
+let isTemplateStatIntroSoftKeyword = function
+  | ID_LOWER ("enum", _)
+  | ID_LOWER ("given", _)
+  | ID_LOWER ("end", _)
+  | ID_LOWER ("export", _)
+  | ID_LOWER ("extension", _) ->
       true
-  (*TODO | Kcaseobject | | Kcaseclass *)
-  | Kcase _ -> true
   | _ -> false
 
 let isDclIntro = function
   | Kval _
   | Kvar _
   | Kdef _
+  | Kcase _
   | Ktype _ ->
       true
   | _ -> false
@@ -402,6 +445,7 @@ let isExprIntro x =
   | USCORE _
   | LPAREN _
   | LBRACE _
+  | QUOTE _
   (* | XMLSTART  *)
   (* semgrep-ext: *)
   | Ellipsis _
@@ -409,7 +453,17 @@ let isExprIntro x =
       true
   | _ -> false
 
-let isDefIntro x = isTemplateIntro x || isDclIntro x
+let isTemplateDefIntro x =
+  match x with
+  | Kobject _
+  | Kclass _
+  | Ktrait _
+  | ID_LOWER ("enum", _)
+  | ID_LOWER ("given", _) ->
+      true
+  | _ -> false
+
+let isDefIntro x = isDclIntro x || isTemplateDefIntro x
 
 let isTypeIntroToken x =
   (isLiteral x && not (isNull x))
@@ -428,6 +482,37 @@ let isTypeIntroToken x =
 (* ------------------------------------------------------------------------- *)
 (* Misc *)
 (* ------------------------------------------------------------------------- *)
+
+let isIndentationToken = function
+  | COLON _
+  | EQUALS _
+  | ARROW _
+  | LARROW _
+  | Kif _
+  | Kwith _
+  (* there is no "then" keyword, because it's only a keyword in Scala 3 *)
+  (* for now, let's just say "then" doesn't trigger an indentation region *)
+  | Kelse _
+  | Kwhile _
+  | Kdo _
+  | Ktry _
+  | Kcatch _
+  | Kfinally _
+  | Kfor _
+  | Kyield _
+  | Kmatch _ ->
+      true
+  | _ -> false
+
+(* From the Scala 3 specification:
+   > A soft modifier is treated as potential modifier of a definition if it is
+     followed by a hard modifier or a keyword combination starting a definition
+     (def, val, var, type, given, class, trait, object, enum, case class, case
+     object). Between the two words there may be a sequence of newline tokens
+     and soft modifiers.
+   https://docs.scala-lang.org/scala3/reference/soft-modifier.html
+*)
+let isSoftModifierFollower x = isModifier x || isDefIntro x
 
 let isCaseDefEnd = function
   | RBRACE _

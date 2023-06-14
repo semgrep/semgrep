@@ -16,7 +16,6 @@ open Common
 open Ast_java
 module G = AST_generic
 module H = AST_generic_helpers
-module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -36,11 +35,11 @@ let (string : string -> string) = id
 let (bool : bool -> bool) = id
 let (int : int -> int) = id
 let error = AST_generic.error
-let fake tok s = Parse_info.fake_info tok s
-let unsafe_fake s = Parse_info.unsafe_fake_info s
+let fake tok s = Tok.fake_tok tok s
+let unsafe_fake s = Tok.unsafe_fake_tok s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
-let fb = PI.unsafe_fake_bracket
+let fb = Tok.unsafe_fake_bracket
 
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
@@ -146,7 +145,7 @@ let type_parameter = function
       G.tparam_of_id v1 ~tp_bounds:v2
 
 let rec modifier (x, tok) =
-  let s = Parse_info.str_of_info tok in
+  let s = Tok.content_of_tok tok in
   match x with
   | Public -> G.attr G.Public tok
   | Protected -> G.attr G.Protected tok
@@ -261,9 +260,8 @@ and expr e =
       G.DeepEllipsis v1
   | NameId v1 -> G.N (name v1)
   | NameOrClassType _v1 ->
-      let ii = Lib_parsing_java.ii_of_any (AExpr e) in
-      error (List.hd ii)
-        "NameOrClassType should only appear in (ignored) annotations"
+      let ii = Lib_parsing_java.info_of_any (AExpr e) in
+      error ii "NameOrClassType should only appear in (ignored) annotations"
   | Literal v1 ->
       let v1 = literal v1 in
       G.L v1
@@ -275,7 +273,7 @@ and expr e =
       and v2 = list argument v2
       and v3 = option (bracket decls) v3 in
       match v3 with
-      | None -> G.New (v0, v1, (lp, v2, rp))
+      | None -> G.New (v0, v1, G.empty_id_info (), (lp, v2, rp))
       | Some decls ->
           let anonclass =
             G.AnonClass
@@ -303,8 +301,8 @@ and expr e =
       in
       let t = mk_array (v3 + List.length v2) in
       match v4 with
-      | None -> G.New (v0, t, fb v2)
-      | Some e -> G.New (v0, t, fb (G.Arg e :: v2)))
+      | None -> G.New (v0, t, G.empty_id_info (), fb v2)
+      | Some e -> G.New (v0, t, G.empty_id_info (), fb (G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, tok2, v2, v3, v4) ->
       let v0 = expr v0
@@ -313,8 +311,8 @@ and expr e =
       and v4 = option (bracket decls) v4 in
       let anys =
         [ G.E v0; G.T v2 ]
-        @ (v3 |> PI.unbracket |> Common.map (fun arg -> G.Ar arg))
-        @ (Option.to_list v4 |> Common.map PI.unbracket |> List.flatten
+        @ (v3 |> Tok.unbracket |> Common.map (fun arg -> G.Ar arg))
+        @ (Option.to_list v4 |> Common.map Tok.unbracket |> List.flatten
           |> Common.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
@@ -371,7 +369,7 @@ and expr e =
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
-      G.TypedMetavar (v1, Parse_info.fake_info (snd v1) " ", v2)
+      G.TypedMetavar (v1, Tok.fake_tok (snd v1) " ", v2)
   | Lambda (v1, t, v2) ->
       let fparams = parameters v1 in
       let v2 = stmt v2 in
@@ -423,7 +421,7 @@ and resources (_t1, v, t2) = list (resource t2) v
 
 and stmt st =
   match stmt_aux st with
-  | [] -> G.s (Block (PI.unsafe_fake_bracket []))
+  | [] -> G.s (Block (Tok.unsafe_fake_bracket []))
   | [ st ] -> st
   | xs ->
       (* This should never happen in a context where we want

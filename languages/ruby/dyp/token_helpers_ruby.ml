@@ -155,4 +155,4 @@ let info_of_tok tok =
   |> ignore;
   match !res with
   | Some x -> x
-  | None -> Parse_info.unsafe_fake_info "NOTOK"
+  | None -> Tok.unsafe_fake_tok "NOTOK"

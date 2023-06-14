@@ -1,0 +1,44 @@
+<html>
+  <body>
+    <pre id="result">Loading...</pre>
+  </body>
+  <script>
+    window.module = { exports: {} };
+  </script>
+  <script src="../engine/dist/index.js"></script>
+  <script>
+    window.EngineFactory = module.exports.EngineFactory;
+  </script>
+  <script src="../languages/python/dist/index.js"></script>
+  <script>
+    window.ParserFactory = module.exports.ParserFactory;
+
+    const rules = JSON.stringify({
+      rules: [
+        {
+          id: "test",
+          languages: ["python"],
+          message: "test",
+          pattern: "print($X)",
+          severity: "ERROR",
+        },
+      ],
+    });
+
+    (async () => {
+      const engine = await EngineFactory();
+
+      engine.writeFile("/static/rules.json", rules);
+      engine.writeFile("/static/test.py", "print(42)\n");
+      const lua = await ParserFactory();
+      engine.addParser(lua);
+      document.getElementById("result").innerHTML = JSON.stringify(
+        JSON.parse(
+          engine.execute("python", "/static/rules.json", "/static/test.py")
+        ),
+        null,
+        2
+      );
+    })();
+  </script>
+</html>

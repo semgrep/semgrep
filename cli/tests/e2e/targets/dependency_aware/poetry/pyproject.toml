@@ -12,3 +12,8 @@ faker = "^13.11.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "semgrep"
+url = "https://artifact.semgrep.com/"
+secondary = false

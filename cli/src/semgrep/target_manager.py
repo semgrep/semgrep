@@ -22,8 +22,8 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+import semgrep.output_from_core as core
 from semgrep.git import BaselineHandler
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -61,6 +61,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 
 logger = getLogger(__name__)
 
@@ -75,12 +76,18 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
 }
 
 ECOSYSTEM_TO_LOCKFILES = {
-    Ecosystem(Pypi()): ["Pipfile.lock", "poetry.lock", "requirements.txt"],
-    Ecosystem(Npm()): ["package-lock.json", "yarn.lock"],
+    Ecosystem(Pypi()): [
+        "Pipfile.lock",
+        "poetry.lock",
+        "requirements.txt",
+        "requirements3.txt",
+    ],
+    Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
     Ecosystem(Gem()): ["Gemfile.lock"],
-    Ecosystem(Gomod()): ["go.sum"],
+    Ecosystem(Gomod()): ["go.mod"],
     Ecosystem(Cargo()): ["Cargo.lock"],
     Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
+    Ecosystem(Composer()): ["composer.lock"],
 }
 
 
@@ -128,7 +135,9 @@ class FileTargetingLog:
     size_limit: Set[Path] = Factory(set)
 
     # "None" indicates that all lines were skipped
-    core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
+    core_failure_lines_by_file: Mapping[
+        Path, Tuple[Optional[int], List[core.RuleId]]
+    ] = Factory(dict)
 
     # Indicates which files were NOT scanned by each language
     # e.g. for python, should be a list of all non-python-compatible files
@@ -204,7 +213,7 @@ class FileTargetingLog:
             )
         if self.core_failure_lines_by_file:
             partial_fragments.append(
-                f"{len(self.core_failure_lines_by_file)} files only partially analyzed due to a parsing or internal Semgrep error"
+                f"{len(self.core_failure_lines_by_file)} files only partially analyzed due to parsing or internal Semgrep errors"
             )
 
         if not limited_fragments and not skip_fragments and not partial_fragments:
@@ -232,7 +241,7 @@ class FileTargetingLog:
 
         yield 1, "Always skipped by Semgrep:"
         if self.always_skipped:
-            for path in self.always_skipped:
+            for path in sorted(self.always_skipped):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
@@ -248,21 +257,21 @@ class FileTargetingLog:
         yield 1, "Skipped by .semgrepignore:"
         yield 1, "(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
         if self.semgrepignored:
-            for path in self.semgrepignored:
+            for path in sorted(self.semgrepignored):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
         yield 1, "Skipped by --include patterns:"
         if self.cli_includes:
-            for path in self.cli_includes:
+            for path in sorted(self.cli_includes):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
         yield 1, "Skipped by --exclude patterns:"
         if self.cli_excludes:
-            for path in self.cli_excludes:
+            for path in sorted(self.cli_excludes):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
@@ -270,21 +279,32 @@ class FileTargetingLog:
         yield 1, f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:"
         yield 1, "(Adjust with the --max-target-bytes flag)"
         if self.size_limit:
-            for path in self.size_limit:
+            for path in sorted(self.size_limit):
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
-        yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
+        yield 1, "Partially analyzed due to parsing or internal Semgrep errors"
         if self.core_failure_lines_by_file:
-            for path, lines in self.core_failure_lines_by_file.items():
+            for path, (lines, rule_ids) in sorted(
+                self.core_failure_lines_by_file.items()
+            ):
+                num_rule_ids = len(rule_ids) if rule_ids else 0
+                if num_rule_ids == 0:
+                    with_rule = ""
+                elif num_rule_ids == 1:
+                    with_rule = f" with rule {rule_ids[0].value}"
+                else:
+                    with_rule = f" with {num_rule_ids} rules (e.g. {rule_ids[0].value})"
                 if lines is None:
-                    skipped = "all"
+                    # No lines does not mean all lines, we simply don't know how many.
+                    # TODO: Maybe for parsing errors this would mean all lines?
+                    lines_skipped = ""
                 else:
                     # TODO: use pluralization library
-                    skipped = str(lines)
+                    lines_skipped = f" ({lines} lines skipped)"
 
-                yield 2, with_color(Colors.cyan, f"{path} ({skipped} lines skipped)")
+                yield 2, with_color(Colors.cyan, f"{path}{with_rule}{lines_skipped}")
         else:
             yield 2, "<none>"
 
@@ -318,7 +338,10 @@ class FileTargetingLog:
 
         return output
 
+    # TODO: return directly a out.CliSkippedTarget
     def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
+        # coupling: if you add a reason here,
+        # add it also to semgrep_output_v1.atd.
         for path in self.always_skipped:
             yield {"path": str(path), "reason": "always_skipped"}
         for path in self.semgrepignored:
@@ -658,7 +681,9 @@ class TargetManager:
             return FilteredFiles(candidates)
 
         kept, removed = partition(
-            candidates, lambda path: os.path.getsize(path) <= max_target_bytes
+            candidates,
+            lambda path: os.path.isfile(path)
+            and os.path.getsize(path) <= max_target_bytes,
         )
 
         return FilteredFiles(frozenset(kept), frozenset(removed))
@@ -745,6 +770,24 @@ class TargetManager:
         self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return paths.kept
+
+    def get_all_lockfiles(self) -> Dict[Ecosystem, FrozenSet[Path]]:
+        """
+        Return a dict mapping each ecosystem to the set of lockfiles for that ecosystem
+        """
+        ALL_ECOSYSTEMS: Set[Ecosystem] = {
+            Ecosystem(Npm()),
+            Ecosystem(Pypi()),
+            Ecosystem(Gem()),
+            Ecosystem(Gomod()),
+            Ecosystem(Cargo()),
+            Ecosystem(Maven()),
+            Ecosystem(Composer()),
+        }
+
+        return {
+            ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
+        }
 
     @lru_cache(maxsize=None)
     def get_lockfiles(self, ecosystem: Ecosystem) -> FrozenSet[Path]:

@@ -1,5 +1,3 @@
-(*s: lib_parsing_php.ml *)
-(*s: Facebook copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2009-2011 Facebook
@@ -14,13 +12,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: Facebook copyright *)
 open Common
-module PI = Parse_info
+open File.Operators
 
-(*s: basic pfff module open and aliases *)
 (*module Ast = Cst_php*)
-(*e: basic pfff module open and aliases *)
 
 (*****************************************************************************)
 (* Wrappers *)
@@ -32,7 +27,7 @@ let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag_parsing.verbose_parsing
 (*****************************************************************************)
 
 let is_php_script file =
-  Common.with_open_infile file (fun chan ->
+  File.with_open_infile file (fun chan ->
       try
         let l = input_line chan in
         l =~ "#!/usr/.*/php" || l =~ "#!/bin/env php"
@@ -47,12 +42,12 @@ let is_php_script file =
  * (filename =~ ".*\\.hhi") (* hack uses this extension *)
  *)
 let is_php_filename filename =
-  filename =~ ".*\\.php$" || filename =~ ".*\\.phpt$"
+  !!filename =~ ".*\\.php$" || !!filename =~ ".*\\.phpt$"
   (* hotcrp uses this extension *)
-  || filename =~ ".*\\.inc"
+  || !!filename =~ ".*\\.inc"
 
-let is_hhi_filename filename = filename =~ ".*\\.hhi$" || false
-let is_php_filename_phar filename = filename =~ ".*\\.phar$" || false
+let is_hhi_filename filename = !!filename =~ ".*\\.hhi$" || false
+let is_php_filename_phar filename = !!filename =~ ".*\\.phar$" || false
 
 let is_php_file filename =
   (not (is_php_filename_phar filename))
@@ -66,7 +61,7 @@ let is_php_file filename =
  *)
 let find_source_files_of_dir_or_files ?(verbose = false) ?(include_hack = false)
     xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
+  xs |> File.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter (fun filename ->
          (* note: there was a possible race here because between the time we
           * do the 'find' and the time we call is_php_file(), the file may have
@@ -77,11 +72,11 @@ let find_source_files_of_dir_or_files ?(verbose = false) ?(include_hack = false)
            (* note that there is still a race between the call to file_exists
             * and is_php_file, but this one is far shorter :)
             *)
-           Sys.file_exists filename
+           Sys.file_exists !!filename
            && (is_php_file filename
               || (include_hack && is_hhi_filename filename))
          in
-         if (not valid) && verbose then pr2 ("not analyzing: " ^ filename);
+         if (not valid) && verbose then pr2 ("not analyzing: " ^ !!filename);
          valid)
   |> Common.sort
 
@@ -129,13 +124,13 @@ let ii_of_any any =
 
 let (range_of_origin_ii : Cst_php.tok list -> (int * int) option) =
  fun ii ->
-  let ii = List.filter Parse_info.is_origintok ii in
+  let ii = List.filter Tok.is_origintok ii in
   try
-    let min, max = Parse_info.min_max_ii_by_pos ii in
-    assert (PI.is_origintok max);
-    assert (PI.is_origintok min);
-    let strmax = PI.str_of_info max in
-    Some (PI.pos_of_info min, PI.pos_of_info max + String.length strmax)
+    let min, max = Tok_range.min_max_toks_by_pos ii in
+    assert (Tok.is_origintok max);
+    assert (Tok.is_origintok min);
+    let strmax = Tok.content_of_tok max in
+    Some (Tok.bytepos_of_tok min, Tok.bytepos_of_tok max + String.length strmax)
   with
   | _ -> None
 (*e: max min range *)

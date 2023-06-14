@@ -1,9 +1,14 @@
 git could not find a single branch-off point, so we will compare the baseline commit directly
-Scanning 2 files.
-
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 1 Code rule:
+  Scanning 2 files.
   Current version has 12 findings.
 
-Switching repository to baseline commit 'baz'.
+Creating git worktree from 'baz' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     *   fe51afb merging bar~6
     |\  
@@ -44,20 +49,18 @@ Switching repository to baseline commit 'baz'.
   To avoid reporting such findings, compare to the branch-off point with:
     --baseline-commit=$(git merge-base baz HEAD)
 
-Scanning 1 file.
-
-                                                                                
-                                                                                
-┌─────────┐                                                                     
-│ Results │                                                                     
-└─────────┘                                                                     
-                                                                                
-                                                                                
-                                                                                
-┌──────────────┐                                                                
-│ Scan Summary │                                                                
-└──────────────┘                                                                
-                                                                                
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Code rule:
+  Scanning 1 file.
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
 Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 

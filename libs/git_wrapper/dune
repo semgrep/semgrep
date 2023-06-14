@@ -1,0 +1,15 @@
+; wrapper library around the 'git' command-line tool
+(library
+  (public_name git_wrapper)
+  (name git_wrapper)
+  (wrapped false)
+  (libraries
+     fpath
+     bos
+
+     commons
+  )
+  (preprocess (pps
+     ppx_deriving.show
+))
+)

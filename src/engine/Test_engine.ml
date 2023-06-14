@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module FT = File_type
 module R = Rule
 module E = Semgrep_error_code
@@ -41,22 +42,25 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
- fun rs -> rs |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
+ fun rs ->
+  rs
+  |> Common.map (fun r -> r.R.languages.target_analyzer)
+  |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
   match rs with
   | [] -> failwith "no rules"
-  | { R.languages = x; _ } :: _ -> x
+  | { R.languages = x; _ } :: _ -> x.target_analyzer
 
 let single_xlang_from_rules file rules =
   let xlangs = xlangs_of_rules rules in
   match xlangs with
-  | [] -> failwith (spf "no language found in %s" file)
+  | [] -> failwith (spf "no language found in %s" !!file)
   | [ x ] -> x
   | _ :: _ :: _ ->
       let fst = first_xlang_of_rules rules in
       pr2
-        (spf "too many languages found in %s, picking the first one: %s" file
+        (spf "too many languages found in %s, picking the first one: %s" !!file
            (Xlang.show fst));
       fst
 
@@ -94,7 +98,7 @@ let find_target_of_yaml_file file =
 
 let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
   let fullxs, _skipped_paths =
-    xs |> Common.files_of_dir_or_files_no_vcs_nofilter
+    xs |> File.files_of_dirs_or_files_no_vcs_nofilter
     |> List.filter Parse_rule.is_valid_rule_filename
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
@@ -107,7 +111,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
     fullxs
     |> Common.map (fun file ->
            let test () =
-             logger#info "processing rule file %s" file;
+             logger#info "processing rule file %s" !!file;
              let rules = Parse_rule.parse file in
              (* just a sanity check *)
              (* rules |> List.iter Check_rule.check; *)
@@ -116,8 +120,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                | Some fn -> fn file rules
                | None -> single_xlang_from_rules file rules
              in
-             let target = find_target_of_yaml_file file in
-             logger#info "processing target %s" target;
+             let target = find_target_of_yaml_file !!file |> Fpath.v in
+             logger#info "processing target %s" !!target;
              (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
               * to parse the pattern but YAML to parse the target *)
              let xlang =
@@ -135,7 +139,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
               *)
              let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
              let expected_error_lines =
-               E.expected_error_lines_of_files ~regexp [ target ]
+               E.expected_error_lines_of_files ~regexp [ !!target ]
              in
 
              (* actual *)
@@ -143,19 +147,20 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                lazy
                  (match xlang with
                  | L (lang, _) ->
-                     let { Parse_target.ast; skipped_tokens; _ } =
-                       Parse_target.parse_and_resolve_name lang target
+                     let { Parsing_result2.ast; skipped_tokens; _ } =
+                       Parse_target.parse_and_resolve_name lang !!target
                      in
                      (ast, skipped_tokens)
                  | LRegex
-                 | LGeneric ->
+                 | LSpacegrep
+                 | LAliengrep ->
                      assert false)
              in
              let xtarget =
                {
                  Xtarget.file = target;
                  xlang;
-                 lazy_content = lazy (Common.read_file target);
+                 lazy_content = lazy (File.read_file target);
                  lazy_ast_and_errors;
                }
              in
@@ -170,11 +175,11 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                    | mode -> Left { r with mode })
                  rules
              in
-             let rule_ids = Common.map (fun r -> fst r.R.id) rules in
              let extracted_ranges =
                Match_extract_mode.extract_nested_lang
                  ~match_hook:(fun _ _ -> ())
-                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget rule_ids
+                 ~timeout:0. ~timeout_threshold:0 ~all_rules:rules extract_rules
+                 xtarget
              in
              let extract_targets, extract_result_map =
                (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
@@ -194,37 +199,36 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                with
                | exn ->
                    failwith
-                     (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
+                     (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
              in
              (* Check that the result can be marshalled, as this will be needed
                  when using Parmap! See PA-1724. *)
              (try Marshal.to_string res [ Marshal.Closures ] |> ignore with
              | exn ->
                  failwith
-                   (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn)));
+                   (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn)));
              let eres =
                try
                  extract_targets
                  |> Common.map (fun t ->
                         let file = t.Input_to_core_t.path in
-                        let xlang =
-                          Xlang.of_string t.Input_to_core_t.language
-                        in
+                        let xlang = t.Input_to_core_t.language in
                         let lazy_ast_and_errors =
                           lazy
                             (match xlang with
                             | L (lang, _) ->
-                                let { Parse_target.ast; skipped_tokens; _ } =
+                                let { Parsing_result2.ast; skipped_tokens; _ } =
                                   Parse_target.parse_and_resolve_name lang file
                                 in
                                 (ast, skipped_tokens)
                             | LRegex
-                            | LGeneric ->
+                            | LSpacegrep
+                            | LAliengrep ->
                                 assert false)
                         in
                         let xtarget =
                           {
-                            Xtarget.file;
+                            Xtarget.file = Fpath.v file;
                             xlang;
                             lazy_content = lazy (Common.read_file file);
                             lazy_ast_and_errors;
@@ -243,7 +247,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                with
                | exn ->
                    failwith
-                     (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
+                     (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
              in
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
@@ -263,14 +267,14 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                                    (spf
                                       "invalid value for match time: %g (rule: \
                                        %s, target: %s)"
-                                      rule_time.RP.match_time file target);
+                                      rule_time.RP.match_time !!file !!target);
                                if not (rule_time.RP.parse_time >= 0.) then
                                  (* same for parse time *)
                                  failwith
                                    (spf
                                       "invalid value for parse time: %g (rule: \
                                        %s, target: %s)"
-                                      rule_time.RP.parse_time file target)));
+                                      rule_time.RP.parse_time !!file !!target)));
 
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
@@ -281,7 +285,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                 |> Common.map Semgrep_error_code.show_error
                 |> String.concat "-----\n"
               in
-              failwith (spf "parsing error(s) on %s:\n%s" file errors));
+              failwith (spf "parsing error(s) on %s:\n%s" !!file errors));
              let actual_errors = !E.g_errors in
              actual_errors
              |> List.iter (fun e ->
@@ -289,14 +293,14 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              match
                E.compare_actual_to_expected actual_errors expected_error_lines
              with
-             | Ok () -> Hashtbl.add newscore file Common2.Ok
+             | Ok () -> Hashtbl.add newscore !!file Common2.Ok
              | Error (num_errors, msg) ->
                  pr2 msg;
-                 Hashtbl.add newscore file (Common2.Pb msg);
+                 Hashtbl.add newscore !!file (Common2.Pb msg);
                  total_mismatch := !total_mismatch + num_errors;
                  if unit_testing then Alcotest.fail msg
            in
-           (file, test))
+           (!!file, test))
   in
   let print_summary () =
     if not unit_testing then
@@ -306,6 +310,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
   (tests, print_summary)
 
 let test_rules ?unit_testing xs =
-  let tests, print_summary = make_tests ?unit_testing xs in
+  let paths = File.Path.of_strings xs in
+  let tests, print_summary = make_tests ?unit_testing paths in
   tests |> List.iter (fun (_name, test) -> test ());
   print_summary ()

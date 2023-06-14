@@ -7,21 +7,25 @@ SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_FORCE_COLOR="true" SEMGREP_USER_AGENT_A
 === end of exit code
 
 === stdout - plain
-Findings:
-
-  targets/basic/stupid.js 
-     rules.javascript-basic-eqeq-bad
-        useless comparison
-
-          3┆ console.log(x == x)
 
 
-  targets/basic/stupid.py 
-     rules.eqeq-is-bad
-        useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
-        Details: https://sg.run/xyz1
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
 
-          3┆ return a + b == a + b
+    targets/basic/stupid.js 
+       rules.javascript-basic-eqeq-bad
+          useless comparison
+
+            3┆ console.log(x == x)
+
+    targets/basic/stupid.py 
+       rules.eqeq-is-bad
+          useless comparison operation `a + b == a + b` or `a + b != a + b`
+          Details: https://sg.run/xyz1
+
+            3┆ return a + b == a + b
+
 
 === end of stdout - plain
 
@@ -30,21 +34,25 @@ Findings:
 === end of stderr - plain
 
 === stdout - color
-Findings:
-
-[36m[22m[24m  targets/basic/stupid.js [0m
-     [1m[24mrules.javascript-basic-eqeq-bad[0m
-        useless comparison
-
-          3┆ console.log([1m[24mx == x[0m)
 
 
-[36m[22m[24m  targets/basic/stupid.py [0m
-     [1m[24mrules.eqeq-is-bad[0m
-        useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
-        Details: https://sg.run/xyz1
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
 
-          3┆ return [1m[24ma + b == a + b[0m
+  [36m[22m[24m  targets/basic/stupid.js [0m
+       [1m[24mrules.javascript-basic-eqeq-bad[0m
+          useless comparison
+
+            3┆ console.log([1m[24mx == x[0m)
+
+  [36m[22m[24m  targets/basic/stupid.py [0m
+       [1m[24mrules.eqeq-is-bad[0m
+          useless comparison operation `a + b == a + b` or `a + b != a + b`
+          Details: https://sg.run/xyz1
+
+            3┆ return [1m[24ma + b == a + b[0m
+
 
 === end of stdout - color
 

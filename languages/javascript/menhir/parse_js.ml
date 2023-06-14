@@ -17,7 +17,6 @@ open Common
 module Flag = Flag_parsing
 module Ast = Ast_js
 module TH = Token_helpers_js
-module PI = Parse_info
 module PS = Parsing_stat
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -68,7 +67,7 @@ let put_back_lookahead_token_if_needed tr item_opt =
       (* bugfix: without test on is_origintok, the parser timeout
        * TODO: why?
        *)
-      if (not (PI.is_origintok info)) || List.mem info iis then ()
+      if (not (Tok.is_origintok info)) || List.mem info iis then ()
       else (
         (* TODO: could sanity check that what we put back make sense, for
          * example we should never put back a closing '}', which can
@@ -78,7 +77,8 @@ let put_back_lookahead_token_if_needed tr item_opt =
          *)
         logger#debug "putting back lookahead token %s" (Dumper.dump current);
         tr.Parsing_helpers.rest <- current :: tr.Parsing_helpers.rest;
-        tr.Parsing_helpers.passed <- List.tl tr.Parsing_helpers.passed)
+        tr.Parsing_helpers.passed <-
+          Common.tl_exn "unexpected empty list" tr.Parsing_helpers.passed)
 
 (*****************************************************************************)
 (* ASI (Automatic Semicolon Insertion) part 2 *)
@@ -130,7 +130,7 @@ let asi_insert charpos last_charpos_error tr
     (passed_before, passed_offending, passed_after) =
   let info = TH.info_of_tok passed_offending in
   let virtual_semi = Parser_js.T_VIRTUAL_SEMICOLON (Ast.fakeInfoAttach info) in
-  logger#debug "ASI: insertion fake ';' at %s" (PI.string_of_info info);
+  logger#debug "ASI: insertion fake ';' at %s" (Tok.stringpos_of_tok info);
 
   let toks =
     List.rev passed_after
@@ -139,7 +139,7 @@ let asi_insert charpos last_charpos_error tr
   in
   (* like in Parse_info.mk_tokens_state *)
   tr.Parsing_helpers.rest <- toks;
-  tr.Parsing_helpers.current <- List.hd toks;
+  tr.Parsing_helpers.current <- Common.hd_exn "impossible empty list" toks;
   tr.Parsing_helpers.passed <- [];
   (* try again!
    * This significantly slow-down parsing, especially on minimized
@@ -156,7 +156,7 @@ let asi_insert charpos last_charpos_error tr
 (* Lexing only *)
 (*****************************************************************************)
 
-let tokens file =
+let tokens input_source =
   Lexer_js.reset ();
   let token lexbuf =
     let tok =
@@ -172,8 +172,8 @@ let tokens file =
       Lexer_js._last_non_whitespace_like_token := Some tok;
     tok
   in
-  Parsing_helpers.tokenize_all_and_adjust_pos file token TH.visitor_info_of_tok
-    TH.is_eof
+  Parsing_helpers.tokenize_all_and_adjust_pos input_source token
+    TH.visitor_info_of_tok TH.is_eof
   [@@profiling]
 
 (*****************************************************************************)
@@ -183,7 +183,7 @@ let tokens file =
 let parse2 opt_timeout filename =
   let stat = Parsing_stat.default_stat filename in
 
-  let toks = tokens filename in
+  let toks = tokens (Parsing_helpers.file filename) in
   let toks = Parsing_hacks_js.fix_tokens toks in
   let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
@@ -211,7 +211,7 @@ let parse2 opt_timeout filename =
         (* coupling: update also any_of_string if you modify the code below *)
         let cur = tr.Parsing_helpers.current in
         let info = TH.info_of_tok cur in
-        let charpos = Parse_info.pos_of_info info in
+        let charpos = Tok.bytepos_of_tok info in
 
         (* try Automatic Semicolon Insertion *)
         match asi_opportunity charpos last_charpos_error cur tr with
@@ -262,7 +262,7 @@ let parse2 opt_timeout filename =
           stat.PS.error_line_count <-
             stat.PS.error_line_count + (max_line - line_start);
           [])
-        else raise (PI.Parsing_error (TH.info_of_tok err_tok))
+        else raise (Parsing_error.Syntax_error (TH.info_of_tok err_tok))
   in
   let items =
     match
@@ -308,28 +308,27 @@ let type_of_string s =
 (* for sgrep/spatch *)
 let any_of_string s =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-      Common2.with_tmp_file ~str:s ~ext:"js" (fun file ->
-          let toks = tokens file in
-          let toks = Parsing_hacks_js.fix_tokens toks in
-          let toks = Parsing_hacks_js.fix_tokens_ASI toks in
+      let toks = tokens (Parsing_helpers.Str s) in
+      let toks = Parsing_hacks_js.fix_tokens toks in
+      let toks = Parsing_hacks_js.fix_tokens_ASI toks in
 
-          let tr, lexer, lexbuf_fake =
-            Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
-          in
-          let last_charpos_error = ref 0 in
+      let tr, lexer, lexbuf_fake =
+        Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment
+      in
+      let last_charpos_error = ref 0 in
 
-          let rec parse_pattern tr =
-            try Parser_js.sgrep_spatch_pattern lexer lexbuf_fake with
-            | Parsing.Parse_error -> (
-                let cur = tr.Parsing_helpers.current in
-                let info = TH.info_of_tok cur in
-                let charpos = Parse_info.pos_of_info info in
-                (* try Automatic Semicolon Insertion *)
-                match asi_opportunity charpos last_charpos_error cur tr with
-                | None -> raise Parsing.Parse_error
-                | Some (passed_before, passed_offending, passed_after) ->
-                    asi_insert charpos last_charpos_error tr
-                      (passed_before, passed_offending, passed_after);
-                    parse_pattern tr)
-          in
-          parse_pattern tr))
+      let rec parse_pattern tr =
+        try Parser_js.sgrep_spatch_pattern lexer lexbuf_fake with
+        | Parsing.Parse_error -> (
+            let cur = tr.Parsing_helpers.current in
+            let info = TH.info_of_tok cur in
+            let charpos = Tok.bytepos_of_tok info in
+            (* try Automatic Semicolon Insertion *)
+            match asi_opportunity charpos last_charpos_error cur tr with
+            | None -> raise Parsing.Parse_error
+            | Some (passed_before, passed_offending, passed_after) ->
+                asi_insert charpos last_charpos_error tr
+                  (passed_before, passed_offending, passed_after);
+                parse_pattern tr)
+      in
+      parse_pattern tr)

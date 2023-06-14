@@ -5,6 +5,8 @@
    TODO? could move setup in commons/Logging.ml
 *)
 
+open File.Operators
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let setup ~debug ~log_config_file ~log_to_file =
@@ -13,7 +15,7 @@ let setup ~debug ~log_config_file ~log_to_file =
      specific modules.
   *)
   let log_config_file =
-    if Sys.file_exists log_config_file then Some log_config_file else None
+    if Sys.file_exists !!log_config_file then Some log_config_file else None
   in
   let want_logging = debug || log_config_file <> None || log_to_file <> None in
 
@@ -22,7 +24,7 @@ let setup ~debug ~log_config_file ~log_to_file =
    let handler =
      match log_to_file with
      | None -> Easy_logging.(Handlers.make (CliErr Debug))
-     | Some file -> Easy_logging.(Handlers.make (File (file, Debug)))
+     | Some file -> Easy_logging.(Handlers.make (File (!!file, Debug)))
    in
    Logging.apply_to_all_loggers (fun logger -> logger#add_handler handler));
 
@@ -36,5 +38,5 @@ let setup ~debug ~log_config_file ~log_to_file =
   match log_config_file with
   | None -> ()
   | Some file ->
-      Logging.load_config_file file;
-      logger#info "loaded %s" file
+      Logging.load_config_file !!file;
+      logger#info "loaded %s" !!file

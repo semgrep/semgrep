@@ -45,22 +45,21 @@
 (* ------------------------------------------------------------------------- *)
 (* Token/info *)
 (* ------------------------------------------------------------------------- *)
-type tok = Parse_info.t [@@deriving show] (* with tarzan *)
-type 'a wrap = 'a * tok [@@deriving show] (* with tarzan *)
+type tok = Tok.t [@@deriving show]
+type 'a wrap = 'a * tok [@@deriving show]
 type 'a list1 = 'a list (* really should be 'a * 'a list *) [@@deriving show]
-(* with tarzan *)
 
 (* round(), square[], curly{}, angle<> brackets *)
-type 'a bracket = tok * 'a * tok [@@deriving show] (* with tarzan *)
+type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (* ------------------------------------------------------------------------- *)
 (* Ident, qualifier *)
 (* ------------------------------------------------------------------------- *)
 (* for class/interface/enum names, method/field names, type parameter, ... *)
-type ident = string wrap [@@deriving show] (* with tarzan *)
+type ident = string wrap [@@deriving show]
 
 (* for package/import/attributes *)
-type qualified_ident = ident list [@@deriving show] (* with tarzan *)
+type qualified_ident = ident list [@@deriving show]
 
 (*****************************************************************************)
 (* Type *)
@@ -89,14 +88,12 @@ and type_arguments = type_argument list bracket
  * things.
  *)
 and ref_type = typ [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 type type_parameter =
   | TParam of ident * ref_type list (* extends *)
   (* sgrep-ext: *)
   | TParamEllipsis of tok
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (* ------------------------------------------------------------------------- *)
 (* Modifier *)
@@ -458,7 +455,6 @@ and directive =
   | Import of tok option (* static *) * import
   | ModuleTodo of tok
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Program *)
@@ -466,7 +462,7 @@ and directive =
 
 (* old: was compilation_unit with record of package/imports/decls but
  * tree-sitter-java (and probably recent Java) is more flexible *)
-type program = stmts [@@deriving show] (* with tarzan *)
+type program = stmts [@@deriving show]
 
 (*****************************************************************************)
 (* Any *)
@@ -481,7 +477,6 @@ type partial =
   | PartialCatch of catch
   | PartialFinally of (tok * stmt)
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 type any =
   (* useful one for semgrep *)
@@ -500,19 +495,12 @@ type any =
   | AClass of class_decl
   | AProgram of program
 [@@deriving show { with_path = false }]
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let unwrap = fst
-
-let fakeInfo ?(next_to = None) str =
-  {
-    Parse_info.token = Parse_info.FakeTokStr (str, next_to);
-    transfo = Parse_info.NoTransfo;
-  }
-
+let fakeInfo ?(next_to = None) str = Tok.FakeTokStr (str, next_to)
 let info_of_ident ident = snd ident
 
 let is_final xs =
@@ -556,16 +544,15 @@ let rec canon_var mods t_opt v =
       match t_opt with
       | None -> raise Common.Impossible
       | Some t ->
-          canon_var mods
-            (Some (TArray (Parse_info.fake_bracket (tok_of_var v') t)))
-            v')
+          canon_var mods (Some (TArray (Tok.fake_bracket (tok_of_var v') t))) v'
+      )
 
 let method_header mods mtype (v, formals) throws =
   {
     m_var = canon_var mods (Some mtype) v;
     m_formals = formals;
     m_throws = throws;
-    m_body = EmptyStmt (Parse_info.fake_info (tok_of_var v) ";");
+    m_body = EmptyStmt (Tok.fake_tok (tok_of_var v) ";");
   }
 
 (* Return a list of field declarations in canonical form. *)

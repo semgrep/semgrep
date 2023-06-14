@@ -37,16 +37,18 @@ class JsonFormatter(BaseFormatter):
             extra.sca_info = rule_match.extra.get("sca_info")
         if rule_match.extra.get("fixed_lines"):
             extra.fixed_lines = rule_match.extra.get("fixed_lines")
-        if rule_match.fix:
+        if rule_match.fix is not None:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
             extra.fix_regex = rule_match.fix_regex
         if rule_match.is_ignored is not None:
             extra.is_ignored = rule_match.is_ignored
+        if rule_match.extra.get("extra_extra"):
+            extra.extra_extra = out.RawJson(rule_match.extra.get("extra_extra"))
 
         return out.CliMatch(
             check_id=out.RuleId(rule_match.rule_id),
-            path=str(rule_match.path),
+            path=out.Fpath(str(rule_match.path)),
             start=rule_match.start,
             end=rule_match.end,
             extra=extra,
