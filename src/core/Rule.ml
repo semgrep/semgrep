@@ -66,10 +66,17 @@ end = struct
 
   let to_string x = x
 
-  let validate =
-    let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
-    fun str -> SPcre.pmatch_noerr ~rex str
+  (* TODO: re-enable validation after checking that we're not
+        introducing major breakage.
+        We may need to support other characters such as '@'
+        as used in Node.js file paths.
+        See https://github.com/returntocorp/semgrep/pull/8038
 
+     let validate =
+       let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
+       fun str -> SPcre.pmatch_noerr ~rex str
+  *)
+  let validate _str = true
   let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
   let of_string_opt x = if validate x then Some x else None
   let to_string_list x = x
