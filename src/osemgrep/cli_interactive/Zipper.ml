@@ -60,6 +60,6 @@ let append = Framed_zipper.append
 let position = Framed_zipper.absolute_position
 let length = Framed_zipper.length
 let is_top = Framed_zipper.is_top
-let is_bottom = Framed_zipper.is_top
+let is_bottom = Framed_zipper.is_bottom
 let get_current = Framed_zipper.get_current
 let map_current = Framed_zipper.map_current
