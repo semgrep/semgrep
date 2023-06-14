@@ -4,8 +4,7 @@
  (wrapped false)
  (libraries
    commons
-   lib_parsing lib_parsing_tree_sitter
-   tree-sitter-lang.elixir
+   lib_parsing
    parser_elixir.ast
    ast_generic
  )
