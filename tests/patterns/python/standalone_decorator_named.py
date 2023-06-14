@@ -7,7 +7,7 @@ class room():
 
 #OK
 @empty_deco
-#ERROR
+#ERROR:
 @arg_deco("semgrep")
 def decorate():
   return "flowers!"
