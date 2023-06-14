@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Compares behavior of two versions of Semgrep on a rule ID. See the Python
+# docstring below for compare() for more information.
 import os
 import subprocess
 import sys
