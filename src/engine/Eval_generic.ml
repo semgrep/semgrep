@@ -217,10 +217,15 @@ let rec eval env code =
               match
                 (int_of_string_opt y, int_of_string_opt m, int_of_string_opt d)
               with
-              | Some a, Some b, Some c -> Date (a, b, c)
+              | Some yv, Some mv, Some dv ->
+                  if CalendarLib.Date.is_valid_date yv mv dv then
+                    Date (yv, mv, dv)
+                  else raise (NotHandled code)
               | _ -> raise (NotHandled code))
           | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))
+  | G.Call ({ e = G.N (G.Id (("current_date", _), _)); _ }, (_, _, _)) ->
+      Date (2023, 6, 26)
   (* Emulate Python re.match just enough *)
   | G.Call
       ( {
@@ -348,7 +353,7 @@ and eval_str _env ~code v =
     | Float f -> string_of_float f
     | String s -> s
     | Date (y, m, d) ->
-        string_of_int y ^ string_of_int m ^ string_of_int d
+        string_of_int y ^ "-" ^ string_of_int m ^ "-" ^ string_of_int d
         (*TODO: change this A LOT*)
     | AST s -> s
     | List _ -> raise (NotHandled code)
