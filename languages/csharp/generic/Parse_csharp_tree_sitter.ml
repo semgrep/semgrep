@@ -292,6 +292,16 @@ let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
 let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
 let todo_type _env tok = G.OtherType (("Todo", tok), []) |> G.t
 
+let opt_semi (env : env) (v1 : CST.opt_semi) =
+  (* Because of compromises we had to make in the grammar, to make
+     it not take forever to build, opt_semi is not actually an option.
+     We have no choice but to analyze the enclosed token and check
+     if it's a semicolon or not.
+  *)
+  match snd v1 with
+  | ";" -> Some (token env v1)
+  | __else__ -> None
+
 let map_anon_choice_async_25087f5 (env : env)
     (x : CST.anon_choice_async_25087f5) =
   match x with
@@ -1216,38 +1226,45 @@ and cast_expression env (v1, v2, v3, v4) =
 and simple_name_expression env x =
   N (H2.name_of_ids_with_opt_typeargs [ simple_name env x ]) |> G.e
 
+and deep_ellipsis (env : env) ((v1, v2, v3) : CST.deep_ellipsis) =
+  let v1 = token env v1 in
+  let v2 = expression env v2 in
+  let v3 = token env v3 in
+  DeepEllipsis (v1, v2, v3) |> G.e
+
+and member_access_ellipsis (env : env)
+    ((v1, v2, v3) : CST.member_access_ellipsis_expression) =
+  let e =
+    match v1 with
+    | `Exp x -> expression env x
+    | `Pred_type x -> pred_type env x
+    | `Name x -> N (name env x) |> G.e
+  in
+  let _tdot =
+    match v2 with
+    | `DOT tok -> token env tok (* "." *)
+    | `DASHGT tok -> token env tok
+    (* "->" *)
+  in
+  let tdots = token env v3 in
+  DotAccessEllipsis (e, tdots) |> G.e
+
+and typed_metavariable (env : env) ((v1, v2, v3, v4) : CST.typed_metavariable) =
+  let lp = (* "(" *) token env v1 in
+  let ty = type_pattern env v2 in
+  let id = (* semgrep_metavariable *) str env v3 in
+  let _rp = (* ")" *) token env v4 in
+  TypedMetavar (id, lp, ty) |> G.e
+
 and expression (env : env) (x : CST.expression) : G.expr =
   match x with
   | `Non_lvalue_exp v1 -> non_lvalue_expression env v1
   | `Lvalue_exp v1 -> lvalue_expression env v1
   (* semgrep: *)
   | `Ellips v1 -> Ellipsis (token env v1) |> G.e
-  | `Deep_ellips (v1, v2, v3) ->
-      let v1 = token env v1 in
-      let v2 = expression env v2 in
-      let v3 = token env v3 in
-      DeepEllipsis (v1, v2, v3) |> G.e
-  | `Member_access_ellips_exp (v1, v2, v3) ->
-      let e =
-        match v1 with
-        | `Exp x -> expression env x
-        | `Pred_type x -> pred_type env x
-        | `Name x -> N (name env x) |> G.e
-      in
-      let _tdot =
-        match v2 with
-        | `DOT tok -> token env tok (* "." *)
-        | `DASHGT tok -> token env tok
-        (* "->" *)
-      in
-      let tdots = token env v3 in
-      DotAccessEllipsis (e, tdots) |> G.e
-  | `Typed_meta (v1, v2, v3, v4) ->
-      let lp = (* "(" *) token env v1 in
-      let ty = type_pattern env v2 in
-      let id = (* semgrep_metavariable *) str env v3 in
-      let _rp = (* ")" *) token env v4 in
-      TypedMetavar (id, lp, ty) |> G.e
+  | `Deep_ellips v1 -> deep_ellipsis env v1
+  | `Member_access_ellips_exp v1 -> member_access_ellipsis env v1
+  | `Typed_meta v1 -> typed_metavariable env v1
 
 and lvalue_expression (env : env) (x : CST.lvalue_expression) : G.expr =
   match x with
@@ -1697,6 +1714,22 @@ and expr_statement (env : env) (x : CST.expression_statement) : stmt =
       let v1 = token env v1 in
       let v2 = G.sc in
       G.ExprStmt (G.Ellipsis v1 |> G.e, v2) |> G.s
+  | `Deep_ellips_SEMI (v1, v2) ->
+      let v1 = deep_ellipsis env v1 in
+      let v2 = (* ";" *) token env v2 in
+      G.ExprStmt (v1, v2) |> G.s
+  | `Member_access_ellips_exp_SEMI (v1, v2) ->
+      let v1 = member_access_ellipsis env v1 in
+      let v2 = (* ";" *) token env v2 in
+      G.ExprStmt (v1, v2) |> G.s
+  | `Semg_meta_SEMI (v1, v2) ->
+      let v1 = (* semgrep_metavariable *) str env v1 in
+      let v2 = (* ";" *) token env v2 in
+      G.ExprStmt (G.N (AST_generic_helpers.name_of_id v1) |> G.e, v2) |> G.s
+  | `Typed_meta_SEMI (v1, v2) ->
+      let v1 = typed_metavariable env v1 in
+      let v2 = (* ";" *) token env v2 in
+      G.ExprStmt (v1, v2) |> G.s
 
 and statement (env : env) (x : CST.statement) =
   match x with
@@ -2889,11 +2922,7 @@ and struct_declaration (env : env)
   let tparams = type_parameters_with_constraints v6 v8 in
   let lb, body, rb = declaration_list env v9 in
   let fields = Common.map (fun x -> G.F x) body in
-  let _v10 =
-    match v10 with
-    | Some tok -> (* ";" *) Some (token env tok)
-    | None -> None
-  in
+  let _v10 = opt_semi env v10 in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v5, idinfo)); attrs = v1 @ v2 @ v3; tparams } in
   G.DefStmt
@@ -2920,7 +2949,7 @@ and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
     | None -> []
   in
   let v6 = enum_member_declaration_list env v6 in
-  let _v7 = Option.map (token env) v7 (* ";" *) in
+  let _v7 = opt_semi env v7 (* ";" *) in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams = [] } in
   G.DefStmt (ent, G.TypeDef { tbody = OrType v6 }) |> G.s
