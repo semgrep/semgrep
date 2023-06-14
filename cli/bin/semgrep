@@ -2,8 +2,5 @@
 # TODO: for now this file is a python script, but the idea is to
 # replace it with a bash script that calls osemgrep at some point
 import sys
-
-from semgrep.__main__ import main
-
-if __name__ == "__main__":
-    sys.exit(main())
+import semgrep.__main__
+sys.exit(semgrep.__main__.main())
