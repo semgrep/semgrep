@@ -87,10 +87,12 @@ jobs:
         run: |
           eval $(opam env)
           make core-install
-          cp bin/semgrep-core /usr/bin/ # needed for pipenv install to work below
+          # needed for pipenv install to work below
+          cp bin/semgrep-core /usr/bin/
       - name: Install Python dependencies
-        working-directory: cli
-        run: pipenv install --dev
+        run: |
+          make install-deps-ALPINE-for-pysemgrep
+          (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         working-directory: cli
         run: |
@@ -110,6 +112,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           persist-credentials: false
+      #TODO? just use submodule:true above instead of this?
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
