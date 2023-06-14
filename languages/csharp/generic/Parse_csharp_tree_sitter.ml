@@ -688,6 +688,13 @@ and interpolation_alignment_clause (env : env)
 
 and parenthesized_expression (env : env)
     ((_v1, v2, _v3) : CST.parenthesized_expression) =
+  (* Due to ignoring the parentheses, an expression matched
+     by Semgrep which translates to this tree-sitter construct
+     will not encompass the parentheses.
+     It seems this is standard practice though, as we also
+     ignore parentheses in our C, CPP, and Java parsers.
+     Possible TODO:
+  *)
   non_lvalue_expression env v2
 
 and postfix_unary_expression (env : env) (x : CST.postfix_unary_expression) =
@@ -758,7 +765,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       Call (IdSpecial (Op ASR, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = token env v2 (* ">>" *) in
+      let v2 = token env v2 (* ">>>" *) in
       let v3 = expression env v3 in
       Call (IdSpecial (Op LSR, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_LTLT_exp (v1, v2, v3) ->
