@@ -477,6 +477,64 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
             x
 
         method! v_fields env x =
+          (* Copied from v_stmts.
+             Essentially, we would like users to be able to write patterns which
+             look like sequences of fields, and can match to fields as well.
+
+             Consider a Python example, of a class:
+             ```
+             class A:
+               foo()
+               bar()
+             ```
+
+             If we wanted to match any time where `bar()` came after `foo()`, we could
+             not match with just the pattern
+             ```
+             foo()
+             ...
+             bar()
+             ````
+             because the latter is an Ss, and will only match to Ss, whereas the former
+             is actually a class which contains Flds.
+
+             So if someone writes a pattern which could be interpreted as a sequence of
+             fields, we allow it to match to fields.
+          *)
+          !stmts_rules
+          |> List.iter (fun (pattern, rule, cache) ->
+                 Profiling.profile_code "Semgrep_generic.kfields" (fun () ->
+                     let x = Common.map (fun (F x) -> x) x in
+                     let env = MG.empty_environment cache lang config in
+                     let matches_with_env = match_sts_sts rule pattern x env in
+                     if matches_with_env <> [] then
+                       (* Found a match *)
+                       matches_with_env
+                       |> List.iter (fun (env : MG.tin) ->
+                              let span = env.stmts_match_span in
+                              match Stmts_match_span.location span with
+                              | None -> () (* empty sequence or bug *)
+                              | Some range_loc ->
+                                  let env = env.mv.full_env in
+                                  let tokens =
+                                    lazy
+                                      (Stmts_match_span.list_original_tokens
+                                         span)
+                                  in
+                                  let rule_id = rule_id_of_mini_rule rule in
+                                  let pm =
+                                    {
+                                      PM.rule_id;
+                                      file;
+                                      env;
+                                      range_loc;
+                                      tokens;
+                                      taint_trace = None;
+                                      engine_kind = OSS;
+                                    }
+                                  in
+                                  Common.push pm matches;
+                                  hook pm)));
           match_rules_and_recurse lang config (file, hook, matches) !flds_rules
             match_flds_flds (super#v_fields env)
             (fun x -> Flds x)
