@@ -98,14 +98,22 @@ RUN apk update &&\
 
 
 # Here is why we need the apk packages below:
-# - bash: previously for entrypoint.sh (but no longer) and probably (?) many other things
-# - git, git-lfs, openssh: so that the semgrep docker image can be used in
-#   Github actions (GHA) and get git submodules and use ssh to get those submodules
-# - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
+# - libstdc++: for the Python jsonnet binding now used in pysemgrep
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
 #   symbol' errors
+#   TODO: remove once the osemgrep port is done
+# - git, git-lfs, openssh: so that the semgrep docker image can be used in
+#   Github actions (GHA) and get git submodules and use ssh to get those submodules
+# - bash, curl, jq: various utilities useful in CI jobs (e.g., our benchmark jobs,
+#   which needs to use the latest semgrep docker image, also need a few utilities called
+#   in some of our bash and python scripts/)
+#   alt: we used to have an alternate semgrep-dev.Dockerfile container to use
+#   for our benchmarks, but it complicates things and the addition of those
+#   packages do not add much to the size of the docker image (<1%).
 RUN apk add --no-cache --virtual=.run-deps\
-     bash git git-lfs openssh libstdc++
+    libstdc++\
+    git git-lfs openssh\
+    bash curl jq
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container

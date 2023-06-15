@@ -502,6 +502,7 @@ def test_ls_specs(
 
 
 # Test any extensions to the LSP specs, basically anything custom to semgrep
+@pytest.mark.slow
 @pytest.mark.parametrize("logged_in", [True, False])
 def test_ls_ext(
     logged_in,

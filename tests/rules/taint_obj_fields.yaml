@@ -1,0 +1,16 @@
+rules:
+  - id: tainted-obj-fields
+    languages:
+      - kotlin
+    message: Could lead to OS command injection.
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: $R.exec($SINK)
+          - pattern: $SINK
+    pattern-sources:
+      - patterns:
+          - pattern: $F()
+          - pattern-not: getSafeCommand(...)
+    severity: WARNING
+
