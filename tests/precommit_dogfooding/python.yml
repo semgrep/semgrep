@@ -124,9 +124,11 @@ rules:
   - pattern: urllib3.HTTPConnectionPool(...)
   - pattern: urllib3.connectionpool.HTTPConnectionPool(...)
 - id: python.lang.security.audit.network.bind.avoid-bind-to-all-interfaces
-  message: Running `socket.bind` to 0.0.0.0, ::, or empty string could unexpectedly
-    expose the server publicly as it binds to all available interfaces. Consider instead
-    getting correct address from an environment variable or configuration file.
+  message: |
+    Running `socket.bind` to 0.0.0.0, ::, or empty string could unexpectedly
+    expose the server publicly as it binds to all available
+    interfaces. Consider instead getting correct address from an
+    environment variable or configuration file.
   metadata:
     cwe:
     - 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
