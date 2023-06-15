@@ -332,16 +332,6 @@ jobs:
       repository-name: ${{ github.repository }}
       dry-run: false
 
-  push-dev-docker:
-    needs: [build-test-dev-docker]
-    uses: ./.github/workflows/push-docker.yaml
-    if: github.ref == 'refs/heads/develop'
-    secrets: inherit
-    with:
-      artifact-name: image-dev
-      repository-name: ${{ github.repository }}-dev
-      dry-run: false
-
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
