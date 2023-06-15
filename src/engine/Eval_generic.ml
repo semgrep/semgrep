@@ -132,7 +132,7 @@ let print_result xopt =
 (* Eval algorithm *)
 (*****************************************************************************)
 
-(* Helper function to convert string date to Epoch time *)
+(* Helper function to convert string date to Epoch time, currently supports only yyyy-mm-dd format *)
 let string_to_date s code =
   let yyyy_mm_dd = String.split_on_char '-' s in
   match yyyy_mm_dd with
