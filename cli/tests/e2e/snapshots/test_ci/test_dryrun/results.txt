@@ -106,7 +106,6 @@ CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings.
 Would have sent findings and ignores blob: {
-    "token": null,
     "findings": [
         {
             "check_id": "taint-test",
@@ -419,12 +418,13 @@ Would have sent findings and ignores blob: {
             }
         }
     ],
+    "token": null,
+    "gitlab_token": null,
     "searched_paths": [
         "foo.py",
         "poetry.lock",
         "yarn.lock"
     ],
-    "renamed_paths": [],
     "rule_ids": [
         "eqeq-bad",
         "eqeq-five",
@@ -434,6 +434,7 @@ Would have sent findings and ignores blob: {
         "supply-chain2"
     ],
     "cai_ids": [],
+    "renamed_paths": [],
     "ignores": [
         {
             "check_id": "eqeq-four",

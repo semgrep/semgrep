@@ -49,7 +49,7 @@ jobs:
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
       - name: Report Number of Tests Stats
         if: github.ref == 'refs/heads/develop'
-        run: ./tests/report_test_metrics.sh
+        run: ./scripts/report_test_metrics.sh
 
       # TODO: move this to a stable host for more reliable results.
       #
@@ -330,32 +330,6 @@ jobs:
     with:
       artifact-name: image-test
       repository-name: ${{ github.repository }}
-      dry-run: false
-
-  build-test-dev-docker:
-    uses: ./.github/workflows/build-test-docker.yaml
-    secrets: inherit
-    with:
-      docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
-        type=sha,event=branch
-        type=edge
-      repository-name: ${{ github.repository }}-dev
-      artifact-name: image-dev
-      file: dockerfiles/semgrep-dev.Dockerfile
-      enable-tests: false
-
-  push-dev-docker:
-    needs: [build-test-dev-docker]
-    uses: ./.github/workflows/push-docker.yaml
-    if: github.ref == 'refs/heads/develop'
-    secrets: inherit
-    with:
-      artifact-name: image-dev
-      repository-name: ${{ github.repository }}-dev
       dry-run: false
 
   test-semgrep-pro:

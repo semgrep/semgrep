@@ -49,6 +49,9 @@ module ID : sig
      Checks for the format [a-zA-Z0-9._-]* *)
   val validate : string -> bool
 
+  (* Remove any forbidden characters to produce a valid rule ID fragment. *)
+  val sanitize_string : string -> string
+
   (*
      Rule ids are prepended with the `path.to.the.rules.file.`, so
      when comparing a rule (r) with the rule to be included or excluded,
@@ -66,17 +69,20 @@ end = struct
 
   let to_string x = x
 
-  (* TODO: re-enable validation after checking that we're not
-        introducing major breakage.
-        We may need to support other characters such as '@'
-        as used in Node.js file paths.
-        See https://github.com/returntocorp/semgrep/pull/8038
+  let validate =
+    let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
+    fun str -> SPcre.pmatch_noerr ~rex str
 
-     let validate =
-       let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
-       fun str -> SPcre.pmatch_noerr ~rex str
-  *)
-  let validate str = not (str = "!!TEST!!")
+  let sanitize_string str =
+    let buf = Buffer.create (String.length str) in
+    String.iter
+      (function
+        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '.' | '_' | '-') as c ->
+            Buffer.add_char buf c
+        | _junk -> ())
+      str;
+    Buffer.contents buf
+
   let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
   let of_string_opt x = if validate x then Some x else None
   let to_string_list x = x

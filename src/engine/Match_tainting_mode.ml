@@ -754,6 +754,21 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       |> ignore)
     ast;
 
+  (* Check execution of statements during object initialization. *)
+  Visit_class_defs.visit
+    (fun _ cdef ->
+      let fields =
+        cdef.G.cbody |> Tok.unbracket
+        |> Common.map (function G.F x -> x)
+        |> G.stmt1
+      in
+      let stmts = AST_to_IL.stmt lang fields in
+      let flow = CFG_build.cfg_of_stmts stmts in
+      Dataflow_tainting.fixpoint lang xconf.config taint_config java_props_cache
+        flow
+      |> ignore)
+    ast;
+
   (* Check the top-level statements.
    * In scripting languages it is not unusual to write code outside
    * function declarations and we want to check this too. We simply
