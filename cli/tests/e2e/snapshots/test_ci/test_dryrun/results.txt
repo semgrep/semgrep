@@ -433,7 +433,6 @@ Would have sent findings and ignores blob: {
         "supply-chain1",
         "supply-chain2"
     ],
-    "cai_ids": [],
     "renamed_paths": [],
     "ignores": [
         {
