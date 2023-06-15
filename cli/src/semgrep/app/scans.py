@@ -305,7 +305,8 @@ class ScanHandler:
             gitlab_token=None,
         )
         # TODO: add those fields in semgrep_output_v1.atd spec
-        findings_and_ignores = api_scans_findings.to_json() + {
+        findings_and_ignores = {
+            **api_scans_findings.to_json(),
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
             "ignores": ignores,
         }
