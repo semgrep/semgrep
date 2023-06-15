@@ -84,7 +84,7 @@ repos:
     hooks:
       - id: mypy
         exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$$
-        args: [--config, mypy.ini, --show-error-codes]
+        args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
           # - cli/setup.py lists dependencies
