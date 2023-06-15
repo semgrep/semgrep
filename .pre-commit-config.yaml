@@ -155,7 +155,7 @@ repos:
         language: docker_image
         types:
           - dockerfile
-        exclude: "^dockerfiles/linuxbrew[.]Dockerfile$"
+        exclude: "^scripts/release/linuxbrew[.]Dockerfile$"
         entry: hadolint/hadolint:v2.8.0-alpine hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
 
