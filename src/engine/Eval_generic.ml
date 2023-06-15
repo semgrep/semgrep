@@ -45,8 +45,8 @@ type value =
   | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
-  | Date of int * int * int
   (*year, month, date for now, can maybe add support for other formats later?*)
+  (*| Date of (int * int * int)*)
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
@@ -141,18 +141,6 @@ let value_of_lit ~code x =
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
-(* helper function for comparing dates *)
-let date_compare date1 date2 =
-  match (date1, date2) with
-  | (y1, m1, d1), (y2, m2, d2) ->
-      if y1 < y2 then -1
-      else if y1 > y2 then 1
-      else if m1 < m2 then -1
-      else if m1 > m2 then 1
-      else if d1 < d2 then -1
-      else if d1 > d2 then 1
-      else 0
-
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
@@ -229,17 +217,26 @@ let rec eval env code =
               with
               | Some yv, Some mv, Some dv
                 when CalendarLib.Date.is_valid_date yv mv dv ->
-                  Date (yv, mv, dv)
+                  (*ok to put in arbitrary values for last 3 arguments since they are ignored? *)
+                  let time : Unix.tm =
+                    {
+                      tm_sec = 0;
+                      tm_min = 0;
+                      tm_hour = 0;
+                      tm_mday = dv;
+                      tm_mon = mv;
+                      tm_year = yv - 1900;
+                      tm_wday = 0;
+                      tm_yday = 0;
+                      tm_isdst = false;
+                    }
+                  in
+                  Float (fst (Unix.mktime time))
               | _ -> raise (NotHandled code))
           | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.N (G.Id (("today", _), _)); _ }, (_, _, _)) ->
-      let cur_date = Unix.localtime (Unix.time ()) in
-      (* cur_date.tm_year returns years since 1900 so need to add 1900 *)
-      let cur_year = cur_date.tm_year + 1900 in
-      let cur_month = cur_date.tm_mon in
-      let cur_day = cur_date.tm_mday in
-      Date (cur_year, cur_month, cur_day)
+      Float (Unix.time ())
   (* Emulate Python re.match just enough *)
   | G.Call
       ( {
@@ -284,30 +281,18 @@ and eval_op op values code =
   | G.Gt, [ Float i1; Float i2 ] -> Bool (i1 > i2)
   | G.Gt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 > i2)
   | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > float_of_int i2)
-  | G.Gt, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool (date_compare (y1, m1, d1) (y2, m2, d2) =*= 1)
   | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
   | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
   | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
-  | G.GtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool
-        (date_compare (y1, m1, d1) (y2, m2, d2) =*= 0
-        || date_compare (y1, m1, d1) (y2, m2, d2) =*= 1)
   | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
   | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
   | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < float_of_int i2)
-  | G.Lt, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool (date_compare (y1, m1, d1) (y2, m2, d2) =*= -1)
   | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
   | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
   | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
-  | G.LtE, [ Date (y1, m1, d1); Date (y2, m2, d2) ] ->
-      Bool
-        (date_compare (y1, m1, d1) (y2, m2, d2) =*= 0
-        || date_compare (y1, m1, d1) (y2, m2, d2) =*= -1)
   | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
   | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
@@ -368,9 +353,6 @@ and eval_str _env ~code v =
     | Int i -> string_of_int i
     | Float f -> string_of_float f
     | String s -> s
-    | Date (y, m, d) ->
-        Common.spf "%s-%s-%s" (string_of_int y) (string_of_int m)
-          (string_of_int d)
     | AST s -> s
     | List _ -> raise (NotHandled code)
   in
