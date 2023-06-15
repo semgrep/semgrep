@@ -256,8 +256,7 @@ class ScanHandler:
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
-        all_ids = [r.id for r in rules]
-        cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
+        rule_ids = [r.id for r in rules]
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
@@ -301,7 +300,6 @@ class ScanHandler:
             findings=findings,
             searched_paths=[str(t) for t in sorted(targets)],
             rule_ids=rule_ids,
-            cai_ids=cai_ids,
             gitlab_token=None,
         )
         # TODO: add those fields in semgrep_output_v1.atd spec
