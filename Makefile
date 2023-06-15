@@ -7,7 +7,7 @@
 # used for Semgrep development:
 #  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
-#  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
+#  - for Python: 'python3', 'pip', 'pipenv'
 #
 # You will also need obviously 'make', but also 'git', and many other
 # common dev tools (e.g., 'docker').
@@ -27,32 +27,25 @@
 #
 # See INSTALL.md for more information
 # See also https://semgrep.dev/docs/contributing/contributing-code/
-
-###############################################################################
-# Portability tricks
-###############################################################################
-
+#
 # Most of the targets in this Makefile should work equally under
 # Linux (Alpine, Ubuntu, Arch linux), macOS, from a Dockerfile, and
 # hopefully also under Windows WSL.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
 # macros like the one below to have a portable Makefile.
-
-# Used to select commands with different usage under GNU/Linux and *BSD/Darwin
-# such as 'sed'.
-ifeq ($(shell uname -s),Linux)
-  LINUX = true
-else
-  LINUX = false
-endif
-
-# :(
-ifeq ($(LINUX),true)
-  SED = sed -i -e
-else
-  SED = sed -i ''
-endif
+#
+#     # To select commands with different usage under GNU/Linux and *BSD/Darwin
+#     ifeq ($(shell uname -s),Linux)
+#       LINUX = true
+#     else
+#       LINUX = false
+#     endif
+#     ifeq ($(LINUX),true)
+#       SED = sed -i -e
+#     else
+#       SED = sed -i ''
+#     endif
 
 ###############################################################################
 # Build (and clean) targets
@@ -80,7 +73,7 @@ build:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-#history: was the 'all' target in in semgrep-core/Makefile before
+#history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core
 core:
 	$(MAKE) minimal-build
@@ -111,12 +104,10 @@ minimal-build:
 build-docker:
 	docker build -t semgrep .
 
-# Build just this executable
 .PHONY: build-otarzan
 build-otarzan:
 	dune build _build/install/default/bin/otarzan
 
-# Build just this executable
 .PHONY: build-pfff
 build-pfff:
 	dune build _build/install/default/bin/pfff
@@ -139,7 +130,7 @@ clean:
 	-$(MAKE) core-clean
 	-$(MAKE) -C cli clean
 
-# was the 'clean' target in in semgrep-core/Makefile before
+#history: was the 'clean' target in semgrep-core/Makefile before
 .PHONY: core-clean
 core-clean:
 	dune clean

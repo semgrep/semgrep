@@ -129,6 +129,7 @@ COPY cli ./
 #    by 'pip install jsonnet'.
 #    TODO: at some point we should not need the 'pip install jsonnet' because
 #    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
+#    LATER: at some point we would not need at all because of osemgrep/ojsonnet
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
@@ -153,8 +154,10 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 # git history).
 # TODO? to save space, we could have another docker build stage like we already
 # do between the ocaml build and the Python build.
-RUN ln -s semgrep-core /usr/local/bin/osemgrep \
-    && rm -rf /semgrep
+# The addition of osemgrep is temporary, just so that we can dogfood osemgrep
+# in CI explicitely. Once osemgrep becomes semgrep, we will not need symlink.
+RUN rm -rf /semgrep &&\
+    ln -s semgrep-core /usr/local/bin/osemgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
@@ -165,14 +168,15 @@ ENV SEMGREP_IN_DOCKER=1 \
 # (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
 WORKDIR /src
 
+# Better to avoid running semgrep as root
+# See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
 RUN addgroup --system semgrep \
     && adduser --system --shell /bin/false --ingroup semgrep semgrep \
     && chown semgrep /src
 USER semgrep
 
-
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
 # to interactively explore the docker image.
 CMD ["semgrep", "--help"]
-LABEL maintainer="support@r2c.dev"
+LABEL maintainer="support@semgrep.com"
