@@ -207,6 +207,12 @@ type precondition =
   | PNot of precondition
 [@@deriving show]
 
+type precondition_with_range = {
+  precondition : precondition;
+  range : (Tok.location * Tok.location) option;
+}
+[@@deriving show]
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -224,7 +230,7 @@ and taint_source = {
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
        * labeled, and allow sinks that work for any kind of taint? *)
-  source_requires : precondition;
+  source_requires : precondition_with_range option;
       (* A Boolean expression over taint labels, using Python syntax
        * (see Parse_rule). The operators allowed are 'not', 'or', and 'and'.
        *
@@ -267,7 +273,7 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
-  sink_requires : tok * precondition option;
+  sink_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -284,7 +290,7 @@ and taint_propagator = {
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
   to_ : MV.mvar wrap;
-  propagator_requires : precondition;
+  propagator_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * This propagator will only propagate taint if the incoming taint
        * satisfies the 'requires'.
@@ -305,13 +311,23 @@ and taint_propagator = {
 [@@deriving show]
 
 let default_source_label = "__SOURCE__"
-let default_source_requires _tok = PBool true
-let default_propagator_requires _tok = PBool true
+let default_source_requires = PBool true
+let default_propagator_requires = PBool true
 
-let get_sink_requires { sink_requires = _, expr; _ } =
-  match expr with
+let get_source_precondition { source_requires; _ } =
+  match source_requires with
+  | None -> default_source_requires
+  | Some { precondition; _ } -> precondition
+
+let get_propagator_precondition { propagator_requires; _ } =
+  match propagator_requires with
+  | None -> default_propagator_requires
+  | Some { precondition; _ } -> precondition
+
+let get_sink_requires { sink_requires; _ } =
+  match sink_requires with
   | None -> PLabel default_source_label
-  | Some expr -> expr
+  | Some { precondition; _ } -> precondition
 
 (*****************************************************************************)
 (* Extract mode (semgrep as a preprocessor) *)

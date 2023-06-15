@@ -31,9 +31,77 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * That's what this code does.
  *)
 
-let rec expr_to_string expr =
-  let { AST_generic.e_range; _ } = expr in
-  match e_range with
+(*****************************************************************************)
+(* Autofix the YAML *)
+(*****************************************************************************)
+
+let translation_rule_text =
+  {|
+rules:
+  - id: fix-quoted-keys
+    languages:
+      - yaml
+    severity: ERROR
+    message: |
+      This is a Semgrep rule that is designed to fix the translated YAML
+      output, because it's not very nice! The `Yaml.to_string` method will
+      surround all the keys with quotations, which looks pretty jank. Let's
+      avoid that by autofixing them to not have the quotes.
+      That's what this rule does.
+    patterns:
+      - pattern: |
+          $X: $Y
+      - metavariable-pattern:
+          metavariable: $X
+          patterns:
+            - pattern: $X
+            - pattern: |
+                "$Z"
+      - focus-metavariable: $X
+    fix: |
+      $Z
+|}
+
+let fix_quotes_rule =
+  Common2.with_tmp_file ~str:translation_rule_text ~ext:"yaml" (fun file ->
+      let rules = Parse_rule.parse (Fpath.v file) in
+      match rules with
+      | [ ({ mode = `Search _; _ } as rule) ] -> rule
+      | __else__ -> failwith "impossible")
+
+let fix_quotes_in_text s =
+  let hook _ _ = () in
+  Common2.with_tmp_file ~str:s ~ext:"yaml" (fun target_file ->
+      let { Parsing_result2.ast; skipped_tokens; _ } =
+        Parse_target.parse_and_resolve_name Lang.Yaml target_file
+      in
+      let xtarget =
+        {
+          Xtarget.file = Fpath.v target_file;
+          xlang = Xlang.of_lang Lang.Yaml;
+          lazy_content = lazy s;
+          lazy_ast_and_errors = lazy (ast, skipped_tokens);
+        }
+      in
+      let ({ Report.matches; _ } : _ Report.match_result) =
+        Match_search_mode.check_rule fix_quotes_rule hook
+          Match_env.default_xconfig xtarget
+      in
+      (* This is exception-raising, but it's fine for now because -translate_rules
+         is standalone anywayws. If we fail here, we just failed outright.
+      *)
+      Common.(
+        pr2
+          (spf "matches: %s"
+             (Common.map Pattern_match.show matches |> String.concat "\n ")));
+      Autofix.apply_fixes_to_file matches target_file)
+
+(*****************************************************************************)
+(* Main translation logic *)
+(*****************************************************************************)
+
+let rec range_to_string (range : (Tok.location * Tok.location) option) =
+  match range with
   | Some (start, end_) ->
       Common.with_open_infile start.pos.file (fun chan ->
           let extract_size = end_.pos.charpos - start.pos.charpos in
@@ -43,7 +111,7 @@ let rec expr_to_string expr =
 
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
-  | CondEval e -> `O [ ("comparison", `String (expr_to_string e)) ]
+  | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
   | CondRegexp (mv, re_str, _) ->
       `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
   | CondAnalysis (mv, analysis) ->
@@ -75,9 +143,9 @@ and translate_taint_source
     else [ ("label", `String label) ]
   in
   let requires_obj =
-    match source_requires.e with
-    | G.L (G.Bool (true, _)) -> []
-    | _ -> [ ("requires", `String (expr_to_string source_requires)) ]
+    match source_requires with
+    | None -> []
+    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
   let side_effect_obj =
     if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
@@ -88,9 +156,9 @@ and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
     [> `O of (string * Yaml.value) list ] =
   let (`O sink_f) = translate_formula sink_formula in
   let requires_obj =
-    match sink_requires.e with
-    | G.N (G.Id (name, _)) when fst name = Rule.default_source_label -> []
-    | _ -> [ ("requires", `String (expr_to_string sink_requires)) ]
+    match sink_requires with
+    | None -> []
+    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
   `O (List.concat [ sink_f; requires_obj ])
 
@@ -107,16 +175,49 @@ and translate_taint_sanitizer
   `O (List.concat [ san_f; side_effect_obj; not_conflicting_obj ])
 
 and translate_taint_propagator
-    { propagator_formula; propagator_by_side_effect; from; to_ } :
-    [> `O of (string * Yaml.value) list ] =
+    {
+      propagator_formula;
+      propagator_by_side_effect;
+      from;
+      to_;
+      propagator_requires;
+      propagator_replace_labels;
+      propagator_label;
+    } : [> `O of (string * Yaml.value) list ] =
   let (`O prop_f) = translate_formula propagator_formula in
   let side_effect_obj =
     if propagator_by_side_effect then []
     else [ ("by-side-effect", `Bool false) ]
   in
+  let label_obj =
+    match propagator_label with
+    | None -> []
+    | Some label -> [ ("label", `String label) ]
+  in
+  let requires_obj =
+    match propagator_requires with
+    | None -> []
+    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
+  in
+  let replace_labels_obj =
+    match propagator_replace_labels with
+    | None -> []
+    | Some strs ->
+        [ ("replace-labels", `A (Common.map (fun s -> `String s) strs)) ]
+  in
   let from_obj = [ ("from", `String (fst from)) ] in
   let to_obj = [ ("to", `String (fst to_)) ] in
-  `O (List.concat [ prop_f; side_effect_obj; from_obj; to_obj ])
+  `O
+    (List.concat
+       [
+         prop_f;
+         side_effect_obj;
+         from_obj;
+         to_obj;
+         label_obj;
+         requires_obj;
+         replace_labels_obj;
+       ])
 
 and translate_taint_spec
     ({ sources; sanitizers; sinks; propagators } : taint_spec) :
@@ -151,6 +252,14 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
+      let mk_focus_obj (_, mv_list) =
+        match mv_list with
+        | [] ->
+            (* probably shouldn't happen... *)
+            []
+        | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
+        | mvs -> [ `O [ ("focus", `A (Common.map (fun x -> `String x) mvs)) ] ]
+      in
       `O
         (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
@@ -162,15 +271,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
                 (Common.map
                    (fun (_, cond) -> translate_metavar_cond cond)
                    conditions
-                @ Common.map
-                    (fun (_, mv_list) ->
-                      `O
-                        [
-                          ( "focus",
-                            `A (Common.map (fun mvar -> `String mvar) mv_list)
-                          );
-                        ])
-                    focus) );
+                @ List.concat_map mk_focus_obj focus) );
           ]))
   | Or (_, fs) ->
       `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
@@ -231,7 +332,8 @@ let translate_files fparser xs =
                           ("match", (formula |> translate_formula :> Yaml.value));
                         ]
                     | `Taint spec ->
-                        [ ("taint", (translate_taint_spec spec :> Yaml.value)) ])
+                        [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
+                    | `Step _ -> failwith "step rules not currently handled")
            in
            (file, formulas))
   in
@@ -260,6 +362,7 @@ let translate_files fparser xs =
           in
           `O [ ("rules", `A new_rules) ]
           |> Yaml.to_string ~len:5242880 ~encoding:`Utf8 ~layout_style:`Block
-          |> Result.get_ok |> pr
+               ~scalar_style:`Literal
+          |> Result.get_ok |> fix_quotes_in_text |> pr
       | _ -> failwith "wrong syntax")
     formulas_by_file

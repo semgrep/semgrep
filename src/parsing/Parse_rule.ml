@@ -1222,12 +1222,12 @@ let requires_expr_to_precondition env key e =
 let parse_taint_requires env key x =
   let s = parse_string env key x in
   let e = parse_python_expression env key s in
-  requires_expr_to_precondition env key e
+  let range = AST_generic_helpers.range_of_any_opt (E e) in
+  { R.precondition = requires_expr_to_precondition env key e; range }
 
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_source =
-  let default_source_requires = R.default_source_requires (snd key) in
   let parse_from_dict dict f =
     let source_by_side_effect =
       take_opt dict env parse_bool "by-side-effect"
@@ -1237,10 +1237,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_string "label"
       |> Option.value ~default:R.default_source_label
     in
-    let source_requires =
-      take_opt dict env parse_taint_requires "requires"
-      |> Option.value ~default:default_source_requires
-    in
+    let source_requires = take_opt dict env parse_taint_requires "requires" in
     let source_formula = f env dict in
     { R.source_formula; source_by_side_effect; label; source_requires }
   in
@@ -1255,7 +1252,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
           source_formula;
           source_by_side_effect = false;
           label = R.default_source_label;
-          source_requires = default_source_requires;
+          source_requires = None;
         }
     | Right dict -> parse_from_dict dict parse_formula_from_dict
 
@@ -1264,7 +1261,6 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
   let f =
     if is_old then parse_formula_old_from_dict else parse_formula_from_dict
   in
-  let default_propagator_requires = R.default_propagator_requires (snd key) in
   let parse_from_dict dict f =
     let propagator_by_side_effect =
       take_opt dict env parse_bool "by-side-effect"
@@ -1274,7 +1270,6 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     let to_ = take dict env parse_string_wrap "to" in
     let propagator_requires =
       take_opt dict env parse_taint_requires "requires"
-      |> Option.value ~default:default_propagator_requires
     in
     let propagator_label = take_opt dict env parse_string "label" in
     let propagator_replace_labels =
@@ -1329,9 +1324,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     Rule.taint_sink =
   let sink_id = String.concat ":" env.path in
   let parse_from_dict dict f =
-    let sink_requires =
-      (snd key, take_opt dict env parse_taint_requires "requires")
-    in
+    let sink_requires = take_opt dict env parse_taint_requires "requires" in
     let sink_formula = f env dict in
     { R.sink_id; sink_formula; sink_requires }
   in
@@ -1342,7 +1335,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match parse_str_or_dict env value with
     | Left value ->
         let sink_formula = R.P (parse_rule_xpattern env value) in
-        { sink_id; sink_formula; sink_requires = (snd key, None) }
+        { sink_id; sink_formula; sink_requires = None }
     | Right dict -> parse_from_dict dict parse_formula_from_dict
 
 let parse_taint_pattern env key (value : G.expr) =
