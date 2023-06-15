@@ -3,7 +3,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -613,10 +613,14 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 13 findings (10 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+unsupported operand type(s) for +: 'dict' and 'dict'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 485, in ci
+    app_block_override, reason = scan_handler.report_findings(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 308, in report_findings
+    findings_and_ignores = api_scans_findings.to_json() + {
+TypeError: unsupported operand type(s) for +: 'dict' and 'dict'
 
 === end of stderr - plain
