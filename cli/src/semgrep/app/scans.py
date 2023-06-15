@@ -282,9 +282,7 @@ class ScanHandler:
         new_ignored, new_matches = partition(
             all_matches, lambda match: bool(match.is_ignored)
         )
-        findings = [
-            match.to_app_finding_format(commit_date).to_json() for match in new_matches
-        ]
+        findings = [match.to_app_finding_format(commit_date) for match in new_matches]
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
