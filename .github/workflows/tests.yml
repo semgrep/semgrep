@@ -49,7 +49,7 @@ jobs:
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
       - name: Report Number of Tests Stats
         if: github.ref == 'refs/heads/develop'
-        run: ./tests/report_test_metrics.sh
+        run: ./scripts/report_test_metrics.sh
 
       # TODO: move this to a stable host for more reliable results.
       #
