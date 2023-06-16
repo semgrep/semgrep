@@ -1,11 +1,11 @@
 {
   "anonymous_user_id": "11111111-1111-1111-1111-111111111111",
   "environment": {
-    "ci": "None",
+    "ci": null,
     "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
     "integrationName": "funkyintegration",
     "isAuthenticated": false,
-    "projectHash": "None",
+    "projectHash": null,
     "rulesHash": "43af0cc99ad4b3620194d238a7875cc37f8d8eaa1800fd395c15a5ee21967ac3",
     "version": "x.x.x"
   },
