@@ -52,7 +52,7 @@ def double_eqeq_rule() -> Rule:
 
 
 @pytest.fixture
-def eqeq_rules_from_curr_scan() -> Rule:
+def eqeq_rule_from_curr_scan() -> Rule:
     config = parse_config_string(
         "testfile",
         dedent(
@@ -79,7 +79,7 @@ def eqeq_rules_from_curr_scan() -> Rule:
 
 
 @pytest.fixture
-def eqeq_rules_from_prev_scan() -> Rule:
+def eqeq_rule_from_prev_scan() -> Rule:
     config = parse_config_string(
         "testfile",
         dedent(
@@ -219,9 +219,7 @@ def test_line_hashes_hash_correct_line(mocker, double_eqeq_rule, foo_contents):
 
 
 @pytest.mark.quick
-def test_same_match_based_id_for_previous_scan_finding(
-    mocker, double_eqeq_rule, foo_contents
-):
+def test_same_code_hash_for_previous_scan_finding(mocker, foo_contents):
     """
     For the reliable fixed status work, we start sending rules run during the previous scan too.
 
@@ -233,5 +231,9 @@ def test_same_match_based_id_for_previous_scan_finding(
     This test ensures that the match_based_id for the previous scan finding is same as the match_based_id for the current scan finding.
     """
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
-    # FIXME
-    return
+    curr_scan_match = get_rule_match(start_line=3, end_line=3)
+    prev_scan_match = get_rule_match(start_line=3, end_line=3)
+    assert curr_scan_match.syntactic_id == prev_scan_match.syntactic_id
+    assert curr_scan_match.match_based_id == prev_scan_match.match_based_id
+    assert curr_scan_match.code_hash == prev_scan_match.code_hash
+    assert prev_scan_match.pattern_hash == prev_scan_match.pattern_hash
