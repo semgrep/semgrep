@@ -1,5 +1,4 @@
 {
-  "token": null,
   "findings": [
     {
       "check_id": "taint-test",
@@ -377,13 +376,14 @@
       }
     }
   ],
+  "token": null,
+  "gitlab_token": null,
   "searched_paths": [
     "Pipfile.lock",
     "foo.py",
     "poetry.lock",
     "yarn.lock"
   ],
-  "renamed_paths": [],
   "rule_ids": [
     "eqeq-bad",
     "eqeq-five",
@@ -394,6 +394,7 @@
     "supply-chain2"
   ],
   "cai_ids": [],
+  "renamed_paths": [],
   "ignores": [
     {
       "check_id": "abceversion1",

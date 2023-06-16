@@ -5,7 +5,7 @@
 set -eu -o pipefail
 
 prog_name=$(basename "$0")
-default_image=semgrep-dev
+default_image=semgrep
 
 usage() {
   cat <<EOF
@@ -60,5 +60,6 @@ echo "if 1 == 1: pass" \
     | grep -q "1 == 1"
 
 TEMP_DIR=$(mktemp -d)
+chmod +rwx "$TEMP_DIR"
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
 docker run -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"

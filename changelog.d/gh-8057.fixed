@@ -1,0 +1,4 @@
+Allow any characters in file paths used to create dotted rule IDs. File path
+characters that aren't allowed in rule IDs are simply removed. For example, a
+rule whose ID is `my-rule` found in the file `hello/@world/rules.yaml`
+becomes `hello.world.my-rule`.

@@ -50,7 +50,7 @@
 # Note that the Docker base image below currently uses OCaml 4.14.0
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
-# - scripts/{osx-release,osx-m1-release,setup-m1-builder}.sh
+# - scripts/{osx-setup-for-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 #
@@ -98,14 +98,22 @@ RUN apk update &&\
 
 
 # Here is why we need the apk packages below:
-# - bash: previously for entrypoint.sh (but no longer) and probably (?) many other things
-# - git, git-lfs, openssh: so that the semgrep docker image can be used in
-#   Github actions (GHA) and get git submodules and use ssh to get those submodules
-# - libstdc++: for the Python jsonnet binding now used in the semgrep CLI
+# - libstdc++: for the Python jsonnet binding now used in pysemgrep
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
 #   symbol' errors
+#   TODO: remove once the osemgrep port is done
+# - git, git-lfs, openssh: so that the semgrep docker image can be used in
+#   Github actions (GHA) and get git submodules and use ssh to get those submodules
+# - bash, curl, jq: various utilities useful in CI jobs (e.g., our benchmark jobs,
+#   which needs to use the latest semgrep docker image, also need a few utilities called
+#   in some of our bash and python scripts/)
+#   alt: we used to have an alternate semgrep-dev.Dockerfile container to use
+#   for our benchmarks, but it complicates things and the addition of those
+#   packages do not add much to the size of the docker image (<1%).
 RUN apk add --no-cache --virtual=.run-deps\
-     bash git git-lfs openssh libstdc++
+    libstdc++\
+    git git-lfs openssh\
+    bash curl jq
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
@@ -121,33 +129,20 @@ COPY cli ./
 #    by 'pip install jsonnet'.
 #    TODO: at some point we should not need the 'pip install jsonnet' because
 #    jsonnet would be mentioned in the setup.py for semgrep as a dependency.
-# TODO? why the mkdir -p /tmp/.cache?
+#    LATER: at some point we would not need at all because of osemgrep/ojsonnet
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      SEMGREP_SKIP_BIN=true pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
      semgrep --version &&\
-     apk del .build-deps &&\
-     mkdir -p /tmp/.cache
+     apk del .build-deps
 
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
-
-RUN ln -s semgrep-core /usr/local/bin/osemgrep
-
-# ???
-ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-    SEMGREP_USER_AGENT_APPEND="Docker"
-
-# The command we tell people to run for testing semgrep in Docker is
-#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
-# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
-WORKDIR /src
 
 # 'semgrep' is now available in /usr/local/bin thanks to the 'pip install' command
 # above, so let's remove /semgrep which is not needed anymore.
@@ -159,10 +154,29 @@ WORKDIR /src
 # git history).
 # TODO? to save space, we could have another docker build stage like we already
 # do between the ocaml build and the Python build.
-RUN rm -rf /semgrep
+# The addition of osemgrep is temporary, just so that we can dogfood osemgrep
+# in CI explicitely. Once osemgrep becomes semgrep, we will not need symlink.
+RUN rm -rf /semgrep &&\
+    ln -s semgrep-core /usr/local/bin/osemgrep
+
+# ???
+ENV SEMGREP_IN_DOCKER=1 \
+    SEMGREP_USER_AGENT_APPEND="Docker"
+
+# The command we tell people to run for testing semgrep in Docker is
+#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
+# (see https://semgrep.dev/docs/getting-started/ ), hence the WORKDIR directive below
+WORKDIR /src
+
+# Better to avoid running semgrep as root
+# See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
+RUN addgroup --system semgrep \
+    && adduser --system --shell /bin/false --ingroup semgrep semgrep \
+    && chown semgrep /src
+USER semgrep
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
 # to interactively explore the docker image.
 CMD ["semgrep", "--help"]
-LABEL maintainer="support@r2c.dev"
+LABEL maintainer="support@semgrep.com"
