@@ -45,8 +45,6 @@ type value =
   | Float of float
   | String of string (* string without the enclosing '"' *)
   | List of value list
-  (*year, month, date for now, can maybe add support for other formats later?*)
-  (*| Date of (int * int * int)*)
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
