@@ -1,4 +1,11 @@
 (*****************************************************************************)
+(* Const/sym ("svalue") propagation *)
+(*****************************************************************************)
+
+(* Timeout in seconds. *)
+let svalue_prop_FIXPOINT_TIMEOUT = 0.1
+
+(*****************************************************************************)
 (* Taint analysis *)
 (*****************************************************************************)
 
@@ -14,6 +21,9 @@
  * not propagate taint for data with Boolean and integer type. Improving some
  * of the data structures involved may help too.
  *)
+
+(* Timeout in seconds. *)
+let taint_FIXPOINT_TIMEOUT = 0.1
 
 (** Bounds the number of l-values we can track. *)
 let taint_MAX_TAINTED_LVALS = 100
