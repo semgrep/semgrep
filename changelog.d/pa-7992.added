@@ -1,0 +1,2 @@
+Added support for date comparison and functionality to get current date.
+Currently this requires date strings to be in the format "yyyy-mm-dd" next step is to support other formats.

@@ -1,0 +1,10 @@
+rules:
+  - id: date_rule
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING
+    patterns:
+      - pattern: $Y=$X
+      - metavariable-comparison:
+          comparison: strptime($X) < today()
