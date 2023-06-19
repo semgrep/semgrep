@@ -240,6 +240,7 @@ _scan_options: List[Callable] = [
             Skip any rule with the given id. Can add multiple times.
         """,
         shell_complete=__get_file_options,
+        envvar="SEMGREP_EXCLUDE_RULE",
     ),
     optgroup.option(
         "--include",
