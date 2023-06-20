@@ -1157,13 +1157,15 @@ and type_ env (ty : G.type_) : type_ =
   in
   { type_ = ty; exps }
 
-(*
-and type_expr = function
-  | G.TyExpr e
-  | G.TyArray ((_,Some e,_), _) ->
-    Some e
-  | _ -> None
-   *)
+and type_expr_stmts (vtype : G.type_) env ent =
+  match vtype.t with
+  | G.TyArray ((_, Some e, _), _) ->
+      let ss, e' = expr_with_pre_stmts env e in
+      let lv = lval_of_ent env ent in
+      let inst = mk_i (Assign (lv, e')) (SameAs e) in
+      ss @ [ mk_s @@ Instr inst ]
+  | _ -> []
+
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
@@ -1203,15 +1205,12 @@ and stmt_aux env st =
   | G.ExprStmt (eorig, tok) ->
       (* optimize? pass context to expr when no need for return value? *)
       let ss, e = expr_with_pre_stmts ~void:true env eorig in
-      let name, _ = mk_aux_var env tok e in
+      mk_aux_var env tok e |> ignore;
       (*
        * TODO: doc why we need to represent stmt exprs in our IL
        *)
-      let tmp_instr =
-        mk_i (Assign ({ base = Var name; rev_offset = [] }, e)) (SameAs eorig)
-      in
       let ss' = pop_stmts env in
-      ss @ ((mk_s @@ Instr tmp_instr) :: ss')
+      ss @ ss'
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
@@ -1254,6 +1253,9 @@ and stmt_aux env st =
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
+  | G.DefStmt (ent, G.VarDef { G.vinit = None; vtype = Some ty }) ->
+      let ty_exp = type_expr_stmts ty env ent in
+      ty_exp
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (stmt env)
