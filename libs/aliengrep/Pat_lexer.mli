@@ -19,6 +19,7 @@ type token =
     (* any of the opening-brace characters
        and the expected closing brace *)
   | CLOSE of char (* any of the closing-brace characters *)
+  | NEWLINE (* only exists in single-line mode *)
   (* a single character according to PCRE (UTF-8-encoded code point) *)
   | OTHER of string
 

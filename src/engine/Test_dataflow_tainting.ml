@@ -26,7 +26,10 @@ let test_tainting lang file options config def =
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let flow, mapping =
-    Match_tainting_mode.check_fundef lang options config None def
+    Match_tainting_mode.check_fundef lang options config None
+      AST_to_IL.empty_ctx
+      (Dataflow_tainting.mk_empty_java_props_cache ())
+      def
   in
   let taint_to_str taint =
     let show_taint t =
@@ -63,11 +66,13 @@ let test_dfg_tainting rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.languages with
+           match r.Rule.languages.target_analyzer with
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
+  let _search_rules, taint_rules, _extract_rules, _join_rules =
+    Rule.partition_rules rules
+  in
   let rule = Common.hd_exn "unexpected empty list" taint_rules in
   pr2 "Tainting";
   pr2 "========";

@@ -123,6 +123,8 @@ let keyword_table = Common.hash_of_list [
   "enum", (fun ii -> ENUM ii);
   (* javaext: 1.? *)
   (*  "var", (fun ii -> VAR ii); REGRESSIONS *)
+  (* javaext: 15 *)
+  "record", (fun ii -> RECORD ii);
 ]
 
 }

@@ -1,0 +1,9 @@
+rules:
+  - id: test
+    message: sym prop test
+    severity: ERROR
+    languages:
+      - python
+    pattern: foo.Bar.$X
+    options:
+      symbolic_propagation: true

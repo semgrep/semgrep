@@ -1,3 +1,7 @@
+# This workflow builds and tests the semgrep-core binary for macOS X86
+# and generates osx-wheel for pypi.
+
+# coupling: if you modify this file, modify also build-test-osx-m1.yaml
 name: build-test-osx-x86
 
 on:
@@ -7,33 +11,27 @@ on:
 jobs:
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: ["self-hosted", "macOS", "X64"]
+    runs-on: [self-hosted, macOS, X64]
     steps:
-      # Force hard cleanup of any old checkouts.
-      # This is needed when submodules move around, as they are no longer removed by the default clean: true of the checkout step below.
-      # This misses some files (like hidden files) but should take care of the issues we've been seeing.
-      # A more targeted approach we tried previously seems to have failed to clean up all issues
+      # see the comment in build-test-osx-m1.yaml why we need this step
       - name: Clean Checkout
         run: |
           rm -rf ./*
           rm -f .gitmodules
           rm -rf .git
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/setup-python@v4
+      - run: |
+          ./scripts/osx-setup-for-release.sh
+          opam exec -- make core
+          mkdir -p artifacts
+          cp ./bin/semgrep-core artifacts
+          zip -r artifacts.zip artifacts
+      - uses: actions/upload-artifact@v3
         with:
-          python-version: "3.10"
-      - run: sudo python3 -m pip install pipenv==2022.6.7
-      - name: Run OSX release script
-        run: ./scripts/osx-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
+          name: semgrep-osx-${{ github.sha }}
 
   build-wheels-osx:
     runs-on: macos-12
@@ -41,27 +39,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: "recursive"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+          submodules: true
+      - uses: actions/download-artifact@v3
         with:
           name: semgrep-osx-${{ github.sha }}
-      - name: Install artifacts
-        run: unzip artifacts.zip
-      - uses: actions/setup-python@v4
-        with:
-          # This is just the Python version to build the wheels
-          python-version: 3.7
-      - name: Build the wheels
-        env:
+      - run: unzip artifacts.zip
+      - env:
           # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
         run: ./scripts/build-wheels.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
-          name: osx-wheel
           path: cli/dist.zip
+          name: osx-wheel
 
   test-wheels-osx:
     runs-on: macos-12
@@ -70,16 +60,12 @@ jobs:
       - uses: actions/download-artifact@v1
         with:
           name: osx-wheel
-      - name: unzip dist
-        run: unzip ./osx-wheel/dist.zip
+      - run: unzip ./osx-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
-      - name: test version
-        run: semgrep --version
+      - run: semgrep --version
       - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: e2e spacegrep test
-        run: echo '1 == 1' | semgrep -l generic -e '$X == $X' -
+        run: echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -
       - name: test dynamically linked libraries are in /usr/lib/
         shell: bash {0}
         run: |

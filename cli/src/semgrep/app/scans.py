@@ -10,6 +10,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
@@ -17,6 +18,7 @@ import click
 import requests
 from boltons.iterutils import partition
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import RuleSeverity
@@ -24,7 +26,6 @@ from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
@@ -247,16 +248,15 @@ class ScanHandler:
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
-        lockfile_dependencies: Dict[str, List[FoundDependency]],
+        lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
-    ) -> None:
+    ) -> Tuple[bool, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
-        all_ids = [r.id for r in rules]
-        cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
+        rule_ids = [r.id for r in rules]
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
@@ -281,9 +281,7 @@ class ScanHandler:
         new_ignored, new_matches = partition(
             all_matches, lambda match: bool(match.is_ignored)
         )
-        findings = [
-            match.to_app_finding_format(commit_date).to_json() for match in new_matches
-        ]
+        findings = [match.to_app_finding_format(commit_date) for match in new_matches]
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
         ]
@@ -296,14 +294,18 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
-        findings_and_ignores = {
+        api_scans_findings = out.ApiScansFindings(
             # send a backup token in case the app is not available
-            "token": token,
-            "findings": findings,
-            "searched_paths": [str(t) for t in sorted(targets)],
+            token=token,
+            findings=findings,
+            searched_paths=[str(t) for t in sorted(targets)],
+            rule_ids=rule_ids,
+            gitlab_token=None,
+        )
+        # TODO: add those fields in semgrep_output_v1.atd spec
+        findings_and_ignores = {
+            **api_scans_findings.to_json(),
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
-            "rule_ids": rule_ids,
-            "cai_ids": cai_ids,
             "ignores": ignores,
         }
 
@@ -356,7 +358,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
-            return
+            return (False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -365,6 +367,7 @@ class ScanHandler:
 
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
 
@@ -382,6 +385,7 @@ class ScanHandler:
         # mark as complete
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+            timeout=state.env.upload_findings_timeout,
             json=complete,
         )
 
@@ -391,3 +395,6 @@ class ScanHandler:
             raise Exception(
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
+
+        ret = response.json()
+        return (ret.get("app_block_override", False), ret.get("app_block_reason", ""))

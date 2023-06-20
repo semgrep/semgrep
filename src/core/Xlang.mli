@@ -1,4 +1,13 @@
 (*
+   The type of a language analyzer.
+
+   In most cases, the language analyzer is the name of the programming
+   language (Lang.t). These languages are regular Semgrep languages
+   using the generic AST. Other analyzers exist, though, and they are
+   included in this type.
+
+   See also Lang.mli.
+
    eXtended languages: everything from Lang.t + spacegrep (generic) and regex.
 *)
 
@@ -10,8 +19,9 @@ type t =
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
   | LRegex
-  (* for spacegrep *)
-  | LGeneric
+  (* semgrep-like pattern matching *)
+  | LSpacegrep
+  | LAliengrep
 [@@deriving show, eq, hash]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
@@ -47,8 +57,19 @@ val supported_xlangs : string
 
 (*
    Convert from a string or raise an exception with an error message.
-   TODO: explain the 'id' option
 *)
-val of_string : ?id:string option -> string -> t
+val of_string : ?rule_id:string -> string -> t
 val to_string : t -> string
 val is_proprietary : t -> bool
+
+(* of_string/to_string for ATD e.g.
+   type xlang = string wrap <ocaml module="Xlang">
+*)
+val wrap : string -> t
+val unwrap : t -> string
+
+(*
+   Produce an extension to be appended to temporary files.
+   This helps when debugging.
+*)
+val informative_suffix : t -> string

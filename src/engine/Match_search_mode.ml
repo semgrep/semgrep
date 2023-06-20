@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
@@ -115,6 +116,7 @@ let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
 let partition_xpatterns xs =
   let semgrep = ref [] in
   let spacegrep = ref [] in
+  let aliengrep = ref [] in
   let regexp = ref [] in
   xs
   |> List.iter (fun (xpat, inside) ->
@@ -122,16 +124,17 @@ let partition_xpatterns xs =
          match pat with
          | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
+         | XP.Aliengrep x -> Common.push (x, pid, str) aliengrep
          | XP.Regexp x ->
              Common.push (Regexp_engine.pcre_compile x, pid, str) regexp);
-  (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp)
+  (List.rev !semgrep, List.rev !spacegrep, List.rev !aliengrep, List.rev !regexp)
 
 let group_matches_per_pattern_id (xs : Pattern_match.t list) :
     id_to_match_results =
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun m ->
-         let id = int_of_string m.PM.rule_id.id in
+         let id = int_of_string (m.PM.rule_id.id :> string) in
          Hashtbl.add h id m);
   h
 
@@ -161,7 +164,7 @@ let (mini_rule_of_pattern :
       MR.t) =
  fun xlang rule (pattern, inside, id, pstr) ->
   {
-    MR.id = string_of_int id;
+    MR.id = Rule.ID.of_string (string_of_int id);
     pattern;
     inside;
     (* parts that are not really needed I think in this context, since
@@ -173,7 +176,8 @@ let (mini_rule_of_pattern :
       (match xlang with
       | L (x, xs) -> x :: xs
       | LRegex
-      | LGeneric ->
+      | LSpacegrep
+      | LAliengrep ->
           raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
@@ -237,12 +241,12 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
 
             if !debug_timeout || !debug_matches then
               (* debugging path *)
-              debug_semgrep config mini_rules file lang ast
+              debug_semgrep config mini_rules !!file lang ast
             else
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules (file, lang, ast))
+                ?mvar_context ?range_filter config mini_rules (!!file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.make_match_result matches errors { RP.parse_time; match_time }
@@ -370,7 +374,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> Common.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               PM.file = env.xtarget.file;
+               PM.file = !!(env.xtarget.file);
                PM.range_loc;
                PM.tokens = lazy (MV.ii_of_mval mval);
                PM.env = range.mvars;
@@ -449,14 +453,18 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
    * I don't match over xlang and instead assume we could have multiple
    * kinds of patterns at the same time.
    *)
-  let patterns, spacegreps, regexps = partition_xpatterns xpatterns in
+  let patterns, spacegreps, aliengreps, regexps =
+    partition_xpatterns xpatterns
+  in
 
   (* final result *)
   RP.collate_pattern_results
     [
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
-      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps file;
-      Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
+      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps !!file;
+      Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
+        !!file;
+      Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
     ]
   [@@profiling]
 
@@ -633,7 +641,9 @@ and get_nested_formula_matches env formula range =
              spf
                "When parsing a snippet as %s for metavariable-pattern in rule \
                 '%s', %s"
-               lang rule err.msg
+               lang
+               (rule :> string)
+               err.msg
            in
            { err with msg })
   in
@@ -879,7 +889,7 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
       |> before_return (fun v ->
              v
              |> List.iter (fun (m : Pattern_match.t) ->
-                    let str = spf "with rule %s" rule_id in
+                    let str = spf "with rule %s" (rule_id :> string) in
                     hook str m));
     errors;
   }

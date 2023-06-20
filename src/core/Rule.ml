@@ -28,6 +28,73 @@ open Ppx_hash_lib.Std.Hash.Builtin
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
+(*
+   A rule ID is a string. This creates a dedicated type to clarify interfaces
+   and error messages. The coercion operator can be used as an alternative
+   to 'to_string x': '(x :> string)' to obtain a plain string.
+*)
+module ID : sig
+  type t = private string [@@deriving show, eq]
+
+  exception Malformed_rule_ID of string
+
+  val to_string : t -> string
+  val of_string : string -> t
+  val of_string_opt : string -> t option
+  val to_string_list : t list -> string list
+  val of_string_list : string list -> t list
+  val compare : t -> t -> int
+
+  (* Validation function called by of_string.
+     Checks for the format [a-zA-Z0-9._-]* *)
+  val validate : string -> bool
+
+  (* Remove any forbidden characters to produce a valid rule ID fragment. *)
+  val sanitize_string : string -> string
+
+  (*
+     Rule ids are prepended with the `path.to.the.rules.file.`, so
+     when comparing a rule (r) with the rule to be included or excluded,
+     allow for a preceding path
+
+       "path.to.foo.bar" ~suffix:"foo.bar" -> true
+       "foo.bar" ~suffix:"foo.bar" -> true
+       "xfoo.bar" ~suffix:"foo.bar" -> false
+  *)
+  val ends_with : t -> suffix:t -> bool
+end = struct
+  type t = string [@@deriving show, eq]
+
+  exception Malformed_rule_ID of string
+
+  let to_string x = x
+
+  let validate =
+    let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
+    fun str -> SPcre.pmatch_noerr ~rex str
+
+  let sanitize_string str =
+    let buf = Buffer.create (String.length str) in
+    String.iter
+      (function
+        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '.' | '_' | '-') as c ->
+            Buffer.add_char buf c
+        | _junk -> ())
+      str;
+    Buffer.contents buf
+
+  let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
+  let of_string_opt x = if validate x then Some x else None
+  let to_string_list x = x
+  let of_string_list x = x
+  let compare = String.compare
+
+  let ends_with r ~suffix:inc_or_exc_rule =
+    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+end
+
+type rule_id = ID.t [@@deriving show, eq]
+
 (*****************************************************************************)
 (* Position information *)
 (*****************************************************************************)
@@ -112,9 +179,39 @@ and metavar_cond =
 and metavar_analysis_kind = CondEntropy | CondReDoS
 [@@deriving show, eq, hash]
 
+(* TODO? store also the compiled glob directly? but we preprocess the pattern
+ * in Filter_target.filter_paths, so we would need to recompile it anyway,
+ * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
+ *)
+type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
+[@@deriving show]
+
+type paths = {
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   * TODO? use wrap? to also get location of include/require field?
+   *)
+  require : glob list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : glob list;
+}
+[@@deriving show]
+
 (*****************************************************************************)
 (* Taint-specific types *)
 (*****************************************************************************)
+
+(* We roll our own Boolean formula type here for convenience, it is simpler to
+   * inspect and manipulate, and we can safely use polymorphic 'compare' on it.
+*)
+type precondition =
+  | PLabel of string
+  | PBool of bool
+  | PAnd of precondition list
+  | POr of precondition list
+  | PNot of precondition
+[@@deriving show]
 
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
@@ -133,10 +230,9 @@ and taint_source = {
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
        * labeled, and allow sinks that work for any kind of taint? *)
-  source_requires : AST_generic.expr;
-      (* A Boolean expression over taint labels, using Python syntax.
-       * The operators allowed are 'not', 'or', and 'and'. The expression is
-       * evaluated using the `Eval_generic` machinery.
+  source_requires : precondition;
+      (* A Boolean expression over taint labels, using Python syntax
+       * (see Parse_rule). The operators allowed are 'not', 'or', and 'and'.
        *
        * The expression that is being checked as a source must satisfy this
        * in order to the label to be produced. Note that with 'requires' a
@@ -177,7 +273,7 @@ and taint_sanitizer = {
 and taint_sink = {
   sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
   sink_formula : formula;
-  sink_requires : tok * AST_generic.expr option;
+  sink_requires : tok * precondition option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -194,7 +290,7 @@ and taint_propagator = {
   propagator_by_side_effect : bool;
   from : MV.mvar wrap;
   to_ : MV.mvar wrap;
-  propagator_requires : AST_generic.expr;
+  propagator_requires : precondition;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * This propagator will only propagate taint if the incoming taint
        * satisfies the 'requires'.
@@ -215,12 +311,12 @@ and taint_propagator = {
 [@@deriving show]
 
 let default_source_label = "__SOURCE__"
-let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
-let default_propagator_requires tok = G.L (G.Bool (true, tok)) |> G.e
+let default_source_requires _tok = PBool true
+let default_propagator_requires _tok = PBool true
 
-let get_sink_requires { sink_requires = tok, expr; _ } =
+let get_sink_requires { sink_requires = _, expr; _ } =
   match expr with
-  | None -> G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+  | None -> PLabel default_source_label
   | Some expr -> expr
 
 (*****************************************************************************)
@@ -233,7 +329,15 @@ type extract_spec = {
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
+  extract_rule_ids : extract_rule_ids option;
   transform : extract_transform;
+}
+
+(* SR wants to be able to choose rules to run on
+   Behaves the same as paths *)
+and extract_rule_ids = {
+  required_rules : rule_id wrap list;
+  excluded_rules : rule_id wrap list;
 }
 
 (* Method to combine extracted ranges within a file:
@@ -250,18 +354,108 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 [@@deriving show]
 
 (*****************************************************************************)
-(* The rule *)
+(* Languages definition *)
 (*****************************************************************************)
 
-type rule_id = string [@@deriving show]
+(*
+   For historical reasons, the 'languages' field in the Semgrep rule
+   (YAML file) is a list of strings. There was no distinction between
+   target selection and target analysis. This led to oddities for
+   analyzers that aren't specific to a programming language.
+
+   We can now start to decouple file filtering from their analysis.
+   For example, we can select Bash files using the predefined
+   rules that inspect the file extension or the shebang line
+   but analyze them using a regexp instead of a regular Semgrep pattern.
+
+   This is the beginning of fixing this giant mess.
+
+   to be continued...
+*)
+type languages = {
+  (* How to select target files e.g. "files that look like C files".
+     If unspecified, the selector selects all the files that are not
+     ignored by generic mechanisms such as semgrepignore.
+     In a Semgrep rule where a string is expected, the standard way
+     is to use "generic" but "regex" and "none" have the same effect.
+     They all translate into 'None'.
+
+     Example:
+
+       target_selector = Some [Javascript; Typescript];
+
+     ... selects all the files that can be parsed and analyzed
+     as TypeScript ( *.js, *.ts, *.tsx) since TypeScript is an extension of
+     JavaScript.
+
+     TODO: instead of always deriving this field automatically from
+     the 'languages' field of the rule, add support for an optional
+     'target-selectors' field that supports a variety of predefined
+     target selectors (e.g. "minified-javascript-files",
+     "javascript-executable-scripts", "makefile", ...). This would reduce
+     the maintenance burden for custom target selectors and allow mixing
+     them other target analyzers. For example, we could select all the
+     Bash scripts but analyze them with spacegrep.
+  *)
+  target_selector : Lang.t list option;
+  (* How to analyze target files. The accompanying patterns are specified
+     elsewhere in the rule.
+     Examples:
+     - "pattern for the C parser using the generic AST" (regular programming
+       language using a classic Semgrep pattern)
+     - "pattern for Fortran77 or for Fortran90" (two possible parsers)
+     - "spacegrep pattern"
+     - "high-entropy detection" (doesn't use a pattern)
+     - "extract JavaScript snippets from a PDF file" (doesn't use a pattern)
+     This information may have to be extracted from another part of the
+     YAML rule.
+
+     Example:
+
+       target_analyzer = L (Typescript, []);
+  *)
+  target_analyzer : Xlang.t;
+}
+[@@deriving show]
+
+(*****************************************************************************)
+(* Shared mode definitions *)
+(*****************************************************************************)
+
+(* Polymorhic variants used to improve type checking of rules (see below) *)
+type search_mode = [ `Search of formula ] [@@deriving show]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
+
+(*****************************************************************************)
+(* Step mode *)
+(*****************************************************************************)
+
+type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
+
+type step = {
+  step_mode : mode_for_step;
+  step_languages : languages;
+  step_paths : paths option;
+}
+[@@deriving show]
+
+type steps = step list [@@deriving show]
+
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
 
 type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
   mode : 'mode;
-  message : string; (* Currently a dummy value for extract mode rules *)
-  severity : severity; (* Currently a dummy value for extract mode rules *)
-  languages : Xlang.t;
+  (* Currently a dummy value for extract mode rules *)
+  message : string;
+  (* Currently a dummy value for extract mode rules *)
+  severity : severity;
+  (* This is the list of languages in which the root pattern makes sense. *)
+  languages : languages;
   (* OPTIONAL fields *)
   options : Rule_options.t option;
   (* deprecated? todo: parse them *)
@@ -273,32 +467,17 @@ type 'mode rule_info = {
   metadata : JSON.t option;
 }
 
-and paths = {
-  (* If not empty, list of file path patterns (globs) that
-   * the file path must at least match once to be considered for the rule.
-   * Called 'include' in our doc but really it is a 'require'.
-   * TODO? use wrap? to also get location of include/require field?
-   *)
-  require : glob list;
-  (* List of file path patterns we want to exclude. *)
-  exclude : glob list;
-}
-
-(* TODO? store also the compiled glob directly? but we preprocess the pattern
- * in Filter_target.filter_paths, so we would need to recompile it anyway,
- * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
- *)
-and glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
-
 (* TODO? just reuse Error_code.severity *)
 and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
-(* Polymorhic variants used to improve type checking of rules (see below) *)
-type search_mode = [ `Search of formula ] [@@deriving show]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
+(* Step mode includes rules that use search_mode and taint_mode *)
+(* Later, if we keep it, we might want to make all rules have steps,
+   but for the experiment this is easier to remove *)
+type step_mode = [ `Step of steps ] [@@deriving show]
+
+type mode = [ search_mode | taint_mode | extract_mode | step_mode ]
+[@@deriving show]
 
 (* If you know your function accepts only a certain kind of rule,
  * you can use those precise types below.
@@ -306,6 +485,7 @@ type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
+type step_rule = step_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
@@ -323,13 +503,21 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list =
-  rules
-  |> Common.partition_either3 (fun r ->
-         match r.mode with
-         | `Search _ as s -> Left3 { r with mode = s }
-         | `Taint _ as t -> Middle3 { r with mode = t }
-         | `Extract _ as e -> Right3 { r with mode = e })
+    search_rule list * taint_rule list * extract_rule list * step_rule list =
+  let rec part_rules search taint extract step = function
+    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev step)
+    | r :: l -> (
+        match r.mode with
+        | `Search _ as s ->
+            part_rules ({ r with mode = s } :: search) taint extract step l
+        | `Taint _ as t ->
+            part_rules search ({ r with mode = t } :: taint) extract step l
+        | `Extract _ as e ->
+            part_rules search taint ({ r with mode = e } :: extract) step l
+        | `Step _ as j ->
+            part_rules search taint extract ({ r with mode = j } :: step) l)
+  in
+  part_rules [] [] [] [] rules
 
 (*****************************************************************************)
 (* Error Management *)
@@ -393,7 +581,9 @@ let string_of_invalid_rule_error_kind = function
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
-  spf "invalid rule %s, %s: %s" rule_id (Tok.stringpos_of_tok pos)
+  spf "invalid rule %s, %s: %s"
+    (rule_id :> string)
+    (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
@@ -466,6 +656,18 @@ let kind_of_formula = function
 (* Converters *)
 (*****************************************************************************)
 
+let languages_of_lang (lang : Lang.t) : languages =
+  { target_selector = Some [ lang ]; target_analyzer = L (lang, []) }
+
+let languages_of_xlang (xlang : Xlang.t) : languages =
+  match xlang with
+  | LRegex
+  | LAliengrep
+  | LSpacegrep ->
+      { target_selector = None; target_analyzer = xlang }
+  | L (lang, other_langs) ->
+      { target_selector = Some (lang :: other_langs); target_analyzer = xlang }
+
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
@@ -486,12 +688,12 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   {
-    id = ("-e", fk);
+    id = (ID.of_string "-e", fk);
     mode = `Search (P xpat);
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
-    languages = xlang;
+    languages = languages_of_xlang xlang;
     options = None;
     equivalences = None;
     fix = None;

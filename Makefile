@@ -3,11 +3,11 @@
 ###############################################################################
 
 # Many targets in this Makefile assume some commands have been run before to
-# install the correct build environment supporting the different languages
+# setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'opam' and the right OCaml switch (currently 4.14)
+#  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
-#  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
+#  - for Python: 'python3', 'pip', 'pipenv'
 #
 # You will also need obviously 'make', but also 'git', and many other
 # common dev tools (e.g., 'docker').
@@ -27,32 +27,25 @@
 #
 # See INSTALL.md for more information
 # See also https://semgrep.dev/docs/contributing/contributing-code/
-
-###############################################################################
-# Portability tricks
-###############################################################################
-
+#
 # Most of the targets in this Makefile should work equally under
 # Linux (Alpine, Ubuntu, Arch linux), macOS, from a Dockerfile, and
 # hopefully also under Windows WSL.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
-# macros like the one below to make the Makefile portable.
-
-# Used to select commands with different usage under GNU/Linux and *BSD/Darwin
-# such as 'sed'.
-ifeq ($(shell uname -s),Linux)
-  LINUX = true
-else
-  LINUX = false
-endif
-
-# :(
-ifeq ($(LINUX),true)
-  SED = sed -i -e
-else
-  SED = sed -i ''
-endif
+# macros like the one below to have a portable Makefile.
+#
+#     # To select commands with different usage under GNU/Linux and *BSD/Darwin
+#     ifeq ($(shell uname -s),Linux)
+#       LINUX = true
+#     else
+#       LINUX = false
+#     endif
+#     ifeq ($(LINUX),true)
+#       SED = sed -i -e
+#     else
+#       SED = sed -i ''
+#     endif
 
 ###############################################################################
 # Build (and clean) targets
@@ -80,50 +73,29 @@ build:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-# was the 'all' target in in semgrep-core/Makefile before
+#history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core
 core:
-	rm -f bin
 	$(MAKE) minimal-build
-	dune build ./_build/default/tests/test.exe
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
+	ln -s semgrep-core bin/osemgrep
 
-# Make binaries available to 'semgrep', the Python wrapper.
-#
-# TODO: find out and explain why we can't use symlinks
-# (symlink-core-for-cli) which is faster, clearer, and less wasteful
-# than full copies. It may have something to do with how we do Python
-# or Homebrew packaging.
+# Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
-	# Executables
 	rm -f cli/src/semgrep/bin/semgrep-core
-	cp _build/install/default/bin/semgrep-core cli/src/semgrep/bin/
 	rm -f cli/src/semgrep/bin/osemgrep
-	cp _build/install/default/bin/osemgrep cli/src/semgrep/bin/
-
-# Same as copy-core-for-cli but faster. This is suitable for local testing
-# of semgrep.
-#
-# Creating symlinks is much faster than making full copies with cp
-# (< 100 ms vs. 500 ms), which is significant during development.
-#
-.PHONY: symlink-core-for-cli
-symlink-core-for-cli:
-	# Executables
-	rm -f cli/src/semgrep/bin/semgrep-core
-	ln -s ../../../../bin/semgrep-core \
-	  cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
-	ln -s ../../../../bin/osemgrep \
-	  cli/src/semgrep/bin/osemgrep
+	cp bin/semgrep-core cli/src/semgrep/bin/
+	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
+# Builds only the binary needed for development.
+# If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build
+	dune build _build/install/default/bin/semgrep-core
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -132,14 +104,21 @@ minimal-build:
 build-docker:
 	docker build -t semgrep .
 
-# Build just this executable
 .PHONY: build-otarzan
 build-otarzan:
-	rm -f bin
 	dune build _build/install/default/bin/otarzan
-	test -e bin || ln -s _build/install/default/bin .
+
+.PHONY: build-pfff
+build-pfff:
+	dune build _build/install/default/bin/pfff
+
+# This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
+.PHONY: build-parse-cairo
+build-parse-cairo:
+	dune build _build/install/default/bin/parse-cairo
 
 # Build the js_of_ocaml portion of the semgrep javascript packages
+# TODO: you actually can't 'cd js; make'; You first need this step
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
@@ -151,7 +130,7 @@ clean:
 	-$(MAKE) core-clean
 	-$(MAKE) -C cli clean
 
-# was the 'clean' target in in semgrep-core/Makefile before
+#history: was the 'clean' target in semgrep-core/Makefile before
 .PHONY: core-clean
 core-clean:
 	dune clean
@@ -192,7 +171,7 @@ core-install: copy-core-for-cli
 	# causing an error when running a straight cp if a file is already
 	# there.
 	# Known alternative: use 'install -m 0644 ...' instead of cp
-	$(MAKE) uninstall
+	$(MAKE) core-uninstall
 	cp bin/semgrep-core "$$(opam var bin)"/
 
 # Try to uninstall what was installed by 'make core-install'.
@@ -212,19 +191,15 @@ test:
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
 
-# I put 'all' as a dependency because sometimes you modify a test file
-# and dune runtest -f does not see this new file, probably because
-# the cached file under _build/.../tests/ is still the old one.
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
-core-test: core
-	# The test executable has a few options that can be useful
-	# in some contexts.
+core-test:
+	# The test executable has a few options that can be useful in some contexts.
+	dune build ./_build/default/src/tests/test.exe
 	# The following command ensures that we can call 'test.exe --help'
-	# without having to chdir into the test data folder.
-	./_build/default/tests/test.exe --show-errors --help 2>&1 >/dev/null
-	$(MAKE) -C libs/spacegrep test
-	dune runtest -f --no-buffer
+	# from the directory of the checkout
+	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
+	./scripts/run-core-test
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
@@ -266,21 +241,10 @@ install-deps: install-deps-for-semgrep-core
 # Alpine
 # -------------------------------------------------
 
-# Here is why we need those external packages below:
+# Here is why we need those external packages to compile semgrep-core:
 # - pcre-dev: for ocaml-pcre now used in semgrep-core
-# - python3: used also during building semgrep-core for processing lang.json
-# - python3-dev: for the semgrep Python bridge to build Python C extensions
 # - gmp-dev: for osemgrep and its use of cohttp
-ALPINE_APK_DEPS=pcre-dev python3 python3-dev gmp-dev
-
-# We pin to a specific version just to prevent things from breaking randomly.
-# We could update to a more recent version.
-# coupling: if you modify the version, please modify also .github/workflows/*
-PIPENV='pipenv==2022.6.7'
-#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
-# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
-# so I pinned an older version
-VIRTENV='virtualenv==20.21.0'
+ALPINE_APK_DEPS_CORE=pcre-dev gmp-dev
 
 # This target is used in our Dockerfile and a few GHA workflows.
 # There are pros and cons of having those commands here instead
@@ -293,18 +257,28 @@ VIRTENV='virtualenv==20.21.0'
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
+install-deps-ALPINE-for-semgrep-core:
+	apk add --no-cache $(ALPINE_APK_DEPS_CORE)
+
+
+# Here is why we need those external packages below for pysemgrep:
+# - python3: obviously needed for pysemgrep and our e2e tests
+# - python-dev: for compiling jsonnet for pysemgrep
+ALPINE_APK_DEPS_PYSEMGREP=python3 python3-dev
+# We pin to a specific version just to prevent things from breaking randomly.
+# We could update to a more recent version.
+# coupling: if you modify the version, please modify also .github/workflows/*
+PIPENV='pipenv==2022.6.7'
+#TODO: virtualenv 20.22.0 is causing the build to fail with some weird errors:
+# 'AttributeError: module 'virtualenv.create.via_global_ref.builtin.cpython.mac_os' has no attribute 'CPython2macOsArmFramework'
+# so I pinned an older version
+VIRTENV='virtualenv==20.21.0'
+
 # For '--ignore-installed distlib' below see
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
-install-deps-ALPINE-for-semgrep-core:
-	apk add --no-cache $(ALPINE_APK_DEPS)
+install-deps-ALPINE-for-pysemgrep:
+	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
 	pip install --no-cache-dir --ignore-installed distlib $(PIPENV) $(VIRTENV)
-
-#TODO: deprecate scripts/install-alpine-xxx in favor of that
-install-deps-and-build-ALPINE-semgrep-core:
-	$(MAKE) install-deps-ALPINE-for-semgrep-core
-	$(MAKE) install-deps
-	$(MAKE)
-	$(MAKE) install
 
 # -------------------------------------------------
 # Ubuntu
@@ -313,6 +287,19 @@ install-deps-and-build-ALPINE-semgrep-core:
 # -------------------------------------------------
 # macOS (brew)
 # -------------------------------------------------
+
+# Here is why we need those external packages below:
+# - pcre: for ocaml-pcre now used in semgrep-core
+# - gmp: for osemgrep (now merged with semgrep-core) and its use of cohttp
+# - pkg-config?
+# - coreutils?
+# - gettext?
+BREW_DEPS=pcre gmp pkg-config coreutils gettext
+
+# see also scripts/osx-setup-for-release.sh that adjust those
+# external packages to force static-linking
+install-deps-MACOS-for-semgrep-core:
+	brew install $(BREW_DEPS)
 
 # Install dependencies needed for the Homebrew build.
 #
@@ -447,25 +434,22 @@ report-perf-matching:
 SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
-DOCKER_IMAGE=returntocorp/semgrep:develop
-
-# You need to have semgrep in your PATH! do 'cd cli; pipenv shell' before
-# if needed.
+#Dogfooding osemgrep!
 .PHONY: check
 check:
-	semgrep $(SEMGREP_ARGS)
+	./bin/osemgrep $(SEMGREP_ARGS)
 
-# If you get semgrep-core parsing errors while running this command, maybe you
-# have an old cached version of the docker image.
-# You can invalidate the cache with 'docker rmi returntocorp/semgrep:develop`
-check_with_docker:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
-
-# I use the docker here instead of directly semgrep, because semgrep is not always
-# in my PATH.
-#TODO: this will be less needed once we run semgrep with semgrep.jsonnet in pre-commit
 check_for_emacs:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS) --emacs --quiet
+	./bin/osemgrep $(SEMGREP_ARGS) --emacs --quiet
+
+DOCKER_IMAGE=returntocorp/semgrep:develop
+
+# If you get parsing errors while running this command, maybe you have an old
+# cached version of the docker image. You can invalidate the cache with
+#   'docker rmi returntocorp/semgrep:develop`
+# We're dogfooding osemgrep here too! which is now part of the docker image.
+check_with_docker:
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) osemgrep $(SEMGREP_ARGS)
 
 ###############################################################################
 # Martin's targets
@@ -474,17 +458,13 @@ check_for_emacs:
 # These are normally copied by '/cli/setup.py' but it doesn't happen if we
 # run only 'dune build'.
 #
-# This is for development purposes only as I'm not sure if a symlink is ok
-# for packaging things up on the Python side.
-#
 # Usage:
 #  $ make dev
 #  $ PIPENV_PIPFILE=~/semgrep/cli/Pipfile pipenv run semgrep ...
-#
 .PHONY: dev
 dev:
 	$(MAKE) core
-	$(MAKE) symlink-core-for-cli
+	$(MAKE) copy-core-for-cli
 
 ###############################################################################
 # Pad's targets

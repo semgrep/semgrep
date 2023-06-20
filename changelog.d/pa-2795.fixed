@@ -1,0 +1,1 @@
+Diff aware scans now work when git state isn't clean

@@ -6,7 +6,7 @@
     "integrationName": "funkyintegration",
     "isAuthenticated": false,
     "projectHash": null,
-    "rulesHash": "e9641bba77ccfc7908dd80437de848365e2508233b7b42ca197d17fcc0eb0402",
+    "rulesHash": "43af0cc99ad4b3620194d238a7875cc37f8d8eaa1800fd395c15a5ee21967ac3",
     "version": "x.x.x"
   },
   "errors": {
@@ -33,7 +33,6 @@
         "size": 6
       }
     ],
-    "maxMemoryBytes": null,
     "numRules": 4,
     "numTargets": 1,
     "profilingTimes": {
@@ -51,17 +50,17 @@
       {
         "bytesScanned": 0,
         "matchTime": 0.0,
+        "ruleHash": "5c6d327ecdc0f6028e2d9a7e79c0ca03887a91189fbfd871286edad46e5d2516"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
         "ruleHash": "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089"
       },
       {
         "bytesScanned": 0,
         "matchTime": 0.0,
         "ruleHash": "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731"
-      },
-      {
-        "bytesScanned": 0,
-        "matchTime": 0.0,
-        "ruleHash": "f4692285ae22ee62c58c95675c490c445348fdf6d8bce37b696c75f868c8ae40"
       }
     ],
     "totalBytesScanned": 6
@@ -82,9 +81,9 @@
     "numIgnored": 0,
     "ruleHashesWithFindings": {
       "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8": 0,
+      "5c6d327ecdc0f6028e2d9a7e79c0ca03887a91189fbfd871286edad46e5d2516": 1,
       "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089": 0,
-      "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731": 0,
-      "f4692285ae22ee62c58c95675c490c445348fdf6d8bce37b696c75f868c8ae40": 1
+      "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731": 0
     }
   }
 }

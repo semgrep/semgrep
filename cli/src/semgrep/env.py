@@ -90,6 +90,8 @@ class Env:
     shouldafound_no_email: bool = field()
     min_fetch_depth: int = field()
 
+    upload_findings_timeout: int = field()
+
     r2c_internal_jsonnet_lib: Path = field()
 
     @version_check_timeout.default
@@ -166,3 +168,8 @@ class Env:
             return Path(value)
         # TODO what should the default path be?
         return Path.home()
+
+    @upload_findings_timeout.default
+    def upload_findings_timeout_default(self) -> int:
+        value = os.getenv("SEMGREP_UPLOAD_FINDINGS_TIMEOUT", "300")
+        return int(value)

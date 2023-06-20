@@ -39,6 +39,19 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "line": 33,
               "offset": 1035
             },
+            "propagated_value": {
+              "svalue_abstract_content": "req.getParameter(\"uname\")",
+              "svalue_end": {
+                "col": 52,
+                "line": 19,
+                "offset": 562
+              },
+              "svalue_start": {
+                "col": 27,
+                "line": 19,
+                "offset": 537
+              }
+            },
             "start": {
               "col": 26,
               "line": 33,

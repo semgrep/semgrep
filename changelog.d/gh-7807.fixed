@@ -1,8 +1,0 @@
-Scala: You can now put an ellipsis inside of a `catch`, to
-write a pattern like:
-try {
-  ...
-} catch {
-  ...
-}
-which will match every kind of try-catch.

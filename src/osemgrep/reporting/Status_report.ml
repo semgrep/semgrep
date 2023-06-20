@@ -7,13 +7,31 @@
 *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let origin rule =
+  Option.value ~default:"unknown"
+    (match rule.Rule.metadata with
+    | Some meta -> (
+        match Yojson.Basic.Util.member "semgrep.dev" (JSON.to_yojson meta) with
+        | `Assoc _ as things -> (
+            match Yojson.Basic.Util.member "rule" things with
+            | `Assoc _ as things -> (
+                match Yojson.Basic.Util.member "origin" things with
+                | `String s -> Some s
+                | _else -> None)
+            | _else -> None)
+        | _else -> None)
+    | _else -> None)
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
   Fmt_helpers.pp_heading ppf "Scan Status";
-  (* TODO indentation of the body *)
-  Fmt.pf ppf "Scanning %s%s with %s"
+  Fmt.pf ppf "  Scanning %s%s with %s"
     (String_utils.unit_str num_targets "file")
     (if respect_git_ignore then " tracked by git" else "")
     (String_utils.unit_str num_rules "Code rule");
@@ -27,29 +45,39 @@ let pp_status ~num_rules ~num_targets ~respect_git_ignore lang_jobs ppf =
          summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
   *)
   Fmt.pf ppf ":@.";
-  if num_rules = 0 then Fmt.pf ppf "Nothing to scan."
+  if num_rules = 0 then Fmt.pf ppf "  Nothing to scan."
   else if num_rules = 1 then
-    Fmt.pf ppf "Scanning %s." (String_utils.unit_str num_targets "file")
+    Fmt.pf ppf "  Scanning %s." (String_utils.unit_str num_targets "file")
   else
-    (* TODO origin table [Origin Rules] [Community N] *)
+    let rule_origins =
+      lang_jobs
+      |> List.fold_left
+           (fun acc Lang_job.{ rules; _ } -> Common.map origin rules @ acc)
+           []
+      |> Common.group_by Fun.id
+      |> Common.map (fun (src, xs) ->
+             (String.capitalize_ascii src, [ List.length xs ]))
+    in
+    Fmt.pf ppf "@.";
     let xlang_label = function
-      | Xlang.LGeneric
+      | Xlang.LSpacegrep
+      | Xlang.LAliengrep
       | Xlang.LRegex ->
           "<multilang>"
-      | xlang -> Xlang.to_string xlang
+      | Xlang.L (l, _) -> Lang.to_lowercase_alnum l
     in
-    Fmt_helpers.pp_table
-      ("Language", [ "Rules"; "Files" ])
-      ppf
-      (lang_jobs
-      |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
-             (xlang_label xlang, List.length rules, List.length targets))
-      |> List.fold_left
-           (fun acc (lang, rules, targets) ->
-             match List.partition (fun (l, _) -> l = lang) acc with
-             | [], others -> (lang, [ rules; targets ]) :: others
-             | [ (_, [ r1; t1 ]) ], others ->
-                 (lang, [ rules + r1; targets + t1 ]) :: others
-             | _ -> assert false)
-           []
-      |> List.rev)
+    Fmt_helpers.pp_tables ppf
+      ( "Language",
+        [ "Rules"; "Files" ],
+        lang_jobs
+        |> Common.map (fun Lang_job.{ xlang; targets; rules } ->
+               (xlang_label xlang, List.length rules, List.length targets))
+        |> List.fold_left
+             (fun acc (lang, rules, targets) ->
+               match List.partition (fun (l, _) -> l = lang) acc with
+               | [], others -> (lang, [ rules; targets ]) :: others
+               | [ (_, [ r1; t1 ]) ], others ->
+                   (lang, [ rules + r1; targets + t1 ]) :: others
+               | _ -> assert false)
+             [] )
+      ("Origin", [ "Rules" ], rule_origins)

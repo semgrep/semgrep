@@ -12,6 +12,11 @@ open File.Operators
    in this file because their value is accessed by Cmdliner
    in Scan_CLI.ml (SEMGREP_BASELINE_COMMIT, SEMGREP_SEND_METRICS,
    SEMGREP_TIMEOUT, and SEMGREP_RULES).
+
+   TODO: Maybe we should make Env.v a lazy value. If we get an
+   exn for any reason during the init, it will be raised even before
+   main() is called, which leaves no room for error handling and
+   better error messaging.
 *)
 
 (*****************************************************************************)
@@ -67,13 +72,13 @@ type t = {
   shouldafound_no_email : bool;
 }
 
-(* less: make it Lazy? *)
-let env : t =
+(* less: make it Lazy? so at least not run in ocaml init time before main() *)
+let v : t =
   let user_dot_semgrep_dir =
     let parent_dir =
       match Sys.getenv_opt "XDG_CONFIG_HOME" with
       | Some x when Sys.is_directory x -> Fpath.v x
-      | _else_ -> Fpath.v (Sys.getenv "HOME")
+      | _else_ -> Fpath.v (env_or (fun x -> x) "HOME" "/")
     in
     parent_dir / ".semgrep"
   in

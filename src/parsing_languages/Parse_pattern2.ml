@@ -72,6 +72,10 @@ let parse_pattern print_errors lang str =
         str
         |> run_pattern ~print_errors
              [
+               (* TODO: we should switch to TreeSitterPat first, but
+                * we get regressions on generic_args.sgrep because
+                * typed metavariables are not parsed correctly then
+                *)
                PfffPat Parse_java.any_of_string;
                TreeSitterPat Parse_java_tree_sitter.parse_pattern;
              ]
@@ -124,7 +128,8 @@ let parse_pattern print_errors lang str =
       extract_pattern_from_tree_sitter_result res print_errors
   | Lang.Elixir ->
       let res = Parse_elixir_tree_sitter.parse_pattern str in
-      extract_pattern_from_tree_sitter_result res print_errors
+      let pattern = extract_pattern_from_tree_sitter_result res print_errors in
+      Elixir_to_generic.any pattern
   | Lang.Hack ->
       let res = Parse_hack_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
@@ -165,10 +170,10 @@ let dump_tree_sitter_pattern_cst lang file =
   match lang with
   | Lang.Csharp ->
       Tree_sitter_c_sharp.Parse.file file
-      |> dump_and_print_errors Tree_sitter_c_sharp.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
-      |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_lua.Boilerplate.dump_tree
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree

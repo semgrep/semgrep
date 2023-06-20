@@ -35,7 +35,7 @@ Using <MASKED> as the merge-base of <MASKED> and <MASKED>
   Scanning 1 file with 4 python rules.
   Current version has 14 findings.
 
-Switching repository to baseline commit '<MASKED>'.
+Creating git worktree from '<MASKED>' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * <MASKED> Some other commit/ message
 
@@ -106,6 +106,7 @@ CI scan completed successfully.
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
 
 === end of stdout - plain
 

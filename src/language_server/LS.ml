@@ -7,10 +7,14 @@ module SR = Server_request
 module SN = Server_notification
 module CR = Client_request
 module CN = Client_notification
+module Out = Semgrep_output_v1_t
 module Conv = Convert_utils
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(*****************************************************************************)
+(* Server IO *)
+(*****************************************************************************)
 module Io =
   Lsp.Io.Make
     (struct
@@ -46,6 +50,10 @@ module State = struct
   type t = Uninitialized | Running | Stopped
 end
 
+(*****************************************************************************)
+(* Server *)
+(*****************************************************************************)
+
 (* Probably could split this into two modules the server + handlers but oh well maybe later *)
 module Server = struct
   type t = { session : Session.t; state : State.t }
@@ -57,7 +65,7 @@ module Server = struct
   let respond server id json =
     match json with
     | Some json ->
-        logger#info "Server response: %s" (Yojson.Safe.to_string json);
+        logger#info "Server response:\n%s" (Yojson.Safe.pretty_to_string json);
         let response = Response.ok id json in
         let packet = Packet.Response response in
         Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
@@ -75,6 +83,8 @@ module Server = struct
 
   let notify server notification =
     let notification = SN.to_jsonrpc notification in
+    logger#info "Server notification:\n%s"
+      (notification |> Notification.yojson_of_t |> Yojson.Safe.pretty_to_string);
     let packet = Packet.Notification notification in
     Lwt_io.atomic (fun oc -> Io.write oc packet) server.session.outgoing
 
@@ -142,9 +152,9 @@ module Server = struct
     let files = Common2.uniq files in
     (final_results, files)
 
-  let initialize_session server root only_git_dirty =
+  let initialize_session server workspace_folders only_git_dirty =
     {
-      session = { server.session with root; only_git_dirty };
+      session = { server.session with workspace_folders; only_git_dirty };
       state = State.Running;
     }
 
@@ -185,16 +195,37 @@ module Server = struct
             create_progresss server "Semgrep Initializing" "Loading Rules"
           in
           logger#info "Client initialized";
-
           let session = Session.load_rules server.session in
+          logger#info "Rules loaded";
           let _ = end_progress server token in
           let server = { server with session } in
+          logger#info "Scanning workspace";
           let _ = scan_workspace server in
           server
       | CN.DidSaveTextDocument { textDocument = { uri }; _ }
       | CN.TextDocumentDidOpen { textDocument = { uri; _ } } ->
           logger#info "Scanning %s" (Uri.to_string uri);
           let _ = scan_file server uri in
+          server
+      | CN.ChangeWorkspaceFolders { event = { added; removed }; _ } ->
+          let added = Conv.workspace_folders_to_paths added in
+          let removed = Conv.workspace_folders_to_paths removed in
+          let session =
+            Session.update_workspace_folders server.session ~added ~removed
+          in
+          let server = { server with session } in
+          let _ = scan_workspace server in
+          server
+      | CN.DidDeleteFiles { files; _ } ->
+          (* This is lame, for whatever reason they chose to type uri as string here, not Uri.t *)
+          let files =
+            Common.map
+              (fun { FileDelete.uri } ->
+                Str.string_after uri (String.length "file://"))
+              files
+          in
+          let diagnostics = Diagnostics.diagnostics_of_results [] files in
+          let _ = batch_notify server diagnostics in
           server
       | CN.UnknownNotification { method_ = "semgrep/loginFinish"; _ }
       | CN.UnknownNotification { method_ = "semgrep/logout"; _ }
@@ -216,6 +247,7 @@ module Server = struct
             }
           in
           let _ = scan_workspace _server in
+          logger#info "Scanning workspace complete";
           server
       | CN.Exit ->
           logger#info "Client exited";
@@ -226,11 +258,15 @@ module Server = struct
     in
     server
 
-  let handle_custom_request (meth : string)
-      (params : Jsonrpc.Structured.t option) server : Yojson.Safe.t option * t =
-    match [ (ShowAst.meth, ShowAst.on_request) ] |> List.assoc_opt meth with
+  let handle_custom_request server (meth : string)
+      (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * t =
+    let search_handler =
+      Search.on_request server.session.config
+        (Session.targets { server.session with only_git_dirty = false })
+    in
+    match [ (Search.meth, search_handler); ShowAst.meth, ShowAst.on_request ] |> List.assoc_opt meth with
     | None ->
-        logger#warning "Unhandled request";
+        logger#warning "Unhandled custom request %s" meth;
         (None, server)
     | Some handler -> (handler params, server)
 
@@ -251,17 +287,13 @@ module Server = struct
             scan_options |> member "onlyGitDirty" |> to_bool_option
             |> Option.value ~default:true
           in
-          let workspace_uri =
-            match workspaceFolders with
-            | Some (Some ({ uri; _ } :: _)) -> Uri.to_path uri
+          let workspace_folders =
+            match (workspaceFolders, rootUri) with
+            | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders
+            | _, Some uri -> [ Uri.to_path uri |> Fpath.v ]
             | _ ->
                 logger#warning "No rootUri or workspaceFolders provided";
-                ""
-          in
-          let root =
-            match rootUri with
-            | Some uri -> Uri.to_path uri
-            | None -> workspace_uri
+                []
           in
           let init =
             InitializeResult.
@@ -271,10 +303,14 @@ module Server = struct
                   Some { name = "Semgrep Language Server"; version = None };
               }
           in
-          let server = initialize_session server root only_git_dirty in
+          let server =
+            initialize_session server workspace_folders only_git_dirty
+          in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
-      | _ when server.state = State.Uninitialized -> (None, server)
+      | _ when server.state = State.Uninitialized ->
+          logger#info "Received request before initialization";
+          (None, server)
       | CR.CodeAction { textDocument = { uri }; context; _ } ->
           let file = Uri.to_path uri in
           let results = Hashtbl.find_opt server.session.documents file in
@@ -293,19 +329,21 @@ module Server = struct
             CodeActions.code_actions_of_core_matches matches [ file ]
           in
           (to_yojson (Some actions), server)
-      | CR.Shutdown -> (None, { server with state = State.Stopped })
-      | CR.DebugEcho params -> (to_yojson params, server)
       | CR.UnknownRequest { meth; params } ->
-          handle_custom_request meth params server
+          handle_custom_request server meth params
+      | CR.Shutdown ->
+          logger#info "Shutting down";
+          (None, { server with state = State.Stopped })
+      | CR.DebugEcho params -> (to_yojson params, server)
       | _ ->
-          logger#warning "Unhandled request";
+          logger#warning "Unhandled request: %s" (Common2.dump request);
           (None, server)
     in
     (resp, server)
 
   let handle_client_message (msg : Packet.t) server =
-    logger#info "Server received: %s"
-      (Packet.yojson_of_t msg |> Yojson.Safe.to_string);
+    logger#info "Server received:\n%s"
+      (msg |> Packet.yojson_of_t |> Yojson.Safe.pretty_to_string);
     let server =
       match msg with
       | Notification n when CN.of_jsonrpc n |> Result.is_ok ->
@@ -322,23 +360,45 @@ module Server = struct
     Lwt.return server
 
   let rec rpc_loop server () =
-    let%lwt client_msg = Io.read server.session.incoming in
-    match (client_msg, server.state) with
-    | None, _
-    | _, State.Stopped ->
+    match server.state with
+    | State.Stopped ->
         logger#info "Server stopped";
         Lwt.return ()
-    | Some msg, _ ->
-        let%lwt server = handle_client_message msg server in
-        rpc_loop server ()
+    | _ -> (
+        let%lwt client_msg = Io.read server.session.incoming in
+        match client_msg with
+        | Some msg ->
+            let%lwt server = handle_client_message msg server in
+            rpc_loop server ()
+        | None ->
+            logger#warning "Client disconnected";
+            Lwt.return ())
 
   let start server = Lwt_main.run (rpc_loop server ())
 
+  (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
+
+  (** Everything this server supports from the LSP *)
   let capabilities =
+    let fil =
+      FileOperationFilter.create
+        ~pattern:(FileOperationPattern.create ~glob:"**/*" ())
+        ()
+    in
+    let reg_opts = FileOperationRegistrationOptions.create ~filters:[ fil ] in
     ServerCapabilities.create
       ~textDocumentSync:
         (`TextDocumentSyncOptions
           (TextDocumentSyncOptions.create ~openClose:true ~save:(`Bool true) ()))
+      ~workspace:
+        (ServerCapabilities.create_workspace
+           ~workspaceFolders:
+             (WorkspaceFoldersServerCapabilities.create ~supported:true
+                ~changeNotifications:(`Bool true) ())
+           ~fileOperations:
+             (FileOperationOptions.create ~didCreate:reg_opts
+                ~didRename:reg_opts ~didDelete:reg_opts ())
+           ())
       ~codeActionProvider:(`Bool true) ()
 
   let create config =
@@ -358,4 +418,5 @@ end
 let start config =
   logger#info "Starting server";
   let server = Server.create config in
-  Server.start server
+  Server.start server;
+  exit 0

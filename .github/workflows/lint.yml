@@ -26,7 +26,7 @@ jobs:
       # runs as part of pre-commit to check our Python code.
       # alt: we could also use 'submodules: recursive' instead, but that would be a bit slower
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       # pre-commit is a Python script, this speedup things from Xmin to Ymin?
       - uses: actions/setup-python@v4
         with:
@@ -71,7 +71,7 @@ jobs:
     # This custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in dev/dev.opam)
     # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: returntocorp/ocaml:ubuntu-2023-04-17
+    container: returntocorp/ocaml:ubuntu-2023-06-16
     # HOME in the container is tampered by GHA and modified from /root to /home/github
     # which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
     # hence the ugly use of 'env: HOME ...' below.

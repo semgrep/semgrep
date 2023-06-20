@@ -57,31 +57,39 @@ let default_payload =
         version = "0";
         projectHash = None;
         configNamesHash = "";
-        rulesHash = "";
+        rulesHash = None;
         ci = None;
         isAuthenticated = false;
+        integrationName = None;
       };
     performance =
       {
         numRules = None;
         numTargets = None;
         totalBytesScanned = None;
-        fileStats = [];
-        ruleStats = [];
-        profilingTimes = [];
+        fileStats = None;
+        ruleStats = None;
+        profilingTimes = None;
         maxMemoryBytes = None;
       };
-    errors = { returnCode = None; errors = [] };
+    errors = { returnCode = None; errors = None };
     value =
       {
         features = [];
-        numFinding = 0;
-        numIgnored = 0;
-        ruleHashesWithFindings = [];
+        numFindings = None;
+        numIgnored = None;
+        ruleHashesWithFindings = None;
         engineRequested = "OSS";
       };
-    fix_rate = { lowerLimits = []; upperLimits = [] };
     parse_rate = [];
+    extension =
+      {
+        machineId = None;
+        isNewAppInstall = None;
+        sessionId = None;
+        version = None;
+        ty = None;
+      };
   }
 
 let default =

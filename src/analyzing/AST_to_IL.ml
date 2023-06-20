@@ -33,6 +33,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+module IdentSet = Set.Make (String)
+
+type ctx = { entity_names : IdentSet.t }
+
 type env = {
   lang : Lang.t;
   (* stmts hidden inside expressions that we want to move out of 'exp',
@@ -45,10 +49,19 @@ type env = {
   *)
   break_labels : label list;
   cont_label : label option;
+  ctx : ctx;
 }
 
+let empty_ctx = { entity_names = IdentSet.empty }
+
 let empty_env (lang : Lang.t) : env =
-  { stmts = ref []; break_labels = []; cont_label = None; lang }
+  {
+    stmts = ref [];
+    break_labels = [];
+    cont_label = None;
+    ctx = empty_ctx;
+    lang;
+  }
 
 (*****************************************************************************)
 (* Error management *)
@@ -236,9 +249,14 @@ let is_hcl lang =
 let mk_class_constructor_name (ty : G.type_) cons_id_info =
   match ty with
   | { t = TyN (G.Id (id, _)); _ }
+  | { t = TyExpr { e = G.N (G.Id (id, _)); _ }; _ }
+  (* FIXME: JS parser produces this ^ although it should be parsed as a 'TyN'. *)
     when Option.is_some !(cons_id_info.G.id_resolved) ->
       Some (G.Id (id, cons_id_info))
   | __else__ -> None
+
+let add_entity_name ctx ident =
+  { entity_names = IdentSet.add (H.str_of_ident ident) ctx.entity_names }
 
 (*****************************************************************************)
 (* lvalue *)
@@ -613,7 +631,21 @@ and expr_aux env ?(void = false) e_gen =
   | G.ArrayAccess (_, _)
   | G.DeRef (_, _) ->
       let lval = lval env e_gen in
-      mk_e (Fetch lval) eorig
+      let exp = mk_e (Fetch lval) eorig in
+      let ident_function_call_hack exp =
+        (* Taking into account Ruby's ability to allow function calls without
+         * parameters or parentheses, we are conducting a check to determine
+         * if a function with the same name as the identifier exists, specifically
+         * for Ruby. *)
+        match lval with
+        | { base = Var { ident; _ }; _ }
+          when env.lang =*= Lang.Ruby
+               && IdentSet.mem (H.str_of_ident ident) env.ctx.entity_names ->
+            let tok = G.fake "call" in
+            add_call env tok eorig ~void (fun res -> Call (res, exp, []))
+        | _ -> exp
+      in
+      ident_function_call_hack exp
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp e_gen
@@ -1666,8 +1698,8 @@ and function_definition env fdef =
 (* Entry points *)
 (*****************************************************************************)
 
-let function_definition lang def =
-  let env = empty_env lang in
+let function_definition lang ?ctx def =
+  let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
   let params = parameters env def.G.fparams in
   let body = function_body env def.G.fbody in
   (params, body)

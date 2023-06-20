@@ -3,9 +3,8 @@ rules:
     languages:
       - generic
     patterns:
-      - pattern-either:
-          - pattern: |
-              USER $ROOT
+      - pattern: |
+          USER $ROOT
       - pattern-inside: |
           USER $ROOT
           ...

@@ -21,7 +21,7 @@ let default_settings =
     anonymous_user_id = Uuidm.v `V4;
   }
 
-let settings = Semgrep_envvars.env.user_settings_file
+let settings = Semgrep_envvars.v.user_settings_file
 
 (*****************************************************************************)
 (* Helpers *)
@@ -78,7 +78,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 (* Entry points *)
 (*****************************************************************************)
 
-let load () =
+let load ?(legacy = false) () =
   try
     if
       Sys.file_exists (Fpath.to_string settings)
@@ -101,9 +101,10 @@ let load () =
               default_settings
           | Ok s -> s)
     else (
-      Logs.warn (fun m ->
-          m "Settings file %a does not exist or is not a regular file" Fpath.pp
-            settings);
+      if not legacy then
+        Logs.warn (fun m ->
+            m "Settings file %a does not exist or is not a regular file"
+              Fpath.pp settings);
       default_settings)
   with
   | Failure _ -> default_settings
@@ -118,7 +119,8 @@ let save setting =
     if Sys.file_exists (Fpath.to_string tmp) then
       Sys.remove (Fpath.to_string tmp);
     File.write_file tmp str;
-    (* TODO: Why this tmp and rename? Why not write directly to the file? *)
+    (* Create a termporary file and rename to have a consisting settings file,
+       even if the power fails (or a Ctrl-C happens) during the write_file. *)
     Unix.rename (Fpath.to_string tmp) (Fpath.to_string settings);
     true
   with

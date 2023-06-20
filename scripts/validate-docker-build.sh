@@ -5,7 +5,7 @@
 set -eu -o pipefail
 
 prog_name=$(basename "$0")
-default_image=semgrep-dev
+default_image=semgrep
 
 usage() {
   cat <<EOF

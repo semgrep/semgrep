@@ -147,8 +147,7 @@ let map_anon_choice_PLUS_da42005 (env : env) (x : CST.anon_choice_PLUS_da42005)
 
 let map_mult_operator (env : env) (x : CST.mult_operator) : string wrap =
   match x with
-  | `Tok_pat_058c54c_rep_pat_525fbb4 tok ->
-      str env tok (* tok_pat_058c54c_rep_pat_525fbb4 *)
+  | `Tok_pat_9ed5fa7_rep_pat_2ed1ddf tok -> str env tok (*  *)
   | `Mod tok -> str env tok (* "mod" *)
   | `Land tok -> str env tok (* "land" *)
   | `Lor tok -> str env tok (* "lor" *)
@@ -167,8 +166,7 @@ let map_escape_sequence (env : env) (x : CST.escape_sequence) : string wrap =
 
 let map_pow_operator (env : env) (x : CST.pow_operator) =
   match x with
-  | `Tok_STARSTAR_rep_pat_525fbb4 tok ->
-      str env tok (* tok_STARSTAR_rep_pat_525fbb4 *)
+  | `Tok_star_rep_pat_2ed1ddf tok -> str env tok (* *)
   | `Lsl tok -> str env tok (* "lsl" *)
   | `Lsr tok -> str env tok (* "lsr" *)
   | `Asr tok -> str env tok
@@ -179,12 +177,12 @@ let map_quoted_string_content (env : env) (xs : CST.quoted_string_content) =
   Common.map
     (fun x ->
       match x with
-      | `Imm_tok_SPACE tok -> str env tok (* " " *)
-      | `Imm_tok_LF tok -> str env tok (* "\n" *)
-      | `Imm_tok_HT tok -> str env tok (* "\t" *)
-      | `Imm_tok_LBRACKAT tok -> str env tok (* "[@" *)
-      | `Imm_tok_LBRACKATAT tok -> str env tok (* "[@@" *)
-      | `Imm_tok_LBRACKATATAT tok -> str env tok (* "[@@@" *)
+      | `Imm_tok_sp tok -> str env tok (* " " *)
+      | `Imm_tok_lf tok -> str env tok (* "\n" *)
+      | `Imm_tok_ht tok -> str env tok (* "\t" *)
+      | `Imm_tok_lbra_c9d51a3 tok -> str env tok (* "[@" *)
+      | `Imm_tok_lbra_0289a62 tok -> str env tok (* "[@@" *)
+      | `Imm_tok_lbra_72ad36a tok -> str env tok (* "[@@@" *)
       | `Pat_714c625 tok -> str env tok (* pattern [^%@|]+|%|@|\| *)
       | `Null tok -> str env tok (* null *)
       | `Conv_spec tok -> str env tok (* conversion_specification *)
@@ -246,12 +244,12 @@ let map_string_content (env : env) (xs : CST.string_content) =
   Common.map
     (fun x ->
       match x with
-      | `Imm_tok_SPACE tok -> str env tok (* " " *)
-      | `Imm_tok_LF tok -> str env tok (* "\n" *)
-      | `Imm_tok_HT tok -> str env tok (* "\t" *)
-      | `Imm_tok_LBRACKAT tok -> str env tok (* "[@" *)
-      | `Imm_tok_LBRACKATAT tok -> str env tok (* "[@@" *)
-      | `Imm_tok_LBRACKATATAT tok -> str env tok (* "[@@@" *)
+      | `Imm_tok_sp tok -> str env tok (* " " *)
+      | `Imm_tok_lf tok -> str env tok (* "\n" *)
+      | `Imm_tok_ht tok -> str env tok (* "\t" *)
+      | `Imm_tok_lbra_c9d51a3 tok -> str env tok (* "[@" *)
+      | `Imm_tok_lbra_0289a62 tok -> str env tok (* "[@@" *)
+      | `Imm_tok_lbra_72ad36a tok -> str env tok (* "[@@@" *)
       | `Pat_19aaf34 tok -> str env tok (* pattern "[^\\\\\"%@]+|%|@" *)
       | `Null tok -> str env tok (* null *)
       | `Esc_seq x -> map_escape_sequence env x
@@ -1742,7 +1740,7 @@ and map_labeled_argument (env : env) (x : CST.labeled_argument) =
       match x with
       | (true, _t), id -> ArgKwd (id, name_of_id id)
       | (false, _t), id -> ArgQuestion (id, name_of_id id))
-  | `Label_imm_tok_COLON_choice_simple_exp (v1, v2, v3) -> (
+  | `Label_imm_tok_colon_choice_simple_exp (v1, v2, v3) -> (
       let v1 = map_label env v1 in
       let _v2 = token env v2 (* ":" *) in
       let v3 = map_simple_expression_ext env v3 in
@@ -2135,7 +2133,7 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
   | `Choice_TILDE_id x ->
       let (_bool, t), _id = map_label env x in
       ParamTodo ("Label", t)
-  | `Label_imm_tok_COLON_simple_pat_ext (v1, v2, v3) ->
+  | `Label_imm_tok_colon_simple_pat_ext (v1, v2, v3) ->
       let (_bool, t), _id = map_label env v1 in
       let _v2 = token env v2 (* ":" *) in
       let _v3 = map_simple_pattern_ext env v3 in
@@ -2156,7 +2154,7 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
       in
       let _v6 = token env v6 (* ")" *) in
       ParamTodo ("Label", t)
-  | `Label_imm_tok_COLON_LPAR_pat_ext_opt_typed_EQ_seq_exp_ext_RPAR
+  | `Label_imm_tok_colon_LPAR_pat_ext_opt_typed_EQ_seq_exp_ext_RPAR
       (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let (_bool, t), _id = map_label env v1 in
       let _v2 = token env v2 (* ":" *) in

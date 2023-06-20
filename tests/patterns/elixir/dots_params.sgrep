@@ -1,0 +1,3 @@
+def $VAL(...) do
+   ...
+end

@@ -81,7 +81,7 @@ type engine_kind = OSS | Pro [@@deriving show, eq]
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
-  (* location information *)
+  (* location information: TODO Fpath.t *)
   file : Common.filename;
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
@@ -120,7 +120,7 @@ and rule_id = {
    * Note that when we process a full rule, this id can temporarily
    * contain a Rule.pattern_id.
    *)
-  id : string;
+  id : Rule.ID.t;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml.
    *
    * TODO should we remove these fields and just pass around a Rule.t or

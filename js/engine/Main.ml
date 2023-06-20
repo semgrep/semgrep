@@ -17,6 +17,8 @@ let _ =
      from the web on demand when one select a language in the playground.
      old: Parsing_init.init ();
   *)
+  Yaml_ctypes_overrides.apply ();
+
   Js.export_all
     (object%js
        (*

@@ -24,6 +24,10 @@ module H = Cmdliner_helpers
 (*****************************************************************************)
 (*
    The result of parsing a 'semgrep scan' command.
+
+   LATER: we could actually define this structure in ATD, so people could
+   programmatically set the command-line arguments they want if they
+   want to programmatically call Semgrep.
 *)
 type conf = {
   (* Main configuration options *)
@@ -68,6 +72,10 @@ type conf = {
 }
 [@@deriving show]
 
+(* We could split the content of this variable in different files, e.g.,
+ * targeting_conf default could be move in a Find_targets.default, but
+ * it's also nice to have everything in one place.
+ *)
 let default : conf =
   {
     (* alt: Configs [ "auto" ]? *)
@@ -95,13 +103,19 @@ let default : conf =
     (* alt: could move in a Core_runner.default *)
     core_runner_conf =
       {
-        Core_runner.num_jobs = Parmap_helpers.get_cpu_count ();
+        (* Maxing out number of cores used to 16 if more not requested to
+         * not overload on large machines
+         *)
+        Core_runner.num_jobs = Int.min 16 (Parmap_helpers.get_cpu_count ());
         timeout = 30.0 (* seconds *);
         timeout_threshold = 3;
         max_memory_mb = 0;
         optimizations = true;
-        (* like legacy, should maybe be set to false when we release osemgrep*)
-        ast_caching = true;
+        (* better to set to false for now; annoying to add --ast-caching to
+         * each command, but while we're still developing osemgrep it is
+         * better to eliminate some source of complexity by default.
+         *)
+        ast_caching = false;
       };
     autofix = false;
     dryrun = false;
@@ -118,8 +132,8 @@ let default : conf =
     max_lines_per_finding = 10;
     rewrite_rule_ids = true;
     metrics = Metrics_.Auto;
-    (* like legacy, should maybe be set to false when we release osemgrep*)
-    registry_caching = true;
+    (* like legacy, should maybe be set to false when we release osemgrep *)
+    registry_caching = false;
     version_check = true;
     (* ugly: should be separate subcommands *)
     version = false;
@@ -137,6 +151,7 @@ let default : conf =
 (*************************************************************************)
 (* Command-line flags *)
 (*************************************************************************)
+(* The o_ below stands for option (as in command-line argument option) *)
 
 (* ------------------------------------------------------------------ *)
 (* Networking related options (New) *)
@@ -162,7 +177,7 @@ environment variable, defaults to 'auto'.
 
 (* alt: was in "Performance and memory options" before *)
 let o_version_check : bool Term.t =
-  H.negatable_flag [ "enable-version-check" ]
+  H.negatable_flag_with_env [ "enable-version-check" ]
     ~neg_options:[ "disable-version-check" ]
     ~default:default.version_check
     ~env:(Cmd.Env.info "SEMGREP_ENABLE_VERSION_CHECK")
@@ -338,7 +353,7 @@ the file is skipped. If set to 0 will not have limit. Defaults to 3.
  * better be backward compatible with how semgrep was doing it before
  *)
 let o_force_color : bool Term.t =
-  H.negatable_flag [ "force-color" ] ~neg_options:[ "no-force-color" ]
+  H.negatable_flag_with_env [ "force-color" ] ~neg_options:[ "no-force-color" ]
     ~default:default.force_color
       (* TOPORT? need handle SEMGREP_COLOR_NO_COLOR or NO_COLOR
        * # https://no-color.org/
@@ -598,11 +613,6 @@ let o_legacy : bool Term.t =
     ~default:default.legacy
     ~doc:{|Keep the pysemgrep behaviors/limitations/errors|}
 
-(* alt: could be put in Display options, next to o_time *)
-let o_profile : bool Term.t =
-  let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
-  Arg.value (Arg.flag info)
-
 let o_dump_config : string option Term.t =
   let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.opt Arg.(some string) None info)
@@ -742,7 +752,13 @@ let cmdline_term : conf Term.t =
         respect_git_ignore;
       }
     in
-    let rule_filtering_conf = { Rule_filtering.exclude_rule_ids; severity } in
+    let rule_filtering_conf =
+      {
+        Rule_filtering.exclude_rule_ids =
+          Common.map Rule.ID.of_string exclude_rule_ids;
+        severity;
+      }
+    in
 
     (* ugly: dump should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
@@ -896,9 +912,9 @@ let cmdline_term : conf Term.t =
     const combine $ o_ast_caching $ o_autofix $ o_baseline_commit $ o_config
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_legacy $ CLI_common.logging_term $ o_max_chars_per_line
+    $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ o_profile
+    $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ CLI_common.o_profile
     $ o_project_root $ o_registry_caching $ o_replacement $ o_respect_git_ignore
     $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test

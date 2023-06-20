@@ -42,12 +42,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
- fun rs -> rs |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
+ fun rs ->
+  rs
+  |> Common.map (fun r -> r.R.languages.target_analyzer)
+  |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
   match rs with
   | [] -> failwith "no rules"
-  | { R.languages = x; _ } :: _ -> x
+  | { R.languages = x; _ } :: _ -> x.target_analyzer
 
 let single_xlang_from_rules file rules =
   let xlangs = xlangs_of_rules rules in
@@ -149,12 +152,13 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                      in
                      (ast, skipped_tokens)
                  | LRegex
-                 | LGeneric ->
+                 | LSpacegrep
+                 | LAliengrep ->
                      assert false)
              in
              let xtarget =
                {
-                 Xtarget.file = !!target;
+                 Xtarget.file = target;
                  xlang;
                  lazy_content = lazy (File.read_file target);
                  lazy_ast_and_errors;
@@ -174,7 +178,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              let extracted_ranges =
                Match_extract_mode.extract_nested_lang
                  ~match_hook:(fun _ _ -> ())
-                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget rules
+                 ~timeout:0. ~timeout_threshold:0 ~all_rules:rules extract_rules
+                 xtarget
              in
              let extract_targets, extract_result_map =
                (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
@@ -207,9 +212,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                  extract_targets
                  |> Common.map (fun t ->
                         let file = t.Input_to_core_t.path in
-                        let xlang =
-                          Xlang.of_string t.Input_to_core_t.language
-                        in
+                        let xlang = t.Input_to_core_t.language in
                         let lazy_ast_and_errors =
                           lazy
                             (match xlang with
@@ -219,12 +222,13 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                                 in
                                 (ast, skipped_tokens)
                             | LRegex
-                            | LGeneric ->
+                            | LSpacegrep
+                            | LAliengrep ->
                                 assert false)
                         in
                         let xtarget =
                           {
-                            Xtarget.file;
+                            Xtarget.file = Fpath.v file;
                             xlang;
                             lazy_content = lazy (Common.read_file file);
                             lazy_ast_and_errors;

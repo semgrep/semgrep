@@ -63,6 +63,8 @@ val check_fundef :
   Rule_options.t ->
   Dataflow_tainting.config ->
   AST_generic.entity option (** entity being analyzed *) ->
+  AST_to_IL.ctx ->
+  Dataflow_tainting.java_props_cache ->
   AST_generic.function_definition ->
   IL.cfg * Dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can

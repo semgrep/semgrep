@@ -130,6 +130,32 @@ let print_result xopt =
 (* Eval algorithm *)
 (*****************************************************************************)
 
+(* Helper function to convert string date to Epoch time, currently supports only yyyy-mm-dd format *)
+let string_to_date s code =
+  let yyyy_mm_dd = String.split_on_char '-' s in
+  match yyyy_mm_dd with
+  | [ y; m; d ] -> (
+      match (int_of_string_opt y, int_of_string_opt m, int_of_string_opt d) with
+      | Some yv, Some mv, Some dv when CalendarLib.Date.is_valid_date yv mv dv
+        ->
+          (*ok to put in arbitrary values for last 3 arguments since they are ignored *)
+          let time : Unix.tm =
+            {
+              tm_sec = 0;
+              tm_min = 0;
+              tm_hour = 0;
+              tm_mday = dv;
+              tm_mon = mv;
+              tm_year = yv - 1900;
+              tm_wday = 0;
+              tm_yday = 0;
+              tm_isdst = false;
+            }
+          in
+          Float (fst (Unix.mktime time))
+      | _ -> raise (NotHandled code))
+  | _ -> raise (NotHandled code)
+
 let value_of_lit ~code x =
   match x with
   | G.Bool (b, _t) -> Bool b
@@ -202,6 +228,14 @@ let rec eval env code =
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
       let v = eval env e in
       eval_str env ~code v
+  (* Convert string to date *)
+  | G.Call ({ e = G.N (G.Id (("strptime", _), _)); _ }, (_, [ Arg e ], _)) -> (
+      let v = eval env e in
+      match v with
+      | String s -> string_to_date s code
+      | __else__ -> raise (NotHandled code))
+  | G.Call ({ e = G.N (G.Id (("today", _), _)); _ }, (_, _, _)) ->
+      Float (Unix.time ())
   (* Emulate Python re.match just enough *)
   | G.Call
       ( {
@@ -236,8 +270,8 @@ and eval_op op values code =
   match (op, values) with
   | _op, [ AST _; _ ]
   | _op, [ _; AST _ ] ->
-      (* To compare `AST` values one needs to explicitly use the `str()` function!
-       * Otherwise we would introduce regressions. *)
+      (* To compare `AST` values one needs to explicitly use the `str()`
+       * function! Otherwise we would introduce regressions. *)
       raise (NotHandled code)
   | G.And, [ Bool b1; Bool b2 ] -> Bool (b1 && b2)
   | G.Not, [ Bool b1 ] -> Bool (not b1)
@@ -400,6 +434,7 @@ let bindings_to_env (config : Rule_options.t) bindings =
            | MV.Id (i, Some id_info) ->
                try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
            | MV.E e -> try_bind_to_exp e
+           | MV.Text (s, _, _) -> Some (mvar, String s)
            | x -> string_of_binding mvar x)
     |> Common.hash_of_list
   in

@@ -9,9 +9,12 @@
 #  stress tests of: open multiple files, save multiple files, deleting files
 #                   scan workspace, refresh rules, login/logout
 import json
+import shutil
 import subprocess
 import tempfile
 import time
+import uuid
+from pathlib import Path
 from textwrap import dedent
 
 import pytest
@@ -170,13 +173,29 @@ def mock_files(git_tmp_path):
     return root, files
 
 
+@pytest.fixture
+def mock_workspaces(mock_files, tmp_path):
+    workspace1 = mock_files
+    # Copy mock files to a second workspace
+    # This is gross IK but oh well
+    workspace2_root = str(tmp_path)[:-1] + "1"
+    shutil.copytree(workspace1[0], workspace2_root)
+    workspace2_paths = [
+        Path(workspace2_root) / (Path(file)).name for file in workspace1[1]
+    ]
+    workspace2_files = sorted(str(file) for file in workspace2_paths)
+
+    workspace2 = workspace2_root, workspace2_files
+    return [workspace1, workspace2]
+
+
 def send_msg(server, method, params=None, notif=False):
     msg = {"jsonrpc": "2.0", "method": method}
     if params:
         msg["params"] = params
 
     if not notif:
-        msg["id"] = 1
+        msg["id"] = str(uuid.uuid4())
     server.on_std_message(msg)
 
 
@@ -188,7 +207,9 @@ def send_exit(server):
 def send_initialize(server, workspace_folders, only_git_dirty=True):
     workspace_folders = [f"file://{folder}" for folder in workspace_folders]
     params = DEFAULT_CAPABILITIES
-    params["rootUri"] = workspace_folders[0]
+    if len(workspace_folders) > 0:
+        params["rootUri"] = workspace_folders[0]
+
     params["workspaceFolders"] = [
         {"uri": folder, "name": folder} for folder in workspace_folders
     ]
@@ -224,6 +245,70 @@ def send_did_save(server, path):
             "textDocument": {
                 "uri": f"file://{path}",
                 "version": 1,
+            }
+        },
+        notif=True,
+    )
+
+
+def send_did_add(server, path):
+    send_msg(
+        server,
+        "workspace/didCreateFiles",
+        {
+            "files": [
+                {
+                    "uri": f"file://{path}",
+                }
+            ]
+        },
+        notif=True,
+    )
+
+
+def send_did_delete(server, path):
+    send_msg(
+        server,
+        "workspace/didDeleteFiles",
+        {
+            "files": [
+                {
+                    "uri": f"file://{path}",
+                }
+            ]
+        },
+        notif=True,
+    )
+
+
+def send_did_change_folder(server, added=None, removed=None):
+    if added is None:
+        added = []
+    if removed is None:
+        removed = []
+    addded_json = []
+    for file in added:
+        addded_json.append(
+            {
+                "uri": f"file://{file}",
+                "name": f"file://{file}",
+            }
+        )
+    removed_json = []
+    for file in removed:
+        removed_json.append(
+            {
+                "uri": f"file://{file}",
+                "name": f"file://{file}",
+            }
+        )
+    send_msg(
+        server,
+        "workspace/didChangeWorkspaceFolders",
+        {
+            "event": {
+                "added": addded_json,
+                "removed": removed_json,
             }
         },
         notif=True,
@@ -281,6 +366,17 @@ def send_semgrep_refresh_rules(server):
     send_msg(server, "semgrep/refreshRules", notif=True)
 
 
+def send_semgrep_search(server, pattern, language=None):
+    params = {"pattern": pattern}
+    if language:
+        params["language"] = language
+    send_msg(
+        server,
+        "semgrep/search",
+        params,
+    )
+
+
 def check_diagnostics(response, file, expected_ids):
     assert response["method"] == "textDocument/publishDiagnostics"
     assert response["params"]["uri"] == f"file://{file}"
@@ -288,61 +384,47 @@ def check_diagnostics(response, file, expected_ids):
     assert ids == expected_ids
 
 
-# TODO: this is currently passing with osemgrep but should not. it's because we don't
-# call osemgrep. If we were calling osemgrep correctly, we would get failures.
-# Note: This also fails in the 'test osemgrep' CI job with some errors about git
-@pytest.mark.parametrize("logged_in", [True, False])
-@pytest.mark.slow()
-def test_ls_full(
-    logged_in,
-    run_semgrep_ls,  # nosemgrep: typehint-run-semgrep
-    mock_files,
-    mocker,
-    monkeypatch,
-):
+def assert_notif(response, method, message=None, kind=None):
+    assert response["method"] == method
+    if message:
+        assert response["params"]["value"]["message"] == message
+    if kind:
+        assert response["params"]["value"]["kind"] == kind
 
-    root, files = mock_files
 
-    monkeypatch.chdir(root)
+def assert_progress(responses, message):
+    response = next(responses)
+    assert_notif(response, "window/workDoneProgress/create")
 
-    if logged_in:
-        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value="1")
-        mocker.patch("semgrep.app.auth.get_token", return_value="token")
-    else:
-        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
+    response = next(responses)
+    assert_notif(response, "$/progress", message)
 
-    server, responses = run_semgrep_ls
+    response = next(responses)
+    assert_notif(response, "$/progress", kind="end")
 
+
+# Goes through initial startup cycle, and checks for correct responses
+def check_startup(server, responses, folders, logged_in, files):
     # initialize
-    send_initialize(server, [root])
+    send_initialize(server, folders)
+
+    if len(folders) > 1:
+        # Multi-workspace May degrade performance message
+        response = next(responses)
+        assert_notif(
+            response,
+            "window/showMessage",
+        )
 
     response = next(responses)
     assert "capabilities" in response["result"]
 
     send_initialized(server)
-    response = next(responses)
-    assert response["method"] == "window/workDoneProgress/create"
+    assert_progress(responses, "Loading Rules")
 
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["message"] == "Loading Rules"
+    assert_progress(responses, "Scanning Workspace")
 
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["kind"] == "end"
-
-    response = next(responses)
-    assert response["method"] == "window/workDoneProgress/create"
-
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["message"] == "Scanning Workspace"
-
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["kind"] == "end"
-
-    scanned_files = files[1:]
+    scanned_files = list(filter(lambda x: "existing" not in x, files))
 
     scan_responses = [next(responses) for _ in range(len(scanned_files))]
 
@@ -351,13 +433,28 @@ def test_ls_full(
     ran_rule_id = "eqeq-four" if logged_in else "eqeq-five"
 
     expected_ids = [ran_rule_id]
-    response = scan_responses[0]
-    check_diagnostics(response, scanned_files[0], expected_ids)
+    for i, file in enumerate(scanned_files):
+        response = scan_responses[i]
+        check_diagnostics(response, file, expected_ids)
 
-    response = scan_responses[1]
-    check_diagnostics(response, scanned_files[1], expected_ids)
 
-    expected_ids = []
+# TODO: this is currently passing with osemgrep but should not. it's because we don't
+# call osemgrep. If we were calling osemgrep correctly, we would get failures.
+# Note: This also fails in the 'test osemgrep' CI job with some errors about git
+
+# Test anything that is part of the normal LSP specs, and basic usage
+@pytest.mark.slow()
+def test_ls_specs(
+    run_semgrep_ls,  # nosemgrep: typehint-run-semgrep
+    mock_files,
+):
+
+    root, files = mock_files
+
+    server, responses = run_semgrep_ls
+
+    check_startup(server, responses, [root], False, files)
+
     for file in files:
         # didOpen
         send_did_open(server, file)
@@ -387,42 +484,66 @@ def test_ls_full(
         assert len(response["result"]) == 1
         assert response["result"][0]["kind"] == "quickfix"
 
+    # Test did add
+    added = root / "added.py"
+    shutil.copy(files[0], added)
+    send_did_add(server, added)
+    send_did_open(server, added)
+
+    response = next(responses)
+    check_diagnostics(response, added, ["eqeq-five", "eqeq-five"])
+
+    send_did_delete(server, added)
+
+    response = next(responses)
+    check_diagnostics(response, added, [])
+
+    send_exit(server)
+
+
+# Test any extensions to the LSP specs, basically anything custom to semgrep
+@pytest.mark.slow
+@pytest.mark.parametrize("logged_in", [True, False])
+def test_ls_ext(
+    logged_in,
+    run_semgrep_ls,  # nosemgrep: typehint-run-semgrep
+    mock_files,
+    mocker,
+    monkeypatch,
+):
+    server, responses = run_semgrep_ls
+
+    root, files = mock_files
+
+    monkeypatch.chdir(root)
+
+    if logged_in:
+        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value="1")
+        mocker.patch("semgrep.app.auth.get_token", return_value="token")
+    else:
+        mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
+
+    check_startup(server, responses, [root], logged_in, files)
+
     # scan workspace
     send_semgrep_scan_workspace(server)
-    response = next(responses)
-    assert response["method"] == "window/workDoneProgress/create"
-
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["message"] == "Scanning Workspace"
-
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["kind"] == "end"
+    assert_progress(responses, "Scanning Workspace")
 
     num_ids = []
-    for _ in files:
+    scanned_files = list(filter(lambda x: "existing" not in x, files))
+    for _ in scanned_files:
         response = next(responses)
         num_ids.append(len(response["params"]["diagnostics"]))
 
     # scan workspace full
     send_semgrep_scan_workspace_full(server)
 
-    response = next(responses)
-    assert response["method"] == "window/workDoneProgress/create"
-
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["message"] == "Scanning Workspace"
-
-    response = next(responses)
-    assert response["method"] == "$/progress"
-    assert response["params"]["value"]["kind"] == "end"
+    assert_progress(responses, "Scanning Workspace")
 
     for i in range(len(files)):
         response = next(responses)
         uri = response["params"]["uri"]
-        if "existing" in uri or "modified" in uri:
+        if "modified" in uri:
             assert len(response["params"]["diagnostics"]) > num_ids[i]
 
     ## login
@@ -430,7 +551,7 @@ def test_ls_full(
     response = next(responses)
 
     if logged_in:
-        assert response["method"] == "window/showMessage"
+        assert_notif(response, "window/showMessage")
     else:
         assert response["result"]["url"] != ""
         assert response["result"]["sessionId"] != ""
@@ -441,11 +562,11 @@ def test_ls_full(
         send_semgrep_login_finish(server)
         response = next(responses)
         # Waiting for login
-        assert response["method"] == "window/showMessage"
+        assert_notif(response, "window/showMessage")
 
         response = next(responses)
         # login success
-        assert response["method"] == "window/showMessage"
+        assert_notif(response, "window/showMessage")
 
         # More progress bars
         for _ in range(0, 6):
@@ -455,8 +576,11 @@ def test_ls_full(
             response = next(responses)
             uri = response["params"]["uri"]
             ids = [d["code"] for d in response["params"]["diagnostics"]]
-            assert "eqeq-four" in ids
-            assert "eqeq-five" not in ids
+            if "existing" not in uri:
+                assert "eqeq-four" in ids
+                assert "eqeq-five" not in ids
+            else:
+                assert len(ids) == 0
 
     # logout
     mocker.patch("semgrep.app.auth.get_deployment_from_token", return_value=None)
@@ -464,8 +588,7 @@ def test_ls_full(
 
     # Logged out succesfully
     response = next(responses)
-    print(response)
-    assert response["method"] == "window/showMessage"
+    assert_notif(response, "window/showMessage")
 
     # More progress bars
     for _ in range(0, 6):
@@ -475,5 +598,57 @@ def test_ls_full(
         response = next(responses)
         uri = response["params"]["uri"]
         ids = [d["code"] for d in response["params"]["diagnostics"]]
-        assert "eqeq-five" in ids
-        assert "eqeq-four" not in ids
+        if "existing" not in uri:
+            assert "eqeq-four" not in ids
+            assert "eqeq-five" in ids
+        else:
+            assert len(ids) == 0
+
+    send_semgrep_search(server, "print(...)")
+    response = next(responses)
+    results = response["result"]
+    assert len(results["locations"]) == 3
+
+    send_exit(server)
+
+
+# Test functionality of multi-workspaces
+@pytest.mark.slow()
+def test_ls_multi(run_semgrep_ls, mock_workspaces):  # nosemgrep: typehint-run-semgrep
+    workspace1, workspace2 = mock_workspaces
+    server, responses = run_semgrep_ls
+
+    workspace_folders = [workspace1[0], workspace2[0]]
+    files = workspace1[1] + workspace2[1]
+    scanned_files = list(filter(lambda x: "existing" not in x, files))
+
+    check_startup(server, responses, workspace_folders, False, files)
+
+    send_did_change_folder(server, removed=[workspace1[0]])
+
+    assert_progress(responses, "Scanning Workspace")
+
+    for file in scanned_files:
+        response = next(responses)
+        # If it's a workspace we removed, then we expect no diagnostics
+        if str(workspace1[0]) in file:
+            assert len(response["params"]["diagnostics"]) == 0
+        else:
+            check_diagnostics(response, file, ["eqeq-five"])
+
+    send_did_change_folder(server, added=[workspace1[0]])
+
+    assert_progress(responses, "Scanning Workspace")
+
+    for file in scanned_files:
+        check_diagnostics(next(responses), file, ["eqeq-five"])
+
+    send_exit(server)
+
+
+@pytest.mark.slow()
+def test_ls_no_folders(run_semgrep_ls):  # nosemgrep: typehint-run-semgrep
+    server, responses = run_semgrep_ls
+    check_startup(server, responses, [], False, [])
+
+    send_exit(server)

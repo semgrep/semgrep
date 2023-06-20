@@ -28,7 +28,7 @@ class Language(str):
 @frozen
 class LanguageDefinition:
     """
-    Mirrors schema of lang.json (see lang/README.md) for each language
+    Mirrors schema of lang.json (see semgrep_interfaces/README.md) for each language
     """
 
     id: Language
@@ -37,22 +37,28 @@ class LanguageDefinition:
     exts: Collection[FileExtension]
     reverse_exts: Collection[str]
     shebangs: Collection[Shebang]
+    is_target_language: bool
 
     @classmethod
     def from_dict(cls, data: JsonObject) -> "LanguageDefinition":
+        # Assume all the fields exist in lang.json, which is generated.
+        # Optional fields may be set to 'null'.
         return cls(
             id=Language(data["id"]),
             name=data["name"],
             keys=data["keys"],
             exts=data["exts"],
-            reverse_exts=data.get("reverse_exts", data["exts"]),
+            reverse_exts=data["reverse_exts"]
+            if data["reverse_exts"] is not None
+            else data["exts"],
             shebangs=data.get("shebangs", []),
+            is_target_language=data["is_target_language"],
         )
 
 
 class _LanguageData:
     def __init__(self) -> None:
-        with (Path(__file__).parent / "lang" / "lang.json").open() as fd:
+        with (Path(__file__).parent / "semgrep_interfaces" / "lang.json").open() as fd:
             data = json.load(fd)
 
         self.definition_by_id: Mapping[Language, LanguageDefinition] = {
@@ -90,7 +96,16 @@ class _LanguageData:
             )
 
     def show_suppported_languages_message(self) -> str:
-        return f"supported languages are: {', '.join(self.all_language_keys)}"
+        languages_usable_in_the_languages_field = sorted(
+            {
+                key: value
+                # "generic", "regex", and "none" are the only non-languages
+                # that are supported in the "languages" field for historical reasons.
+                for key, value in self.lang_by_key.items()
+                if key not in ["spacegrep", "aliengrep"]
+            }
+        )
+        return f"supported languages are: {', '.join(languages_usable_in_the_languages_field)}"
 
 
 LANGUAGE = _LanguageData()

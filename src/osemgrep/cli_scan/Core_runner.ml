@@ -95,7 +95,7 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
   let tbl = Hashtbl.create 100 in
   rules
   |> List.iter (fun (rule : Rule.t) ->
-         let pattern_lang = rule.languages in
+         let pattern_lang = rule.languages.target_analyzer in
          let target_langs = Xlang.flatten pattern_lang in
          target_langs
          |> List.iter (fun lang ->
@@ -136,8 +136,7 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
       let output_format = Runner_config.Json false (* no dots *) in
       let filter_irrelevant_rules = optimizations in
       let parsing_cache_dir =
-        if ast_caching then
-          Some (Env.env.user_dot_semgrep_dir / "cache" / "asts")
+        if ast_caching then Some (Env.v.user_dot_semgrep_dir / "cache" / "asts")
         else None
       in
       {
@@ -163,7 +162,6 @@ let runner_config_of_conf (conf : conf) : Runner_config.t =
 *)
 let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
     (x : Lang_job.t) : Exception.t option * Report.final_result * Fpath.t list =
-  let lang_str = Xlang.to_string x.xlang in
   (* compute the rule idx and rule_nums for target_mappings
    * (see Input_to_core.atd)
    *)
@@ -171,13 +169,13 @@ let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
     x.rules
     |> Common.map (fun (x : Rule.t) ->
            let id, _tok = x.id in
-           id)
+           (id :> string))
   in
   let rule_nums = rule_ids |> Common.mapi (fun i _ -> i) in
   let target_mappings =
     x.targets
     |> Common.map (fun (path : Fpath.t) : Input_to_core_t.target ->
-           { path = !!path; language = lang_str; rule_nums })
+           { path = !!path; language = x.xlang; rule_nums })
   in
   let wrapped_targets : Input_to_core_t.targets =
     { target_mappings; rule_ids }
@@ -237,12 +235,20 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
       { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }
   | [] ->
       (* TODO: we should not need to use Common.map below, because
-       * Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
-       * a list of targets with different languages! We just
-       * need to pass the right target object (and not a lang_job)
-       * TODO: Martin said the issue was that Run_semgrep.targets_of_config
-       * requires the xlang object to contain a single language.
-       *)
+         Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
+         a list of targets with different languages! We just
+         need to pass the right target object (and not a lang_job)
+         TODO: Martin said the issue was that Run_semgrep.targets_of_config
+         requires the xlang object to contain a single language.
+         TODO: Martin says there's no fundamental reason to split
+         a scanning job by programming language. Several optimizations
+         are possible based on target project structure, number and diversity
+         of rules, presence of rule-specific include/exclude patterns etc.
+         Right now we're constrained by the pysemgrep/semgrep-core interface
+         that requires a split by "language". While this interface is still
+         in use, bypassing it without removing it seems complicated.
+         See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
+      *)
       let lang_jobs = split_jobs_by_language all_rules all_targets in
       Logs.app (fun m ->
           m "%a"

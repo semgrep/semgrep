@@ -21,7 +21,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* This module contains the main command line parsing logic.
  *
  * It is packaged as a library so it can be used both for the stand-alone
- * semgrep-core binary as well as the semgrep_bridge.so shared library.
+ * semgrep-core binary as well as the semgrep-core-proprietary one.
  * The code here used to be in Main.ml.
  *)
 
@@ -222,6 +222,13 @@ let dump_ast ?(naming = false) lang file =
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
+(* temporary *)
+let dump_elixir_ast file =
+  let x = Parse_elixir_tree_sitter.parse file in
+  match x.program with
+  | Some x -> pr (AST_elixir.show_program x)
+  | None -> failwith (spf "could not parse %s" file)
+
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
   let ast = Parse_target.parse_program !!file in
@@ -327,7 +334,10 @@ let prefilter_of_rules file =
              Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
            in
            let id = r.Rule.id |> fst in
-           { Semgrep_prefilter_t.rule_id = id; filter = pre_atd_opt })
+           {
+             Semgrep_prefilter_t.rule_id = (id :> string);
+             filter = pre_atd_opt;
+           })
   in
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s
@@ -459,6 +469,7 @@ let all_actions () =
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
+    ("-dump_elixir_ast", " <file>", Arg_helpers.mk_action_1_arg dump_elixir_ast);
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
@@ -639,6 +650,21 @@ let options actions =
        when running out of memory. This value should be less than the actual \
        memory available because the limit will be exceeded before it gets \
        detected. Try 5% less or 15000 if you have 16 GB." );
+    ( "-max_tainted_lvals",
+      Arg.Set_int Flag_semgrep.max_tainted_lvals,
+      "<int> maximum number of lvals to store. This is mostly for internal use \
+       to make performance testing easier" );
+    ( "-max_taint_set_size",
+      Arg.Set_int Flag_semgrep.max_taint_set_size,
+      "<int> maximum size of a taint set. This is mostly for internal use to \
+       make performance testing easier" );
+    ( "-max_match_per_file",
+      Arg.Set_int max_match_per_file,
+      " <int> maximum numbers of match per file" );
+    ("-debug", Arg.Set debug, " output debugging information");
+    ("-test", Arg.Set test, " (internal) set test context");
+    ("-ls", Arg.Set ls, " run Semgrep Language Server");
+    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
     ( "-max_match_per_file",
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
@@ -794,6 +820,22 @@ let main (sys_argv : string array) : unit =
 (*****************************************************************************)
 
 (*
+   Restore reasonable exception printers for the exceptions of the
+   OCaml standard library.
+*)
+let override_janestreet_exn_printers () =
+  Printexc.register_printer (function
+    | Failure msg -> Some ("Failure: " ^ msg)
+    | Invalid_argument msg -> Some ("Invalid_argument: " ^ msg)
+    | _ -> None)
+
+let register_unix_exn_printers () =
+  Printexc.register_printer (function
+    | Unix.Unix_error (e, fm, argm) ->
+        Some (spf "Unix_error: %s %s %s" (Unix.error_message e) fm argm)
+    | _ -> None)
+
+(*
    Register global exception printers defined by the various libraries
    and modules.
 
@@ -806,14 +848,26 @@ let main (sys_argv : string array) : unit =
    can be tricky.
 *)
 let register_exception_printers () =
+  override_janestreet_exn_printers ();
+  register_unix_exn_printers ();
   Parsing_error.register_exception_printer ();
   SPcre.register_exception_printer ();
   Rule.register_exception_printer ()
 
+let with_exception_trace f =
+  Printexc.record_backtrace true;
+  try f () with
+  | exn ->
+      let e = Exception.catch exn in
+      Printf.eprintf "Exception: %s\n%!" (Exception.to_string e);
+      raise (UnixExit 1)
+
 (* Entry point from either the executable or the shared library. *)
 let main (argv : string array) : unit =
+  (* It's really not clear what Common.main_boilerplate does.
+     Hoping for the best. *)
   Common.main_boilerplate (fun () ->
       register_exception_printers ();
       Common.finalize
-        (fun () -> main argv)
+        (fun () -> with_exception_trace (fun () -> main argv))
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))

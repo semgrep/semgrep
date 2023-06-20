@@ -76,7 +76,7 @@ let select t (full_git_path : Ppath.t) =
               else scan_segments matcher file_path segments)
   in
   let rel_segments =
-    match full_git_path.segments with
+    match Ppath.segments full_git_path with
     | "" :: xs -> xs
     | __else__ -> assert false
   in

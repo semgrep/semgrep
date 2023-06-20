@@ -1595,12 +1595,15 @@ and map_if_condition_sequence_item (env : env)
   | `If_let_bind (v1, v2, v3) ->
       let v1 = map_direct_or_indirect_binding env v1 in
       let v2 =
-        match v2 with
-        | Some (v1, v2) ->
+        match (v1, v2) with
+        | _, Some (v1, v2) ->
             let _v1TODO = (* eq_custom *) token env v1 in
             let v2 = map_expression env v2 in
             v2
-        | None ->
+        | G.OtherPat (_, G.P (G.PatId (ident, info)) :: _), None ->
+            (* if let shorthand for shadowing an existing optional variable since Swift 5.7 *)
+            G.N (G.Id (ident, info)) |> G.e
+        | _, None ->
             (* Does not appear to be valid Swift code *)
             failwith "Missing initializer in condition"
       in

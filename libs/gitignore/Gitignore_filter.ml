@@ -97,11 +97,8 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
    that folder which add filters to the existing filters found earlier.
 *)
 let select t sel_events (full_git_path : Ppath.t) =
-  if Ppath.is_relative full_git_path then
-    invalid_arg
-      ("Gitignore_filter.select: not an absolute path: " ^ full_git_path.string);
   let rel_segments =
-    match full_git_path.segments with
+    match Ppath.segments full_git_path with
     | "" :: xs -> xs
     | __else__ -> assert false
   in

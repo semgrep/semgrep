@@ -22,7 +22,7 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://go.semgrep.dev/slack">
-    <img src="https://img.shields.io/badge/slack-1.9k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-2.5k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
@@ -109,8 +109,8 @@ The Semgrep ecosystem includes the following products:
 
 - Semgrep OSS Engine - The open-source engine at the heart of everything (this project).
 - [Semgrep Cloud Platform (SCP)](https://semgrep.dev/login) - Deploy, manage, and monitor SAST and SCA at scale using Semgrep, with [free and paid tiers](https://semgrep.dev/pricing). Integrates with continuous integration (CI) providers such as GitHub, GitLab, CircleCI, and more.
-- [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's Pro rules and Semgrep Pro Engine to find OWASP Top 10 vulnerabilities and protect against critical security risks specific to your organization. Semgrep Code provides both Community (free) and Team (paid) tiers.
-- [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on Team (paid) tiers.
+- [Semgrep Code](https://semgrep.dev/products/semgrep-code) - Scan your code with Semgrep's Pro rules and Semgrep Pro Engine to find OWASP Top 10 vulnerabilities and protect against critical security risks specific to your organization. Semgrep Code is available on both [free and paid tiers](https://semgrep.dev/pricing).
+- [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions across the software development life cycle (SDLC). Semgrep Supply Chain is available on both [free and paid tiers](https://semgrep.dev/pricing).
 
 and:
 

@@ -1,0 +1,14 @@
+rules:
+  - id: all-origins-allowed
+    patterns:
+      - pattern-inside: "cors_rule { ... }"
+      - pattern: 'allowed_origins = ["*"]'
+    languages:
+      - generic
+    options:
+      generic_engine: aliengrep
+    paths:
+      include:
+        - "*.tf"
+    severity: WARNING
+    message: CORS rule on bucket permits any origin

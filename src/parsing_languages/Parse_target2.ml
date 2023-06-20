@@ -84,7 +84,7 @@ let just_parse_with_lang lang file =
       run file
         [
           (* we used to start with the pfff one; it was quite good and faster
-           * than tree-sitter (because we need to wrap tree-sitter inside
+           * than tree-sitter (because we used to wrap tree-sitter inside
            * an invoke because of a segfault/memory-leak), but when both parsers
            * fail, it's better to give the tree-sitter parsing error now.
            *)
@@ -204,7 +204,9 @@ let just_parse_with_lang lang file =
   | Lang.Csharp ->
       run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
   | Lang.Elixir ->
-      run file [ TreeSitter Parse_elixir_tree_sitter.parse ] (fun x -> x)
+      run file
+        [ TreeSitter Parse_elixir_tree_sitter.parse ]
+        Elixir_to_generic.program
   (* tree-sitter-dart is currently buggy and can generate some segfaults *)
   | Lang.Dart ->
       run file [ TreeSitter Parse_dart_tree_sitter.parse ] (fun x -> x)

@@ -2,7 +2,7 @@
 <testsuites disabled="0" errors="0" failures="2" tests="2" time="0.0">
 	<testsuite disabled="0" errors="0" failures="2" name="semgrep results" skipped="0" tests="2" time="0">
 		<testcase name="rules.eqeq-is-bad" classname="targets/basic/stupid.py" file="targets/basic/stupid.py" line="3">
-			<failure type="ERROR" message="useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?">    return a + b == a + b
+			<failure type="ERROR" message="useless comparison operation `a + b == a + b` or `a + b != a + b`">    return a + b == a + b
 </failure>
 		</testcase>
 		<testcase name="rules.javascript-basic-eqeq-bad" classname="targets/basic/stupid.js" file="targets/basic/stupid.js" line="3">
