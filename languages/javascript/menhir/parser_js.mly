@@ -64,6 +64,11 @@ let sndopt = function
   | None -> None
   | Some (_, x) -> Some x
 
+let attr_opt kw x =
+  match x with
+  | None -> []
+  | Some x -> [attr (kw, x)]
+
 (* ugly *)
 let anon_semgrep_lambda = "!anon_semgrep_lambda!"
 
@@ -88,9 +93,8 @@ let mk_Fun ?(id=None) ?(attrs=[]) ?(props=[])
   let f_attrs = (props |> List.map attr) @ attrs in
   Fun ({ f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs }, id)
 
-let mk_FuncDef props f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
-  let f_attrs = props |> List.map attr in
-  FuncDef { f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs }
+let mk_FuncDef ~attrs f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
+  FuncDef { f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs = attrs }
 
 let mk_Class ?(props=[]) tok idopt _generics (c_extends, c_implements) c_body =
   let c_attrs = props |> List.map attr in
@@ -376,11 +380,11 @@ item:
 
 decl:
  (* part of hoistable_declaration in the ECMA grammar *)
- | function_decl  { [mk_def $1] }
+ | function_decl  { [mk_def ($1 [])] }
  (* es6: *)
  | generator_decl { [mk_def $1] }
  (* es7: *)
- | async_decl     { [mk_def $1] }
+ | async_decl     { [mk_def ($1 [])] }
 
  (* es6: *)
  | lexical_decl   { vars_to_defs $1 }
@@ -416,35 +420,44 @@ sgrep_spatch_pattern:
      { Expr (Obj ($1, $2, $4)) }
 
   | (* decorators, no body *)
-    decorator+ T_ID
+    decorator+ T_STATIC? T_ASYNC? T_ID
     T_LPAREN formal_parameter_list_opt ")" annotation?
     EOF
    {
+     let static = attr_opt Static $2 in
+     let async = attr_opt Async $3 in
      (* We don't need to pass the attrs into `mk_def` because they're already
         in the FuncDef.
       *)
-     Partial (PartialDef (mk_def (Some $2,
+     Partial (PartialDef (mk_def (Some $4,
       FuncDef
-       { f_kind = (Method, $3)
-       ; f_params = $4
-       ; f_body = Block (fb $3 [])
-       ; f_rettype = $6
-       ; f_attrs = $1
+       { f_kind = (Method, $5)
+       ; f_params = $6
+       ; f_body = Block (fb $5 [])
+       ; f_rettype = $8
+       ; f_attrs = $1 @ static @ async
        }
      )))
    }
 
-  | decorator+ T_ID annotation? EOF
-     { Property (Field {fld_name = PN $2; fld_attrs=$1; fld_type = $3; fld_body = None }) }
+  | decorator+ T_STATIC? T_ASYNC? T_ID annotation? EOF
+     {
+
+     let static = attr_opt Static $2 in
+     let async = attr_opt Async $3 in
+
+      Property (Field {fld_name = PN $4; fld_attrs=$1 @ static @ async; fld_type = $5; fld_body = None }) }
 
   | (* decorators, with body *)
-    decorator+ T_ID
+    decorator+ T_STATIC? T_ASYNC? T_ID
     T_LPAREN formal_parameter_list_opt ")" annotation?
     "{" function_body "}" EOF
    {
-     let sig_ = (None, ($3, $4, $5), $6) in
-     let fun_ = mk_Fun ~attrs:$1 (Method, $3) sig_ ($7, $8, $9) in
-     Property (mk_Field (PN $2) (Some fun_))
+     let sig_ = (None, ($5, $6, $7), $8) in
+     let static = attr_opt Static $2 in
+     let async = attr_opt Async $3 in
+     let fun_ = mk_Fun ~attrs:($1 @ static @ async) (Method, $5) sig_ ($9, $10, $11) in
+     Property (mk_Field (PN $4) (Some fun_))
    }
 
 
@@ -710,7 +723,7 @@ binding_elision_element:
  *  T_EXPORT T_DEFAULT? but then many ambiguities.
  *)
 function_decl: T_FUNCTION id? call_signature "{" function_body "}"
-   { $2, mk_FuncDef [] (Function, $1) $3 ($4, $5, $6) }
+   { fun attrs -> $2, mk_FuncDef attrs (Function, $1) $3 ($4, $5, $6) }
 
 (* the id is really optional here *)
 function_expr: T_FUNCTION id? call_signature  "{" function_body "}"
@@ -769,7 +782,7 @@ formal_parameter:
 (* generators *)
 (*----------------------------*)
 generator_decl: T_FUNCTION "*" id call_signature "{" function_body "}"
-   { Some $3, mk_FuncDef [Generator, $2] (Function, $1) $4 ($5, $6, $7) }
+   { Some $3, mk_FuncDef [attr (Generator, $2)] (Function, $1) $4 ($5, $6, $7) }
 
 (* the id really is optional here *)
 generator_expr: T_FUNCTION "*" id? call_signature "{" function_body "}"
@@ -779,7 +792,7 @@ generator_expr: T_FUNCTION "*" id? call_signature "{" function_body "}"
 (* asynchronous functions *)
 (*----------------------------*)
 async_decl: T_ASYNC T_FUNCTION id call_signature "{" function_body "}"
-   { Some $3, mk_FuncDef [Async, $1] (Function, $2) $4 ($5, $6, $7) }
+   { fun attrs -> Some $3, mk_FuncDef (attr (Async, $1) :: attrs) (Function, $2) $4 ($5, $6, $7) }
 
 (* the id is really optional here *)
 async_function_expr: T_ASYNC T_FUNCTION id? call_signature "{"function_body"}"

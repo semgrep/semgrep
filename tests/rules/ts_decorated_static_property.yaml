@@ -1,0 +1,20 @@
+rules:
+- id: decorated-static-property 
+  languages:
+  - typescript 
+  pattern-either:
+    - pattern: |
+        @Query(...)
+        static foo
+    - pattern: |
+        @Query(...)
+        static bar(...)
+    - pattern: |
+        @Query(...)
+        static qux(...){
+          ...
+        }
+  message: Matching a decorated static property 
+  options:
+    symbolic_propagation: true
+  severity: ERROR
