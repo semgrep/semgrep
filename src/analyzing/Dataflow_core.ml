@@ -141,6 +141,8 @@ module Make (F : Flow) = struct
     let rec loop work =
       if NodeiSet.is_empty work then mapping
       else
+        (* 'Time_limit.set_timeout' cannot be nested and we want to make sure that
+         * fixpoint computations run for a limited amount of time. *)
         let t1 = Sys.time () in
         if t1 -. t0 >= timeout then (
           logger#error "fixpoint_worker timed out";

@@ -2,7 +2,9 @@
 (* Const/sym ("svalue") propagation *)
 (*****************************************************************************)
 
-(* Timeout in seconds. *)
+(* TODO: Report these timeouts as errors in 'Report.match_result' *)
+(* Timeout in seconds.
+ * So e.g. the perf of svalue-prop does not prevent rules from running on a file. *)
 let svalue_prop_FIXPOINT_TIMEOUT = 0.1
 
 (*****************************************************************************)
@@ -22,7 +24,9 @@ let svalue_prop_FIXPOINT_TIMEOUT = 0.1
  * of the data structures involved may help too.
  *)
 
-(* Timeout in seconds. *)
+(* TODO: Report these timeouts as errors in 'Report.match_result' *)
+(* Timeout in seconds.
+ * So e.g. we limit the amount of time that Pro will spend inferring taint signatures. *)
 let taint_FIXPOINT_TIMEOUT = 0.1
 
 (** Bounds the number of l-values we can track. *)
