@@ -1,0 +1,13 @@
+Constant propagation is now applied to declerations inside stack array declerations in C; so
+a pattern `$TYPE $NAME[101];` will now produce two matches in the following snippet:
+```c
+int main() {
+
+  int bad_len = 101;
+  /* match 1 */
+  int arr1[101];
+  /* match 2 */
+  int arr2[bad_len];
+  return 0;
+}
+```
