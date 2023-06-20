@@ -44,6 +44,7 @@ depends: [
   "uri"
   "uuidm"
   "http-lwt-client"
+  "happy-eyeballs-lwt" {>= "0.6.0"}
   "terminal_size"
   "lwt"
   "lwt_ppx"

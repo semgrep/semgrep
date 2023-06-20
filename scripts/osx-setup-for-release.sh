@@ -16,6 +16,9 @@ opam init --no-setup --bare
 #still needed?
 #brew update
 
+# we might need recent packages and the self-hosted runner opam might be behind
+opam update
+
 # Some CI runners have tree-sitter preinstalled which interfere with
 # out static linking plans below so better to remove it.
 # TODO: fix setup-m1-builder.sh instead?

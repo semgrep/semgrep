@@ -29,7 +29,7 @@ let setup ~debug ~log_config_file ~log_to_file =
    Logging.apply_to_all_loggers (fun logger -> logger#add_handler handler));
 
   (* Set default level to Info rather than logging nothing (NoLevel). *)
-  (if want_logging then Logging.(set_global_level Info));
+  (if want_logging then Logging.(set_global_level Warning));
 
   (*
      Fine-tune log levels for each module, as instructed in the file
