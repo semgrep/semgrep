@@ -1157,6 +1157,13 @@ and type_ env (ty : G.type_) : type_ =
   in
   { type_ = ty; exps }
 
+(*
+and type_expr = function
+  | G.TyExpr e
+  | G.TyArray ((_,Some e,_), _) ->
+    Some e
+  | _ -> None
+   *)
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
@@ -1196,9 +1203,15 @@ and stmt_aux env st =
   | G.ExprStmt (eorig, tok) ->
       (* optimize? pass context to expr when no need for return value? *)
       let ss, e = expr_with_pre_stmts ~void:true env eorig in
-      mk_aux_var env tok e |> ignore;
+      let name, _ = mk_aux_var env tok e in
+      (*
+       * TODO: doc why we need to represent stmt exprs in our IL
+       *)
+      let tmp_instr =
+        mk_i (Assign ({ base = Var name; rev_offset = [] }, e)) (SameAs eorig)
+      in
       let ss' = pop_stmts env in
-      ss @ ss'
+      ss @ ((mk_s @@ Instr tmp_instr) :: ss')
   | G.DefStmt
       ( { name = EN obj; _ },
         G.VarDef
