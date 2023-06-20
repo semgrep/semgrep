@@ -1,0 +1,2 @@
+The output of `--debug` will be much less verbose by default, it will only show
+internal warning and error messages.
