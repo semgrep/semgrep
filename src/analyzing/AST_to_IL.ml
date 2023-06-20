@@ -1197,9 +1197,6 @@ and stmt_aux env st =
       (* optimize? pass context to expr when no need for return value? *)
       let ss, e = expr_with_pre_stmts ~void:true env eorig in
       mk_aux_var env tok e |> ignore;
-      (*
-       * TODO: doc why we need to represent stmt exprs in our IL
-       *)
       let ss' = pop_stmts env in
       ss @ ss'
   | G.DefStmt
