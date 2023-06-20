@@ -1,0 +1,17 @@
+JS/TS: Patterns for class properties can now have the `static`
+and `async` modifiers.
+
+For instance:
+```
+@Foo(...)
+async bar(...) {
+  ...
+}
+```
+or
+```
+@Foo(...)
+static bar(...) {
+  ...
+}
+```
