@@ -129,6 +129,10 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/js-yarn2-sca.yaml",
             "dependency_aware/package-lock-v3",
         ),
+        (
+            "rules/dependency_aware/php-sca.yaml",
+            "dependency_aware/php",
+        ),
     ],
 )
 def test_dependency_aware_rules(

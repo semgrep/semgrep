@@ -32,7 +32,7 @@ if WHEEL_CMD in sys.argv:
 
         def get_tag(self):
             _, _, plat = bdist_wheel.get_tag(self)
-            python = "cp37.cp38.cp39.py37.py38.py39"
+            python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
             abi = "none"
             if "macosx" in plat:
                 plat = "macosx_11_0_arm64" if "arm" in plat else "macosx_10_14_x86_64"
@@ -147,7 +147,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.25.0",
+    version="1.27.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
@@ -157,7 +157,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
+    scripts=["bin/semgrep"],
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},

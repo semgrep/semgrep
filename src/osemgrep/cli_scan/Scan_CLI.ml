@@ -103,7 +103,10 @@ let default : conf =
     (* alt: could move in a Core_runner.default *)
     core_runner_conf =
       {
-        Core_runner.num_jobs = Parmap_helpers.get_cpu_count ();
+        (* Maxing out number of cores used to 16 if more not requested to
+         * not overload on large machines
+         *)
+        Core_runner.num_jobs = Int.min 16 (Parmap_helpers.get_cpu_count ());
         timeout = 30.0 (* seconds *);
         timeout_threshold = 3;
         max_memory_mb = 0;

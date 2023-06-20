@@ -283,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = Rule.ID.of_string "unit testing";
+      MR.id = Rule.ID.of_string "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -350,7 +350,7 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
                      ~hook:(fun { Pattern_match.range_loc; _ } ->
                        let start_loc, _end_loc = range_loc in
                        E.error
-                         (Rule.ID.of_string "test pattern")
+                         (Rule.ID.of_string "test-pattern")
                          start_loc "" Out.SemgrepMatchFound)
                      ~file ~pattern ~fix_pattern
                  in
@@ -598,7 +598,7 @@ let tainting_test lang rules_file file =
     |> List.concat_map (fun rule ->
            let xtarget =
              {
-               Xtarget.file = !!file;
+               Xtarget.file;
                xlang = Xlang.L (lang, []);
                lazy_content = lazy (File.read_file file);
                lazy_ast_and_errors = lazy (ast, []);

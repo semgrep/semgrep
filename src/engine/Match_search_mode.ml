@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module R = Rule
 module XP = Xpattern
 module MR = Mini_rule
@@ -240,12 +241,12 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
 
             if !debug_timeout || !debug_matches then
               (* debugging path *)
-              debug_semgrep config mini_rules file lang ast
+              debug_semgrep config mini_rules !!file lang ast
             else
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules (file, lang, ast))
+                ?mvar_context ?range_filter config mini_rules (!!file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.make_match_result matches errors { RP.parse_time; match_time }
@@ -373,7 +374,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
       |> Common.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
-               PM.file = env.xtarget.file;
+               PM.file = !!(env.xtarget.file);
                PM.range_loc;
                PM.tokens = lazy (MV.ii_of_mval mval);
                PM.env = range.mvars;
@@ -460,9 +461,10 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
   RP.collate_pattern_results
     [
       matches_of_patterns ~mvar_context rule xconf xtarget patterns;
-      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps file;
-      Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content file;
-      Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
+      Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps !!file;
+      Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
+        !!file;
+      Xpattern_match_regexp.matches_of_regexs regexps lazy_content !!file;
     ]
   [@@profiling]
 

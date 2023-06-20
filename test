@@ -9,8 +9,6 @@
 #  ./test "full rule"
 #  ./test "full rule" | grep "full rule"
 
-# TODO: merge spacegrep tests into one test executable
-
 # 'test' for running the tests or 'list' for only printing the list of tests
 subcommand=test
 options=""
@@ -22,6 +20,5 @@ case "$(basename "$0")" in
     subcommand=list
 esac
 
-cd _build/default/src/tests
-./test.exe "$subcommand" $options "$@"
+./_build/default/src/tests/test.exe "$subcommand" $options "$@"
 echo

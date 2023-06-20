@@ -1,3 +1,4 @@
+module Out = Semgrep_output_v1_t
 (*************************************************************************)
 (* Prelude *)
 (*************************************************************************)
@@ -10,38 +11,47 @@
 (* Types *)
 (*************************************************************************)
 
-type t = Semgrep_output_v1_t.core_match * Rule.rule
+type t = Out.core_match * Rule.rule
 
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
 
+let match_in_dirty_lines (core_match : Out.core_match) dirty_lines =
+  Array.exists
+    (fun (start, end_) ->
+      start <= core_match.location.start.line
+      && core_match.location.start.line <= end_)
+    dirty_lines
+
 (** Given a file and some matches, filter the matches out that don't reside
     in lines changed since last commit *)
-let filter_dirty_lines files matches =
-  let dirty_files = Hashtbl.create 10 in
-  files
-  |> List.iter (fun f ->
-         let dirty_lines = Git_wrapper.dirty_lines_of_file f in
-         Hashtbl.add dirty_files f dirty_lines);
-  matches
-  |> List.filter (fun ((m, _) : t) ->
-         let dirty_lines =
-           Hashtbl.find_opt dirty_files (Fpath.v m.location.path)
-         in
-         let line = m.location.start.line in
-         match dirty_lines with
-         | None -> false
-         | Some [||] -> true (* Untracked files *)
-         | Some dirty_lines ->
-             Array.exists
-               (fun (start, end_) -> start <= line && line <= end_)
-               dirty_lines)
+let filter_dirty_lines matches =
+  let matches_by_file =
+    matches |> Common.group_by (fun ((m, _) : t) -> Fpath.v m.location.path)
+  in
+  let in_git, not_in_git =
+    matches_by_file
+    |> List.partition (fun (f, _) ->
+           let parent = Fpath.parent f in
+           Git_wrapper.is_git_repo parent)
+  in
+  let in_git_matches =
+    in_git
+    |> List.concat_map (fun (f, matches) ->
+           match Git_wrapper.dirty_lines_of_file f with
+           | None -> matches
+           | Some dirty_lines ->
+               List.filter
+                 (fun (m, _) -> match_in_dirty_lines m dirty_lines)
+                 matches)
+  in
+  let not_in_git_matches = not_in_git |> List.concat_map snd in
+  in_git_matches @ not_in_git_matches
 
 (** Get the first and previous line of a match *)
-let get_match_lines (loc : Semgrep_output_v1_t.location) =
-  let file_buffer = Common.read_file loc.path in
-  let file_lines = Str.split (Str.regexp "\n") file_buffer in
+let get_match_lines (loc : Out.location) =
+  let file_lines = Common.cat loc.path in
   let line = List.nth file_lines (loc.start.line - 1) in
   let prev_line =
     if loc.start.line > 1 then List.nth file_lines (loc.start.line - 2) else ""
@@ -51,7 +61,7 @@ let get_match_lines (loc : Semgrep_output_v1_t.location) =
 (* TODO: Move to Nosemgrep.ml to factorize code *)
 
 (** Check if a match is ignored by a nosem comment *)
-let nosem_ignored (loc : Semgrep_output_v1_t.location) rule_id =
+let nosem_ignored (loc : Out.location) rule_id =
   let line = get_match_lines loc in
   let matched_inline = SPcre.exec ~rex:Nosemgrep.nosem_inline_re line in
   let matched_prev = SPcre.exec ~rex:Nosemgrep.nosem_previous_line_re line in
@@ -73,9 +83,9 @@ let nosem_ignored (loc : Semgrep_output_v1_t.location) rule_id =
 (** Replaces metavar placeholders in text with their value
     TODO: Factorize with Cli_json_output.interpolate_metavars()
 *)
-let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
+let interpolate_metavars (metavars : Out.metavars) text =
   Common2.fold
-    (fun text ((l, v) : string * Semgrep_output_v1_t.metavar_value) ->
+    (fun text ((l, v) : string * Out.metavar_value) ->
       let re = Str.regexp_string l in
       Str.global_replace re v.abstract_content text)
     text metavars
@@ -83,7 +93,7 @@ let interpolate_metavars (metavars : Semgrep_output_v1_t.metavars) text =
 (* Get fix from rule, then make it make sense in context.
    TODO: Factorize with Cli_json_output.render_fix()
 *)
-let convert_fix (m : Semgrep_output_v1_t.core_match) (rule : Rule.t) =
+let convert_fix (m : Out.core_match) (rule : Rule.t) =
   let rule_fix (r : Rule.t) =
     match r.fix with
     | Some fix -> Some (interpolate_metavars m.extra.metavars fix)
@@ -110,7 +120,7 @@ let of_matches ?(only_git_dirty = true) matches (hrules : Rule.hrules) files =
   (* Match up the rules with the matches so we can get fixes, rule ids, messages *)
   let matches =
     Common.map
-      (fun (m : Semgrep_output_v1_t.core_match) ->
+      (fun (m : Out.core_match) ->
         let rule = Hashtbl.find_opt hrules (Rule.ID.of_string m.rule_id) in
         let rule =
           match rule with
@@ -125,11 +135,9 @@ let of_matches ?(only_git_dirty = true) matches (hrules : Rule.hrules) files =
         (m, rule))
       matches
   in
-  let git_repo = Git_wrapper.is_git_repo () in
   (* Filter dirty lines *)
   let matches =
-    if only_git_dirty && git_repo then filter_dirty_lines files matches
-    else matches
+    if only_git_dirty then filter_dirty_lines matches else matches
   in
   (* Filter misc severities *)
   let matches =

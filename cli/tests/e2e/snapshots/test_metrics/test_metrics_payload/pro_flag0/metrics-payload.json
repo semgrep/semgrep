@@ -33,7 +33,6 @@
         "size": 6
       }
     ],
-    "maxMemoryBytes": null,
     "numRules": 4,
     "numTargets": 1,
     "profilingTimes": {

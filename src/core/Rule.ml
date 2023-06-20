@@ -36,11 +36,21 @@ open Ppx_hash_lib.Std.Hash.Builtin
 module ID : sig
   type t = private string [@@deriving show, eq]
 
+  exception Malformed_rule_ID of string
+
   val to_string : t -> string
   val of_string : string -> t
+  val of_string_opt : string -> t option
   val to_string_list : t list -> string list
   val of_string_list : string list -> t list
   val compare : t -> t -> int
+
+  (* Validation function called by of_string.
+     Checks for the format [a-zA-Z0-9._-]* *)
+  val validate : string -> bool
+
+  (* Remove any forbidden characters to produce a valid rule ID fragment. *)
+  val sanitize_string : string -> string
 
   (*
      Rule ids are prepended with the `path.to.the.rules.file.`, so
@@ -55,11 +65,26 @@ module ID : sig
 end = struct
   type t = string [@@deriving show, eq]
 
+  exception Malformed_rule_ID of string
+
   let to_string x = x
 
-  (* TODO: check the validity of the rule ID (spec?) and produce a polite
-     and informative error message describing the expected format. *)
-  let of_string x = x
+  let validate =
+    let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
+    fun str -> SPcre.pmatch_noerr ~rex str
+
+  let sanitize_string str =
+    let buf = Buffer.create (String.length str) in
+    String.iter
+      (function
+        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '.' | '_' | '-') as c ->
+            Buffer.add_char buf c
+        | _junk -> ())
+      str;
+    Buffer.contents buf
+
+  let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
+  let of_string_opt x = if validate x then Some x else None
   let to_string_list x = x
   let of_string_list x = x
   let compare = String.compare
