@@ -20,7 +20,7 @@ jobs:
   semgrep:
     docker:
       - image: returntocorp/semgrep:develop
-        user: semgrep
+        user: root
     working_directory: /src
     steps:
       - checkout
