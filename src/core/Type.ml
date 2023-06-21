@@ -72,7 +72,7 @@ and 'resolved t =
    * See also of_opt() below.
    *)
   | NoType
-  | Wildcard
+  | Wildcard  (** An arbitrary type that is not important. *)
   | Todo of todo_kind
 
 and builtin_type =
