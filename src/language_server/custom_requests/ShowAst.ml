@@ -69,4 +69,4 @@ let on_request (params : Jsonrpc.Structured.t option) =
   (* 80 columns is too little *)
   Format.set_margin 120;
   let s = OCaml.string_of_v v in
-  Some (Yojson.Safe.from_string s)
+  Some (`String s)
