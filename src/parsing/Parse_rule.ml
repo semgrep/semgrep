@@ -977,12 +977,12 @@ let find_formula env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
   match
     find_some_opt find
-      [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside" ]
+      [ "pattern"; "all"; "any"; "regex"; (* TODO "taint"; *) "not"; "inside" ]
   with
   | None ->
       error env.id rule_dict.first_tok
-        "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex` to be present"
+        "Expected one of `pattern`, `all`, `any`, `regex`, 'not', or 'inside' \
+         to be present"
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
@@ -1055,8 +1055,8 @@ and parse_formula env (value : G.expr) : R.formula =
          pattern. *)
       | _ when Hashtbl.length dict.h <> 1 ->
           error env.id dict.first_tok
-            "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, or `pattern-regex`"
+            "Expected exactly one key of `pattern`, `all`, `any`, `regex`, \
+             `not`, or `inside`"
       (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
       | None -> parse_pair env (find_formula env dict)
       | Some (((_, t) as key), value) ->
