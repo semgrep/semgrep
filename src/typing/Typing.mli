@@ -14,4 +14,8 @@ val check_program : Lang.t -> AST_generic.program -> unit
  *
  * Exposed for use in Pro Engine. *)
 val guess_type_of_dotaccess :
-  Lang.t -> (string * 'a Type.type_argument list) option -> string -> 'a Type.t
+  Lang.t ->
+  expected:AST_generic.name Type.t ->
+  (string * 'a Type.type_argument list) option ->
+  string ->
+  'a Type.t

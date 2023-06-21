@@ -16,6 +16,69 @@
 open Common
 module G = AST_generic
 
+(* Currently, for types created during naming in Semgrep (OSS and Pro Engine),
+ * we can't tell the difference between a resolved name and an unresolved name,
+ * so we turn them all into `Type.N`s. Some of the names will be fully-qualified
+ * resolved names, and some will just be names as written by the user.
+ *
+ * We should use Type.t for `id_type` to address this ambiguity. In the
+ * meantime, we will use this helper function to abstract it away for type
+ * guessing purposes. *)
+let name_and_targs_of_named_type lang = function
+  | Type.N ((G.Id ((str, _), _), targs), _)
+  | Type.UnresolvedName (str, targs) ->
+      Some (str, targs)
+  | Type.N
+      ( ( G.IdQualified { G.name_last; name_middle = Some (QDots middle); _ },
+          targs ),
+        _ ) ->
+      let (str_last, _), _ = name_last in
+      let middle_strs =
+        middle |> Common.map (fun ((str, _info), _targs) -> str)
+      in
+      let str = String.concat "." (middle_strs @ [ str_last ]) in
+      Some (str, targs)
+  | Type.Builtin b -> Some (Type.name_of_builtin_type lang b, [])
+  | _else_ -> None
+
+(* This function is for guessing the type of an expression, when we can't figure
+ * it out using ordinary type inference. This typically happens when some name
+ * cannot be resolved because it either came from an external file (in OSS
+ * Semgrep) or from the standard library or a third party library (in Pro
+ * Engine).
+ *
+ * For example, in Java we guess that `x.equals(y)` returns a `boolean`, even if
+ * we don't know the type of `x`. *)
+let guess_type_of_dotaccess lang ~expected ty_name_and_targs str =
+  (* TODO: The types of the parameters should just be computed from the actuals. *)
+  match (lang, expected, ty_name_and_targs, str) with
+  | Lang.Java, _, _, "isEmpty" -> Type.Function ([], Type.Builtin Type.Bool)
+  | Lang.Java, _, _, ("equals" | "contains" | "containsKey" | "containsValue")
+    ->
+      (* Really the return type is all that matters. We could add the parameters
+       * later if we need to. *)
+      Type.Function ([ WildcardParam ], Type.Builtin Type.Bool)
+  | Lang.Java, _, _, "size" -> Type.Function ([], Type.Builtin Type.Int)
+  (* `length` may be a method (e.g., in `String`) or an attribute (arrays). *)
+  | Lang.Java, Type.Function _, _, "length" ->
+      Type.Function ([], Type.Builtin Type.Int)
+  | Lang.Java, _, _, "length" -> Type.Builtin Type.Int
+  (* For unresolved types with one type parameter, assume that the `get`
+   * method's return type is the type parameter (e.g. List<T>). For unresolved
+   * types with two type parameters, assume that the `get` method's return type
+   * is the second (e.g. Map<K, V>) *)
+  | ( Lang.Java,
+      _,
+      Some (_str, ([ _; Type.TA elt_type ] | [ Type.TA elt_type ])),
+      "get" ) ->
+      Type.Function ([ WildcardParam ], elt_type)
+  | Lang.Java, _, Some (("String" | "java.lang.String"), _), "matches" ->
+      let param =
+        Type.Param { pident = None; ptype = Type.Builtin Type.String }
+      in
+      Type.Function ([ param ], Type.Builtin Type.Bool)
+  | _else_ -> Type.NoType
+
 (* returns possibly the inferred type of the expression,
  * as well as an ident option that can then be used to query LSP to get the
  * type of the ident. *)
@@ -25,12 +88,14 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       let t = type_of_lit lit in
       (t, None)
   | G.DotAccess
-      (_obj, _, FN (Id (("length", _), { id_type = { contents = None }; _ })))
+      (obj, _, FN (Id ((id_str, _), { id_type = { contents = None }; _ })))
     when lang =*= Lang.Java ->
-      (* TODO: Fix guess_type_of_dotaccess to take an "expected type" (as in bidirectional
-       * type checking) so that we can distinguish `length` as a method (e.g. `String`) and
-       * `length` as an attribute (arrays). *)
-      (Type.Builtin Type.Int, None)
+      let obj_ty, _ = type_of_expr lang obj in
+      let guessed_type =
+        let ty_name_and_targs = name_and_targs_of_named_type lang obj_ty in
+        guess_type_of_dotaccess lang ~expected:Wildcard ty_name_and_targs id_str
+      in
+      (guessed_type, None)
   | G.N name
   | G.DotAccess (_, _, FN name) ->
       type_of_name lang name
@@ -236,71 +301,10 @@ and type_of_ast_generic_type lang t : G.name Type.t =
 (* Typing visitor / check a program *)
 (*****************************************************************************)
 
-(* Currently, for types created during naming in Semgrep (OSS and Pro Engine),
- * we can't tell the difference between a resolved name and an unresolved name,
- * so we turn them all into `Type.N`s. Some of the names will be fully-qualified
- * resolved names, and some will just be names as written by the user.
- *
- * We should use Type.t for `id_type` to address this ambiguity. In the
- * meantime, we will use this helper function to abstract it away for type
- * guessing purposes. *)
-let name_and_targs_of_named_type lang = function
-  | Type.N ((G.Id ((str, _), _), targs), _)
-  | Type.UnresolvedName (str, targs) ->
-      Some (str, targs)
-  | Type.N
-      ( ( G.IdQualified { G.name_last; name_middle = Some (QDots middle); _ },
-          targs ),
-        _ ) ->
-      let (str_last, _), _ = name_last in
-      let middle_strs =
-        middle |> Common.map (fun ((str, _info), _targs) -> str)
-      in
-      let str = String.concat "." (middle_strs @ [ str_last ]) in
-      Some (str, targs)
-  | Type.Builtin b -> Some (Type.name_of_builtin_type lang b, [])
-  | _else_ -> None
-
-(* This function is for guessing the type of an expression, when we can't figure
- * it out using ordinary type inference. This typically happens when some name
- * cannot be resolved because it either came from an external file (in OSS
- * Semgrep) or from the standard library or a third party library (in Pro
- * Engine).
- *
- * For example, in Java we guess that `x.equals(y)` returns a `boolean`, even if
- * we don't know the type of `x`. *)
-let guess_type_of_dotaccess lang ty_name_and_targs str =
-  (* TODO: The types of the parameters should just be computed from the actuals. *)
-  let todo_param =
-    (* Param type could be Top if we add that as a type *)
-    Type.Param { pident = None; ptype = Type.NoType }
-  in
-  match (lang, ty_name_and_targs, str) with
-  | Lang.Java, _, "isEmpty" -> Type.Function ([], Type.Builtin Type.Bool)
-  | Lang.Java, _, ("equals" | "contains" | "containsKey" | "containsValue") ->
-      (* Really the return type is all that matters. We could add the parameters
-       * later if we need to. *)
-      Type.Function ([ todo_param ], Type.Builtin Type.Bool)
-  | Lang.Java, _, ("size" | "length") ->
-      Type.Function ([], Type.Builtin Type.Int)
-  (* For unresolved types with one type parameter, assume that the `get`
-   * method's return type is the type parameter (e.g. List<T>). For unresolved
-   * types with two type parameters, assume that the `get` method's return type
-   * is the second (e.g. Map<K, V>) *)
-  | ( Lang.Java,
-      Some (_str, ([ _; Type.TA elt_type ] | [ Type.TA elt_type ])),
-      "get" ) ->
-      Type.Function ([ todo_param ], elt_type)
-  | Lang.Java, Some (("String" | "java.lang.String"), _), "matches" ->
-      let param =
-        Type.Param { pident = None; ptype = Type.Builtin Type.String }
-      in
-      Type.Function ([ param ], Type.Builtin Type.Bool)
-  | _else_ -> Type.NoType
-
 (* TODO: We could probably add a `Type.t ref` to `Call` nodes without major perf
  * problems, and that together with `id_type`s should allow pre-computing types here. *)
 let typing_visitor =
+  let wildcard_fun_type = Type.(Function ([ WildcardParam ], Wildcard)) in
   (* All untyped function ids will share the same type. *)
   let todo_kind = ("TODO", G.fake "TODO") in
   let todo_param : G.parameter = OtherParam (todo_kind, []) in
@@ -332,7 +336,8 @@ let typing_visitor =
           let obj_ty, _ = type_of_expr lang obj in
           let guessed_type =
             let ty_name_and_targs = name_and_targs_of_named_type lang obj_ty in
-            guess_type_of_dotaccess lang ty_name_and_targs id_str
+            guess_type_of_dotaccess lang ~expected:wildcard_fun_type
+              ty_name_and_targs id_str
             |> Type.to_ast_generic_type_ lang (fun name _alts -> name)
           in
           match guessed_type with

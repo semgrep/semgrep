@@ -2105,6 +2105,9 @@ and m_generic_type_vs_type_t lang tok a b =
   | _, Type.Function _
   | _, Type.Pointer _
   | _, Type.NoType
+  | _, Type.Wildcard
+  (* TDOO: ^^^ We don't curently accept wildcards in type patterns but if we did
+   * we will want to let wildcards match anything rather than failing here! *)
   | _, Type.Todo _ ->
       fail ()
 
@@ -2142,6 +2145,9 @@ and m_generic_param_vs_param lang tok a b =
       | Some t1 -> m_generic_type_vs_type_t lang tok t1 t2
       | None -> (* THINK: Is this right? *) return ())
   | _, Type.Param _
+  | _, Type.WildcardParam
+  (* TDOO: ^^^ We don't curently accept wildcards in type patterns but if we did
+   * we will want to let wildcards match anything rather than failing here! *)
   | _, Type.OtherParam _ ->
       fail ()
 

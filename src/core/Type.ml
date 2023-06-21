@@ -72,6 +72,7 @@ and 'resolved t =
    * See also of_opt() below.
    *)
   | NoType
+  | Wildcard
   | Todo of todo_kind
 
 and builtin_type =
@@ -87,6 +88,7 @@ and 'resolved function_type = 'resolved parameter list * 'resolved t
 
 and 'resolved parameter =
   | Param of 'resolved parameter_classic
+  | WildcardParam
   | OtherParam of todo_kind
 
 and 'resolved parameter_classic = {
@@ -266,6 +268,8 @@ let rec to_ast_generic_type_ ?(tok = None) lang
                  | _else_ ->
                      G.OtherParam
                        (("to_ast_generic_type for param", make_tok ""), []))
+             | WildcardParam ->
+                 G.OtherParam (("Wildcard", Tok.unsafe_fake_tok "_"), [])
              | OtherParam x ->
                  G.OtherParam (todo_kind_to_ast_generic_todo_kind x, []))
       in
@@ -275,6 +279,7 @@ let rec to_ast_generic_type_ ?(tok = None) lang
       let* ty = to_ast_generic_type_ lang f ty in
       Some (G.TyPointer (make_tok "Pointer", ty) |> G.t)
   | NoType
+  | Wildcard
   | Todo _ ->
       None
 
