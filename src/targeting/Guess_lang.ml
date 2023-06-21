@@ -258,6 +258,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Lisp
     | Lua
     | Ocaml
+    | Protobuf
     | Python2
     | Python3
     | Python
