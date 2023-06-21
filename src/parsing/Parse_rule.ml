@@ -782,9 +782,14 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
      The former does not allow base patterns to appear, so we add an `allow_string`
      parameter.
   *)
-  let get_formula env x =
+  let get_formula ?(allow_string = false) env x =
     match (parse_str_or_dict env x, x.G.e) with
-    | Left (value, t), _ -> R.P (parse_rule_xpattern env (value, t))
+    | Left (value, t), _ when allow_string ->
+        R.P (parse_rule_xpattern env (value, t))
+    | Left (s, _), _ ->
+        error_at_expr env.id x
+          (Common.spf
+             "Strings not allowed at this position, maybe try `pattern: %s`" s)
     | _, G.Container (Dict, (_, entries, _)) -> (
         match entries with
         | [
@@ -808,9 +813,10 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   let s, t = key in
   match s with
   | "pattern" -> R.P (get_pattern value)
-  | "pattern-not" -> R.Not (t, get_formula env value)
-  | "pattern-inside" -> R.Inside (t, get_formula env value)
-  | "pattern-not-inside" -> R.Not (t, R.Inside (t, get_formula env value))
+  | "pattern-not" -> R.Not (t, get_formula ~allow_string:true env value)
+  | "pattern-inside" -> R.Inside (t, get_formula ~allow_string:true env value)
+  | "pattern-not-inside" ->
+      R.Not (t, R.Inside (t, get_formula ~allow_string:true env value))
   | "pattern-either" ->
       R.Or (t, parse_listi env key (get_nested_formula_in_list env) value)
   | "patterns" ->
