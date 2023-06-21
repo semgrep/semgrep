@@ -786,23 +786,25 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
     match (parse_str_or_dict env x, x.G.e) with
     | Left (value, t), _ when allow_string ->
         R.P (parse_rule_xpattern env (value, t))
-    | Left _, _ -> error_at_expr env.id x "Expected dictionary, not a string!"
-    | ( _,
-        G.Container
-          ( Dict,
-            ( _,
-              [
-                {
-                  e =
-                    Container
-                      ( Tuple,
-                        (_, [ { e = L (String (_, key, _)); _ }; value ], _) );
-                  _;
-                };
-              ],
-              _ ) ) ) ->
-        parse_pair_old env (key, value)
-    | _ -> error_at_expr env.id x "Wrong parse_formula fields"
+    | Left (s, _), _ ->
+        error_at_expr env.id x
+          (Common.spf
+             "Strings not allowed at this position, maybe try `pattern: %s`" s)
+    | _, G.Container (Dict, (_, entries, _)) -> (
+        match entries with
+        | [
+         {
+           e =
+             Container
+               (Tuple, (_, [ { e = L (String (_, key, _)); _ }; value ], _));
+           _;
+         };
+        ] ->
+            parse_pair_old env (key, value)
+        | __else__ ->
+            error_at_expr env.id x
+              "Expected object with only one entry -- did you forget a hyphen?")
+    | _ -> error_at_expr env.id x "Received invalid Semgrep pattern"
   in
   let get_nested_formula_in_list env i x =
     let env = { env with path = string_of_int i :: env.path } in
@@ -820,7 +822,12 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "patterns" ->
       let parse_pattern i expr =
         match parse_str_or_dict env expr with
-        | Left (_s, _t) -> failwith "use patterns:"
+        | Left (s, _t) ->
+            error_at_expr env.id value
+              (Common.spf
+                 "Strings are not valid under `patterns`: did you mean to \
+                  write `pattern: %s` instead?"
+                 s)
         | Right dict -> (
             let find key_str = Hashtbl.find_opt dict.h key_str in
             let process_extra extra =
