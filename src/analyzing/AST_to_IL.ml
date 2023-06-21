@@ -1241,6 +1241,14 @@ and stmt_aux env st =
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
+      (* Expressions inside types still need to be dflow'd!
+       *   ex: In C we need to be able to const prop:
+       *       int e = 3;
+       *       int arr[e]; // s.t arr : TyArray(Var e)
+       * So in IL we lift this type expr to be a stmt:
+       *     _tmp = e
+       *     DECL arr
+       *)
   | G.DefStmt
       ( ent,
         G.VarDef
