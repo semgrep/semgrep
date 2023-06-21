@@ -48,10 +48,10 @@ Semgrep is a fast, open-source, static analysis engine for finding bugs, detecti
 
 Semgrep supports 30+ languages.
 
-| Category     | Languages                                                                                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GA           | C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript · TSX                                                                         |
-| Beta         | Kotlin · Rust                                                                                                                                                                 |
+| Category     | Languages |
+| ------------ | --------- |
+| GA           | C# · Go · Java · JavaScript · JSX · Kotlin · JSON · PHP · Python · Ruby · Scala · Terraform · TypeScript |
+| Beta         | Rust |
 | Experimental | Bash · C · C++ · Clojure · Dart · Dockerfile · Elixir · HTML · Julia · Jsonnet · Lisp · Lua · OCaml · R · Scheme · Solidity · Swift · YAML · XML · Generic (ERB, Jinja, etc.) |
 
 ### Getting started 🚀
@@ -63,43 +63,34 @@ For beginners, we recommend starting with the [Semgrep Cloud Platform](#option-2
 
 ### Option 1: Getting started from the CLI
 
-1.  Install Semgrep CLI
-
-```
-# For macOS
-$ brew install semgrep
-
-# For Ubuntu/WSL/Linux/macOS
-$ python3 -m pip install semgrep
-
-# To try Semgrep without installation run via Docker
-$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
-```
-
-2.  Go to your app's root directory and run `semgrep scan --config auto`. This will scan your project with the default settings.
-
-3.  [Optional, but recommended] Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser and login.
+1.  Install Semgrep CLI:
+    ```bash
+    # For macOS
+    $ brew install semgrep
+    
+    # For Ubuntu/WSL/Linux/macOS
+    $ python3 -m pip install semgrep
+    
+    # To try Semgrep without installation run via Docker
+    $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
+    ```
+2.  Go to your app's root directory and run `semgrep scan --config auto`. This scans your project with the default settings.
+3.  Optional: Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser, and then click **Activate**.
 
 ### Option 2: Getting started from the Semgrep Cloud Platform (Recommended)
 
 <a href="https://go.semgrep.dev/login-ghrmgo"  target="_blank"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/images/semgrep-main-image.jpg" alt="Semgrep platform image"/> </a>
 
 1.  Register to <a href="https://go.semgrep.dev/login-ghrmgo" target="_blank">semgrep.dev</a>
-
 2.  Explore the demo app
-
 3.  Scan your project by navigating to `Projects > Scan New Project > Run scan in CI`
-
 4.  Select your version control system and follow the wizard to add your project. After this setup, Semgrep will scan your project after every pull request.
-
 5.  [Optional but recommended] If you want to run Semgrep locally, follow the steps in the CLI section.
 
 ### Notes:
 
 1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
-
 2.  If there are any issues, please ask in the Smegrep Slack group <a href="https://go.semgrep.dev/slack" target="_blank"> https://go.semgrep.dev/slack</a>
-
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
