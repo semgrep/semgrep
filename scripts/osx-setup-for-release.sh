@@ -12,10 +12,12 @@ set -eux
 # need to do more cleanup than usually necessary.
 
 brew install opam
+opam init --no-setup --bare
 #still needed?
 #brew update
-#still needed?
-#opam init --no-setup --bare
+
+# we might need recent packages and the self-hosted runner opam might be behind
+opam update
 
 # Some CI runners have tree-sitter preinstalled which interfere with
 # out static linking plans below so better to remove it.

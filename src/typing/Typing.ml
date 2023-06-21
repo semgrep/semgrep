@@ -250,13 +250,13 @@ let name_and_targs_of_named_type lang = function
  *
  * For example, in Java we guess that `x.equals(y)` returns a `boolean`, even if
  * we don't know the type of `x`. *)
-let guess_type_of_dotaccess lang obj_ty str =
+let guess_type_of_dotaccess lang ty_name_and_targs str =
   (* TODO: The types of the parameters should just be computed from the actuals. *)
   let todo_param =
     (* Param type could be Top if we add that as a type *)
     Type.Param { pident = None; ptype = Type.NoType }
   in
-  match (lang, name_and_targs_of_named_type lang obj_ty, str) with
+  match (lang, ty_name_and_targs, str) with
   | Lang.Java, _, "isEmpty" -> Type.Function ([], Type.Builtin Type.Bool)
   | Lang.Java, _, ("equals" | "contains" | "containsKey" | "containsValue") ->
       (* Really the return type is all that matters. We could add the parameters
@@ -312,7 +312,8 @@ let typing_visitor =
             _ ) -> (
           let obj_ty, _ = type_of_expr lang obj in
           let guessed_type =
-            guess_type_of_dotaccess lang obj_ty id_str
+            let ty_name_and_targs = name_and_targs_of_named_type lang obj_ty in
+            guess_type_of_dotaccess lang ty_name_and_targs id_str
             |> Type.to_ast_generic_type_ lang (fun name _alts -> name)
           in
           match guessed_type with

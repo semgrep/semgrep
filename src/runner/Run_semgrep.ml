@@ -914,7 +914,7 @@ let output_semgrep_results (exn, res, files) config =
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
-        calculate_ci_perf.py benchmarks.
+        old calculate_ci_perf.py benchmark.
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)

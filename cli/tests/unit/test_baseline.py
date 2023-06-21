@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -20,7 +21,7 @@ def test_baseline_context(monkeypatch, tmp_path):
     subprocess.check_call(["git", "checkout", "-B", "main"])
 
     # Create foo/a.py, foo/b.py, and foo/c.py
-    foo = tmp_path / "foo"
+    foo = Path("foo")
     foo.mkdir()
     foo_a = foo / "a.py"
     foo_a.touch()
@@ -37,7 +38,7 @@ def test_baseline_context(monkeypatch, tmp_path):
     ).strip()
 
     # Create bar/a.py and modify foo/a.py and remove foo/b.py and rename foo/c.py
-    bar = tmp_path / "bar"
+    bar = Path("bar")
     bar.mkdir()
     bar_a = bar / "a.py"
     bar_a.touch()
@@ -48,10 +49,18 @@ def test_baseline_context(monkeypatch, tmp_path):
 
     # Add and commit all changes
     subprocess.check_call(["git", "add", "."])
-    # baseline_handler aborts on pending changes
-    with pytest.raises(Exception) as e:
-        BaselineHandler(base_commit)
-    assert "Found pending changes" in str(e)
+    # baseline_handler works on pending changes
+    baseline_handler = BaselineHandler(base_commit)
+
+    with baseline_handler.baseline_context():
+        # foo/a.py should not have written text
+        assert foo_a.read_text() == ""
+        assert foo_b.exists()
+        assert foo_c.exists()
+
+        assert not bar_a.exists()
+        assert not foo_d.exists()
+
     subprocess.check_call(["git", "commit", "-m", "second"])
 
     baseline_handler = BaselineHandler(base_commit)

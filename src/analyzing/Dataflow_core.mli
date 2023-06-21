@@ -42,6 +42,7 @@ end
 module Make (F : Flow) : sig
   (* main entry point *)
   val fixpoint :
+    timeout:float ->
     eq_env:('env -> 'env -> bool) ->
     init:'env mapping ->
     trans:'env transfn ->

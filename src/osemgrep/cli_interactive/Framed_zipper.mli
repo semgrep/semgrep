@@ -67,6 +67,8 @@ val take : int -> 'a t -> 'a list
 val get_current : 'a t -> 'a
 val is_empty : 'a t -> bool
 val length : 'a t -> int
+val frame_size : 'a t -> int
+val set_frame_size : int -> 'a t -> 'a t
 
 (* The absolute position is with respect to the number of
    things in the frame, including stufff behind us.

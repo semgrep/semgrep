@@ -13,7 +13,7 @@ jobs:
   build-test-core-x86:
     name: Build Test Semgrep Core
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine-2023-04-17
+    container: returntocorp/ocaml:alpine-2023-06-16
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:

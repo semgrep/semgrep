@@ -77,8 +77,10 @@ let map_current f m =
         m.after;
   }
 
+let set_frame_size n m = { m with max_len = n }
 let absolute_position m = List.length m.before_rev + m.pointer
 let length m = List.length m.before_rev + List.length m.after
+let frame_size m = m.max_len
 let is_empty m = List.length m.after + List.length m.before_rev = 0
 
 let empty_with_max_len max_len =

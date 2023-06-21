@@ -926,6 +926,9 @@ let any x =
   | Stmts v1 ->
       let v1 = list_stmt env v1 in
       G.Ss v1
+  | Decorator v1 ->
+      let v1 = decorator env v1 in
+      G.At v1
   | Program v1 ->
       let v1 = list_stmt env v1 in
       G.Pr v1

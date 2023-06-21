@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+package cli;
+
+message CliOutput {
+  string version = 508888787;
+  repeated CliError errors = 179828283;
+  repeated CliMatch results = 260545850;
+  CliPaths paths = 109417774;
+  CliTiming time = 3117011;
+}

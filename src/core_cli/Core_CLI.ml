@@ -650,6 +650,21 @@ let options actions =
        when running out of memory. This value should be less than the actual \
        memory available because the limit will be exceeded before it gets \
        detected. Try 5% less or 15000 if you have 16 GB." );
+    ( "-max_tainted_lvals",
+      Arg.Set_int Flag_semgrep.max_tainted_lvals,
+      "<int> maximum number of lvals to store. This is mostly for internal use \
+       to make performance testing easier" );
+    ( "-max_taint_set_size",
+      Arg.Set_int Flag_semgrep.max_taint_set_size,
+      "<int> maximum size of a taint set. This is mostly for internal use to \
+       make performance testing easier" );
+    ( "-max_match_per_file",
+      Arg.Set_int max_match_per_file,
+      " <int> maximum numbers of match per file" );
+    ("-debug", Arg.Set debug, " output debugging information");
+    ("-test", Arg.Set test, " (internal) set test context");
+    ("-ls", Arg.Set ls, " run Semgrep Language Server");
+    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
     ( "-max_match_per_file",
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
