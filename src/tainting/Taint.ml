@@ -115,6 +115,8 @@ and compare_sources s1 s2 =
   let pm1, ts1 = pm_of_trace s1.call_trace
   and pm2, ts2 = pm_of_trace s2.call_trace in
   match
+    (* TODO: I'm pretty suspicious of Stdlib.compare here,
+       the metavariable environments include tokens *)
     Stdlib.compare
       (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.R.label)
       (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.R.label)
@@ -134,7 +136,7 @@ and compare_sources s1 s2 =
 and compare_args a1 a2 =
   let pos1 = a1.pos in
   let pos2 = a2.pos in
-  match Stdlib.compare pos1 pos2 with
+  match compare_arg_pos pos1 pos2 with
   | 0 -> List.compare IL_helpers.compare_name a1.offset a2.offset
   | other -> other
 
