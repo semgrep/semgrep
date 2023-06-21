@@ -1241,14 +1241,17 @@ and stmt_aux env st =
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
-  | G.DefStmt (ent, G.VarDef { G.vinit = None; vtype = Some ty }) -> (
-      match ty.t with
-      | G.TyArray ((_, Some e, _), _) ->
-          let ss, e' = expr_with_pre_stmts env e in
-          let lv = lval_of_ent env ent in
-          let inst = mk_i (Assign (lv, e')) (SameAs e) in
-          ss @ [ mk_s @@ Instr inst ]
-      | _ -> [])
+  | G.DefStmt
+      ( ent,
+        G.VarDef
+          {
+            G.vinit = None;
+            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
+          } ) ->
+      let ss, e' = expr_with_pre_stmts env e in
+      let lv = lval_of_ent env ent in
+      let inst = mk_i (Assign (lv, e')) (SameAs e) in
+      ss @ [ mk_s @@ Instr inst ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (stmt env)
