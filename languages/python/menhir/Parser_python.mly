@@ -452,8 +452,8 @@ arglist_paren_opt:
 (* Annotations *)
 (*************************************************************************)
 
-decorator: "@" decorator_name arglist_paren2_opt NEWLINE
-    { $1, $2, $3 }
+decorator: "@" namedexpr_test NEWLINE
+    { $1, $2 }
 
 decorator_name:
   | NAME                    { [$1] }

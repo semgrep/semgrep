@@ -888,16 +888,9 @@ and excepthandler env = function
       in
       (t, exn, v3)
 
-and decorator env (t, v1, v2) =
-  let v1 = dotted_name env v1 in
-  let v2 = option (bracket (list (argument env))) v2 in
-  let args =
-    match v2 with
-    | Some (t1, x, t2) -> (t1, x, t2)
-    | None -> Tok.unsafe_fake_bracket []
-  in
-  let name = H.name_of_ids v1 in
-  G.NamedAttr (t, name, args)
+and decorator env (t, v1) =
+  let v1 = expr env v1 in
+  G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])
 
 and alias env (v1, v2) =
   let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
