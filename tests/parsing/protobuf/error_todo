@@ -1,0 +1,8 @@
+
+
+message CliPaths {
+  repeated string scanned = 478818202;
+//TODO: this generates a parse error right now, weird
+  string _comment = 528651539;
+  repeated CliSkippedTarget skipped = 480732762;
+}
