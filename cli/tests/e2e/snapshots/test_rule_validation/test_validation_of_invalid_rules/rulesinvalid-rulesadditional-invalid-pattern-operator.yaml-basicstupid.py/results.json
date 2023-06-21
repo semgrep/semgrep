@@ -1,0 +1,17 @@
+{
+  "errors": [
+    {
+      "code": 2,
+      "level": "error",
+      "message": "Rule parse error in rule rules.invalid-rules.eqeq:\n Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, or `inside`",
+      "rule_id": "rules.invalid-rules.eqeq",
+      "type": "Rule parse error"
+    }
+  ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
+  "version": "0.42"
+}

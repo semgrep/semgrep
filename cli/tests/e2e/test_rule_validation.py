@@ -4,15 +4,19 @@ import pytest
 from tests.conftest import _clean_stdout
 from tests.fixtures import RunSemgrep
 
+TEST_FILE = "basic/stupid.py"
+
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",
     [
-        ("rules/invalid-rules/invalid-metavariable-regex.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/invalid-pattern-child.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/invalid-missing-top-item.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/invalid-pattern.yaml", "basic/stupid.py"),
+        ("rules/invalid-rules/invalid-metavariable-regex.yaml", TEST_FILE),
+        ("rules/invalid-rules/invalid-pattern-child.yaml", TEST_FILE),
+        ("rules/invalid-rules/invalid-missing-top-item.yaml", TEST_FILE),
+        ("rules/invalid-rules/invalid-pattern.yaml", TEST_FILE),
+        ("rules/invalid-rules/invalid-pattern-operator.yaml", TEST_FILE),
+        ("rules/invalid-rules/additional-invalid-pattern-operator.yaml", TEST_FILE),
     ],
 )
 def test_validation_of_invalid_rules(
