@@ -1,4 +1,4 @@
-Constant propagation is now applied to declerations inside stack array declerations in C; so
+Constant propagation is now applied to declarations inside stack array declarations in C; so
 a pattern `$TYPE $NAME[101];` will now produce two matches in the following snippet:
 ```c
 int main() {
