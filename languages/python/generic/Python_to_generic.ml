@@ -889,6 +889,10 @@ and excepthandler env = function
       (t, exn, v3)
 
 and decorator env (t, v1) =
+  (* We'll try to first translate it as a G.NamedAttr; if we could not
+   * and the decorator is a pip0614 namedexpr decorator, we'll translate
+   * it as an otherAttr.
+   *)
   let rec get_dotted_name e acc =
     match e with
     | Name (id, _) -> Some (id :: acc)
