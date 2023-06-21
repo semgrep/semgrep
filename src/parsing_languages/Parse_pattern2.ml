@@ -145,6 +145,9 @@ let parse_pattern print_errors lang str =
   | Lang.Lua ->
       let res = Parse_lua_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
+  | Lang.Protobuf ->
+      let res = Parse_protobuf_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res print_errors
   | Lang.Rust ->
       let res = Parse_rust_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
