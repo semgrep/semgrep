@@ -7,7 +7,7 @@
   Scanning 2 files.
   Current version has 2 findings.
 
-Switching repository to baseline commit 'baseline-commit'.
+Creating git worktree from 'baseline-commit' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * 217a2f3 commit #2
 

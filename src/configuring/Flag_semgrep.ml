@@ -33,6 +33,12 @@ let max_cache = ref false
 (* Maximum size of a single target file, in bytes (exceptions apply). *)
 let max_target_bytes = ref 5_000_000
 
+(* Maximum number of tainted lvals to save. *)
+let max_tainted_lvals = ref Limits_semgrep.taint_MAX_TAINTED_LVALS
+
+(* Maximum size of the taints set for each lval *)
+let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
+
 (* Whether or not to skip files believed to be minified. *)
 let skip_minified_files = ref true
 

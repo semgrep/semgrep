@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open File.Operators
 module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
@@ -439,6 +440,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 
 let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
+  let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let lazy_ast_and_errors = lazy ast_and_errors in
@@ -446,7 +448,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
     {
       Xtarget.file;
       xlang = rule.languages.target_analyzer;
-      lazy_content = lazy (Common.read_file file);
+      lazy_content = lazy (File.read_file file);
       lazy_ast_and_errors;
     }
   in
@@ -514,7 +516,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
   in
   let config = xconf.config in
   ( {
-      Dataflow_tainting.filepath = file;
+      Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
@@ -612,7 +614,7 @@ let pm_of_finding finding =
         let taint_trace = Some (lazy traces) in
         Some { sink_pm with env = merged_env; taint_trace }
 
-let check_fundef lang options taint_config opt_ent ctx fdef =
+let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -693,7 +695,8 @@ let check_fundef lang options taint_config opt_ent ctx fdef =
   let _, xs = AST_to_IL.function_definition lang ~ctx fdef in
   let flow = CFG_build.cfg_of_stmts xs in
   let mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config flow
+    Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
+      java_props_cache flow
   in
   (flow, mapping)
 
@@ -722,7 +725,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule ~per_file_formula_cache xconf file (ast, []) rule
+    taint_config_of_rule ~per_file_formula_cache xconf !!file (ast, []) rule
       handle_findings
   in
 
@@ -731,6 +734,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   | Some setup_hook_function_taint_signature ->
       setup_hook_function_taint_signature xconf rule taint_config xtarget);
 
+  (* FIXME: This is no longer needed, now we can just check the type 'n'. *)
   let ctx = ref AST_to_IL.empty_ctx in
   Visit_function_defs.visit
     (fun opt_ent _ ->
@@ -740,10 +744,29 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       | __else__ -> ())
     ast;
 
+  let java_props_cache = Dataflow_tainting.mk_empty_java_props_cache () in
+
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      check_fundef lang xconf.config taint_config opt_ent !ctx fdef |> ignore)
+      check_fundef lang xconf.config taint_config opt_ent !ctx java_props_cache
+        fdef
+      |> ignore)
+    ast;
+
+  (* Check execution of statements during object initialization. *)
+  Visit_class_defs.visit
+    (fun _ cdef ->
+      let fields =
+        cdef.G.cbody |> Tok.unbracket
+        |> Common.map (function G.F x -> x)
+        |> G.stmt1
+      in
+      let stmts = AST_to_IL.stmt lang fields in
+      let flow = CFG_build.cfg_of_stmts stmts in
+      Dataflow_tainting.fixpoint lang xconf.config taint_config java_props_cache
+        flow
+      |> ignore)
     ast;
 
   (* Check the top-level statements.
@@ -754,7 +777,9 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint lang xconf.config taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint lang xconf.config taint_config
+          java_props_cache flow
+        |> ignore)
   in
   let matches =
     !matches

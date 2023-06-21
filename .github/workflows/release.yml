@@ -111,11 +111,6 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
-    secrets: inherit
-
   build-test-manylinux-x86:
     needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-manylinux-x86.yaml
@@ -130,7 +125,6 @@ jobs:
         build-test-manylinux-x86,
         build-test-osx-x86,
         build-test-osx-m1,
-        build-test-ubuntu-16-04,
       ]
     steps:
       - name: Continue

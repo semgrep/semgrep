@@ -1,3 +1,5 @@
+# Build and test our semgrep docker image.
+
 name: build-test-docker
 
 on:

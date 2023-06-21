@@ -1,0 +1,11 @@
+rules:
+- id: typed-metavar-metavar-regex
+  message: asdf
+  severity: ERROR
+  languages:
+  - go
+  patterns:
+    - pattern: '($X : $TYPE).Foo()'
+    - metavariable-regex:
+        metavariable: $TYPE
+        regex: ^\*http.Request$

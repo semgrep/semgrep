@@ -221,6 +221,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Scala
     | Lang.Solidity
     | Lang.Php
+    | Lang.Protobuf
     | Lang.Hack
     | Lang.Yaml
     | Lang.Html
@@ -290,6 +291,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Elixir
     | Lang.Bash
     | Lang.Php
+    | Lang.Protobuf
     | Lang.Dockerfile
     | Lang.Hack
     | Lang.Lua
@@ -342,6 +344,7 @@ and do_while stmt env (s, e) =
     | Lang.Dockerfile
     | Lang.Hack
     | Lang.Lua
+    | Lang.Protobuf
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
@@ -386,6 +389,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Elixir
     | Lang.Bash
     | Lang.Php
+    | Lang.Protobuf
     | Lang.Html
     | Lang.Dockerfile
     | Lang.Hack
@@ -483,6 +487,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Elixir
       | Lang.Bash
       | Lang.Php
+      | Lang.Protobuf
       | Lang.Dockerfile
       | Lang.Hack
       | Lang.Lua

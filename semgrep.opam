@@ -35,6 +35,7 @@ depends: [
   "ppx_deriving"
   "ppx_hash"
   "ppx_inline_test"
+  "ppx_expect"
   "ppx_sexp_conv" {!= "v0.15.0" & != "v0.15.1"}
   "re"
   "pcre"
@@ -43,6 +44,7 @@ depends: [
   "uri"
   "uuidm"
   "http-lwt-client"
+  "happy-eyeballs-lwt" {>= "0.6.0"}
   "terminal_size"
   "lwt"
   "lwt_ppx"

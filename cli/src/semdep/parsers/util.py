@@ -67,6 +67,7 @@ class ParserName(Enum):
     yarn_2 = auto()
     pomtree = auto()
     cargo = auto()
+    composer_lock = auto()
 
 
 def not_any(*chars: str) -> "Parser[str]":

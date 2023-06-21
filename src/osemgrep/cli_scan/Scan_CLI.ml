@@ -103,7 +103,10 @@ let default : conf =
     (* alt: could move in a Core_runner.default *)
     core_runner_conf =
       {
-        Core_runner.num_jobs = Parmap_helpers.get_cpu_count ();
+        (* Maxing out number of cores used to 16 if more not requested to
+         * not overload on large machines
+         *)
+        Core_runner.num_jobs = Int.min 16 (Parmap_helpers.get_cpu_count ());
         timeout = 30.0 (* seconds *);
         timeout_threshold = 3;
         max_memory_mb = 0;
@@ -644,7 +647,7 @@ let o_registry_caching : bool Term.t =
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
-let cmdline_term : conf Term.t =
+let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine ast_caching autofix baseline_commit config dryrun dump_ast
@@ -701,10 +704,12 @@ let cmdline_term : conf Term.t =
           (* TOPORT: raise with Exit_code.missing_config *)
           (* TOPORT? use instead
              "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
-          Error.abort
-            "No config given. Run with `--config auto` or see \
-             https://semgrep.dev/docs/running-rules/ for instructions on \
-             running with a specific config"
+          if allow_empty_config then Rules_source.Configs []
+          else
+            Error.abort
+              "No config given. Run with `--config auto` or see \
+               https://semgrep.dev/docs/running-rules/ for instructions on \
+               running with a specific config"
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
@@ -950,5 +955,7 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man
 (*****************************************************************************)
 
 let parse_argv (argv : string array) : conf =
-  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
+  let cmd : conf Cmd.t =
+    Cmd.v cmdline_info (cmdline_term ~allow_empty_config:false)
+  in
   CLI_common.eval_value ~argv cmd

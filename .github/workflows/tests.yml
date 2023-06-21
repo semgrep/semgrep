@@ -18,11 +18,11 @@ on:
       - "**.md"
 
 jobs:
+  #TODO: do we need this job now that we have build-test-core-x86.yaml?
   test-core:
-    # TODO: why not use the artifact of build-semgrep-core in this job instead?
     name: test semgrep-core
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-04-03
+    container: returntocorp/ocaml:alpine-2023-06-16
     env:
       HOME: /root
     steps:
@@ -31,7 +31,13 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
+          # needed for the e2e test below
+          make core-install
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -43,7 +49,7 @@ jobs:
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
       - name: Report Number of Tests Stats
         if: github.ref == 'refs/heads/develop'
-        run: ./tests/report_test_metrics.sh
+        run: ./scripts/report_test_metrics.sh
 
       # TODO: move this to a stable host for more reliable results.
       #
@@ -59,10 +65,11 @@ jobs:
           #
           opam exec -- make report-perf-matching
 
+  #TODO: merge with the previous job (which should be merged in build-test-core-x86.yaml)
   test-osemgrep:
     name: test osemgrep
     runs-on: ubuntu-22.04
-    container: returntocorp/ocaml:alpine-2023-04-03
+    container: returntocorp/ocaml:alpine-2023-06-16
     env:
       HOME: /root
     steps:
@@ -71,15 +78,21 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          make core
       - name: Install osemgrep
         run: |
           eval $(opam env)
           make core-install
-          cp bin/semgrep-core /usr/bin/ # needed for pipenv install to work below
+          # needed for pipenv install to work below
+          cp bin/semgrep-core /usr/bin/
       - name: Install Python dependencies
-        working-directory: cli
-        run: pipenv install --dev
+        run: |
+          make install-deps-ALPINE-for-pysemgrep
+          (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         working-directory: cli
         run: |
@@ -99,6 +112,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           persist-credentials: false
+      #TODO? just use submodule:true above instead of this?
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
@@ -318,32 +332,6 @@ jobs:
       repository-name: ${{ github.repository }}
       dry-run: false
 
-  build-test-dev-docker:
-    uses: ./.github/workflows/build-test-docker.yaml
-    secrets: inherit
-    with:
-      docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
-        type=sha,event=branch
-        type=edge
-      repository-name: ${{ github.repository }}-dev
-      artifact-name: image-dev
-      file: dockerfiles/semgrep-dev.Dockerfile
-      enable-tests: false
-
-  push-dev-docker:
-    needs: [build-test-dev-docker]
-    uses: ./.github/workflows/push-docker.yaml
-    if: github.ref == 'refs/heads/develop'
-    secrets: inherit
-    with:
-      artifact-name: image-dev
-      repository-name: ${{ github.repository }}-dev
-      dry-run: false
-
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
@@ -368,11 +356,6 @@ jobs:
 
   build-test-osx-m1:
     uses: ./.github/workflows/build-test-osx-m1.yaml
-    secrets: inherit
-
-  build-test-ubuntu-16-04:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-ubuntu-x86.yaml
     secrets: inherit
 
   build-test-javascript:

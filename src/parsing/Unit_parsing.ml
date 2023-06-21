@@ -95,6 +95,7 @@ let lang_parsing_tests () =
       (* recursive descent parser *)
       pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
       pack_parsing_tests_for_lang Lang.Clojure "clojure" ".clj";
+      pack_parsing_tests_for_lang Lang.Protobuf "protobuf" ".proto";
     ]
 
 (* It's important that our parsers generate classic parsing errors

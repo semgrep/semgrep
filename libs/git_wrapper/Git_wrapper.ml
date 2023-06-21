@@ -63,37 +63,8 @@ exception Error of string
 let _git_diff_lines_re = {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let git_diff_lines_re = SPcre.regexp _git_diff_lines_re
 
-(*****************************************************************************)
-(* Use Common.cmd_to_list *)
-(*****************************************************************************)
-
-let files_from_git_ls ~cwd =
-  let cwd_s = Fpath.to_string cwd in
-  assert (Sys.is_directory cwd_s);
-  (* TODO: use Unix.chdir in forked process instead of Common.cmd_to_list
-   * and also redirect stderr to null
-   *)
-  Common.cmd_to_list (spf "cd '%s' && git ls-files" cwd_s)
-  |> File.Path.of_strings
-
-let is_git_repo () =
-  let cmd = Bos.Cmd.(v "git" % "rev-parse" % "--is-inside-work-tree") in
-  match Bos.OS.Cmd.run_status ~quiet:true cmd with
-  | Ok (`Exited 0) -> true
-  | _ -> false
-
-let dirty_lines_of_file file =
-  (* In the future we can make the HEAD part a parameter, and allow users to scan against other branches *)
-  let cmd = Bos.Cmd.(v "git" % "diff" % "-U0" % "HEAD" % !!file) in
-  let run = Bos.OS.Cmd.run_out cmd in
-  let lines_r = Bos.OS.Cmd.out_string ~trim:true run in
-  let lines =
-    match lines_r with
-    | Ok (lines, (_, `Exited 0)) -> lines
-    | _ -> ""
-  in
-  let matched_ranges = SPcre.exec_all ~rex:git_diff_lines_re lines in
-  (* get the first capture group, then optionally split the comma if multiline diff *)
+(** Given some git diff ranges (see above), extract the range info *)
+let range_of_git_diff lines =
   let range_of_substrings substrings =
     let line = Pcre.get_substring substrings 1 in
     let lines = Str.split (Str.regexp ",") line in
@@ -109,21 +80,73 @@ let dirty_lines_of_file file =
     let end_ = change_count + start in
     (start, end_)
   in
-  let matches =
-    match matched_ranges with
-    | Ok ranges ->
-        Array.map
-          (fun s ->
-            try range_of_substrings s with
-            | Not_found -> (-1, -1))
-          ranges
-    | Error _ -> [||]
-  in
-  matches
+  let matched_ranges = SPcre.exec_all ~rex:git_diff_lines_re lines in
+  (* get the first capture group, then optionally split the comma if multiline diff *)
+  match matched_ranges with
+  | Ok ranges ->
+      Array.map
+        (fun s ->
+          try range_of_substrings s with
+          | Not_found -> (-1, -1))
+        ranges
+  | Error _ -> [||]
 
-let dirty_files () =
+(*****************************************************************************)
+(* Wrappers *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Use Common.cmd_to_list *)
+(*****************************************************************************)
+
+let files_from_git_ls ~cwd =
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files") in
+  let files_r = Bos.OS.Cmd.run_out cmd in
+  let results = Bos.OS.Cmd.out_lines ~trim:true files_r in
+  let files =
+    match results with
+    | Ok (files, (_, `Exited 0)) -> files
+    | _ -> raise (Error "Could not get files from git ls-files")
+  in
+  files |> File.Path.of_strings
+
+let is_git_repo cwd =
   let cmd =
-    Bos.Cmd.(v "git" % "status" % "--porcelain" % "--ignore-submodules")
+    Bos.Cmd.(v "git" % "-C" % !!cwd % "rev-parse" % "--is-inside-work-tree")
+  in
+  let run = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  match run with
+  | Ok (`Exited 0) -> true
+  | Ok _ -> false
+  | Error (`Msg e) -> raise (Error e)
+
+let dirty_lines_of_file file =
+  (* In the future we can make the HEAD part a parameter, and allow users to scan against other branches *)
+  let cwd = Fpath.parent file in
+  let cmd =
+    Bos.Cmd.(v "git" % "-C" % !!cwd % "ls-files" % "--error-unmatch" % !!file)
+  in
+  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  match status with
+  | Ok (`Exited 0) ->
+      let cmd =
+        Bos.Cmd.(v "git" % "-C" % !!cwd % "diff" % "-U0" % "HEAD" % !!file)
+      in
+      let out = Bos.OS.Cmd.run_out cmd in
+      let lines_r = Bos.OS.Cmd.out_string ~trim:true out in
+      let lines =
+        match lines_r with
+        | Ok (lines, (_, `Exited 0)) -> Some lines
+        | _ -> None
+      in
+      Option.bind lines (fun l -> Some (range_of_git_diff l))
+  | Ok _ -> None
+  | Error (`Msg e) -> raise (Error e)
+
+let dirty_files cwd =
+  let cmd =
+    Bos.Cmd.(
+      v "git" % "-C" % !!cwd % "status" % "--porcelain" % "--ignore-submodules")
   in
   let lines_r = Bos.OS.Cmd.run_out cmd in
   let lines = Bos.OS.Cmd.out_lines ~trim:false lines_r in
@@ -136,3 +159,23 @@ let dirty_files () =
   let files = List.filter (fun f -> not (String.trim f = "")) lines in
   let files = Common.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files
+
+let init cwd =
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "init") in
+  match Bos.OS.Cmd.run_status cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Error running git init")
+
+let add cwd files =
+  let files = Common.map Fpath.to_string files in
+  let files = String.concat " " files in
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "add" % files) in
+  match Bos.OS.Cmd.run_status cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Error running git add")
+
+let commit cwd msg =
+  let cmd = Bos.Cmd.(v "git" % "-C" % !!cwd % "commit" % "-m" % msg) in
+  match Bos.OS.Cmd.run_status cmd with
+  | Ok (`Exited 0) -> ()
+  | _ -> raise (Error "Error running git commit")
