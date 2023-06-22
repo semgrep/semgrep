@@ -1666,6 +1666,13 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       in
       let taints = Taints.union taints taints_propagated in
       check_orig_if_sink env instr.iorig taints;
+      let taints =
+        match LV.lval_of_instr_opt instr with
+        | None -> taints
+        | Some lval ->
+            check_type_and_drop_taints_if_bool_or_number env taints type_of_lval
+              lval
+      in
       (taints, lval_env')
 
 (* Test whether a `return' is tainted, and if it is also a sink,

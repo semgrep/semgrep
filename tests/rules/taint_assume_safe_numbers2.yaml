@@ -1,0 +1,15 @@
+rules:
+  - id: taint-assume-safe-numbers
+    message: Match!
+    languages:
+      - php
+    severity: WARNING
+    mode: taint
+    options:
+      taint_assume_safe_numbers: true
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sanitizers:
+      - pattern: sanitizer(...)

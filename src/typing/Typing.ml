@@ -22,22 +22,19 @@ module G = AST_generic
 let rec type_of_expr lang e : G.name Type.t * G.ident option =
   match e.G.e with
   | G.L lit ->
-      let t =
-        match lit with
-        (* NB: We could infer Type.Number for JS int/float literals, but we can
-         * handle that relationship in matching and we can be more precise for
-         * now. One actual rule uses `float` for a typed metavariable in JS so
-         * let's avoid breaking that for now at least. *)
-        | G.Int _ -> Type.Builtin Type.Int
-        | G.Float _ -> Type.Builtin Type.Float
-        | G.Bool _ -> Type.Builtin Type.Bool
-        | G.String _ -> Type.Builtin Type.String
-        | _else_ -> Type.NoType
-      in
+      let t = type_of_lit lit in
       (t, None)
+  | G.DotAccess
+      (_obj, _, FN (Id (("length", _), { id_type = { contents = None }; _ })))
+    when lang =*= Lang.Java ->
+      (* TODO: Fix guess_type_of_dotaccess to take an "expected type" (as in bidirectional
+       * type checking) so that we can distinguish `length` as a method (e.g. `String`) and
+       * `length` as an attribute (arrays). *)
+      (Type.Builtin Type.Int, None)
   | G.N name
   | G.DotAccess (_, _, FN name) ->
       type_of_name lang name
+  | G.Cast (t, _, _) -> (type_of_ast_generic_type lang t, None)
   (* TODO? or generate a fake "new" id for LSP to query on tk? *)
   (* We conflate the type of a class with the type of its instance. Maybe at
    * some point we should introduce a `Class` type and unwrap it here upon
@@ -50,11 +47,13 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       let t =
         match (t1, op, t2) with
         | Type.(Builtin (Int | Float)), (G.Plus | G.Minus (* TODO more *)), _
-        | _, (G.Plus | G.Minus (* TODO more *)), Type.(Builtin (Int | Float))
+        | ( _,
+            (G.Plus | G.Minus | G.Mult (* TODO more *)),
+            Type.(Builtin (Int | Float)) )
         (* Note that `+` is overloaded in many languages and may also be
          * string concatenation, and unfortunately some languages such
          * as Java and JS/TS have implicit coercions to string. *)
-          when lang =*= Lang.Python (* TODO more *) ->
+          when lang =*= Lang.Python || lang =*= Lang.Php (* TODO more *) ->
             Type.Builtin Type.Number
         | ( Type.Builtin Type.Int,
             (G.Plus | G.Minus (* TODO more *)),
@@ -125,7 +124,27 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       (t, idopt)
   | _else_ -> (Type.NoType, None)
 
+and type_of_lit = function
+  (* NB: We could infer Type.Number for JS int/float literals, but we can
+     * handle that relationship in matching and we can be more precise for
+     * now. One actual rule uses `float` for a typed metavariable in JS so
+     * let's avoid breaking that for now at least. *)
+  | G.Int _ -> Type.Builtin Type.Int
+  | G.Float _ -> Type.Builtin Type.Float
+  | G.Bool _ -> Type.Builtin Type.Bool
+  | G.String _ -> Type.Builtin Type.String
+  | _else_ -> Type.NoType
+
 and type_of_name lang = function
+  | Id (ident, { id_svalue = { contents = Some (Lit lit) }; _ }) ->
+      let t = type_of_lit lit in
+      (t, Some ident)
+  | Id (ident, { id_svalue = { contents = Some (Cst Cbool) }; _ }) ->
+      (Type.Builtin Type.Bool, Some ident)
+  | Id (ident, { id_svalue = { contents = Some (Cst Cint) }; _ }) ->
+      (Type.Builtin Type.Int, Some ident)
+  | Id (ident, { id_svalue = { contents = Some (Cst Cstr) }; _ }) ->
+      (Type.Builtin Type.String, Some ident)
   | Id (ident, id_info) ->
       let t = resolved_type_of_id_info lang id_info in
       let t =
@@ -264,6 +283,8 @@ let guess_type_of_dotaccess lang ty_name_and_targs str =
       Type.Function ([ todo_param ], Type.Builtin Type.Bool)
   | Lang.Java, _, ("size" | "length") ->
       Type.Function ([], Type.Builtin Type.Int)
+  | Lang.Java, _, ("compareTo" | "compareToIgnoreCase") ->
+      Type.Function ([], Type.Builtin Type.Int)
   (* For unresolved types with one type parameter, assume that the `get`
    * method's return type is the type parameter (e.g. List<T>). For unresolved
    * types with two type parameters, assume that the `get` method's return type
@@ -277,6 +298,22 @@ let guess_type_of_dotaccess lang ty_name_and_targs str =
         Type.Param { pident = None; ptype = Type.Builtin Type.String }
       in
       Type.Function ([ param ], Type.Builtin Type.Bool)
+  | ( Lang.Java,
+      Some (("Boolean" | "java.lang.Boolean"), _),
+      ("valueOf" | "parseBoolean") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Bool)
+  | ( Lang.Java,
+      Some (("Integer" | "java.lang.Integer"), _),
+      ("decode" | "valueOf" | "parseInt" | "parseUnsignedInt") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Int)
+  | ( Lang.Java,
+      Some (("Long" | "java.lang.Long"), _),
+      ("decode" | "valueOf" | "parseLong" | "parseUnsignedLong") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Int)
+  | ( Lang.Java,
+      Some (("Float" | "java.lang.Float"), _),
+      ("valueOf" | "parseFloat") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Float)
   | _else_ -> Type.NoType
 
 (* TODO: We could probably add a `Type.t ref` to `Call` nodes without major perf
