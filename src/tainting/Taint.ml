@@ -17,7 +17,7 @@ module G = AST_generic
 module PM = Pattern_match
 module R = Rule
 module LabelSet = Set.Make (String)
-open Ppx_compare_lib.Builtin
+open Common
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -104,8 +104,21 @@ let rec compare_precondition (ts1, f1) (ts2, f2) =
          should be safe to compare, due to carrying no extraneous
          data, and otherwise only comprising of base types.
       *)
-      Stdlib.compare f1 f2
+      R.compare_precondition f1 f2
   | other -> other
+
+and compare_matches pm1 pm2 =
+  let compare_rule_id =
+    String.compare
+      (Rule.ID.to_string pm1.PM.rule_id.id)
+      (Rule.ID.to_string pm2.PM.rule_id.id)
+  in
+  if compare_rule_id <> 0 then compare_rule_id
+  else
+    let compare_range_loc = compare pm1.range_loc pm2.range_loc in
+    if compare_range_loc <> 0 then compare_range_loc
+    else if Metavariable.Structural.equal_bindings pm1.env pm2.env then 0
+    else Stdlib.compare pm1.env pm2.env
 
 and compare_sources s1 s2 =
   (* Comparing metavariable environments this way is not robust, e.g.:
@@ -114,23 +127,22 @@ and compare_sources s1 s2 =
    *)
   let pm1, ts1 = pm_of_trace s1.call_trace
   and pm2, ts2 = pm_of_trace s2.call_trace in
-  match
-    (* TODO: I'm pretty suspicious of Stdlib.compare here,
-       the metavariable environments include tokens *)
-    Stdlib.compare
-      (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.R.label)
-      (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.R.label)
-  with
-  | 0 ->
-      (* It's important that we include preconditions as a distinguishing factor
-         between two taints.
+  match compare_matches pm1 pm2 with
+  | 0 -> (
+      let label1 = s1.label ^ ts1.R.label in
+      let label2 = s2.label ^ ts2.R.label in
+      match String.compare label1 label2 with
+      | 0 ->
+          (* It's important that we include preconditions as a distinguishing factor
+             between two taints.
 
-         Otherwise, suppose that we had a taint with label A with precondition `false`
-         and one with precondition `true`. Obviously, only one actually exists. But
-         if we pick the wrong one, we might fallaciously say a taint label finding does
-         not actually occur.
-      *)
-      Option.compare compare_precondition s1.precondition s2.precondition
+             Otherwise, suppose that we had a taint with label A with precondition `false`
+             and one with precondition `true`. Obviously, only one actually exists. But
+             if we pick the wrong one, we might fallaciously say a taint label finding does
+             not actually occur.
+          *)
+          Option.compare compare_precondition s1.precondition s2.precondition
+      | other -> other)
   | other -> other
 
 and compare_args a1 a2 =
@@ -290,7 +302,7 @@ module Taint_set = struct
   let cardinal set = Taint_map.cardinal set
 
   let equal set1 set2 =
-    let eq t1 t2 = compare_taint t1 t2 = 0 in
+    let eq t1 t2 = compare_taint t1 t2 =|= 0 in
     Taint_map.equal eq set1 set2
 
   let add taint set =

@@ -63,7 +63,7 @@ type location = {
    *)
   pos : Pos.t;
 }
-[@@deriving show { with_path = false }, eq]
+[@@deriving show { with_path = false }, eq, compare]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
