@@ -50,7 +50,18 @@ type todo_kind = string option
 
 (* Fully qualified name *)
 and 'resolved name = 'resolved * 'resolved type_argument list
-and 'resolved type_argument = TA of 'resolved t | OtherTypeArg of todo_kind
+
+and 'resolved type_argument =
+  | TA of 'resolved t
+  (* Java: `?`, `? extends Foo`, `? super Foo` *)
+  | TAWildcard of 'resolved type_arg_constraint option
+  | OtherTypeArg of todo_kind
+
+and 'resolved type_arg_constraint =
+  (* Java: `? extends Foo` *)
+  | TAUpper of 'resolved t
+  (* Java: `? super Foo` *)
+  | TALower of 'resolved t
 
 and 'resolved t =
   | N of 'resolved name * (* alt names *) G.alternate_name list
@@ -221,14 +232,14 @@ let rec to_ast_generic_type_ ?(tok = None) lang
       match args with
       | [] -> Some t
       | xs ->
-          let* targs = type_arguments lang f xs in
+          let* targs = type_arguments lang f make_tok xs in
           Some (G.TyApply (t, Tok.unsafe_fake_bracket targs) |> G.t))
   | UnresolvedName (s, args) -> (
       let t = mkt ~tok:(make_tok s) s in
       match args with
       | [] -> Some t
       | xs ->
-          let* targs = type_arguments lang f xs in
+          let* targs = type_arguments lang f make_tok xs in
           Some (G.TyApply (t, Tok.unsafe_fake_bracket targs) |> G.t))
   | Null -> Some (mkt ~tok:(make_tok "null") "null")
   | Builtin x ->
@@ -275,7 +286,7 @@ let rec to_ast_generic_type_ ?(tok = None) lang
   | Todo _ ->
       None
 
-and type_arguments lang f (xs : 'a type_argument list) :
+and type_arguments lang f make_tok (xs : 'a type_argument list) :
     G.type_argument list option =
   match xs with
   | [] -> Some []
@@ -285,8 +296,17 @@ and type_arguments lang f (xs : 'a type_argument list) :
         | TA t ->
             let* t = to_ast_generic_type_ lang f t in
             Some (G.TA t)
+        | TAWildcard None -> Some (G.TAWildcard (make_tok "?", None))
+        | TAWildcard (Some targ_constraint) ->
+            let kind, t =
+              match targ_constraint with
+              | TAUpper t -> ((false, make_tok "extends"), t)
+              | TALower t -> ((true, make_tok "super"), t)
+            in
+            let* t = to_ast_generic_type_ lang f t in
+            Some (G.TAWildcard (make_tok "?", Some (kind, t)))
         | OtherTypeArg x ->
             Some (G.OtherTypeArg (todo_kind_to_ast_generic_todo_kind x, []))
       in
-      let* xs = type_arguments lang f xs in
+      let* xs = type_arguments lang f make_tok xs in
       Some (x :: xs)
