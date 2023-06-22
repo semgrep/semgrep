@@ -10,6 +10,9 @@ rules:
           - metavariable-regex:
               metavariable: $X
               regex: "150"
+          - metavariable-comparison:
+              metavariable: $X
+              comparison: int($X) > 122
       - patterns:
           - pattern-regex: "bar\\((?P<A>.*),(?P<B>.*)\\)"
           - metavariable-regex:
@@ -18,3 +21,4 @@ rules:
           - metavariable-regex:
               metavariable: $B
               regex: "b"
+          - focus-metavariable: $B
