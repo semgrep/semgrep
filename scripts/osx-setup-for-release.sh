@@ -22,6 +22,7 @@ opam update
 # Some CI runners have tree-sitter preinstalled which interfere with
 # out static linking plans below so better to remove it.
 # TODO: fix setup-m1-builder.sh instead?
+brew uninstall --force semgrep
 brew uninstall --force tree-sitter
 
 #coupling: this should be the same version than in our Dockerfile
