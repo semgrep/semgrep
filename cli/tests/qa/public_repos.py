@@ -107,7 +107,6 @@ REPOS = [
     Repo("https://github.com/dropbox/zinger"),
     Repo("https://github.com/seemoo-lab/opendrop"),
     Repo("https://github.com/lightstep/lightstep-tracer-python"),
-    Repo("https://github.com/draios/sysdig-inspect"),
     Repo("https://github.com/getsentry/sentry-python"),
     Repo("https://github.com/signalapp/signal-webrtc-ios"),
     Repo("https://github.com/secdev/scapy"),
@@ -138,6 +137,10 @@ REPOS = [
     Repo("https://github.com/DevSlop/Pixi"),
     Repo("https://github.com/home-assistant/home-assistant"),
     Repo("https://github.com/we45/Vulnerable-Flask-App"),
+    Repo(
+        "https://github.com/draios/sysdig-inspect",
+        xfail_reason="Merge conflicts on `dev`, see https://github.com/draios/sysdig-inspect/blob/ee3b8fa9335bf6fc19fd0976d51d87b961db6ebb/testem.js",
+    ),
     Repo(
         "https://github.com/rails/rails",
         ["ruby"],
