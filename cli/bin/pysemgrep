@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+
+import sys
+import semgrep.__main__
+sys.exit(semgrep.__main__.main())

@@ -1,6 +1,8 @@
-#!/usr/bin/env python3
-# TODO: for now this file is a python script, but the idea is to
-# replace it with a bash script that calls osemgrep at some point
-import sys
-import semgrep.__main__
-sys.exit(semgrep.__main__.main())
+#!/usr/bin/env bash
+
+# if legacy: pysemgrep
+# exec pysemgrep "$@"
+
+# if modern: osemgrep
+# where to find osemgrep?? it's in cli/src/semgrep/bin/osemgrep 
+
