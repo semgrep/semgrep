@@ -22,3 +22,11 @@ val m_any : AST_generic.any Matching_generic.matcher
 
 val hook_find_possible_parents :
   (AST_generic.dotted_ident -> AST_generic.name list) option ref
+
+val m_compatible_type :
+  Language.t ->
+  AST_generic.ident ->
+  AST_generic.type_ ->
+  AST_generic.expr ->
+  Matching_generic.tin ->
+  Matching_generic.tout

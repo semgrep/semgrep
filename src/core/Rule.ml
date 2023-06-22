@@ -173,6 +173,7 @@ and metavar_cond =
    *)
   | CondRegexp of
       MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
+  | CondType of MV.mvar * Xlang.t option * string * AST_generic.type_
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 

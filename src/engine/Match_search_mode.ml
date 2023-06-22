@@ -24,6 +24,7 @@ module RP = Report
 module RM = Range_with_metavars
 module E = Semgrep_error_code
 module ME = Matching_explanation
+module GG = Generic_vs_generic
 open Match_env
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -547,6 +548,38 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              with
              | [] -> None
              | bindings -> Some (r, bindings @ new_bindings))
+         | R.CondType (mvar, opt_lang, _, t) -> (
+             let mvalue_to_expr m =
+               match Metavariable.mvalue_to_any m with
+               | G.E e -> Some e
+               | _ -> None
+             in
+             match List.assoc_opt mvar bindings >>= mvalue_to_expr with
+             | Some e ->
+                 let lang =
+                   match Option.value opt_lang ~default:env.xtarget.xlang with
+                   | Xlang.L (lang, _) -> lang
+                   | Xlang.LRegex
+                   | Xlang.LSpacegrep
+                   | Xlang.LAliengrep ->
+                       raise Impossible
+                 in
+                 let env =
+                   Matching_generic.empty_environment None lang env.xconf.config
+                 in
+                 let matches =
+                   GG.m_compatible_type lang
+                     (mvar, Tok.unsafe_fake_tok "")
+                     t e env
+                 in
+                 logger#info
+                   "range %d-%d filtered from metavar %s type mismatch."
+                   r.r.start r.r.end_ mvar;
+                 matches <> [] |> map_bool r
+             | None ->
+                 error env
+                   (spf "couldn't find metavar %s in the match results." mvar);
+                 Some (r, new_bindings))
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
