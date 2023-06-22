@@ -94,9 +94,25 @@ jobs:
       docker-tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
+        type=raw,value=latest
       repository-name: ${{ github.repository }}
       artifact-name: image-release
       file: Dockerfile
+      target: ''
+      enable-tests: true
+
+  build-test-docker-rootless:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=raw,value=latest-rootless
+      repository-name: ${{ github.repository }}
+      artifact-name: image-release
+      file: Dockerfile
+      target: rootless
       enable-tests: true
 
   build-test-osx-x86:
