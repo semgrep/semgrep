@@ -4,7 +4,7 @@
 # and remove this file.
 
 # coupling: if you modify this file, modify also build-test-osx-m1.yaml
-name: build-test-osx-x86
+name: Test - build-test-osx-x86 MacOS 12
 
 on:
   workflow_dispatch: {}

@@ -3,7 +3,7 @@
 # once we build confidence, we'll swap over the regular build-test-osx-x86.yaml to use this runner,
 # and remove this file.
 
-name: Nightly Verification
+name: Test - Nightly Verification MacOS 12
 
 on:
   workflow_dispatch:
