@@ -452,18 +452,8 @@ arglist_paren_opt:
 (* Annotations *)
 (*************************************************************************)
 
-decorator: "@" decorator_name arglist_paren2_opt NEWLINE
-    { $1, $2, $3 }
-
-decorator_name:
-  | NAME                    { [$1] }
-  | decorator_name "." NAME { $1 @ [$3] }
-
-arglist_paren2_opt:
- | (* empty *) { None }
- | "(" ")"     { Some ($1, [], $2) }
- (* python3-ext: was expr_list before *)
- | "(" list_comma(argument) ")" { Some ($1, $2, $3) }
+decorator: "@" namedexpr_test NEWLINE
+    { $1, $2 }
 
 (*************************************************************************)
 (* Statement *)
