@@ -27,9 +27,15 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
   | G.DotAccess
       (_obj, _, FN (Id (("length", _), { id_type = { contents = None }; _ })))
     when lang =*= Lang.Java ->
-      (* TODO: Fix guess_type_of_dotaccess to take an "expected type" (as in bidirectional
-       * type checking) so that we can distinguish `length` as a method (e.g. `String`) and
-       * `length` as an attribute (arrays). *)
+      (* TODO: Move this to 'guess_type_of_dotaccess', but somehow we need to
+       * pass it additional info (e.g. the "expected type" as in bidirectional
+       * type checking) so that it can distinguish `length` as a method (e.g. `String`)
+       * and `length` as an attribute (arrays). The exact solution needs to be
+       * considered more carefully.
+       *
+       * NOTE that right now the use of `length` as a method is handled by
+       * 'guess_type_of_dotaccess' which is invoked by the 'typing_visitor'
+       * (see 'check_program'). *)
       (Type.Builtin Type.Int, None)
   | G.N name
   | G.DotAccess (_, _, FN name) ->
@@ -92,6 +98,8 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       in
       (t, None)
   | G.Call (e, _args) ->
+      (* If 'e' is of the form `o.f`, then 'check_program' should have filled in the
+       * 'id_type' of `f` using 'guess_type_of_dotaccess'. *)
       let t, id = type_of_expr lang e in
       let t =
         match t with
@@ -364,4 +372,7 @@ let typing_visitor =
       super#visit_expr_kind lang e
   end
 
+(* This is called right after parsing a target file to fill in the 'id_type's.
+ * Right now this pass focuses on giving types to names used as method calls,
+ * for what it relies on 'guess_type_of_dotaccess'. *)
 let check_program lang prog = typing_visitor#visit_program lang prog
