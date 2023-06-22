@@ -888,16 +888,32 @@ and excepthandler env = function
       in
       (t, exn, v3)
 
-and decorator env (t, v1, v2) =
-  let v1 = dotted_name env v1 in
-  let v2 = option (bracket (list (argument env))) v2 in
-  let args =
-    match v2 with
-    | Some (t1, x, t2) -> (t1, x, t2)
-    | None -> Tok.unsafe_fake_bracket []
+and decorator env (t, v1) =
+  (* We'll try to first translate it as a G.NamedAttr; if we could not
+   * and the decorator is a pip0614 namedexpr decorator, we'll translate
+   * it as an otherAttr.
+   *)
+  let rec get_dotted_name e acc =
+    match e with
+    | Name (id, _) -> Some (id :: acc)
+    | Attribute (e, _, id, _) -> get_dotted_name e (id :: acc)
+    | _ -> None
   in
-  let name = H.name_of_ids v1 in
-  G.NamedAttr (t, name, args)
+  let dotted_name, args =
+    match v1 with
+    | Call (e, (p1, args, p2)) ->
+        (get_dotted_name e [], Some (p1, list (argument env) args, p2))
+    | _ -> (get_dotted_name v1 [], None)
+  in
+  match dotted_name with
+  | Some d_name ->
+      G.NamedAttr
+        ( t,
+          H.name_of_ids d_name,
+          Option.value ~default:(Tok.unsafe_fake_bracket []) args )
+  | None ->
+      let v1 = expr env v1 in
+      G.OtherAttribute (("pip0614: expr attr", t), [ G.E v1 ])
 
 and alias env (v1, v2) =
   let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
