@@ -2800,6 +2800,20 @@ and m_list__m_type_parameter a b =
 
 and m_definition_kind a b =
   match (a, b) with
+  (* We maintain an equivalence between a FieldDefColon of an ellipsis
+     with any other definition. This is because FieldDefColon appears
+     when describing the RHS of a record, so this describes a record
+     like
+     { x = ... }
+     The FieldDefColon is only if it's not some other kind of
+     `definition_kind` structure, however, like a `FuncDef`, so we
+     would like to be able to match those with the ellipsis anyways.
+
+     A concrete example is TS, when you have
+     { func: function (opts) { return "whatever"; } }
+     which is a record containing an entry which is a `FuncDef`.
+  *)
+  | G.FieldDefColon { vinit = Some { e = Ellipsis _; _ }; _ }, _ -> return ()
   (* boilerplate *)
   | G.EnumEntryDef a1, B.EnumEntryDef b1 -> m_enum_entry_definition a1 b1
   | G.FuncDef a1, B.FuncDef b1 -> m_function_definition a1 b1
