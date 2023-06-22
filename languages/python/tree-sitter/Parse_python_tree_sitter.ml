@@ -1119,9 +1119,24 @@ and map_right_hand_side (env : env) (x : CST.right_hand_side) =
 let map_decorator (env : env) ((v1, v2, v3) : CST.decorator) =
   let tat = (* "@" *) token env v1 in
   (* We are looking for a dotted name, so we don't permit other variants. *)
-  let expr = map_primary_expression env v2 in
+  let rec get_dotted_name_rev e =
+    match e with
+    | `Id id -> [ str env id ]
+    | `Attr (e, _, id) -> str env id :: get_dotted_name_rev e
+    | _ -> invalid ()
+  in
+  let get_dotted_name x = List.rev (get_dotted_name_rev x) in
+  let dotted_name, args =
+    match v2 with
+    | `Call (e, `Gene_exp x) ->
+        let x = map_generator_expression env x in
+        (get_dotted_name e, Some (fb [ Arg x ]))
+    | `Call (e, `Arg_list args) ->
+        (get_dotted_name e, Some (map_argument_list env args))
+    | _ -> (get_dotted_name v2, None)
+  in
   let _newline = (* newline *) token env v3 in
-  (tat, expr)
+  (tat, dotted_name, args)
 
 (* python2? *)
 let map_chevron (env : env) ((v1, v2) : CST.chevron) =
