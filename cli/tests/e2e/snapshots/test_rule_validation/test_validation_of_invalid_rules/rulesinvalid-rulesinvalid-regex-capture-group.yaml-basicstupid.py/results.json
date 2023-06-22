@@ -1,0 +1,22 @@
+{
+  "errors": [
+    {
+      "code": 2,
+      "level": "error",
+      "message": "WARNING: unable to find a config; path `rules/invalid-rules/invalid-regex-capture-group.yaml` does not exist",
+      "type": "SemgrepError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
+  "version": "0.42"
+}

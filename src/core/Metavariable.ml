@@ -246,8 +246,11 @@ let is_metavar_name s =
  *)
 let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
-let metavar_for_capture_group = "^\\(\\$[0-9]+\\)$"
-let is_metavar_for_capture_group s = s =~ metavar_for_capture_group
+
+let mvars_of_regexp_string s =
+  Regexp_engine.pcre_compile s
+  |> Regexp_engine.pcre_regexp |> Pcre.names |> Array.to_list
+  |> Common.(map (fun s -> spf "$%s" s))
 
 module Structural = struct
   let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
