@@ -98,7 +98,7 @@ jobs:
       repository-name: ${{ github.repository }}
       artifact-name: image-release
       file: Dockerfile
-      target: ''
+      target: ""
       enable-tests: true
 
   build-test-docker-rootless:
@@ -110,7 +110,7 @@ jobs:
         type=semver,pattern={{major}}.{{minor}}
         type=raw,value=latest-rootless
       repository-name: ${{ github.repository }}
-      artifact-name: image-release
+      artifact-name: image-release-rootless
       file: Dockerfile
       target: rootless
       enable-tests: true
@@ -138,6 +138,7 @@ jobs:
     needs:
       [
         build-test-docker,
+        build-test-docker-rootless,
         build-test-manylinux-x86,
         build-test-osx-x86,
         build-test-osx-m1,
@@ -152,6 +153,15 @@ jobs:
     secrets: inherit
     with:
       artifact-name: image-release
+      repository-name: ${{ github.repository }}
+      dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
+
+  push-docker-rootless:
+    needs: [wait-for-build-test, dry-run]
+    uses: ./.github/workflows/push-docker.yaml
+    secrets: inherit
+    with:
+      artifact-name: image-release-rootless
       repository-name: ${{ github.repository }}
       dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
 
