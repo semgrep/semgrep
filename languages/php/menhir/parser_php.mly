@@ -904,7 +904,9 @@ return_type: ":" type_php                 { $1, $2 }
 (* Attributes *)
 (*************************************************************************)
 (* PHP 8 extension (was using << >> in HPHP) *)
-attributes: "#[" listc(attribute) "]" { ($1, $2, $3) }
+attributes:
+| "#[" listc(attribute) "]" { ($1, $2, $3) }
+| attributes attributes {match ($1, $2) with ((op,xs1,cl),(_,xs2,_)) -> (op,xs1@xs2,cl)}
 
 attribute:
  | ident                                  { Attribute $1 }
