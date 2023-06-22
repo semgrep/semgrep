@@ -2824,16 +2824,19 @@ and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
       G.E v2
 
 and file_scoped_namespace_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6) : CST.file_scoped_namespace_declaration) =
-  let tnamespace = (* "namespace" *) token env v1 in
-  let n = name env v2 in
-  let _tsemi = (* ";" *) token env v3 in
-  let v4 = Common.map (extern_alias_directive env) v4 in
-  let v5 = Common.map (using_directive env) v5 in
-  let v6 = Common.map (type_declaration env) v6 in
+    ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.file_scoped_namespace_declaration) =
+  let stmts = Common.map (global_statement env) v1 in
+  let nspace_decls = Common.map (namespace_member_declaration env) v2 in
+  let tnamespace = (* "namespace" *) token env v3 in
+  let n = name env v4 in
+  let _tsemi = (* ";" *) token env v5 in
+  let v6 = Common.map (extern_alias_directive env) v6 in
+  let v7 = Common.map (using_directive env) v7 in
+  let v8 = Common.map (type_declaration env) v8 in
   let dotted_ident = H2.dotted_ident_of_name n in
   let namespace = G.Package (tnamespace, dotted_ident) |> G.d in
-  List.concat [ [ G.DirectiveStmt namespace |> G.s ]; v4; v5; v6 ]
+  List.concat
+    [ stmts; nspace_decls; [ G.DirectiveStmt namespace |> G.s ]; v6; v7; v8 ]
 
 and namespace_declaration (env : env)
     ((v1, v2, v3, _semi) : CST.namespace_declaration) =
@@ -2859,6 +2862,9 @@ and type_declaration (env : env) (x : CST.type_declaration) : stmt =
   | `Record_struct_decl x -> record_struct_declaration env x
   | `Dele_decl x -> delegate_declaration env x
   | `Struct_decl x -> struct_declaration env x
+  | `Ellips tok ->
+      let tok = token env tok in
+      ExprStmt (Ellipsis tok |> G.e, tok) |> G.s
 
 and class_interface_struct (env : env) class_kind
     (v1, v2, v3, v4, v5, v6, v7, v8, _v9) =
