@@ -31,12 +31,25 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Visitor Helpers *)
+(*****************************************************************************)
+
+class virtual ['self] map_parent =
+  object (_self : 'self)
+    (* Could inherit from the AST_generic visitor but we just need this one
+     * thing, and it's just a string list so there's not really a need to
+     * recurse down. We should put alternate names in the type parameter anyway.
+     * *)
+    method visit_alternate_name _env x = x
+  end
+
+(*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type todo_kind = string option [@@deriving show, eq]
+type todo_kind = string option
 
 (* Fully qualified name *)
-type 'resolved name = 'resolved * 'resolved type_argument list
+and 'resolved name = 'resolved * 'resolved type_argument list
 and 'resolved type_argument = TA of 'resolved t | OtherTypeArg of todo_kind
 
 and 'resolved t =
@@ -81,7 +94,10 @@ and 'resolved parameter_classic = {
   pident : string option;
   ptype : 'resolved t;
 }
-[@@deriving show { with_path = false }, eq]
+[@@deriving
+  show { with_path = false },
+    eq,
+    visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (*****************************************************************************)
 (* Helpers *)

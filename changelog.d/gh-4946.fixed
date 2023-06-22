@@ -1,0 +1,14 @@
+Added support for post-pip0614 decorators; now semgrep accepts decorators of
+the form `@ named_expr_test NEWLINE`, so for example with the pattern
+`lambda $X:$X($X)`:
+```python
+#match 1
+@omega := lambda ha:ha(ha)
+def func():
+  return None
+
+#match 2
+@omega[lambda a:a(a)].a.b.c.f("wahoo")
+def fun():
+  return None
+```

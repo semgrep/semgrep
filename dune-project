@@ -245,6 +245,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name parser_protobuf)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package (name parser_python)
   (synopsis "XXX")
   (description "XXX")
@@ -402,6 +406,7 @@ For more information see https://semsgrep.dev
     uri
     uuidm
     http-lwt-client ; this brings lots of dependencies. This is for osemgrep.
+    (happy-eyeballs-lwt (>= 0.6.0)) ; there's a bug with GitHub action & pre-commit before 0.6.0
     terminal_size
     lwt
     lwt_ppx
