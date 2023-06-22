@@ -8,7 +8,7 @@ git could not find a single branch-off point, so we will compare the baseline co
   Scanning 3 files.
   Current version has 21 findings.
 
-Switching repository to baseline commit 'foo'.
+Creating git worktree from 'foo' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ff8459e commit #9
     * a0592d5 commit #8

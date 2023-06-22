@@ -1,4 +1,14 @@
 (*****************************************************************************)
+(* Const/sym ("svalue") propagation *)
+(*****************************************************************************)
+
+(* TODO: Report these timeouts as errors in 'Report.match_result' *)
+(* Timeout in seconds.
+ * So e.g. the perf of svalue-prop does not prevent rules from running on a file.
+ * Note that 'Time_limit.set_timeout' cannot be nested. *)
+let svalue_prop_FIXPOINT_TIMEOUT = 0.1
+
+(*****************************************************************************)
 (* Taint analysis *)
 (*****************************************************************************)
 
@@ -14,6 +24,12 @@
  * not propagate taint for data with Boolean and integer type. Improving some
  * of the data structures involved may help too.
  *)
+
+(* TODO: Report these timeouts as errors in 'Report.match_result' *)
+(* Timeout in seconds.
+ * So e.g. we limit the amount of time that Pro will spend inferring taint signatures.
+ * Note that 'Time_limit.set_timeout' cannot be nested. *)
+let taint_FIXPOINT_TIMEOUT = 0.1
 
 (** Bounds the number of l-values we can track. *)
 let taint_MAX_TAINTED_LVALS = 100

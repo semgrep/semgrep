@@ -838,16 +838,21 @@ let render_top_left_pane file_zipper state =
     match state.formula with
     | None -> I.void 0 0
     | Some formula ->
-        render_patterns formula state
-        |> I.hsnap (width_of_files state.term) ~align:`Left
+        let intermediary_bar =
+          String.make (width_of_files state.term) '-'
+          |> I.string (A.fg (A.gray 12))
+        in
+        I.(
+          intermediary_bar
+          <-> render_patterns formula state
+          |> I.hsnap (width_of_files state.term) ~align:`Left)
   in
-  let intermediary_bar =
-    String.make (width_of_files state.term) '-' |> I.string (A.fg (A.gray 12))
-  in
-  let lines_of_files = height_of_preview state.term - I.height patterns - 1 in
-  (* TODO: change file_zipper to have certain frame length *)
+  let lines_of_files = height_of_preview state.term - I.height patterns in
+  let file_zipper = Framed_zipper.set_frame_size lines_of_files file_zipper in
+  atomic_map_file_zipper (fun _ -> file_zipper) state;
   let files =
-    Framed_zipper.take lines_of_files file_zipper
+    file_zipper
+    |> Framed_zipper.take lines_of_files
     |> Common.mapi (fun idx { file; _ } ->
            if idx = Framed_zipper.relative_position file_zipper then
              I.string
@@ -862,7 +867,7 @@ let render_top_left_pane file_zipper state =
   I.(
     files |> I.vcat
     |> I.vpad 0 (lines_to_pad_below_to_reach files lines_of_files)
-    <-> intermediary_bar <-> patterns)
+    <-> patterns)
 
 (*****************************************************************************)
 (* User Interface (Screen) *)

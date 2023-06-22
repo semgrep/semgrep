@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 #
 # Test the 'compare-perf' script locally.
+# See ../perf/compare-perf for more information.
 #
 set -eu
 

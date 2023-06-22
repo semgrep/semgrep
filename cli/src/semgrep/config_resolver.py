@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 from collections import OrderedDict
 from enum import auto
@@ -417,6 +418,18 @@ class Config:
             return a
 
     @staticmethod
+    def _sanitize_rule_id_fragment(s: str) -> str:
+        """Make a valid fragment for a rule ID.
+
+        This removes characters that aren't allowed in Semgrep rule IDs.
+        The transformation is irreversible. The result may be an empty
+        string.
+
+        Rule ID format: [a-zA-Z0-9._-]*
+        """
+        return re.sub("[^a-zA-Z0-9._-]", "", s)
+
+    @staticmethod
     def _convert_config_id_to_prefix(config_id: str) -> str:
         at_path = Path(config_id)
         try:
@@ -427,6 +440,8 @@ class Config:
         prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
         if len(prefix):
             prefix += "."
+        # Remove any remaining special characters that were in the file path.
+        prefix = Config._sanitize_rule_id_fragment(prefix)
         return prefix
 
     @staticmethod

@@ -414,8 +414,7 @@ and with_clause = expr (* context_expr *) * expr option (* optional_vars *)
 (* ------------------------------------------------------------------------- *)
 (* Decorators (a.k.a annotations) *)
 (* ------------------------------------------------------------------------- *)
-(* TODO: tree-sitter-python accept any expr *)
-and decorator = tok (* @ *) * dotted_name * argument list bracket option
+and decorator = tok (* @ *) * expr
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -464,6 +463,7 @@ type any =
   | Expr of expr
   | Stmt of stmt
   | Stmts of stmt list
+  | Decorator of decorator
   | Program of program
   | DictElem of dictorset_elt
 [@@deriving show { with_path = false }]

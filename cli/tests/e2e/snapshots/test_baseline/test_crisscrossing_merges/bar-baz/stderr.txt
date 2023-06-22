@@ -7,7 +7,7 @@
   Scanning 1 file.
   Current version has 9 findings.
 
-Switching repository to baseline commit 'baz'.
+Creating git worktree from 'baz' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ea6d96d commit #9
     * 0367792 commit #8
