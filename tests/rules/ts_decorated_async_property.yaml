@@ -1,0 +1,18 @@
+rules:
+- id: decorated-async-property 
+  languages:
+  - typescript 
+  pattern-either:
+    - pattern: |
+        @Query(...)
+        async foo
+    - pattern: |
+        @Query(...)
+        async bar(...)
+    - pattern: |
+        @Query(...)
+        async qux(...){
+          ...
+        }
+  message: Matching a decorated async property 
+  severity: ERROR

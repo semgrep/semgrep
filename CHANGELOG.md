@@ -6,6 +6,72 @@
 
 <!-- insertion point -->
 
+## [1.28.0](https://github.com/returntocorp/semgrep/releases/tag/v1.28.0) - 2023-06-21
+
+### Added
+
+- Added lone decorators as a valid Python semgrep pattern, so for example `$NAME($X)` will
+  generate two seperate findings here:
+  ````
+  @hello("world")
+  @hi("semgrep!")
+  def shift():
+    return "left!"
+  ``` (gh-4722)
+  ````
+- Add tags to the python wheel for 3.10 and 3.11 (gh-8040)
+- JS/TS: Patterns for class properties can now have the `static`
+  and `async` modifiers.
+
+  For instance:
+
+  ```
+  @Foo(...)
+  async bar(...) {
+    ...
+  }
+  ```
+
+  or
+
+  ````
+  @Foo(...)
+  static bar(...) {
+    ...
+  }
+  ``` (pa-2675)
+  ````
+
+- Semgrep Language Server now supports multi-folder workspaces (pa-2772)
+- New pre-commit hook `semgrep-ci` to use CI rules in pre-commit, which will pull from the rule board + block those in the block column (pa-2795)
+- Added support for date comparison and functionality to get current date.
+  Currently this requires date strings to be in the format "yyyy-mm-dd" next step is to support other formats. (pa-7992)
+
+### Changed
+
+- The output of `--debug` will be much less verbose by default, it will only show
+  internal warning and error messages. (debug-1)
+- Updated the maximum number of cores autodetected to 16 to prevent overloading on large machines when users do not specify number of jobs themselves (pa-2807)
+
+### Fixed
+
+- taint analysis: Improve handling of dataflow for tainted value propagation in class field definitions
+
+  This change resolves an issue where dataflow was not correctly accounted for
+  when tainted values flowed through field definitions in class/object
+  definitions. For instance, in Kotlin or Scala, singleton objects are commonly
+  used to encapsulate executable logic, where each field definition behaves like
+  a statement during object initialization. In order to handle this scenario, we
+  have introduced an additional step to analyze a sequence of field definitions
+  as a sequence of statements for taint analysis. This enhancement allows us to
+  accurately track tainted values during object initialization. (gh-7742)
+
+- Allow any characters in file paths used to create dotted rule IDs. File path
+  characters that aren't allowed in rule IDs are simply removed. For example, a
+  rule whose ID is `my-rule` found in the file `hello/@world/rules.yaml`
+  becomes `hello.world.my-rule`. (gh-8057)
+- Diff aware scans now work when git state isn't clean (pa-2795)
+
 ## [1.27.0](https://github.com/returntocorp/semgrep/releases/tag/v1.27.0) - 2023-06-13
 
 ### Added

@@ -7,5 +7,5 @@
    semgrep_core
    semgrep.matching
  )
- (preprocess (pps ppx_deriving.show ppx_profiling))
+ (preprocess (pps ppx_deriving.show ppx_compare ppx_profiling))
 )

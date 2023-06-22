@@ -3,6 +3,7 @@ let lang_has_no_dollar_ids =
   Lang.(
     function
     | Apex
+    | Protobuf
     | Python
     | Python2
     | Python3

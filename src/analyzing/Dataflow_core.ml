@@ -15,6 +15,8 @@
  *)
 open Common
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -134,20 +136,31 @@ module Make (F : Flow) = struct
     pr (* nosemgrep: no-print-in-semgrep *)
       (mapping_to_str flow env_to_str mapping)
 
-  let rec fixpoint_worker eq_env mapping trans flow succs workset =
-    if NodeiSet.is_empty workset then mapping
-    else
-      let ni = NodeiSet.choose workset in
-      let work' = NodeiSet.remove ni workset in
-      let old = mapping.(ni) in
-      let new_ = trans mapping ni in
-      let work'' =
-        if eq_inout eq_env old new_ then work'
-        else (
-          mapping.(ni) <- new_;
-          NodeiSet.union work' (succs flow ni))
-      in
-      fixpoint_worker eq_env mapping trans flow succs work''
+  let fixpoint_worker ~timeout eq_env mapping trans flow succs workset =
+    let t0 = Sys.time () in
+    let rec loop work =
+      if NodeiSet.is_empty work then mapping
+      else
+        (* 'Time_limit.set_timeout' cannot be nested and we want to make sure that
+         * fixpoint computations run for a limited amount of time. *)
+        let t1 = Sys.time () in
+        if t1 -. t0 >= timeout then (
+          logger#error "fixpoint_worker timed out";
+          mapping)
+        else
+          let ni = NodeiSet.choose work in
+          let work' = NodeiSet.remove ni work in
+          let old = mapping.(ni) in
+          let new_ = trans mapping ni in
+          let work'' =
+            if eq_inout eq_env old new_ then work'
+            else (
+              mapping.(ni) <- new_;
+              NodeiSet.union work' (succs flow ni))
+          in
+          loop work''
+    in
+    loop workset
 
   let forward_succs (f : F.flow) n =
     (f.graph#successors n)#fold
@@ -160,19 +173,20 @@ module Make (F : Flow) = struct
       NodeiSet.empty
 
   let (fixpoint :
+        timeout:float ->
         eq_env:('env -> 'env -> bool) ->
         init:'env mapping ->
         trans:'env transfn ->
         flow:F.flow ->
         forward:bool ->
         'env mapping) =
-   fun ~eq_env ~init ~trans ~flow ~forward ->
+   fun ~timeout ~eq_env ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
     let work =
       (* This prevents dead code from getting analyzed. *)
       flow.reachable
     in
-    fixpoint_worker eq_env init trans flow succs work
+    fixpoint_worker ~timeout eq_env init trans flow succs work
 
   (*****************************************************************************)
   (* Helpers *)

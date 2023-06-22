@@ -1,0 +1,10 @@
+rules:
+  - id: attributes-match-multiple
+    pattern: |
+      #[Attr1]
+      #[Attr2]
+      function $FUNC (...) { ... }
+    message: Match found
+    languages:
+      - php
+    severity: WARNING
