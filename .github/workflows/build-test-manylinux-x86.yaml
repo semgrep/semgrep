@@ -46,10 +46,11 @@ jobs:
       - name: install package
         run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
       - name: test package
-        working-directory: /opt/python/cp37-cp37m/bin/
+        env:
+          PATH: "/opt/python/cp37-cp37m/bin:$PATH"
         run: |
-          export PATH=/opt/python/cp37-cp37m/bin:$PATH
-          ./semgrep --version
+          semgrep --version
       - name: e2e semgrep-core test
-        working-directory: /opt/python/cp37-cp37m/bin/
-        run: echo '1 == 1' | ./semgrep -l python -e '$X == $X' -
+        env:
+          PATH: "/opt/python/cp37-cp37m/bin:$PATH"
+        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
