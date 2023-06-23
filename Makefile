@@ -87,7 +87,6 @@ copy-core-for-cli:
 	rm -f cli/src/semgrep/bin/semgrep-core
 	rm -f cli/src/semgrep/bin/osemgrep
 	cp bin/semgrep-core cli/src/semgrep/bin/
-	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.

@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+# This script is useful to have in PATH so osemgrep can easily
+# fallback to pysemgrep (without any further dispatch like in semgrep)
+import sys
+import semgrep.__main__
+sys.exit(semgrep.__main__.main())

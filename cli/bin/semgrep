@@ -1,6 +1,38 @@
-#!/usr/bin/env python3
-# TODO: for now this file is a python script, but the idea is to
-# replace it with a bash script that calls osemgrep at some point
+#!/usr/bin/env python3 -W ignore::DeprecationWarning
+
+# The semgrep entry point for semgrep packaged with pip.
+# In the futur we may have a different entry point when packaged
+# from Cargo, Npm, Opam, or even from Docker.
+#
+# The main purpose of this small wrapper is to dispatch
+# between the legacy pysemgrep or the new osemgrep.
+
+import os
 import sys
-import semgrep.__main__
-sys.exit(semgrep.__main__.main())
+import importlib.resources
+
+if "--experimental" in sys.argv:
+    sys.argv.remove("--experimental")
+    # We could have moved the code below in a separate 'osemgrep', like for 'pysemgrep',
+    # but we don't want users to be exposed to another command, so better to hide it.
+    # We expose 'pysemgrep' because osemgrep itself might need to fallback to pysemgrep
+    # and it's better to avoid any loop by using a different program name.
+    try:
+        # the use of .path causes a DeprecationWarning hence the -W ignore:Xxx above
+        with importlib.resources.path("semgrep.bin", "semgrep-core") as path:
+            if path.is_file():
+                # If you call semgrep-core as osemgrep, then we get osemgrep behavior
+                # see src/main/Main.ml
+                sys.argv[0] = "osemgrep"
+                os.execvp(str(path), sys.argv)
+            else:
+                print(f"semgrep-core is not a file")
+                # fatal error, see src/osemgrep/core/Exit_code.ml
+                sys.exit(2)
+            
+    except FileNotFoundError as e:
+        print(f"Failed to open resource semgrep-core: {e}.")
+        # fatal error, see src/osemgrep/core/Exit_code.ml
+        sys.exit(2)
+else:
+    os.execvp("pysemgrep", sys.argv)
