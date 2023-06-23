@@ -350,7 +350,7 @@ let rec get_resolved_type lang (vinit, vtype) =
       (* alt: lookup id in env to get its type, which would be cleaner *)
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, _, (_, _, _)); _ } -> Some tp
-      | Some { e = Ref (tok, exp); _ } when lang =*= Go ->
+      | Some { e = Ref (tok, exp); _ } ->
           Option.bind
             (get_resolved_type lang (Some exp, None))
             (fun x -> Some (t @@ TyPointer (tok, x)))

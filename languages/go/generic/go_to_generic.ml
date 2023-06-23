@@ -243,7 +243,10 @@ let top_func () =
     | Index (v1, v2) ->
         let v1 = expr v1 and v2 = bracket index v2 in
         G.ArrayAccess (v1, v2)
-    (* TODO: describe why this translation.
+    (* It's much better to trans these calls to new/ref(new), as:
+     * x : *tau =  new(tau)
+     * x :  tau = make(tau)
+     * and other sem(grep)antic information is useful for future analysis.
      *)
     | Call (Id ("new", t), None, (l, [ ArgType ty ], r)) ->
         G.Ref
