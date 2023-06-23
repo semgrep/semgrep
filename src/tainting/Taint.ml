@@ -48,6 +48,12 @@ let length_of_call_trace ct =
 
 type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink } [@@deriving show]
 
+let compare_sink { pm = pm1; rule_sink = sink1 } { pm = pm2; rule_sink = sink2 }
+    =
+  Stdlib.compare
+    (sink1.Rule.sink_id, pm1.rule_id, pm1.range_loc, pm1.env)
+    (sink2.Rule.sink_id, pm2.rule_id, pm2.range_loc, pm2.env)
+
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
@@ -107,7 +113,7 @@ let rec compare_precondition (ts1, f1) (ts2, f2) =
       Stdlib.compare f1 f2
   | other -> other
 
-and compare_sources s1 s2 =
+and compare_source s1 s2 =
   (* Comparing metavariable environments this way is not robust, e.g.:
    * [("$A",e1);("$B",e2)] is not considered equal to [("$B",e2);("$A",e1)].
    * For our purposes, this is OK.
@@ -133,7 +139,7 @@ and compare_sources s1 s2 =
       Option.compare compare_precondition s1.precondition s2.precondition
   | other -> other
 
-and compare_args a1 a2 =
+and compare_arg a1 a2 =
   let pos1 = a1.pos in
   let pos2 = a2.pos in
   match compare_arg_pos pos1 pos2 with
@@ -142,11 +148,8 @@ and compare_args a1 a2 =
 
 and compare_orig orig1 orig2 =
   match (orig1, orig2) with
-  | Arg { pos = s, i; _ }, Arg { pos = s', j; _ } -> (
-      match String.compare s s' with
-      | 0 -> Int.compare i j
-      | other -> other)
-  | Src p, Src q -> compare_sources p q
+  | Arg a1, Arg a2 -> compare_arg a1 a2
+  | Src p, Src q -> compare_source p q
   | Arg _, Src _ -> -1
   | Src _, Arg _ -> 1
 
@@ -211,6 +214,10 @@ let _show_taint_to_sink_item { taint; sink_trace } =
 let _show_taints_and_traces taints =
   Common2.string_of_list _show_taint_to_sink_item taints
 
+let compare_taint_to_sink_item { taint = taint1; sink_trace = _ }
+    { taint = taint2; sink_trace = _ } =
+  compare_taint taint1 taint2
+
 type taints_to_sink = {
   (* These taints were incoming to the sink, under a certain
      REQUIRES expression.
@@ -224,13 +231,22 @@ type taints_to_sink = {
 }
 [@@deriving show]
 
+let compare_taints_to_sink
+    { taints_with_precondition = ttsis1, pre1; sink = sink1; merged_env = env1 }
+    { taints_with_precondition = ttsis2, pre2; sink = sink2; merged_env = env2 }
+    =
+  match compare_sink sink1 sink2 with
+  | 0 -> (
+      match List.compare compare_taint_to_sink_item ttsis1 ttsis2 with
+      | 0 -> Stdlib.compare (pre1, env1) (pre2, env2)
+      | other -> other)
+  | other -> other
+
 type finding =
   | ToSink of taints_to_sink
   | ToReturn of taint list * G.tok
   | ToArg of taint list * arg (* TODO: CleanArg ? *)
 [@@deriving show]
-
-type signature = finding list
 
 let _show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
   Common.spf "%s ~~~> %s" (_show_taints_and_traces taints) (_show_sink sink)
@@ -243,6 +259,37 @@ let _show_finding = function
       Printf.sprintf "%s ----> %s"
         (Common2.string_of_list _show_taint taints)
         (_show_arg a2)
+
+let compare_finding fi1 fi2 =
+  match (fi1, fi2) with
+  | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
+  | ToReturn (ts1, tok1), ToReturn (ts2, tok2) -> (
+      match List.compare compare_taint ts1 ts2 with
+      | 0 -> Stdlib.compare tok1 tok2
+      | other -> other)
+  | ToArg (ts1, a1), ToArg (ts2, a2) -> (
+      match List.compare compare_taint ts1 ts2 with
+      | 0 -> compare_arg a1 a2
+      | other -> other)
+  | ToSink _, (ToReturn _ | ToArg _) -> -1
+  | ToReturn _, ToArg _ -> -1
+  | ToReturn _, ToSink _ -> 1
+  | ToArg _, (ToSink _ | ToReturn _) -> 1
+
+module Findings = Set.Make (struct
+  type t = finding
+
+  let compare = compare_finding
+end)
+
+module Findings_tbl = Hashtbl.Make (struct
+  type t = finding
+
+  let equal fi1 fi2 = compare_finding fi1 fi2 = 0
+  let hash = Hashtbl.hash
+end)
+
+type signature = Findings.t
 
 (*****************************************************************************)
 (* Taint sets *)
@@ -279,8 +326,8 @@ module Taint_set = struct
       match (k1, k2) with
       | Arg _, Src _ -> -1
       | Src _, Arg _ -> 1
-      | Arg a1, Arg a2 -> compare_args a1 a2
-      | Src s1, Src s2 -> compare_sources s1 s2
+      | Arg a1, Arg a2 -> compare_arg a1 a2
+      | Src s1, Src s2 -> compare_source s1 s2
   end)
 
   type t = taint Taint_map.t
