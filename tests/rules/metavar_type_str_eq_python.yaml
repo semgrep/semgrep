@@ -1,0 +1,12 @@
+rules:
+  - id: no-string-is
+    severity: WARNING
+    message: find errors
+    languages:
+      - python
+    patterns:
+      - pattern-not: null is $Y
+      - pattern: $X is $Y
+      - metavariable-type:
+          metavariable: $Y
+          type: str
