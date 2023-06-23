@@ -1,0 +1,3 @@
+taint-mode: Several improvements to `taint_assume_safe_{booleans,numbers}` options.
+Most notably, we will now use type info provided by explicit type casts, and we will
+also use const-prop info to infer types.

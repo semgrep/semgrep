@@ -156,9 +156,12 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
 let builtin_type_of_string _langTODO str =
   match str with
   | "int"
-  | "Integer" ->
+  | "long"
+  | "Integer"
+  | "Long" ->
       Some Int
   | "float"
+  | "double"
   | "Float" ->
       Some Float
   | "str"
