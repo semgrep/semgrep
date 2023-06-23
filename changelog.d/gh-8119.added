@@ -39,4 +39,3 @@ rules:
           metavariable: $Y
           type: String
 ```
-
