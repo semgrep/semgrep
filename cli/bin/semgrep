@@ -9,9 +9,9 @@
 # The main purpose of this small wrapper is to dispatch
 # either to the legacy pysemgrep or to the new osemgrep.
 #
-# It would be faster and cleaner to have a bash script instead of a Python
+# It would be faster and cleaner to have a Bash script instead of a Python
 # script here, but actually the overhead of Python here is just 0.015s.
-# Moreover, it's hard from a bash script to find where is installed semgrep-core
+# Moreover, it's hard from a Bash script to find where is installed semgrep-core
 # so it is simpler to write a Python script that can call importlib.resources.
 # An alternative would be to have semgrep-core (or osemgrep) in the PATH,
 # but when trying to put those binaries in cli/bin, setuptools is yelling
