@@ -23,6 +23,7 @@ val m_any : AST_generic.any Matching_generic.matcher
 val hook_find_possible_parents :
   (AST_generic.dotted_ident -> AST_generic.name list) option ref
 
+(* used for evaluating `metavariable-type:` in Match_search_mode.ml *)
 val m_compatible_type :
   Language.t ->
   AST_generic.ident ->

@@ -468,6 +468,7 @@ let rec parse_type env key (str, tok) =
 
 and wrap_type_expr env key lang str =
   match lang with
+  (* `x` is a placeholder and won't be used during unwrapping. *)
   | Lang.Java -> spf "(%s x)" str
   | _ ->
       error_at_key env.id key
