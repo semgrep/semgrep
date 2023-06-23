@@ -243,6 +243,15 @@ let top_func () =
     | Index (v1, v2) ->
         let v1 = expr v1 and v2 = bracket index v2 in
         G.ArrayAccess (v1, v2)
+    (* TODO: describe why this translation.
+     *)
+    | Call (Id ("new", t), None, (l, [ ArgType ty ], r)) ->
+        G.Ref
+          ( fake t "new",
+            G.New (fake t "new", type_ ty, G.empty_id_info (), (l, [], r))
+            |> G.e )
+    | Call (Id ("make", t), None, (l, [ ArgType ty ], r)) ->
+        G.New (fake t "make", type_ ty, G.empty_id_info (), (l, [], r))
     | Call v1 ->
         let e, args = call_expr v1 in
         G.Call (e, args)

@@ -317,7 +317,7 @@ let make_type type_string tok =
  * identifiers in VarDef or Assign. Then, Generic_vs_generic.m_compatible_type
  * can leverage the info.
  *)
-let get_resolved_type lang (vinit, vtype) =
+let rec get_resolved_type lang (vinit, vtype) =
   match vtype with
   | None
   | Some { t = TyAny _; _ } -> (
@@ -350,6 +350,10 @@ let get_resolved_type lang (vinit, vtype) =
       (* alt: lookup id in env to get its type, which would be cleaner *)
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, _, (_, _, _)); _ } -> Some tp
+      | Some { e = Ref (tok, exp); _ } when lang =*= Go ->
+          Option.bind
+            (get_resolved_type lang (Some exp, None))
+            (fun x -> Some (t @@ TyPointer (tok, x)))
       | _ -> None)
   | Some _ -> vtype
 
