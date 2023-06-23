@@ -85,7 +85,6 @@ core:
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
 	rm -f cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
 	cp bin/semgrep-core cli/src/semgrep/bin/
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
