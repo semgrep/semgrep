@@ -1,12 +1,22 @@
 #!/usr/bin/env python3 -W ignore::DeprecationWarning
 
-# This is the Semgrep entry point for Semgrep packaged with pip.
+# This is the Semgrep CLI entry point for Semgrep packaged with pip,
+# as well as with HomeBrew, and with Docker.
 #
 # In the futur we may have different entry points when packaged
 # from Cargo, Npm, Opam, or even from Docker.
 #
 # The main purpose of this small wrapper is to dispatch
 # either to the legacy pysemgrep or to the new osemgrep.
+#
+# It would be faster and cleaner to have a bash script instead of a Python
+# script here, but actually the overhead of Python here is just 0.015s.
+# Moreover, it's hard from a bash script to find where is installed semgrep-core
+# so it is simpler to write a Python script that can call importlib.resources.
+# An alternative would be to have semgrep-core (or osemgrep) in the PATH,
+# but when trying to put those binaries in cli/bin, setuptools is yelling
+# and does not know what to do with it. So simpler to use a Python
+# script when installed via a Python package mananger (pip).
 
 import os
 import sys
@@ -37,7 +47,7 @@ if "--experimental" in sys.argv:
                 print(f"semgrep-core is not a file")
                 # fatal error, see src/osemgrep/core/Exit_code.ml
                 sys.exit(2)
-            
+    #TODO? Maybe better to just fallback to pysemgrep?
     except FileNotFoundError as e:
         print(f"Failed to open resource semgrep-core: {e}.")
         # fatal error, see src/osemgrep/core/Exit_code.ml
