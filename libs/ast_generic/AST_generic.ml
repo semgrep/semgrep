@@ -1839,6 +1839,9 @@ and or_type_element =
  * note: not all stmt in FieldStmt are definitions. You can have also
  * a Block like in Kotlin for 'init' stmts.
  * However ideally 'field' should really be just an alias for 'definition'.
+ * note: while fields and stmts are separate entities, we have special
+ * logic which permits a pattern of stmts to match to a target of fields.
+ * see Match_patterns v_fields for more
  *
  * old: there used to be a FieldVar and FieldMethod similar to
  * VarDef and FuncDef but they are now converted into a FieldStmt(DefStmt).
