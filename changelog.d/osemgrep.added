@@ -1,0 +1,4 @@
+New --experimental flag to switch to a new implementation of Semgrep entirely
+written in OCaml with faster startup time, incremental display of matches,
+AST and registry caching, a new interactive mode and more. Not all
+features of the legacy Python Semgrep have been ported though.
