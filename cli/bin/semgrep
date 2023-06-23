@@ -17,6 +17,9 @@
 # but when trying to put those binaries in cli/bin, setuptools is yelling
 # and does not know what to do with it. So simpler to use a Python
 # script when installed via a Python package mananger (pip).
+# We could also use 'pip show semgrep' from a bash script to find
+# semgrep-core path. But will 'pip' be in the PATH? Should we use  'pip' or 'pip3'?
+# Again, simpler to use a Python script and leverage importlib.resources.
 
 import os
 import sys
