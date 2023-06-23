@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# This script will be installed by pip somewhere in PATH (e.g., /opt/local/bin/),
+# This script will be installed by pip somewhere in PATH (e.g., /opt/local/bin/)
 # because it's mentioned in ../setup.py with 'scripts=[..., "bin/pysemgrep"]'.
 # Thus, osemgrep can easily fallback to pysemgrep (without any further
 # dispatch like in semgrep) by simply calling 'execvp("pysemgrep", ...)'.
