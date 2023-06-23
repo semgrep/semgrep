@@ -1,6 +1,7 @@
 open Lsp
 open Types
 open Testutil
+open File.Operators
 module Out = Output_from_core_t
 module In = Input_to_core_t
 
@@ -74,36 +75,31 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
 
 let mock_workspace ?(git = false) () =
   let rand_dir () =
-    let rand_int_string = Random.int 100000 |> string_of_int in
-    let dir_name = "test_workspace_" ^ rand_int_string in
+    let uuid = Uuidm.v `V4 in
+    let dir_name = "test_workspace_" ^ Uuidm.to_string uuid in
     let dir = Filename.concat (Filename.get_temp_dir_name ()) dir_name in
     Unix.mkdir dir 0o777;
     dir
   in
-  let workspace =
-    try rand_dir () with
-    | _ -> rand_dir ()
-  in
-  Unix.chdir workspace;
-  if git then Sys.command "git init" |> ignore;
+  let workspace = rand_dir () in
+  let workspace = Fpath.v workspace in
+  if git then Git_wrapper.init workspace |> ignore;
   workspace
 
 let add_file ?(git = false) ?(dirty = false)
     ?(content = "print(\"hello world\")\n") workspace () =
-  let file = Filename.temp_file ~temp_dir:workspace "test" ".py" in
+  let file = Filename.temp_file ~temp_dir:!!workspace "test" ".py" in
   let oc = open_out_bin file in
   output_string oc content;
   close_out oc;
-  let add_file file = Sys.command ("git add " ^ file) |> ignore in
-  let commmit () = Sys.command "git commit -m 'test'" |> ignore in
-  if git then add_file file;
-  if (not dirty) && git then commmit ();
+  if git then Git_wrapper.add workspace [ Fpath.v file ];
+  if (not dirty) && git then Git_wrapper.commit workspace "test";
   file
 
 let session_targets () =
-  let test_session files expected root only_git_dirty =
+  let test_session files expected workspace_folders only_git_dirty =
     let session = mock_session () in
-    let session = { session with only_git_dirty; root } in
+    let session = { session with only_git_dirty; workspace_folders } in
     let session = set_session_targets session files in
     let { In.target_mappings; _ } = Session.targets session in
     let targets = Common.map (fun target -> target.In.path) target_mappings in
@@ -111,29 +107,13 @@ let session_targets () =
     let expected = Common.sort expected in
     Alcotest.(check (list string)) "targets" expected targets
   in
-  let test_no_git () =
-    let workspace = mock_workspace () in
-    let file1 = add_file workspace () in
+  let test_session_basic git only_git_dirty () =
+    let workspace = mock_workspace ~git () in
+    let file1 = add_file ~git workspace () in
     let file2 = add_file workspace () in
     let files = [ file1; file2 ] in
     let expected = files in
-    test_session files expected workspace false
-  in
-  let test_git_dirty_no_git () =
-    let workspace = mock_workspace () in
-    let file1 = add_file workspace () in
-    let file2 = add_file workspace () in
-    let files = [ file1; file2 ] in
-    let expected = files in
-    test_session files expected workspace true
-  in
-  let test_git () =
-    let workspace = mock_workspace ~git:true () in
-    let file1 = add_file ~git:true workspace () in
-    let file2 = add_file ~git:false workspace () in
-    let files = [ file1; file2 ] in
-    let expected = files in
-    test_session files expected workspace false
+    test_session files expected [ workspace ] only_git_dirty
   in
   let test_git_dirty () =
     let workspace = mock_workspace ~git:true () in
@@ -142,14 +122,42 @@ let session_targets () =
     let file3 = add_file workspace () in
     let files = [ file1; file2; file3 ] in
     let expected = [ file2; file3 ] in
-    test_session files expected workspace true
+    test_session files expected [ workspace ] true
+  in
+  let test_multi_workspaces only_git_dirty () =
+    let workspace1 = mock_workspace ~git:true () in
+    let workspace2 = mock_workspace ~git:true () in
+    let file1 = add_file ~git:true ~dirty:true workspace1 () in
+    let file2 = add_file ~git:true ~dirty:true workspace2 () in
+    let file3 = add_file ~git:true ~dirty:true workspace2 () in
+    let files = [ file1; file2; file3 ] in
+    let expected = files in
+    test_session files expected [ workspace1; workspace2 ] only_git_dirty
+  in
+  let test_multi_some_dirty only_git_dirty () =
+    let workspace1 = mock_workspace ~git:true () in
+    let workspace2 = mock_workspace ~git:false () in
+    let file1 = add_file ~git:true ~dirty:true workspace1 () in
+    let file2 = add_file ~git:false workspace2 () in
+    let file3 = add_file ~git:false workspace2 () in
+    let files = [ file1; file2; file3 ] in
+    let expected = [ file1; file2; file3 ] in
+    test_session files expected [ workspace1; workspace2 ] only_git_dirty
   in
   let tests =
     [
-      ("Test no git", test_no_git);
-      ("Test git", test_git);
+      ("Test no git", test_session_basic false false);
+      ("Test no git with only_git_dirty", test_session_basic false true);
+      ("Test git", test_session_basic true false);
       ("Test git with dirty files", test_git_dirty);
-      ("Test only git dirty with no git", test_git_dirty_no_git);
+      ( "Test multiple workspaces (only_git_dirty: true)",
+        test_multi_workspaces true );
+      ( "Test multiple workspaces (only_git_dirty: false)",
+        test_multi_workspaces false );
+      ( "Test multiple workspaces with some dirty (only_git_dirty: true)",
+        test_multi_some_dirty true );
+      ( "Test multiple workspaces with some dirty (only_git_dirty: false)",
+        test_multi_some_dirty false );
     ]
   in
   pack_tests "Session Targets" tests
@@ -170,32 +178,16 @@ let processed_run () =
     let expected = Common.sort expected in
     Alcotest.(check (list string)) "processed run" expected final_files
   in
-  let test_no_git () =
-    let workspace = mock_workspace () in
-    let file1 = add_file workspace () in
-    let file2 = add_file workspace () in
-    let files = [ file1; file2 ] in
-    let expected = files in
-    test_processed_run files expected false
-  in
-  let test_git_dirty_no_git () =
-    let workspace = mock_workspace () in
-    let file1 = add_file workspace () in
-    let file2 = add_file workspace () in
-    let files = [ file1; file2 ] in
-    let expected = files in
-    test_processed_run files expected true
-  in
-  let test_git () =
-    let workspace = mock_workspace ~git:true () in
-    let file1 = add_file ~git:true workspace () in
-    let file2 = add_file ~git:true workspace () in
+  let test_processed only_git_dirty git () =
+    let workspace = mock_workspace ~git () in
+    let file1 = add_file ~git workspace () in
+    let file2 = add_file ~git workspace () in
     let oc = open_out_gen [ Open_wronly; Open_append ] 0o666 file2 in
     output_string oc "print(\"hello world\")";
     close_out oc;
     let files = [ file1; file2 ] in
     let expected = files in
-    test_processed_run files expected false
+    test_processed_run files expected only_git_dirty
   in
   let test_git_dirty_lines () =
     let workspace = mock_workspace ~git:true () in
@@ -234,10 +226,10 @@ let processed_run () =
   in
   let tests =
     [
-      ("Test no git", test_no_git);
-      ("Test git", test_git);
-      ("Test git with dirty files", test_git_dirty_lines);
-      ("Test only git dirty with no git", test_git_dirty_no_git);
+      ("Test no git", test_processed false false);
+      ("Test git", test_processed false true);
+      ("Test only git dirty with no git", test_processed true false);
+      ("Test only git dirty with dirty files", test_git_dirty_lines);
       ("Test nosem", test_nosem);
     ]
   in

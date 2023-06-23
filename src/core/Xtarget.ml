@@ -8,8 +8,7 @@
  *)
 
 type t = {
-  (* TODO: use Fpath.t *)
-  file : Common.filename;
+  file : Fpath.t;
   xlang : Xlang.t;
   lazy_content : string lazy_t;
   (* This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)

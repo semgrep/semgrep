@@ -63,7 +63,7 @@ val default : conf
 val parse_argv : string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
-val cmdline_term : conf Cmdliner.Term.t
+val cmdline_term : allow_empty_config:bool -> conf Cmdliner.Term.t
 
 (* exported because used by Interactive_CLI.ml too *)
 val o_lang : string option Cmdliner.Term.t

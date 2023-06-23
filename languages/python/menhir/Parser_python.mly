@@ -239,6 +239,8 @@ nl_or_stmt:
  | stmt    { $1 }
 
 sgrep_spatch_pattern:
+ (* for decorator patterns @$NAME(...) *)
+ | decorator EOF { Flag_parsing.sgrep_guard (Decorator $1) }
  | stmt NEWLINE? EOF   {
    match $1 with
    | [ExprStmt x] -> Expr x
@@ -450,8 +452,8 @@ arglist_paren_opt:
 (* Annotations *)
 (*************************************************************************)
 
-decorator: "@" decorator_name arglist_paren2_opt NEWLINE
-    { $1, $2, $3 }
+decorator: "@" namedexpr_test NEWLINE
+    { $1, $2 }
 
 decorator_name:
   | NAME                    { [$1] }

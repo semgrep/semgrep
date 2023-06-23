@@ -5,7 +5,7 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^tests|^cli/tests/e2e/(targets|snapshots|rules/syntax)|^cli/src/semgrep/external|^cli/src/semdep/external|\\binvalid\\b|TOPORT"
+exclude: "^tests|^cli/tests/e2e/(targets|snapshots|rules/syntax)|^cli/src/semgrep/external|^cli/src/semdep/external|^cli/bin|\\binvalid\\b|TOPORT"
 default_stages: [commit]
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
@@ -84,7 +84,7 @@ repos:
     hooks:
       - id: mypy
         exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$$
-        args: [--config, mypy.ini, --show-error-codes]
+        args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
           # - cli/setup.py lists dependencies
@@ -155,7 +155,7 @@ repos:
         language: docker_image
         types:
           - dockerfile
-        exclude: "^dockerfiles/linuxbrew[.]Dockerfile$"
+        exclude: "^scripts/release/linuxbrew[.]Dockerfile$"
         entry: hadolint/hadolint:v2.8.0-alpine hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
 
@@ -203,7 +203,8 @@ repos:
         # available in docker.
         # If docker complains that --platform isn't supported because
         # it's experimental, try upgrading your docker server.
-        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache --platform linux/amd64 returntocorp/semgrep:develop semgrep
+        # Dogfooding osemgrep also here!
+        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache --platform linux/amd64 returntocorp/semgrep:develop osemgrep
 
         # Both the .semgrepignore file and the --exclude option
         # do nothing because the target files are passed
@@ -217,6 +218,7 @@ repos:
             "--config",
             "semgrep.jsonnet",
             "--error",
+            "--debug",
             #
             # note that pre-commit can call multiple times semgrep in
             # one run if there are many files in a PR (or in CI where

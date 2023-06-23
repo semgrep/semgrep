@@ -1,3 +1,0 @@
-taint-mode: Added experimental options `taint_assume_safe_booleans` and
-`taint_assume_safe_numbers` to avoid propagating taint coming from expressions
-with Boolean or number (integer, float) types.

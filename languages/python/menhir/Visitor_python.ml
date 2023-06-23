@@ -514,10 +514,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         and v3 = v_list v_stmt v3 in
         ()
   and v_decorator v =
-    let k (t, x1, x2) =
+    let k (t, x1) =
       v_tok t;
-      v_dotted_name x1;
-      v_option (v_bracket (v_list v_argument)) x2
+      v_expr x1
     in
     vin.kdecorator (k, all_functions) v
   and v_alias (v1, v2) =
@@ -536,6 +535,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ()
     | Stmts v1 ->
         let v1 = v_list v_stmt v1 in
+        ()
+    | Decorator d ->
+        let d = v_decorator d in
         ()
     | Program v1 ->
         let v1 = v_program v1 in

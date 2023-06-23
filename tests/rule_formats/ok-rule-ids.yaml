@@ -1,0 +1,11 @@
+rules:
+  - id: "src.hello-world"
+    pattern: zzzzz
+    languages: [python]
+    severity: ERROR
+    message: uh oh
+  - id: "2..aB._zZA-876--"
+    pattern: zzzzz
+    languages: [python]
+    severity: ERROR
+    message: uh oh

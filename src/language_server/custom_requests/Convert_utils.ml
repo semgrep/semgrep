@@ -16,3 +16,7 @@ let string_of_severity (severity : Rule.severity) =
   | Experiment
   | Info ->
       DiagnosticSeverity.Information
+
+let workspace_folders_to_paths =
+  Common.map (fun ({ uri; _ } : WorkspaceFolder.t) ->
+      Uri.to_path uri |> Fpath.v)

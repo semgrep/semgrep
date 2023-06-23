@@ -222,6 +222,13 @@ let dump_ast ?(naming = false) lang file =
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
+(* temporary *)
+let dump_elixir_ast file =
+  let x = Parse_elixir_tree_sitter.parse file in
+  match x.program with
+  | Some x -> pr (AST_elixir.show_program x)
+  | None -> failwith (spf "could not parse %s" file)
+
 (* mostly a copy paste of Test_analyze_generic.ml *)
 let dump_il_all file =
   let ast = Parse_target.parse_program !!file in
@@ -462,6 +469,7 @@ let all_actions () =
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) !!file)
     );
+    ("-dump_elixir_ast", " <file>", Arg_helpers.mk_action_1_arg dump_elixir_ast);
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
@@ -642,6 +650,21 @@ let options actions =
        when running out of memory. This value should be less than the actual \
        memory available because the limit will be exceeded before it gets \
        detected. Try 5% less or 15000 if you have 16 GB." );
+    ( "-max_tainted_lvals",
+      Arg.Set_int Flag_semgrep.max_tainted_lvals,
+      "<int> maximum number of lvals to store. This is mostly for internal use \
+       to make performance testing easier" );
+    ( "-max_taint_set_size",
+      Arg.Set_int Flag_semgrep.max_taint_set_size,
+      "<int> maximum size of a taint set. This is mostly for internal use to \
+       make performance testing easier" );
+    ( "-max_match_per_file",
+      Arg.Set_int max_match_per_file,
+      " <int> maximum numbers of match per file" );
+    ("-debug", Arg.Set debug, " output debugging information");
+    ("-test", Arg.Set test, " (internal) set test context");
+    ("-ls", Arg.Set ls, " run Semgrep Language Server");
+    ("-raja", Arg.Set Flag_semgrep.raja, " undocumented");
     ( "-max_match_per_file",
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );

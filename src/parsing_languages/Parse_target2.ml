@@ -204,7 +204,9 @@ let just_parse_with_lang lang file =
   | Lang.Csharp ->
       run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
   | Lang.Elixir ->
-      run file [ TreeSitter Parse_elixir_tree_sitter.parse ] (fun x -> x)
+      run file
+        [ TreeSitter Parse_elixir_tree_sitter.parse ]
+        Elixir_to_generic.program
   (* tree-sitter-dart is currently buggy and can generate some segfaults *)
   | Lang.Dart ->
       run file [ TreeSitter Parse_dart_tree_sitter.parse ] (fun x -> x)
@@ -223,6 +225,8 @@ let just_parse_with_lang lang file =
   | Lang.Clojure ->
       run file [ TreeSitter Parse_clojure_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
+  | Lang.Protobuf ->
+      run file [ TreeSitter Parse_protobuf_tree_sitter.parse ] (fun x -> x)
   | Lang.Rust ->
       run file [ TreeSitter Parse_rust_tree_sitter.parse ] (fun x -> x)
   | Lang.Solidity ->

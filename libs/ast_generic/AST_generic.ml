@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -32,12 +32,12 @@
  *  - OCaml, Scala, Rust
  *  - Clojure, Lisp, Scheme
  *  - R
- *  - Solidity
+ *  - Solidity, Cairo
  *  - Bash, Docker
  *  - JSON, XML, YAML
  *  - Jsonnet, Terraform
  *  - HTML
- *  - TODO SQL, Sqlite, PostgresSQL
+ * TODO: SQL, Sqlite, PostgresSQL
  *
  * See Lang.ml for the list of supported languages.
  * See IL.ml for a generic IL (Intermediate language) better suited for
@@ -95,9 +95,6 @@
  * Note that this generic AST has become gradually more and more a
  * generic CST, to fix issues in autofix in Semgrep.
  * TODO? it may be time to rename this file CST_generic.ml
- *
- * todo:
- *  - improve things for Kotlin/Scala/Rust/C++/Java
  *
  * related work:
  *  - lib_parsing/ast_fuzzy.ml
@@ -184,11 +181,7 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 (*****************************************************************************)
 (* Token (leaf) *)
 (*****************************************************************************)
-(* Contains among other things the position of the token through
- * the Tok.location embedded inside it, as well as the
- * transformation field that makes possible spatch on the code.
- *
- * Tok.t_always_equal is the same type as Tok.t but provides special equal and
+(* Tok.t_always_equal is the same type as Tok.t but provides special equal and
  * hash functions that are more conveninent in Semgrep matching context.
  * See Matching_generic.equal_ast_bound_code() and Metavariable.equal_mvalue()
  * for more information.
@@ -837,6 +830,7 @@ and svalue =
    * using ksvalue (see Visitor_AST); or e.g. when constructing the Meta_AST. *)
   | NotCst
 
+(* TODO? Bits for Elixir/Erlang? *)
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)
   | List
@@ -1341,7 +1335,6 @@ and other_stmt_operator =
   | OS_ThrowFrom
   | OS_ThrowNothing
   | OS_ThrowArgsLocation
-    (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
   | OS_Pass
   | OS_Async
   (* C/C++ *)

@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -31,83 +31,216 @@ open Common
  *  - TODO: phase 2, we analyze those raw constructs and try to infer higher-level
  *    constructs like module definitions or function definitions that
  *    are standard in Elixir
- * Note that because our aim is ultimately to transform Elixir code
- * in the generic ASTs, we didn't define an Elixir 'expr' type but
- * instead reuse the one from the generic AST, which makes it
- * easier later in Elixir_to_generic.ml to get back a full generic AST.
  *
  * references:
  * - https://hexdocs.pm/elixir/syntax-reference.html
+ * - https://hexdocs.pm/elixir/Kernel.html
  *)
 
 (*****************************************************************************)
 (* Raw constructs *)
 (*****************************************************************************)
-(* AST constructs or aliases corresponding to "raw" Elixir constructs.
+(* AST constructs corresponding to "raw" Elixir constructs.
  *
  * We try to follow the naming conventions in
  * https://hexdocs.pm/elixir/syntax-reference.html
  *)
 
-type 'a wrap = 'a AST_generic.wrap
-type 'a bracket = 'a AST_generic.bracket
+(* ------------------------------------------------------------------------- *)
+(* Tokens *)
+(* ------------------------------------------------------------------------- *)
+type 'a wrap = 'a * Tok.t [@@deriving show]
+type 'a bracket = Tok.t * 'a * Tok.t [@@deriving show]
 
-(* lowercase ident *)
-type ident = string wrap
+(* ------------------------------------------------------------------------- *)
+(* Names *)
+(* ------------------------------------------------------------------------- *)
 
-(* uppercase ident *)
-type alias = string wrap
+type ident =
+  (* lowercase ident *)
+  | Id of string wrap
+  (* actually part of Elixir! *)
+  | IdEllipsis of Tok.t (* '...' *)
+  (* semgrep-ext: *)
+  | IdMetavar of string wrap
+[@@deriving show { with_path = false }]
 
-(* there is no 'name' below. They use the term 'remote' for qualified calls
- * with lowercase ident.
- * Note that the alias can actually also contain some dots
- * and be also kinda of a name.
+(* uppercase ident; constructs that expand to atoms at compile-time
+ * TODO: seems like it contain contains string with dots! Foo.Bar is
+ * parsed as a single alias, so maybe we need to inspect it and split it.
  *)
+type alias = string wrap [@@deriving show]
 
-type expr = AST_generic.expr
-type argument = AST_generic.argument
+(* ref: https://hexdocs.pm/elixir/operators.html *)
+type operator =
+  (* special forms operators that cannot be overriden *)
+  | OPin (* ^ *)
+  | ODot (* . *)
+  | OMatch (* = *)
+  | OCapture (* & *)
+  | OType (* :: *)
+  (* strict boolean variants *)
+  | OStrictAnd
+  | OStrictOr
+  | OStrictNot
+  (* other operators *)
+  | OPipeline (* |> *)
+  | OModuleAttr (* @ *)
+  | OLeftArrow (* <-, used with 'for' and 'with'  *)
+  | ODefault (* \\, default argument *)
+  | ORightArrow (* -> *)
+  | OCons (* |, =~ "::" in OCaml (comes from Erlang/Prolog) *)
+  | OWhen (* when, in guards *)
+  | O of G.operator
+  (* lots of operators here, +++, ---, etc. *)
+  | OOther of string
+[@@deriving show { with_path = false }]
 
-(* exprs separated by terminators (newlines or semicolons)
- * can be empty.
- *)
-type body = expr list
+type ident_or_operator = (ident, operator wrap) Common.either [@@deriving show]
 
-(* less: restrict with special arg? *)
-type call = expr
+(* start of BIG recursive type because atoms can contain interpolated exprs *)
 
-(* Ideally we would want just 'type keyword = ident * tok (*:*)',
- * but Elixir allows also "interpolated{ x }string": keywords.
- *)
-type keyword = expr
+(* TODO: need extract ':' for simple ident case *)
+type atom = Tok.t (* ':' *) * string wrap or_quoted
 
-(* note that Elixir supports also pairs using the (:atom => expr) syntax *)
-type pair = keyword * expr
+(* TODO: need to extract the ':' for the ident case *)
+and keyword = string wrap or_quoted * Tok.t (* : *)
+and 'a or_quoted = X of 'a | Quoted of quoted
+and quoted = (string wrap, expr bracket) Common.either list bracket
+
+(* ------------------------------------------------------------------------- *)
+(* Keywords and arguments *)
+(* ------------------------------------------------------------------------- *)
+(* inside calls *)
+and arguments = expr list * keywords
 
 (* inside containers (list, bits, maps, tuples), separated by commas *)
-type item = expr
+and items = expr list * keywords
+
+(* Elixir semantic is to unsugar in regular (atom, expr) pair *)
+and keywords = pair list
+
+(* note that Elixir supports also pairs using the (:atom => expr) syntax *)
+and pair = keyword * expr
+and expr_or_kwds = E of expr | Kwds of keywords
+
+(* ------------------------------------------------------------------------- *)
+(* Expressions *)
+(* ------------------------------------------------------------------------- *)
+and expr =
+  (* lowercase idents *)
+  | I of ident
+  (* uppercase idents *)
+  | Alias of alias
+  | L of G.literal
+  | A of atom
+  | String of quoted
+  | Charlist of quoted
+  | Sigil of Tok.t (* '~' *) * sigil_kind * string wrap option
+  | List of items bracket
+  | Tuple of items bracket
+  | Bits of items bracket
+  | Map of Tok.t (* "%" *) * astruct option * items bracket
+  | Block of block
+  | DotAlias of expr * Tok.t * alias
+  | DotTuple of expr * Tok.t * items bracket
+  (* only inside Call *)
+  | DotAnon of expr * Tok.t
+  (* only inside Call *)
+  | DotRemote of remote_dot
+  | ModuleVarAccess of Tok.t (* @ *) * expr
+  | ArrayAccess of expr * expr bracket
+  | Call of call
+  | UnaryOp of operator wrap * expr
+  | BinaryOp of expr * operator wrap * expr
+  (* coming from Erlang (comint itself from Prolog) *)
+  | OpArity of operator wrap * Tok.t (* '/' *) * int option wrap
+  | When of expr * Tok.t (* 'when' *) * expr_or_kwds
+  | Join of expr * Tok.t (* '|' *) * expr_or_kwds
+  (* let fdef =
+       Elixir_to_generic.stab_clauses_to_function_definition tfn clauses
+     in
+     let fdef = { fdef with fkind = (LambdaKind, tfn) } in
+     Lambda fdef |> G.e
+  *)
+  | Lambda of Tok.t (* 'fn' *) * clauses * Tok.t (* 'end' *)
+  | Capture of Tok.t (* '&' *) * expr
+  | ShortLambda of Tok.t (* '&' *) * expr bracket
+  | PlaceHolder of Tok.t (* & *) * int option wrap
+  (* semgrep-ext: *)
+  | DeepEllipsis of expr bracket
+
+(* restricted to Alias/A/I/DotAlias/DotTuple and all unary op *)
+and astruct = expr
+
+and sigil_kind =
+  | Lower of char wrap * quoted
+  | Upper of char wrap * string wrap bracket
+
+(* the parenthesis can be fake *)
+and call = expr * arguments bracket * do_block option
+and remote_dot = expr * Tok.t (* '.' *) * ident_or_operator or_quoted
+
+(* ------------------------------------------------------------------------- *)
+(* Blocks *)
+(* ------------------------------------------------------------------------- *)
+
+(* the bracket here are () *)
+and block = body_or_clauses bracket [@@deriving show { with_path = false }]
+
+(* in after/rescue/catch/else and do blocks *)
+and body_or_clauses =
+  | Body of body
+  (* can be empty *)
+  | Clauses of clauses
+
+(* exprs separated by terminators (newlines or semicolons) *)
+and body = stmt list
+
+(* The bracket here are do/end.
+ * Elixir semantic is to unsugar in a list of pairs with "do:", "after:",
+ * as the keys.
+ *)
+and do_block =
+  (body_or_clauses * (exn_clause_kind wrap * body_or_clauses) list) bracket
+
+and exn_clause_kind = After | Rescue | Catch | Else
+
+(* ------------------------------------------------------------------------- *)
+(* Clauses *)
+(* ------------------------------------------------------------------------- *)
+and clauses = stab_clause list
 
 (* Ideally it should be pattern list * tok * body option, but Elixir
  * is more general and use '->' also for type declarations in typespecs,
  * or for parameters (kind of patterns though).
  *)
-type stab_clause =
-  (argument list * (Tok.t (*'when'*) * expr) option) * Tok.t (* '->' *) * body
-
-type clauses = stab_clause list
-
-(* in after/rescue/catch/else and do blocks *)
-type body_or_clauses = (body, clauses) either
-
-(* the bracket here are do/end *)
-type do_block =
-  (body_or_clauses
-  * (ident (* 'after/rescue/catch/else' *) * body_or_clauses) list)
-  bracket
-
-(* the bracket here are () *)
-type block = body_or_clauses bracket
+and stab_clause =
+  (arguments * (Tok.t (*'when'*) * expr) option) * Tok.t (* '->' *) * body
 
 (*****************************************************************************)
-(* Refined constructs *)
+(* Kernel constructs *)
 (*****************************************************************************)
-(* TODO *)
+(* ref: https://hexdocs.pm/elixir/Kernel.html *)
+and stmt = expr
+
+(*****************************************************************************)
+(* Program *)
+(*****************************************************************************)
+
+type program = body [@@deriving show]
+
+(*****************************************************************************)
+(* Any *)
+(*****************************************************************************)
+
+type any = Pr of program [@@deriving show { with_path = false }]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+let string_of_exn_kind = function
+  | After -> "after"
+  | Rescue -> "rescue"
+  | Catch -> "catch"
+  | Else -> "else"

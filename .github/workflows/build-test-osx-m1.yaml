@@ -1,4 +1,5 @@
 # This workflow builds and tests the semgrep-core binary for macOS M1
+# and generates m1-wheel for pypi.
 
 # coupling: if you modify this file, modify also build-test-osx-x86.yaml
 # This file is mostly a copy-paste of build-test-osx-x86.yaml
@@ -32,11 +33,16 @@ jobs:
           # M1 builds failing due to a permissions issue. this cleanup is an optimization,
           # and we can revisit re-enabling cleanup when we have more time/resources to debug.
           HOMEBREW_NO_INSTALL_CLEANUP: "true"
-        run: ./scripts/osx-release.sh
+        run: |
+          ./scripts/osx-setup-for-release.sh
+          opam exec -- make core
+          mkdir -p artifacts
+          cp ./bin/semgrep-core artifacts
+          zip -r artifacts.zip artifacts
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-m1-${{ github.sha }}
           path: artifacts.zip
+          name: semgrep-m1-${{ github.sha }}
 
   build-wheels-m1:
     runs-on: [self-hosted, macOS, ARM64]
@@ -55,8 +61,8 @@ jobs:
         run: ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
-          name: m1-wheel
           path: cli/dist.zip
+          name: m1-wheel
 
   test-wheels-m1:
     runs-on: [self-hosted, macOS, ARM64]

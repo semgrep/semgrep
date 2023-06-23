@@ -32,7 +32,7 @@ jobs:
   # A. run semgrep container from existing container: requires mounting
   #    a volume, which is disabled by CircleCI (results in empty folder
   #    once mounted).
-  # B. run everything inside the semgrep-dev container, which comes with
+  # B. run everything inside the semgrep container, which comes with
   #    semgrep and whatever utilities we added.
   #
   # We use B out of necessity.
@@ -40,7 +40,7 @@ jobs:
   # Real benchmarks
   benchmarks:
     docker:
-      - image: returntocorp/semgrep-dev:develop
+      - image: returntocorp/semgrep:develop
     steps:
       - checkout
       - run:
@@ -52,7 +52,7 @@ jobs:
   # Run parsing stats and publish them to the semgrep dashboard.
   parsing-stats:
     docker:
-      - image: returntocorp/semgrep-dev:develop
+      - image: returntocorp/semgrep:develop
     steps:
       - checkout
       - run:
@@ -69,7 +69,7 @@ jobs:
   # Run autofix parsing stats and publish them to the semgrep dashboard.
   autofix-printing-stats:
     docker:
-      # The returntocorp/semgrep-dev:develop image doesn't have OCaml, so
+      # The returntocorp/semgrep:develop image doesn't have OCaml, so
       # instead we use an OCaml image and install the production version of
       # Semgrep.
       #

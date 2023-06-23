@@ -220,7 +220,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
 (* TODO: This is used by semgrep-pro and not by semgrep. What is it?
    TODO: Explain what it does if xlang contains multiple langs. *)
 val rules_for_xlang : Xlang.t -> Rule.t list -> Rule.t list
-val xtarget_of_file : Runner_config.t -> Xlang.t -> Common.filename -> Xtarget.t
+val xtarget_of_file : Runner_config.t -> Xlang.t -> Fpath.t -> Xtarget.t
 
 (*
    Sort targets by decreasing size. This is meant for optimizing
