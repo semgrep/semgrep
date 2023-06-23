@@ -80,9 +80,13 @@ class LSPConfig:
     def ci_rules(self) -> List[Rule]:
         if len(self._workspace_folders) == 0:
             return []
+        metadata_dict = {}
+        try:
+            metadata = generate_meta_from_environment(None)
+            metadata_dict = metadata.to_dict()
+        except SemgrepError:  # This fails if a user is logged in, and is not in a git repo
+            return []
         scan_handler = ScanHandler(True)
-        metadata = generate_meta_from_environment(None)
-        metadata_dict = metadata.to_dict()
         scan_handler.fetch_and_init_scan_config(metadata_dict)
         json_rules = json.loads(scan_handler.rules).get("rules", [])
         rules = [Rule.from_json(r) for r in json_rules]
