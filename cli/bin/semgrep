@@ -1,22 +1,30 @@
 #!/usr/bin/env python3 -W ignore::DeprecationWarning
 
-# The semgrep entry point for semgrep packaged with pip.
-# In the futur we may have a different entry point when packaged
+# This is the Semgrep entry point for Semgrep packaged with pip.
+#
+# In the futur we may have different entry points when packaged
 # from Cargo, Npm, Opam, or even from Docker.
 #
 # The main purpose of this small wrapper is to dispatch
-# between the legacy pysemgrep or the new osemgrep.
+# either to the legacy pysemgrep or to the new osemgrep.
 
 import os
 import sys
 import importlib.resources
 
 if "--experimental" in sys.argv:
+    #alt: we could  extend osemgrep (and pysemgrep) to accept a new --experimental
+    # flag instead of removing the flag below. However, in osemgrep we do a few
+    # pattern matching of Sys.argv and if we have 'osemgrep --experimental --help'
+    # this would be interpreted as 'osemgrep scan --experimental --help' (because
+    # scan is the default command), and we would not get the simple semgrep --help
+    # message showing all the subcommands. So simpler to just remove --experimental.
     sys.argv.remove("--experimental")
     # We could have moved the code below in a separate 'osemgrep', like for 'pysemgrep',
     # but we don't want users to be exposed to another command, so better to hide it.
     # We expose 'pysemgrep' because osemgrep itself might need to fallback to pysemgrep
-    # and it's better to avoid any loop by using a different program name.
+    # and it's better to avoid the possibility of an infinite loop by simply using
+    # a different program name.
     try:
         # the use of .path causes a DeprecationWarning hence the -W ignore:Xxx above
         with importlib.resources.path("semgrep.bin", "semgrep-core") as path:
