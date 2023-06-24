@@ -266,7 +266,7 @@ module IdInfoId = Gensym.MkId ()
  *)
 (* a single unique gensym'ed number. *)
 type sid = SId.t
-and resolved_name = resolved_name_kind * sid [@@deriving show, eq]
+and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
   (* Global is useful in codemap/efuns to highlight differently and warn
@@ -539,6 +539,9 @@ and qualifier =
 (*****************************************************************************)
 (* Naming/typing *)
 (*****************************************************************************)
+(* The derived equal is overriden for multiple fields of id_info. This is
+   to allow certain modes of equality to ignore id_info when comparing
+   AST nodes. See AST_utils.Syntactic_equal for details *)
 and id_info = {
   id_resolved : resolved_name option ref;
       [@equal

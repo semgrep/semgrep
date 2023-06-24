@@ -28,13 +28,18 @@ end
 module Node_ID = Gensym.MkId ()
 
 (*
-   Trickery to offer two collections of equality functions:
+   Trickery to offer three collections of equality functions:
 
    - structural equality: do two AST nodes have the same structure?
-     This diregards IDs assigned uniquely to AST nodes.
+     This disregards IDs assigned uniquely to AST nodes.
    - referential equality: are these two AST nodes physically the same?
      This is essentially physical equality but it tolerates copying or even
      some transformation as long as the node ID is preserved.
+   - syntactic equality: do two AST nodes represent the same code?
+     This disregards the id_info inferred about Id nodes. This means
+     that `secret1` in a YAML file is considered to be the same as
+     the string `secret1` in a Java file. Syntactic equality is used
+     to compare metavariables for multistep rules.
 
    Comparing two AST nodes must be done via one of the with_equal_* wrappers
    so as to select structural or referential equality.
