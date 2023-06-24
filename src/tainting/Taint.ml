@@ -21,6 +21,42 @@ open Ppx_compare_lib.Builtin
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* NOTE "on compare functions":
+ *
+ * We should get rid of `Stdlib.compare` in taint code, and ppx_deriving is probably
+ * not much better. The problem is having "automagic" comparisons that silently
+ * change as you change data types. Automagic comparisons are very convenient but
+ * sometimes the comparison is not what you want. Initially I just thought that if
+ * you carefully considered whether that automagic comparison is OK for each data
+ * type then you are fine... So we used `Stdlib.compare` in several places, until
+ * one day `Taint.arg` evolved, and we added an `offset` to it, and we forgot to
+ * revisit whether `Stdlib.compare` was still a good option (it wasn't)... and this
+ * led to duplicates which led to an explosion in the size of taint sets and to big
+ * perf problems. I think the only way to get warned about this is to write these
+ * comparisons manually, no matter how painful it is, so the typechecker will force
+ * you to revisit the comparison functions if the types change.
+ *
+ * Besides, we now favor the use of pattern matching over record field access, e.g.
+ * ```ocaml
+ * let compare_sink { pm = pm1; rule_sink = sink1 } { pm = pm2; rule_sink = sink2 }
+ *     =
+ *   Stdlib.compare
+ *     (sink1.Rule.sink_id, pm1.rule_id, pm1.range_loc, pm1.env)
+ *     (sink2.Rule.sink_id, pm2.rule_id, pm2.range_loc, pm2.env)
+ * ```
+ * instead of
+ * ```ocaml
+ * let compare_sink sink1 sink2
+ *      =
+ *   Stdlib.compare
+ *     (sink1.rule_sink.Rule.sink_id, sink1.pm.rule_id, ...)
+ *     (sink2.rule_sink.Rule.sink_id, sink2.pm.rule_id, ...)
+ * ```
+ * If we pattern-match, and later we add new fields to the record, the typechecker
+ * will let us know that we need to revisit `compare_sink`---this does not happen
+ * when you use dot accesses.
+ *)
+
 (*****************************************************************************)
 (* Call traces *)
 (*****************************************************************************)
