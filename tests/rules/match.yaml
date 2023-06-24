@@ -1,0 +1,10 @@
+rules:
+  - id: match
+    languages:
+      - python
+    message: Match found! You cannot use this.
+    pattern: |
+      match x:
+        case str():
+          print("oh no")
+    severity: ERROR
