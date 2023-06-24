@@ -28,38 +28,74 @@ end
 module Node_ID = Gensym.MkId ()
 
 (*
-   Trickery to offer two collections of equality functions:
+   Trickery to offer three collections of equality functions:
 
    - structural equality: do two AST nodes have the same structure?
-     This diregards IDs assigned uniquely to AST nodes.
+     This disregards IDs assigned uniquely to AST nodes.
    - referential equality: are these two AST nodes physically the same?
      This is essentially physical equality but it tolerates copying or even
      some transformation as long as the node ID is preserved.
+   - syntactic equality: do two AST nodes represent the same code?
+     This disregards the id_info inferred about Id nodes. This means
+     that `secret1` in a YAML file is considered to be the same as
+     the string `secret1` in a Java file. Syntactic equality is used
+     to compare metavariables for multistep rules.
 
    Comparing two AST nodes must be done via one of the with_equal_* wrappers
    so as to select structural or referential equality.
 *)
 
-type busy_with_equal = Not_busy | Structural_equal | Referential_equal
+type busy_with_equal =
+  | Not_busy
+  | Structural_equal
+  | Referential_equal
+  | Syntactic_equal
 
 (* global state! managed by the with_equal_* functions *)
 let busy_with_equal = ref Not_busy
 
+let equal_id_info equal a b =
+  match !busy_with_equal with
+  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
+  | Syntactic_equal -> true
+  | Structural_equal -> equal a b
+  | Referential_equal -> equal a b
+
 let equal_stmt_field_s equal_stmt_kind a b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
+  | Syntactic_equal -> equal_stmt_kind a b
   | Structural_equal -> equal_stmt_kind a b
   | Referential_equal -> true
 
 let equal_stmt_field_s_id a b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
+  | Syntactic_equal -> true
   | Structural_equal -> true
   | Referential_equal -> Node_ID.equal a b
 
 (*
    Wrap one of the generated equal_* functions into one that selects
-   structural equality, ignoring node IDs and position information.
+   match_based equality, ignoring node IDs, position information, and
+   fields that may be affected by code around the variable (e.g. id_resolved,
+   id_type.)
+*)
+let with_syntactic_equal equal a b =
+  match !busy_with_equal with
+  | Not_busy ->
+      busy_with_equal := Syntactic_equal;
+      Fun.protect
+        ~finally:(fun () -> busy_with_equal := Not_busy)
+        (fun () -> equal a b)
+  | Syntactic_equal
+  | Structural_equal
+  | Referential_equal ->
+      failwith "an equal is already in progress"
+
+(*
+   Wrap one of the generated equal_* functions into one that selects
+   structural equality, ignoring node IDs and position information)
 *)
 let with_structural_equal equal a b =
   match !busy_with_equal with
@@ -68,6 +104,7 @@ let with_structural_equal equal a b =
       Fun.protect
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
+  | Syntactic_equal
   | Structural_equal
   | Referential_equal ->
       failwith "an equal is already in progress"
@@ -83,6 +120,7 @@ let with_referential_equal equal a b =
       Fun.protect
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
+  | Syntactic_equal
   | Structural_equal
   | Referential_equal ->
       failwith "an equal is already in progress"

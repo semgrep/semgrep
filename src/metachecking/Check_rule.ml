@@ -140,6 +140,8 @@ let unknown_metavar_in_comparison env f =
                | CondEval _ -> ()
                | CondRegexp (mv, _, _) ->
                    if not (mvar_is_ok mv mvs) then mv_error mv t
+               | CondType (mv, _, _, _) ->
+                   if not (mvar_is_ok mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
                    if not (mvar_is_ok mv mvs) then mv_error mv t
                | CondAnalysis (mv, _) ->

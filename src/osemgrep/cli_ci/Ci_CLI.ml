@@ -43,5 +43,7 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man
 
 let parse_argv (argv : string array) : conf =
   (* mostly a copy of Scan_CLI.parse_argv with different doc and man *)
-  let cmd : conf Cmd.t = Cmd.v cmdline_info Scan_CLI.cmdline_term in
+  let cmd : conf Cmd.t =
+    Cmd.v cmdline_info (Scan_CLI.cmdline_term ~allow_empty_config:true)
+  in
   CLI_common.eval_value ~argv cmd

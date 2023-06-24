@@ -2120,6 +2120,17 @@ and m_generic_targ_vs_type_targ lang tok a b =
        * and this will assume covariance. But it's probably not a big deal, and
        * they don't have to be invariant in all cases anyway. *)
       m_generic_type_vs_type_t lang tok t1 t2
+  (* TODO equivalence between Java `List<?>` and `List<? extends Object>`? *)
+  | G.TAWildcard (_, None), Type.TAWildcard None -> return ()
+  | G.TAWildcard (_, Some kinda), Type.TAWildcard (Some kindb) -> (
+      match (kinda, kindb) with
+      | ((false, _), t1), Type.TAUpper t2
+      | ((true, _), t1), Type.TALower t2 ->
+          m_generic_type_vs_type_t lang tok t1 t2
+      | _, Type.TAUpper _
+      | _, Type.TALower _ ->
+          fail ())
+  | G.TA _, Type.TAWildcard _
   | G.TA _, Type.OtherTypeArg _
   (* TODO Represent more typearg kinds in Type.t? *)
   | G.TAWildcard _, _
