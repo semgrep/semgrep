@@ -93,8 +93,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 # See docker-library/python#761 for an example of such an issue in the past
 # where the time between the CVE was discovered and the package update was X days, but
 # the new base image was updated only after Y days.
-RUN apk update &&\
-    apk upgrade
+RUN apk upgrade --no-cache
 
 
 # Here is why we need the apk packages below:
