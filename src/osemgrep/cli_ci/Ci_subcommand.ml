@@ -16,7 +16,8 @@
 (*****************************************************************************)
 
 (* from meta.py *)
-let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) =
+let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
+    unit Project_metadata.t =
   (* https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables *)
   let r =
     let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
