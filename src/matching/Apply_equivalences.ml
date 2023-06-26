@@ -34,8 +34,7 @@ let match_e_e_for_equivalences _ruleid lang a b =
           go_deeper_stmt = false;
         }
       in
-      let cache = None in
-      let env = Matching_generic.empty_environment cache lang config in
+      let env = Matching_generic.empty_environment lang config in
       Generic_vs_generic.m_expr_root a b env)
 
 (*****************************************************************************)

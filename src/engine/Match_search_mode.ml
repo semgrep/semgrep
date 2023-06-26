@@ -565,7 +565,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                        raise Impossible
                  in
                  let env =
-                   Matching_generic.empty_environment None lang env.xconf.config
+                   Matching_generic.empty_environment lang env.xconf.config
                  in
                  let matches =
                    GG.m_compatible_type lang
