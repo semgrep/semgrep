@@ -1,8 +1,0 @@
-Matching: Writing a pattern which is a sequence of statements, such as
-```
-foo();
-...
-bar();
-```
-now allows matching to sequences of statements within objects, classes,
-and related language constructs, in all languages.

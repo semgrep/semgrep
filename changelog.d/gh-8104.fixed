@@ -1,1 +1,0 @@
-Solidity: allow metavariables for version, as in `pragma solidity >= $VER;`
