@@ -531,6 +531,132 @@ let range_of_any_opt any =
 (* Fix token locations *)
 (*****************************************************************************)
 
+type any_range = {
+  range : (Tok.location * Tok.location) option ref;
+  any : (AST_generic.any * (Tok.location * Tok.location)) option ref;
+  position : int * string; (* charpos *)
+}
+
+class ['self] any_range_visitor =
+  let smaller t1 t2 =
+    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
+  in
+  let larger t1 t2 =
+    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
+  in
+  let range_within (t1, t2) (t1', t2') =
+    t1.Tok.pos.charpos >= t1'.Tok.pos.charpos
+    && t2.Tok.pos.charpos <= t2'.Tok.pos.charpos
+  in
+  let incorporate_tokens ranges (left, right) =
+    match !ranges with
+    | None -> ranges := Some (left, right)
+    | Some (orig_left, orig_right) ->
+        ranges := Some (larger orig_left left, smaller orig_right right)
+  in
+  let incorporate_token ranges tok =
+    if Tok.is_origintok tok then
+      let tok_loc = Tok.unsafe_loc_of_tok tok in
+      incorporate_tokens ranges (tok_loc, tok_loc)
+  in
+  let set_any_range info (any, range) =
+    let charpos, file = info.position in
+    let fake_pos =
+      Tok.{ str = ""; pos = { Pos.charpos; line = -1; column = -1; file } }
+    in
+    match (!(info.any), range) with
+    | _, None -> ()
+    | None, Some range ->
+        if range_within (fake_pos, fake_pos) range then
+          info.any := Some (any, range)
+    | Some (_, cur_range), Some range ->
+        if
+          range_within range cur_range
+          && range_within (fake_pos, fake_pos) range
+        then info.any := Some (any, range)
+  in
+  let handle_any info any visit_fn =
+    let saved_ranges = !(info.range) in
+    info.range := None;
+    visit_fn ();
+    set_any_range info (any, !(info.range));
+    match saved_ranges with
+    | None -> ()
+    | Some range -> incorporate_tokens info.range range
+  in
+  object (self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+    method! visit_tok info tok = incorporate_token info.range tok
+
+    method! visit_type_ info type_ =
+      handle_any info (T type_) (fun () -> super#visit_type_ info type_)
+
+    method! visit_pattern info pat =
+      handle_any info (P pat) (fun () -> super#visit_pattern info pat)
+
+    method! visit_field info field =
+      handle_any info (Fld field) (fun () -> super#visit_field info field)
+
+    method! visit_argument info arg =
+      handle_any info (Ar arg) (fun () -> super#visit_argument info arg)
+
+    method! visit_directive info directive =
+      handle_any info (Dir directive) (fun () ->
+          super#visit_directive info directive)
+
+    method! visit_attribute info attr =
+      handle_any info (At attr) (fun () -> super#visit_attribute info attr)
+
+    method! visit_definition info def =
+      handle_any info (Def def) (fun () -> super#visit_definition info def)
+
+    method! visit_parameter info param =
+      handle_any info (Pa param) (fun () -> super#visit_parameter info param)
+
+    method! visit_expr info expr =
+      match expr.e_range with
+      | None -> (
+          let saved_ranges = !(info.range) in
+          info.range := None;
+          super#visit_expr info expr;
+          expr.e_range <- !(info.range);
+          set_any_range info (E expr, !(info.range));
+          match saved_ranges with
+          | None -> ()
+          | Some range -> incorporate_tokens info.range range)
+      | Some range ->
+          set_any_range info (E expr, Some range);
+          incorporate_tokens info.range range
+
+    method! visit_stmt info stmt =
+      match stmt.s_range with
+      | None -> (
+          let saved_ranges = !(info.range) in
+          info.range := None;
+          super#visit_stmt info stmt;
+          stmt.s_range <- !(info.range);
+          set_any_range info (S stmt, !(info.range));
+          match saved_ranges with
+          | None -> ()
+          | Some range -> incorporate_tokens info.range range)
+      | Some range ->
+          set_any_range info (S stmt, Some range);
+          incorporate_tokens info.range range
+
+    (* Ignore the tokens from the aliased expression *)
+    method! visit_Alias ranges id _e = self#visit_ident ranges id
+  end
+
+let nearest_any_of_pos prog position =
+  let v = new any_range_visitor in
+  let info = { range = ref None; any = ref None; position } in
+  v#visit_program info prog;
+  !(info.any)
+
+(*****************************************************************************)
+(* Fix token locations *)
+(*****************************************************************************)
+
 let fix_token_locations_visitor =
   object (_self : 'self)
     inherit [_] AST_generic.map_legacy as super

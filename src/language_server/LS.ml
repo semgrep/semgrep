@@ -329,6 +329,26 @@ module Server = struct
             CodeActions.code_actions_of_core_matches matches [ file ]
           in
           (to_yojson (Some actions), server)
+      | TextDocumentHover { position; textDocument; _ } -> (
+          let file = Uri.to_path textDocument.uri in
+          let lang = Lang.lang_of_filename_exn (Fpath.v file) in
+          (* copied from -dump_ast *)
+          let { Parsing_result2.ast; _ } =
+            Parse_target.parse_and_resolve_name lang file
+            (* else Parse_target.just_parse_with_lang lang file
+            *)
+          in
+          let res =
+            AST_generic_helpers.nearest_any_of_pos ast (position.character, file)
+          in
+          match res with
+          | None -> (Some (`String "No AST node found at position."), server)
+          | Some (any, _) ->
+              let v = Meta_AST.vof_any any in
+              (* 80 columns is too little *)
+              Format.set_margin 120;
+              let s = OCaml.string_of_v v in
+              (Some (`String s), server))
       | CR.UnknownRequest { meth; params } ->
           handle_custom_request server meth params
       | CR.Shutdown ->
