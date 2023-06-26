@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -W ignore::DeprecationWarning
+#!/usr/bin/env python3
 
 # This file is the CLI entry point of the Semgrep pip package,
 # the Semgrep HomeBrew package, and the Semgrep Docker container.
@@ -26,11 +26,17 @@ import sys
 import importlib.resources
 import shutil
 
+#alt: you can also add '-W ignore::DeprecationWarning' after the python3 above,
+# but setuptools and pip adjust this line when installing semgrep so we need
+# this instead.
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
 def find_semgrep_core_path():
     # First, try the packaged binary.
     try:
-        # the use of .path causes a DeprecationWarning hence the -W ignore:Xxx above
+        # the use of .path causes a DeprecationWarning hence the filterwarnings above
         with importlib.resources.path("semgrep.bin", "semgrep-core") as path:
             if path.is_file():
                 return str(path)
