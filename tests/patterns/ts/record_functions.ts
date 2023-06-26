@@ -18,3 +18,6 @@ const z = foo({
         f: () => {return 1;},
     },
 })
+
+// ok: 
+const z = foo()
