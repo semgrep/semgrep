@@ -23,6 +23,7 @@ type 'e t = {
   extension : 'e;
 }
 
+(* TODO: use atd to serialize (and the same in the Semgrep App) *)
 let to_dict t =
   let open JSON in
   let or_null = Option.value ~default:Null in
