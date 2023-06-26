@@ -487,7 +487,14 @@ let parse_regexp env (s, t) =
   (* We try to compile the regexp just to make sure it's valid, but we store
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
   try
-    ignore (Regexp_engine.pcre_compile s);
+    (* calls `pcre.compile` *)
+    Metavariable.mvars_of_regexp_string s
+    |> List.iter (fun mvar ->
+           if not (Metavariable.is_metavar_name mvar) then
+             logger#warning
+               "Found invalid metavariable capture group name `%s` for regexp \
+                `%s` -- no binding produced"
+               mvar s);
     s
   with
   | Pcre.Error exn ->
