@@ -16,12 +16,21 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+      # Note that this action handles both cache read and cache write.
+      - name: Cache Opam
+        id: cache-opam
+        uses: actions/cache@v3
+        with:
+          path: ~/.opam
+          key: "${{ runner.os }}-${{ runner.arch }}-opam-deps"
       - run: |
           ./scripts/osx-setup-for-release.sh
           opam exec -- make core
           mkdir -p artifacts
           cp ./bin/semgrep-core artifacts
           zip -r artifacts.zip artifacts
+      - run: |
+          ls -al ~/.opam
       - uses: actions/upload-artifact@v3
         with:
           path: artifacts.zip
