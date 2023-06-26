@@ -99,7 +99,7 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                   "API token not valid. Try to run `semgrep logout` and \
                    `semgrep login` again.");
             Error Exit_code.invalid_api_key
-        | Some t -> Ok (Some t))
+        | Some t -> Ok (Some (token, t)))
   in
   (* TODO: pass baseline commit! *)
   let metadata = generate_meta_from_environment None in
@@ -125,30 +125,58 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
             Fmt.(styled `Bold string)
             (Option.value ~default:"unknown" metadata.Project_metadata.on));
       (* TODO: fix_head_if_github_action(metadata) *)
-      let _rules_source =
+      let _scan_id, _rules_and_origins =
         match depl with
-        | None -> conf.rules_source
-        | Some deployment ->
+        | None ->
+            ( None,
+              Rule_fetching.rules_from_rules_source
+                ~token_opt:settings.api_token
+                ~rewrite_rule_ids:conf.rewrite_rule_ids
+                ~registry_caching:conf.registry_caching conf.rules_source )
+        | Some (token, deployment) ->
             Logs.app (fun m ->
                 m "  %a" Fmt.(styled `Underline string) "CONNECTION");
             Logs.app (fun m ->
                 m "  Reporting start of scan for %a"
                   Fmt.(styled `Bold string)
                   deployment);
-            (* TODO: scan_handler.start_scan(metadata_dict) *)
-            let at_url_maybe ppf () = Fmt.string ppf "" in
-            (* TODO
-               at_url_maybe = (
-                        f" at [bold]{state.env.semgrep_url}[/bold]"
-                        if state.env.semgrep_url != "https://semgrep.dev"
-                        else ""
-                    )
-            *)
+            let metadata_dict = Project_metadata.to_dict metadata in
+            (* TODO: metadata_dict["is_sca_scan"] = supply_chain *)
+            (* TODO: proj_config = ProjectConfig.load_all()
+               metadata_dict = {**metadata_dict, **proj_config.to_dict()} *)
+            let scan_id =
+              Scan_helper.start_scan ~dry_run:conf.dryrun ~token
+                Semgrep_envvars.v.semgrep_url metadata_dict
+            in
+            let at_url_maybe ppf () =
+              if
+                Uri.equal Semgrep_envvars.v.semgrep_url
+                  (Uri.of_string "https://semgrep.dev")
+              then Fmt.string ppf ""
+              else
+                Fmt.pf ppf " at %a"
+                  Fmt.(styled `Bold string)
+                  (Uri.to_string Semgrep_envvars.v.semgrep_url)
+            in
             Logs.app (fun m ->
                 m "  Fetching configuration from Semgrep Cloud Platform%a"
                   at_url_maybe ());
-            (* TODO scan_handler.fetch_and_init_scan_config(metadata_dict) *)
-            conf.rules_source
+            let rules =
+              (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
+              Scan_helper.fetch_scan_config ~token ~sca:false
+                ~dry_run:conf.dryrun ~full_scan:metadata.is_full_scan
+                metadata.repository
+            in
+            ( Some scan_id,
+              [
+                Common2.with_tmp_file ~str:rules ~ext:"json" (fun file ->
+                    let file = Fpath.v file in
+                    let res =
+                      Rule_fetching.load_rules_from_file ~registry_caching:false
+                        file
+                    in
+                    { res with origin = None });
+              ] )
       in
       (* TODO: do the actual scan, and reporting *)
       Exit_code.ok
