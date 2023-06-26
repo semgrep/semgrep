@@ -182,8 +182,8 @@ repos:
     hooks:
       - id: semgrep
         name: Semgrep Jsonnet
-        # This uses the Python "hook" in .precommit-hooks.yaml and setup.py.
-        # alt: use '{ repo: local, and language: docker}', which can use
+        # This uses the Python "hook" in .pre-commit-hooks.yaml and setup.py.
+        # alt: use 'repo: local', and 'language: docker', which can use
         # the very latest docker image, which is nice, but is far slower.
         language: python
 
