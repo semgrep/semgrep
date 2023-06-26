@@ -453,6 +453,36 @@ let parse_python_expression env key s =
 
 let parse_metavar_cond env key s = parse_python_expression env key s
 
+let rec parse_type env key (str, tok) =
+  match env.languages.target_analyzer with
+  | Xlang.L (lang, _) ->
+      let str = wrap_type_expr env key lang str in
+      try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
+          Parse_pattern.parse_pattern lang ~print_errors:false str)
+      |> unwrap_type_expr env key lang
+  | Xlang.LRegex
+  | Xlang.LSpacegrep
+  | Xlang.LAliengrep ->
+      error_at_key env.id key
+        "`type` is not supported with regex, spacegrep or aliengrep."
+
+and wrap_type_expr env key lang str =
+  match lang with
+  (* `x` is a placeholder and won't be used during unwrapping. *)
+  | Lang.Java -> spf "(%s x)" str
+  | Lang.Python -> spf "x: %s" str
+  | _ ->
+      error_at_key env.id key
+        ("`metavariable-type` is not supported for " ^ Lang.show lang)
+
+and unwrap_type_expr env key lang expr =
+  match (lang, expr) with
+  | Lang.Java, G.E { e = G.TypedMetavar (_, _, t); _ } -> t
+  | Lang.Python, G.S { s = G.DefStmt (_, VarDef { vtype = Some t; _ }); _ } -> t
+  | _ ->
+      error_at_key env.id key
+        ("Failed to unwrap the type expression." ^ G.show_any expr)
+
 let parse_regexp env (s, t) =
   (* We try to compile the regexp just to make sure it's valid, but we store
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
@@ -708,6 +738,7 @@ let parse_xpattern_expr env e =
 (* extra conditions, usually on metavariable content *)
 type extra =
   | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
+  | MetavarType of MV.mvar * Xlang.t option * string * G.type_
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
@@ -840,6 +871,8 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
             let process_extra extra =
               match extra with
               | MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
+              | MetavarType (mvar, xlang_opt, s, t) ->
+                  R.CondType (mvar, xlang_opt, s, t)
               | MetavarPattern (mvar, xlang_opt, formula) ->
                   R.CondNestedFormula (mvar, xlang_opt, formula)
               | MetavarComparison { comparison; strip; _ } ->
@@ -854,17 +887,19 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
               ( find "focus-metavariable",
                 find "metavariable-analysis",
                 find "metavariable-regex",
+                find "metavariable-type",
                 find "metavariable-pattern",
                 find "metavariable-comparison" )
             with
-            | None, None, None, None, None ->
+            | None, None, None, None, None, None ->
                 Left3 (get_nested_formula_in_list env i expr)
-            | Some (((_, t) as key), value), None, None, None, None ->
+            | Some (((_, t) as key), value), None, None, None, None, None ->
                 Middle3 (t, parse_focus_mvs env key value)
-            | None, Some (key, value), None, None, None
-            | None, None, Some (key, value), None, None
-            | None, None, None, Some (key, value), None
-            | None, None, None, None, Some (key, value) ->
+            | None, Some (key, value), None, None, None, None
+            | None, None, Some (key, value), None, None, None
+            | None, None, None, Some (key, value), None, None
+            | None, None, None, None, Some (key, value), None
+            | None, None, None, None, None, Some (key, value) ->
                 Right3 (snd key, parse_extra env key value |> process_extra)
             | _ ->
                 error_at_expr env.id expr
@@ -892,6 +927,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "focus-metavariable"
   | "metavariable-analysis"
   | "metavariable-regex"
+  | "metavariable-type"
   | "metavariable-pattern"
   | "metavariable-comparison" ->
       error_at_key env.id key "Must occur directly under a patterns:"
@@ -939,6 +975,29 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
           match const_prop with
           | Some b -> b
           | None -> false )
+  | "metavariable-type" ->
+      let mv_type_dict = yaml_to_dict env key value in
+      let metavar = take mv_type_dict env parse_string "metavariable" in
+      let type_str = take mv_type_dict env parse_string_wrap "type" in
+      let env', opt_xlang =
+        match take_opt mv_type_dict env parse_string "language" with
+        | Some s ->
+            let xlang = Xlang.of_string ~rule_id:(env.id :> string) s in
+            let env' =
+              {
+                id = env.id;
+                languages = Rule.languages_of_xlang xlang;
+                in_metavariable_pattern = env.in_metavariable_pattern;
+                path = "metavariable-type" :: "metavariable" :: env.path;
+                options_key = None;
+                options = None;
+              }
+            in
+            (env', Some xlang)
+        | ___else___ -> (env, None)
+      in
+      let t = parse_type env' key type_str in
+      MetavarType (metavar, opt_xlang, fst type_str, t)
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
       let metavar = take mv_pattern_dict env parse_string "metavariable" in

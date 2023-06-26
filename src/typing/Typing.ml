@@ -197,6 +197,15 @@ and type_of_ast_generic_type lang t : G.name Type.t =
         args
         |> Common.map (function
              | G.TA t -> Type.TA (type_of_ast_generic_type lang t)
+             | G.TAWildcard (_, None) -> Type.TAWildcard None
+             | G.TAWildcard (_, Some ((kind, _), t)) ->
+                 let t = type_of_ast_generic_type lang t in
+                 let kind =
+                   match kind with
+                   | false -> Type.TAUpper t
+                   | true -> Type.TALower t
+                 in
+                 Type.TAWildcard (Some kind)
              | _else_ -> Type.OtherTypeArg None)
       in
       Type.N ((name, args), [])
