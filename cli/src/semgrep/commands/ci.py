@@ -435,7 +435,7 @@ def ci(
     # Remove the prev scan matches by the rules that are in the current scan
     # Done before the next loop to avoid interfering with ignore logic
     removed_prev_scan_matches = {
-        rule: [match for match in matches if (not match.is_prev_scan)]
+        rule: [match for match in matches]
         for rule, matches in filtered_matches_by_rule.items()
         if (not rule.is_prev_scan)
     }
@@ -475,7 +475,7 @@ def ci(
         all_targets=output_extra.all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
-        filtered_rules=[*blocking_rules, *nonblocking_rules, *cai_rules],
+        filtered_rules=[*blocking_rules, *nonblocking_rules],
         profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
