@@ -53,6 +53,10 @@ let stmt_of_def_or_dir = function
   | Right3 dir -> DirectiveStmt dir |> G.s
   | Middle3 ellipsis_tok -> G.exprstmt (G.e (Ellipsis ellipsis_tok))
 
+(* TODO: we should also adjust the pos for 't' *)
+let left_strip_space (s, t) =
+  if s =~ "^ +\\(.*\\)$" then (Common.matched1 s, t) else (s, t)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -389,16 +393,29 @@ let map_decimal_number (env : env) (x : CST.decimal_number) =
       (float_of_string_opt s, t)
 
 let map_pragma_version_constraint (env : env)
-    ((v1, v2) : CST.pragma_version_constraint) : any list =
-  let v1 =
-    match v1 with
-    | Some x ->
-        let op, t = map_solidity_version_comparison_operator env x in
-        [ E (IdSpecial (Op op, t) |> G.e) ]
-    | None -> []
-  in
-  let v2 = (* pattern \d+(.\d+(.\d+)?)? *) str env v2 in
-  v1 @ [ Str (fb v2) ]
+    (v : CST.pragma_version_constraint) : expr =
+  match v with
+  | `Opt_soli_vers_comp_op_soli_vers (v1, v2) -> (
+      let ver =
+        (* pattern \d+(.\d+(.\d+)?)? *) str env v2 |> left_strip_space
+      in
+      let e = G.L (G.String (fb ver)) |> G.e in
+      match v1 with
+      | Some x ->
+          let op, t = map_solidity_version_comparison_operator env x in
+          G.opcall (op, t) [ e ]
+      | None -> e)
+  | `Opt_soli_vers_comp_op_id (v1, v2) -> (
+      (* TODO? not sure why we need those left_strip_space here; the grammar seems
+       * ok but in practice the identifier has a leading space
+       *)
+      let id = str env v2 |> left_strip_space in
+      let e = G.N (H2.name_of_id id) |> G.e in
+      match v1 with
+      | Some x ->
+          let op, t = map_solidity_version_comparison_operator env x in
+          G.opcall (op, t) [ e ]
+      | None -> e)
 
 let map_fixed (env : env) (x : CST.fixed) =
   match x with
@@ -940,23 +957,25 @@ let map_yul_assignment (env : env) (x : CST.yul_assignment) : expr =
 
 let map_solidity_pragma_token (env : env) ((v1, v2) : CST.solidity_pragma_token)
     : ident * any list =
-  let tsol = (* "solidity" *) str env v1 in
+  let idsol = (* "solidity" *) str env v1 in
   let anys =
-    Common.map
-      (fun (v1, v2) ->
-        let v1 = map_pragma_version_constraint env v1 in
-        let v2 =
-          match v2 with
-          | Some x -> (
-              match x with
-              | `BARBAR tok -> (* "||" *) [ Tk (token env tok) ]
-              | `DASH tok -> (* "-" *) [ Tk (token env tok) ])
-          | None -> []
-        in
-        v1 @ v2)
-      v2
+    v2
+    |> Common.map (fun (v1, v2) ->
+           let e = map_pragma_version_constraint env v1 in
+           (* TODO: maybe we should generate a big boolean expression
+            * with 'solidity' id instead of an any list
+            *)
+           let v2 =
+             match v2 with
+             | Some x -> (
+                 match x with
+                 | `BARBAR tok -> (* "||" *) [ Tk (token env tok) ]
+                 | `DASH tok -> (* "-" *) [ Tk (token env tok) ])
+             | None -> []
+           in
+           [ G.E e ] @ v2)
   in
-  (tsol, List.flatten anys)
+  (idsol, List.flatten anys)
 
 let map_pragma_value (env : env) (x : CST.pragma_value) =
   let t = token (* pattern [^;]+ *) env x in

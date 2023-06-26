@@ -81,7 +81,12 @@ type finding =
   | ToArg of taint list * arg
 [@@deriving show]
 
-type signature = finding list
+val compare_finding : finding -> finding -> int
+
+module Findings : Set.S with type elt = finding
+module Findings_tbl : Hashtbl.S with type key = finding
+
+type signature = Findings.t
 (** A taint signature, it is simply a list of findings for a function.
  *
  * Note that `ArgToSink` and `ArgToReturn` introduce a form of

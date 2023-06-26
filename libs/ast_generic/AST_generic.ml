@@ -539,14 +539,20 @@ and qualifier =
 (*****************************************************************************)
 (* Naming/typing *)
 (*****************************************************************************)
+(* The derived equal is overriden for multiple fields of id_info. This is
+   to allow certain modes of equality to ignore id_info when comparing
+   AST nodes. See AST_utils.Syntactic_equal for details *)
 and id_info = {
   id_resolved : resolved_name option ref;
+      [@equal
+        AST_utils.equal_id_info (Common.equal_ref_option equal_resolved_name)]
   (* variable tagger (naming) *)
   (* sgrep: in OCaml we also use that to store the type of
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
    *)
   id_type : type_ option ref;
+      [@equal AST_utils.equal_id_info (Common.equal_ref_option equal_type_)]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
@@ -576,7 +582,7 @@ and id_info = {
      that skips a target file if some identifier in the pattern AST doesn't
      exist in the source of the target.
   *)
-  id_hidden : bool;
+  id_hidden : bool; [@equal AST_utils.equal_id_info (fun a b -> a = b)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
@@ -1839,6 +1845,9 @@ and or_type_element =
  * note: not all stmt in FieldStmt are definitions. You can have also
  * a Block like in Kotlin for 'init' stmts.
  * However ideally 'field' should really be just an alias for 'definition'.
+ * note: while fields and stmts are separate entities, we have special
+ * logic which permits a pattern of stmts to match to a target of fields.
+ * see Match_patterns v_fields for more
  *
  * old: there used to be a FieldVar and FieldMethod similar to
  * VarDef and FuncDef but they are now converted into a FieldStmt(DefStmt).

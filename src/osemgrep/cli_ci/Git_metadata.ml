@@ -19,37 +19,47 @@ let env =
   let _semgrep_repo_name =
     let doc = "The name of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_REPO_NAME" in
-    Arg.(value & opt (some string) None & info [] ~env ~doc)
+    Arg.(
+      value & opt (some string) None & info [ "semgrep-repo-name" ] ~env ~doc)
   in
   let _semgrep_repo_url =
     let doc = "The URL of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_REPO_URL" in
-    Arg.(value & opt (some Cmdliner_helpers.uri) None & info [] ~env ~doc)
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.uri) None
+      & info [ "semgrep-repo-url" ] ~env ~doc)
   in
   let _semgrep_commit =
     let doc = "The commit of the Git repository." in
     let env = Cmd.Env.info "SEMGREP_COMMIT" in
-    Arg.(value & opt (some Cmdliner_helpers.sha1) None & info [] ~env ~doc)
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.sha1) None
+      & info [ "semgrep-commit" ] ~env ~doc)
   in
   let _semgrep_job_url =
     let doc = "The job URL." in
     let env = Cmd.Env.info "SEMGREP_JOB_URL" in
-    Arg.(value & opt (some Cmdliner_helpers.uri) None & info [] ~env ~doc)
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.uri) None
+      & info [ "semgrep-job-url" ] ~env ~doc)
   in
   let _semgrep_pr_id =
     let doc = "The PR/MR ID." in
     let env = Cmd.Env.info "SEMGREP_PR_ID" in
-    Arg.(value & opt (some string) None & info [] ~env ~doc)
+    Arg.(value & opt (some string) None & info [ "semgrep-pr-id" ] ~env ~doc)
   in
   let _semgrep_pr_title =
     let doc = "The PR/MR title." in
     let env = Cmd.Env.info "SEMGREP_PR_TITLE" in
-    Arg.(value & opt (some string) None & info [] ~env ~doc)
+    Arg.(value & opt (some string) None & info [ "semgrep-pr-title" ] ~env ~doc)
   in
   let _semgrep_branch =
     let doc = "The Git branch." in
     let env = Cmd.Env.info "SEMGREP_BRANCH" in
-    Arg.(value & opt (some string) None & info [] ~env ~doc)
+    Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
   in
   let run _SEMGREP_REPO_NAME _SEMGREP_REPO_URL _SEMGREP_COMMIT _SEMGREP_JOB_URL
       _SEMGREP_PR_ID _SEMGREP_PR_TITLE _SEMGREP_BRANCH =
