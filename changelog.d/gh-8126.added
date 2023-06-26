@@ -1,3 +1,0 @@
-feat(rule syntax): Support metavariable-type field for Python
-
-`metavariable-type` field is now supported for Python too.
