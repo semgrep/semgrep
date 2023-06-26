@@ -459,7 +459,7 @@ let rec parse_type env key (str, tok) =
       let str = wrap_type_expr env key lang str in
       try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
           Parse_pattern.parse_pattern lang ~print_errors:false str)
-      |> unwrap_typed_metavar env key
+      |> unwrap_type_expr env key lang
   | Xlang.LRegex
   | Xlang.LSpacegrep
   | Xlang.LAliengrep ->
@@ -470,14 +470,18 @@ and wrap_type_expr env key lang str =
   match lang with
   (* `x` is a placeholder and won't be used during unwrapping. *)
   | Lang.Java -> spf "(%s x)" str
+  | Lang.Python -> spf "x: %s" str
   | _ ->
       error_at_key env.id key
         ("`metavariable-type` is not supported for " ^ Lang.show lang)
 
-and unwrap_typed_metavar env key expr =
-  match expr with
-  | G.E { e = G.TypedMetavar (_, _, t); _ } -> t
-  | _ -> error_at_key env.id key "Failed to unwrap the type expression."
+and unwrap_type_expr env key lang expr =
+  match (lang, expr) with
+  | Lang.Java, G.E { e = G.TypedMetavar (_, _, t); _ } -> t
+  | Lang.Python, G.S { s = G.DefStmt (_, VarDef { vtype = Some t; _ }); _ } -> t
+  | _ ->
+      error_at_key env.id key
+        ("Failed to unwrap the type expression." ^ G.show_any expr)
 
 let parse_regexp env (s, t) =
   (* We try to compile the regexp just to make sure it's valid, but we store
