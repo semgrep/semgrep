@@ -1,8 +1,7 @@
-import json
-
 import pytest
-from tests.conftest import _clean_stdout
 from tests.fixtures import RunSemgrep
+
+from semgrep.constants import OutputFormat
 
 
 @pytest.mark.kinda_slow
@@ -13,15 +12,22 @@ from tests.fixtures import RunSemgrep
         ("rules/invalid-rules/invalid-pattern-child.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-missing-top-item.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-pattern.yaml", "basic/stupid.py"),
+        ("rules/invalid-rules/string-pattern.yaml", "basic/stupid.py"),
+        ("rules/invalid-rules/string-pattern-under-patterns.yaml", "basic/stupid.py"),
+        ("rules/invalid-rules/missing-hyphen.yaml", "basic/stupid.py"),
     ],
 )
 def test_validation_of_invalid_rules(
     run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target
 ):
-    stdout, _ = run_semgrep_in_tmp(rule, target_name=target, assert_exit_code={2, 7})
-
-    semgrep_json_output = json.loads(_clean_stdout(stdout))
+    _, err = run_semgrep_in_tmp(
+        rule,
+        options=["--validate"],
+        output_format=OutputFormat.TEXT,
+        assert_exit_code={2, 4},
+    )
 
     snapshot.assert_match(
-        json.dumps(semgrep_json_output, indent=2, sort_keys=True), "results.json"
+        err,
+        "results.txt",
     )
