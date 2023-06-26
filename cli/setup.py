@@ -74,7 +74,6 @@ def find_executable(env_name, exec_name):
     )
 
 
-#
 # The default behavior is to copy the semgrep-core binary
 # into some other folder known to the semgrep wrapper. If somebody knows why,
 # please explain why we do this.
@@ -147,7 +146,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.28.0",
+    version="1.29.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
@@ -157,7 +156,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    scripts=["bin/semgrep"],
+    scripts=["bin/semgrep", "bin/pysemgrep"],
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
