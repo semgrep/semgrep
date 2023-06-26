@@ -15,6 +15,56 @@
 (* Helpers *)
 (*****************************************************************************)
 
+(* from meta.py *)
+let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
+    unit Project_metadata.t =
+  (* https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables *)
+  let r =
+    let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
+    match Sys.getenv_opt "GITHUB_ACTIONS" with
+    | Some "true" ->
+        (* TODO baseline_ref *)
+        Cmdliner.Cmd.(eval_value ~argv (v info_ Github_metadata.term))
+    | _else ->
+        (* TODO baseline_ref *)
+        Cmdliner.Cmd.(eval_value ~argv (v info_ Git_metadata.term))
+    (* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
+    (* match Sys.getenv_opt "GITLAB_CI" with
+       | Some "true" -> return GitlabMeta(baseline_ref)
+       | _else -> *)
+    (* https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables *)
+    (* match Sys.getenv_opt "CIRCLECI" with
+       | Some "true" -> return CircleCIMeta(baseline_ref)
+       | _else -> *)
+    (* https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/ *)
+    (* match Sys.getenv_opt "JENKINS_URL" with
+        | Some _ -> return JenkinsMeta(baseline_ref)
+        | None -> *)
+    (* https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/ *)
+    (* match Sys.getenv_opt "BITBUCKET_BUILD_NUMBER" with
+       | Some _ -> return BitbucketMeta(baseline_ref)
+       | None -> *)
+    (* https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
+       picked an env var that is only defined by Azure Pipelines *)
+    (* match Sys.getenv_opt "BUILD_BUILDID" with
+       | Some _ -> AzurePipelinesMeta(baseline_ref)
+       | None -> *)
+    (* https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email *)
+    (* match Sys.getenv_opt "BUILDKITE" with
+       | Some "true" -> return BuildkiteMeta(baseline_ref)
+       | _else -> *)
+    (* https://docs.travis-ci.com/user/environment-variables/ *)
+    (* match Sys.getenv_opt "TRAVIS" with
+       | Some "true" -> return TravisMeta(baseline_ref)
+       | _else -> return GitMeta(baseline_ref) *)
+  in
+  match r with
+  | Ok (`Ok a) -> a
+  | Ok `Version
+  | Ok `Help ->
+      invalid_arg "unexpected version or help"
+  | Error _e -> invalid_arg "couldn't decode environment"
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -51,26 +101,29 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
             Error Exit_code.invalid_api_key
         | Some t -> Ok (Some t))
   in
+  (* TODO: pass baseline commit! *)
+  let metadata = generate_meta_from_environment None in
   match deployment with
   | Error e -> e
   | Ok depl ->
       Logs.app (fun m -> m "%a" Fmt_helpers.pp_heading "Debugging Info");
       Logs.app (fun m ->
           m "  %a" Fmt.(styled `Underline string) "SCAN ENVIRONMENT");
-      (* TODO: "on python sys.version_info.micro" *)
       Logs.app (fun m ->
-          m "  versions    - semgrep %a"
+          m "  versions    - semgrep %a on OCaml %a"
             Fmt.(styled `Bold string)
-            Version.version);
-      (* TODO: use metadata.environment and metadata.event_name *)
+            Version.version
+            Fmt.(styled `Bold string)
+            Sys.ocaml_version);
       Logs.app (fun m ->
           m
             "  environment - running in environment %a, triggering event is \
              %a@."
             Fmt.(styled `Bold string)
-            "git"
+            (Option.value ~default:"unknown"
+               metadata.Project_metadata.scan_environment)
             Fmt.(styled `Bold string)
-            "unknown");
+            (Option.value ~default:"unknown" metadata.Project_metadata.on));
       (* TODO: fix_head_if_github_action(metadata) *)
       let _rules_source =
         match depl with
