@@ -11,14 +11,8 @@ on:
 jobs:
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: [self-hosted, macOS, X64]
+    runs-on: macos-12
     steps:
-      # see the comment in build-test-osx-m1.yaml why we need this step
-      - name: Clean Checkout
-        run: |
-          rm -rf ./*
-          rm -f .gitmodules
-          rm -rf .git
       - uses: actions/checkout@v3
         with:
           submodules: true
