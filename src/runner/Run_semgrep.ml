@@ -669,7 +669,9 @@ let extracted_targets_of_config (config : Runner_config.t)
         | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
         | `Search _
         | `Taint _
-        | `Step _ ->
+        | `Step _
+        | `Secrets _
+          ->
             None)
       all_rules
   in
@@ -773,7 +775,9 @@ let semgrep_with_rules ?match_hook config
                     | `Extract _ -> false
                     | `Search _
                     | `Taint _
-                    | `Step _ ->
+                    | `Step _
+                    | `Secrets _
+                      ->
                         true)
              |> List.filter (fun r ->
                     (* TODO: some of this is already done in pysemgrep, so maybe

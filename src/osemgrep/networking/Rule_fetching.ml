@@ -62,7 +62,7 @@ let fetch_content_from_url ?(token_opt = None) (url : Uri.t) : string =
       | None -> None
       | Some token -> Some [ ("authorization", "Bearer " ^ token) ]
     in
-    match Http_helpers.get ?headers url with
+    match Http.get ?headers url with
     | Ok body -> body
     | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)

@@ -12,7 +12,7 @@ let start_scan ~dry_run ~token url meta =
     in
     let scan_endpoint = Uri.with_path url "api/agent/deployments/scans" in
     let body = JSON.(string_of_json (Object [ ("meta", meta) ])) in
-    match Http_helpers.post ~body ~headers scan_endpoint with
+    match Http.post ~body ~headers scan_endpoint with
     | Ok body -> (
         let json = JSON.json_of_string body in
         match json with
@@ -51,7 +51,7 @@ let fetch_scan_config ~token ~sca ~dry_run ~full_scan repository =
   let url = Semgrep_App.scan_config ~sca ~dry_run ~full_scan repository in
   let content =
     let headers = [ ("authorization", "Bearer " ^ token) ] in
-    match Http_helpers.get ~headers url with
+    match Http.get ~headers url with
     | Ok body -> body
     | Error msg ->
         (* was raise Semgrep_error, but equivalent to abort now *)

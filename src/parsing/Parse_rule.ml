@@ -1646,6 +1646,8 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
+  | Some ("secrets", _), _ ->
+      `Secrets { secret = () }
   | Some ("step", _), _ ->
       let steps = take rule_dict env parse_steps "steps" in
       `Step steps

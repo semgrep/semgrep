@@ -124,6 +124,10 @@ a few other projects developed at r2c.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name http)
+  (synopsis "XXX")
+  (description "XXX")
+)
 
 (package
   (name lib_parsing)

@@ -96,7 +96,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                     {|{"token_request_key": "|} ^ Uuidm.to_string session_id
                     ^ {|"}|}
                   in
-                  match Http_helpers.post ~body url with
+                  match Http.post ~body url with
                   | Ok body -> (
                       try
                         match Yojson.Basic.from_string body with

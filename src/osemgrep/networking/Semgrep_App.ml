@@ -18,7 +18,7 @@ let get_deployment_id ~token_opt =
   | None -> None
   | Some token -> (
       match
-        Http_helpers.get
+        Http.get
           ~headers:[ ("authorization", "Bearer " ^ token) ]
           (Uri.with_path Semgrep_envvars.v.semgrep_url
              "api/agent/deployments/current")
@@ -45,7 +45,7 @@ let get_deployment_id ~token_opt =
 (* from auth.py *)
 let get_deployment_from_token ~token =
   match
-    Http_helpers.get
+    Http.get
       ~headers:[ ("authorization", "Bearer " ^ token) ]
       (Uri.with_path Semgrep_envvars.v.semgrep_url
          "api/agent/deployments/current")

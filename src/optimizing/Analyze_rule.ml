@@ -605,6 +605,7 @@ let regexp_prefilter_of_rule (r : R.rule) =
         | `Extract { formula = f; _ } ->
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+        | `Secrets _ (* TODO *)
         | `Step _ -> (* TODO *) None
       with
       (* TODO: see tests/rules/tainted-filename.yaml,
