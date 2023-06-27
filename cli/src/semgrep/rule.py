@@ -262,6 +262,7 @@ class Rule:
             else RuleProduct.sast
         )
 
+    # TODO: auto-generate this in ATD definition.
     @property
     def scan_source(self) -> RuleScanSource:
         src: str = self.metadata.get("semgrep.dev", {}).get("src", "")

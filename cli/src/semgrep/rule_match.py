@@ -554,6 +554,7 @@ class RuleMatch:
             ret.sca_info = self.extra["sca_info"]
         return ret
 
+    # TODO: auto-generate this in ATD definition.
     @property
     def scan_source(self) -> RuleScanSource:
         src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
