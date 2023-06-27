@@ -68,10 +68,8 @@ For beginners, we recommend starting with the [Semgrep Cloud Platform](#option-2
     ```bash
     # For macOS
     $ brew install semgrep
-    
     # For Ubuntu/WSL/Linux/macOS
     $ python3 -m pip install semgrep
-    
     # To try Semgrep without installation run via Docker
     $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
     ```
