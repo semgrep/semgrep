@@ -76,8 +76,8 @@ For beginners, we recommend starting with the [Semgrep Cloud Platform](#option-2
     $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
     ```
 
-3.  Go to your app's root directory and run `semgrep scan --config auto`. This scans your project with the default settings.
-4.  Optional: Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser, and then click **Activate**.
+2.  Go to your app's root directory and run `semgrep scan --config auto`. This scans your project with the default settings.
+3.  Optional: Run `semgrep login` to get the login URL for the Semgrep Cloud Platform. Open the login URL in the browser, and then click **Activate**.
 
 ### Option 2: Getting started from the Semgrep Cloud Platform (Recommended)
 
