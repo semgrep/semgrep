@@ -56,8 +56,7 @@ def find_semgrep_core_path():
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
     # or Docker (see ../../Dockerfile), we actually copy semgrep-core in
     # /usr/local/bin (or in a bin/ folder in the PATH). In those cases,
-    # there are no /.../site-packages/semgrep-xxx/bin/semgrep-core, because 'pip
-    # install' was run with a 'SEMGREP_SKIP_BIN=true' in the environment.
+    # there are no /.../site-packages/semgrep-xxx/bin/semgrep-core.
     # In those cases, we want to grab semgrep-core from the PATH instead.
     path = shutil.which("semgrep-core")
     if path is not None:
