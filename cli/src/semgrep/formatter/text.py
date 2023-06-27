@@ -586,16 +586,17 @@ def print_text_output(
                 5 * " ",
                 False,
             )
+            severity = (
+                (
+                    f"{8 * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
+                )
+                if "sca_info" in rule_match.extra
+                and "sca-severity" in rule_match.metadata
+                else ""
+            )
             message_text = click.wrap_text(f"{message}", width, 8 * " ", 8 * " ", True)
-            console.print(f"{title_text}\n{message_text}\n{shortlink_text}")
+            console.print(f"{title_text}\n{severity}{message_text}\n{shortlink_text}")
 
-        last_file = current_file
-        last_message = message
-        next_rule_match = (
-            sorted_rule_matches[rule_index + 1]
-            if rule_index != len(sorted_rule_matches) - 1
-            else None
-        )
         autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
         if fix is not None:
             console.print(
@@ -606,7 +607,37 @@ def print_text_output(
             console.print(
                 f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
             )
+        elif (
+            "sca_info" in rule_match.extra
+            and "sca-fix-versions" in rule_match.metadata
+            and (last_message is None or last_message != message)
+        ):
+            fix_tag = with_color(Colors.green, "         ▶▶┆ Fixed at versions:")
+            # this is a list of objects like [{'minimist': '0.2.4'}, {'minimist': '1.2.6'}]
+            fixes = rule_match.metadata["sca-fix-versions"]
+            # will be structure { 'package_name': set('1.2.3', '2.3.4') }
+            reduced_fixes: Dict[str, set[str]] = {}
+            for fix_obj in fixes:
+                for name, version in fix_obj.items():
+                    if name not in reduced_fixes:
+                        reduced_fixes[name] = set()
+                    reduced_fixes[name].add(version)
+            console.print(fix_tag)
+            for name, versions in reduced_fixes.items():
+                console.print(
+                    with_color(
+                        Colors.green, f"           ┆   {name}: {', '.join(versions)}"
+                    )
+                )
+            console.print("          ⋮┆")
 
+        last_file = current_file
+        last_message = message
+        next_rule_match = (
+            sorted_rule_matches[rule_index + 1]
+            if rule_index != len(sorted_rule_matches) - 1
+            else None
+        )
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
