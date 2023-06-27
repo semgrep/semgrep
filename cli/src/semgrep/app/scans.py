@@ -377,10 +377,14 @@ class ScanHandler:
         try:
             response.raise_for_status()
 
-            resp_errors = response.json()["errors"]
+            res = response.json()
+            resp_errors = res["errors"]
             for error in resp_errors:
                 message = error["message"]
                 click.echo(f"Server returned following warning: {message}", err=True)
+
+            if "task_id" in res:
+                complete["task_id"] = res["task_id"]
 
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
