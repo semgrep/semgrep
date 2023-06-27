@@ -253,8 +253,9 @@ let top_func () =
           ( fake t "new",
             G.New (fake t "new", type_ ty, G.empty_id_info (), (l, [], r))
             |> G.e )
-    | Call (Id ("make", t), None, (l, [ ArgType ty ], r)) ->
-        G.New (fake t "make", type_ ty, G.empty_id_info (), (l, [], r))
+    | Call (Id ("make", t), None, (l, ArgType ty :: args, r)) ->
+        let args = arguments args in
+        G.New (fake t "make", type_ ty, G.empty_id_info (), (l, args, r))
     | Call v1 ->
         let e, args = call_expr v1 in
         G.Call (e, args)
