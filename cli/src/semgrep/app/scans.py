@@ -369,7 +369,7 @@ class ScanHandler:
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/results",
             timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
