@@ -15,6 +15,51 @@
 (* Helpers *)
 (*****************************************************************************)
 
+(* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
+let at_url_maybe ppf () =
+  if
+    Uri.equal Semgrep_envvars.v.semgrep_url
+      (Uri.of_string "https://semgrep.dev")
+  then Fmt.string ppf ""
+  else
+    Fmt.pf ppf " at %a"
+      Fmt.(styled `Bold string)
+      (Uri.to_string Semgrep_envvars.v.semgrep_url)
+
+let decode_rules data =
+  Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
+      let file = Fpath.v file in
+      let res =
+        Rule_fetching.load_rules_from_file ~registry_caching:false file
+      in
+      { res with origin = None })
+
+let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository scan_id =
+  Logs.app (fun m ->
+      m "  Fetching configuration from Semgrep Cloud Platform%a" at_url_maybe ());
+  match
+    Scan_helper.fetch_scan_config ~token ~sca ~dry_run ~full_scan repository
+  with
+  | Error msg ->
+      Logs.err (fun m -> m "Failed to download configuration: %s" msg);
+      let r = Exit_code.fatal in
+      ignore
+        (Scan_helper.report_failure ~dry_run ~token ~scan_id
+           (Exit_code.to_int r));
+      Error r
+  | Ok rules ->
+      let rules_and_origins =
+        try decode_rules rules with
+        | Error.Semgrep_error (_, opt_ex) as e ->
+            let ex = Option.value ~default:Exit_code.fatal opt_ex in
+            ignore
+              (Scan_helper.report_failure ~dry_run ~token ~scan_id
+                 (Exit_code.to_int ex));
+            let e = Exception.catch e in
+            Exception.reraise e
+      in
+      Ok (Some scan_id, [ rules_and_origins ])
+
 (* from meta.py *)
 let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
     unit Project_metadata.t =
@@ -125,7 +170,13 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
             Fmt.(styled `Bold string)
             (Option.value ~default:"unknown" metadata.Project_metadata.on));
       (* TODO: fix_head_if_github_action(metadata) *)
-      let r =
+      (* Either a scan_id and the rules for the project, or None and the rules
+         specified on command-line. If something fails, an exit code is
+         returned. *)
+      let (r
+            : ( string option * Rule_fetching.rules_and_origin list,
+                Exit_code.t )
+              result) =
         match depl with
         | None ->
             Ok
@@ -152,57 +203,11 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
             | Error msg ->
                 Logs.err (fun m -> m "%s" msg);
                 Error Exit_code.fatal
-            | Ok scan_id -> (
-                let at_url_maybe ppf () =
-                  if
-                    Uri.equal Semgrep_envvars.v.semgrep_url
-                      (Uri.of_string "https://semgrep.dev")
-                  then Fmt.string ppf ""
-                  else
-                    Fmt.pf ppf " at %a"
-                      Fmt.(styled `Bold string)
-                      (Uri.to_string Semgrep_envvars.v.semgrep_url)
-                in
-                Logs.app (fun m ->
-                    m "  Fetching configuration from Semgrep Cloud Platform%a"
-                      at_url_maybe ());
-                match
-                  (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
-                  Scan_helper.fetch_scan_config ~token ~sca:false
-                    ~dry_run:conf.dryrun ~full_scan:metadata.is_full_scan
-                    metadata.repository
-                with
-                | Error msg ->
-                    Logs.err (fun m ->
-                        m "Failed to download configuration: %s" msg);
-                    let r = Exit_code.fatal in
-                    ignore
-                      (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
-                         ~scan_id (Exit_code.to_int r));
-                    Error r
-                | Ok rules ->
-                    let rules_and_origins =
-                      try
-                        Common2.with_tmp_file ~str:rules ~ext:"json"
-                          (fun file ->
-                            let file = Fpath.v file in
-                            let res =
-                              Rule_fetching.load_rules_from_file
-                                ~registry_caching:false file
-                            in
-                            { res with origin = None })
-                      with
-                      | Error.Semgrep_error (_, opt_ex) as e ->
-                          let ex =
-                            Option.value ~default:Exit_code.fatal opt_ex
-                          in
-                          ignore
-                            (Scan_helper.report_failure ~dry_run:conf.dryrun
-                               ~token ~scan_id (Exit_code.to_int ex));
-                          let e = Exception.catch e in
-                          Exception.reraise e
-                    in
-                    Ok (Some scan_id, [ rules_and_origins ])))
+            | Ok scan_id ->
+                (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
+                fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
+                  ~full_scan:metadata.is_full_scan
+                  ~repository:metadata.repository scan_id)
       in
       match r with
       | Error ex -> ex
