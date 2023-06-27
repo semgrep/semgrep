@@ -1,6 +1,12 @@
 # This workflow builds and tests the semgrep-core binary for macOS X86
 # and generates osx-wheel for pypi.
 
+# This workflow will cache the ~/.opam directory, which is not symmetic with our other architecture's build processes.
+# This runs on GHA-hosted runners, so without caching, it runs very slowly. The Linux build uses a container to bring in the
+# required dependencies, and the M1 build runs on a self-hosted machine where caching isn't necessary.
+# To update to a new version of OCaml, we can switch out `OPAM_SWITCH_NAME` var which will update the cache key, and lead to a cache miss
+# on the new builds.
+
 # coupling: if you modify this file, modify also build-test-osx-m1.yaml
 name: build-test-osx-x86
 
