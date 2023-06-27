@@ -198,11 +198,11 @@ let semgrep_with_prepared_rules_and_targets (config : Runner_config.t)
    Take in rules and targets and return object with findings.
 *)
 let invoke_semgrep_core ?(respect_git_ignore = true)
-    ?(file_match_results_hook = None) (conf : conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
-    result =
+    ?(file_match_results_hook = None) ~matching_explanations (conf : conf)
+    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
+    (all_targets : Fpath.t list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
-  let config = { config with file_match_results_hook } in
+  let config = { config with file_match_results_hook; matching_explanations } in
 
   match rule_errors with
   (* with pysemgrep, semgrep-core is passed all the rules unparsed,

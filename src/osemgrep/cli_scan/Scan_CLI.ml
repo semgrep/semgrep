@@ -60,6 +60,11 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* osemgrep-only: (was passed via --core-opts in pysemgrep).
+   * alt: could be put also in Core_runner.conf but not really a
+   * performation option so separate for now.
+   *)
+  matching_explanations : bool;
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;
@@ -133,6 +138,7 @@ let default : conf =
     legacy = false;
     experimental = false;
     output_format = Output_format.Text;
+    matching_explanations = false;
     logging_level = Some Logs.Warning;
     force_color = false;
     max_chars_per_line = 160;
@@ -650,6 +656,17 @@ let o_registry_caching : bool Term.t =
     ~default:default.registry_caching
     ~doc:{|Cache for 24 hours in ~/.semgrep/cache rules from the registry.|}
 
+let o_matching_explanations : bool Term.t =
+  let info =
+    Arg.info
+      [ "matching-explanations" ]
+      ~doc:
+        {|Add debugging information in the JSON output to trace how
+             different parts of a rule are matched (a.k.a., Debug mode
+             in the Semgrep playground)|}
+  in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
@@ -659,13 +676,13 @@ let cmdline_term ~allow_empty_config : conf Term.t =
    * of the corresponding '$ o_xx $' further below! *)
   let combine ast_caching autofix baseline_commit config dryrun dump_ast
       dump_config emacs error exclude exclude_rule_ids experimental force_color
-      include_ json lang legacy logging_level max_chars_per_line
-      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
-      nosem optimizations pattern profile project_root registry_caching
-      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo time_flag timeout timeout_threshold validate version
-      version_check vim =
+      include_ json lang legacy logging_level matching_explanations
+      max_chars_per_line max_lines_per_finding max_memory_mb max_target_bytes
+      metrics num_jobs nosem optimizations pattern profile project_root
+      registry_caching replacement respect_git_ignore rewrite_rule_ids
+      scan_unknown_extensions severity show_supported_languages strict
+      target_roots test test_ignore_todo time_flag timeout timeout_threshold
+      validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color ~level:logging_level;
@@ -901,6 +918,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       registry_caching;
       version_check;
       output_format;
+      matching_explanations;
       profile;
       rewrite_rule_ids;
       strict;
@@ -923,10 +941,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     const combine $ o_ast_caching $ o_autofix $ o_baseline_commit $ o_config
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
     $ o_exclude_rule_ids $ CLI_common.o_experimental $ o_force_color $ o_include
-    $ o_json $ o_lang $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
-    $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ CLI_common.o_profile
-    $ o_project_root $ o_registry_caching $ o_replacement $ o_respect_git_ignore
+    $ o_json $ o_lang $ o_legacy $ CLI_common.o_logging
+    $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
+    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem
+    $ o_optimizations $ o_pattern $ CLI_common.o_profile $ o_project_root
+    $ o_registry_caching $ o_replacement $ o_respect_git_ignore
     $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate

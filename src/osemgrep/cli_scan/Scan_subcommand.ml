@@ -269,6 +269,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
         in
         let (res : Core_runner.result) =
           Core_runner.invoke_semgrep_core
+            ~matching_explanations:conf.matching_explanations
             ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
             ~file_match_results_hook conf.core_runner_conf filtered_rules errors
             targets

@@ -32,6 +32,8 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* osemgrep-only: (was passed via --core-opts in pysemgrep) *)
+  matching_explanations : bool;
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   force_color : bool;

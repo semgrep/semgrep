@@ -103,8 +103,8 @@ let run (conf : conf) : Exit_code.t =
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
         let res =
-          Core_runner.invoke_semgrep_core conf.core_runner_conf metarules []
-            targets
+          Core_runner.invoke_semgrep_core ~matching_explanations:false
+            conf.core_runner_conf metarules [] targets
         in
 
         (* TODO? sanity check errors below too? *)
