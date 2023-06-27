@@ -26,7 +26,7 @@ jobs:
           ln `which python3.7` /usr/bin/python3
       - run: apt-get update && apt install -y zip musl-tools
       - env:
-          # Relative because build-wheels does a 'cd semgrep'
+          # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
         run: ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
