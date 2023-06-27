@@ -277,5 +277,9 @@ let main argv : Exit_code.t =
   (*TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
+  (* TODO(dinosaure): currently, even if we record the [exit_code], we will never
+     send the final report **with** the exit code to the server. We send it before
+     this call. At some point, we should handle correctly the [exit_code] and
+     properly send the report with it. *)
   before_exit ~profile ();
   exit_code
