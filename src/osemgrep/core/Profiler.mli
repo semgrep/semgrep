@@ -30,8 +30,15 @@ val make : unit -> t
 (** [make ()] creates a new profiler. *)
 
 val start : t -> name:string -> unit
+(** [start profiler ~name] starts to record [name]. *)
+
 val stop : t -> name:string -> unit
+(** [stop profiler ~name] stops to profile [name] and record the time spent
+    internally. If [name] does not exists or already recorder, this function
+    raises an [Invalid_arg]. *)
+
 val stop_ign : t -> name:string -> unit
+(** Same as {!val:stop} but ignores errors. *)
 
 val record : t -> name:string -> (unit -> 'a) -> 'a
 (** [record t ~name fn] records the time spent by the given [fn] and save it
