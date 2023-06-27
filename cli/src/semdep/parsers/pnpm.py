@@ -18,28 +18,33 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 
 
-def parse_direct_pre_6(yaml: YamlTree) -> List[str]:
+def get_key_values(yaml: YamlTree[YamlMap], field: str) -> List[str]:
     try:
-        return [k.value for k in yaml.value["specifiers"].value.keys()]
+        map = yaml.value[field].value
+        return [k.value for k in map.keys()] if map else []
     except KeyError:
         return []
 
 
-def parse_direct_post_6(yaml: YamlTree) -> List[str]:
-    try:
-        deps = [k.value for k in yaml.value["dependencies"].value.keys()]
-    except KeyError:
-        deps = []
-    try:
-        devDeps = [k.value for k in yaml.value["devDependencies"].value.keys()]
-    except KeyError:
-        devDeps = []
-    return deps + devDeps
+def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
+    return get_key_values(yaml, "specifiers")
+
+
+def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
+    return get_key_values(yaml, "dependencies") + get_key_values(
+        yaml, "devDependencies"
+    )
 
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     yaml: Optional[YamlTree] = safe_path_parse(
-        lockfile_path, parse_yaml_preserve_spans, ParserName.pnpm_lock
+        lockfile_path,
+        (
+            lambda text: parse_yaml_preserve_spans(
+                text, str(lockfile_path), allow_null=True
+            )
+        ),
+        ParserName.pnpm_lock,
     )
     if not yaml or not isinstance(yaml.value, YamlMap):
         return []
@@ -59,11 +64,22 @@ def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
     else:
         direct_deps = set(parse_direct(yaml))
     try:
-        all_deps = [
-            (k.span.start.line, match.groups())
-            for k in yaml.value["packages"].value.keys()
-            if (match := re.compile(r"/(.+)/([^/]+)").match(k.value))
-        ]
+        package_map = yaml.value["packages"].value
+        if not package_map:
+            return []
+        all_deps: List[tuple[int, tuple[str, str]]] = []
+        for key, map in package_map.items():
+            if map.value and "name" in map.value and "version" in map.value:
+                all_deps.append(
+                    (
+                        key.span.start.line,
+                        (map.value["name"].value, map.value["version"].value),
+                    )
+                )
+            elif match := re.compile(r"/(.+)/([^/]+)").match(key.value):
+                # re does not have a way for us to refine the type of the match to what we know it is
+                all_deps.append((key.span.start.line, match.groups()))  # type: ignore
+
     except KeyError:
         return []
     output = []

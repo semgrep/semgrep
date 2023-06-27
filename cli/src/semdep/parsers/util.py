@@ -39,7 +39,6 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semgrep.console import console
-from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -275,10 +274,10 @@ def safe_path_parse(
 @overload
 def safe_path_parse(
     path: Optional[Path],
-    parser: Callable[[str, Optional[str]], YamlTree],
+    parser: Callable[[str], A],
     parser_name: ParserName,
     preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
-) -> Optional[YamlTree]:
+) -> Optional[A]:
     ...
 
 
@@ -307,7 +306,7 @@ def safe_path_parse(
         if isinstance(parser, Parser):
             return parser.parse(text)
         else:
-            return parser(text, path)
+            return parser(text)
 
     except YAMLError as e:
         raise DependencyParserError(path, parser_name, str(e))
