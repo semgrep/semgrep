@@ -426,12 +426,16 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     if not data:
         raise EmptyYamlException()
 
-    validate_yaml(data)
-
     if not isinstance(data, YamlTree):
         raise Exception(
             f"Something went wrong parsing Yaml (expected a YamlTree as output, but got {type(data).__name__}): {PLEASE_FILE_ISSUE_TEXT}"
         )
+    return data
+
+
+def parse_config_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+    data = parse_yaml_preserve_spans(contents, filename)
+    validate_yaml(data)
     return data
 
 

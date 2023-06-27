@@ -16,15 +16,19 @@ from enum import auto
 from enum import Enum
 from pathlib import Path
 from re import escape
+from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import overload
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
+
+from ruamel.yaml import YAMLError
 
 from semdep.external.parsy import alt
 from semdep.external.parsy import fail
@@ -35,6 +39,7 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semgrep.console import console
+from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -257,12 +262,32 @@ class DependencyParserError(Exception):
         }
 
 
+@overload
 def safe_path_parse(
     path: Optional[Path],
     parser: "Parser[A]",
     parser_name: ParserName,
     preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
 ) -> Optional[A]:
+    ...
+
+
+@overload
+def safe_path_parse(
+    path: Optional[Path],
+    parser: Callable[[str, Optional[str]], YamlTree],
+    parser_name: ParserName,
+    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
+) -> Optional[YamlTree]:
+    ...
+
+
+def safe_path_parse(
+    path: Any,
+    parser: Any,
+    parser_name: Any,
+    preprocess: Any = lambda ξ: ξ,  # ξ kinda looks like a string hehe
+) -> Any:
     """
     Run [parser] on the text in [path]
 
@@ -279,7 +304,13 @@ def safe_path_parse(
     text = preprocess(text)
 
     try:
-        return parser.parse(text)
+        if isinstance(parser, Parser):
+            return parser.parse(text)
+        else:
+            return parser(text, path)
+
+    except YAMLError as e:
+        raise DependencyParserError(path, parser_name, str(e))
     except RecursionError:
         reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
         console.print(f"Failed to parse {path} - {reason}")
