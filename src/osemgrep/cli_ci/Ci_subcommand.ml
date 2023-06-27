@@ -244,18 +244,30 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
              assert exclude is not None  # exclude is default empty tuple
              exclude = ( *exclude, *yield_exclude_paths(excludes_from_app))
           *)
-          match Scan_subcommand.scan_files rules_and_origin conf with
-          | Error e ->
+          try
+            match Scan_subcommand.scan_files rules_and_origin conf with
+            | Error e ->
+                (match (depl, scan_id) with
+                | Some (token, _), Some scan_id ->
+                    ignore
+                      (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
+                         ~scan_id (Exit_code.to_int e))
+                | _else -> ());
+                e
+            | Ok (_res, _cli_output) ->
+                (* TODO: reporting *)
+                Exit_code.ok
+          with
+          | Error.Semgrep_error (_, ex) as e ->
               (match (depl, scan_id) with
               | Some (token, _), Some scan_id ->
+                  let r = Option.value ~default:Exit_code.fatal ex in
                   ignore
                     (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
-                       ~scan_id (Exit_code.to_int e))
+                       ~scan_id (Exit_code.to_int r))
               | _else -> ());
-              e
-          | Ok (_res, _cli_output) ->
-              (* TODO: reporting *)
-              Exit_code.ok))
+              let e = Exception.catch e in
+              Exception.reraise e))
 
 (*****************************************************************************)
 (* Entry point *)
