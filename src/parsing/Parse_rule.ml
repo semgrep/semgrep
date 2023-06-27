@@ -467,19 +467,16 @@ let rec parse_type env key (str, tok) =
         "`type` is not supported with regex, spacegrep or aliengrep."
 
 and wrap_type_expr env key lang str =
-  match lang with
-  (* `x` is a placeholder and won't be used during unwrapping. *)
-  | Lang.Java -> spf "(%s x)" str
-  | Lang.Python -> spf "x: %s" str
-  | _ ->
+  match Parse_metavariable_type.wrap_type_expr lang str with
+  | Some x -> x
+  | None ->
       error_at_key env.id key
         ("`metavariable-type` is not supported for " ^ Lang.show lang)
 
 and unwrap_type_expr env key lang expr =
-  match (lang, expr) with
-  | Lang.Java, G.E { e = G.TypedMetavar (_, _, t); _ } -> t
-  | Lang.Python, G.S { s = G.DefStmt (_, VarDef { vtype = Some t; _ }); _ } -> t
-  | _ ->
+  match Parse_metavariable_type.unwrap_type_expr lang expr with
+  | Some x -> x
+  | None ->
       error_at_key env.id key
         ("Failed to unwrap the type expression." ^ G.show_any expr)
 
