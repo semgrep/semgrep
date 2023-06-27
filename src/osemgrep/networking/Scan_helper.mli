@@ -1,15 +1,22 @@
 (* from scans.py *)
 
 val start_scan :
-  dry_run:bool ->
-  token:string ->
-  Uri.t ->
-  JSON.t ->
-  (string option, string) result
+  dry_run:bool -> token:string -> Uri.t -> JSON.t -> (string, string) result
 (** [start_scan ~dry_run ~token url meta] informs the Semgrep App that a scan
-    is about to be started, and returns the scan id from the server. *)
+    is about to be started, and returns the scan id from the server. If
+    [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
 
 val fetch_scan_config :
-  token:string -> sca:bool -> dry_run:bool -> full_scan:bool -> string -> string
+  token:string ->
+  sca:bool ->
+  dry_run:bool ->
+  full_scan:bool ->
+  string ->
+  (string, string) result
 (** [fetch_scan_config ~token ~sca ~dry_run ~full_scan repo] returns the rules
     for the provided configuration. *)
+
+val report_failure :
+  dry_run:bool -> token:string -> scan_id:string -> int -> (unit, string) result
+(** [report_failure ~dry+run ~token ~scan_id exit_code] reports the failure
+    for [scan_id] to Semgrep App. *)
