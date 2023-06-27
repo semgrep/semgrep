@@ -28,12 +28,8 @@ open Common
 module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
-module Flag = Flag_semgrep
 module Options = Rule_options_t
 module H = AST_generic_helpers
-
-(* optimisations *)
-module Env = Metavariable_capture
 open Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -2193,13 +2189,7 @@ and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
  *
  * todo? we could restrict ourselves to only a few forms?
  *)
-(* experimental! *)
-and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) tin
-    =
-  m_stmts_deep_uncached ~inside ~less_is_ok xsa xsb tin
-
-and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
-    (xsb : G.stmt list) =
+and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
   (* opti: this was the old code:
    *   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
    *   then
@@ -2245,7 +2235,7 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
   | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], xb :: bbs
     when inside ->
       env_add_matched_stmt xb >>= fun () ->
-      m_stmts_deep_uncached ~inside ~less_is_ok xsa bbs
+      m_stmts_deep ~inside ~less_is_ok xsa bbs
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
       (* let's first try without going deep *)
@@ -2271,20 +2261,15 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       m_stmts_deep ~inside ~less_is_ok aas bbs
   | _ :: _, _ -> fail ()
 
-and m_list__m_stmt ?less_is_ok xsa xsb tin =
-  m_list__m_stmt_uncached ?less_is_ok xsa xsb tin
-
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (* coupling: many of the cases below are similar to the one in
- * m_stmts_deep_uncached.
+ * m_stmts_deep.
  * TODO? can we remove the duplication
  *)
-and m_list__m_stmt_uncached ?(less_is_ok = true) (xsa : G.stmt list)
-    (xsb : G.stmt list) =
+and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
+    =
   logger#ldebug
-    (lazy
-      (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
-         (List.length xsb)));
+    (lazy (spf "m_list__m_stmt: %d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
   (* less-is-ok:
