@@ -198,7 +198,7 @@ class RuleMatch:
 
         Used for deduplication in the CLI before writing output.
         """
-        if self.is_prev_scan:
+        if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
             # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
             # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
@@ -238,7 +238,7 @@ class RuleMatch:
             path = self.path.relative_to(Path.cwd())
         except (ValueError, FileNotFoundError):
             path = self.path
-        if self.is_prev_scan:
+        if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
             # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
             # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
@@ -319,7 +319,7 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
-        if self.is_prev_scan:
+        if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
             # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
             # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
@@ -569,7 +569,7 @@ class RuleMatch:
             return RuleScanSource.unannotated
 
     @property
-    def is_prev_scan(self) -> bool:
+    def from_transient_scan(self) -> bool:
         return self.scan_source == RuleScanSource.previous_scan
 
     @property

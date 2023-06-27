@@ -277,7 +277,7 @@ class Rule:
             return RuleScanSource.unannotated
 
     @property
-    def is_prev_scan(self) -> bool:
+    def from_transient_scan(self) -> bool:
         return self.scan_source == RuleScanSource.previous_scan
 
     @property

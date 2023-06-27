@@ -420,7 +420,7 @@ def ci(
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
-        elif rule.is_prev_scan:
+        elif rule.from_transient_scan:
             prev_scan_rules.append(rule)
         elif rule.is_blocking:
             blocking_rules.append(rule)
@@ -437,7 +437,7 @@ def ci(
     removed_prev_scan_matches = {
         rule: [match for match in matches]
         for rule, matches in filtered_matches_by_rule.items()
-        if (not rule.is_prev_scan)
+        if (not rule.from_transient_scan)
     }
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
