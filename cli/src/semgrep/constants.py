@@ -60,6 +60,7 @@ class RuleSeverity(Enum):
                 return member
         raise ValueError(f"invalid rule severity value: {value}")
 
+
 # TODO: move this in semgrep-interfaces so we can share this definition between CLI and the app.
 class RuleScanSource(Enum):
     unannotated = auto()
