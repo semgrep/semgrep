@@ -2,7 +2,7 @@ func f() a{
   //OK:
   ch := make(chan string)
   //ERROR:
-  ch := make(chan string, 1)  // Missed by $CHANNEL := make(..., $FOO) and $CHANNEL := make($FOO, $VAR)
+  ch := make(chan string, 1)
   //ERROR:
   ch := make(chan string, 1, 2)
   //OK:

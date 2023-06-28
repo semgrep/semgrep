@@ -227,6 +227,20 @@ let top_func () =
             G.F st)
   and expr_or_type v = either expr type_ v
   and expr e =
+    let mk_new ty (l, args, r) t name =
+      let return (ty, args) =
+        G.New (fake t name, ty, G.empty_id_info (), (l, args, r))
+      in
+      let args = arguments args in
+      match ty with
+      | ArgType ty -> return (type_ ty, args)
+      | Arg (Id v1) ->
+          return (G.TyN (G.Id (v1, G.empty_id_info ())) |> G.t, args)
+      | Arg (Ellipsis tok) ->
+          return (G.TyEllipsis tok |> G.t, G.Arg (G.Ellipsis tok |> G.e) :: args)
+      | Arg exp -> return (G.TyExpr (expr exp) |> G.t, args)
+      | _ -> raise Impossible
+    in
     (match e with
     | DotAccessEllipsis (v1, v2) ->
         let v1 = expr v1 in
@@ -248,14 +262,10 @@ let top_func () =
      * x :  tau = make(tau)
      * and other sem(grep)antic information is useful for future analysis.
      *)
-    | Call (Id ("new", t), None, (l, [ ArgType ty ], r)) ->
-        G.Ref
-          ( fake t "new",
-            G.New (fake t "new", type_ ty, G.empty_id_info (), (l, [], r))
-            |> G.e )
-    | Call (Id ("make", t), None, (l, ArgType ty :: args, r)) ->
-        let args = arguments args in
-        G.New (fake t "make", type_ ty, G.empty_id_info (), (l, args, r))
+    | Call (Id ("new", t), None, (l, [ ty ], r)) ->
+        G.Ref (fake t "new", mk_new ty (l, [], r) t "new" |> G.e)
+    | Call (Id ("make", t), None, (l, ty :: args, r)) ->
+        mk_new ty (l, args, r) t "make"
     | Call v1 ->
         let e, args = call_expr v1 in
         G.Call (e, args)
