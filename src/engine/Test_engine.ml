@@ -165,7 +165,6 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                }
              in
              E.g_errors := [];
-             Flag_semgrep.with_opt_cache := false;
              Report.mode := MTime;
              let rules, extract_rules =
                Common.partition_either

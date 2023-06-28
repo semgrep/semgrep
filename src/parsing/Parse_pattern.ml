@@ -72,7 +72,6 @@ let parse_pattern_ref =
 let parse_pattern ?(print_errors = false) lang str =
   let any = !parse_pattern_ref print_errors lang str in
   let any = normalize_any lang any in
-  Caching.prepare_pattern any;
   Check_pattern.check lang any;
   any
   [@@profiling]

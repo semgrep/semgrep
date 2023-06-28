@@ -218,7 +218,7 @@ let tests =
                               in
                               let matches_with_env =
                                 let env =
-                                  Matching_generic.empty_environment None lang
+                                  Matching_generic.empty_environment lang
                                     Rule_options.default_config
                                 in
                                 Match_patterns.match_any_any pattern code env

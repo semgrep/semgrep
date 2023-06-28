@@ -1,0 +1,1 @@
+Language server no longer crashes when a user is logged in and opens a non git repo folder
