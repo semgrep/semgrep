@@ -21,7 +21,7 @@
 open Notty
 open Notty_unix
 
-let logger = Logging.get_logger [ __MODULE__ ]
+let _logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Types *)
@@ -511,7 +511,7 @@ let atomic_map_file_zipper f state =
     (fun file_zipper -> file_zipper := f !file_zipper)
     state.file_zipper
 
-let reset_file_zipper state =
+let _reset_file_zipper state =
   atomic_map_file_zipper
     (fun _ -> Framed_zipper.empty_with_max_len (height_of_preview state.term))
     state
@@ -535,45 +535,15 @@ let reset_file_zipper state =
  * so getting directly to Match_search_mode.check_rule() can be simpler.
  *)
 
-let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
-    =
+let buffer_matches_of_xtarget _state (fake_rule : Rule.search_rule) xconf
+    xtarget =
   let hook _s (_m : Pattern_match.t) = () in
-  if
-    Match_rules.is_relevant_rule_for_xtarget
-      (fake_rule :> Rule.rule)
-      xconf xtarget
-  then
-    let ({ Report.matches; _ } : _ Report.match_result) =
-      (* Calling the engine! *)
-      Match_search_mode.check_rule fake_rule hook xconf xtarget
-    in
-    matches
-    |> Common.map_filter (fun (m : Pattern_match.t) ->
-           if m.file = Fpath.to_string xtarget.file then Some m
-           else (
-             logger#warning
-               "Interactive: got match from non-current-xtarget file";
-             None))
-    |> List.sort
-         (fun
-           { Pattern_match.range_loc = l1, _; _ }
-           { Pattern_match.range_loc = l2, _; _ }
-         -> Int.compare l1.pos.charpos l2.pos.charpos)
-    |> fun matches ->
-    match List.length matches with
-    | 0 -> () (* no point in putting it in if no matches *)
-    | _ ->
-        let matches = Zipper.of_list matches in
-        let matches_by_file =
-          { file = Fpath.to_string xtarget.file; matches }
-        in
-        (* It's OK to append here, which just puts it at the
-            end, because we already sorted by file name.
-            This means that we ensure the produced file zipper
-            is still in alphabetical order.
-        *)
-        atomic_map_file_zipper (Framed_zipper.append matches_by_file) state;
-        should_refresh := true
+  let ({ Report.matches; _ } : _ Report.match_result) =
+    (* Calling the engine! *)
+    Match_search_mode.check_rule fake_rule hook xconf xtarget
+  in
+  let _ = matches in
+  ()
 
 (* [buffer_matches_of_new_iformula] is an intensive call, which causes the
    state.file_zipper to be imperatively updated every time that we finish
@@ -584,10 +554,6 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
 *)
 let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
     : unit =
-  (* Reset the zipper before buffering matches into it! Otherwise,
-     Regular Mode won't work properly.
-  *)
-  reset_file_zipper state;
   let rule_formula = translate_formula new_iform in
   let fake_rule =
     mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
@@ -602,24 +568,12 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
       filter_irrelevant_rules = true;
     }
   in
-  if !(state.should_continue_iterating_targets) then
-    state.xtargets
-    (* First, sort files. We will search them in alphabetical order. *)
-    |> List.sort (fun x1 x2 ->
-           Lock_protected.with_lock
-             (fun x1 ->
-               Lock_protected.with_lock
-                 (fun x2 -> Fpath.compare x1.Xtarget.file x2.Xtarget.file)
-                 x2)
-             x1)
-    |> List.iter (fun xtarget_prot ->
-           if !(state.should_continue_iterating_targets) then
-             xtarget_prot
-             |> Lock_protected.with_lock (fun xtarget ->
-                    buffer_matches_of_xtarget state fake_rule xconf xtarget)
-             (* the user typed something else; we're not needed anyore *)
-           else raise Thread.Exit)
-    |> ignore
+  state.xtargets
+  |> List.iter (fun xtarget_prot ->
+         xtarget_prot
+         |> Lock_protected.with_lock (fun xtarget ->
+                buffer_matches_of_xtarget state fake_rule xconf xtarget))
+  |> ignore
 
 let parse_pattern_opt s state =
   try
@@ -1041,28 +995,21 @@ let spawn_thread_if_turbo state =
      one which is going to spin up yet another turbo thread.
      This reduces perceived lag if the user is typing really fast.
   *)
-  match Queue.peek_opt event_queue with
-  | Some (Key (`ASCII _, _))
-  | Some (Key (`Backspace, _)) ->
-      ()
-  | __else__ ->
-      if state.turbo then
-        (reset_file_zipper state;
-         Thread.create
-           (fun _ ->
-             let cur_line = get_current_line state in
-             let pat_opt = parse_pattern_opt cur_line state in
-             match (cur_line, pat_opt) with
-             | "", _
-             | _, None ->
-                 (* When we go back to the empty line, or find no matches,
-                     reset the view to the no matches screen. *)
-                 should_refresh := true
-             | _, Some pat ->
-                 let new_iformula = IPat (pat, true) in
-                 buffer_matches_of_new_iformula new_iformula state)
-           ())
-        |> ignore
+  (* remove this thread.create call and no SIGBUS is produced *)
+  Thread.create
+    (fun _ ->
+      let cur_line = get_current_line state in
+      let pat_opt = parse_pattern_opt cur_line state in
+      match pat_opt with
+      | None ->
+          (* When we go back to the empty line, or find no matches,
+              reset the view to the no matches screen. *)
+          should_refresh := true
+      | Some pat ->
+          let new_iformula = IPat (pat, true) in
+          buffer_matches_of_new_iformula new_iformula state)
+    ()
+  |> ignore
 
 let stop_thread_if_turbo state =
   if state.turbo then state.should_continue_iterating_targets := false
