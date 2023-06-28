@@ -239,8 +239,10 @@ class ScanHandler:
     def report_findings(
         self,
         matches_by_rule: RuleMatchMap,
+        transient_scan_matches_by_rule: RuleMatchMap,
         errors: List[SemgrepError],
         rules: List[Rule],
+        transient_scan_rules: List[Rule],
         targets: Set[Path],
         renamed_targets: Set[Path],
         ignored_targets: FrozenSet[Path],
@@ -255,7 +257,16 @@ class ScanHandler:
         commit_date here for legacy reasons. epoch time of latest commit
         """
         state = get_state()
+        transient_rule_ids = [r.id for r in transient_scan_rules]
         rule_ids = [r.id for r in rules]
+        all_transient_matches = [
+            match
+            for matches in transient_scan_matches_by_rule.values()
+            for match in matches
+        ]
+        transient_ignored, transient_matches = partition(
+            all_transient_matches, lambda match: bool(match.is_ignored)
+        )
         all_matches = [
             match
             for matches_of_rule in matches_by_rule.values()
@@ -281,8 +292,15 @@ class ScanHandler:
             all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [match.to_app_finding_format(commit_date) for match in new_matches]
+        transient_findings = [
+            match.to_app_finding_format(commit_date) for match in transient_matches
+        ]
         ignores = [
             match.to_app_finding_format(commit_date).to_json() for match in new_ignored
+        ]
+        transient_ignores = [
+            match.to_app_finding_format(commit_date).to_json()
+            for match in transient_ignored
         ]
         token = (
             # GitHub (cloud)
@@ -293,19 +311,23 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
+        # NOTE: variables prefixed with "transient_" are from the previous scan.
+        # We need to send it to the app for reliable fixed status.
+        # They should not interfere with the current scan or regular findings/ignores.
+        # However, they are sent to the app while reporting findings and app deals with the filtering.
         api_scans_findings = out.ApiScansFindings(
             # send a backup token in case the app is not available
             token=token,
-            findings=findings,
+            findings=findings + transient_findings,
             searched_paths=[str(t) for t in sorted(targets)],
-            rule_ids=rule_ids,
+            rule_ids=rule_ids + transient_rule_ids,
             gitlab_token=None,
         )
         # TODO: add those fields in semgrep_output_v1.atd spec
         findings_and_ignores = {
             **api_scans_findings.to_json(),
             "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
-            "ignores": ignores,
+            "ignores": ignores + transient_ignores,
         }
 
         if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
@@ -324,9 +346,7 @@ class ScanHandler:
             else 0,
             "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
-                "findings": len(
-                    [match for match in new_matches if not match.from_transient_scan]
-                ),
+                "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
                 "unsupported_exts": dict(ignored_ext_freqs),
