@@ -23,6 +23,7 @@ open Notty_unix
 
 let _logger = Logging.get_logger [ __MODULE__ ]
 
+[@@@warning "-26-27-32"]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -535,8 +536,7 @@ let _reset_file_zipper state =
  * so getting directly to Match_search_mode.check_rule() can be simpler.
  *)
 
-let buffer_matches_of_xtarget _state (fake_rule : Rule.search_rule) xconf
-    xtarget =
+let buffer_matches_of_xtarget (fake_rule : Rule.search_rule) xconf xtarget =
   let hook _s (_m : Pattern_match.t) = () in
   let ({ Report.matches; _ } : _ Report.match_result) =
     (* Calling the engine! *)
@@ -552,12 +552,10 @@ let buffer_matches_of_xtarget _state (fake_rule : Rule.search_rule) xconf
    contents so that you can replay it faster. We display the file results
    quickly up front so we don't have to wait for the whole time.
 *)
-let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
-    : unit =
+let buffer_matches_of_new_iformula (new_iform : iformula_zipper)
+    (xlang, xtargets) : unit =
   let rule_formula = translate_formula new_iform in
-  let fake_rule =
-    mk_fake_rule (Rule.languages_of_xlang state.xlang) rule_formula
-  in
+  let fake_rule = mk_fake_rule (Rule.languages_of_xlang xlang) rule_formula in
   let xconf =
     {
       Match_env.config = Rule_options.default_config;
@@ -568,16 +566,16 @@ let buffer_matches_of_new_iformula (new_iform : iformula_zipper) (state : state)
       filter_irrelevant_rules = true;
     }
   in
-  state.xtargets
+  xtargets
   |> List.iter (fun xtarget_prot ->
          xtarget_prot
          |> Lock_protected.with_lock (fun xtarget ->
-                buffer_matches_of_xtarget state fake_rule xconf xtarget))
+                buffer_matches_of_xtarget fake_rule xconf xtarget))
   |> ignore
 
-let parse_pattern_opt s state =
+let parse_pattern_opt s (xlang, xtargets) =
   try
-    let lang = Xlang.to_lang_exn state.xlang in
+    let lang = Xlang.to_lang_exn xlang in
     let pat = Parse_pattern.parse_pattern lang s in
     Some
       (Xpattern.mk_xpat
@@ -971,7 +969,7 @@ let execute_command (state : state) =
            are done.
            TODO: We could make use of the buffering here too.
         *)
-        buffer_matches_of_new_iformula new_iformula state;
+        buffer_matches_of_new_iformula new_iformula (state.xlang, state.xtargets);
         { state with formula = Some new_iformula }
   in
   (* Remember to reset the current line after executing a command,
@@ -998,8 +996,7 @@ let spawn_thread_if_turbo state =
   (* remove this thread.create call and no SIGBUS is produced *)
   Thread.create
     (fun _ ->
-      let cur_line = get_current_line state in
-      let pat_opt = parse_pattern_opt cur_line state in
+      let pat_opt = parse_pattern_opt "1" state in
       match pat_opt with
       | None ->
           (* When we go back to the empty line, or find no matches,
@@ -1038,6 +1035,7 @@ let spawn_event_thread term =
   |> ignore
 
 let interactive_loop ~turbo xlang xtargets =
+  (*
   let rec render_and_loop ?(has_changed_query = false) (t : Term.t) state =
     Term.image t (render_screen ~has_changed_query state);
     loop t state
@@ -1160,14 +1158,13 @@ let interactive_loop ~turbo xlang xtargets =
       | Some e, Pattern -> on_event_pattern e state
   in
   let _ = render_and_loop in
+  *)
   let t = Term.create () in
-  spawn_event_thread t;
   Common.finalize
     (fun () ->
-      let state = init_state turbo xlang xtargets t in
       (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
       (* if true then render_and_loop state.term state *)
-      spawn_thread_if_turbo { state with cur_line_rev = [ '1' ] };
+      spawn_thread_if_turbo (xlang, xtargets);
       Unix.sleep 10;
       ())
     (fun () -> Term.release t)
