@@ -12,6 +12,7 @@ from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.parsers import preprocessors
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import ParserName
@@ -63,6 +64,7 @@ plain_value = upto("\n")
 # A value in a key-value pair.
 value = list_value | object_value | quoted_value | plain_value
 
+key = regex(r'("[^"]*"|[^\s=]+)\s*=\s*', flags=0, group=1).map(lambda x: x.strip('"'))
 
 # A key-value pair.
 # Examples:
@@ -71,7 +73,7 @@ value = list_value | object_value | quoted_value | plain_value
 # foo = [
 #     bar, baz
 # ]
-key_value = pair(regex(r"([^\s=]+)\s*=\s*", flags=0, group=1), value)
+key_value = pair(key, value)
 
 # A poetry dependency
 # Example:
@@ -106,11 +108,9 @@ poetry_dep_extra = (string("[") >> upto("]") << string("]\n")) >> key_value.sep_
 ).map(lambda _: None)
 
 
-comment = regex(r" *#([^\n]*)", flags=0, group=1)
-
 # A whole poetry file
 poetry = (
-    comment.many()
+    string("\n").many()
     >> string("\n").many()
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
     .sep_by(string("\n\n"))
@@ -137,10 +137,20 @@ manifest = (manifest_deps | poetry_dep_extra | poetry_source_extra).sep_by(
 def parse_poetry(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, poetry, ParserName.poetry_lock)
+    deps = safe_path_parse(
+        lockfile_path,
+        poetry,
+        ParserName.poetry_lock,
+        preprocess=preprocessors.CommentRemover(),
+    )
     if not deps:
         return []
-    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.pyproject_toml)
+    manifest_deps = safe_path_parse(
+        manifest_path,
+        manifest,
+        ParserName.pyproject_toml,
+        preprocess=preprocessors.CommentRemover(),
+    )
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
     sanitized_manifest_deps = (
