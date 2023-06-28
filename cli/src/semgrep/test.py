@@ -51,6 +51,8 @@ TODORULEID = "todoruleid"
 RULEID = "ruleid"
 TODOOK = "todook"
 OK = "ok"
+DEEPOK = "deepok"
+DEEPRULEID = "deepruleid"
 
 EXIT_FAILURE = 2
 
@@ -65,11 +67,15 @@ def normalize_rule_ids(line: str) -> Set[str]:
     """
     given a line like `     # ruleid:foobar`
     or `      // ruleid:foobar`
+    or `      // ruleid:deepok:foobar`
     return `foobar`
     """
-    _, rules_text = line.strip().split(":")
+    _, rules_text = line.strip().split(":", 1)
     rules_text = rules_text.strip()
-    rules = rules_text.split(",")
+    # strip out "deepok" and "deepruleid" annotations if they are there to get rule name
+    if rules_text.startswith(DEEPOK) or rules_text.startswith(DEEPRULEID):
+        _, rules_text = rules_text.split(":")
+    rules = rules_text.strip().split(",")
     # remove comment ends for non-newline comment syntaxes
     rules_clean = map(lambda rule: _remove_ending_comments(rule), rules)
     return set(filter(None, [rule.strip() for rule in rules_clean]))
