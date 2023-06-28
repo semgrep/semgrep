@@ -1,7 +1,7 @@
 # This workflow builds and tests the semgrep-core binary for macOS X86
-# and generates osx-wheel for pypi.
+# and generates the osx-wheel for pypi.
 
-# This workflow uses the actions/cache@v2 GHA extension to cache
+# This workflow uses the actions/cache@v3 GHA extension to cache
 # the ~/.opam directory, which is different from what we do for our other
 # architecture's build processes.
 # This workflow runs on GHA-hosted runners and without caching it would run
@@ -27,8 +27,11 @@
 #    (such as a semgrep install) entering in conflicts with some of our build steps.
 #    This also requires some devops work to create and maintain those pools of
 #    self-hosted runners.
-#    In the end, a GHA-hosted runner is nice because we don't have to do
-#    anything, and the build are guaranteed to be hermetic.
+#  - use a GHA-hosted runner which is nice because we don't have to do
+#    anything, and the build are guaranteed to be hermetic. The only problem originally
+#    was that it was slower, and for unknown reasons ocamlc was not working well
+#    on those macos-12 GHA runners, but caching the ~/.opam with actions/cache@v3
+#    seems to solve the speed issue (and maybe ocamlc works now well under macos-12).
 #  - use a technique similar to what we do for Linux with our special container, but
 #    can this be done for macos?
 #
@@ -67,9 +70,18 @@ jobs:
         with:
           submodules: true
       # Note that this action handles both cache read and cache write.
-      # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching
-      # TODO? When are things cached? this will save ~/.opam after the
-      # next step ('Install dependencies' below) or at the end of the full job?
+      # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
+      # Things are saved automatically by GHA in a "Post Cache Opam" phase runs
+      # when the full job has been completed (click on 'Details' in the PR for the
+      # check to see this phase).
+      # Note that this works and speedup things because of the way OPAM works
+      # and osx-setup-for-release.sh is written. Indeed, this script checks
+      # if the opam switch is already created, and if a package is already
+      # installed (in ~/.opam), then opam install on this package will do nothing.
+      # If we use new packages in semgrep.opam, then we currently would still
+      # hit the cache unfortunately, but we would spend time only for installing
+      # those new packages (ideally we would want to regenerate the cache by
+      # using an opam.pock in the cache key).
       # TODO? Should we use instead the actions/cache/save@v3 and
       # actions/cache/restore@v3 instead like in build-test-javascript.yaml?
       - name: Cache Opam
