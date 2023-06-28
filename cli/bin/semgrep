@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-# This file is the CLI entry point of the Semgrep pip package,
+# This file is the Semgrep CLI entry point of the Semgrep pip package,
 # the Semgrep HomeBrew package, and the Semgrep Docker container.
 #
-# In the futur we may have different entry points when packaged
+# In the futur we may have different entry points when packaging Semgrep
 # with Cargo, Npm, Opam, or even with Docker.
 #
 # The main purpose of this small wrapper is to dispatch
-# either to the legacy pysemgrep or to the new osemgrep.
+# either to the legacy pysemgrep (see the pysemgrep script in this
+# directory), or to the new osemgrep (accessible via the semgrep-core binary
+# under cli/src/semgrep/bin/ or somewhere in the PATH).
 #
 # It would be faster and cleaner to have a Bash script instead of a Python
 # script here, but actually the overhead of Python here is just 0.015s.
@@ -16,8 +18,8 @@
 # importlib.resources. We could also use 'pip show semgrep' from a Bash script
 # to find semgrep-core, but will 'pip' be in the PATH? Should we use 'pip' or 'pip3'?
 # Again, it is simpler to use a Python script and leverage importlib.resources.
-# Another alternative would be to always have semgrep-core (or osemgrep) in the PATH,
-# but when trying to put those binaries in cli/bin, setuptools is yelling
+# Another alternative would be to always have semgrep-core in the PATH,
+# but when trying to put this binary in cli/bin, setuptools is yelling
 # and does not know what to do with it. In the end, it is simpler to use a *Python*
 # script when installed via a *Python* package manager (pip).
 
@@ -32,6 +34,13 @@ import shutil
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+# Add the directory containing this script in the PATH, so the pysemgrep
+# script will also be in the PATH.
+# Some people don't have semgrep in their PATH and call it instead
+# explicitely as in /path/to/somewhere/bin/semgrep, but this means
+# the execvp further below would fail without the line below.
+os.environ["PATH"] += os.pathsep + os.path.dirname(os.path.abspath(__file__))
+           
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
 def find_semgrep_core_path():
     # First, try the packaged binary.
@@ -73,10 +82,10 @@ if "--experimental" in sys.argv:
     # We expose 'pysemgrep' because osemgrep itself might need to fallback to pysemgrep
     # and it's better to avoid the possibility of an infinite loop by simply using
     # a different program name. Morever, in case of big problems, we can always
-    # tell users to run pysemgrep instead of semgrep and be sure we'll get the
+    # tell users to run pysemgrep instead of semgrep and be sure they'll get the
     # old behavior.
     path = find_semgrep_core_path()
-    # If you call semgrep-core as osemgrep, then we get osemgrep behavior
+    # If you call semgrep-core as osemgrep, then we get osemgrep behavior,
     # see src/main/Main.ml
     sys.argv[0] = "osemgrep"
     os.execvp(str(path), sys.argv)
