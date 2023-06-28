@@ -615,20 +615,22 @@ def print_text_output(
             # this is a list of objects like [{'minimist': '0.2.4'}, {'minimist': '1.2.6'}]
             fixes = rule_match.metadata["sca-fix-versions"]
             # will be structure { 'package_name': set('1.2.3', '2.3.4') }
-            fixed_versions = set()
             dep_name = rule_match.extra[
                 "sca_info"
             ].dependency_match.found_dependency.package
-            for fix_obj in fixes:
-                for name, version in fix_obj.items():
-                    if name == dep_name:
-                        fixed_versions.add(version)
-            sorted_fixed_versions = list(fixed_versions)
-            sorted_fixed_versions.sort()
+            fixed_versions = sorted(
+                {
+                    version
+                    for fix_obj in fixes
+                    for name, version in fix_obj.items()
+                    if name == dep_name
+                }
+            )
+            version_txt = "versions" if len(fixed_versions) > 1 else "version"
             console.print(
                 with_color(
                     Colors.green,
-                    f"         ▶▶┆ Fixed for {dep_name} at versions: {', '.join(sorted_fixed_versions)}",
+                    f"         ▶▶┆ Fixed for {dep_name} at {version_txt}: {', '.join(fixed_versions)}",
                 )
             )
 
