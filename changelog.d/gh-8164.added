@@ -1,3 +1,0 @@
-feat(rule syntax): Support metavariable-type field for csharp, typescript, php, rust
-
-`metavariable-type` field is now supported for csharp, typescript, php, rust.
