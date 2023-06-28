@@ -76,9 +76,11 @@ def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
                         (map.value["name"].value, map.value["version"].value),
                     )
                 )
-            elif match := re.compile(r"/(.+)/([^/]+)").match(key.value):
-                # re does not have a way for us to refine the type of the match to what we know it is
-                all_deps.append((key.span.start.line, match.groups()))  # type: ignore
+            else:
+                match = re.compile(r"/(.+)/([^/]+)").match(key.value)
+                if match:
+                    # re does not have a way for us to refine the type of the match to what we know it is
+                    all_deps.append((key.span.start.line, match.groups()))  # type: ignore
 
     except KeyError:
         return []
