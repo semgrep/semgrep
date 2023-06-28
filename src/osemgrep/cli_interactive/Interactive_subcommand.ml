@@ -1212,13 +1212,17 @@ let interactive_loop ~turbo xlang xtargets =
       | Some e, Navigator -> on_event_navigator e state
       | Some e, Pattern -> on_event_pattern e state
   in
+  let _ = render_and_loop in
   let t = Term.create () in
   spawn_event_thread t;
   Common.finalize
     (fun () ->
       let state = init_state turbo xlang xtargets t in
       (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
-      if true then render_and_loop state.term state)
+      (* if true then render_and_loop state.term state *)
+      spawn_thread_if_turbo { state with cur_line_rev = [ '1' ] };
+      Unix.sleep 10;
+      ())
     (fun () -> Term.release t)
   [@@profiling]
 
