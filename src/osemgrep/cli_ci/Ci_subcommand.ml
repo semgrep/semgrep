@@ -58,7 +58,7 @@ let fetch_scan_config ~token ~dry_run ~sca ~full_scan ~repository scan_id =
             let e = Exception.catch e in
             Exception.reraise e
       in
-      Ok (Some scan_id, [ rules_and_origins ])
+      Ok [ rules_and_origins ]
 
 (* from meta.py *)
 let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
@@ -205,15 +205,69 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                 Error Exit_code.fatal
             | Ok scan_id ->
                 (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
-                fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
-                  ~full_scan:metadata.is_full_scan
-                  ~repository:metadata.repository scan_id)
+                Result.map
+                  (fun r -> ((if scan_id = "" then None else Some scan_id), r))
+                  (fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
+                     ~full_scan:metadata.is_full_scan
+                     ~repository:metadata.repository scan_id))
       in
+
       match r with
       | Error ex -> ex
-      | Ok (_scan_id, _rules) ->
-          (* TODO: do the actual scan, and reporting *)
-          Exit_code.ok)
+      | Ok (scan_id, rules_and_origin) -> (
+          (* TODO:
+             if dataflow_traces is None:
+               dataflow_traces = engine_type.has_dataflow_traces
+
+             if max_memory is None:
+               max_memory = engine_type.default_max_memory
+
+             if interfile_timeout is None:
+               interfile_timeout = engine_type.default_interfile_timeout
+
+             if engine_type.is_pro:
+               console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
+               if engine_type.check_if_installed():
+                 console.print(
+                   f"Using Semgrep Pro Version: [bold]{engine_type.get_pro_version()}[/bold]",
+                    markup=True,
+                 )
+                 console.print(
+                   f"Installed at [bold]{engine_type.get_binary_path()}[/bold]",
+                   markup=True,
+                 )
+             else:
+               run_install_semgrep_pro()
+          *)
+          (* TODO
+             excludes_from_app = scan_handler.ignore_patterns if scan_handler else []
+             assert exclude is not None  # exclude is default empty tuple
+             exclude = ( *exclude, *yield_exclude_paths(excludes_from_app))
+          *)
+          try
+            match Scan_subcommand.scan_files rules_and_origin conf with
+            | Error e ->
+                (match (depl, scan_id) with
+                | Some (token, _), Some scan_id ->
+                    ignore
+                      (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
+                         ~scan_id (Exit_code.to_int e))
+                | _else -> ());
+                e
+            | Ok (_res, _cli_output) ->
+                (* TODO: reporting *)
+                Exit_code.ok
+          with
+          | Error.Semgrep_error (_, ex) as e ->
+              (match (depl, scan_id) with
+              | Some (token, _), Some scan_id ->
+                  let r = Option.value ~default:Exit_code.fatal ex in
+                  ignore
+                    (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
+                       ~scan_id (Exit_code.to_int r))
+              | _else -> ());
+              let e = Exception.catch e in
+              Exception.reraise e))
 
 (*****************************************************************************)
 (* Entry point *)
