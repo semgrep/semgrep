@@ -349,7 +349,9 @@ class ScanHandler:
             else 0,
             "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
-                "findings": len(new_matches),
+                "findings": len(
+                    [match for match in new_matches if not match.is_prev_scan]
+                ),
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
                 "unsupported_exts": dict(ignored_ext_freqs),

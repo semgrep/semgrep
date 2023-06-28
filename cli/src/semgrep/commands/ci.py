@@ -442,7 +442,7 @@ def ci(
     filtered_matches_by_rule = {
         rule: [match for match in matches]
         for rule, matches in filtered_matches_by_rule.items()
-        if (not rule.from_transient_scan)
+        if (not rule.is_prev_scan)
     }
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply

@@ -182,7 +182,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
         [
             rule
             for rule in rules
-            if rule.product == RuleProduct.sast and (not rule.from_transient_scan)
+            if rule.product == RuleProduct.sast and (not rule.is_prev_scan)
         ],
         target_manager,
     )
@@ -544,7 +544,7 @@ def main(
     )
 
     findings_count = sum(
-        len([match for match in matches if not match.from_transient_scan])
+        len([match for match in matches if not match.is_prev_scan])
         for matches in rule_matches_by_rule.values()
     )
 
