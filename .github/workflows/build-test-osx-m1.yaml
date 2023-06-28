@@ -12,6 +12,8 @@ on:
 jobs:
   build-core-m1:
     name: Build the OSX M1 binaries
+    #TODO? if use the GHA-hosted runner works well in build-test-osx-x86.yaml,
+    # we might as well move out of a self-hosted runner for m1 too.
     runs-on: [self-hosted, macOS, ARM64]
     env:
       OPAM_SWITCH_NAME: "4.14.0"

@@ -24,6 +24,7 @@ jobs:
       - name: Set up tree-sitter
         run: |
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+      # saving the checkout for build-test-js-artifacts below to save time
       - name: Cache git checkout
         id: cache-git
         uses: actions/cache/save@v3
