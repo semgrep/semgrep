@@ -226,21 +226,27 @@ let top_func () =
             let st = G.OtherStmt (G.OS_Todo, [ G.T ty ]) |> G.s in
             G.F st)
   and expr_or_type v = either expr type_ v
-  and expr e =
-    let mk_new ty (l, args, r) t name =
-      let return (ty, args) =
-        G.New (fake t name, ty, G.empty_id_info (), (l, args, r))
-      in
-      let args = arguments args in
-      match ty with
-      | ArgType ty -> return (type_ ty, args)
-      | Arg (Id v1) ->
-          return (G.TyN (G.Id (v1, G.empty_id_info ())) |> G.t, args)
-      | Arg (Ellipsis tok) ->
-          return (G.TyEllipsis tok |> G.t, G.Arg (G.Ellipsis tok |> G.e) :: args)
-      | Arg exp -> return (G.TyExpr (expr exp) |> G.t, args)
-      | _ -> raise Impossible
+  (* used for translating call make/call new *)
+  and gen_new ty (l, args, r) t name =
+    let return (ty, args) =
+      G.New (fake t name, ty, G.empty_id_info (), (l, args, r))
     in
+    let args = arguments args in
+    (* this translation (esp for make) depends on the first argument,
+     * where
+     *)
+    match ty with
+    (* the first arg is indeed a type *)
+    | ArgType ty -> return (type_ ty, args)
+    (* metavar *)
+    | Arg (Id v1) -> return (G.TyN (G.Id (v1, G.empty_id_info ())) |> G.t, args)
+    (* ... *)
+    | Arg (Ellipsis tok) ->
+        return (G.TyEllipsis tok |> G.t, G.Arg (G.Ellipsis tok |> G.e) :: args)
+    (* exp *)
+    | Arg exp -> return (G.TyExpr (expr exp) |> G.t, args)
+    | _ -> raise Impossible
+  and expr e =
     (match e with
     | DotAccessEllipsis (v1, v2) ->
         let v1 = expr v1 in
@@ -263,9 +269,9 @@ let top_func () =
      * and other sem(grep)antic information is useful for future analysis.
      *)
     | Call (Id ("new", t), None, (l, [ ty ], r)) ->
-        G.Ref (fake t "new", mk_new ty (l, [], r) t "new" |> G.e)
+        G.Ref (fake t "new", gen_new ty (l, [], r) t "new" |> G.e)
     | Call (Id ("make", t), None, (l, ty :: args, r)) ->
-        mk_new ty (l, args, r) t "make"
+        gen_new ty (l, args, r) t "make"
     | Call v1 ->
         let e, args = call_expr v1 in
         G.Call (e, args)
