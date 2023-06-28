@@ -389,7 +389,7 @@ class ScanHandler:
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
-        try_until = datetime.now() + timedelta(minutes=2)
+        try_until = datetime.now() + timedelta(minutes=10)
         while datetime.now() < try_until:
             logger.debug("Sending /complete")
 
