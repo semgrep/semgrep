@@ -46,9 +46,11 @@ jobs:
         with:
           path: ~/.opam
           key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
-      - name: Build Semgrep
+      - name: Install dependencies
         run: |
           ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
+      - name: Compile semgrep
+        run: |
           opam exec -- make core
           mkdir -p artifacts
           cp ./bin/semgrep-core artifacts
