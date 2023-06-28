@@ -3,7 +3,7 @@ and value = Start of float | Recorded of float
 
 let make () = Hashtbl.create 0x100
 
-let save profiler ~name =
+let start profiler ~name =
   match Hashtbl.find_opt profiler name with
   | Some (Start start_time) ->
       let now = Unix.gettimeofday () in
@@ -12,6 +12,17 @@ let save profiler ~name =
   | None ->
       let now = Unix.gettimeofday () in
       Hashtbl.add profiler name (Start now)
+
+let stop profiler ~name =
+  match Hashtbl.find_opt profiler name with
+  | Some (Start _) -> start profiler ~name
+  | Some (Recorded _) ->
+      Fmt.invalid_arg "Profiler.stop: %s already recorded" name
+  | None -> Fmt.invalid_arg "Profiler.stop: %s does not exist" name
+
+let stop_ign profiler ~name =
+  try stop profiler ~name with
+  | _ -> ()
 
 let record profiler ~name fn =
   let t0 = Unix.gettimeofday () in

@@ -167,8 +167,7 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
       res
   in
-  Profiler.save profiler ~name:"ignores_time";
-  let cli_output =
+  let cli_output () =
     let keep_ignored =
       (not conf.nosem) (* --disable-nosem *) || false
       (* TODO(dinosaure): [false] depends on the output formatter. Currently,
@@ -177,7 +176,7 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Nosemgrep.process_ignores ~keep_ignored ~strict:conf.Scan_CLI.strict
       cli_output
   in
-  Profiler.save profiler ~name:"ignores_time";
+  let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;

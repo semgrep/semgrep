@@ -152,6 +152,28 @@ let analyze_skipped (skipped : Out.skipped_target list) =
     try List.assoc `Other groups with
     | Not_found -> [] )
 
+(*************************************************************************)
+(* Helpers *)
+(*************************************************************************)
+
+(* This function counts how many matches we got by rules:
+   [(Rule.t, number of matches : int) list]. *)
+let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
+  let update = function
+    | Some n -> Some (succ n)
+    | None -> Some 1
+  in
+  let fold acc (core_match : Out.core_match) =
+    Map_.update core_match.Out.rule_id update acc
+  in
+  let map = List.fold_left fold Map_.empty res.core.Out.matches in
+  Map_.fold
+    (fun rule_id n acc ->
+      match Rule.ID.of_string_opt rule_id with
+      | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
+      | None -> acc)
+    map []
+
 (*****************************************************************************)
 (* Conduct the scan *)
 (*****************************************************************************)
@@ -197,36 +219,22 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
             Some (file_match_results_hook conf filtered_rules) )
       | { output_format; _ } -> (output_format, None)
     in
-    Profiler.save profiler ~name:"core_time";
-    let (res : Core_runner.result) =
+    let core () =
       Core_runner.invoke_semgrep_core
         ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
         ~file_match_results_hook conf.core_runner_conf filtered_rules errors
         targets
     in
-    Profiler.save profiler ~name:"core_time";
+    let (res : Core_runner.result) =
+      Profiler.record profiler ~name:"core_time" core
+    in
 
     Metrics_.add_engine_type
       ~name:
         (Format.asprintf "%a" Out.pp_engine_kind
            res.Core_runner.core.engine_requested);
 
-    let filtered_matches =
-      let update = function
-        | Some n -> Some (succ n)
-        | None -> Some 1
-      in
-      let fold acc (core_match : Out.core_match) =
-        Map_.update core_match.Out.rule_id update acc
-      in
-      let map = List.fold_left fold Map_.empty res.core.Out.matches in
-      Map_.fold
-        (fun rule_id n acc ->
-          match Rule.ID.of_string_opt rule_id with
-          | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
-          | None -> acc)
-        map []
-    in
+    let filtered_matches = rules_and_counted_matches res in
     Metrics_.add_findings filtered_matches;
     Metrics_.add_errors res.core.errors;
 
@@ -250,7 +258,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     let cli_output =
       Output.output_result { conf with output_format } profiler res
     in
-    Profiler.save profiler ~name:"total_time";
+    Profiler.stop_ign profiler ~name:"total_time";
     if Metrics_.is_enabled conf.metrics then (
       Metrics_.add_rules ?profiling:res.core.time filtered_rules;
       Metrics_.add_profiling profiler);
@@ -306,17 +314,19 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
   let profiler = Profiler.make () in
-  Profiler.save profiler ~name:"config_time";
-  Profiler.save profiler ~name:"total_time";
-  Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
-  (if Metrics_.is_enabled conf.metrics then
-     Metrics_.add_project_url (Git_wrapper.get_project_url ());
-   Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
-   match conf.rules_source with
-   | Rules_source.Configs configs -> Metrics_.add_configs configs
-   | _ -> ());
-  Profiler.save profiler ~name:"config_time";
+  Profiler.start profiler ~name:"total_time";
+  let config () =
+    Metrics_.configure conf.metrics;
+    let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+    if Metrics_.is_enabled conf.metrics then
+      Metrics_.add_project_url (Git_wrapper.get_project_url ());
+    Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+    (match conf.rules_source with
+    | Rules_source.Configs configs -> Metrics_.add_configs configs
+    | _ -> ());
+    settings
+  in
+  let settings = Profiler.record profiler ~name:"config_time" config in
 
   match () with
   (* "alternate modes" where no search is performed.

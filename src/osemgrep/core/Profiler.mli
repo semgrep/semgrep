@@ -5,9 +5,9 @@
 
     {[
       let run profiler =
-        Profiler.save profiler ~name:"my computation";
+        Profiler.start profiler ~name:"my computation";
         my_computation ();
-        Profiler.save profiler ~name:"my computation"
+        Profiler.stop profiler ~name:"my computation"
 
       let () =
         let profiler = Profiler.make () in
@@ -29,10 +29,11 @@ type t
 val make : unit -> t
 (** [make ()] creates a new profiler. *)
 
-val save : t -> name:string -> unit
-(** [save t ~name] starts or records the time associated to a given [name]. *)
+val start : t -> name:string -> unit
+val stop : t -> name:string -> unit
+val stop_ign : t -> name:string -> unit
 
-val record : t -> name:string -> (unit -> unit) -> unit
+val record : t -> name:string -> (unit -> 'a) -> 'a
 (** [record t ~name fn] records the time spent by the given [fn] and save it
     into the profiler with the name [name]. *)
 

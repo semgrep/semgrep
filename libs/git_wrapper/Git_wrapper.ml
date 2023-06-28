@@ -187,5 +187,8 @@ let get_project_url () =
   | Ok (url, _) -> Some url
   | Error _ ->
       File.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
-(* TODO(dinosaure): this function is pretty weak. We probably should handle that
-   by a new environment variable. *)
+(* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
+   when the domain is [".io"]?). We probably should handle that by a new
+   environment variable. I just copied what [pysemgrep] does.
+   [git ls-remote --get-url] is also enough and if we can not get such
+   information, that's fine - the metadata is used only [Metrics_] actually. *)
