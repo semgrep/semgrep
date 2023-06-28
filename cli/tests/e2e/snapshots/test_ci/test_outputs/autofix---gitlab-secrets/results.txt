@@ -3,7 +3,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -258,42 +258,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "date": "<MASKED>Z",
         "sha": "0000000"
       },
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
-      "details": {},
-      "flags": [],
-      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-five",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-five",
-          "value": "eqeq-five"
-        }
-      ],
-      "location": {
-        "end_line": 15,
-        "file": "foo.py",
-        "start_line": 15
-      },
-      "message": "useless comparison to 5",
-      "raw_source_code_extract": [
-        "    x == 5\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>Z",
-        "sha": "0000000"
-      },
       "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
       "details": {
         "exposure": {
@@ -321,6 +285,42 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       "raw_source_code_extract": [
         "[[package]]\n",
         "name = \"badlib\"\n"
+      ],
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
+      },
+      "severity": "High"
+    },
+    {
+      "category": "secret_detection",
+      "commit": {
+        "date": "<MASKED>Z",
+        "sha": "0000000"
+      },
+      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
+      "details": {},
+      "flags": [],
+      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
+      "identifiers": [
+        {
+          "name": "Semgrep - eqeq-five",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/eqeq-five",
+          "value": "eqeq-five"
+        }
+      ],
+      "location": {
+        "end_line": 15,
+        "file": "foo.py",
+        "start_line": 15
+      },
+      "message": "useless comparison to 5",
+      "raw_source_code_extract": [
+        "    x == 5\n"
       ],
       "scanner": {
         "id": "semgrep",
@@ -370,12 +370,29 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 8 findings (7 blocking) from 6 rules.
   Uploading findings.
-  View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  Has findings for blocking rules so exiting with code 1
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+'sca_kind'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 485, in ci
+    app_block_override, reason = scan_handler.report_findings(
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 287, in report_findings
+    findings = [match.to_app_finding_format(commit_date) for match in new_matches]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 287, in <listcomp>
+    findings = [match.to_app_finding_format(commit_date) for match in new_matches]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_match.py", line 522, in to_app_finding_format
+    is_blocking=self.is_blocking,
+                ^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_match.py", line 388, in is_blocking
+    self.is_reachable_or_always_reachable()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/rule_match.py", line 369, in is_reachable_or_always_reachable
+    self.metadata["sca_kind"] == "upgrade-only"
+    ~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'sca_kind'
 
 === end of stderr - plain
