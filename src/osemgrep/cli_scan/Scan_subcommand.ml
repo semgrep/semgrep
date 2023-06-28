@@ -260,7 +260,7 @@ let scan_files rules_and_origins (conf : Scan_CLI.conf) =
          """
          return False
     *)
-    Ok (res, cli_output)
+    Ok (filtered_rules, res, cli_output)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -340,7 +340,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
       match scan_files rules_and_origins conf with
       | Error ex -> ex
-      | Ok (res, cli_output) ->
+      | Ok (_, res, cli_output) ->
           (* step5: exit with the right exit code *)
           (* final result for the shell *)
           if conf.error_on_findings && not (Common.null cli_output.results) then
