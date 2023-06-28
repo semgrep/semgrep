@@ -377,6 +377,15 @@ def send_semgrep_search(server, pattern, language=None):
     )
 
 
+def send_hover(server, path, position, line):
+    params = {
+        "textDocument": {"uri": f"file://{path}"},
+        "position": {"character": position, "line": line},
+        "workDoneToken": "foo",
+    }
+    send_msg(server, "textDocument/hover", params)
+
+
 def check_diagnostics(response, file, expected_ids):
     assert response["method"] == "textDocument/publishDiagnostics"
     assert response["params"]["uri"] == f"file://{file}"
@@ -608,6 +617,15 @@ def test_ls_ext(
     response = next(responses)
     results = response["result"]
     assert len(results["locations"]) == 3
+
+    for file in files:
+        send_hover(server, file, 1, 0)
+        response = next(responses)
+        results = response["result"]
+        # Make sure the contents field exists
+        # This test might break actually if there is no hover
+        # for the given test file
+        results["contents"]
 
     send_exit(server)
 

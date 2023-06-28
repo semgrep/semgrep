@@ -447,24 +447,25 @@ let first_info_of_any any =
 (* Extract ranges *)
 (*****************************************************************************)
 
+(* Also used below by `nearest_any_of_pos` *)
+let smaller t1 t2 =
+  if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
+
+let larger t1 t2 =
+  if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
+
+let incorporate_tokens ranges (left, right) =
+  match !ranges with
+  | None -> ranges := Some (left, right)
+  | Some (orig_left, orig_right) ->
+      ranges := Some (smaller orig_left left, larger orig_right right)
+
+let incorporate_token ranges tok =
+  if Tok.is_origintok tok then
+    let tok_loc = Tok.unsafe_loc_of_tok tok in
+    incorporate_tokens ranges (tok_loc, tok_loc)
+
 class ['self] range_visitor =
-  let smaller t1 t2 =
-    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
-  in
-  let larger t1 t2 =
-    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
-  in
-  let incorporate_tokens ranges (left, right) =
-    match !ranges with
-    | None -> ranges := Some (left, right)
-    | Some (orig_left, orig_right) ->
-        ranges := Some (smaller orig_left left, larger orig_right right)
-  in
-  let incorporate_token ranges tok =
-    if Tok.is_origintok tok then
-      let tok_loc = Tok.unsafe_loc_of_tok tok in
-      incorporate_tokens ranges (tok_loc, tok_loc)
-  in
   object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
     method! visit_tok ranges tok = incorporate_token ranges tok
@@ -528,52 +529,34 @@ let range_of_any_opt any =
   [@@profiling]
 
 (*****************************************************************************)
-(* Fix token locations *)
+(* Nearest Any node of a position *)
 (*****************************************************************************)
 
 type any_range = {
   range : (Tok.location * Tok.location) option ref;
   any : (AST_generic.any * (Tok.location * Tok.location)) option ref;
-  position : int * string; (* charpos *)
+  position : int; (* charpos *)
 }
 
 class ['self] any_range_visitor =
-  let smaller t1 t2 =
-    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
-  in
-  let larger t1 t2 =
-    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
+  let pos_within pos (t1', t2') =
+    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
+    pos >= t1'.Tok.pos.charpos && pos <= t2'_charpos
   in
   let range_within (t1, t2) (t1', t2') =
-    t1.Tok.pos.charpos >= t1'.Tok.pos.charpos
-    && t2.Tok.pos.charpos <= t2'.Tok.pos.charpos
-  in
-  let incorporate_tokens ranges (left, right) =
-    match !ranges with
-    | None -> ranges := Some (left, right)
-    | Some (orig_left, orig_right) ->
-        ranges := Some (larger orig_left left, smaller orig_right right)
-  in
-  let incorporate_token ranges tok =
-    if Tok.is_origintok tok then
-      let tok_loc = Tok.unsafe_loc_of_tok tok in
-      incorporate_tokens ranges (tok_loc, tok_loc)
+    let _, _, t2_charpos = Tok.end_pos_of_loc t2 in
+    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
+    t1.Tok.pos.charpos >= t1'.Tok.pos.charpos && t2_charpos <= t2'_charpos
   in
   let set_any_range info (any, range) =
-    let charpos, file = info.position in
-    let fake_pos =
-      Tok.{ str = ""; pos = { Pos.charpos; line = -1; column = -1; file } }
-    in
+    let charpos = info.position in
     match (!(info.any), range) with
     | _, None -> ()
     | None, Some range ->
-        if range_within (fake_pos, fake_pos) range then
-          info.any := Some (any, range)
+        if pos_within charpos range then info.any := Some (any, range)
     | Some (_, cur_range), Some range ->
-        if
-          range_within range cur_range
-          && range_within (fake_pos, fake_pos) range
-        then info.any := Some (any, range)
+        if range_within range cur_range && pos_within charpos range then
+          info.any := Some (any, range)
   in
   let handle_any info any visit_fn =
     let saved_ranges = !(info.range) in
@@ -614,34 +597,10 @@ class ['self] any_range_visitor =
       handle_any info (Pa param) (fun () -> super#visit_parameter info param)
 
     method! visit_expr info expr =
-      match expr.e_range with
-      | None -> (
-          let saved_ranges = !(info.range) in
-          info.range := None;
-          super#visit_expr info expr;
-          expr.e_range <- !(info.range);
-          set_any_range info (E expr, !(info.range));
-          match saved_ranges with
-          | None -> ()
-          | Some range -> incorporate_tokens info.range range)
-      | Some range ->
-          set_any_range info (E expr, Some range);
-          incorporate_tokens info.range range
+      handle_any info (E expr) (fun () -> super#visit_expr info expr)
 
     method! visit_stmt info stmt =
-      match stmt.s_range with
-      | None -> (
-          let saved_ranges = !(info.range) in
-          info.range := None;
-          super#visit_stmt info stmt;
-          stmt.s_range <- !(info.range);
-          set_any_range info (S stmt, !(info.range));
-          match saved_ranges with
-          | None -> ()
-          | Some range -> incorporate_tokens info.range range)
-      | Some range ->
-          set_any_range info (S stmt, Some range);
-          incorporate_tokens info.range range
+      handle_any info (S stmt) (fun () -> super#visit_stmt info stmt)
 
     (* Ignore the tokens from the aliased expression *)
     method! visit_Alias ranges id _e = self#visit_ident ranges id

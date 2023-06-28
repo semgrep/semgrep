@@ -331,6 +331,18 @@ module Server = struct
           (to_yojson (Some actions), server)
       | TextDocumentHover { position; textDocument; _ } -> (
           let file = Uri.to_path textDocument.uri in
+          let contents = Common.cat file in
+          let lines =
+            contents |> Common.index_list
+            |> List.filter (fun (_, idx) -> idx < position.line)
+          in
+          (* Add 1 to each list for the newline! *)
+          let base_charpos =
+            lines
+            |> Common.map (fun (l, _) -> String.length l + 1)
+            |> List.fold_left ( + ) 0
+          in
+          let charpos = base_charpos + position.character in
           let lang = Lang.lang_of_filename_exn (Fpath.v file) in
           (* copied from -dump_ast *)
           let { Parsing_result2.ast; _ } =
@@ -338,17 +350,36 @@ module Server = struct
             (* else Parse_target.just_parse_with_lang lang file
             *)
           in
-          let res =
-            AST_generic_helpers.nearest_any_of_pos ast (position.character, file)
-          in
+          let res = AST_generic_helpers.nearest_any_of_pos ast charpos in
           match res with
-          | None -> (Some (`String "No AST node found at position."), server)
-          | Some (any, _) ->
+          | None -> (Some `Null, server)
+          | Some (any, (t1, t2)) ->
               let v = Meta_AST.vof_any any in
               (* 80 columns is too little *)
               Format.set_margin 120;
               let s = OCaml.string_of_v v in
-              (Some (`String s), server))
+              let end_line, end_col, _ = Tok.end_pos_of_loc t2 in
+              let hover =
+                Hover.
+                  {
+                    contents =
+                      `MarkedString { language = Some "OCaml"; value = s };
+                    range =
+                      Some
+                        {
+                          (* Subtract one for each line, because we want to switch to
+                             0-indexing
+                          *)
+                          start =
+                            {
+                              character = t1.pos.column;
+                              line = t1.pos.line - 1;
+                            };
+                          end_ = { character = end_col; line = end_line - 1 };
+                        };
+                  }
+              in
+              (Some (Hover.yojson_of_t hover), server))
       | CR.UnknownRequest { meth; params } ->
           handle_custom_request server meth params
       | CR.Shutdown ->

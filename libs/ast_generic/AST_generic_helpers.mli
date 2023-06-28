@@ -120,7 +120,7 @@ val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
 
 val nearest_any_of_pos :
   AST_generic.program ->
-  int * string ->
+  int ->
   (AST_generic.any * (Tok.location * Tok.location)) option
 
 val fix_token_locations_any :
