@@ -211,7 +211,9 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
 (* from scans.py *)
 let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
     ~ignored_targets:_ ~commit_date ~engine_requested:_ =
-  let rule_ids = List.map (fun r -> Rule.ID.to_string (fst r.Rule.id)) rules in
+  let rule_ids =
+    Common.map (fun r -> Rule.ID.to_string (fst r.Rule.id)) rules
+  in
   (*
       we want date stamps assigned by the app to be assigned such that the
       current sort by relevant_since results in findings within a given scan
@@ -238,8 +240,8 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
       (fun m -> Option.value ~default:false m.Out.extra.Out.is_ignored)
       all_matches
   in
-  let findings = List.mapi (finding_of_cli_match commit_date) new_matches
-  and ignores = List.mapi (finding_of_cli_match commit_date) new_ignored in
+  let findings = Common.mapi (finding_of_cli_match commit_date) new_matches
+  and ignores = Common.mapi (finding_of_cli_match commit_date) new_ignored in
   let ci_token =
     match Sys.getenv_opt "GITHUB_TOKEN" with
     (* GitHub (cloud) *)
@@ -264,7 +266,7 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
   (* TODO: add those fields below in semgrep_output_v1.atd spec *)
   let findings_and_ignores =
     let ignores =
-      List.map
+      Common.map
         (fun f -> JSON.json_of_string (Semgrep_output_v1_j.string_of_finding f))
         ignores
     in
