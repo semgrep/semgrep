@@ -88,6 +88,8 @@ jobs:
         id: cache-opam
         uses: actions/cache@v3
         if: ${{ inputs.use-cache }}
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:
           path: ~/.opam
           #TODO: we should add the md5sum of opam.lock as part of the key
