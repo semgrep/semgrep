@@ -612,24 +612,23 @@ def print_text_output(
             and "sca-fix-versions" in rule_match.metadata
             and (last_message is None or last_message != message)
         ):
-            fix_tag = with_color(Colors.green, "         ▶▶┆ Fixed at versions:")
             # this is a list of objects like [{'minimist': '0.2.4'}, {'minimist': '1.2.6'}]
             fixes = rule_match.metadata["sca-fix-versions"]
             # will be structure { 'package_name': set('1.2.3', '2.3.4') }
-            reduced_fixes: Dict[str, set[str]] = {}
+            fixed_versions = set()
+            dep_name = rule_match.extra[
+                "sca_info"
+            ].dependency_match.found_dependency.package
             for fix_obj in fixes:
                 for name, version in fix_obj.items():
-                    if name not in reduced_fixes:
-                        reduced_fixes[name] = set()
-                    reduced_fixes[name].add(version)
-            console.print(fix_tag)
-            for name, versions in reduced_fixes.items():
-                console.print(
-                    with_color(
-                        Colors.green, f"           ┆   {name}: {', '.join(versions)}"
-                    )
+                    if name == dep_name:
+                        fixed_versions.add(version)
+            console.print(
+                with_color(
+                    Colors.green,
+                    f"         ▶▶┆ Fixed for {dep_name} at versions: {', '.join(fixed_versions)}",
                 )
-            console.print("          ⋮┆")
+            )
 
         last_file = current_file
         last_message = message
