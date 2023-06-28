@@ -708,14 +708,20 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   }
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
-   serialise the rule in JSON format, then produce the hash from this
-   serialisation. However, there is no way (yet?) to serialise OCaml rules into
-   JSON format. We decided to use [Marshal] and then produce the hash
-   accordingly (ignoring the metadatas, as in Python).
+   serialise the rule into JSON format, then produce the hash from this
+   serialisation. However, there is no way (yet?) to serialise OCaml [Rule.t]s
+   into JSON format. It exists, however, a path where we should be able to
+   serialize a [Rule.t] via [ppx] (or by hands). It requires more work because
+   we must have a way to serialize all types required by [Rule.t] but the
+   propagation of a [ppx] such as [ppx_deriving.show] demonstrates that it's
+   possible to implement such function.
 
-   However, this hash is used for metrics. So we don't produce the same hash as
-   the one produced by the Python implementation. *)
+   Actually, we tried to use [Marshal] and produce a hash from the /marshalled/
+   output but [Rule.t] contains some custom blocks that the [Marshal] module can
+   not handle.
+
+   Currently, we did the choice to **only** hash the [ID.t] of the given rule
+   which is clearly not enough comparing to the Python code. But, again, we can
+   improve that by serialize everything and compute a hash from it. *)
 let sha256_of_rule rule =
-  let rule = { rule with metadata = None } in
-  let str = Marshal.to_string rule Marshal.[ No_sharing ] in
-  Digestif.SHA256.digest_string str
+  Digestif.SHA256.digest_string (ID.to_string (fst rule.id))
