@@ -14,4 +14,6 @@ val run : Scan_CLI.conf -> Exit_code.t
 val scan_files :
   Rule_fetching.rules_and_origin list ->
   Scan_CLI.conf ->
-  (Core_runner.result * Semgrep_output_v1_t.cli_output, Exit_code.t) result
+  ( Rule.rule list * Core_runner.result * Semgrep_output_v1_t.cli_output,
+    Exit_code.t )
+  result

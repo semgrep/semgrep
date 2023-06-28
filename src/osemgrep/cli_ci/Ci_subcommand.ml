@@ -7,6 +7,8 @@
    Translated from ci.py
 *)
 
+module Out = Semgrep_output_v1_t
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -110,6 +112,220 @@ let generate_meta_from_environment (_baseline_ref : Digestif.SHA1.t option) :
       invalid_arg "unexpected version or help"
   | Error _e -> invalid_arg "couldn't decode environment"
 
+let is_blocking (json : JSON.t) =
+  match json with
+  | JSON.Object xs -> (
+      match List.assoc_opt "dev.semgrep.actions" xs with
+      | Some (JSON.Array stuff) ->
+          List.exists
+            (function
+              | JSON.String s -> String.equal s "block"
+              | _else -> false)
+            stuff
+      | _else -> false)
+  | _else -> false
+
+(* partition rules *)
+let partition_rules (filtered_rules : Rule.t list) =
+  let cai_rules, rest =
+    List.partition
+      (fun r ->
+        Common2.string_match_substring
+          (Str.regexp "r2c-internal-cai")
+          (Rule.ID.to_string (fst r.Rule.id)))
+      filtered_rules
+  in
+  let blocking_rules, non_blocking_rules =
+    List.partition
+      (fun r ->
+        Option.value ~default:false (Option.map is_blocking r.Rule.metadata))
+      rest
+  in
+  (cai_rules, blocking_rules, non_blocking_rules)
+
+let partition_findings ~keep_ignored (results : Out.cli_match list) =
+  let groups =
+    List.filter
+      (fun (m : Out.cli_match) ->
+        Option.value ~default:false m.Out.extra.Out.is_ignored
+        && not keep_ignored)
+      results
+    |> Common.group_by (fun (m : Out.cli_match) ->
+           if
+             Common2.string_match_substring
+               (Str.regexp "r2c-internal-cai")
+               m.Out.check_id
+           then `Cai
+           else if is_blocking (JSON.from_yojson m.Out.extra.Out.metadata) then
+             (* and "sca_info" not in match.extra *)
+             `Blocking
+           else `Non_blocking)
+  in
+  ( (try List.assoc `Cai groups with
+    | Not_found -> []),
+    (try List.assoc `Blocking groups with
+    | Not_found -> []),
+    try List.assoc `Non_blocking groups with
+    | Not_found -> [] )
+
+(* from rule_match.py *)
+let severity_to_int = function
+  | "EXPERIMENT" -> 4
+  | "WARNING" -> 1
+  | "ERROR" -> 2
+  | _ -> 0
+
+let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
+  let (r : Out.finding) =
+    Out.
+      {
+        check_id = m.check_id;
+        path = m.path;
+        line = m.start.line;
+        column = m.start.col;
+        end_line = m.end_.line;
+        end_column = m.end_.col;
+        message = m.Out.extra.Out.message;
+        severity = severity_to_int m.Out.extra.Out.severity;
+        index;
+        commit_date = "";
+        (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
+        syntactic_id = "";
+        (* TODO, see rule_match.py *)
+        match_based_id = None;
+        (* TODO: see rule_match.py *)
+        hashes = None;
+        (* TODO should compute start_line_hash / end_line_hash / code_hash / pattern_hash *)
+        metadata = m.Out.extra.Out.metadata;
+        is_blocking = is_blocking (JSON.from_yojson m.Out.extra.Out.metadata);
+        fixed_lines =
+          None
+          (* TODO: if self.extra.get("fixed_lines"): ret.fixed_lines = self.extra.get("fixed_lines") *);
+        sca_info = None;
+        (* TODO *)
+        dataflow_trace = None (* TODO *);
+      }
+  in
+  r
+
+(* from scans.py *)
+let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
+    ~ignored_targets:_ ~commit_date ~engine_requested:_ =
+  let rule_ids = List.map (fun r -> Rule.ID.to_string (fst r.Rule.id)) rules in
+  (*
+      we want date stamps assigned by the app to be assigned such that the
+      current sort by relevant_since results in findings within a given scan
+      appear in an intuitive order.  this requires reversed ordering here.
+     *)
+  let all_matches = List.rev findings in
+  let all_matches =
+    let to_int = function
+      | "EXPERIMENT" -> 0
+      | "INVENTORY" -> 1
+      | "INFO" -> 2
+      | "WARNING" -> 3
+      | "ERROR" -> 4
+      | _ -> invalid_arg "unknown severity"
+    in
+    let sort_severity a b = Int.compare (to_int a) (to_int b) in
+    List.sort
+      (fun m1 m2 ->
+        sort_severity m1.Out.extra.Out.severity m2.Out.extra.Out.severity)
+      all_matches
+  in
+  let new_ignored, new_matches =
+    List.partition
+      (fun m -> Option.value ~default:false m.Out.extra.Out.is_ignored)
+      all_matches
+  in
+  let findings = List.mapi (finding_of_cli_match commit_date) new_matches
+  and ignores = List.mapi (finding_of_cli_match commit_date) new_ignored in
+  let ci_token =
+    match Sys.getenv_opt "GITHUB_TOKEN" with
+    (* GitHub (cloud) *)
+    | Some _ as t -> t
+    | None -> (
+        match Sys.getenv_opt "GITLAB_TOKEN" with
+        (* GitLab.com (cloud) *)
+        | Some _ as t -> t
+        | None -> Sys.getenv_opt "BITBUCKET_TOKEN" (* Bitbucket Cloud *))
+  in
+  let api_scans_findings =
+    Out.
+      {
+        (* send a backup token in case the app is not available *)
+        findings;
+        token = ci_token;
+        gitlab_token = None;
+        searched_paths = List.sort String.compare targets;
+        rule_ids;
+      }
+  in
+  (* TODO: add those fields below in semgrep_output_v1.atd spec *)
+  let findings_and_ignores =
+    let ignores =
+      List.map
+        (fun f -> JSON.json_of_string (Semgrep_output_v1_j.string_of_finding f))
+        ignores
+    in
+    match
+      JSON.json_of_string
+        (Semgrep_output_v1_j.string_of_api_scans_findings api_scans_findings)
+    with
+    | JSON.Object data ->
+        JSON.Object
+          (("renamed_paths", Array []) :: ("ignores", Array ignores) :: data)
+    | _ -> invalid_arg "expected a json object"
+  in
+  if
+    List.exists
+      (fun m -> String.equal m.Out.extra.severity "EXPERIMENT")
+      new_ignored
+  then
+    Logs.app (fun m -> m "Some experimental rules were run during execution.");
+
+  (* (*ignored_ext_freqs = Counter(
+         [os.path.splitext(path)[1] for path in ignored_targets]
+       )
+       ignored_ext_freqs.pop("", None)  # don't count files with no extension
+       *)
+       (* dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()} *)
+
+       let complete = {
+         "exit_code" = if blocking_finding then 1 else 0 ;
+         "dependency_parser_errors": List [] ; (* [e.to_json() for e in dependency_parser_errors], *)
+         "stats": {
+           "findings": List.length new_matches ;
+           "errors": [error.to_dict() for error in errors];
+           "total_time": total_time;
+           "unsupported_exts": dict(ignored_ext_freqs);
+           "lockfile_scan_info": { } (* dependency_counts *) ;
+           "parse_rate": {
+         lang: {
+           "targets_parsed": data.num_targets - data.targets_with_errors,
+                             "num_targets": data.num_targets,
+                             "bytes_parsed": data.num_bytes - data.error_bytes,
+                             "num_bytes": data.num_bytes,
+                         }
+                         for (lang, data) in parse_rate.get_errors_by_lang().items()
+                     },
+                     "engine_requested": engine_requested.name,
+                 },
+     }
+       in
+
+     (*
+             if self._dependency_query:
+                 lockfile_dependencies_json = {}
+                 for path, dependencies in lockfile_dependencies.items():
+                     lockfile_dependencies_json[path] = [
+                         dependency.to_json() for dependency in dependencies
+                     ]
+                 complete["dependencies"] = lockfile_dependencies_json
+     *)
+  *)
+  (findings_and_ignores, JSON.Null)
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -201,12 +417,12 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                 Semgrep_envvars.v.semgrep_url metadata_dict
             with
             | Error msg ->
-                Logs.err (fun m -> m "%s" msg);
+                Logs.err (fun m -> m "Could not start scan %s" msg);
                 Error Exit_code.fatal
             | Ok scan_id ->
                 (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
                 Result.map
-                  (fun r -> ((if scan_id = "" then None else Some scan_id), r))
+                  (fun r -> (Some scan_id, r))
                   (fetch_scan_config ~token ~dry_run:conf.dryrun ~sca:false
                      ~full_scan:metadata.is_full_scan
                      ~repository:metadata.repository scan_id))
@@ -245,6 +461,16 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
              exclude = ( *exclude, *yield_exclude_paths(excludes_from_app))
           *)
           try
+            (* TODO: call with:
+               target = os.curdir
+               autofix=scan_handler.autofix if scan_handler else False,
+               dryrun=True,
+               # Always true, as we want to always report all findings, even
+               # ignored ones, to the backend
+               disable_nosem=True,
+               baseline_commit=metadata.merge_base_ref,
+               baseline_commit_is_mergebase=True,
+            *)
             match Scan_subcommand.scan_files rules_and_origin conf with
             | Error e ->
                 (match (depl, scan_id) with
@@ -253,10 +479,129 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                       (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
                          ~scan_id (Exit_code.to_int e))
                 | _else -> ());
+                Logs.err (fun m -> m "Encountered error when running rules");
                 e
-            | Ok (_res, _cli_output) ->
-                (* TODO: reporting *)
-                Exit_code.ok
+            | Ok (filtered_rules, _res, cli_output) ->
+                let _cai_rules, blocking_rules, non_blocking_rules =
+                  partition_rules filtered_rules
+                in
+                let keep_ignored = false in
+                (* TODO: the syntactic_id and match_based_id are hashes over parts of the finding, not yet implemented in OCaml
+                   # Since we keep nosemgrep disabled for the actual scan, we have to apply
+                   # that flag here
+                   keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
+                   for rule, matches in filtered_matches_by_rule.items():
+                     # Filter out any matches that are triaged as ignored on the app
+                     if scan_handler:
+                       matches = [
+                         match
+                         for match in matches
+                         if match.syntactic_id not in scan_handler.skipped_syntactic_ids
+                         and match.match_based_id not in scan_handler.skipped_match_based_ids
+                      ]
+                *)
+                let _cai_findings, blocking_findings, non_blocking_findings =
+                  partition_findings ~keep_ignored cli_output.Out.results
+                in
+
+                (* TODO (output already called in Scan_subcommand.scan_files)
+                                    output_handler.output(
+                       {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
+                       all_targets=output_extra.all_targets,
+                       ignore_log=ignore_log,
+                       profiler=profiler,
+                       filtered_rules=filtered_rules,
+                       profiling_data=output_extra.profiling_data,
+                       severities=shown_severities,
+                       is_ci_invocation=True,
+                       rules_by_engine=output_extra.rules_by_engine,
+                       engine_type=engine_type,
+                   )
+                *)
+                Logs.app (fun m -> m "CI scan completed successfully.");
+                Logs.app (fun m ->
+                    m "  Found %s (%u blocking) from %s."
+                      (String_utils.unit_str
+                         (List.length blocking_findings
+                         + List.length non_blocking_findings)
+                         "finding")
+                      (List.length blocking_findings)
+                      (String_utils.unit_str
+                         (List.length blocking_rules
+                         + List.length non_blocking_rules)
+                         "rule"));
+                let app_block_override, reason =
+                  match (depl, scan_id) with
+                  | Some (token, deployment_name), Some scan_id ->
+                      Logs.app (fun m -> m "  Uploading findings.");
+                      let findings_and_ignores, complete =
+                        prepare_for_report
+                          ~blocking_findings:
+                            (not (Common.null blocking_findings))
+                          cli_output.Out.results cli_output.Out.errors
+                          filtered_rules
+                          ~targets:cli_output.Out.paths.Out.scanned
+                          ~ignored_targets:cli_output.Out.paths.skipped
+                          ~commit_date:"" ~engine_requested:`OSS
+                      in
+                      let result =
+                        match
+                          Scan_helper.report_findings ~token ~scan_id
+                            ~dry_run:conf.dryrun ~findings_and_ignores ~complete
+                        with
+                        | Ok a -> a
+                        | Error msg ->
+                            Logs.err (fun m ->
+                                m "Failed to report findings: %s" msg);
+                            (false, "")
+                      in
+                      Logs.app (fun m ->
+                          m "  View results in Semgrep Cloud Platform:");
+                      Logs.app (fun m ->
+                          m "    https://semgrep.dev/orgs/%s/findings"
+                            deployment_name);
+                      if
+                        List.exists
+                          (fun r ->
+                            String.equal "r2c-internal-project-depends-on"
+                              (Rule.ID.to_string (fst r.Rule.id)))
+                          filtered_rules
+                      then
+                        Logs.app (fun m ->
+                            m "    https://semgrep.dev/orgs/%s/supply-chain"
+                              deployment_name);
+                      result
+                  | _ -> (false, "")
+                in
+                let audit_mode = false in
+                (* TODO: audit_mode = metadata.event_name in audit_on *)
+                let exit_code =
+                  if not (Common.null blocking_findings) then
+                    if audit_mode then (
+                      Logs.app (fun m ->
+                          m
+                            "  Audit mode is on for %s, so exiting with code 0 \
+                             even if matches found"
+                            (Option.value ~default:"unknown"
+                               metadata.Project_metadata.on));
+                      Exit_code.ok)
+                    else (
+                      Logs.app (fun m ->
+                          m
+                            "  Has findings for blocking rules so exiting with \
+                             code 1");
+                      Exit_code.findings)
+                  else (
+                    Logs.app (fun m ->
+                        m "  No blocking findings so exiting with code 0");
+                    Exit_code.ok)
+                in
+                if app_block_override && not audit_mode then (
+                  Logs.app (fun m ->
+                      m "  semgrep.dev is suggesting a non-zero exit code (%s)"
+                        reason);
+                  Exit_code.findings)
+                else exit_code
           with
           | Error.Semgrep_error (_, ex) as e ->
               (match (depl, scan_id) with
@@ -266,6 +611,9 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                     (Scan_helper.report_failure ~dry_run:conf.dryrun ~token
                        ~scan_id (Exit_code.to_int r))
               | _else -> ());
+              Logs.err (fun m ->
+                  m "Encountered error when running rules: %s"
+                    (Printexc.to_string e));
               let e = Exception.catch e in
               Exception.reraise e))
 
