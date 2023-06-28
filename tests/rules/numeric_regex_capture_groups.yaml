@@ -1,0 +1,24 @@
+rules:
+  - id: numeric-regex-capture-groups 
+    message: Semgrep found a match
+    languages:
+      - python
+    severity: WARNING
+    pattern-either:
+      - patterns:
+          - pattern-regex: "foo\\((?P<X>.*)\\)"
+          - metavariable-regex:
+              metavariable: $X
+              regex: "150"
+          - metavariable-comparison:
+              metavariable: $X
+              comparison: int($X) > 122
+      - patterns:
+          - pattern-regex: "bar\\((?P<A>.*),(?P<B>.*)\\)"
+          - metavariable-regex:
+              metavariable: $A
+              regex: "a"
+          - metavariable-regex:
+              metavariable: $B
+              regex: "b"
+          - focus-metavariable: $B
