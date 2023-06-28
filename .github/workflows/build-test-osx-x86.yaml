@@ -43,11 +43,10 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-osx-${{ github.sha }}
-      - run: unzip artifacts.zip
-      - env:
-          # Relative because build-wheels does a 'cd cli'
-          SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels.sh
+      - run: |
+          unzip artifacts.zip
+          cp artifacts/semgrep-core cli/src/semgrep/bin
+          ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
