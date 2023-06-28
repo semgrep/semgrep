@@ -379,6 +379,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           ~rewrite_rule_ids:conf.rewrite_rule_ids
           ~registry_caching:conf.registry_caching conf.rules_source
       in
+      Metrics_.add_token settings.api_token;
 
       match scan_files rules_and_origins profiler conf with
       | Error ex -> ex

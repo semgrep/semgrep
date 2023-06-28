@@ -263,6 +263,10 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
                 ~num_targets:(List.length all_targets) ~respect_git_ignore
                 lang_jobs ppf)
             ());
+      List.iter
+        (fun { Lang_job.xlang; _ } ->
+          Metrics_.add_feature "language" (Xlang.to_string xlang))
+        lang_jobs;
       (* TODO progress bar *)
       let results_by_language =
         lang_jobs
