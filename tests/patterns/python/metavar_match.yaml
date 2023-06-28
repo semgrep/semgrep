@@ -4,7 +4,7 @@ rules:
       - python
     message: Match found! You cannot use this.
     pattern: |
-      match $X:
+      match x:
         case str():
           print("oh no")
     severity: ERROR
