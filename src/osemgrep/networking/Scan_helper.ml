@@ -115,3 +115,108 @@ let report_failure ~dry_run ~token ~scan_id exit_code =
     | Error (code, msg) ->
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg)
+
+(* TODO the server reply when POST to
+   "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
+let extract_errors data =
+  try
+    match JSON.json_of_string data with
+    | JSON.Object xs -> (
+        match List.assoc_opt "errors" xs with
+        | Some (JSON.Array errs) ->
+            List.iter
+              (fun err ->
+                match err with
+                | JSON.Object xs -> (
+                    match List.assoc_opt "message" xs with
+                    | Some (String s) ->
+                        Logs.warn (fun m ->
+                            m "Server returned following warning: %s" s)
+                    | _else ->
+                        Logs.err (fun m ->
+                            m "Couldn't find message in %s"
+                              (JSON.string_of_json err)))
+                | _else ->
+                    Logs.err (fun m ->
+                        m "Couldn't find message in %s"
+                          (JSON.string_of_json err)))
+              errs
+        | _else ->
+            Logs.err (fun m ->
+                m "Couldn't find errors in %s"
+                  (JSON.string_of_json (JSON.Object xs))))
+    | json ->
+        Logs.err (fun m -> m "Not a json object %s" (JSON.string_of_json json))
+  with
+  | e ->
+      Logs.err (fun m ->
+          m "Failed to decode server reply as json %s: %s"
+            (Printexc.to_string e) data)
+
+(* TODO the server reply when POST to
+   "/api/agent/scans/<scan_id>/complete" should be specified in ATD *)
+let extract_block_override data =
+  try
+    match JSON.json_of_string data with
+    | JSON.Object xs ->
+        let app_block_override =
+          match List.assoc_opt "app_block_override" xs with
+          | Some (Bool b) -> b
+          | _else -> false
+        and app_block_reason =
+          match List.assoc_opt "app_block_reason" xs with
+          | Some (String s) -> s
+          | _else -> ""
+        in
+        Ok (app_block_override, app_block_reason)
+    | json ->
+        Error
+          (Fmt.str "Failed to understand the server reply: %s"
+             (JSON.string_of_json json))
+  with
+  | e ->
+      Error
+        (Fmt.str "Failed to decode server reply as json %s: %s"
+           (Printexc.to_string e) data)
+
+let report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete =
+  if dry_run then (
+    Logs.app (fun m ->
+        m "Would have sent findings and ignores blob: %s"
+          (JSON.string_of_json findings_and_ignores));
+    Logs.app (fun m ->
+        m "Would have sent complete blob: %s" (JSON.string_of_json complete));
+    Ok (false, ""))
+  else (
+    Logs.debug (fun m ->
+        m "Sending findings and ignores blob: %s"
+          (JSON.string_of_json findings_and_ignores));
+    Logs.debug (fun m ->
+        m "Sending complete blob: %s" (JSON.string_of_json complete));
+
+    let url =
+      Uri.with_path Semgrep_envvars.v.semgrep_url
+        ("/api/agent/scans/" ^ scan_id ^ "/findings_and_ignores")
+    in
+    let headers =
+      [
+        ("content-type", "application/json");
+        ("authorization", "Bearer " ^ token);
+      ]
+    in
+    let body = JSON.string_of_json findings_and_ignores in
+    (match Http_helpers.post ~body ~headers url with
+    | Ok body -> extract_errors body
+    | Error (code, msg) ->
+        Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
+    (* mark as complete *)
+    let url =
+      Uri.with_path Semgrep_envvars.v.semgrep_url
+        ("/api/agent/scans/" ^ scan_id ^ "/complete")
+    in
+    let body = JSON.string_of_json complete in
+    match Http_helpers.post ~body ~headers url with
+    | Ok body -> extract_block_override body
+    | Error (code, msg) ->
+        Error
+          ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg))
