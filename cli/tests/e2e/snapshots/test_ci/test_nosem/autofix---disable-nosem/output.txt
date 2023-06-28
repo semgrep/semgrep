@@ -3,82 +3,10 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-
-┌───────────────────────────┐
-│ 12 Blocking Code Findings │
-└───────────────────────────┘
-
-    foo.py
-       eqeq-bad
-          useless comparison
-
-            4┆ a == a
-            ⋮┆----------------------------------------
-            5┆ a == a
-            ⋮┆----------------------------------------
-            6┆ a == a  # nosemgrep
-            ⋮┆----------------------------------------
-            7┆ a == a
-            ⋮┆----------------------------------------
-            9┆ x == x  # nosemgrep
-            ⋮┆----------------------------------------
-           11┆ y == y
-            ⋮┆----------------------------------------
-           13┆ z == z  # nosemgrep
-            ⋮┆----------------------------------------
-           23┆ b == b # Triage ignored by syntactic_id
-            ⋮┆----------------------------------------
-           24┆ a == a # Triage ignored by match_based_id
-            ⋮┆----------------------------------------
-       eqeq-four
-          useless comparison to 4
-
-           18┆ baz == 4  # nosemgrep
-            ⋮┆----------------------------------------
-           19┆ baz == 4
-            ⋮┆----------------------------------------
-       taint-test
-          unsafe use of danger
-
-           27┆ sink(d2)
-
-
-┌──────────────────────────────────┐
-│ 1 Reachable Supply Chain Finding │
-└──────────────────────────────────┘
-
-    poetry.lock
-       supply-chain1
-          found a dependency
-
-            1┆ [[package]]
-            2┆ name = "badlib"
-
-
-┌──────────────────────────────┐
-│ 2 Non-blocking Code Findings │
-└──────────────────────────────┘
-
-    foo.py
-       eqeq-five
-          useless comparison to 5
-
-           ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
-            ⋮┆----------------------------------------
-           ▶▶┆ Autofix ▶ (y == 2)
-           16┆ y == 5  # nosemgrep
-
-  BLOCKING CODE RULES FIRED:
-    eqeq-bad
-    eqeq-four
-    taint-test
-
 
 === end of stdout - plain
 
@@ -105,16 +33,14 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 15 findings (12 blocking) from 6 rules.
-  Has findings for blocking rules so exiting with code 1
+'Rule' object has no attribute 'from_transient_scan'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 416, in ci
+    transient_scan_rules = [rule for rule in filtered_rules if rule.from_transient_scan]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 416, in <listcomp>
+    transient_scan_rules = [rule for rule in filtered_rules if rule.from_transient_scan]
+AttributeError: 'Rule' object has no attribute 'from_transient_scan'
 
 === end of stderr - plain
