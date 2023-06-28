@@ -1159,15 +1159,11 @@ let interactive_loop ~turbo xlang xtargets =
   in
   let _ = render_and_loop in
   *)
-  let t = Term.create () in
-  Common.finalize
-    (fun () ->
-      (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
-      (* if true then render_and_loop state.term state *)
-      spawn_thread_if_turbo (xlang, xtargets);
-      Unix.sleep 10;
-      ())
-    (fun () -> Term.release t)
+  (* fake if to shutdown warning 21 of ocamlc "nonreturn-statement" *)
+  (* if true then render_and_loop state.term state *)
+  spawn_thread_if_turbo (xlang, xtargets);
+  Unix.sleep 10;
+  ()
   [@@profiling]
 
 (*****************************************************************************)
