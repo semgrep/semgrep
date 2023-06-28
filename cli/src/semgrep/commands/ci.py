@@ -412,6 +412,10 @@ def ci(
 
     total_time = time.time() - start
 
+    # Separate out the transient scan rules and the regular rules.
+    transient_scan_rules = [rule for rule in filtered_rules if rule.from_transient_scan]
+    filtered_rules = [rule for rule in filtered_rules if not rule.from_transient_scan]
+
     # Split up rules into respective categories:
     blocking_rules: List[Rule] = []
     nonblocking_rules: List[Rule] = []
@@ -419,16 +423,27 @@ def ci(
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
+        elif rule.is_blocking:
+            blocking_rules.append(rule)
         else:
-            if rule.is_blocking:
-                blocking_rules.append(rule)
-            else:
-                nonblocking_rules.append(rule)
+            nonblocking_rules.append(rule)
 
     # Split up matches into respective categories
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
+
+    # Separate out the transient scan matches and regular matches.
+    transient_scan_matches_by_rule = {
+        rule: [match for match in matches]
+        for rule, matches in filtered_matches_by_rule.items()
+        if rule.from_transient_scan
+    }
+    filtered_matches_by_rule = {
+        rule: [match for match in matches]
+        for rule, matches in filtered_matches_by_rule.items()
+        if (not rule.from_transient_scan)
+    }
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
@@ -465,7 +480,7 @@ def ci(
         all_targets=output_extra.all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
-        filtered_rules=filtered_rules,
+        filtered_rules=[*blocking_rules, *nonblocking_rules],
         profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
@@ -484,8 +499,10 @@ def ci(
         logger.info("  Uploading findings.")
         app_block_override, reason = scan_handler.report_findings(
             filtered_matches_by_rule,
+            transient_scan_matches_by_rule,
             semgrep_errors,
             filtered_rules,
+            transient_scan_rules,
             output_extra.all_targets,
             renamed_targets,
             ignore_log.unsupported_lang_paths,

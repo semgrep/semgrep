@@ -13,6 +13,7 @@ from typing import Set
 from typing import Union
 
 import semgrep.output_from_core as core
+from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -260,6 +261,25 @@ class Rule:
             if "r2c-internal-project-depends-on" in self._raw
             else RuleProduct.sast
         )
+
+    # TODO: auto-generate this in ATD definition.
+    @property
+    def scan_source(self) -> RuleScanSource:
+        src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
+        if src == "unchanged":
+            return RuleScanSource.unchanged
+        elif src == "new-version":
+            return RuleScanSource.new_version
+        elif src == "new-rule":
+            return RuleScanSource.new_rule
+        elif src == "previous-scan":
+            return RuleScanSource.previous_scan
+        else:
+            return RuleScanSource.unannotated
+
+    @property
+    def from_transient_scan(self) -> bool:
+        return self.scan_source == RuleScanSource.previous_scan
 
     @property
     def formula_string(self) -> str:
