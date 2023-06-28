@@ -276,5 +276,6 @@ let main argv : Exit_code.t =
   *)
   (*TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
+  Metrics_.add_exit_code exit_code;
   before_exit ~profile ();
   exit_code

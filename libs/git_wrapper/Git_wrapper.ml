@@ -179,3 +179,13 @@ let commit cwd msg =
   match Bos.OS.Cmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git commit")
+
+let get_project_url () =
+  let cmd = Bos.Cmd.(v "git" % "ls-remote" % "--get-url") in
+  let out = Bos.OS.Cmd.run_out cmd in
+  match Bos.OS.Cmd.out_string ~trim:true out with
+  | Ok (url, _) -> Some url
+  | Error _ ->
+      File.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
+(* TODO(dinosaure): this function is pretty weak. We probably should handle that
+   by a new environment variable. *)

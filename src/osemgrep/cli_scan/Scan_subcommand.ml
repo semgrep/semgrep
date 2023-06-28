@@ -156,7 +156,7 @@ let analyze_skipped (skipped : Out.skipped_target list) =
 (* Conduct the scan *)
 (*****************************************************************************)
 
-let scan_files rules_and_origins (conf : Scan_CLI.conf) =
+let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
@@ -197,12 +197,38 @@ let scan_files rules_and_origins (conf : Scan_CLI.conf) =
             Some (file_match_results_hook conf filtered_rules) )
       | { output_format; _ } -> (output_format, None)
     in
+    Profiler.save profiler ~name:"core_time";
     let (res : Core_runner.result) =
       Core_runner.invoke_semgrep_core
         ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
         ~file_match_results_hook conf.core_runner_conf filtered_rules errors
         targets
     in
+    Profiler.save profiler ~name:"core_time";
+
+    Metrics_.add_engine_type
+      ~name:
+        (Format.asprintf "%a" Out.pp_engine_kind
+           res.Core_runner.core.engine_requested);
+
+    let filtered_matches =
+      let update = function
+        | Some n -> Some (succ n)
+        | None -> Some 1
+      in
+      let fold acc (core_match : Out.core_match) =
+        Map_.update core_match.Out.rule_id update acc
+      in
+      let map = List.fold_left fold Map_.empty res.core.Out.matches in
+      Map_.fold
+        (fun rule_id n acc ->
+          match Rule.ID.of_string_opt rule_id with
+          | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
+          | None -> acc)
+        map []
+    in
+    Metrics_.add_findings filtered_matches;
+    Metrics_.add_errors res.core.errors;
 
     (* step4: report matches *)
     let errors_skipped = errors_to_skipped res.core.errors in
@@ -221,7 +247,13 @@ let scan_files rules_and_origins (conf : Scan_CLI.conf) =
     in
 
     (* outputting the result! in JSON/Text/... depending on conf *)
-    let cli_output = Output.output_result { conf with output_format } res in
+    let cli_output =
+      Output.output_result { conf with output_format } profiler res
+    in
+    Profiler.save profiler ~name:"total_time";
+    if Metrics_.is_enabled conf.metrics then (
+      Metrics_.add_rules ?profiling:res.core.time filtered_rules;
+      Metrics_.add_profiling profiler);
 
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
@@ -273,8 +305,18 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
+  let profiler = Profiler.make () in
+  Profiler.save profiler ~name:"config_time";
+  Profiler.save profiler ~name:"total_time";
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+  (if Metrics_.is_enabled conf.metrics then
+     Metrics_.add_project_url (Git_wrapper.get_project_url ());
+   Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+   match conf.rules_source with
+   | Rules_source.Configs configs -> Metrics_.add_configs configs
+   | _ -> ());
+  Profiler.save profiler ~name:"config_time";
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -338,7 +380,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           ~registry_caching:conf.registry_caching conf.rules_source
       in
 
-      match scan_files rules_and_origins conf with
+      match scan_files rules_and_origins profiler conf with
       | Error ex -> ex
       | Ok (_, res, cli_output) ->
           (* step5: exit with the right exit code *)

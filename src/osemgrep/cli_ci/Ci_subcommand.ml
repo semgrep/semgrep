@@ -473,7 +473,8 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                baseline_commit=metadata.merge_base_ref,
                baseline_commit_is_mergebase=True,
             *)
-            match Scan_subcommand.scan_files rules_and_origin conf with
+            let profiler = Profiler.make () in
+            match Scan_subcommand.scan_files rules_and_origin profiler conf with
             | Error e ->
                 (match (depl, scan_id) with
                 | Some (token, _), Some scan_id ->

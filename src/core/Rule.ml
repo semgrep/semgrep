@@ -706,3 +706,16 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     paths = None;
     metadata = None;
   }
+
+(* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
+   serialise the rule in JSON format, then produce the hash from this
+   serialisation. However, there is no way (yet?) to serialise OCaml rules into
+   JSON format. We decided to use [Marshal] and then produce the hash
+   accordingly (ignoring the metadatas, as in Python).
+
+   However, this hash is used for metrics. So we don't produce the same hash as
+   the one produced by the Python implementation. *)
+let sha256_of_rule rule =
+  let rule = { rule with metadata = None } in
+  let str = Marshal.to_string rule Marshal.[ No_sharing ] in
+  Digestif.SHA256.digest_string str

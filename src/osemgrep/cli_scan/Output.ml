@@ -156,8 +156,8 @@ let dispatch_output_format (output_format : Output_format.t)
  * output.output() all at once.
  * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
-    Out.cli_output =
+let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
+    (res : Core_runner.result) : Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -167,6 +167,7 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
     Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
       res
   in
+  Profiler.save profiler ~name:"ignores_time";
   let cli_output =
     let keep_ignored =
       (not conf.nosem) (* --disable-nosem *) || false
@@ -176,6 +177,7 @@ let output_result (conf : Scan_CLI.conf) (res : Core_runner.result) :
     Nosemgrep.process_ignores ~keep_ignored ~strict:conf.Scan_CLI.strict
       cli_output
   in
+  Profiler.save profiler ~name:"ignores_time";
   (* ugly: but see the comment above why we do it here *)
   if conf.autofix then apply_fixes_and_warn conf cli_output;
   dispatch_output_format conf.output_format conf cli_output;
