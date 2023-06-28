@@ -116,7 +116,8 @@ let report_failure ~dry_run ~token ~scan_id exit_code =
         Error
           ("API server returned " ^ string_of_int code ^ ", this error: " ^ msg)
 
-(* TODO the server reply would be specified in ATD *)
+(* TODO the server reply when POST to
+   "/api/agent/scans/<scan_id>/findings_and_ignores" should be specified ATD *)
 let extract_errors data =
   try
     match JSON.json_of_string data with
@@ -152,7 +153,8 @@ let extract_errors data =
           m "Failed to decode server reply as json %s: %s"
             (Printexc.to_string e) data)
 
-(* TODO the server reply should be specified in ATD *)
+(* TODO the server reply when POST to
+   "/api/agent/scans/<scan_id>/complete" should be specified in ATD *)
 let extract_block_override data =
   try
     match JSON.json_of_string data with
