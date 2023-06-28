@@ -623,10 +623,12 @@ def print_text_output(
                 for name, version in fix_obj.items():
                     if name == dep_name:
                         fixed_versions.add(version)
+            sorted_fixed_versions = list(fixed_versions)
+            sorted_fixed_versions.sort()
             console.print(
                 with_color(
                     Colors.green,
-                    f"         ▶▶┆ Fixed for {dep_name} at versions: {', '.join(fixed_versions)}",
+                    f"         ▶▶┆ Fixed for {dep_name} at versions: {', '.join(sorted_fixed_versions)}",
                 )
             )
 
