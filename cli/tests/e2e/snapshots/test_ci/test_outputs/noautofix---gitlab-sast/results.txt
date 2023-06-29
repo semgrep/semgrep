@@ -212,35 +212,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
     },
     {
       "category": "sast",
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
-      "details": {},
-      "flags": [],
-      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-five",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-five",
-          "value": "eqeq-five"
-        }
-      ],
-      "location": {
-        "end_line": 15,
-        "file": "foo.py",
-        "start_line": 15
-      },
-      "message": "useless comparison to 5",
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
-    },
-    {
-      "category": "sast",
       "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
       "details": {
         "exposure": {
@@ -265,6 +236,35 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "start_line": 1
       },
       "message": "found a dependency",
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
+      },
+      "severity": "High"
+    },
+    {
+      "category": "sast",
+      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
+      "details": {},
+      "flags": [],
+      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
+      "identifiers": [
+        {
+          "name": "Semgrep - eqeq-five",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/eqeq-five",
+          "value": "eqeq-five"
+        }
+      ],
+      "location": {
+        "end_line": 15,
+        "file": "foo.py",
+        "start_line": 15
+      },
+      "message": "useless comparison to 5",
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -313,7 +313,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 8 findings (7 blocking) from 6 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
