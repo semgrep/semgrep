@@ -104,7 +104,6 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
-  Uploading findings.
 Would have sent findings and ignores blob: {
     "findings": [
         {
