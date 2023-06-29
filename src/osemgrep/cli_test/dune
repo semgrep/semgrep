@@ -1,6 +1,7 @@
 ; OCaml implementation of the 'semgrep test' subcommand.
 
 (library
+  (public_name semgrep.osemgrep_cli_test)
   (name osemgrep_cli_test)
   (wrapped false)
   (libraries

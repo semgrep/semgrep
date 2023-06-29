@@ -1,6 +1,7 @@
 ; OCaml implementation of the 'semgrep dump' subcommand.
 
 (library
+  (public_name semgrep.osemgrep_cli_dump)
   (name osemgrep_cli_dump)
   (wrapped false)
   (libraries
