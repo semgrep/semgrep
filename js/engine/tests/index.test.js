@@ -42,7 +42,6 @@ describe("yaml parser", () => {
 
     // it took a lot of work to get libyaml working, so let's confirm start/end locations are correct
     expect(result.stats.okfiles).toBe(1);
-    console.log(result);
     expect(result.matches.length).toBe(1);
     expect(result.explanations.length).toBe(1);
     const match = result.matches[0];
