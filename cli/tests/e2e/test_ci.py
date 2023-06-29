@@ -237,6 +237,8 @@ def automocks(mocker):
             package: badlib
             version: == 99.99.99
             sca-kind: upgrade-only
+          metadata:
+            dev.semgrep.actions: []
         """
     ).lstrip()
 
