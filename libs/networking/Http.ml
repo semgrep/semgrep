@@ -1,5 +1,4 @@
 open Http_lwt_client
-
 (* The http-lwt-client package offers:
    - HTTP/1 and HTTP/2 support (using http/af and h2)
    - TLS support (using OCaml-TLS)

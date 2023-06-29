@@ -1608,9 +1608,33 @@ let parse_steps env key (value : G.expr) : R.steps =
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 (*****************************************************************************)
+(* Parsers for secrets mode *)
+(*****************************************************************************) 
+
+let parse_secrets_fields env rule_dict : R.secrets_spec =
+  let sec   = take rule_dict env yaml_to_dict "secret" in
+  let req  = take rule_dict env yaml_to_dict "request" in 
+  let res = take rule_dict env yaml_to_dict "response" in
+    let bind =  
+      take sec env parse_string "bind" in 
+    let pattern = find_formula_old env sec |> parse_pair_old env
+    in 
+    let url = take req env parse_string "url" in 
+    let method_ = take req env parse_string "method" in 
+    let headers = take req env yaml_to_dict "headers" 
+  |> fun {h; _} ->
+    Hashtbl.fold 
+    (fun header value lst -> 
+      (header, parse_string env (fst value) (snd value))::lst
+    )
+    h
+    []
+  in
+    let return_code = take res env parse_string "return_code" in 
+         { bind; pattern; url; method_; headers; return_code }
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
@@ -1647,7 +1671,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
   | Some ("secrets", _), _ ->
-      `Secrets { secret = () }
+      `Secrets (parse_secrets_fields env rule_dict)
   | Some ("step", _), _ ->
       let steps = take rule_dict env parse_steps "steps" in
       `Step steps
