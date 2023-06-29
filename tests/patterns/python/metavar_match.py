@@ -1,5 +1,5 @@
 x = "hello"
-#ruleid: match
+#ERROR:
 match x:
     case str():
         print("oh no")
