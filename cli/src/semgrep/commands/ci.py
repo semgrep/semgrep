@@ -491,21 +491,27 @@ def ci(
     app_block_override = False
     reason = ""
     if scan_handler:
-        logger.info("  Uploading findings.")
-        app_block_override, reason = scan_handler.report_findings(
-            filtered_matches_by_rule,
-            semgrep_errors,
-            filtered_rules,
-            output_extra.all_targets,
-            renamed_targets,
-            ignore_log.unsupported_lang_paths,
-            output_extra.parsing_data,
-            total_time,
-            metadata.commit_datetime,
-            dependencies,
-            dependency_parser_errors,
-            engine_type,
-        )
+        with Progress(
+            TextColumn("  {task.description}"),
+            SpinnerColumn(spinner_name="simpleDotsScrolling"),
+            console=console,
+        ) as progress_bar:
+            app_block_override, reason = scan_handler.report_findings(
+                filtered_matches_by_rule,
+                semgrep_errors,
+                filtered_rules,
+                output_extra.all_targets,
+                renamed_targets,
+                ignore_log.unsupported_lang_paths,
+                output_extra.parsing_data,
+                total_time,
+                metadata.commit_datetime,
+                dependencies,
+                dependency_parser_errors,
+                engine_type,
+                progress_bar,
+            )
+
         logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"

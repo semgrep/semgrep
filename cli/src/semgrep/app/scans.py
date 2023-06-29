@@ -35,6 +35,7 @@ from semgrep.verbose_logging import getLogger
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
+    from rich.progress import Progress
 
 logger = getLogger(__name__)
 
@@ -253,6 +254,7 @@ class ScanHandler:
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
+        progress_bar: "Progress",
     ) -> Tuple[bool, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -369,6 +371,7 @@ class ScanHandler:
             )
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
+        results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/results",
             timeout=state.env.upload_findings_timeout,
@@ -387,10 +390,13 @@ class ScanHandler:
             if "task_id" in res:
                 complete["task_id"] = res["task_id"]
 
-        except requests.RequestException:
-            raise Exception(f"API server returned this error: {response.text}")
+            progress_bar.update(results_task, completed=100)
+
+        except requests.RequestException as exc:
+            raise Exception(f"API server returned this error: {response.text}") from exc
 
         try_until = datetime.now() + timedelta(minutes=10)
+        complete_task = progress_bar.add_task("Finalizing scan")
         while datetime.now() < try_until:
             logger.debug("Sending /complete")
 
@@ -411,12 +417,13 @@ class ScanHandler:
             ret = response.json()
 
             if ret.get("success", False):
+                progress_bar.update(complete_task, completed=100)
                 return (
                     ret.get("app_block_override", False),
                     ret.get("app_block_reason", ""),
                 )
             else:
-                click.echo("Waiting for semgrep.dev to process scan results...")
+                progress_bar.advance(complete_task)
                 sleep(5)
                 continue
 
