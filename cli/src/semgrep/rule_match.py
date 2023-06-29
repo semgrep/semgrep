@@ -399,6 +399,20 @@ class RuleMatch:
         return hashlib.sha256(last_line.encode()).hexdigest()
 
     @property
+    def is_sca_match_in_direct_dependency(self) -> bool:
+        return (
+            self.extra["sca_info"].dependency_match.found_dependency.transitivity
+            == "direct"
+        )
+
+    @property
+    def is_reachable_or_always_reachable(self) -> bool:
+        return (
+            self.extra["sca_info"].reachable
+            or self.metadata["sca-kind"] == "upgrade-only"
+        )
+
+    @property
     def uuid(self) -> UUID:
         """
         A UUID representation of ci_unique_key.
@@ -412,7 +426,11 @@ class RuleMatch:
         """
         blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
         if "sca_info" in self.extra:
-            return blocking and self.extra["sca_info"].reachable
+            return (
+                blocking
+                and self.is_reachable_or_always_reachable
+                and self.is_sca_match_in_direct_dependency
+            )
         else:
             return blocking
 
