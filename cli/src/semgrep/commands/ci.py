@@ -462,7 +462,7 @@ def ci(
                 if "r2c-internal-cai" in rule.id
                 else blocking_matches_by_rule
                 # note that SCA findings are always non-blocking
-                if rule.is_blocking and "sca_info" not in match.extra
+                if rule.is_blocking
                 else nonblocking_matches_by_rule
             )
             applicable_result_set[rule].append(match)
