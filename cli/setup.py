@@ -2,22 +2,19 @@
 import os
 import platform
 import shutil
-import stat
 import sys
 
 import setuptools
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SOURCE_DIR)
-BIN_DIR = "bin"
-PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "src", "semgrep", BIN_DIR)
-SEMGREP_CORE_BIN = "semgrep-core"
-SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
-SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
+# pad: is this still used? git grep SEMGREP_FORCE_INSTALL does not return anything
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
+# See ../scripts/build-wheels.sh, which is called from our GHA workflows.
+# This script assumes the presence of a semgrep-core binary copied under
+# cli/src/semgrep/bin by the caller (the GHA workflow).
 WHEEL_CMD = "bdist_wheel"
-
 
 if WHEEL_CMD in sys.argv:
     try:
@@ -74,36 +71,6 @@ def find_executable(env_name, exec_name):
     )
 
 
-# The default behavior is to copy the semgrep-core binary
-# into some other folder known to the semgrep wrapper. If somebody knows why,
-# please explain why we do this.
-#
-# It makes testing of semgrep-core error-prone since recompiling
-# semgrep-core won't perform this copy. If we can't get rid of this, can
-# we use a symlink instead?
-#
-# The environment variable SEMGREP_SKIP_BIN bypasses this copy. What is it for?
-#
-if not SEMGREP_SKIP_BIN:
-    binaries = [
-        (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
-    ]
-
-    for binary_env, binary_name in binaries:
-        src = find_executable(binary_env, binary_name)
-        dst = os.path.join(PACKAGE_BIN_DIR, binary_name)
-        # The semgrep-core executable doesn't have the write
-        # permission (because of something dune does?), and copyfile
-        # doesn't remove the destination file if it already exists
-        # but tries to truncate it, resulting in an error.
-        # So we remove the destination file first if it exists.
-        try:
-            os.remove(dst)
-        except OSError:
-            pass
-        shutil.copyfile(src, dst)
-        os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
-
 install_requires = [
     # versions must be manually synced:
     # - cli/setup.py lists dependencies
@@ -146,7 +113,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.29.0",
+    version="1.30.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
@@ -159,7 +126,7 @@ setuptools.setup(
     scripts=["bin/semgrep", "bin/pysemgrep"],
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
-    package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
+    package_data={"semgrep": [os.path.join("bin", "*")]},
     include_package_data=True,
     classifiers=[
         "Environment :: Console",

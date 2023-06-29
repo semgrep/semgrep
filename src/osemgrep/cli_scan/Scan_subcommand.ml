@@ -152,6 +152,156 @@ let analyze_skipped (skipped : Out.skipped_target list) =
     try List.assoc `Other groups with
     | Not_found -> [] )
 
+(*************************************************************************)
+(* Helpers *)
+(*************************************************************************)
+
+(* This function counts how many matches we got by rules:
+   [(Rule.t, number of matches : int) list]. *)
+let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
+  let update = function
+    | Some n -> Some (succ n)
+    | None -> Some 1
+  in
+  let fold acc (core_match : Out.core_match) =
+    Map_.update core_match.Out.rule_id update acc
+  in
+  let map = List.fold_left fold Map_.empty res.core.Out.matches in
+  Map_.fold
+    (fun rule_id n acc ->
+      match Rule.ID.of_string_opt rule_id with
+      | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
+      | None -> acc)
+    map []
+
+(*****************************************************************************)
+(* Conduct the scan *)
+(*****************************************************************************)
+
+let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
+  let rules, errors =
+    Rule_fetching.partition_rules_and_errors rules_and_origins
+  in
+  (* TODO: we should probably warn the user about rules using the same id *)
+  let rules =
+    Common.uniq_by
+      (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
+      rules
+  in
+  if Common.null rules then Error Exit_code.missing_config
+  else
+    let filtered_rules =
+      Rule_filtering.filter_rules conf.rule_filtering_conf rules
+    in
+    Logs.info (fun m ->
+        m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
+
+    (* step2: getting the targets *)
+    let targets, semgrepignored_targets =
+      Find_targets.get_targets conf.targeting_conf conf.target_roots
+    in
+    Logs.debug (fun m ->
+        m "%a" Targets_report.pp_targets_debug
+          (conf.target_roots, semgrepignored_targets, targets));
+    Logs.info (fun m ->
+        semgrepignored_targets
+        |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
+               m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
+                 (Output_from_core_t.show_skip_reason
+                    x.Output_from_core_t.reason)
+                 x.Output_from_core_t.details));
+
+    (* step3: running the engine *)
+    let output_format, file_match_results_hook =
+      match conf with
+      | { output_format = Output_format.Text; legacy = false; _ } ->
+          ( Output_format.TextIncremental,
+            Some (file_match_results_hook conf filtered_rules) )
+      | { output_format; _ } -> (output_format, None)
+    in
+    let core () =
+      Core_runner.invoke_semgrep_core
+        ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+        ~file_match_results_hook conf.core_runner_conf filtered_rules errors
+        targets
+    in
+    let (res : Core_runner.result) =
+      Profiler.record profiler ~name:"core_time" core
+    in
+
+    Metrics_.add_engine_type
+      ~name:
+        (Format.asprintf "%a" Out.pp_engine_kind
+           res.Core_runner.core.engine_requested);
+
+    let filtered_matches = rules_and_counted_matches res in
+    Metrics_.add_findings filtered_matches;
+    Metrics_.add_errors res.core.errors;
+
+    (* step4: report matches *)
+    let errors_skipped = errors_to_skipped res.core.errors in
+    let semgrepignored, included, excluded, size, other_ignored =
+      analyze_skipped semgrepignored_targets
+    in
+    let res =
+      let skipped_targets =
+        Some
+          (semgrepignored_targets @ errors_skipped
+          @ Common.optlist_to_list res.core.skipped_targets)
+      in
+      (* Add the targets that were semgrepignored or errorneous *)
+      let core = { res.core with skipped_targets } in
+      { res with core }
+    in
+
+    (* outputting the result! in JSON/Text/... depending on conf *)
+    let cli_output =
+      Output.output_result { conf with output_format } profiler res
+    in
+    Profiler.stop_ign profiler ~name:"total_time";
+    if Metrics_.is_enabled conf.metrics then (
+      Metrics_.add_rules ?profiling:res.core.time filtered_rules;
+      Metrics_.add_profiling profiler);
+
+    Logs.info (fun m ->
+        m "%a" Skipped_report.pp_skipped
+          ( conf.targeting_conf.respect_git_ignore,
+            conf.legacy,
+            conf.targeting_conf.max_target_bytes,
+            semgrepignored,
+            included,
+            excluded,
+            size,
+            other_ignored,
+            errors_skipped ));
+    Logs.app (fun m ->
+        m "%a" Summary_report.pp_summary
+          ( conf.targeting_conf.respect_git_ignore,
+            conf.legacy,
+            conf.targeting_conf.max_target_bytes,
+            semgrepignored,
+            included,
+            excluded,
+            size,
+            other_ignored,
+            errors_skipped ));
+    Logs.app (fun m ->
+        m "Ran %s on %s: %s."
+          (String_utils.unit_str (List.length filtered_rules) "rule")
+          (String_utils.unit_str (List.length cli_output.paths.scanned) "file")
+          (String_utils.unit_str (List.length cli_output.results) "finding"));
+
+    (* TOPORT? was in formater/base.py
+       def keep_ignores(self) -> bool:
+         """
+         Return True if ignored findings should be passed to this formatter;
+         False otherwise.
+         Ignored findings can still be distinguished using their _is_ignore property.
+         """
+         return False
+    *)
+    Ok (filtered_rules, res, cli_output)
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -163,8 +313,20 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
-  Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+  let profiler = Profiler.make () in
+  Profiler.start profiler ~name:"total_time";
+  let config () =
+    Metrics_.configure conf.metrics;
+    let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+    if Metrics_.is_enabled conf.metrics then
+      Metrics_.add_project_url (Git_wrapper.get_project_url ());
+    Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+    (match conf.rules_source with
+    | Rules_source.Configs configs -> Metrics_.add_configs configs
+    | _ -> ());
+    settings
+  in
+  let settings = Profiler.record profiler ~name:"config_time" config in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -191,7 +353,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.dump <> None -> Dump_subcommand.run (Common2.some conf.dump)
-  | _else_ ->
+  | _else_ -> (
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
@@ -227,117 +389,16 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
           ~rewrite_rule_ids:conf.rewrite_rule_ids
           ~registry_caching:conf.registry_caching conf.rules_source
       in
-      let rules, errors =
-        Rule_fetching.partition_rules_and_errors rules_and_origins
-      in
-      (* TODO: we should probably warn the user about rules using the same id *)
-      let rules =
-        Common.uniq_by
-          (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
-          rules
-      in
-      if Common.null rules then Exit_code.missing_config
-      else
-        let filtered_rules =
-          Rule_filtering.filter_rules conf.rule_filtering_conf rules
-        in
-        Logs.info (fun m ->
-            m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
+      Metrics_.add_token settings.api_token;
 
-        (* step2: getting the targets *)
-        let targets, semgrepignored_targets =
-          Find_targets.get_targets conf.targeting_conf conf.target_roots
-        in
-        Logs.debug (fun m ->
-            m "%a" Targets_report.pp_targets_debug
-              (conf.target_roots, semgrepignored_targets, targets));
-        Logs.info (fun m ->
-            semgrepignored_targets
-            |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
-                   m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
-                     (Output_from_core_t.show_skip_reason
-                        x.Output_from_core_t.reason)
-                     x.Output_from_core_t.details));
-
-        (* step3: running the engine *)
-        let output_format, file_match_results_hook =
-          match conf with
-          | { output_format = Output_format.Text; legacy = false; _ } ->
-              ( Output_format.TextIncremental,
-                Some (file_match_results_hook conf filtered_rules) )
-          | { output_format; _ } -> (output_format, None)
-        in
-        let (res : Core_runner.result) =
-          Core_runner.invoke_semgrep_core
-            ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
-            ~file_match_results_hook conf.core_runner_conf filtered_rules errors
-            targets
-        in
-
-        (* step4: report matches *)
-        let errors_skipped = errors_to_skipped res.core.errors in
-        let semgrepignored, included, excluded, size, other_ignored =
-          analyze_skipped semgrepignored_targets
-        in
-        let res =
-          let skipped_targets =
-            Some
-              (semgrepignored_targets @ errors_skipped
-              @ Common.optlist_to_list res.core.skipped_targets)
-          in
-          (* Add the targets that were semgrepignored or errorneous *)
-          let core = { res.core with skipped_targets } in
-          { res with core }
-        in
-
-        (* outputting the result! in JSON/Text/... depending on conf *)
-        let cli_output = Output.output_result { conf with output_format } res in
-
-        Logs.info (fun m ->
-            m "%a" Skipped_report.pp_skipped
-              ( conf.targeting_conf.respect_git_ignore,
-                conf.legacy,
-                conf.targeting_conf.max_target_bytes,
-                semgrepignored,
-                included,
-                excluded,
-                size,
-                other_ignored,
-                errors_skipped ));
-        Logs.app (fun m ->
-            m "%a" Summary_report.pp_summary
-              ( conf.targeting_conf.respect_git_ignore,
-                conf.legacy,
-                conf.targeting_conf.max_target_bytes,
-                semgrepignored,
-                included,
-                excluded,
-                size,
-                other_ignored,
-                errors_skipped ));
-        Logs.app (fun m ->
-            m "Ran %s on %s: %s."
-              (String_utils.unit_str (List.length filtered_rules) "rule")
-              (String_utils.unit_str
-                 (List.length cli_output.paths.scanned)
-                 "file")
-              (String_utils.unit_str (List.length cli_output.results) "finding"));
-
-        (* TOPORT? was in formater/base.py
-           def keep_ignores(self) -> bool:
-             """
-             Return True if ignored findings should be passed to this formatter;
-             False otherwise.
-             Ignored findings can still be distinguished using their _is_ignore property.
-             """
-             return False
-        *)
-
-        (* step5: exit with the right exit code *)
-        (* final result for the shell *)
-        if conf.error_on_findings && not (Common.null cli_output.results) then
-          Exit_code.findings
-        else exit_code_of_errors ~strict:conf.strict res.core.errors
+      match scan_files rules_and_origins profiler conf with
+      | Error ex -> ex
+      | Ok (_, res, cli_output) ->
+          (* step5: exit with the right exit code *)
+          (* final result for the shell *)
+          if conf.error_on_findings && not (Common.null cli_output.results) then
+            Exit_code.findings
+          else exit_code_of_errors ~strict:conf.strict res.core.errors)
 
 (*****************************************************************************)
 (* Entry point *)

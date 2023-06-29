@@ -415,25 +415,35 @@ def ci(
     # Split up rules into respective categories:
     blocking_rules: List[Rule] = []
     nonblocking_rules: List[Rule] = []
+    prev_scan_rules: List[Rule] = []
     cai_rules: List[Rule] = []
     for rule in filtered_rules:
         if "r2c-internal-cai" in rule.id:
             cai_rules.append(rule)
+        elif rule.from_transient_scan:
+            prev_scan_rules.append(rule)
+        elif rule.is_blocking:
+            blocking_rules.append(rule)
         else:
-            if rule.is_blocking:
-                blocking_rules.append(rule)
-            else:
-                nonblocking_rules.append(rule)
+            nonblocking_rules.append(rule)
 
     # Split up matches into respective categories
     blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
     cai_matches_by_rule: RuleMatchMap = defaultdict(list)
 
+    # Remove the prev scan matches by the rules that are in the current scan
+    # Done before the next loop to avoid interfering with ignore logic
+    removed_prev_scan_matches = {
+        rule: [match for match in matches]
+        for rule, matches in filtered_matches_by_rule.items()
+        if (not rule.from_transient_scan)
+    }
+
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
     keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
-    for rule, matches in filtered_matches_by_rule.items():
+    for rule, matches in removed_prev_scan_matches.items():
         # Filter out any matches that are triaged as ignored on the app
         if scan_handler:
             matches = [
@@ -465,7 +475,7 @@ def ci(
         all_targets=output_extra.all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
-        filtered_rules=filtered_rules,
+        filtered_rules=[*blocking_rules, *nonblocking_rules],
         profiling_data=output_extra.profiling_data,
         severities=shown_severities,
         is_ci_invocation=True,
@@ -481,21 +491,27 @@ def ci(
     app_block_override = False
     reason = ""
     if scan_handler:
-        logger.info("  Uploading findings.")
-        app_block_override, reason = scan_handler.report_findings(
-            filtered_matches_by_rule,
-            semgrep_errors,
-            filtered_rules,
-            output_extra.all_targets,
-            renamed_targets,
-            ignore_log.unsupported_lang_paths,
-            output_extra.parsing_data,
-            total_time,
-            metadata.commit_datetime,
-            dependencies,
-            dependency_parser_errors,
-            engine_type,
-        )
+        with Progress(
+            TextColumn("  {task.description}"),
+            SpinnerColumn(spinner_name="simpleDotsScrolling"),
+            console=console,
+        ) as progress_bar:
+            app_block_override, reason = scan_handler.report_findings(
+                filtered_matches_by_rule,
+                semgrep_errors,
+                filtered_rules,
+                output_extra.all_targets,
+                renamed_targets,
+                ignore_log.unsupported_lang_paths,
+                output_extra.parsing_data,
+                total_time,
+                metadata.commit_datetime,
+                dependencies,
+                dependency_parser_errors,
+                engine_type,
+                progress_bar,
+            )
+
         logger.info("  View results in Semgrep Cloud Platform:")
         logger.info(
             f"    https://semgrep.dev/orgs/{scan_handler.deployment_name}/findings"

@@ -1,5 +1,6 @@
 ; see also libs/jsonnet/
 (library
+  (public_name semgrep.osemgrep_jsonnet)
   (name osemgrep_jsonnet)
   (wrapped false)
   (libraries
