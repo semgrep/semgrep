@@ -1,6 +1,7 @@
 ; OCaml implementation of the 'semgrep ci' subcommand.
 ;
 (library
+  (public_name semgrep.osemgrep_cli_ci)
   (name osemgrep_cli_ci)
   (wrapped false)
   (libraries
