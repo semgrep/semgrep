@@ -450,4 +450,4 @@ def test_supply_chain_blocking():
     assert not create_sca_rule_match(
         "upgrade-only", False, out.Transitive()
     ).is_blocking
-    assert not create_sca_rule_match("upgrade-only", False, out.Unknown()).is_blocking
+    assert create_sca_rule_match("upgrade-only", False, out.Unknown()).is_blocking
