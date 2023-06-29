@@ -69,6 +69,11 @@ type 'a debug_info =
   | No_info
 [@@deriving show]
 
+let debug_info_to_option = function
+  | Debug { profiling; _ } -> Some profiling
+  | Time { profiling } -> Some profiling
+  | No_info -> None
+
 let mode = ref MNo_info
 
 (*****************************************************************************)
