@@ -88,6 +88,10 @@ jobs:
         id: cache-opam
         uses: actions/cache@v3
         if: ${{ inputs.use-cache }}
+        # The size of the tgz of ~/.opam is around 500MB, which usually takes less than
+        # 2min to download from GHA. If it takes more than that, that means something
+        # wrong is going on in which case it's better to timeout early than spend
+        # 10min (the default timeout) and then still timeout.
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:
