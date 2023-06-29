@@ -177,33 +177,15 @@ repos:
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
-  - repo: local
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.29.0
     hooks:
-      - id: semgrep-jsonnet
-        name: semgrep jsonnet
-        #
-        # Troubleshooting:
-        # 1. Make sure '--quiet' option is not passed to semgrep so
-        #    that we can see error messages.
-        # 2. Obtain the latest version of semgrep with:
-        #
-        #      docker pull returntocorp/semgrep:develop
-        #
-        # 3. Re-run job with
-        #
-        #      pre-commit run --all --verbose semgrep-jsonnet
-        #
-        # Only run this job in CI since it is slow
-        language: docker_image
-        # See .pre-commit-hooks.yaml for why we need to set those
-        # SEMGREP_XXX variables.  Ideally we would not need this
-        # because we would use the 'language: python' instead of
-        # 'docker_image' to run semgrep, but for now jsonnet support
-        # is not available via setup.py and only (unofficially)
-        # available in docker.
-        # If docker complains that --platform isn't supported because
-        # it's experimental, try upgrading your docker server.
-        entry: -e SEMGREP_LOG_FILE=/tmp/out.log -e SEMGREP_VERSION_CACHE_PATH=/tmp/cache --platform linux/amd64 returntocorp/semgrep:develop semgrep
+      - id: semgrep
+        name: Semgrep Jsonnet
+        # This uses the Python "hook" in .pre-commit-hooks.yaml and setup.py.
+        # alt: use 'repo: local', and 'language: docker', which can use
+        # the very latest docker image, which is nice, but is far slower.
+        language: python
 
         # Both the .semgrepignore file and the --exclude option
         # do nothing because the target files are passed
@@ -211,29 +193,30 @@ repos:
         # TODO: remove once file targeting is revamped and supports
         # filtering for explicit targets (a command-line flag should do)
         # exclude: "xxx.ml"
+        # TODO: we could also set 'pass_filenames: false', see
+        # https://stackoverflow.com/questions/57199833/run-pre-commit-com-hook-once-not-for-every-file-if-a-matched-file-is-detected
 
         #coupling: 'make check' and the SEMGREP_ARGS variable
         args: [
+            # use osemgrep!
             "--experimental",
+            # use jsonnet!
             "--config",
             "semgrep.jsonnet",
+            # classic flag to use in CI or pre-commit, return error code if findings
             "--error",
-            "--debug",
-            #
-            # note that pre-commit can call multiple times semgrep in
+            # Quiet or not quiet? Debug or not debug?
+            # Pre-commit can call multiple times semgrep in
             # one run if there are many files in a PR (or in CI where
             # it runs on all the files in a repo).  In that case I
             # think pre-commit splits the list of files in multiple
             # batches and run one semgrep per batch. This is why it's
             # important to use --quiet otherwise you can have the same
-            # banner repeated many times in the output in case of
-            # errors.
+            # banner repeated many times in the output in case of errors.
+            # It's a much bigger problem though to not see the error messages.
+            #"--verbose",
             #
-            # It's a much bigger problem to not see the error
-            # messages, so let's try without --quiet:
-            # "--quiet",
-            #
-            # this is useful in a pre-commit context because
+            # this last option is useful in a pre-commit context because
             # pre-commit calls the hooks with all the files in the PR
             # (or in CI with all the files in the repo) but we don't
             # want an OCaml rule to be applied on a script.

@@ -3,7 +3,10 @@ import json
 import os
 from collections import Counter
 from copy import deepcopy
+from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
+from time import sleep
 from typing import Any
 from typing import Dict
 from typing import FrozenSet
@@ -367,7 +370,7 @@ class ScanHandler:
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/results",
             timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
@@ -375,27 +378,48 @@ class ScanHandler:
         try:
             response.raise_for_status()
 
-            resp_errors = response.json()["errors"]
+            res = response.json()
+            resp_errors = res["errors"]
             for error in resp_errors:
                 message = error["message"]
                 click.echo(f"Server returned following warning: {message}", err=True)
 
+            if "task_id" in res:
+                complete["task_id"] = res["task_id"]
+
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
-        # mark as complete
-        response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
-            timeout=state.env.upload_findings_timeout,
-            json=complete,
-        )
+        try_until = datetime.now() + timedelta(minutes=10)
+        while datetime.now() < try_until:
+            logger.debug("Sending /complete")
 
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            # mark as complete
+            response = state.app_session.post(
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+                timeout=state.env.upload_findings_timeout,
+                json=complete,
             )
 
-        ret = response.json()
-        return (ret.get("app_block_override", False), ret.get("app_block_reason", ""))
+            try:
+                response.raise_for_status()
+            except requests.RequestException:
+                raise Exception(
+                    f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+                )
+
+            ret = response.json()
+
+            if ret.get("success", False):
+                return (
+                    ret.get("app_block_override", False),
+                    ret.get("app_block_reason", ""),
+                )
+            else:
+                click.echo("Waiting for semgrep.dev to process scan results...")
+                sleep(5)
+                continue
+
+        raise Exception(
+            f"API server at {state.env.semgrep_url} never completed processing the scan results."
+        )

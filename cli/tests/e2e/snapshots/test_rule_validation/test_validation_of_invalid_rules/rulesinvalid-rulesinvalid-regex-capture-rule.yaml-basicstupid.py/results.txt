@@ -1,3 +1,0 @@
-Configuration is invalid - found 1 configuration error(s), and 1 rule(s).
-[ERROR] Semgrep match found when running invalid-regex-capture-rule on rules/invalid-rules/invalid-regex-capture-rule.yaml:
- $1 is used in a 'metavariable-*' conditional or 'focus-metavariable' operator but is never bound by a positive pattern (or is only bound by negative patterns like 'pattern-not')

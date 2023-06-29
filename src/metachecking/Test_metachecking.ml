@@ -91,7 +91,6 @@ let test_rules ?(unit_testing = false) xs =
          in
 
          (* actual *)
-         Flag_semgrep.with_opt_cache := false;
          let actual_errors =
            try
              Check_rule.run_checks config Parse_rule.parse file [ target ]

@@ -134,7 +134,7 @@ COPY cli ./
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
-     SEMGREP_SKIP_BIN=true pip install /semgrep &&\
+     pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
      semgrep --version &&\
      apk del .build-deps &&\

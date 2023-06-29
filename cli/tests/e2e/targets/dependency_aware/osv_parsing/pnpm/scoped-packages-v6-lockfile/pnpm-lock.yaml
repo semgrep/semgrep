@@ -1,0 +1,13 @@
+lockfileVersion: '6.0'
+
+dependencies:
+  '@typescript-eslint/types':
+    specifier: ^5.0.0
+    version: 5.57.1
+
+packages:
+
+  /@typescript-eslint/types@5.57.1:
+    resolution: {integrity: sha512-bSs4LOgyV3bJ08F5RDqO2KXqg3WAdwHCu06zOqcQ6vqbTJizyBhuh1o1ImC69X4bV2g1OJxbH71PJqiO7Y1RuA==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    dev: false
