@@ -397,6 +397,18 @@ class RuleMatch:
         """
         last_line = self.get_individual_line(self.end.line)
         return hashlib.sha256(last_line.encode()).hexdigest()
+    
+    def is_direct(self) -> bool:
+        return (
+            self.extra["sca_info"].dependency_match.found_dependency.transitivity
+            == "direct"
+        )
+    
+    def is_reachable_or_always_reachable(self):
+        return (
+            self.extra["sca_info"].reachable
+            or self.metadata["sca_kind"] == "upgrade-only"
+        )
 
     @property
     def uuid(self) -> UUID:
@@ -412,7 +424,11 @@ class RuleMatch:
         """
         blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
         if "sca_info" in self.extra:
-            return blocking and self.extra["sca_info"].reachable
+            return (
+                blocking
+                and self.is_reachable_or_always_reachable() 
+                and self.is_direct()
+            )
         else:
             return blocking
 
