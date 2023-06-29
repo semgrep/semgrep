@@ -32,7 +32,7 @@ module Io =
       type output = Lwt_io.output_channel
 
       let read_line = Lwt_io.read_line_opt
-      let write = Lwt_io.write
+      let write oc lines = Lwt_io.write_lines oc (Lwt_stream.of_list lines)
 
       let read_exactly inc n =
         let rec read_exactly acc n =
@@ -100,7 +100,7 @@ module Server = struct
     in
     let _ = request server progress in
     let start =
-      SN.Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
+      Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
     in
     let progress = SN.WorkDoneProgress (ProgressParams.create token start) in
     let _ = notify server progress in
@@ -108,7 +108,7 @@ module Server = struct
     token
 
   let end_progress server token =
-    let end_ = SN.Progress.End (WorkDoneProgressEnd.create ()) in
+    let end_ = Progress.End (WorkDoneProgressEnd.create ()) in
     let progress = SN.WorkDoneProgress (ProgressParams.create token end_) in
     notify server progress
 
