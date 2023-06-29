@@ -245,7 +245,7 @@ let top_func () =
         return (G.TyEllipsis tok |> G.t, G.Arg (G.Ellipsis tok |> G.e) :: args)
     (* exp *)
     | Arg exp -> return (G.TyExpr (expr exp) |> G.t, args)
-    | _ -> raise Impossible
+    | ArgDots _ -> raise Impossible
   and expr e =
     (match e with
     | DotAccessEllipsis (v1, v2) ->
