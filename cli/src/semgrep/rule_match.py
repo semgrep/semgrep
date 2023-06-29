@@ -24,6 +24,7 @@ import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
+from semgrep.constants import RuleScanSource
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
@@ -197,6 +198,21 @@ class RuleMatch:
 
         Used for deduplication in the CLI before writing output.
         """
+        if self.from_transient_scan:
+            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
+            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
+            # As check_id is used for cli_unique_key, this patch fetches the check ID from metadata for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
+            # This fallback prevents breaking current scan results if an issue arises.
+            return (
+                self.annotated_rule_name,
+                str(self.path),
+                self.start.offset,
+                self.end.offset,
+                self.message,
+                None,
+            )
         return (
             self.rule_id,
             str(self.path),
@@ -222,6 +238,19 @@ class RuleMatch:
             path = self.path.relative_to(Path.cwd())
         except (ValueError, FileNotFoundError):
             path = self.path
+        if self.from_transient_scan:
+            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
+            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
+            # As check_id is used for ci_unique_key, this patch fetches the check ID from metadata for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
+            # This fallback prevents breaking current scan results if an issue arises.
+            return (
+                self.annotated_rule_name,
+                str(path),
+                self.syntactic_context,
+                self.index,
+            )
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
     def get_path_changed_ci_unique_key(self, rename_dict: Dict[str, Path]) -> Tuple:
@@ -290,6 +319,18 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
+        if self.from_transient_scan:
+            # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
+            # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
+            # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
+            # As check_id is used for match_based_id, this patch fetches the check ID from metadata for previous scan findings.
+            # TODO: Once the fixed status work is stable, all findings should fetch the check ID from metadata.
+            # This fallback prevents breaking current scan results if an issue arises.
+            return (
+                match_formula_str,
+                path,
+                self.annotated_rule_name,
+            )
         return (match_formula_str, path, self.rule_id)
 
     # This will supercede syntactic id, as currently that will change even if
@@ -512,6 +553,28 @@ class RuleMatch:
         if "sca_info" in self.extra:
             ret.sca_info = self.extra["sca_info"]
         return ret
+
+    @property
+    def scan_source(self) -> RuleScanSource:
+        src: str = self.metadata.get("semgrep.dev", {}).get("src", "")
+        if src == "unchanged":
+            return RuleScanSource.unchanged
+        elif src == "new-version":
+            return RuleScanSource.new_version
+        elif src == "new-rule":
+            return RuleScanSource.new_rule
+        elif src == "previous-scan":
+            return RuleScanSource.previous_scan
+        else:
+            return RuleScanSource.unannotated
+
+    @property
+    def from_transient_scan(self) -> bool:
+        return self.scan_source == RuleScanSource.previous_scan
+
+    @property
+    def annotated_rule_name(self) -> str:
+        return self.metadata.get("semgrep.dev", {}).get("rule", {}).get("rule_name")
 
     def __hash__(self) -> int:
         """
