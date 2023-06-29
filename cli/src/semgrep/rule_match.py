@@ -19,9 +19,6 @@ from uuid import UUID
 from attrs import evolve
 from attrs import field
 from attrs import frozen
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Direct
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Transitive
-from interfaces.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -32,6 +29,9 @@ from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines
 
 if TYPE_CHECKING:
