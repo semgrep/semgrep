@@ -226,7 +226,7 @@ def automocks(mocker):
             package: badlib
             version: == 99.99.99
           metadata:
-            dev.semgrep.actions: [block]
+            dev.semgrep.actions: []
             sca-kind: upgrade-only
         - id: supply-chain2
           message: "found a dependency"
@@ -236,9 +236,20 @@ def automocks(mocker):
             namespace: npm
             package: badlib
             version: == 99.99.99
-            sca-kind: upgrade-only
           metadata:
             dev.semgrep.actions: []
+            sca-kind: upgrade-only
+        - id: supply-chain3
+          message: "found another dependency but its a bad one >:D"
+          languages: [js]
+          severity: ERROR
+          r2c-internal-project-depends-on:
+            namespace: npm
+            package: verbadlib
+            version: == 99.99.99
+          metadata:
+            dev.semgrep.actions: ["block"]
+            sca-kind: reachable
         """
     ).lstrip()
 
