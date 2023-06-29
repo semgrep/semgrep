@@ -366,7 +366,7 @@ class RuleMatch:
     def is_reachable_or_always_reachable(self):
         return (
             self.extra["sca_info"].reachable
-            or self.metadata["sca_kind"] == "upgrade-only"
+            or self.metadata["sca-kind"] == "upgrade-only"
         )
 
     @property
