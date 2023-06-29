@@ -439,7 +439,7 @@ class RuleMatch:
         if "sca_info" in self.extra:
             if (
                 self.is_always_reachable_sca_match
-                and not self.is_sca_match_in_direct_dependency
+                and self.is_sca_match_in_transitive_dependency
             ) or (not self.exposure_type == "reachable"):
                 return False
             else:
