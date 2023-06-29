@@ -1401,29 +1401,23 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
   | `Bin_exp x -> binary_expression env x
   | `Cast_exp x -> cast_expression env x
   | `Chec_exp x -> checked_expression env x
-  | `Cond_access_exp (v1, v2, v3) ->
-      (* map `a?.b` to `null == a ? null : a.b` *)
+  | `Cond_access_exp (v1, v2, v3) -> (
       let v1 = expression env v1 in
-      let _v2 = token env v2 (* "?" *) in
-      let fake_null = L (Null (fake "null")) |> G.e in
-      let is_null =
-        Call (IdSpecial (Op Eq, fake "=") |> G.e, fb [ Arg fake_null; Arg v1 ])
-        |> G.e
+      let v2 = token env v2 (* "?" *) in
+      let inner =
+        G.Call (G.IdSpecial (G.Op G.Elvis, v2) |> G.e, fb [ G.Arg v1 ]) |> G.e
       in
-      let access =
-        match v3 with
-        | `Elem_bind_exp x ->
-            let x = element_binding_expression env x in
-            let open_br, _, close_br = x in
-            ArrayAccess (v1, (open_br, Container (Tuple, x) |> G.e, close_br))
-            |> G.e
-        | `Member_bind_exp (x1, x2) ->
-            let x1 = token env x1 (* "." *) in
-            let x2 = simple_name env x2 in
-            let n = H2.name_of_ids_with_opt_typeargs [ x2 ] in
-            DotAccess (v1, x1, FN n) |> G.e
-      in
-      Conditional (is_null, fake_null, access) |> G.e
+      match v3 with
+      | `Elem_bind_exp x ->
+          let x = element_binding_expression env x in
+          let open_br, _, close_br = x in
+          ArrayAccess (inner, (open_br, Container (Tuple, x) |> G.e, close_br))
+          |> G.e
+      | `Member_bind_exp (x1, x2) ->
+          let x1 = token env x1 (* "." *) in
+          let x2 = simple_name env x2 in
+          let n = H2.name_of_ids_with_opt_typeargs [ x2 ] in
+          DotAccess (inner, x1, FN n) |> G.e)
   | `Cond_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
       let _v2 = token env v2 (* "?" *) in
