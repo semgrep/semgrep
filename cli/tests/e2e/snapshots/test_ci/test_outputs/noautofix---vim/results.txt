@@ -13,8 +13,8 @@ foo.py:7:5:E:eqeq-bad:useless comparison
 foo.py:11:5:E:eqeq-bad:useless comparison
 foo.py:19:5:E:eqeq-four:useless comparison to 4
 foo.py:27:5:W:taint-test:unsafe use of danger
-foo.py:15:5:E:eqeq-five:useless comparison to 5
 poetry.lock:1:0:E:supply-chain1:found a dependency
+foo.py:15:5:E:eqeq-five:useless comparison to 5
 
 === end of stdout - plain
 
@@ -53,7 +53,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 8 findings (7 blocking) from 6 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

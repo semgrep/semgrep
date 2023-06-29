@@ -344,6 +344,56 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
+      "check_id": "supply-chain1",
+      "end": {
+        "col": 0,
+        "line": 2,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "[[package]]\nname = \"badlib\"",
+        "message": "found a dependency",
+        "metadata": {
+          "dev.semgrep.actions": [
+            "block"
+          ],
+          "sca-kind": "upgrade-only"
+        },
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "badlib",
+              "semver_range": "== 99.99.99"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "ecosystem": "pypi",
+              "line_number": 1,
+              "package": "badlib",
+              "transitivity": "unknown",
+              "version": "99.99.99"
+            },
+            "lockfile": "poetry.lock"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "ERROR"
+      },
+      "path": "poetry.lock",
+      "start": {
+        "col": 0,
+        "line": 1,
+        "offset": 0
+      }
+    },
+    {
       "check_id": "eqeq-five",
       "end": {
         "col": 11,
@@ -395,56 +445,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "line": 15,
         "offset": 157
       }
-    },
-    {
-      "check_id": "supply-chain1",
-      "end": {
-        "col": 0,
-        "line": 2,
-        "offset": 0
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "[[package]]\nname = \"badlib\"",
-        "message": "found a dependency",
-        "metadata": {
-          "dev.semgrep.actions": [
-            "block"
-          ],
-          "sca-kind": "upgrade-only"
-        },
-        "metavars": {},
-        "sca_info": {
-          "dependency_match": {
-            "dependency_pattern": {
-              "ecosystem": "pypi",
-              "package": "badlib",
-              "semver_range": "== 99.99.99"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "ecosystem": "pypi",
-              "line_number": 1,
-              "package": "badlib",
-              "transitivity": "unknown",
-              "version": "99.99.99"
-            },
-            "lockfile": "poetry.lock"
-          },
-          "reachability_rule": false,
-          "reachable": false,
-          "sca_finding_schema": 20220913
-        },
-        "severity": "ERROR"
-      },
-      "path": "poetry.lock",
-      "start": {
-        "col": 0,
-        "line": 1,
-        "offset": 0
-      }
     }
   ],
   "version": "0.42"
@@ -486,7 +486,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 8 findings (7 blocking) from 6 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
