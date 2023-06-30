@@ -12,7 +12,7 @@ public class CustomerRestControllerImpl implements CustomerRestController {
     })
     @PostMapping
     public CustomerDTO addCustomer(CustomerDTO customerDTO) {
-        int test = 0
+        int test = 0;
         try {
             return this.customerService.addCustomer(customerDTO);
         } catch (CustomerAlreadyExistsException exists) {
