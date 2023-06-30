@@ -22,6 +22,8 @@ let _MAX_FETCH_ATTEMPT_COUNT = 10
 (* A limit of how many fetch we should do until we find the common commit
    between two branches. *)
 
+let scan_environment = Some "github-actions"
+
 let get_repo_name env =
   let err = "Could not get repo_name when running in GitHub Action" in
   if Option.is_none env.git.Git_metadata._SEMGREP_REPO_NAME then
@@ -285,22 +287,27 @@ let env =
   let _github_event_path =
     let doc = "The GitHub event path." in
     let env = Cmd.Env.info "GITHUB_EVENT_PATH" in
-    Arg.(value & opt Glom.cli Glom.default & info [] ~env ~doc)
+    Arg.(
+      value & opt Glom.cli Glom.default & info [ "github-event-path" ] ~env ~doc)
   in
   let _github_sha =
     let doc = "The GitHub commit." in
     let env = Cmd.Env.info "GITHUB_SHA" in
-    Arg.(value & opt (some Cmdliner_helpers.sha1) None & info [] ~env ~doc)
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.sha1) None
+      & info [ "github-sha" ] ~env ~doc)
   in
   let gh_token =
     let doc = "The GitHub token." in
     let env = Cmd.Env.info "GH_TOKEN" in
-    Arg.(value & opt (some string) None & info [] ~env ~doc)
+    Arg.(value & opt (some string) None & info [ "gh-token" ] ~env ~doc)
   in
   let _github_repository =
     let doc = "The GitHub repository." in
     let env = Cmd.Env.info "GITHUB_REPOSITORY" in
-    Arg.(value & opt (some string) None & info [] ~env ~doc)
+    Arg.(
+      value & opt (some string) None & info [ "github-repository" ] ~env ~doc)
   in
   let _github_server_url =
     let doc = "The GitHub server URL." in
@@ -308,32 +315,36 @@ let env =
     Arg.(
       value
       & opt Cmdliner_helpers.uri (Uri.of_string "https://github.com")
-      & info [] ~doc ~env)
+      & info [ "github-server-url" ] ~doc ~env)
   in
   let _github_api_url =
     let doc = "The GitHub API URL." in
     let env = Cmd.Env.info "GITHUB_API_URL" in
-    Arg.(value & opt (some Cmdliner_helpers.uri) None & info [] ~doc ~env)
+    Arg.(
+      value
+      & opt (some Cmdliner_helpers.uri) None
+      & info [ "github-api-url" ] ~doc ~env)
   in
   let _github_run_id =
     let doc = "The GitHub run ID." in
     let env = Cmd.Env.info "GITHUB_RUN_ID" in
-    Arg.(value & opt (some string) None & info [] ~doc ~env)
+    Arg.(value & opt (some string) None & info [ "github-run-id" ] ~doc ~env)
   in
   let _github_event_name =
     let doc = "The GitHub event name." in
     let env = Cmd.Env.info "GITHUB_EVENT_NAME" in
-    Arg.(value & opt (some string) None & info [] ~doc ~env)
+    Arg.(
+      value & opt (some string) None & info [ "github-event-name" ] ~doc ~env)
   in
   let _github_ref =
     let doc = "The GitHub ref." in
     let env = Cmd.Env.info "GITHUB_REF" in
-    Arg.(value & opt (some string) None & info [] ~doc ~env)
+    Arg.(value & opt (some string) None & info [ "github-ref" ] ~doc ~env)
   in
   let _github_head_ref =
     let doc = "The GitHub HEAD ref." in
     let env = Cmd.Env.info "GITHUB_HEAD_REF" in
-    Arg.(value & opt (some string) None & info [] ~doc ~env)
+    Arg.(value & opt (some string) None & info [ "github-head-ref" ] ~doc ~env)
   in
   let run git (_, _GITHUB_EVENT_JSON) _GITHUB_SHA _GITHUB_REPOSITORY
       _GITHUB_SERVER_URL _GITHUB_API_URL _GITHUB_RUN_ID _GITHUB_EVENT_NAME
@@ -391,6 +402,7 @@ let make env =
     commit_author_image_url;
     pull_request_author_username;
     pull_request_author_image_url;
+    scan_environment;
   }
 
 let term = Cmdliner.Term.(const make $ env)

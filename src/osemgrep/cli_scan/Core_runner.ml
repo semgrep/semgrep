@@ -84,6 +84,12 @@ let merge_results (xresults : (Report.final_result * Fpath.t Set_.t) list) :
         List.concat_map (fun x -> x.Report.rules_by_engine) results;
     }
   in
+  (* TODO(dinosaure): currently, we don't collect metrics when we invoke
+     semgrep-core but we should. However, if we implement a way to collect
+     metrics, we will just need to set [final_result.extra] to
+     [RP.Debug]/[RP.Time] and this line of code will not change. *)
+  Metrics_.add_max_memory_bytes (RP.debug_info_to_option final_result.extra);
+  Metrics_.add_targets files (RP.debug_info_to_option final_result.extra);
   (final_result, files)
 
 (* The same rule may appear under multiple target languages because
@@ -257,6 +263,10 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
                 ~num_targets:(List.length all_targets) ~respect_git_ignore
                 lang_jobs ppf)
             ());
+      List.iter
+        (fun { Lang_job.xlang; _ } ->
+          Metrics_.add_feature "language" (Xlang.to_string xlang))
+        lang_jobs;
       (* TODO progress bar *)
       let results_by_language =
         lang_jobs

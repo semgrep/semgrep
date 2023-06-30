@@ -4,7 +4,6 @@
 type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
-  cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Rule_options.t;
@@ -51,11 +50,7 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
 val empty_environment :
-  ?mvar_context:Metavariable.bindings option ->
-  tout Caching.Cache.t option ->
-  Lang.t ->
-  Rule_options.t ->
-  tin
+  ?mvar_context:Metavariable.bindings option -> Lang.t -> Rule_options.t -> tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 

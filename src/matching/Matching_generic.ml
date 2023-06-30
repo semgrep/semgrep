@@ -76,7 +76,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
-  cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Rule_options.t;
@@ -351,21 +350,14 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment ?(mvar_context = None) opt_cache lang config =
+let empty_environment ?(mvar_context = None) lang config =
   let mv =
     match mvar_context with
     | None -> Env.empty
     | Some bindings ->
         { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
   in
-  {
-    mv;
-    stmts_match_span = Empty;
-    cache = opt_cache;
-    lang;
-    config;
-    deref_sym_vals = 0;
-  }
+  { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)

@@ -56,8 +56,6 @@ jobs:
     defaults:
       run:
         working-directory: cli/
-    env:
-      SEMGREP_SKIP_BIN: "1"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -67,6 +65,9 @@ jobs:
       - run: sudo python3 -m pip install pipenv==2022.6.7
       - name: Install dependencies
         run: pipenv install --dev
+      # There are no semgrep-core here, just the Python code.
+      # The wheels are separately added to the pypi package
+      # in the upload-wheels job below.
       - name: Build parked packages
         run: pipenv run python setup.py park
       - name: Publish to Pypi

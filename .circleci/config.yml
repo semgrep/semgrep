@@ -26,7 +26,7 @@ jobs:
       - checkout
       # Dogfooding on the bleeding edge by using jsonnet, the new syntax, osemgrep!
       # coupling: see also 'make check'
-      - run: osemgrep --config semgrep.jsonnet --error --verbose --exclude tests
+      - run: semgrep --experimental --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting

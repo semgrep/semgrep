@@ -1,5 +1,5 @@
 # This workflow builds and tests the semgrep-core binary for macOS M1
-# and generates m1-wheel for pypi.
+# and generates the m1-wheel for pypi.
 
 # coupling: if you modify this file, modify also build-test-osx-x86.yaml
 # This file is mostly a copy-paste of build-test-osx-x86.yaml
@@ -12,7 +12,13 @@ on:
 jobs:
   build-core-m1:
     name: Build the OSX M1 binaries
+    #TODO? if the use of the GHA-hosted runner works well in build-test-osx-x86.yaml,
+    # we might as well move out of a self-hosted runner for M1 too.
+    # This would remove the need for those ugly hard cleanup below because
+    # our self-hosted runner builds are not "hermetic".
     runs-on: [self-hosted, macOS, ARM64]
+    env:
+      OPAM_SWITCH_NAME: "4.14.0"
     steps:
       # Force hard cleanup of any old checkouts. This is needed because we run on
       # self-hosted CI runners here and when submodules move around they are no longer
@@ -30,11 +36,12 @@ jobs:
         with:
           submodules: true
       - env:
-          # M1 builds failing due to a permissions issue. this cleanup is an optimization,
-          # and we can revisit re-enabling cleanup when we have more time/resources to debug.
+          # M1 builds failing due to a permissions issue. this cleanup is an
+          # optimization, and we can revisit re-enabling cleanup when we have
+          # more time/resources to debug.
           HOMEBREW_NO_INSTALL_CLEANUP: "true"
         run: |
-          ./scripts/osx-setup-for-release.sh
+          ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
           opam exec -- make core
           mkdir -p artifacts
           cp ./bin/semgrep-core artifacts
@@ -54,11 +61,10 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-m1-${{ github.sha }}
-      - run: unzip artifacts.zip
-      - env:
-          # Relative because build-wheels does a 'cd cli'
-          SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels.sh
+      - run: |
+          unzip artifacts.zip
+          cp artifacts/semgrep-core cli/src/semgrep/bin
+          ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip

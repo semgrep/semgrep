@@ -782,7 +782,7 @@ let fix_poly_taint_with_field env lval st =
                                     *   type info and we used to remove taint, e.g. if Boolean
                                     *   and integer expressions didn't propagate taint. *)
                                 List.length offset
-                                < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
+                                < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
                                { arg with offset = arg.offset @ [ n ] }
                              in
@@ -1550,7 +1550,7 @@ let check_function_signature env fun_exp args args_taints =
                    else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
       Some
-        (fun_sig
+        (fun_sig |> T.Findings.elements
         |> List.concat_map process_sig
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->
@@ -1666,6 +1666,13 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       in
       let taints = Taints.union taints taints_propagated in
       check_orig_if_sink env instr.iorig taints;
+      let taints =
+        match LV.lval_of_instr_opt instr with
+        | None -> taints
+        | Some lval ->
+            check_type_and_drop_taints_if_bool_or_number env taints type_of_lval
+              lval
+      in
       (taints, lval_env')
 
 (* Test whether a `return' is tainted, and if it is also a sink,

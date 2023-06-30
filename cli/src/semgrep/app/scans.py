@@ -3,7 +3,10 @@ import json
 import os
 from collections import Counter
 from copy import deepcopy
+from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
+from time import sleep
 from typing import Any
 from typing import Dict
 from typing import FrozenSet
@@ -32,6 +35,7 @@ from semgrep.verbose_logging import getLogger
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
+    from rich.progress import Progress
 
 logger = getLogger(__name__)
 
@@ -154,10 +158,9 @@ class ScanHandler:
         if self.dry_run:
             app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         else:
-            app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-            # TODO: uncomment the line below to replace the old endpoint with the new one once we have the
-            # CLI logic in place to ignore findings that are from old rule versions
-            # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+            app_get_config_url = (
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/config"
+            )
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
@@ -251,6 +254,7 @@ class ScanHandler:
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
         engine_requested: "EngineType",
+        progress_bar: "Progress",
     ) -> Tuple[bool, str]:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -325,7 +329,9 @@ class ScanHandler:
             else 0,
             "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
             "stats": {
-                "findings": len(new_matches),
+                "findings": len(
+                    [match for match in new_matches if not match.from_transient_scan]
+                ),
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
                 "unsupported_exts": dict(ignored_ext_freqs),
@@ -365,8 +371,9 @@ class ScanHandler:
             )
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
+        results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/results",
             timeout=state.env.upload_findings_timeout,
             json=findings_and_ignores,
         )
@@ -374,27 +381,52 @@ class ScanHandler:
         try:
             response.raise_for_status()
 
-            resp_errors = response.json()["errors"]
+            res = response.json()
+            resp_errors = res["errors"]
             for error in resp_errors:
                 message = error["message"]
                 click.echo(f"Server returned following warning: {message}", err=True)
 
-        except requests.RequestException:
-            raise Exception(f"API server returned this error: {response.text}")
+            if "task_id" in res:
+                complete["task_id"] = res["task_id"]
 
-        # mark as complete
-        response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
-            timeout=state.env.upload_findings_timeout,
-            json=complete,
-        )
+            progress_bar.update(results_task, completed=100)
 
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+        except requests.RequestException as exc:
+            raise Exception(f"API server returned this error: {response.text}") from exc
+
+        try_until = datetime.now() + timedelta(minutes=10)
+        complete_task = progress_bar.add_task("Finalizing scan")
+        while datetime.now() < try_until:
+            logger.debug("Sending /complete")
+
+            # mark as complete
+            response = state.app_session.post(
+                f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+                timeout=state.env.upload_findings_timeout,
+                json=complete,
             )
 
-        ret = response.json()
-        return (ret.get("app_block_override", False), ret.get("app_block_reason", ""))
+            try:
+                response.raise_for_status()
+            except requests.RequestException:
+                raise Exception(
+                    f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+                )
+
+            ret = response.json()
+
+            if ret.get("success", False):
+                progress_bar.update(complete_task, completed=100)
+                return (
+                    ret.get("app_block_override", False),
+                    ret.get("app_block_reason", ""),
+                )
+            else:
+                progress_bar.advance(complete_task)
+                sleep(5)
+                continue
+
+        raise Exception(
+            f"API server at {state.env.semgrep_url} never completed processing the scan results."
+        )

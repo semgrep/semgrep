@@ -1,0 +1,14 @@
+lockfileVersion: 5.3
+
+specifiers:
+  '@my-org/my-package': https://gitlab.my-org.org/api/v4/projects/1/packages/npm/@my-org/my-package/-/@my-org/my-package-3.2.3.tgz
+
+devDependencies:
+  '@my-org/my-package': '@gitlab.my-org.org/api/v4/projects/1/packages/npm/@my-org/my-package/-/@my-org/my-package-3.2.3.tgz'
+
+packages:
+  '@gitlab.my-org.org/api/v4/projects/1/packages/npm/@my-org/my-package/-/@my-org/my-package-3.2.3.tgz':
+    resolution: {tarball: https://gitlab.my-org.org/api/v4/projects/1/packages/npm/@my-org/my-package/-/@my-org/my-package-3.2.3.tgz}
+    name: '@my-org/my-package'
+    version: 3.2.3
+    dev: true

@@ -1,0 +1,15 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/missing-hyphen.yaml:4
+4 |     - pattern: |
+5 |         foo
+6 |       pattern-not: |
+7 |         bar
+8 |   message: |
+
+Additional properties are not allowed ('pattern' was unexpected)
+Additional properties are not allowed ('pattern', 'pattern-not' were unexpected)
+Additional properties are not allowed ('pattern-not' was unexpected)
+
+[ERROR] Rule parse error in rule eqeq:
+ Expected object with only one entry -- did you forget a hyphen?

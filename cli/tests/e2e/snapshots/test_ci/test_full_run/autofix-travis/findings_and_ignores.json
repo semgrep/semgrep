@@ -12,7 +12,20 @@
       "index": 0,
       "commit_date": "sanitized",
       "syntactic_id": "05a6d6793a6242a49ff83113ef4a83b3",
-      "metadata": {},
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcf",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "new-rule"
+        }
+      },
       "is_blocking": true,
       "match_based_id": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0",
       "hashes": {
@@ -93,9 +106,7 @@
       "commit_date": "sanitized",
       "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
       "metadata": {
-        "dev.semgrep.actions": [
-          "block"
-        ],
+        "dev.semgrep.actions": [],
         "sca-kind": "upgrade-only"
       },
       "is_blocking": false,
@@ -129,6 +140,40 @@
       }
     },
     {
+      "check_id": "abceversion1",
+      "path": "foo.py",
+      "line": 19,
+      "column": 5,
+      "end_line": 19,
+      "end_column": 13,
+      "message": "useless comparison to 4 (old version)",
+      "severity": 2,
+      "index": 1,
+      "commit_date": "sanitized",
+      "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd",
+            "rule_name": "eqeq-four"
+          },
+          "src": "previous-scan"
+        }
+      },
+      "is_blocking": false,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
+      "hashes": {
+        "start_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+        "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+        "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+        "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+      }
+    },
+    {
       "check_id": "eqeq-four",
       "path": "foo.py",
       "line": 19,
@@ -143,7 +188,16 @@
       "metadata": {
         "dev.semgrep.actions": [
           "block"
-        ]
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "version_id": "version2",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "new-version"
+        }
       },
       "is_blocking": true,
       "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
@@ -167,7 +221,16 @@
       "commit_date": "sanitized",
       "syntactic_id": "8646a2dfc020913606969dcfe84e53c0",
       "metadata": {
-        "dev.semgrep.actions": []
+        "dev.semgrep.actions": [],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcd",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "unchanged"
+        }
       },
       "is_blocking": false,
       "match_based_id": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
@@ -325,12 +388,48 @@
     "eqeq-bad",
     "eqeq-five",
     "eqeq-four",
+    "abceversion1",
     "taint-test",
     "supply-chain1",
-    "supply-chain2"
+    "supply-chain2",
+    "supply-chain3"
   ],
   "renamed_paths": [],
   "ignores": [
+    {
+      "check_id": "abceversion1",
+      "path": "foo.py",
+      "line": 18,
+      "column": 5,
+      "end_line": 18,
+      "end_column": 13,
+      "message": "useless comparison to 4 (old version)",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd",
+            "rule_name": "eqeq-four"
+          },
+          "src": "previous-scan"
+        }
+      },
+      "is_blocking": false,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0",
+      "hashes": {
+        "start_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
+        "end_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
+        "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+        "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+      }
+    },
     {
       "check_id": "eqeq-four",
       "path": "foo.py",
@@ -346,7 +445,16 @@
       "metadata": {
         "dev.semgrep.actions": [
           "block"
-        ]
+        ],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "version_id": "version2",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "new-version"
+        }
       },
       "is_blocking": true,
       "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0",
@@ -370,7 +478,16 @@
       "commit_date": "sanitized",
       "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
       "metadata": {
-        "dev.semgrep.actions": []
+        "dev.semgrep.actions": [],
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcd",
+            "version_id": "version1",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "shortlink": "https://sg.run/abcd"
+          },
+          "src": "unchanged"
+        }
       },
       "is_blocking": false,
       "match_based_id": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0",
