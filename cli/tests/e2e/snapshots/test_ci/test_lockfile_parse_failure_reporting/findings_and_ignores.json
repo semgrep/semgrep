@@ -106,9 +106,7 @@
       "commit_date": "sanitized",
       "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
       "metadata": {
-        "dev.semgrep.actions": [
-          "block"
-        ],
+        "dev.semgrep.actions": [],
         "sca-kind": "upgrade-only"
       },
       "is_blocking": false,
@@ -391,7 +389,8 @@
     "abceversion1",
     "taint-test",
     "supply-chain1",
-    "supply-chain2"
+    "supply-chain2",
+    "supply-chain3"
   ],
   "renamed_paths": [],
   "ignores": [

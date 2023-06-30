@@ -340,7 +340,8 @@
     "abceversion1",
     "taint-test",
     "supply-chain1",
-    "supply-chain2"
+    "supply-chain2",
+    "supply-chain3"
   ],
   "renamed_paths": [],
   "ignores": [
