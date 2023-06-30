@@ -171,6 +171,56 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
+      "check_id": "eqeq-five",
+      "end": {
+        "col": 11,
+        "line": 15,
+        "offset": 163
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "(x == 2)",
+        "is_ignored": false,
+        "lines": "    x == 5",
+        "message": "useless comparison to 5",
+        "metadata": {
+          "dev.semgrep.actions": [],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abcd",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version1"
+            },
+            "src": "unchanged"
+          }
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 6,
+              "line": 15,
+              "offset": 158
+            },
+            "start": {
+              "col": 5,
+              "line": 15,
+              "offset": 157
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 15,
+        "offset": 157
+      }
+    },
+    {
       "check_id": "eqeq-four",
       "end": {
         "col": 13,
@@ -341,56 +391,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "col": 5,
         "line": 27,
         "offset": 357
-      }
-    },
-    {
-      "check_id": "eqeq-five",
-      "end": {
-        "col": 11,
-        "line": 15,
-        "offset": 163
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "fix": "(x == 2)",
-        "is_ignored": false,
-        "lines": "    x == 5",
-        "message": "useless comparison to 5",
-        "metadata": {
-          "dev.semgrep.actions": [],
-          "semgrep.dev": {
-            "rule": {
-              "rule_id": "abcd",
-              "shortlink": "https://sg.run/abcd",
-              "url": "https://semgrep.dev/r/python.eqeq-five",
-              "version_id": "version1"
-            },
-            "src": "unchanged"
-          }
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 6,
-              "line": 15,
-              "offset": 158
-            },
-            "start": {
-              "col": 5,
-              "line": 15,
-              "offset": 157
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 15,
-        "offset": 157
       }
     },
     {
