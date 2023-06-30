@@ -145,6 +145,8 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
      that when creating the targets structure, the rules need to be numbered against the
      final rule_ids list.
 
+     The rules need to be reversed to number them correctly because of how :: behaves
+
      TODO after we delete pysemgrep, we can simplify this interface, which will also
      improve memory usage again *)
   let _, target_mappings, rules =
@@ -154,11 +156,13 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
            let num_rules, mappings, rule_ids =
              target_mappings_of_lang_job lang_job n
            in
-           (n + num_rules, mappings :: acc_mappings, rule_ids :: acc_rules))
+           ( n + num_rules,
+             mappings :: acc_mappings,
+             List.rev rule_ids :: acc_rules ))
          (0, [], [])
   in
   let target_mappings = List.concat target_mappings in
-  let rules = List.concat rules in
+  let rules = rules |> List.rev |> List.concat in
   let rule_ids =
     Common.map (fun r -> fst r.Rule.id |> Rule.ID.to_string) rules
   in
