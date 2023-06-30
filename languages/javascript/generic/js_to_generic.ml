@@ -298,9 +298,15 @@ and expr (x : expr) =
       | Right e -> G.DotAccess (v1, t, G.FDynamic e))
       |> G.e
   | Fun (v1, _v2TODO) ->
-      let def, _more_attrs = fun_ v1 in
-      (* todo? assert more_attrs = []? *)
-      G.Lambda def |> G.e
+      let def, more_attrs = fun_ v1 in
+      (* TODO: Include attrs in generic AST? Where? *)
+      let e = G.Lambda def |> G.e in
+      (* Since the attrs aren't included in the AST, at least update the range
+       * to include them. See
+       * https://github.com/returntocorp/semgrep/issues/7353 *)
+      let attrs_any = Common.map (fun attr -> G.At attr) more_attrs in
+      H.set_e_range_with_anys (G.Dk (G.FuncDef def) :: attrs_any) e;
+      e
   | Apply (IdSpecial v1, v2) ->
       let x = special v1 in
       let v2 = bracket (list expr) v2 in
