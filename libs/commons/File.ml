@@ -44,6 +44,21 @@ let erase_this_temp_file path = Common.erase_this_temp_file !!path
 let is_executable path = Common2.is_executable !!path
 let filesize path = Common2.filesize !!path
 
+let find_first_match_with_whole_line path ?split:(chr = '\n') =
+  Bos.OS.File.with_ic path @@ fun ic term ->
+  let len = in_channel_length ic in
+  let res = Bytes.create len in
+  really_input ic res 0 len;
+  let lines = Bytes.split_on_char chr res in
+  let lines = Common.map Bytes.unsafe_to_string lines in
+  List.find_opt
+    (fun str -> Option.is_some (String_utils.contains term str))
+    lines
+
+let find_first_match_with_whole_line path ?split term =
+  find_first_match_with_whole_line path ?split term
+  |> Result.to_option |> Option.join
+
 let filemtime file =
   if !Common.jsoo then failwith "JSOO: File.filemtime"
   else (Unix.stat !!file).Unix.st_mtime

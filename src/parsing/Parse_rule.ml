@@ -467,19 +467,16 @@ let rec parse_type env key (str, tok) =
         "`type` is not supported with regex, spacegrep or aliengrep."
 
 and wrap_type_expr env key lang str =
-  match lang with
-  (* `x` is a placeholder and won't be used during unwrapping. *)
-  | Lang.Java -> spf "(%s x)" str
-  | Lang.Python -> spf "x: %s" str
-  | _ ->
+  match Parse_metavariable_type.wrap_type_expr lang str with
+  | Some x -> x
+  | None ->
       error_at_key env.id key
         ("`metavariable-type` is not supported for " ^ Lang.show lang)
 
 and unwrap_type_expr env key lang expr =
-  match (lang, expr) with
-  | Lang.Java, G.E { e = G.TypedMetavar (_, _, t); _ } -> t
-  | Lang.Python, G.S { s = G.DefStmt (_, VarDef { vtype = Some t; _ }); _ } -> t
-  | _ ->
+  match Parse_metavariable_type.unwrap_type_expr lang expr with
+  | Some x -> x
+  | None ->
       error_at_key env.id key
         ("Failed to unwrap the type expression." ^ G.show_any expr)
 
@@ -1046,16 +1043,14 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
 (* Parser for new  formula *)
 (*****************************************************************************)
 
+let formula_keys =
+  [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside" ]
+
 let find_formula env (rule_dict : dict) : key * G.expr =
-  let find key_str = Hashtbl.find_opt rule_dict.h key_str in
-  match
-    find_some_opt find
-      [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside" ]
-  with
+  match find_some_opt (Hashtbl.find_opt rule_dict.h) formula_keys with
   | None ->
       error env.id rule_dict.first_tok
-        "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex` to be present"
+        ("Expected one of " ^ String.concat "," formula_keys ^ " to be present")
   | Some (key, value) -> (key, value)
 
 (* intermediate type used for processing 'where' *)
@@ -1159,12 +1154,12 @@ and produce_constraint env dict tok indicator =
         | Some true -> rewrite_metavar_comparison_strip cond
         | _ -> cond
       in
-      Left (t, R.CondEval cond)
+      [ Left (t, R.CondEval cond) ]
   | Cfocus ->
       (* focus: ...
        *)
       let mv_list = take dict env parse_focus_mvs "focus" in
-      Right (tok, mv_list)
+      [ Right (tok, mv_list) ]
   | Canalyzer ->
       (* metavariable: ...
          analyzer: ...
@@ -1179,10 +1174,11 @@ and produce_constraint env dict tok indicator =
             error_at_key env.id ("analyzer", analyze_t)
               ("Unsupported analyzer: " ^ other)
       in
-      Left (t, CondAnalysis (metavar, kind))
-  | Cmetavar -> (
+      [ Left (t, CondAnalysis (metavar, kind)) ]
+  | Cmetavar ->
       (* metavariable: ...
-         <pattern-pair>
+         [<pattern-pair>]
+         [type: ...]
          [language: ...]
       *)
       let metavar, t = take dict env parse_string_wrap "metavariable" in
@@ -1200,13 +1196,32 @@ and produce_constraint env dict tok indicator =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let env' = { env' with in_metavariable_pattern = true } in
-      let formula = parse_pair env' (find_formula env dict) in
-      match formula with
-      | R.P { pat = Xpattern.Regexp regexp; _ } ->
-          (* TODO: always on by default *)
-          Left (t, CondRegexp (metavar, regexp, true))
-      | _ -> Left (t, CondNestedFormula (metavar, opt_xlang, formula)))
+      let pat =
+        match find_some_opt (Hashtbl.find_opt dict.h) formula_keys with
+        | Some ps -> (
+            let env' = { env' with in_metavariable_pattern = true } in
+            let formula = parse_pair env' ps in
+            match formula with
+            | R.P { pat = Xpattern.Regexp regexp; _ } ->
+                (* TODO: always on by default *)
+                [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
+            | _ -> [ Left (t, CondNestedFormula (metavar, opt_xlang, formula)) ]
+            )
+        | None -> []
+      in
+      let typ =
+        match take_opt dict env parse_string_wrap "type" with
+        | Some ts ->
+            [
+              Left
+                ( snd ts,
+                  R.CondType
+                    (metavar, opt_xlang, fst ts, parse_type env (metavar, t) ts)
+                );
+            ]
+        | None -> []
+      in
+      List.flatten [ pat; typ ]
 
 and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
     =
@@ -1221,6 +1236,7 @@ and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
   (* TODO *)
   let conditions, focus =
     parse_listi env where_key parse_where_pair value
+    |> List.flatten
     |> Common.partition_either (fun x -> x)
   in
   let tok, conditions, focus, conjuncts =

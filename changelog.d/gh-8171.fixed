@@ -1,0 +1,1 @@
+Fixes Go issue with patterns like make(...); make(...,$X); make($A,$B).

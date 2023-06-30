@@ -11,6 +11,10 @@ type 'a debug_info =
   | No_info
 [@@deriving show]
 
+val debug_info_to_option : 'a debug_info -> 'a option
+(** [debug_info_to_option debug] returns [Some profiling] if we collected
+    metrics. Otherwise, it returns [None]. *)
+
 (* Global to set the debug mode. Should be set
    exactly once after the arguments are read *)
 

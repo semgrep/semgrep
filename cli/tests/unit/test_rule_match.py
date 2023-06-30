@@ -233,6 +233,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
 
 @pytest.mark.quick
 def test_rule_match_set_indexes(mocker):
+    rule = create_rule()
     file_content = dedent(
         """
         # first line
@@ -320,7 +321,6 @@ def test_rule_match_set_indexes(mocker):
             ),
         ),
     )
-    rule = create_rule()
     matches = RuleMatchSet(rule)
     matches.update(
         [line3, line4, line5, line6]

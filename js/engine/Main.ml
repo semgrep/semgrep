@@ -79,6 +79,7 @@ let _ =
              lang = Some (Xlang.of_string (Js.to_string language));
              output_format = Json false;
              roots = [ Fpath.v (Js.to_string source_file) ];
+             matching_explanations = true;
            }
          in
          let timed_rules =

@@ -11,4 +11,5 @@ module Out = Semgrep_output_v1_j
  *
  * ugly: this also apply autofixes depending on the configuration.
  *)
-val output_result : Scan_CLI.conf -> Core_runner.result -> Out.cli_output
+val output_result :
+  Scan_CLI.conf -> Profiler.t -> Core_runner.result -> Out.cli_output

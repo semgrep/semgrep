@@ -42,7 +42,7 @@ from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
-from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import parse_config_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
@@ -654,7 +654,7 @@ def parse_config_string(
         pass
 
     try:
-        data = parse_yaml_preserve_spans(contents, filename)
+        data = parse_config_preserve_spans(contents, filename)
     except EmptyYamlException:
         raise SemgrepError(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE

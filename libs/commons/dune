@@ -17,7 +17,7 @@
    re
    pcre
    parmap
-   digestif.c
+   digestif.ocaml
  )
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
