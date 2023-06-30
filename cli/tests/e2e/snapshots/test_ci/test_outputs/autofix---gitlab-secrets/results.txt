@@ -186,6 +186,42 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "date": "<MASKED>Z",
         "sha": "0000000"
       },
+      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
+      "details": {},
+      "flags": [],
+      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
+      "identifiers": [
+        {
+          "name": "Semgrep - eqeq-five",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/eqeq-five",
+          "value": "eqeq-five"
+        }
+      ],
+      "location": {
+        "end_line": 15,
+        "file": "foo.py",
+        "start_line": 15
+      },
+      "message": "useless comparison to 5",
+      "raw_source_code_extract": [
+        "    x == 5\n"
+      ],
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
+      },
+      "severity": "High"
+    },
+    {
+      "category": "secret_detection",
+      "commit": {
+        "date": "<MASKED>Z",
+        "sha": "0000000"
+      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-four",
       "details": {},
       "flags": [],
@@ -251,42 +287,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       },
       "severity": "Medium"
-    },
-    {
-      "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>Z",
-        "sha": "0000000"
-      },
-      "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
-      "details": {},
-      "flags": [],
-      "id": "8646a2df-c020-9136-0696-9dcfe84e53c0",
-      "identifiers": [
-        {
-          "name": "Semgrep - eqeq-five",
-          "type": "semgrep_type",
-          "url": "https://semgrep.dev/r/eqeq-five",
-          "value": "eqeq-five"
-        }
-      ],
-      "location": {
-        "end_line": 15,
-        "file": "foo.py",
-        "start_line": 15
-      },
-      "message": "useless comparison to 5",
-      "raw_source_code_extract": [
-        "    x == 5\n"
-      ],
-      "scanner": {
-        "id": "semgrep",
-        "name": "Semgrep",
-        "vendor": {
-          "name": "Semgrep"
-        }
-      },
-      "severity": "High"
     },
     {
       "category": "secret_detection",

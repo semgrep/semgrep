@@ -238,6 +238,69 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
+            "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 11,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "    x == 5"
+                  },
+                  "startColumn": 5,
+                  "startLine": 15
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison to 5"
+          },
+          "properties": {},
+          "ruleId": "eqeq-five"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 11,
+                  "endLine": 16,
+                  "snippet": {
+                    "text": "    y == 5  # nosemgrep"
+                  },
+                  "startColumn": 5,
+                  "startLine": 16
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison to 5"
+          },
+          "properties": {},
+          "ruleId": "eqeq-five",
+          "suppressions": [
+            {
+              "kind": "inSource"
+            }
+          ]
+        },
+        {
+          "fingerprints": {
             "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
           },
           "locations": [
@@ -327,69 +390,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
           },
           "properties": {},
           "ruleId": "taint-test"
-        },
-        {
-          "fingerprints": {
-            "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "foo.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 11,
-                  "endLine": 15,
-                  "snippet": {
-                    "text": "    x == 5"
-                  },
-                  "startColumn": 5,
-                  "startLine": 15
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "useless comparison to 5"
-          },
-          "properties": {},
-          "ruleId": "eqeq-five"
-        },
-        {
-          "fingerprints": {
-            "matchBasedId/v1": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "foo.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 11,
-                  "endLine": 16,
-                  "snippet": {
-                    "text": "    y == 5  # nosemgrep"
-                  },
-                  "startColumn": 5,
-                  "startLine": 16
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "useless comparison to 5"
-          },
-          "properties": {},
-          "ruleId": "eqeq-five",
-          "suppressions": [
-            {
-              "kind": "inSource"
-            }
-          ]
         },
         {
           "fingerprints": {

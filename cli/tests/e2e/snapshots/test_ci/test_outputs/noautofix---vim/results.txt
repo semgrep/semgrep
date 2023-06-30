@@ -11,9 +11,9 @@ foo.py:4:5:E:eqeq-bad:useless comparison
 foo.py:5:5:E:eqeq-bad:useless comparison
 foo.py:7:5:E:eqeq-bad:useless comparison
 foo.py:11:5:E:eqeq-bad:useless comparison
+foo.py:15:5:E:eqeq-five:useless comparison to 5
 foo.py:19:5:E:eqeq-four:useless comparison to 4
 foo.py:27:5:W:taint-test:unsafe use of danger
-foo.py:15:5:E:eqeq-five:useless comparison to 5
 poetry.lock:1:0:E:supply-chain1:found a dependency
 
 === end of stdout - plain
