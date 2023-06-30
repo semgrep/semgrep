@@ -377,10 +377,10 @@ For more information see https://semsgrep.dev
 ; You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
-    (ocaml (>= 4.12.0))
+    (ocaml (>= 5.0.0))
     (dune (>= 2.7.0 ))
     stdcompat
-    (menhir (= 20211128)) ; Newer versions cause massive build slowdowns
+    (menhir (= 20220210)) ; Newer versions cause massive build slowdowns
     grain_dypgen
     base
     fpath
