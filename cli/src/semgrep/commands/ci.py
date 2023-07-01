@@ -40,6 +40,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import ProjectConfig
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -428,9 +429,10 @@ def ci(
             nonblocking_rules.append(rule)
 
     # Split up matches into respective categories
-    blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
-    nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
-    cai_matches_by_rule: RuleMatchMap = defaultdict(list)
+    non_cai_matches_by_rule: RuleMatchMap = defaultdict(list)
+    blocking_matches: List[RuleMatch] = []
+    nonblocking_matches: List[RuleMatch] = []
+    cai_matches: List[RuleMatch] = []
 
     # Remove the prev scan matches by the rules that are in the current scan
     # Done before the next loop to avoid interfering with ignore logic
@@ -457,21 +459,22 @@ def ci(
             if match.is_ignored and not keep_ignored:
                 continue
 
-            applicable_result_set = (
-                cai_matches_by_rule
+            applicable_result_list = (
+                cai_matches
                 if "r2c-internal-cai" in rule.id
-                else blocking_matches_by_rule
-                # note that SCA findings are always non-blocking
-                if rule.is_blocking and "sca_info" not in match.extra
-                else nonblocking_matches_by_rule
+                else blocking_matches
+                if match.is_blocking
+                else nonblocking_matches
             )
-            applicable_result_set[rule].append(match)
+            applicable_result_list.append(match)
+            if "r2c-internal-cai" not in rule.id:
+                non_cai_matches_by_rule[rule].append(match)
 
-    num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
-    num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
+    num_nonblocking_findings = len(nonblocking_matches)
+    num_blocking_findings = len(blocking_matches)
 
     output_handler.output(
-        {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
+        non_cai_matches_by_rule,
         all_targets=output_extra.all_targets,
         ignore_log=ignore_log,
         profiler=profiler,

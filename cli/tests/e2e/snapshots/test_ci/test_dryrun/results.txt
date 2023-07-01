@@ -86,7 +86,7 @@ Would have sent POST request to create scan
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
@@ -103,7 +103,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 8 findings (6 blocking) from 7 rules.
 Would have sent findings and ignores blob: {
     "findings": [
         {
@@ -212,9 +212,7 @@ Would have sent findings and ignores blob: {
             "commit_date": <MASKED>
             "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
             "metadata": {
-                "dev.semgrep.actions": [
-                    "block"
-                ],
+                "dev.semgrep.actions": [],
                 "sca-kind": "upgrade-only"
             },
             "is_blocking": false,
@@ -496,7 +494,8 @@ Would have sent findings and ignores blob: {
         "abceversion1",
         "taint-test",
         "supply-chain1",
-        "supply-chain2"
+        "supply-chain2",
+        "supply-chain3"
     ],
     "renamed_paths": [],
     "ignores": [

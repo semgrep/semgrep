@@ -389,7 +389,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
       } =
     v_wrap v_function_kind f_kind;
     let arg = v_list v_attribute v_f_props in
-    let arg = v_list v_parameter_binding v_f_params in
+    let arg = v_bracket (v_list v_parameter_binding) v_f_params in
     let arg = v_stmt v_f_body in
     v_option v_type_ f_rettype;
     ()

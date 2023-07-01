@@ -29,6 +29,9 @@ from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines
 
 if TYPE_CHECKING:
@@ -399,6 +402,28 @@ class RuleMatch:
         return hashlib.sha256(last_line.encode()).hexdigest()
 
     @property
+    def is_sca_match_in_direct_dependency(self) -> bool:
+        return "sca_info" in self.extra and self.extra[
+            "sca_info"
+        ].dependency_match.found_dependency.transitivity == Transitivity(Direct())
+
+    @property
+    def is_sca_match_in_transitive_dependency(self) -> bool:
+        return "sca_info" in self.extra and self.extra[
+            "sca_info"
+        ].dependency_match.found_dependency.transitivity == Transitivity(Transitive())
+
+    @property
+    def is_reachable_in_code_sca_match(self) -> bool:
+        return "sca_info" in self.extra and self.extra["sca_info"].reachable
+
+    @property
+    def is_always_reachable_sca_match(self) -> bool:
+        return (
+            "sca-kind" in self.metadata and self.metadata["sca-kind"] == "upgrade-only"
+        )
+
+    @property
     def uuid(self) -> UUID:
         """
         A UUID representation of ci_unique_key.
@@ -412,7 +437,13 @@ class RuleMatch:
         """
         blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
         if "sca_info" in self.extra:
-            return blocking and self.extra["sca_info"].reachable
+            if (
+                self.is_always_reachable_sca_match
+                and self.is_sca_match_in_transitive_dependency
+            ) or (not self.exposure_type == "reachable"):
+                return False
+            else:
+                return blocking
         else:
             return blocking
 
