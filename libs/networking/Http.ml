@@ -10,13 +10,12 @@ open Http_lwt_client
    cache. We use a single happy_eyeballs instance to reuse the cache present.
 *)
 let happy_eyeballs = Happy_eyeballs_lwt.create ()
-
 (* TODO: extend to allow to curl with JSON as answer *)
-let get ?headers url =
+let get ?headers url = 
   let bodyf _ acc data = Lwt.return (acc ^ data) in
-  let promise = request ~happy_eyeballs ?headers (Uri.to_string url) bodyf "" in
+let promise = request ~follow_redirect:true ~happy_eyeballs ?headers (Uri.to_string url) bodyf "" in
   let r = Lwt_main.run promise in
-  match r with
+  match r with 
   | Ok (response, content) when Status.is_successful response.status ->
       Ok content
   | Ok (response, _) ->

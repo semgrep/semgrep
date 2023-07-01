@@ -768,15 +768,14 @@ let semgrep_with_rules ?match_hook config
              target.In.rule_nums
              |> Common.map_filter (fun r_num ->
                     Hashtbl.find_opt rule_table r_num)
-             (* Don't run the extract rules
+             (* Don't run the extract and secrets rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
                     match r.R.mode with
-                    | `Extract _ -> false
+                    | (`Extract _ | `Secrets _ )-> false
                     | `Search _
                     | `Taint _
                     | `Step _
-                    | `Secrets _
                       ->
                         true)
              |> List.filter (fun r ->
