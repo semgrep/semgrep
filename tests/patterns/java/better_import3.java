@@ -1,5 +1,5 @@
-import A.*
-import A.B.*
+import A.*;
+import A.B.*;
 
 public class Foo {
   public void main () {
