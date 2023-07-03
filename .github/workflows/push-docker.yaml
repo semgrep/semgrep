@@ -16,6 +16,10 @@ on:
         type: boolean
         description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
         default: true
+      multi-arch:
+        required: true
+        type: boolean
+        description: Whether or not the image artifact is multi-arch
 
   workflow_call:
     inputs:
@@ -32,11 +36,15 @@ on:
         type: boolean
         description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
         default: true
+      multi-arch:
+        required: true
+        type: boolean
 
 jobs:
   push-docker:
     name: Push Semgrep Docker Image
     runs-on: ubuntu-22.04
+    if: ${{ !inputs.multi-arch }}
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -61,3 +69,57 @@ jobs:
         if: ${{ ! inputs.dry-run }}
         run: |
           docker push --all-tags "${{ inputs.repository-name }}"
+  push-docker-multi-arch:
+    name: Push Semgrep Docker Image (multi-arch)
+    runs-on: ubuntu-22.04
+    if: ${{ inputs.multi-arch }}
+    steps:
+      - uses: iarekylew00t/regctl-installer@v1
+      - uses: actions/download-artifact@v3
+        with:
+          path: /tmp/artifacts
+      - run: |
+          artifact_filenames=(/tmp/artifacts/${{ inputs.artifact-name }}-arch-*/image.tar)
+          if [[ ${#artifact_filenames[@]} == 0 ]]; then
+            echo "No artifacts found matching ${{ inputs.artifact-name }}-arch-*"
+            exit 1
+          fi
+          mkdir -p /tmp/merged/blobs/sha256
+          echo '{"schemaVersion": 2, "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json", "manifests": []}' > /tmp/merged/index.json
+          echo '{"imageLayoutVersion":"1.0.0"}' > /tmp/merged/oci-layout
+          for filename in ${artifact_filenames[@]}; do
+            cd $(dirname $filename)
+            tar xf image.tar
+            cp -r blobs/sha256/* /tmp/merged/blobs/sha256/
+            jq -s '.[0].manifests+=.[1].manifests|.[0]' /tmp/merged/index.json index.json > /tmp/merged/index.tmp
+            mv /tmp/merged/index.tmp /tmp/merged/index.json
+          done
+      - uses: docker/login-action@v2
+        if: ${{ ! inputs.dry-run }}
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push Image
+        if: ${{ ! inputs.dry-run }}
+        run: |
+          echo "Uploading blobs..."
+          for blob_filename in /tmp/merged/blobs/sha256/*; do
+            blob_digest="sha256:$(basename $blob_filename)"
+            echo "-> ${blob_digest}"
+            if ! regctl blob head ${{ inputs.repository-name }} ${blob_digest}; then
+              cat $blob_filename | regctl blob put ${{ inputs.repository-name }} --digest ${blob_digest}
+            fi
+          done
+
+          echo "Uploading manifests..."
+          for manifest_digest in $(cat /tmp/merged/index.json | jq -r '.manifests | unique_by(.digest) | .[].digest' | cut -d: -f2); do
+            echo "-> ${manifest_digest}..."
+            cat /tmp/merged/blobs/sha256/${manifest_digest} | regctl manifest put ${{ inputs.repository-name }} --by-digest
+          done
+
+          tags=$(cat /tmp/merged/index.json | jq -r '.manifests | unique_by(.annotations."org.opencontainers.image.ref.name") | .[].annotations."org.opencontainers.image.ref.name"')
+          echo "Tags to push: ${tags}"
+          for tag in $tags; do
+            index_digest=$(cat /tmp/merged/index.json | regctl manifest put ${{ inputs.repository-name }}:${tag} -t application/vnd.docker.distribution.manifest.list.v2+json)
+            echo "${tag} -> ${index_digest}"
+          done

@@ -17,14 +17,21 @@ on:
         required: true
         type: string
         description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        default: returntocorp/semgrep
       file:
         required: true
         type: string
         description: Dockerfile to build
+        default: Dockerfile
       enable-tests:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
+      push-immediately:
+        required: true
+        type: boolean
+        description: Whether or not to push immediately
+        default: false
 
   workflow_call:
     inputs:
@@ -53,8 +60,18 @@ jobs:
   build-test-docker:
     name: Build and test Semgrep Docker image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        architecture:
+          - amd64
+          - arm64
     steps:
       - uses: docker/setup-buildx-action@v2
+      - if: ${{ matrix.architecture != 'amd64' }}
+        uses: docker/setup-qemu-action@v2
       - id: meta
         name: Set tags and labels
         uses: docker/metadata-action@v4
@@ -62,10 +79,13 @@ jobs:
           images: ${{ inputs.repository-name }}
           # :latest is also added automatically
           tags: ${{ inputs.docker-tags }}
+      - uses: depot/setup-action@v1
       - name: Build image
         id: build-image
-        uses: docker/build-push-action@v4
+        uses: depot/build-push-action@v1.7.1
         with:
+          project: fhmxj6w9z8
+          platforms: linux/${{ matrix.architecture }}
           outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
@@ -78,8 +98,18 @@ jobs:
       - uses: actions/checkout@v3
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}
+          name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}
           path: /tmp/image.tar
+  push-image:
+    needs: [build-test-docker]
+    uses: ./.github/workflows/push-docker.yaml
+    if: ${{ inputs.push-immediately }}
+    secrets: inherit
+    with:
+      artifact-name: ${{ inputs.artifact-name }}
+      repository-name: ${{ inputs.repository-name }}
+      dry-run: false
+      multi-arch: true
