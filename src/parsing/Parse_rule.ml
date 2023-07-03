@@ -1610,19 +1610,32 @@ let parse_steps env key (value : G.expr) : R.steps =
 (*****************************************************************************)
 (* Parsers for secrets mode *)
 (*****************************************************************************) 
-
 let parse_secrets_fields env rule_dict : R.secrets_spec =
-  let sec   = take rule_dict env yaml_to_dict "secret" in
-  let req  = take rule_dict env yaml_to_dict "request" in 
+  let secrets : R.formula list =
+    take
+      rule_dict
+      env
+      (fun env key expr ->
+         parse_list
+           env
+           key
+           (fun env dict_pair ->
+               yaml_to_dict env key dict_pair
+            |> find_formula_old env
+            |> parse_pair_old env
+           )
+           expr
+      )
+      "secrets"
+  in
+  ignore secrets;
+  let req = take rule_dict env yaml_to_dict "request" in
   let res = take rule_dict env yaml_to_dict "response" in
-    let bind =  
-      take sec env parse_string "bind" in 
-    let pattern = find_formula_old env sec |> parse_pair_old env
-    in 
-    let url = take req env parse_string "url" in 
-    let method_ = take req env parse_string "method" in 
-    let headers = take req env yaml_to_dict "headers" 
-  |> fun {h; _} ->
+  let url = take req env parse_string "url" in
+  let method_ = take req env parse_string "method" in
+  let headers =
+    take req env yaml_to_dict "headers"
+    |> fun {h; _} ->
     Hashtbl.fold 
     (fun header value lst -> 
       (header, parse_string env (fst value) (snd value))::lst
@@ -1631,7 +1644,7 @@ let parse_secrets_fields env rule_dict : R.secrets_spec =
     []
   in
     let return_code = take res env parse_string "return_code" in 
-         { bind; pattern; url; method_; headers; return_code }
+         { secrets; url; method_; headers; return_code }
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)

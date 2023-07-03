@@ -364,9 +364,8 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 
 (*TODO: actualy figure this out*)
 type secrets_spec = {
-  (* secret: *)
-  bind : MV.mvar;
-  pattern : formula;
+  (* secrets: *)
+  secrets : formula list;
   (* request: *)
   url : string;
   method_ : string;
