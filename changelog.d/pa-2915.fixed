@@ -1,0 +1,2 @@
+Rust: Fixed a bug where standalone metavariable / metavariable ellipsis
+patterns were not matching as expected
