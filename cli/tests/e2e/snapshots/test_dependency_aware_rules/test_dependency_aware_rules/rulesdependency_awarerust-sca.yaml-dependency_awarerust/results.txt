@@ -28,7 +28,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "is_ignored": false,
-        "lines": "let x = bad()",
+        "lines": "let x = bad();",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
