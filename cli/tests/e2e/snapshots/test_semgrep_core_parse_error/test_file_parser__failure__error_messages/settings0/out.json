@@ -27,6 +27,17 @@
             "col": 13,
             "line": 10
           }
+        },
+        {
+          "end": {
+            "col": 2,
+            "line": 11
+          },
+          "file": "targets/bad/invalid_go.go",
+          "start": {
+            "col": 2,
+            "line": 11
+          }
         }
       ],
       "type": "Syntax error"
