@@ -27,10 +27,15 @@ on:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
+      use-depot:
+        required: true
+        type: boolean
+        description: Whether or not to use depot.dev for docker builds
+        default: false
       push-immediately:
         required: true
         type: boolean
-        description: Whether or not to push immediately
+        description: Whether or not to immediately push the docker image after building
         default: false
 
   workflow_call:
@@ -55,6 +60,11 @@ on:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
+      use-depot:
+        required: true
+        type: boolean
+        description: Whether or not to use depot.dev for docker builds
+        default: false
 
 jobs:
   build-test-docker:
@@ -81,11 +91,24 @@ jobs:
           # :latest is also added automatically
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
-      - name: Build image
-        id: build-image
+        if: ${{ inputs.use-depot == true }}
+      - name: Build image (depot)
+        id: build-image-depot
+        if: ${{ inputs.use-depot == true }}
         uses: depot/build-push-action@v1.7.1
         with:
           project: fhmxj6w9z8
+          platforms: linux/${{ matrix.architecture }}
+          outputs: type=docker,dest=/tmp/image.tar
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ inputs.file }}
+          buildx-fallback: true
+      - name: Build image (docker)
+        id: build-image-docker
+        if: ${{ inputs.use-depot == false }}
+        uses: docker/build-push-action@v1.7.1
+        with:
           platforms: linux/${{ matrix.architecture }}
           outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha,src=/tmp/.buildx-cache
@@ -93,7 +116,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
-          buildx-fallback: true
       - name: Load image
         run: |
           docker load --input /tmp/image.tar
