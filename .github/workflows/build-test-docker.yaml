@@ -107,7 +107,7 @@ jobs:
       - name: Build image (docker)
         id: build-image-docker
         if: ${{ inputs.use-depot == false }}
-        uses: docker/build-push-action@v1.7.1
+        uses: docker/build-push-action@v4.1.1
         with:
           platforms: linux/${{ matrix.architecture }}
           outputs: type=docker,dest=/tmp/image.tar
@@ -116,6 +116,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
+          provenance: false
       - name: Load image
         run: |
           docker load --input /tmp/image.tar
