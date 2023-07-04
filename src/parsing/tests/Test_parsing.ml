@@ -145,7 +145,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_java.Boilerplate.dump_tree
   | Lang.Go ->
       Tree_sitter_go.Parse.file file
-      |> dump_and_print_errors Tree_sitter_go.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_go.Boilerplate.dump_tree
   | Lang.Csharp ->
       Tree_sitter_c_sharp.Parse.file file
       |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
@@ -180,7 +180,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_ocaml.Boilerplate.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
-      |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_c.Boilerplate.dump_tree
   | Lang.Cpp ->
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.Boilerplate.dump_tree
@@ -201,7 +201,7 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_elixir.Boilerplate.dump_tree
   | Lang.Julia ->
       Tree_sitter_julia.Parse.file file
-      |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_julia.Boilerplate.dump_tree
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
