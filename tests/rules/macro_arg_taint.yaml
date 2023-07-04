@@ -1,0 +1,13 @@
+rules:
+  - id: macro-arg-taint 
+    severity: WARNING
+    languages:
+      - rust 
+    message: test
+    mode: taint
+    pattern-sources:
+      - pattern: |
+          foo
+    pattern-sinks:
+      - pattern: |
+          sink(...)
