@@ -67,11 +67,12 @@ docker run "${docker_args[@]}" "$image" semgrep ci --help
 docker run "${docker_args[@]}" "$image" semgrep publish --help
 echo " -> OK"
 
-echo "Semgrep should be able to return findings"
-echo "if 1 == 1: pass" \
-    | docker run "${docker_args[@]}" -i "$image" semgrep -l python -e '$X == $X' - \
-    | grep -q "1 == 1"
+echo "Semgrep should be able to return findings (stdin)"
+result=$(echo "if 1 == 1: pass" | docker run "${docker_args[@]}" -i "$image" semgrep -l python -e '$X == $X' -)
+echo "${result}" | grep -q "1 == 1"
+echo " -> OK"
 
+echo "Semgrep should be able to return findings (file)"
 TEMP_DIR=$(mktemp -d)
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
 docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"
