@@ -28,7 +28,13 @@ jobs:
     # we might as well move out of a self-hosted runner for M1 too.
     # This would remove the need for those ugly hard cleanup below because
     # our self-hosted runner builds are not "hermetic".
-    runs-on: ghcr.io/cirruslabs/macos-monterey-xcode:latest
+    runs-on:
+      [
+        "self-hosted",
+        "macOS",
+        "ARM64",
+        "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
+      ]
     env:
       OPAM_SWITCH_NAME: "4.14.0"
     steps:
@@ -68,9 +74,18 @@ jobs:
           name: semgrep-m1-${{ github.sha }}
 
   build-wheels-m1:
-    runs-on: ghcr.io/cirruslabs/macos-monterey-xcode:latest
+    runs-on:
+      [
+        "self-hosted",
+        "macOS",
+        "ARM64",
+        "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
+      ]
     needs: [build-core-m1]
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -87,9 +102,18 @@ jobs:
           name: m1-wheel
 
   test-wheels-m1:
-    runs-on: ghcr.io/cirruslabs/macos-monterey-xcode:latest
+    runs-on:
+      [
+        "self-hosted",
+        "macOS",
+        "ARM64",
+        "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
+      ]
     needs: [build-wheels-m1]
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       - name: cleanup semgrep
         run: |
           pip3 uninstall -y semgrep

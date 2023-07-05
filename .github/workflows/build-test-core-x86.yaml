@@ -23,6 +23,9 @@ jobs:
     env:
       HOME: /root
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v3
