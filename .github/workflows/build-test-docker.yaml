@@ -160,7 +160,7 @@ jobs:
         if: ${{ inputs.enable-tests }}
       - name: Test Image
         if: ${{ inputs.enable-tests }}
-        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}
+        run: ./scripts/validate-docker-build.sh ${{ inputs.use-depot-for-docker-build && steps.build-image-depot.outputs.imageid || steps.build-image-docker.outputs.imageid }} linux/${{ matrix.architecture }}
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}
