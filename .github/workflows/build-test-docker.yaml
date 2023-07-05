@@ -27,15 +27,9 @@ on:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
-      use-depot:
-        required: true
+      use-depot-for-docker-build:
         type: boolean
-        description: Whether or not to use depot.dev for docker builds
-        default: false
-      push-immediately:
-        required: true
-        type: boolean
-        description: Whether or not to immediately push the docker image after building
+        description: Whether or not to use depot.dev instead of docker buildx to build the docker image
         default: false
 
   workflow_call:
@@ -60,10 +54,9 @@ on:
         required: true
         type: boolean
         description: Whether or not to run validation on the built image
-      use-depot:
-        required: true
+      use-depot-for-docker-build:
         type: boolean
-        description: Whether or not to use depot.dev for docker builds
+        description: Whether or not to use depot.dev instead of docker buildx to build the docker image
         default: false
 
 jobs:
@@ -90,10 +83,10 @@ jobs:
           # :latest is also added automatically
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
-        if: ${{ inputs.use-depot == true }}
-      - name: Build image (depot)
+        if: ${{ inputs.use-depot-for-docker-build }}
+      - name: Build image (via depot.dev)
         id: build-image-depot
-        if: ${{ inputs.use-depot == true }}
+        if: ${{ inputs.use-depot-for-docker-build }}
         uses: depot/build-push-action@v1.7.1
         with:
           project: fhmxj6w9z8
@@ -103,9 +96,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
           buildx-fallback: true
-      - name: Build image (docker)
+      - name: Build image (via docker buildx)
         id: build-image-docker
-        if: ${{ inputs.use-depot == false }}
+        if: ${{ ! inputs.use-depot-for-docker-build }}
         uses: docker/build-push-action@v4.1.1
         with:
           platforms: linux/${{ matrix.architecture }}
@@ -117,9 +110,11 @@ jobs:
           file: ${{ inputs.file }}
           provenance: false
       - name: Load image
+        if: ${{ inputs.enable-tests }}
         run: |
           docker load --input /tmp/image.tar
       - uses: actions/checkout@v3
+        if: ${{ inputs.enable-tests }}
       - name: Test Image
         if: ${{ inputs.enable-tests }}
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}
@@ -127,13 +122,3 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}
           path: /tmp/image.tar
-  push-image:
-    needs: [build-test-docker]
-    uses: ./.github/workflows/push-docker.yaml
-    if: ${{ inputs.push-immediately }}
-    secrets: inherit
-    with:
-      artifact-name: ${{ inputs.artifact-name }}
-      repository-name: ${{ inputs.repository-name }}
-      dry-run: false
-      multi-arch: true
