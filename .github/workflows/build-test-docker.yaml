@@ -31,6 +31,10 @@ on:
         type: boolean
         description: Whether or not to use depot.dev instead of docker buildx to build the docker image
         default: false
+      multi-arch:
+        type: boolean
+        description: Whether or not to build a multi-arch docker image
+        default: false
 
   workflow_call:
     inputs:
@@ -58,10 +62,49 @@ on:
         type: boolean
         description: Whether or not to use depot.dev instead of docker buildx to build the docker image
         default: false
+      multi-arch:
+        type: boolean
+        description: Whether or not to build a multi-arch docker image
+        default: false
 
 jobs:
   build-test-docker:
     name: Build and test Semgrep Docker image
+    if: ${{ ! inputs.multi-arch }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v2
+      - id: meta
+        name: Set tags and labels
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ inputs.repository-name }}
+          # :latest is also added automatically
+          tags: ${{ inputs.docker-tags }}
+      - name: Build image
+        id: build-image
+        uses: docker/build-push-action@v4
+        with:
+          outputs: type=docker,dest=/tmp/image.tar
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ inputs.file }}
+      - name: Load image
+        run: |
+          docker load --input /tmp/image.tar
+      - uses: actions/checkout@v3
+      - name: Test Image
+        if: ${{ inputs.enable-tests }}
+        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: /tmp/image.tar
+  build-test-docker-multi-arch:
+    name: Build and test multi-arch Semgrep Docker image
+    if: ${{ inputs.multi-arch }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

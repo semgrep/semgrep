@@ -44,7 +44,7 @@ jobs:
   push-docker:
     name: Push Semgrep Docker Image
     runs-on: ubuntu-22.04
-    if: ${{ !inputs.multi-arch }}
+    if: ${{ ! inputs.multi-arch }}
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -78,32 +78,52 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           path: /tmp/artifacts
-      - run: |
-          artifact_filenames=(/tmp/artifacts/${{ inputs.artifact-name }}-arch-*/image.tar)
-          if [[ ${#artifact_filenames[@]} == 0 ]]; then
+      - name: Merge images
+        env:
+          MERGED_IMAGE_PATH: /tmp/merged-image
+        run: |
+          mkdir -p ${MERGED_IMAGE_PATH}/blobs
+
+          # Find docker image artifacts
+          image_filenames=(/tmp/artifacts/${{ inputs.artifact-name }}-arch-*/image.tar)
+          if [[ ${#image_filenames[@]} == 0 ]]; then
             echo "No artifacts found matching ${{ inputs.artifact-name }}-arch-*"
             exit 1
           fi
-          mkdir -p /tmp/merged/blobs/sha256
-          echo '{"schemaVersion": 2, "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json", "manifests": []}' > /tmp/merged/index.json
-          echo '{"imageLayoutVersion":"1.0.0"}' > /tmp/merged/oci-layout
-          for filename in ${artifact_filenames[@]}; do
-            cd $(dirname $filename)
+
+          # Create an empty manifest list. This will ultimately be the union of all the arch-specific image manifests we intend to publish.
+          cat << "EOF" > ${MERGED_IMAGE_PATH}/index.json
+          {
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+            "manifests": []
+          }
+          EOF
+
+          # Merge the contents (blobs and manifest) of each docker image into one big multi-arch image
+          for image_filename in ${image_filenames[@]}; do
+            cd $(dirname $image_filename)
             tar xf image.tar
-            cp -r blobs/sha256/* /tmp/merged/blobs/sha256/
-            jq -s '.[0].manifests+=.[1].manifests|.[0]' /tmp/merged/index.json index.json > /tmp/merged/index.tmp
-            mv /tmp/merged/index.tmp /tmp/merged/index.json
+
+            # Copy image's blobs into merged blobs folder (overwrite is fine since this is content-addressable storage)
+            cp -rf blobs/ ${MERGED_IMAGE_PATH}/blobs/
+
+            # Merge image's manifest list into our merged manifest list
+            jq -s '.[0].manifests+=.[1].manifests|.[0]' ${MERGED_IMAGE_PATH}/index.json index.json > ${MERGED_IMAGE_PATH}/index.tmp
+            mv ${MERGED_IMAGE_PATH}/index.tmp ${MERGED_IMAGE_PATH}/index.json
           done
       - uses: docker/login-action@v2
         if: ${{ ! inputs.dry-run }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push Image
+      - name: Push merged image
         if: ${{ ! inputs.dry-run }}
+        env:
+          MERGED_IMAGE_PATH: /tmp/merged-image
         run: |
-          echo "Uploading blobs..."
-          for blob_filename in /tmp/merged/blobs/sha256/*; do
+          echo "Uploading image blobs..."
+          for blob_filename in ${MERGED_IMAGE_PATH}/blobs/sha256/*; do
             blob_digest="sha256:$(basename $blob_filename)"
             echo "-> ${blob_digest}"
             if ! regctl blob head ${{ inputs.repository-name }} ${blob_digest}; then
@@ -111,15 +131,16 @@ jobs:
             fi
           done
 
-          echo "Uploading manifests..."
-          for manifest_digest in $(cat /tmp/merged/index.json | jq -r '.manifests | unique_by(.digest) | .[].digest' | cut -d: -f2); do
-            echo "-> ${manifest_digest}..."
-            cat /tmp/merged/blobs/sha256/${manifest_digest} | regctl manifest put ${{ inputs.repository-name }} --by-digest
+          echo "Uploading image manifests..."
+          for manifest_digest in $(cat ${MERGED_IMAGE_PATH}/index.json | jq -r '.manifests | unique_by(.digest) | .[].digest' | cut -d: -f2); do
+            echo "-> ${manifest_digest}"
+            cat ${MERGED_IMAGE_PATH}/blobs/sha256/${manifest_digest} | regctl manifest put ${{ inputs.repository-name }} --by-digest
           done
 
-          tags=$(cat /tmp/merged/index.json | jq -r '.manifests | unique_by(.annotations."org.opencontainers.image.ref.name") | .[].annotations."org.opencontainers.image.ref.name"')
-          echo "Tags to push: ${tags}"
-          for tag in $tags; do
-            index_digest=$(cat /tmp/merged/index.json | regctl manifest put ${{ inputs.repository-name }}:${tag} -t application/vnd.docker.distribution.manifest.list.v2+json)
-            echo "${tag} -> ${index_digest}"
+          echo "Pushing image tags..."
+          for tag in $(cat ${MERGED_IMAGE_PATH}/index.json | jq -r '.manifests | unique_by(.annotations."org.opencontainers.image.ref.name") | .[].annotations."org.opencontainers.image.ref.name"'); do
+            echo "-> ${{ inputs.repository-name }}:${tag}"
+            index_digest=$(cat ${MERGED_IMAGE_PATH}/index.json | regctl manifest put ${{ inputs.repository-name }}:${tag} -t application/vnd.docker.distribution.manifest.list.v2+json)
           done
+
+          echo "Done!"
