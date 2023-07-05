@@ -136,7 +136,7 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
-     semgrep --version &&\
+     SEMGREP_SKIP_ARM64_CHECK=1 semgrep --version &&\
      apk del .build-deps &&\
      mkdir -p /tmp/.cache
 
@@ -151,7 +151,8 @@ RUN ln -s semgrep-core /usr/local/bin/osemgrep
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-    SEMGREP_USER_AGENT_APPEND="Docker"
+    SEMGREP_USER_AGENT_APPEND="Docker" \
+    SEMGREP_SKIP_ARM64_CHECK=1
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto

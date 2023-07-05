@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import platform
 import sys
 from typing import Dict
@@ -71,7 +72,9 @@ def cli(ctx: click.Context) -> None:
     state = get_state()
     state.terminal.init_for_cli()
 
-    abort_if_linux_arm64()
+    # SEMGREP_SKIP_ARM64_CHECK is temporary -- we'll remove the check entirely once we're consistently pushing arm64 docker images and python wheels
+    if not os.getenv("SEMGREP_SKIP_ARM64_CHECK"):
+        abort_if_linux_arm64()
 
     commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
 

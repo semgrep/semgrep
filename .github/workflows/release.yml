@@ -14,6 +14,11 @@ on:
         required: true
         type: boolean
         default: false
+      multi-arch:
+        description: Publish a multi-arch docker image
+        required: true
+        type: boolean
+        default: false
 
   workflow_call:
     inputs:
@@ -22,6 +27,11 @@ on:
         required: true
         type: boolean
         default: true
+      multi-arch:
+        description: Publish a multi-arch docker image
+        required: true
+        type: boolean
+        default: false
 
   push:
     branches:
@@ -139,6 +149,7 @@ jobs:
       artifact-name: image-release
       repository-name: ${{ github.repository }}
       dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
+      multi-arch: ${{ inputs.multi-arch }}
 
   upload-wheels:
     name: Upload Wheels to PyPI
