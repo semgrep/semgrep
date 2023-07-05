@@ -55,10 +55,10 @@ jobs:
           HOMEBREW_NO_INSTALL_CLEANUP: "true"
         run: |
           ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
-          opam exec -- make core
-          mkdir -p artifacts
-          cp ./bin/semgrep-core artifacts
-          zip -r artifacts.zip artifacts
+          # opam exec -- make core
+          # mkdir -p artifacts
+          # cp ./bin/semgrep-core artifacts
+          # zip -r artifacts.zip artifacts
       - uses: actions/upload-artifact@v3
         with:
           path: artifacts.zip
