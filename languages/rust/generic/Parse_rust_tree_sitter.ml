@@ -109,14 +109,17 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
         let* arg = macro_item_to_arg mac in
         Some [ arg ]
     (* For now, we just directly case on the token to see if its a comma.
-       This is a fragile approach, but we're close to the origin of the
-       token, so this should be relatively fine.
+       This is a fragile approach, because I'm a little suspicious and I
+       don't fully trust pattern matching on the string inside of the token,
+       but there's little opportunities for the string to have changed by
+       this point, so this should work.
        It's also a lot more work to bring this information over from
        when we first parse the token.
     *)
     | mac :: MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
         let* arg = macro_item_to_arg mac in
-        Option.map (fun res -> arg :: res) (try_as_normal_args rest)
+        let* args = try_as_normal_args rest in
+        Some (arg :: args)
     | _ -> None
   in
   match try_as_normal_args xs with

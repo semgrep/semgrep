@@ -1,2 +1,2 @@
-Rust: Fixed a bug where taint could not propagate through
-macro calls, in macro calls with multiple arguments
+Rust: Added the ability to taint macro calls through its arguments, in macro calls
+with multiple arguments.
