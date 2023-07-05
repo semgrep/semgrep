@@ -66,6 +66,9 @@ jobs:
       # with caching.
       OPAM_SWITCH_NAME: "4.14.0"
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -116,6 +119,9 @@ jobs:
     runs-on: macos-12
     needs: [build-core-osx]
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -135,6 +141,9 @@ jobs:
     runs-on: macos-12
     needs: [build-wheels-osx]
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       - uses: actions/download-artifact@v1
         with:
           name: osx-wheel
