@@ -46,23 +46,28 @@ if [[ -n $platform ]]; then
   docker_args+=(--platform "$platform")
 fi
 
-# Running just the image should print help without error.
+echo "Running just the image should print help without error"
 docker run "${docker_args[@]}" "$image"
+echo " -> OK"
 
-# Random valid shell commands should run ok
+echo "Random valid shell commands should run ok"
 docker run "${docker_args[@]}" "$image" echo -l -a -t -r -v -e -f
+echo " -> OK"
 
-# Semgrep should run when a config is passed
+echo "Semgrep should run when a config is passed"
 docker run "${docker_args[@]}" "$image" semgrep --config=p/ci --help
+echo " -> OK"
 
-# Semgrep should run when just help is requested
+echo "Semgrep should run when just help is requested"
 docker run "${docker_args[@]}" "$image" semgrep --help
+echo " -> OK"
 
-# Semgrep should run when a subcommand is passed
+echo "Semgrep should run when a subcommand is passed"
 docker run "${docker_args[@]}" "$image" semgrep ci --help
 docker run "${docker_args[@]}" "$image" semgrep publish --help
+echo " -> OK"
 
-# Semgrep should be able to return findings
+echo "Semgrep should be able to return findings"
 echo "if 1 == 1: pass" \
     | docker run "${docker_args[@]}" -i "$image" semgrep -l python -e '$X == $X' - \
     | grep -q "1 == 1"
@@ -70,3 +75,4 @@ echo "if 1 == 1: pass" \
 TEMP_DIR=$(mktemp -d)
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
 docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"
+echo " -> OK"
