@@ -14,8 +14,10 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-(* hard coded for now, but need to generalize, also not sure if correct path? depends on where called from *)
-let files_list = Common2.glob "tests"
+(* Very hard coded for now, need to generalize*)
+let files_list =
+  print_string (Sys.getcwd ());
+  Common2.glob "tests/jsonnet/eval"
 
 (* CURRENTLY VERY BAD TESTING, need to be able to print out output
    *  rather than expected true/false, leaving this as is for now to just set up
@@ -23,6 +25,7 @@ let files_list = Common2.glob "tests"
 let test_maker files =
   files
   |> Common.map (fun file ->
+         let file = Fpath.v file in
          ( Fpath.basename file,
            fun () ->
              let comparison_file_path =
