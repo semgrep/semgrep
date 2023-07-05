@@ -71,7 +71,7 @@ WORKDIR /src/semgrep
 RUN eval "$(opam env)" &&\
     make minimal-build &&\
     # Sanity check
-    SEMGREP_SKIP_ARM64_CHECK=1 /src/semgrep/_build/default/src/main/Main.exe -version
+    /src/semgrep/_build/default/src/main/Main.exe -version
 
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
@@ -136,7 +136,7 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
-     semgrep --version &&\
+     SEMGREP_SKIP_ARM64_CHECK=1 semgrep --version &&\
      apk del .build-deps &&\
      mkdir -p /tmp/.cache
 
