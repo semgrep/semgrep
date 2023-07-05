@@ -75,5 +75,6 @@ echo " -> OK"
 echo "Semgrep should be able to return findings (file)"
 TEMP_DIR=$(mktemp -d)
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
-docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"
+result=$(docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X')
+echo "${result}" | grep -q "1 == 1"
 echo " -> OK"
