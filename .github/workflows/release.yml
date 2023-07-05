@@ -99,7 +99,7 @@ jobs:
       repository-name: ${{ github.repository }}
       artifact-name: image-release
       file: Dockerfile
-      target: ""
+      target: semgrep-cli
       enable-tests: true
 
   build-test-docker-rootless:
