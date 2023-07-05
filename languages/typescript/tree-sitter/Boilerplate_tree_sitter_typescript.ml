@@ -34,6 +34,9 @@
 (**
    Boilerplate to be used as a template when mapping the tsx + typescript CST
    to another type of tree.
+
+   We need this hand-modified file so we can expose the `dump_tree` function
+   which works on the combined TSX/typescript CST
 *)
 
 module R = Tree_sitter_run.Raw_tree
