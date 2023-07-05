@@ -32,6 +32,9 @@ jobs:
     env:
       OPAM_SWITCH_NAME: "4.14.0"
     steps:
+      - name: Dump Runner Info
+        run: |
+          uname -a
       # Note that this action handles both cache read and cache write.
       # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
       - name: Cache Opam
