@@ -681,8 +681,18 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
                     add_to_env env id ii None
                 | G.F _ -> env)
               env fields
+        | G.ParamPattern pat ->
+            (* Here, we just get all the identifiers in the pattern, which may
+               themselves be sources.
+               If so, we add them to the context.
+               This is so we can do more than just a single-layer deep tainting.
+               We want to get the nested identifiers, too.
+            *)
+            let ids = AST_generic_helpers.ids_of_any (G.P pat) in
+            List.fold_left
+              (fun env (id, pinfo) -> add_to_env env id pinfo None)
+              env ids
         | G.Param { pname = None; _ }
-        | G.ParamPattern _
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _
