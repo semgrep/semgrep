@@ -14,8 +14,13 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-(* TODO not quite right, need to have a unit to unit not a unit to bool*)
-let tests files =
+(* hard coded for now, but need to generalize, also not sure if correct path? depends on where called from *)
+let files_list = Common2.glob "tests"
+
+(* CURRENTLY VERY BAD TESTING, need to be able to print out output
+   *  rather than expected true/false, leaving this as is for now to just set up
+   * tests to run, then will change*)
+let test_maker files =
   files
   |> Common.map (fun file ->
          ( Fpath.basename file,
@@ -33,4 +38,7 @@ let tests files =
              let json =
                JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
              in
-             Y.equal json res ))
+             Alcotest.(check bool)
+               "these should've been equal" (Y.equal json res) true ))
+
+let tests () = test_maker files_list
