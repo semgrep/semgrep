@@ -19,7 +19,7 @@ on:
       multi-arch:
         required: true
         type: boolean
-        description: Whether or not the image artifact is multi-arch
+        description: Whether or not we intend to push a multi-arch docker image
 
   workflow_call:
     inputs:
