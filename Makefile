@@ -93,7 +93,7 @@ copy-core-for-cli:
 # If you need other binaries, look at the build-xxx rules below.
 .PHONY: minimal-build
 minimal-build:
-	dune build _build/install/default/bin/semgrep-core
+	dune build --no-buffer --verbose _build/install/default/bin/semgrep-core
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
