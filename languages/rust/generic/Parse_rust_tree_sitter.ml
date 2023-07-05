@@ -82,11 +82,49 @@ type rust_macro_item =
   | MacTree of rust_macro_item list G.bracket
   | MacTreeBis of rust_macro_item list G.bracket * G.ident option * G.tok
 
-(* Note that the commas are considered like any other tokens in a Rust macro;
- * they are not separators between rust_macro_items.
- *)
 let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
-  xs |> Common.map macro_item_to_any
+  (* Note that the commas are considered like any other tokens in a Rust macro;
+     * they are not separators between rust_macro_items.
+  *)
+  (* Thus, we need this machinery in order to parse a list of macro items
+     to see if the macro invocation looks like a normal expression. For instance,
+     if a sequence of macro items looks like
+     <expr> , <expr> , <expr>
+     then we assume that this is something which looks like a series of
+     arguments, so we produce a single `Any`, which is `Args`.
+     Note that <expr> can also occur once with no commas, or zero times.
+  *)
+  let macro_item_to_arg = function
+    | MacAny (G.E e) -> Some (G.Arg e)
+    | MacAny (G.I e) -> Some (G.Arg (G.N (G.Id (e, G.empty_id_info ())) |> G.e))
+    | MacAny (G.Ar arg) -> Some arg
+    | MacAny _
+    | MacTreeBis _
+    | MacTree _ ->
+        None
+  in
+  let rec try_as_normal_args = function
+    | [] -> Some []
+    | [ mac ] ->
+        let* arg = macro_item_to_arg mac in
+        Some [ arg ]
+    (* For now, we just directly case on the token to see if its a comma.
+       This is a fragile approach, because I'm a little suspicious and I
+       don't fully trust pattern matching on the string inside of the token,
+       but there's little opportunities for the string to have changed by
+       this point, so this should work.
+       It's also a lot more work to bring this information over from
+       when we first parse the token.
+    *)
+    | mac :: MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
+        let* arg = macro_item_to_arg mac in
+        let* args = try_as_normal_args rest in
+        Some (arg :: args)
+    | _ -> None
+  in
+  match try_as_normal_args xs with
+  | None -> xs |> Common.map macro_item_to_any
+  | Some res -> [ G.Args res ]
 
 and macro_item_to_any = function
   | MacAny x -> x
@@ -1995,6 +2033,8 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     match anys with
     (* look like a regular function call, just use Arg then *)
     | [ G.E e ] -> [ G.Arg e ]
+    (* coupling: see `macro_items_to_anys` above *)
+    | [ G.Args args ] -> args
     | xs -> [ G.OtherArg (("ArgMacro", G.fake ""), xs) ]
   in
   G.Call (G.N name |> G.e, (l, args, r)) |> G.e
