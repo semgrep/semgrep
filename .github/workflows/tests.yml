@@ -321,6 +321,7 @@ jobs:
       repository-name: ${{ github.repository }}
       file: Dockerfile
       enable-tests: true
+      multi-arch: true
 
   push-docker:
     needs: [build-test-docker]
