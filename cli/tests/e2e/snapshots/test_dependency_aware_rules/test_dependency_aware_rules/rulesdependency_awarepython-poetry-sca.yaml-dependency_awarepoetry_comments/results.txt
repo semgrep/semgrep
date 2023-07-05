@@ -43,7 +43,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 98,
               "package": "faker",
-              "transitivity": "unknown",
+              "transitivity": "direct",
               "version": "1.0.0"
             },
             "lockfile": "targets/dependency_aware/poetry_comments/poetry.lock"
@@ -72,7 +72,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
+  Scanning 2 files tracked by git with 0 Code rules, 1 Supply Chain rule:
 
 
   CODE RULES

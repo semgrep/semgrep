@@ -136,9 +136,13 @@ manifest_deps = string("[tool.poetry.dependencies]\n") >> key_value.map(
 ).sep_by(new_lines)
 
 # A whole pyproject.toml file. We only about parsing the manifest_deps
-manifest = (manifest_deps | poetry_dep_extra | poetry_source_extra).sep_by(
-    new_lines
-).map(lambda xs: {y for x in xs if x for y in x}) << string("\n").optional()
+manifest = (
+    string("\n").many()
+    >> (manifest_deps | poetry_dep_extra | poetry_source_extra)
+    .sep_by(new_lines)
+    .map(lambda xs: {y for x in xs if x for y in x})
+    << string("\n").optional()
+)
 
 
 def parse_poetry(
