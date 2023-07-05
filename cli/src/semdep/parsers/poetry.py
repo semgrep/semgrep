@@ -99,21 +99,25 @@ poetry_source_extra = (
 ).map(lambda _: None)
 
 # Extra data from a dependency, which we just treat as standalone data and ignore
+# The at_least(1) is to handle empty tables with no extra newlines. This was easier than overhauling everything to support that
 # Example:
 # [package.extras]
 # dev = ["coverage", "django", "flake8", "isort", "pillow", "sqlalchemy", "mongoengine", "wheel (>=0.32.0)", "tox", "zest.releaser"]
 # doc = ["sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
-poetry_dep_extra = (string("[") >> upto("]") << string("]\n")) >> key_value.sep_by(
-    string("\n")
-).map(lambda _: None)
-
+#
+# [package.dependencies]
+# [package.dependencies.typing_extensions]
+# python = "<3.10"
+# version = ">=4.0"
+poetry_dep_extra = (string("[") >> upto("]") << string("]\n")).at_least(
+    1
+) >> key_value.sep_by(string("\n")).map(lambda _: None)
 
 # A whole poetry file
 poetry = (
     string("\n").many()
-    >> string("\n").many()
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
-    .sep_by(string("\n\n"))
+    .sep_by(string("\n").at_least(1))
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()
 )
@@ -176,3 +180,24 @@ def parse_poetry(
             )
         )
     return output
+
+
+text = """\
+[[package]]
+category = "main"
+description = "Internationalization utilities"
+name = "babel"
+optional = false
+python-versions = ">=3.7"
+version = "2.12.1"
+
+[package.dependencies]
+[package.dependencies.pytz]
+python = "<3.9"
+version = ">=2015.7"
+"""
+
+text = """\
+[package.dependencies]
+[package.dependencies.pytz]
+"""
