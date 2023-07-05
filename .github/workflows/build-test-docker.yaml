@@ -30,7 +30,7 @@ on:
       use-depot-for-docker-build:
         type: boolean
         description: Whether or not to use depot.dev instead of docker buildx to build the docker image
-        default: false
+        default: true
       multi-arch:
         type: boolean
         description: Whether or not to build a multi-arch docker image
@@ -61,7 +61,7 @@ on:
       use-depot-for-docker-build:
         type: boolean
         description: Whether or not to use depot.dev instead of docker buildx to build the docker image
-        default: false
+        default: true
       multi-arch:
         type: boolean
         description: Whether or not to build a multi-arch docker image
