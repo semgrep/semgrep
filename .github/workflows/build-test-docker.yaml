@@ -165,3 +165,8 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}
           path: /tmp/image.tar
+      - uses: actions/upload-artifact@v3
+        if: ${{ matrix.architecture == 'amd64' }} # appease the test-semgrep-pro workflow
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: /tmp/image.tar
