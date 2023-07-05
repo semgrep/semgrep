@@ -1,5 +1,4 @@
-
 // ERROR:
-let y = 3;
-// ERROR:
-let x = 2;
+fn main() {
+  let y = 3;
+}
