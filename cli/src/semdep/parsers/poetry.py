@@ -4,6 +4,7 @@ I could not find any comprehensive description of this format online, I just loo
 If you find any sort of spec, please link it here
 Here's the docs for poetry: https://python-poetry.org/docs/
 """
+import re
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -57,6 +58,8 @@ quoted_value = (
     << string('"')
 )
 
+
+new_lines = regex("\n+", re.MULTILINE)
 # Examples:
 # foo
 plain_value = upto("\n")
@@ -75,6 +78,8 @@ key = regex(r'("[^"]*"|[^\s=]+)\s*=\s*', flags=0, group=1).map(lambda x: x.strip
 # ]
 key_value = pair(key, value)
 
+key_value_list = key_value.sep_by(new_lines)
+
 # A poetry dependency
 # Example:
 # [[package]]
@@ -84,9 +89,7 @@ key_value = pair(key, value)
 # category = "main"
 # optional = false
 # python-versions = ">=3.6"
-poetry_dep = mark_line(
-    string("[[package]]\n") >> key_value.sep_by(string("\n")).map(lambda x: dict(x))
-)
+poetry_dep = mark_line(string("[[package]]\n") >> key_value_list.map(lambda x: dict(x)))
 
 # Poetry Source which we ignore
 # Example:
@@ -95,7 +98,7 @@ poetry_dep = mark_line(
 # url = "https://artifact.semgrep.com/"
 # secondary = False
 poetry_source_extra = (
-    string("[[") >> upto("]") << string("]]\n") >> key_value.sep_by(string("\n"))
+    string("[[") >> upto("]") << string("]]\n") >> key_value_list
 ).map(lambda _: None)
 
 # Extra data from a dependency, which we just treat as standalone data and ignore
@@ -111,13 +114,13 @@ poetry_source_extra = (
 # version = ">=4.0"
 poetry_dep_extra = (string("[") >> upto("]") << string("]\n")).at_least(
     1
-) >> key_value.sep_by(string("\n")).map(lambda _: None)
+) >> key_value_list.map(lambda _: None)
 
 # A whole poetry file
 poetry = (
     string("\n").many()
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
-    .sep_by(string("\n").at_least(1))
+    .sep_by(new_lines)
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()
 )
@@ -130,11 +133,11 @@ poetry = (
 # faker = "^13.11.0"
 manifest_deps = string("[tool.poetry.dependencies]\n") >> key_value.map(
     lambda x: x[0]
-).sep_by(string("\n"))
+).sep_by(new_lines)
 
 # A whole pyproject.toml file. We only about parsing the manifest_deps
 manifest = (manifest_deps | poetry_dep_extra | poetry_source_extra).sep_by(
-    string("\n").times(min=1, max=float("inf"))
+    new_lines
 ).map(lambda xs: {y for x in xs if x for y in x}) << string("\n").optional()
 
 
