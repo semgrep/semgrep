@@ -78,6 +78,15 @@ let default_subcommand = "scan"
               logger.info(
                   f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
               )
+
+   def abort_if_linux_arm64() -> None:
+       """
+       Exit with FATAL_EXIT_CODE if the user is running on Linux ARM64.
+       Print helpful error message.
+       """
+       if platform.machine() in {"arm64", "aarch64"} and platform.system() == "Linux":
+           logger.error("Semgrep does not support Linux ARM64")
+           sys.exit(FATAL_EXIT_CODE)
 *)
 
 (*****************************************************************************)
@@ -259,6 +268,7 @@ let main argv : Exit_code.t =
 
   (* TOPORT:
       state.terminal.init_for_cli()
+      abort_if_linux_arm64()
       state.app_session.authenticate()
       state.app_session.user_agent.tags.add(f"command/{subcommand}")
       state.metrics.add_feature("subcommand", subcommand)
