@@ -60,7 +60,7 @@
 FROM busybox:stable as semgrep-core-files
 WORKDIR /src/semgrep
 COPY . .
-RUN rm -rf cli
+RUN rm -rf cli js
 
 FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
 
