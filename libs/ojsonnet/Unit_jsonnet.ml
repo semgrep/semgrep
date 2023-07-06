@@ -14,16 +14,11 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-(* Very hard coded for now, need to generalize*)
-let files_list =
-  print_string (Sys.getcwd ());
-  Common2.glob "tests/jsonnet/eval"
-
 (* CURRENTLY VERY BAD TESTING, need to be able to print out output
    *  rather than expected true/false, leaving this as is for now to just set up
    * tests to run, then will change*)
-let test_maker files =
-  files
+let test_maker () =
+  Common2.glob "tests/jsonnet/eval"
   |> Common.map (fun file ->
          let file = Fpath.v file in
          ( Fpath.basename file,
@@ -44,4 +39,4 @@ let test_maker files =
              Alcotest.(check bool)
                "these should've been equal" (Y.equal json res) true ))
 
-let tests () = test_maker files_list
+let tests () = test_maker ()
