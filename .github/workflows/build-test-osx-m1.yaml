@@ -98,9 +98,9 @@ jobs:
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+      # - uses: actions/setup-python@v4
+      #   with:
+      #     python-version: "3.11"
       # - name: Install Python via Brew
       #   run: |
       #     brew update
@@ -117,7 +117,6 @@ jobs:
           which python3
           python3 --version
           pip3 list
-          ls -hal /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
