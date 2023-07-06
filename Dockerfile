@@ -56,10 +56,17 @@
 #
 # coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
+
+FROM busybox:stable as semgrep-core-files
+WORKDIR /src/semgrep
+COPY . .
+RUN rm -rf cli
+
 FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
 
 WORKDIR /src/semgrep
-COPY . .
+COPY --from=semgrep-core-files /src/semgrep .
+
 #TODO: update the root image to include python 3.9 so the apk commands
 # run internally in make 'install-deps-alpine-xxx' below are fast too
 RUN make install-deps-ALPINE-for-semgrep-core &&\
