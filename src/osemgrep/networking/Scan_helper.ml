@@ -36,17 +36,7 @@ let start_scan ~dry_run ~token url meta =
     let scan_endpoint = Uri.with_path url "api/agent/deployments/scans" in
     let body = JSON.(string_of_json (Object [ ("meta", meta) ])) in
     match Http.post ~body ~headers scan_endpoint with
-    | Ok body -> (
-        let json = JSON.json_of_string body in
-        match json with
-        | Object xs -> (
-            match List.assoc_opt "scan" xs with
-            | Some (Object dd) -> (
-                match List.assoc_opt "id" dd with
-                | Some (Int i) -> Ok (Some (string_of_int i))
-                | _else -> Ok None)
-            | _else -> Ok None)
-        | _else -> Ok None)
+    | Ok body -> extract_scan_id body
     | Error (status, msg) ->
         let pre_msg =
           if status = 404 then
@@ -88,7 +78,7 @@ let fetch_scan_config ~token ~sca ~dry_run ~full_scan repository =
   let content =
     let headers = [ ("authorization", "Bearer " ^ token) ] in
     match Http.get ~headers url with
-    | Ok body -> body
+    | Ok body -> Ok body
     | Error msg ->
         Error
           (Printf.sprintf "Failed to download config from %s: %s"
@@ -120,7 +110,7 @@ let report_failure ~dry_run ~token ~scan_id exit_code =
         string_of_json
           (Object [ ("exit_code", Int exit_code); ("stderr", String "") ]))
     in
-    match Http_helpers.post ~body ~headers uri with
+    match Http.post ~body ~headers uri with
     | Ok _ -> Ok ()
     | Error (code, msg) ->
         Error
@@ -215,7 +205,7 @@ let report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete =
       ]
     in
     let body = JSON.string_of_json findings_and_ignores in
-    (match Http_helpers.post ~body ~headers url with
+    (match Http.post ~body ~headers url with
     | Ok body -> extract_errors body
     | Error (code, msg) ->
         Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg));
@@ -225,7 +215,7 @@ let report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete =
         ("/api/agent/scans/" ^ scan_id ^ "/complete")
     in
     let body = JSON.string_of_json complete in
-    match Http_helpers.post ~body ~headers url with
+    match Http.post ~body ~headers url with
     | Ok body -> extract_block_override body
     | Error (code, msg) ->
         Error
