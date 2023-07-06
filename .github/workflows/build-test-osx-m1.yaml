@@ -42,6 +42,17 @@ jobs:
         run: |
           uname -a
           python3 --version
+          id -u
+          id -g
+      - name: Create Runner User
+        run: |
+          dscl . -create /Users/runner
+          dscl . -create /Users/runner UserShell /bin/bash
+          dscl . -create /Users/runner UniqueID "1000"
+          dscl . -create /Users/runner PrimaryGroupID 20
+          dscl . -create /Users/runner NFSHomeDirectory /Users/runner
+
+          dscl . -append /Groups/admin GroupMembership runner
       # Note that this action handles both cache read and cache write.
       # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
       - name: Cache Opam
