@@ -258,16 +258,6 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            | Fld pattern -> Common.push (pattern, rule) fld_rules
            | Flds pattern -> Common.push (pattern, rule) flds_rules
            | Partial pattern -> Common.push (pattern, rule) partial_rules
-           (* If we receive an incoming Name pattern, we want to use it
-              as a name only if it's not a metavariable because then it
-              should be matched against more nodes.
-              So we sort based on if its a metavariable.
-           *)
-           (* THINK: should we do this for named ellipses also? *)
-           | Name (Id ((s, _), _) as name) when Metavariable.is_metavar_name s
-             ->
-               let expr = N name |> e in
-               push_with_annotation (E expr) expr expr_rules
            | Name pattern -> Common.push (pattern, rule) name_rules
            | Raw pattern -> Common.push (pattern, rule) raw_rules
            | XmlAt pattern -> Common.push (pattern, rule) xml_attribute_rules
