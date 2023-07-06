@@ -97,6 +97,12 @@ ECOSYSTEM_TO_LOCKFILES = {
     Ecosystem(Pub()): ["pubspec.lock"],
 }
 
+ALL_ECOSYSTEMS = list(ECOSYSTEM_TO_LOCKFILES.keys())
+
+ALL_LOCKFILE_NAMES = [
+    name for names in ECOSYSTEM_TO_LOCKFILES.values() for name in names
+]
+
 
 def write_pipes_to_disk(targets: Sequence[str], temp_dir: Path) -> Sequence[str]:
     """
@@ -478,7 +484,7 @@ class Target:
         )
 
     @lru_cache(maxsize=None)
-    def files(self) -> FrozenSet[Path]:
+    def files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
         """
         Recursively go through a directory and return list of all files with
         default file extension of language
@@ -486,7 +492,7 @@ class Target:
         if not self.path.is_dir() and self.path.is_file():
             return frozenset([self.path])
 
-        if self.baseline_handler is not None:
+        if self.baseline_handler is not None and not ignore_baseline_handler:
             try:
                 return self.files_from_git_diff()
             except (subprocess.CalledProcessError, FileNotFoundError):
@@ -698,12 +704,14 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_all_files(self) -> FrozenSet[Path]:
-        return frozenset(f for target in self.targets for f in target.files())
+    def get_all_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+        return frozenset(
+            f for target in self.targets for f in target.files(ignore_baseline_handler)
+        )
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
-        self, lang: Union[Language, Ecosystem], product: out.Product
+        self, lang: Union[Language, Ecosystem], product: out.Product, ignore_baseline_handler: bool = False
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
@@ -714,7 +722,7 @@ class TargetManager:
 
         Note also filters out any directory and descendants of `.git`
         """
-        all_files = self.get_all_files()
+        all_files = self.get_all_files(ignore_baseline_handler)
 
         files = self.filter_by_language(lang, candidates=all_files)
         self.ignore_log.by_language[lang].update(files.removed)
@@ -790,32 +798,20 @@ class TargetManager:
         """
         Return a dict mapping each ecosystem to the set of lockfiles for that ecosystem
         """
-        ALL_ECOSYSTEMS: Set[Ecosystem] = {
-            Ecosystem(Npm()),
-            Ecosystem(Pypi()),
-            Ecosystem(Gem()),
-            Ecosystem(Gomod()),
-            Ecosystem(Cargo()),
-            Ecosystem(Maven()),
-            Ecosystem(Composer()),
-            Ecosystem(Nuget()),
-            Ecosystem(Pub()),
-        }
-
         return {
             ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
         }
 
     @lru_cache(maxsize=None)
     def get_lockfiles(
-        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT
+        self, ecosystem: Ecosystem, product: out.Product = SCA_PRODUCT, ignore_baseline_hander: bool = False
     ) -> FrozenSet[Path]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
         Respects semgrepignore/exclude flag
         """
-        return self.get_files_for_language(ecosystem, product).kept
+        return self.get_files_for_language(ecosystem, product, ignore_baseline_hander).kept
 
     def find_single_lockfile(self, p: Path, ecosystem: Ecosystem) -> Optional[Path]:
         """
@@ -825,7 +821,7 @@ class TargetManager:
         If lockfile not in self.get_lockfiles(ecosystem) then return None
         this would happen if the lockfile is ignored by a .semgrepignore or --exclude
         """
-        candidates = self.get_lockfiles(ecosystem)
+        candidates = self.get_lockfiles(ecosystem, ignore_baseline_hander=True)
 
         for path in p.parents:
             for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:

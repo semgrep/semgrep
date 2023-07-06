@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 from typing import Dict
+from typing import FrozenSet
 from typing import Iterator
 from typing import List
 from typing import Tuple
@@ -140,7 +141,10 @@ def transivite_dep_is_also_direct(
 def generate_reachable_sca_findings(
     matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
 ) -> Tuple[
-    List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
+    List[RuleMatch],
+    List[SemgrepError],
+    Callable[[Path, FoundDependency], bool],
+    FrozenSet[Path],
 ]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
@@ -151,6 +155,7 @@ def generate_reachable_sca_findings(
     # Reachability rule
     reachable_matches = []
     reachable_deps = set()
+    scanned_lockfiles = []
     for ecosystem in ecosystems:
         for match in matches:
             try:
@@ -159,6 +164,7 @@ def generate_reachable_sca_findings(
                 )
                 if lockfile_path is None:
                     continue
+                scanned_lockfiles.append(lockfile_path)
                 # Ignore errors here because we assume they are processed later
                 deps, _ = parse_lockfile_path(lockfile_path)
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
@@ -197,4 +203,5 @@ def generate_reachable_sca_findings(
         reachable_matches,
         dep_rule_errors,
         (lambda p, d: (p, d.package, d.version, d.transitivity) in reachable_deps),
+        frozenset(scanned_lockfiles),
     )
