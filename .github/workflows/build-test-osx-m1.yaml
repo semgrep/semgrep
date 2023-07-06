@@ -45,7 +45,7 @@ jobs:
           sudo chmod 750 /Users/runner
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -91,7 +91,7 @@ jobs:
           sudo chmod 750 /Users/runner
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -124,7 +124,7 @@ jobs:
           sudo chmod 750 /Users/runner
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - uses: actions/download-artifact@v1
         with:
           name: m1-wheel
