@@ -102,6 +102,8 @@ jobs:
         with:
           python-version: "3.11"
       - uses: actions/checkout@v3
+        with:
+          submodules: true
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-m1-${{ github.sha }}
