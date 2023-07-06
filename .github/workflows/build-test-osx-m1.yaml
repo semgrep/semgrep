@@ -38,26 +38,17 @@ jobs:
     env:
       OPAM_SWITCH_NAME: "4.14.0"
     steps:
-      - name: Dump Runner Info
+      - name: Setup runner directory
         run: |
-          uname -a
-          which python3
-          python3 --version
-          python3 -c "import platform; print(platform.mac_ver())"
-
-          # create a /Users/runner to trick GH into installing things in the toolcache
-          # this makes setup-python work. 
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
-      - uses: actions/setup-python@v4 
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.11' 
-      - name: Dump Runner Info
-        run: |
-          uname -a
-          which python3
-          python3 --version
+          python-version: '3.11'
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
       # Note that this action handles both cache read and cache write.
       # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
       - name: Cache Opam
@@ -69,18 +60,11 @@ jobs:
         with:
           path: ~/.opam
           key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - env:
-          # M1 builds failing due to a permissions issue. this cleanup is an
-          # optimization, and we can revisit re-enabling cleanup when we have
-          # more time/resources to debug.
-          HOMEBREW_NO_INSTALL_CLEANUP: "true"
+      - name: Install dependencies
         run: |
           ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
+      - name: Compile semgrep
+        run: |
           opam exec -- make core
           mkdir -p artifacts
           cp ./bin/semgrep-core artifacts
@@ -100,15 +84,14 @@ jobs:
       ]
     needs: [build-core-m1]
     steps:
-      - name: Update Python
+      - name: Setup runner directory
         run: |
-          brew update
-          brew install python@3.11
-      - name: Dump Runner Info
-        run: |
-          uname -a
-          which python3
-          python3 --version
+          sudo mkdir /Users/runner
+          sudo chown admin:staff /Users/runner
+          sudo chmod 750 /Users/runner
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -134,19 +117,14 @@ jobs:
       ]
     needs: [build-wheels-m1]
     steps:
-      - name: Update Python
+      - name: Setup runner directory
         run: |
-          brew update
-          brew install python@3.11
-      - name: Dump Runner Info
-        run: |
-          uname -a
-          which python3
-          python3 --version
-      - name: cleanup semgrep
-        run: |
-          pip3 uninstall -y semgrep
-          rm -rf dist/
+          sudo mkdir /Users/runner
+          sudo chown admin:staff /Users/runner
+          sudo chmod 750 /Users/runner
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - uses: actions/download-artifact@v1
         with:
           name: m1-wheel
@@ -171,7 +149,3 @@ jobs:
             echo $NON_USR_LIB_DYNAMIC_LIBRARIES
             exit 1;
           fi;
-      - name: cleanup semgrep
-        run: |
-          pip3 uninstall -y semgrep
-          rm -rf dist/
