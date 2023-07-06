@@ -41,14 +41,7 @@ jobs:
       - name: Dump Runner Info
         run: |
           uname -a
-          which python3 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Dump Runner Info
-        run: |
-          uname -a
-          which python3
+          python3 --version
       # Note that this action handles both cache read and cache write.
       # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
       - name: Cache Opam
