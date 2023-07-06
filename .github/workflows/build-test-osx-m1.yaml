@@ -98,9 +98,15 @@ jobs:
       ]
     needs: [build-core-m1]
     steps:
+      - name: Update Python
+        run: |
+          brew update
+          brew install python@3.11
       - name: Dump Runner Info
         run: |
           uname -a
+          which python3
+          python3 --version
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -126,9 +132,15 @@ jobs:
       ]
     needs: [build-wheels-m1]
     steps:
+      - name: Update Python
+        run: |
+          brew update
+          brew install python@3.11
       - name: Dump Runner Info
         run: |
           uname -a
+          which python3
+          python3 --version
       - name: cleanup semgrep
         run: |
           pip3 uninstall -y semgrep
