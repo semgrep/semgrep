@@ -49,6 +49,7 @@ jobs:
           brew list
       - name: Update Python
         run: |
+          brew update
           brew install python@3.11
       - uses: actions/setup-python@v4
         with:
