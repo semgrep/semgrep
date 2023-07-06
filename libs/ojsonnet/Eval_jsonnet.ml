@@ -197,6 +197,7 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv e'))
           else error tkf (spf "Not an integer: %s" (sv e'))
+      (*TODO: need one more check? *)
       | V.Object (_l, (_assertsTODO, fields), _r), V.Primitive (V.Str (fld, tk))
         -> (
           match
@@ -421,6 +422,61 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
+and eval_plus_object2 _env _tk objl objr : V.object_ A.bracket =
+  let l, (lassert, lflds), _r = objl in
+  let _, (rassert, rflds), r = objr in
+  let rightentries =
+    rflds
+    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.hashset_of_list
+  in
+  let leftentries =
+    lflds
+    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.hashset_of_list
+  in
+
+  let asserts = lassert @ rassert in
+  let lflds_no_overlap =
+    lflds
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+           not (Hashtbl.mem rightentries s))
+  in
+  let rflds_no_overlap =
+    rflds
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+           not (Hashtbl.mem leftentries s))
+  in
+
+  let rflds_no_overlap_hash =
+    rflds_no_overlap
+    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.hashset_of_list
+  in
+  let lflds_no_overlap_hash =
+    lflds_no_overlap
+    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.hashset_of_list
+  in
+
+  let lflds_overlap =
+    lflds
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+           not (Hashtbl.mem lflds_no_overlap_hash s))
+  in
+
+  let rflds_overlap =
+    rflds
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+           not (Hashtbl.mem rflds_no_overlap_hash s))
+  in
+
+  (* TODO this is wrong *)
+  ( l,
+    ( asserts,
+      lflds_no_overlap @ rflds_no_overlap @ lflds_overlap @ rflds_overlap ),
+    r )
+
 (* This is a very naive implementation of plus for objects that
  * just merge the fields.
  * TODO: handle inheritance with complex self/super semantic in the presence
@@ -434,7 +490,7 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
-  (* TODO: wrong *)
+  (* TODO: this currently just merges the f *)
   let asserts = lassert @ rassert in
   let lflds' =
     lflds
