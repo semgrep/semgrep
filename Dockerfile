@@ -60,7 +60,12 @@
 FROM busybox:stable as semgrep-core-files
 WORKDIR /src/semgrep
 COPY . .
+
+# remove folders that are unnecessary for the semgrep-core build
 RUN rm -rf cli js
+
+# we do need cli's semgrep_interfaces, however
+COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 
 FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
 
