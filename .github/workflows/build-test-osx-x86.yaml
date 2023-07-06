@@ -69,6 +69,7 @@ jobs:
       - name: Dump Runner Info
         run: |
           uname -a
+          which python3
       - uses: actions/checkout@v3
         with:
           submodules: true
