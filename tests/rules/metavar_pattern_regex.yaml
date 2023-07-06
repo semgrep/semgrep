@@ -4,9 +4,9 @@ rules:
       - generic
     message: New dependency with name $1 and version $2
     patterns:
-      - pattern-regex: gem "(.*)", "(.*)"
+      - pattern-regex: gem "(?P<ONE>.*)", "(.*)"
       - metavariable-pattern:
-          metavariable: $1
+          metavariable: $ONE
           language: generic
           pattern: google-cloud-storage
     severity: INFO

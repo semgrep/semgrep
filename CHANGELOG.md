@@ -6,6 +6,69 @@
 
 <!-- insertion point -->
 
+## [1.30.0](https://github.com/returntocorp/semgrep/releases/tag/v1.30.0) - 2023-06-28
+
+### Added
+
+- feat(rule syntax): Support metavariable-type field for Kotlin, Go, Scala
+
+  `metavariable-type` field is now supported for Kotlin, Go and Scala. (gh-8147)
+
+- feat(rule syntax): Support metavariable-type field for csharp, typescript, php, rust
+
+  `metavariable-type` field is now supported for csharp, typescript, php, rust. (gh-8164)
+
+- Pattern syntax: You may now introduce metavariables from parts of regular
+  expressions using `pattern-regex`, by using regular expression with
+  named capturing groups (see https://www.regular-expressions.info/named.html)
+
+  Now, such capture group metavariables must be explicitly named.
+  So for instance, the pattern:
+
+  ```
+  pattern-regex: "foo-(?P<X>.*)"
+  ```
+
+  binds what is matched by the capture group to the metavariable `$X`,
+  which can be used as normal.
+
+  `pattern-regex` patterns with capture groups, such
+  as
+
+  ```
+  pattern-regex: "(.*)"
+  ```
+
+  will still introduce metavariables of the form `$1`, `$2`, etc, but this
+  should be considered deprecated behavior, and that functionality will be
+  taken away in a future release. Named capturing groups should be primarily
+  used, instead. (pa-2765)
+
+- Rule syntax: Errors during rule parsing are now better. For instance,
+  parsing will now complain if you miss a hyphen in a list of patterns,
+  or if you try to give a string to `patterns` or `pattern-either`. (pa-2877)
+- JS/TS: Now, patterns of records with ellipses, like:
+  ```
+  { $X: ... }
+  ```
+  properly match to records of anonymous functions, like:
+  ````
+  {
+    func: () => { return 1; }
+  }
+  ``` (pa-2878)
+  ````
+
+### Changed
+
+- engine: Removed matching cache optimization which had been previously disabled by
+  default in 1.22.0 (we got no reports of any performance regression during this time). (cleanup-1)
+
+### Fixed
+
+- Language server no longer crashes when a user is logged in and opens a non git repo folder (pa-2886)
+- It is not required anymore to have semgrep (and pysemgrep) in the PATH. (pa-2895)
+
 ## [1.29.0](https://github.com/returntocorp/semgrep/releases/tag/v1.29.0) - 2023-06-26
 
 ### Added

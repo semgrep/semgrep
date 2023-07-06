@@ -2,6 +2,7 @@
 ; This builds a library. The executable's entry point is defined in ../main
 ;
 (library
+  (public_name semgrep.osemgrep_cli)
   (name osemgrep_cli)
   (wrapped false)
   (libraries

@@ -31,3 +31,17 @@ def test_validation_of_invalid_rules(
         err,
         "results.txt",
     )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "rule",
+    ["rules/regex-capture-groups.yaml", "rules/numeric-regex-capture-rule.yaml"],
+)
+def test_validation_of_valid_rules(run_semgrep_in_tmp: RunSemgrep, rule):
+    run_semgrep_in_tmp(
+        rule,
+        options=["--validate"],
+        output_format=OutputFormat.TEXT,
+        assert_exit_code=0,
+    )

@@ -179,3 +179,16 @@ let commit cwd msg =
   match Bos.OS.Cmd.run_status cmd with
   | Ok (`Exited 0) -> ()
   | _ -> raise (Error "Error running git commit")
+
+let get_project_url () =
+  let cmd = Bos.Cmd.(v "git" % "ls-remote" % "--get-url") in
+  let out = Bos.OS.Cmd.run_out cmd in
+  match Bos.OS.Cmd.out_string ~trim:true out with
+  | Ok (url, _) -> Some url
+  | Error _ ->
+      File.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
+(* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
+   when the domain is [".io"]?). We probably should handle that by a new
+   environment variable. I just copied what [pysemgrep] does.
+   [git ls-remote --get-url] is also enough and if we can not get such
+   information, that's fine - the metadata is used only [Metrics_] actually. *)

@@ -27,3 +27,8 @@ val add : Fpath.t -> Fpath.t list -> unit
 
 val commit : Fpath.t -> string -> unit
 (** Commit the given files to the git repo with the given message *)
+
+val get_project_url : unit -> string option
+(** [get_project_url ()] tries to get the URL of the project from
+    [git ls-remote] or from the [.git/config] file. It returns [None] if it
+    found nothing relevant. *)

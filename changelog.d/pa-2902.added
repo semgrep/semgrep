@@ -1,0 +1,2 @@
+Rust: Added the ability to taint macro calls through its arguments, in macro calls
+with multiple arguments.

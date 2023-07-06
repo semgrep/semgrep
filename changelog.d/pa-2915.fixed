@@ -1,0 +1,2 @@
+Rust: Fixed a bug where standalone metavariable patterns
+were not matching as expected

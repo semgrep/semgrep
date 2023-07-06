@@ -1,7 +1,7 @@
 rules:
   - id: detected-aws-account-id
     pattern-regex: |-
-      ("|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?("|')?\s*(:|=>|=)\s*("|')?[0-9]{12}("|')?
+      ("|')?(?P<AWS>AWS|aws|Aws)?_?(?P<ACCOUNT>ACCOUNT|account|Account)_?(?P<ID>ID|id|Id)?("|')?\s*(?P<DELIM>:|=>|=)\s*("|')?[0-9]{12}("|')?
     languages: [regex]
     message: AWS Account ID detected
     severity: ERROR

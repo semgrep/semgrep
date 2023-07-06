@@ -1,0 +1,6 @@
+#[test]
+// TODO: Nested meta variables are not even parsed.
+#[more(complicated, attribute)]
+fn $FUN() {
+  ...
+}

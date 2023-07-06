@@ -16,6 +16,28 @@
 # See https://docs.docker.com/build/building/multi-stage/
 
 ###############################################################################
+# Step0: collect files needed to build semgrep-cpre
+###############################################################################
+
+# The semgrep git repository contains the source code to multiple build artifacts
+# (semgrep, semgrep-core, semgrep.js, etc...). In order to maximize Docker cache
+# hits (and keep the build fast), we only copy over the folders needed to build
+# semgrep-core. This is done in a multi-stage build so that the final COPY
+# happens in a single layer.
+
+FROM busybox:stable as semgrep-core-files
+WORKDIR /src/semgrep
+
+# copy over the entire semgrep repository
+COPY . .
+
+# remove folders that aren't necessary for the semgrep-core build
+RUN rm -rf cli js .github .circleci
+
+# we *do* need the cli's semgrep_interfaces folder, however
+COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
+
+###############################################################################
 # Step1: build semgrep-core
 ###############################################################################
 
@@ -56,10 +78,12 @@
 #
 # coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
+
 FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
 
 WORKDIR /src/semgrep
-COPY . .
+COPY --from=semgrep-core-files /src/semgrep .
+
 #TODO: update the root image to include python 3.9 so the apk commands
 # run internally in make 'install-deps-alpine-xxx' below are fast too
 RUN make install-deps-ALPINE-for-semgrep-core &&\
@@ -134,9 +158,9 @@ COPY cli ./
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
-     SEMGREP_SKIP_BIN=true pip install /semgrep &&\
+     pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
-     semgrep --version &&\
+     SEMGREP_SKIP_ARM64_CHECK=1 semgrep --version &&\
      apk del .build-deps &&\
      mkdir -p /tmp/.cache
 
@@ -151,7 +175,8 @@ RUN ln -s semgrep-core /usr/local/bin/osemgrep
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-    SEMGREP_USER_AGENT_APPEND="Docker"
+    SEMGREP_USER_AGENT_APPEND="Docker" \
+    SEMGREP_SKIP_ARM64_CHECK=1
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
