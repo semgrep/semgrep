@@ -46,6 +46,7 @@ jobs:
           python3 -c "import platform; print(platform.mac_ver())"
           id -u
           id -g
+          brew list
       - name: Update Python
         run: |
           brew uninstall python
