@@ -101,6 +101,10 @@ jobs:
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
+          which pip3
+          pip3 --version
+          which python3
+          which python3 --version
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
@@ -130,7 +134,10 @@ jobs:
           name: m1-wheel
       - run: unzip ./m1-wheel/dist.zip
       - name: install package
-        run: pip3 install dist/*.whl
+        run: |
+          which pip3
+          pip3 --version  
+          pip3 install dist/*.whl
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
