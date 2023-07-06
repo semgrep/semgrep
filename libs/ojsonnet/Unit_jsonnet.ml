@@ -4,6 +4,8 @@ open File.Operators
 (*open Testutil*)
 module Y = Yojson.Basic
 
+let dir = Fpath.v "tests/jsonnet/eval"
+
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Common2.dbe_of_filename !!file in
   let path = Common2.filename_of_dbe (dirname, basename, ext) in
@@ -18,14 +20,14 @@ let related_file_of_target ~ext ~file =
    *  rather than expected true/false, leaving this as is for now to just set up
    * tests to run, then will change*)
 let test_maker () =
-  Common2.glob "tests/jsonnet/eval"
+  Common2.glob (spf "%s/*%s" !!dir "jsonnet")
+  |> File.Path.of_strings
   |> Common.map (fun file ->
-         let file = Fpath.v file in
          ( Fpath.basename file,
            fun () ->
              let comparison_file_path =
                match related_file_of_target ~ext:"json" ~file with
-               | Ok file -> file
+               | Ok json_file -> json_file
                | Error msg -> failwith msg
              in
              let res = Y.from_string (File.read_file comparison_file_path) in
