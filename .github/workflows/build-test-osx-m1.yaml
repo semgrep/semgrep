@@ -93,8 +93,6 @@ jobs:
         with:
           python-version: "3.11"
       - uses: actions/checkout@v3
-        with:
-          submodules: true
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-m1-${{ github.sha }}
@@ -104,7 +102,7 @@ jobs:
           which pip3
           pip3 --version
           which python3
-          which python3 --version
+          python3 --version
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
