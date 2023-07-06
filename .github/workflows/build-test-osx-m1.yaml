@@ -98,9 +98,13 @@ jobs:
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+      # - uses: actions/setup-python@v4
+      #   with:
+      #     python-version: "3.11"
+      - name: Install Python via Brew
+        run: |
+          brew update
+          brew install python@3.11
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
@@ -144,7 +148,7 @@ jobs:
       - name: install package
         run: |
           which pip3
-          pip3 --version  
+          pip3 --version
           pip3 install dist/*.whl
       - run: semgrep --version
       - name: e2e semgrep-core test
