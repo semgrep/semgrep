@@ -1,35 +1,41 @@
-# This file has an arbitrary comment on the top that means nothing @foo 2.9.infinity
-
+# comment
+# comment
 [[package]]
 name = "factory-boy"
-version = "3.2.1"
+version = "3.2.1" # comment
 description = "A versatile test fixtures replacement based on thoughtbot's factory_bot for Ruby."
 category = "main"
 optional = false
 python-versions = ">=3.6"
+
+# comment
+# comment
 
 [package.dependencies]
 Faker = ">=0.7.0"
 
 [package.extras]
 dev = ["coverage", "coverage[toml] (>=5.0.2)", "django", "flake8", "isort", "pillow", "sqlalchemy", "mongoengine", "wheel (>=0.32.0)", "tox", "zest.releaser"]
-doc = ["sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
+doc = ["sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"] # comment
+
 
 [[package]]
 name = "faker"
 version = "13.11.1"
 description = "Faker is a Python package that generates fake data for you."
+# comment
+# comment
 category = "main"
 optional = false
-python-versions = ">=3.6" # How about here
+python-versions = ">=3.6"
 
-# More comments
-# More comments
-
-
+[package.foo]
+[package.bar]
 [package.dependencies]
 python-dateutil = ">=2.4"
 typing-extensions = {version = ">=3.10.0.2", markers = "python_version < \"3.8\""}
+
+[package.baz]
 
 [[package]]
 name = "mypy"
@@ -94,9 +100,9 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "typing-extensions"
-version = "4.2.0"
-description = "Backported and Experimental Type Hints for Python 3.7+"
+name = "faker"
+version = "1.0.0"
+description = "stuff"
 category = "main"
 optional = false
 python-versions = ">=3.7"
