@@ -46,18 +46,13 @@ jobs:
           python3 -c "import platform; print(platform.mac_ver())"
           id -u
           id -g
-      - name: Create Runner User
+      - name: Update Python
         run: |
-          sudo dscl . -create /Users/runner
-          sudo dscl . -create /Users/runner UserShell /bin/bash
-          sudo dscl . -create /Users/runner UniqueID "1000"
-          sudo dscl . -create /Users/runner PrimaryGroupID 20
-          sudo dscl . -create /Users/runner NFSHomeDirectory /Users/runner
-
-          sudo dscl . -append /Groups/admin GroupMembership runner
+          brew uninstall python
+          brew install python@3.11
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11' 
+          python-version: "3.11"
       - name: Dump Runner Info
         run: |
           uname -a
