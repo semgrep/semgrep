@@ -277,8 +277,8 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
 let immediate_user_name_or_group_fragment (env : env)
     (x : CST.immediate_user_name_or_group_fragment) : string_fragment =
   match x with
-  | `Imm_tok_pat_b295287 tok ->
-      String_content (str env tok (* pattern [a-z][-a-z0-9_]* *))
+  | `Imm_tok_pat_7642c4f tok ->
+      String_content (str env tok (* pattern ([a-zA-Z][-a-zA-Z0-9_]*|[0-9]+) *))
   | `Imme_expa x -> expansion env x
 
 let immediate_user_name_or_group (env : env)
@@ -290,7 +290,7 @@ let immediate_user_name_or_group (env : env)
 let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) : str =
   let head =
     match x with
-    | `Pat_b295287 tok -> String_content (str env tok)
+    | `Pat_05444c2 tok -> String_content (str env tok)
     | `Expa x -> expansion env x
   in
   let tail = Common.map (immediate_user_name_or_group_fragment env) xs in
@@ -303,7 +303,7 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
     Common.map
       (fun x ->
         match x with
-        | `Imm_tok_pat_24a1611 tok ->
+        | `Imm_tok_pat_9f6bbb9 tok ->
             String_content (str env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *))
         | `Imm_tok_bsla tok -> String_content (str env tok (* "\\ " *))
         | `Imme_expa x -> expansion env x)
@@ -371,13 +371,42 @@ let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
         | `Imm_tok_pat_589b0f8 tok ->
             let s = str env tok (* pattern "[^\"\\n\\\\\\$]+" *) in
             String_content s
-        | `Esc_seq tok ->
+        | `Double_quoted_esc_seq tok ->
             let s = str env tok (* escape_sequence *) in
             String_content s
+        | `BSLASH tok ->
+            let s = str env tok in
+            String_content s (* lone, unescaped backslash *)
         | `Imme_expa x -> expansion env x)
       v2
   in
   let close = str env v3 (* "\"" *) in
+  let loc = (wrap_tok open_, wrap_tok close) in
+  let fragments =
+    (String_content open_ :: contents) @ [ String_content close ]
+    |> simplify_fragments
+  in
+  (loc, fragments)
+
+let single_quoted_string (env : env) ((v1, v2, v3) : CST.single_quoted_string) :
+    str =
+  let open_ = str env v1 (* "'" *) in
+  let contents =
+    Common.map
+      (fun x ->
+        match x with
+        | `Imm_tok_pat_0ab9261 tok ->
+            let s = str env tok (* literal characters *) in
+            String_content s
+        | `Single_quoted_esc_seq tok ->
+            let s = str env tok (* single_quoted_escape_sequence *) in
+            String_content s
+        | `BSLASH tok ->
+            let s = str env tok in
+            String_content s (* lone, unescaped backslash *))
+      v2
+  in
+  let close = str env v3 (* "'" *) in
   let loc = (wrap_tok open_, wrap_tok close) in
   let fragments =
     (String_content open_ :: contents) @ [ String_content close ]
@@ -427,16 +456,37 @@ let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
 
 let array_element (env : env) (x : CST.array_element) : array_elt =
   match x with
-  | `Double_quoted_str x -> Arr_string (double_quoted_string env x)
+  | `Json_str (v1, v2, v3) ->
+      let open_ = str env v1 (* "\"" *) in
+      let contents =
+        Common.map
+          (fun x ->
+            match x with
+            | `Imm_tok_pat_3a2a380 tok ->
+                let s = str env tok (* literal characters *) in
+                String_content s
+            | `Json_esc_seq tok ->
+                let s = str env tok (* JSON escape sequence *) in
+                String_content s)
+          v2
+      in
+      let close = str env v3 (* "\"" *) in
+      let loc = (wrap_tok open_, wrap_tok close) in
+      let fragments =
+        (String_content open_ :: contents) @ [ String_content close ]
+        |> simplify_fragments
+      in
+      Arr_string (loc, fragments)
   | `Semg_ellips tok -> Arr_ellipsis (token env tok)
   | `Semg_meta tok -> Arr_metavar (str env tok)
 
-let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) : str =
+let string (env : env) (x : CST.anon_choice_double_quoted_str_6156383) : str =
   match x with
   | `Double_quoted_str x -> double_quoted_string env x
+  | `Single_quoted_str x -> single_quoted_string env x
   | `Unqu_str x -> unquoted_string env x
 
-let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
+let json_string_array (env : env) ((v1, v2, v3) : CST.json_string_array) :
     Tok_range.t * string_array =
   let open_ = token env v1 (* "[" *) in
   let argv =
@@ -638,10 +688,10 @@ let shell_command (env : env) (x : CST.shell_command) =
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
 
-let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
+let argv_or_shell (env : env) (x : CST.anon_choice_json_str_array_0106ace) =
   match x with
-  | `Str_array x ->
-      let loc, ar = string_array env x in
+  | `Json_str_array x ->
+      let loc, ar = json_string_array env x in
       Argv (loc, ar)
   | `Shell_cmd x -> shell_command env x
 
@@ -807,8 +857,8 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let name = str env v1 (* pattern [vV][oO][lL][uU][mM][eE] *) in
           let args =
             match v2 with
-            | `Str_array x ->
-                let loc, ar = string_array env x in
+            | `Json_str_array x ->
+                let loc, ar = json_string_array env x in
                 Array (loc, ar)
             | `Path_rep_non_nl_whit_path (v1, v2) ->
                 let path0 = path_or_ellipsis env v1 in
@@ -907,7 +957,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [sS][hH][eE][lL][lL] *)
           in
-          let cmd_loc, cmd = string_array env v2 in
+          let cmd_loc, cmd = json_string_array env v2 in
           let env =
             match classify_shell cmd with
             | None -> env
