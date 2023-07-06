@@ -46,6 +46,7 @@ jobs:
     secrets: inherit
     with:
       dry-run: true
+      multi-arch: true
 
   notify-failure:
     needs: [brew-build, release-dry-run]
