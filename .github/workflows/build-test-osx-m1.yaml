@@ -40,8 +40,6 @@ jobs:
     steps:
       - name: Setup runner directory
         run: |
-          which python3
-          ls -al $(which python3)
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
@@ -119,6 +117,7 @@ jobs:
           which python3
           python3 --version
           pip3 list
+          ls -hal /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
