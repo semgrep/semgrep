@@ -28,8 +28,10 @@ if WHEEL_CMD in sys.argv:
             self.root_is_pure = False  # We have platform specific binaries
 
         def get_tag(self):
-            _, _, plat = bdist_wheel.get_tag(self)
-            print(f"setup.py custom BdistWheel plat '{plat}'")
+            print(f"setup.py custom BdistWheel bdist_dir '{self.bdist_dir}'")
+            _python, _abi, plat = bdist_wheel.get_tag(self)
+            print(f"setup.py custom BdistWheel python '{_python}', abi '{_abi}', plat '{plat}'")
+            )
             python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
             abi = "none"
             if "macosx" in plat:
