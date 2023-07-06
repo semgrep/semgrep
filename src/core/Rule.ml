@@ -371,7 +371,7 @@ type secrets_spec = {
   method_ : string;
   headers : (string * string) list;
   (* response: *)
-  return_code : string;
+  return_code : int;
   (*...TODO...*)
 }
 [@@deriving show]

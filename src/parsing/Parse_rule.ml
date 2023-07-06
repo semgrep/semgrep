@@ -1643,7 +1643,7 @@ let parse_secrets_fields env rule_dict : R.secrets_spec =
     h
     []
   in
-    let return_code = take res env parse_string "return_code" in 
+    let return_code = take res env parse_int "return_code" in
          { secrets; url; method_; headers; return_code }
 (*****************************************************************************)
 (* Main entry point *)
