@@ -133,6 +133,18 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/php-sca.yaml",
             "dependency_aware/php",
         ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_quoted_key",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_comments",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_empty_table",
+        ),
     ],
 )
 def test_dependency_aware_rules(
