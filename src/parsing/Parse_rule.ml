@@ -351,7 +351,16 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
       (* should use the unescaped string *)
       Either.Left (value, t)
   | G.L (Float (Some n, t)) ->
-      if Float.is_integer n then Left (string_of_int (Float.to_int n), t)
+      (* If `n` is outside the range of representable integers the
+         `Float.to_int` call has an undefined return value. FWIIW I
+         wasn't able to come up with a example of code that actually
+         triggers this line of code, and it might be more reasonable to
+         just throw an error. *)
+      if
+        Float.is_integer n
+        && n >= Int.to_float min_int
+        && n <= Int.to_float max_int
+      then Left (string_of_int (Float.to_int n), t)
       else Left (string_of_float n, t)
   | G.N (Id ((value, t), _)) -> Left (value, t)
   | G.Container (Dict, _) ->
