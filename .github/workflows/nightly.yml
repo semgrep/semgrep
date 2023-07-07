@@ -35,6 +35,7 @@ jobs:
       - name: Brew Install
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
+          NONINTERACTIVE: 1
         run: brew install semgrep --HEAD --debug
       - name: Check installed correctly
         env:
@@ -46,6 +47,7 @@ jobs:
     secrets: inherit
     with:
       dry-run: true
+      multi-arch: true
 
   notify-failure:
     needs: [brew-build, release-dry-run]

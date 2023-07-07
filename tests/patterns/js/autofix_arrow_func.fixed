@@ -1,0 +1,14 @@
+// MATCH:
+bar(() => {});
+// MATCH:
+bar(() => 5);
+
+// MATCH:
+bar((x) => {});
+// MATCH:
+bar((x) => 5);
+
+// MATCH:
+bar(x => {});
+// MATCH:
+bar(x => 5);

@@ -16,7 +16,7 @@ jobs:
     # we might as well move out of a self-hosted runner for M1 too.
     # This would remove the need for those ugly hard cleanup below because
     # our self-hosted runner builds are not "hermetic".
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: [self-hosted, macOS, ARM64, aws]
     env:
       OPAM_SWITCH_NAME: "4.14.0"
     steps:
@@ -52,7 +52,7 @@ jobs:
           name: semgrep-m1-${{ github.sha }}
 
   build-wheels-m1:
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: [self-hosted, macOS, ARM64, aws]
     needs: [build-core-m1]
     steps:
       - uses: actions/checkout@v3
@@ -71,7 +71,7 @@ jobs:
           name: m1-wheel
 
   test-wheels-m1:
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: [self-hosted, macOS, ARM64, aws]
     needs: [build-wheels-m1]
     steps:
       - name: cleanup semgrep

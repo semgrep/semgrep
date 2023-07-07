@@ -26,6 +26,11 @@ on:
         type: boolean
         description: Check the box for a dry-run - A dry-run will not push any external state (branches, tags, images, or PyPI packages).
         default: false
+      multi-arch:
+        required: true
+        type: boolean
+        description: Check the box to publish multi-arch Docker images
+        default: true
 
 jobs:
   get-version:
