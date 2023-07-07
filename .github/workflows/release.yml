@@ -51,7 +51,7 @@ jobs:
       - name: Evaluate Dry Run
         id: dry-run
         run: |
-          if [ "${{ inputs.dry-run }}" = "true" ]; then
+          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
             echo "dry-run=true" >> $GITHUB_OUTPUT
             echo "Setting dry-run to TRUE"
           else
@@ -61,7 +61,7 @@ jobs:
       - name: Evaluate Multi-Arch
         id: multi-arch
         run: |
-          if [ "${{ inputs.multi-arch }}" = "true" ]; then
+          if [[ "${{ inputs.multi-arch }}" == "true" ]]; then
             echo "multi-arch=true" >> $GITHUB_OUTPUT
             echo "Setting multi-arch to TRUE"
           else
