@@ -120,7 +120,7 @@ jobs:
       artifact-name: image-release
       file: Dockerfile
       enable-tests: true
-      multi-arch: true
+      multi-arch: ${{ needs.inputs.outputs.multi-arch == 'true' }}
 
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
