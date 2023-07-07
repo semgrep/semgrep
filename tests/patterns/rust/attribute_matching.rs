@@ -22,19 +22,16 @@ fn subset2() {
 fn one_tag_diff1() {
 }
 
-// TODO: The following shouldn't match but does. Debug!
-// #[test]
-// #[more(sophisticated, attribute)]
-// fn one_tag_diff2() {
-// }
+#[test]
+#[more(sophisticated, attribute)]
+fn one_tag_diff2() {
+}
 
-// TODO: The following shouldn't match but does. Debug!
-// #[test]
-// #[more(complicated, syntax)]
-// fn one_tag_diff3() {
-// }
+#[test]
+#[more(complicated, syntax)]
+fn one_tag_diff3() {
+}
 
-// TODO: The following shouldn't match but does. Debug!
 #[test]
 #[another(complicated, attribute)]
 fn one_tag_diff3() {
