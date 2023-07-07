@@ -61,7 +61,7 @@ jobs:
       - name: Evaluate Multi-Arch
         id: multi-arch
         run: |
-          if [[ "${{ inputs.multi-arch }}" == "true" ]]; then
+          if [[ "${{ inputs.multi-arch }}" == "true" || "${{ inputs.multi-arch }}" == "" ]]; then
             echo "multi-arch=true" >> $GITHUB_OUTPUT
             echo "Setting multi-arch to TRUE"
           else
@@ -120,6 +120,7 @@ jobs:
       artifact-name: image-release
       file: Dockerfile
       enable-tests: true
+      multi-arch: true
 
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
