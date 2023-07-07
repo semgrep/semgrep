@@ -1,1 +1,0 @@
-Fixed rust attribute patterns to allow matching on simple attribute syntax.
