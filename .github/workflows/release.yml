@@ -112,6 +112,7 @@ jobs:
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
+    needs: [inputs]
     with:
       docker-tags: |
         type=semver,pattern={{version}}
