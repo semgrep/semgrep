@@ -10,6 +10,7 @@ type t = {
   cached_rules : Runner_config.rule_source option;
   documents : (string, Processed_run.t list) Hashtbl.t;
   only_git_dirty : bool;  (** Only scan files that are dirty in git *)
+  do_hover : bool; (* Display AST nodes on hover *)
 }
 
 val create : ServerCapabilities.t -> Runner_config.t -> t

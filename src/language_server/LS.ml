@@ -152,9 +152,10 @@ module Server = struct
     let files = Common2.uniq files in
     (final_results, files)
 
-  let initialize_session server workspace_folders only_git_dirty =
+  let initialize_session server workspace_folders only_git_dirty do_hover =
     {
-      session = { server.session with workspace_folders; only_git_dirty };
+      session =
+        { server.session with workspace_folders; only_git_dirty; do_hover };
       state = State.Running;
     }
 
@@ -287,6 +288,10 @@ module Server = struct
             scan_options |> member "onlyGitDirty" |> to_bool_option
             |> Option.value ~default:true
           in
+          let do_hover =
+            initializationOptions |> member "doHover" |> to_bool_option
+            |> Option.value ~default:false
+          in
           let workspace_folders =
             match (workspaceFolders, rootUri) with
             | Some (Some folders), _ -> Conv.workspace_folders_to_paths folders
@@ -304,7 +309,7 @@ module Server = struct
               }
           in
           let server =
-            initialize_session server workspace_folders only_git_dirty
+            initialize_session server workspace_folders only_git_dirty do_hover
           in
           (* TODO we should create a progress symbol before calling initialize server! *)
           (to_yojson init, server)
@@ -329,6 +334,14 @@ module Server = struct
             CodeActions.code_actions_of_core_matches matches [ file ]
           in
           (to_yojson (Some actions), server)
+      | TextDocumentHover _ when not server.session.do_hover ->
+          (* If `do_hover` is not enabled from the user's settings, then
+             return a null response, indicating that we do not show any
+             content.
+             If you return `None` instead, the client will still be
+             expecting a response!
+          *)
+          (Some `Null, server)
       | TextDocumentHover { position; textDocument; _ } -> (
           let file = Uri.to_path textDocument.uri in
           let contents = Common.cat file in

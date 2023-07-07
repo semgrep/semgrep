@@ -19,6 +19,8 @@ type t = {
   documents :
     (string, (Semgrep_output_v1_t.core_match * Rule.rule) list) Hashtbl.t;
   only_git_dirty : bool;
+  (* Whether or not we should allow hovering of AST nodes *)
+  do_hover : bool;
 }
 
 (*****************************************************************************)
@@ -36,6 +38,7 @@ let create capabilities config =
     cached_rules = None;
     documents = Hashtbl.create 10;
     only_git_dirty = true;
+    do_hover = false;
   }
 
 let dirty_files_of_folder folder =
