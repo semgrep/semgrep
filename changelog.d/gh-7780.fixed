@@ -1,1 +1,0 @@
-Dockerfile support: single-quoted strings are now parsed without an error.
