@@ -144,7 +144,9 @@ jobs:
           done
 
           echo "Pushing image tags..."
-          for tag in $(cat ${MERGED_IMAGE_PATH}/index.json | jq -r '.manifests | unique_by(.annotations."org.opencontainers.image.ref.name") | .[].annotations."org.opencontainers.image.ref.name"'); do
+          tags=$(cat ${MERGED_IMAGE_PATH}/index.json | jq -r '.manifests | unique_by(.annotations."org.opencontainers.image.ref.name") | .[].annotations."org.opencontainers.image.ref.name"')
+          tags+=( "latest" )
+          for tag in $tags; do
             echo "-> ${{ inputs.repository-name }}:${tag}"
             index_digest=$(cat ${MERGED_IMAGE_PATH}/index.json | regctl manifest put ${{ inputs.repository-name }}:${tag} -t application/vnd.docker.distribution.manifest.list.v2+json)
           done
