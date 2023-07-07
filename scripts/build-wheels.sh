@@ -15,6 +15,8 @@ echo "SETUPTOOLS WHEEL INFO"
 cat /opt/homebrew/lib/python3.11/site-packages/setuptools-67.6.1.dist-info/WHEEL
 echo "WHEEL WHEEL INFO"
 cat /opt/homebrew/lib/python3.11/site-packages/wheel-0.40.0.dist-info/WHEEL
+echo "SYS AND DISTUTILS INFO"
+python3 -c "import sys, setuptools._distutils; print(sys.version_info); print(setuptools._distutils.util.get_platform())"
 cd cli && python3 setup.py sdist bdist_wheel
 # Zipping for a stable name to upload as an artifact
 zip -r dist.zip dist
