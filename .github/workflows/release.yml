@@ -149,7 +149,7 @@ jobs:
       artifact-name: image-release
       repository-name: ${{ github.repository }}
       dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
-      multi-arch: ${{ inputs.multi-arch }}
+      multi-arch: ${{ inputs.multi-arch || 'false' }}
 
   upload-wheels:
     name: Upload Wheels to PyPI
