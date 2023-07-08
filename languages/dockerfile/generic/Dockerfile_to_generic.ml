@@ -55,7 +55,11 @@ let expr_of_stmt (st : G.stmt) : G.expr = G.stmt_to_expr st
 let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
   G.Block (bracket loc stmts) |> G.s |> expr_of_stmt
 
-let string_expr s : G.expr = G.L (G.String (fb s)) |> G.e
+let unquoted_string_expr (s : string wrap) : G.expr =
+  G.L (G.String (fb s)) |> G.e
+
+let quoted_string_expr (open_, close) (x : string wrap) : G.expr =
+  G.L (G.String (open_, x, close)) |> G.e
 
 let id_expr (x : string wrap) : G.expr =
   G.N (G.Id (x, G.empty_id_info ())) |> G.e
@@ -64,7 +68,8 @@ let metavar_expr (x : string wrap) : G.expr = id_expr x
 
 let string_or_metavar_expr (x : string wrap) : G.expr =
   let s, _ = x in
-  if AST_generic.is_metavar_name s then metavar_expr x else string_expr x
+  if AST_generic.is_metavar_name s then metavar_expr x
+  else unquoted_string_expr x
 
 let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
 
@@ -78,21 +83,33 @@ let expansion_expr loc (x : expansion) =
   let start, end_ = loc in
   G.Call (func, (start, [ G.Arg arg ], end_)) |> G.e
 
-let string_fragment_expr (x : string_fragment) : G.expr =
+let simple_string_expr brackets (x : string_fragment) : G.expr =
   match x with
-  | String_content s -> string_expr s
+  | String_content x -> quoted_string_expr brackets x
   | Expansion (loc, x) -> expansion_expr loc x
   | Frag_semgrep_metavar s -> metavar_expr s
 
-let str_expr ((loc, frags) : str) : G.expr =
-  let frags = Common.map string_fragment_expr frags in
-  match frags with
-  | [ x ] -> x
-  | _ ->
-      let func = make_hidden_function loc "concat" in
-      let args = Common.map (fun x -> G.Arg x) frags in
-      let start, end_ = loc in
-      G.Call (func, (start, args, end_)) |> G.e
+let string_fragment_expr (x : string_fragment) : G.expr =
+  match x with
+  | String_content x -> unquoted_string_expr x
+  | Expansion (loc, x) -> expansion_expr loc x
+  | Frag_semgrep_metavar s -> metavar_expr s
+
+let str_expr (x : str) : G.expr =
+  match x with
+  | Unquoted ((_, tok) as x) -> G.L (G.String (tok, x, tok)) |> G.e
+  | Single_quoted (_loc, x) -> G.L (G.String x) |> G.e
+  | JSON_quoted (_loc, x) -> G.L (G.String x) |> G.e
+  | Double_quoted (_loc, (open_, fragments, close)) -> (
+      match fragments with
+      | [ x ] -> simple_string_expr (open_, close) x
+      | fragments ->
+          let fragments = Common.map string_fragment_expr fragments in
+          let loc = str_loc x in
+          let func = make_hidden_function loc "concat" in
+          let args = Common.map (fun x -> G.Arg x) fragments in
+          let start, end_ = loc in
+          G.Call (func, (start, args, end_)) |> G.e)
 
 let str_or_ellipsis_expr = function
   | Str_str str -> str_expr str
@@ -119,7 +136,7 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
       let args = Bash_to_generic.program_with_env env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
   | Other_shell_command (shell_compat, code) ->
-      let args = [ string_expr code ] in
+      let args = [ unquoted_string_expr code ] in
       let loc = wrap_loc code in
       [ call_shell loc shell_compat args ]
 
@@ -187,13 +204,14 @@ let user_args (user : str) (group : (tok * str) option) =
 (* Convert RUN options to optional labeled arguments. *)
 let run_param (x : run_param) =
   match x with
-  | Param (_loc, (_dashdash, name, _eq, value)) -> (name, string_expr value)
+  | Param (_loc, (_dashdash, name, _eq, value)) ->
+      (name, unquoted_string_expr value)
   | Mount_param (loc, name, options) ->
       (* Convert --mount=--mount=foo=bar,baz=42 to a call to a mount function
          that takes optional labeled arguments. *)
       let opt_args =
         Common.map
-          (fun (_loc, name, value) -> (name, string_expr value))
+          (fun (_loc, name, value) -> (name, unquoted_string_expr value))
           options
       in
       let e = call_exprs name loc ~opt_args [] in
@@ -220,7 +238,7 @@ let var_or_metavar_expr = function
   | Var_semgrep_metavar mv -> metavar_expr mv
 
 let string_or_metavar_expr = function
-  | Str_string x -> string_expr x
+  | Str_string x -> unquoted_string_expr x
   | Str_semgrep_metavar mv -> metavar_expr mv
 
 let arg_args key opt_value : G.expr list =
@@ -240,13 +258,15 @@ let array_or_paths (x : array_or_paths) : G.expr list =
 let expose_port_expr (x : expose_port) : G.expr list =
   match x with
   | Expose_semgrep_ellipsis tok -> [ ellipsis_expr tok ]
-  | Expose_port (port_tok, None) -> [ string_expr port_tok ]
+  | Expose_port (port_tok, None) -> [ unquoted_string_expr port_tok ]
   | Expose_port (port_tok, Some protocol_tok) ->
       [
         G.Container
           ( G.Tuple,
             Tok.unsafe_fake_bracket
-              [ string_expr port_tok; string_expr protocol_tok ] )
+              [
+                unquoted_string_expr port_tok; unquoted_string_expr protocol_tok;
+              ] )
         |> G.e;
       ]
   | Expose_fragment x -> [ string_fragment_expr x ]
@@ -255,7 +275,7 @@ let healthcheck env loc name (x : healthcheck) =
   match x with
   | Healthcheck_semgrep_metavar id -> call_exprs name loc [ metavar_expr id ]
   | Healthcheck_none tok ->
-      call_exprs name loc [ string_expr (Tok.content_of_tok tok, tok) ]
+      call_exprs name loc [ unquoted_string_expr (Tok.content_of_tok tok, tok) ]
   | Healthcheck_cmd (_cmd_loc, params, cmd) ->
       let args = healthcheck_cmd_args env params cmd in
       call name loc args
@@ -308,7 +328,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Maintainer (loc, name, maintainer) ->
       call_exprs name loc [ string_or_metavar_expr maintainer ]
   | Cross_build_xxx (loc, name, data) ->
-      call_exprs name loc [ string_expr data ]
+      call_exprs name loc [ unquoted_string_expr data ]
   | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
   | Instr_semgrep_metavar x -> metavar_expr x
 
