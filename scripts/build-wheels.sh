@@ -21,7 +21,7 @@ pip3 list
 echo "SYSTEM VERSION PLIST INFO"
 cat /System/Library/CoreServices/SystemVersion.plist
 echo "SYS AND DISTUTILS INFO"
-python3 -c "import os, sysconfig, sys, setuptools._distutils, _osx_support; print(sys.version_info); print(setuptools._distutils.util.get_platform()); print(os.uname()); print(sysconfig.get_platform()); print(_osx_support._get_system_version())"
+python3 debug.py
 cd cli && python3 setup.py sdist bdist_wheel
 # Zipping for a stable name to upload as an artifact
 zip -r dist.zip dist
