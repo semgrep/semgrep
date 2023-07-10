@@ -321,7 +321,6 @@ jobs:
       repository-name: ${{ github.repository }}
       file: Dockerfile
       enable-tests: true
-      multi-arch: true
 
   push-docker:
     needs: [build-test-docker]
@@ -332,7 +331,6 @@ jobs:
       artifact-name: image-test
       repository-name: ${{ github.repository }}
       dry-run: false
-      multi-arch: true
 
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]

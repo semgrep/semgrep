@@ -59,7 +59,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}
+          name: ${{ inputs.artifact-name }}-arch-amd64
           path: /tmp
       - name: Load image
         run: |
