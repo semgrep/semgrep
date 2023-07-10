@@ -684,9 +684,9 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
         | G.ParamPattern pat ->
             (* Here, we just get all the identifiers in the pattern, which may
                themselves be sources.
-               If so, we add them to the context.
-               This is so we can do more than just a single-layer deep tainting.
-               We want to get the nested identifiers, too.
+               This is so we can handle patterns such as:
+               (x, (y, z, (a, b)))
+               and taint all the inner identifiers
             *)
             let ids = AST_generic_helpers.ids_of_any (G.P pat) in
             List.fold_left
