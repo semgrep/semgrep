@@ -18,6 +18,16 @@ osname, host, release, version, machine = os.uname()
 osname = osname.lower().replace("/", "")
 machine = machine.replace(" ", "_")
 machine = machine.replace("/", "-")
+print("** osname")
+print(osname)
+print("** release")
+print(release)
+print("** machine")
+print(machine)
+print("** CFLAGS")
+_config_vars = sysconfig.get_config_vars()
+for key, value in _config_vars.items():
+    print(f"{key}: {value}")
 print(
     "** _osx_support.get_platform_osx(sysconfig.get_config_vars(), osname, release, machine)"
 )
