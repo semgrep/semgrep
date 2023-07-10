@@ -71,7 +71,7 @@ jobs:
     # This custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in dev/dev.opam)
     # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: returntocorp/ocaml:ubuntu-2023-06-16
+    container: returntocorp/ocaml:ubuntu5.0-2023-07-07
     # HOME in the container is tampered by GHA and modified from /root to /home/github
     # which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
     # hence the ugly use of 'env: HOME ...' below.
@@ -85,7 +85,7 @@ jobs:
           HOME: /root
         run: |
           # coupling: must be the same than in dev/dev.opam
-          opam install -y ocamlformat.0.21.0
+          opam install -y ocamlformat.0.23.0
           # Without this 'git config' command below, we would get this error in CI:
           #   fatal: detected dubious ownership in repository at '/__w/semgrep/semgrep'
           #   To add an exception for this directory, call:

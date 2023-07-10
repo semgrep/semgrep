@@ -69,7 +69,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #
 # An alternative to ocaml-layer would be to use https://depot.dev/
 #
-# Note that the Docker base image below currently uses OCaml 4.14.0
+# Note that the Docker base image below currently uses OCaml 5.0
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
@@ -78,8 +78,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #
 # coupling: if you modify the FROM below, you probably need to modify also
 # a few .github/workflows/ files. grep for returntocorp/ocaml there.
-
-FROM returntocorp/ocaml:alpine-2023-06-16 as semgrep-core-container
+FROM returntocorp/ocaml:alpine5.0-2023-07-07 as semgrep-core-container
 
 WORKDIR /src/semgrep
 COPY --from=semgrep-core-files /src/semgrep .

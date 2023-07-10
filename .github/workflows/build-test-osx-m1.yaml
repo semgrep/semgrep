@@ -18,7 +18,7 @@ jobs:
     # our self-hosted runner builds are not "hermetic".
     runs-on: [self-hosted, macOS, ARM64, aws]
     env:
-      OPAM_SWITCH_NAME: "4.14.0"
+      OPAM_SWITCH_NAME: "5.0.0"
     steps:
       # Force hard cleanup of any old checkouts. This is needed because we run on
       # self-hosted CI runners here and when submodules move around they are no longer
