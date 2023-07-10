@@ -14,10 +14,10 @@ license: "LGPL-2.1"
 homepage: "https://semgrep.dev"
 bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
-  "ocaml" {>= "4.12.0"}
+  "ocaml" {>= "5.0.0"}
   "dune" {>= "2.7" & >= "2.7.0"}
   "stdcompat"
-  "menhir" {= "20211128"}
+  "menhir" {= "20220210"}
   "grain_dypgen"
   "base"
   "fpath"
@@ -36,7 +36,6 @@ depends: [
   "ppx_hash"
   "ppx_inline_test"
   "ppx_expect"
-  "ppx_sexp_conv" {= "v0.14.3"}
   "re"
   "pcre"
   "ocamlgraph"
