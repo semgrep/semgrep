@@ -1,0 +1,15 @@
+feat(typed metavar): Typed metavariable support for Rust
+
+Users can create `TypedMetavar` using Rust's type annotation syntax `:`.
+For example, the following rule works for matching `HttpResponseBuilder`
+type of variables:
+```
+rules:
+- id: no-direct-response-write
+  patterns:
+  - pattern: '($BUILDER : HttpResponseBuilder).body(...)'
+  - pattern-not: '($BUILDER : HttpResponseBuilder).body("...".to_string())'
+  message: find dangerous codes
+  severity: WARNING
+  languages: [rust]
+```
