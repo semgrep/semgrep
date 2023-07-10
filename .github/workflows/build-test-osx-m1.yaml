@@ -95,7 +95,7 @@ jobs:
         "self-hosted",
         "macOS",
         "ARM64",
-        "ghcr.io/cirruslabs/macos-monterey-base:latest",
+        # "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
     steps:
       - name: Setup runner directory
