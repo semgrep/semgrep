@@ -90,19 +90,18 @@ jobs:
   #         key: osx-m1-semgrep-core-VzlGZQINFX2
 
   build-wheels-m1:
-    runs-on:
-      [
+    runs-on: [
         "self-hosted",
         "macOS",
         "ARM64",
         # "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
     steps:
-      - name: Setup runner directory
-        run: |
-          sudo mkdir /Users/runner
-          sudo chown admin:staff /Users/runner
-          sudo chmod 750 /Users/runner
+      # - name: Setup runner directory
+      #   run: |
+      #     sudo mkdir /Users/runner
+      #     sudo chown admin:staff /Users/runner
+      #     sudo chmod 750 /Users/runner
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
