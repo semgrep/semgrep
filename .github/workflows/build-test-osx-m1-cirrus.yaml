@@ -20,7 +20,6 @@ on:
         required: false
         type: boolean
         default: true
-  pull_request: {}
   schedule:
     - cron: 27 * * * *
 
