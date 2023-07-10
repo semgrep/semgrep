@@ -73,12 +73,6 @@ jobs:
         with:
           path: artifacts.zip
           name: semgrep-m1-${{ github.sha }}
-      - name: Save Semgrep Core Binary
-        id: cache-semgrep-core
-        uses: actions/cache/save@v3
-        with:
-          path: artifacts.zip
-          key: osx-m1-semgrep-core-VzlGZQINFX2
 
   build-wheels-m1:
     runs-on:
