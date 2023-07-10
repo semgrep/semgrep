@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # This script build "wheels", which is a format used by the Pypi package manager
 # to distribute binaries (for us semgrep-core) with regular Python code.
 # See https://packaging.python.org/en/latest/glossary/#term-Wheel
@@ -8,9 +8,15 @@
 # for pip to package semgrep correctly.
 
 set -e
-export PATH=/opt/python/cp37-cp37m/bin:$PATH
 
-pip3 install setuptools wheel
-cd cli && python3 setup.py sdist bdist_wheel
-# Zipping for a stable name to upload as an artifact
-zip -r dist.zip dist
+if [ -z "$1" ]; then
+    echo "missing 1st argument: wheel file"
+    exit 1
+fi
+
+pip install "$1"
+
+semgrep --version
+
+# shellcheck disable=SC2016
+echo '1 == 1' | semgrep -l python -e '$X == $X' -

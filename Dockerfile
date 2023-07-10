@@ -31,8 +31,8 @@ WORKDIR /src/semgrep
 # copy over the entire semgrep repository
 COPY . .
 
-# remove folders that aren't necessary for the semgrep-core build
-RUN rm -rf cli js .github .circleci
+# remove files and folders that aren't necessary for the semgrep-core build
+RUN rm -rf cli js .github .circleci Dockerfile
 
 # we *do* need the cli's semgrep_interfaces folder, however
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
@@ -97,6 +97,22 @@ RUN eval "$(opam env)" &&\
     # Sanity check
     /src/semgrep/_build/default/src/main/Main.exe -version
 
+FROM python:3.7-alpine AS semgrep-wheel
+
+WORKDIR /semgrep
+
+RUN apk add --no-cache build-base zip
+
+COPY cli ./
+
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe src/semgrep/bin/semgrep-core
+
+RUN python setup.py sdist bdist_wheel
+
+COPY scripts/validate-wheel.sh ./scripts/validate-wheel.sh
+
+RUN ./scripts/validate-wheel.sh dist/*.whl
+
 ###############################################################################
 # Step2: Build the final docker image with Python wrapper and semgrep-core bin
 ###############################################################################
@@ -159,7 +175,7 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
-     SEMGREP_SKIP_ARM64_CHECK=1 semgrep --version &&\
+     semgrep --version &&\
      apk del .build-deps
 
 # Let the user know how their container was built
@@ -172,8 +188,7 @@ RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_USER_AGENT_APPEND="Docker" \
-    SEMGREP_SKIP_ARM64_CHECK=1
+    SEMGREP_USER_AGENT_APPEND="Docker"
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
