@@ -31,8 +31,8 @@ on:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
-  dry-run:
-    name: Evaluate Dry Run
+  inputs:
+    name: Evaluate Inputs
     runs-on: ubuntu-22.04
     outputs:
       dry-run: ${{steps.dry-run.outputs.dry-run}}
@@ -40,7 +40,7 @@ jobs:
       - name: Evaluate Dry Run
         id: dry-run
         run: |
-          if [ "${{ inputs.dry-run }}" = "true" ]; then
+          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
             echo "dry-run=true" >> $GITHUB_OUTPUT
             echo "Setting dry-run to TRUE"
           else
@@ -51,8 +51,8 @@ jobs:
   park-pypi-packages:
     name: Park PyPI package names
     runs-on: ubuntu-latest
-    needs: [dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+    needs: [inputs]
+    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
     defaults:
       run:
         working-directory: cli/
@@ -91,6 +91,7 @@ jobs:
   build-test-docker:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
+    needs: [inputs]
     with:
       docker-tags: |
         type=semver,pattern={{version}}
@@ -132,18 +133,18 @@ jobs:
         run: echo "All Platforms have been built and tested - proceeding!"
 
   push-docker:
-    needs: [wait-for-build-test, dry-run]
+    needs: [wait-for-build-test, inputs]
     uses: ./.github/workflows/push-docker.yaml
     secrets: inherit
     with:
       artifact-name: image-release
       repository-name: ${{ github.repository }}
-      dry-run: ${{ needs.dry-run.outputs.dry-run == 'true' }}
+      dry-run: ${{ needs.inputs.outputs.dry-run == 'true' }}
 
   upload-wheels:
     name: Upload Wheels to PyPI
     runs-on: ubuntu-latest
-    needs: [wait-for-build-test, dry-run]
+    needs: [wait-for-build-test, inputs]
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v3
@@ -170,7 +171,7 @@ jobs:
         run: unzip ./m1-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@master
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
         with:
           user: __token__
           password: ${{ secrets.pypi_upload_token }}
@@ -179,8 +180,8 @@ jobs:
   create-release:
     name: Create the Github Release
     runs-on: ubuntu-latest
-    needs: [wait-for-build-test, dry-run]
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+    needs: [wait-for-build-test, inputs]
+    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
     steps:
       - name: Get the version
         id: get-version
@@ -205,8 +206,8 @@ jobs:
   create-release-interfaces:
     name: Create the Github Release on Semgrep Interfaces
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
-    needs: [wait-for-build-test, dry-run]
+    if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
+    needs: [wait-for-build-test, inputs]
     steps:
       - name: Get the version
         id: get-version
@@ -249,23 +250,23 @@ jobs:
   sleep-before-homebrew:
     name: Sleep 10 min before releasing to homebrew
     # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
-    needs: [dry-run, upload-wheels]
+    needs: [inputs, upload-wheels]
     runs-on: ubuntu-latest
     steps:
       - name: Sleep 10 min
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
         run: sleep 10m
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
-    needs: [dry-run, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
+    needs: [inputs, sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-12
     steps:
       - name: Get the version
         id: get-version
         run: |
           TAG=${GITHUB_REF/refs\/tags\//}
-          if [ "${{ needs.dry-run.outputs.dry-run }}" = "true" ]; then
+          if [ "${{ needs.inputs.outputs.dry-run }}" = "true" ]; then
             TAG=v99.99.99
           fi
           echo "Using TAG=${TAG}"
@@ -290,13 +291,13 @@ jobs:
         # The `brew bump-formula-pr` does checks to ensure your PR is legit, but we want to do a phony PR (or at least prep it) for Dry Run only
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-        if: ${{ contains(github.ref, '-test-release') || needs.dry-run.outputs.dry-run == 'true' }}
+        if: ${{ contains(github.ref, '-test-release') || needs.inputs.outputs.dry-run == 'true' }}
         run: |
           brew bump-formula-pr --force --no-audit --no-browse --write-only \
             --message="semgrep 99.99.99" \
             --tag="v99.99.99" --revision="${GITHUB_SHA}" semgrep --python-exclude-packages semgrep
       - name: Open Brew PR
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
         env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         run: |
@@ -321,7 +322,7 @@ jobs:
       - name: Push Branch to Fork
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
         run: |
           cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
           git push --set-upstream r2c --force "bump-semgrep-${{ steps.get-version.outputs.VERSION }}"
@@ -329,7 +330,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
           R2C_HOMEBREW_CORE_OWNER: semgrep-release
-        if: ${{ !contains(github.ref, '-test-release') && needs.dry-run.outputs.dry-run != 'true' }}
+        if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
         run: |
           gh pr create --repo homebrew/homebrew-core \
             --base master --head "${R2C_HOMEBREW_CORE_OWNER}:bump-semgrep-${{ steps.get-version.outputs.VERSION }}" \

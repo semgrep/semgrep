@@ -171,6 +171,59 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
+      "check_id": "eqeq-five",
+      "end": {
+        "col": 11,
+        "line": 15,
+        "offset": 163
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "(x == 2)",
+        "fixed_lines": [
+          "    (x == 2)"
+        ],
+        "is_ignored": false,
+        "lines": "    x == 5",
+        "message": "useless comparison to 5",
+        "metadata": {
+          "dev.semgrep.actions": [],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abcd",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version1"
+            },
+            "src": "unchanged"
+          }
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 6,
+              "line": 15,
+              "offset": 158
+            },
+            "start": {
+              "col": 5,
+              "line": 15,
+              "offset": 157
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 15,
+        "offset": 157
+      }
+    },
+    {
       "check_id": "eqeq-four",
       "end": {
         "col": 13,
@@ -344,59 +397,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     },
     {
-      "check_id": "eqeq-five",
-      "end": {
-        "col": 11,
-        "line": 15,
-        "offset": 163
-      },
-      "extra": {
-        "engine_kind": "OSS",
-        "fingerprint": "0x42",
-        "fix": "(x == 2)",
-        "fixed_lines": [
-          "    (x == 2)"
-        ],
-        "is_ignored": false,
-        "lines": "    x == 5",
-        "message": "useless comparison to 5",
-        "metadata": {
-          "dev.semgrep.actions": [],
-          "semgrep.dev": {
-            "rule": {
-              "rule_id": "abcd",
-              "shortlink": "https://sg.run/abcd",
-              "url": "https://semgrep.dev/r/python.eqeq-five",
-              "version_id": "version1"
-            },
-            "src": "unchanged"
-          }
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 6,
-              "line": 15,
-              "offset": 158
-            },
-            "start": {
-              "col": 5,
-              "line": 15,
-              "offset": 157
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 15,
-        "offset": 157
-      }
-    },
-    {
       "check_id": "supply-chain1",
       "end": {
         "col": 0,
@@ -410,9 +410,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         "lines": "[[package]]\nname = \"badlib\"",
         "message": "found a dependency",
         "metadata": {
-          "dev.semgrep.actions": [
-            "block"
-          ],
+          "dev.semgrep.actions": [],
           "sca-kind": "upgrade-only"
         },
         "metavars": {},
@@ -469,7 +467,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
@@ -486,7 +484,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 8 findings (6 blocking) from 6 rules.
+  Found 8 findings (6 blocking) from 7 rules.
   Uploading scan results
   Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings

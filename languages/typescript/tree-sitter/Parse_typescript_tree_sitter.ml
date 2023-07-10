@@ -33,7 +33,7 @@ let token = H.token
 let str = H.str
 let fake = Tok.unsafe_fake_tok ""
 let fb = Tok.unsafe_fake_bracket
-let mk_functype (params, rett) = TyFun (params, rett)
+let mk_functype ((_, params, _), rett) = TyFun (params, rett)
 
 (* Note that this file also raises some Impossible and Ast_builder_error *)
 let _todo _env _x = failwith "internal error: not implemented"
@@ -1218,7 +1218,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
                 match v2 with
                 | `Choice_choice_decl x ->
                     let id = id_or_reserved_id env x in
-                    ([ ParamClassic (mk_param id) ], None)
+                    (fb [ ParamClassic (mk_param id) ], None)
                 | `Call_sign x ->
                     let _tparams, (params, tret) = call_signature env x in
                     (params, tret)
@@ -1598,7 +1598,7 @@ and expression (env : env) (x : CST.expression) : expr =
           let fun_ =
             {
               f_attrs = [];
-              f_params = [];
+              f_params = fb [];
               f_body = body;
               f_rettype = None;
               f_kind = (G.Function, fake);
@@ -2015,8 +2015,8 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       ParamPattern pat
 
 and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
-    parameter list =
-  let _open = token env v1 (* "(" *) in
+    parameter list bracket =
+  let open_ = token env v1 (* "(" *) in
   let params =
     match v2 with
     | Some (v1, v2, v3) ->
@@ -2025,8 +2025,8 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
         params
     | None -> []
   in
-  let _close = token env v3 (* ")" *) in
-  params
+  let close = token env v3 (* ")" *) in
+  (open_, params, close)
 
 (* class Component<Props = any, State = any> { ... *)
 and default_type (env : env) ((v1, v2) : CST.default_type) =
@@ -2733,7 +2733,7 @@ and map_asserts (env : env) ((v1, v2, v3) : CST.asserts) : type_ =
   TypeTodo (("Asserts", tcolon), [ any ])
 
 and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) :
-    a_type_parameter list * (parameter list * type_ option) =
+    a_type_parameter list * (parameter list bracket * type_ option) =
   let v1 =
     match v1 with
     | Some x -> type_parameters env x
@@ -3111,7 +3111,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
             let f =
               {
                 f_attrs = [];
-                f_params = [];
+                f_params = fb [];
                 f_body = v2;
                 f_rettype = None;
                 f_kind;
