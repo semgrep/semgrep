@@ -126,7 +126,7 @@ val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 
 val solve_precondition :
-  ?ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
+  ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
 
 val taints_satisfy_requires : taint list -> Rule.precondition -> bool
 
@@ -137,7 +137,7 @@ val taints_of_pms :
    Since this only acts on the children of a taint, the type remains
    the same.
 *)
-val map_preconditions : (taint list -> taint list) -> taint -> taint
+val map_preconditions : (taint list -> taint list) -> taint -> taint option
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string
