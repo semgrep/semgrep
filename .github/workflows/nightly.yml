@@ -21,30 +21,16 @@ jobs:
   brew-build:
     name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
     runs-on: macos-12
-    # We've had issues with this workflow in the past, and needed to ensure that
-    # homebrew wouldn't use the API.
-    # See: https://github.com/orgs/Homebrew/discussions/4150, and
-    # https://github.com/orgs/Homebrew/discussions/4136
-    # There's also much other discussion on this topic available on GH and in the
-    # brew discussions.
     steps:
       - name: Brew update
         run: brew update --debug --verbose
-      # - run: |
-      #     rm '/usr/local/bin/2to3'
-      #     rm '/usr/local/bin/2to3-3.11'
-      #     rm '/usr/local/bin/idle3'
-      #     rm '/usr/local/bin/idle3.11'
-      #     rm '/usr/local/bin/pydoc3'
-      #     rm '/usr/local/bin/pydoc3.11'
-      #     rm '/usr/local/bin/python3'
-      #     rm '/usr/local/bin/python3-config'
       - name: Brew Install
         env:
           NONINTERACTIVE: 1
-        run: brew install semgrep --debug || brew link --overwrite semgrep
+        # See https://github.com/Homebrew/brew/issues/1742 for context on the brew link step.
+        run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       - name: Check installed correctly
-        run: brew test semgrep
+        run: brew test --HEAD semgrep
       - name: Debug
         run: |
           which semgrep
