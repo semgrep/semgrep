@@ -1,0 +1,1 @@
+feat(docker): Create a semgrep user for our docker container so that people can run it as a non-root user
