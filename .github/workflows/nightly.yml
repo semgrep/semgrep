@@ -23,15 +23,16 @@ jobs:
     runs-on: macos-12
     steps:
       - name: Brew update
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew update --debug --verbose
       - name: Brew Install
         env:
           NONINTERACTIVE: 1
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         # See https://github.com/Homebrew/brew/issues/1742 for context on the brew link step.
         run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       - name: Check installed correctly
+        env:
+          HOMEBREW_NO_INSTALL_FROM_API: 1
         run: brew test --HEAD semgrep
-      - name: Debug
-        run: |
-          which semgrep
-          semgrep --version
