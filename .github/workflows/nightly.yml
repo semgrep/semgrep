@@ -21,6 +21,12 @@ jobs:
   brew-build:
     name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
     runs-on: macos-12
+    # We've had issues with this workflow in the past, and needed to ensure that
+    # homebrew wouldn't use the API.
+    # See: https://github.com/orgs/Homebrew/discussions/4150, and
+    # https://github.com/orgs/Homebrew/discussions/4136
+    # There's also much other discussion on this topic available on GH and in the
+    # brew discussions.
     steps:
       - name: Brew update
         env:
@@ -28,14 +34,14 @@ jobs:
         run: brew update --debug --verbose
       - name: Brew Install
         env:
-          NONINTERACTIVE: 1
           HOMEBREW_NO_INSTALL_FROM_API: 1
+          NONINTERACTIVE: 1
         # See https://github.com/Homebrew/brew/issues/1742 for context on the brew link step.
         run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       - name: Check installed correctly
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
-        run: brew test --HEAD semgrep
+        run: brew test semgrep --HEAD
 
   release-dry-run:
     uses: ./.github/workflows/release.yml
