@@ -15,6 +15,7 @@ IS_WINDOWS = platform.system() == "Windows"
 # This script assumes the presence of a semgrep-core binary copied under
 # cli/src/semgrep/bin by the caller (the GHA workflow).
 WHEEL_CMD = "bdist_wheel"
+FOO = "bar"
 
 if WHEEL_CMD in sys.argv:
     try:
