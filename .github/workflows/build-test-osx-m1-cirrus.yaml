@@ -51,10 +51,7 @@ jobs:
         with:
           path: |
             /Users/admin/Library/Caches/Homebrew
-            /opt/homebrew/Cellar/python@3.11
-            /opt/homebrew/Cellar/jq
-            /opt/homebrew/bin/python
-            /opt/homebrew/bin/jq
+            /opt/homebrew
           key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
       - name: Brew Update
         if: steps.cache-brew.outputs.cache-hit != 'true'
