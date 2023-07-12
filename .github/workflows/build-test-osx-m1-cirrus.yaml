@@ -41,6 +41,12 @@ jobs:
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
+      - name: Cache Brew Cache
+        id: cache-brew
+        uses: actions/cache@v3
+        with:
+          path: /Users/admin/Library/Caches/Homebrew
+          key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
       - name: Brew Update
         run: |
           brew update
