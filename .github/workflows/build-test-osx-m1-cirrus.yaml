@@ -57,12 +57,15 @@ jobs:
             /opt/homebrew/bin/jq
           key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
       - name: Brew Update
+        if: steps.cache-brew.outputs.cache-hit != 'true'
         run: |
           brew update
       - name: Brew Install Python
+        if: steps.cache-brew.outputs.cache-hit != 'true'
         run: |
           brew install python@3.11
       - name: Brew Install jq
+        if: steps.cache-brew.outputs.cache-hit != 'true'
         run: |
           brew install jq
       - name: Debug Info
@@ -75,6 +78,7 @@ jobs:
           brew --prefix
           which python3
           ls -al "$(brew --prefix)/bin"
+          python3 --version
   #     - uses: actions/checkout@v3
   #       with:
   #         submodules: true
