@@ -47,6 +47,9 @@ jobs:
       - name: Brew Install Python
         run: |
           brew install python@3.11
+      - name: Brew Install jq
+        run: |
+          brew install jq
       - name: Debug Info
         run: |
           brew info python3 --json | jq '.[0].name'
