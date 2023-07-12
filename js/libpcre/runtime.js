@@ -32,6 +32,15 @@ var PCRE_INFO_SIZE = 1;
 //Provides: PCRE_INFO_CAPTURECOUNT const
 var PCRE_INFO_CAPTURECOUNT = 2;
 
+//Provides: PCRE_INFO_NAMEENTRYSIZE const
+const PCRE_INFO_NAMEENTRYSIZE = 7;
+
+//Provides: PCRE_INFO_NAMECOUNT const
+const PCRE_INFO_NAMECOUNT = 8;
+
+// Provides: PCRE_INFO_NAMETABLE const
+const PCRE_INFO_NAMETABLE = 9;
+
 //Provides: PCRE_ERROR_NOMATCH const
 var PCRE_ERROR_NOMATCH = -1;
 
@@ -370,6 +379,57 @@ function pcre_exec_stub_bc(
   } else {
     throw new Error("callout functions unimplemented");
   }
+}
+
+//Provides: pcre_names_stub
+//Requires: libpcre, PCRE_INFO_NAMECOUNT, PCRE_INFO_NAMEENTRYSIZE, PCRE_INFO_NAMETABLE, caml_js_to_array
+function pcre_names_stub(v_rex) {
+  const { regexp_ptr, extra_ptr } = v_rex;
+
+  var name_count_ptr = libpcre._malloc(4);
+  var entry_size_ptr = libpcre._malloc(4);
+  var tbl_ptr_ptr = libpcre._malloc(4);
+
+  var ret = libpcre._pcre_fullinfo(
+    regexp_ptr,
+    extra_ptr,
+    PCRE_INFO_NAMECOUNT,
+    name_count_ptr
+  );
+  if (ret != 0) throw new Error("pcre_names_stub: namecount");
+
+  ret = libpcre._pcre_fullinfo(
+    regexp_ptr,
+    extra_ptr,
+    PCRE_INFO_NAMEENTRYSIZE,
+    entry_size_ptr
+  );
+  if (ret != 0) throw new Error("pcre_names_stub: nameentrysize");
+
+  ret = libpcre._pcre_fullinfo(
+    regexp_ptr,
+    extra_ptr,
+    PCRE_INFO_NAMETABLE,
+    tbl_ptr_ptr
+  );
+  if (ret != 0) throw new Error("pcre_names_stub: nametable");
+
+  var result = [];
+
+  const name_count = libpcre.getValue(name_count_ptr, "i32");
+  const entry_size = libpcre.getValue(entry_size_ptr, "i32");
+  var tbl_ptr = libpcre.getValue(tbl_ptr_ptr, "i32");
+
+  for (var i = 0; i < name_count; i++) {
+    result[i] = libpcre.UTF8ToString(tbl_ptr + 2);
+    tbl_ptr += entry_size;
+  }
+
+  libpcre._free(name_count_ptr);
+  libpcre._free(entry_size_ptr);
+  libpcre._free(tbl_ptr_ptr);
+
+  return caml_js_to_array(result);
 }
 
 //Always
