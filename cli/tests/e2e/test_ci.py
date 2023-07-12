@@ -176,6 +176,16 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     subprocess.run(["git", "pull", "origin"])
     subprocess.run(["git", "checkout", f"{MAIN_BRANCH_NAME}"])
     subprocess.run(["git", "checkout", f"{BRANCH_NAME}"])
+    subprocess.run(
+        ["git", "config", "user.email", AUTHOR_EMAIL],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", AUTHOR_NAME],
+        check=True,
+        capture_output=True,
+    )
 
     yield (repo_copy_base, base_commit, head_commit)
 
