@@ -114,7 +114,7 @@ Would have sent findings and ignores blob: {
             "end_line": 27,
             "end_column": 13,
             "message": "unsafe use of danger",
-            "severity": 1,
+            "severity": "WARNING",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "05a6d6793a6242a49ff83113ef4a83b3",
@@ -207,7 +207,7 @@ Would have sent findings and ignores blob: {
             "end_line": 2,
             "end_column": 0,
             "message": "found a dependency",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "6090c1bab6c8853da43c7119a6eb2ad0",
@@ -253,7 +253,7 @@ Would have sent findings and ignores blob: {
             "end_line": 19,
             "end_column": 13,
             "message": "useless comparison to 4 (old version)",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 1,
             "commit_date": <MASKED>
             "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
@@ -287,7 +287,7 @@ Would have sent findings and ignores blob: {
             "end_line": 19,
             "end_column": 13,
             "message": "useless comparison to 4",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 1,
             "commit_date": <MASKED>
             "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
@@ -322,7 +322,7 @@ Would have sent findings and ignores blob: {
             "end_line": 15,
             "end_column": 11,
             "message": "useless comparison to 5",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "8646a2dfc020913606969dcfe84e53c0",
@@ -355,7 +355,7 @@ Would have sent findings and ignores blob: {
             "end_line": 24,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "f3b21c38bc22a1f1f870d49fc3a40244",
@@ -377,7 +377,7 @@ Would have sent findings and ignores blob: {
             "end_line": 23,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "a557d3b401636ba873e590c81b693a8f",
@@ -399,7 +399,7 @@ Would have sent findings and ignores blob: {
             "end_line": 11,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "d44049421636e370e7906a6bed5fce54",
@@ -421,7 +421,7 @@ Would have sent findings and ignores blob: {
             "end_line": 7,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 3,
             "commit_date": <MASKED>
             "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
@@ -443,7 +443,7 @@ Would have sent findings and ignores blob: {
             "end_line": 5,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 1,
             "commit_date": <MASKED>
             "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
@@ -465,7 +465,7 @@ Would have sent findings and ignores blob: {
             "end_line": 4,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "8c695a6a4ab5ffff33d0103309a310c1",
@@ -507,7 +507,7 @@ Would have sent findings and ignores blob: {
             "end_line": 18,
             "end_column": 13,
             "message": "useless comparison to 4 (old version)",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
@@ -541,7 +541,7 @@ Would have sent findings and ignores blob: {
             "end_line": 18,
             "end_column": 13,
             "message": "useless comparison to 4",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
@@ -576,7 +576,7 @@ Would have sent findings and ignores blob: {
             "end_line": 16,
             "end_column": 11,
             "message": "useless comparison to 5",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
@@ -609,7 +609,7 @@ Would have sent findings and ignores blob: {
             "end_line": 13,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
@@ -631,7 +631,7 @@ Would have sent findings and ignores blob: {
             "end_line": 9,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 0,
             "commit_date": <MASKED>
             "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
@@ -653,7 +653,7 @@ Would have sent findings and ignores blob: {
             "end_line": 6,
             "end_column": 11,
             "message": "useless comparison",
-            "severity": 2,
+            "severity": "ERROR",
             "index": 2,
             "commit_date": <MASKED>
             "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
