@@ -51,7 +51,7 @@ jobs:
         with:
           path: |
             /Users/admin/Library/Caches/Homebrew
-            /opt/homebrew
+            /opt/homebrew/Cellar/python@3.11
           key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
       - name: Brew Update
         if: steps.cache-brew.outputs.cache-hit != 'true'
@@ -61,16 +61,12 @@ jobs:
         if: steps.cache-brew.outputs.cache-hit != 'true'
         run: |
           brew install python@3.11
-      - name: Brew Install jq
-        if: steps.cache-brew.outputs.cache-hit != 'true'
-        run: |
-          brew install jq
       - name: Debug Info
         run: |
           set -x
-          brew info python3 --json | jq '.[0].name'
-          brew info python3 --json | jq '.[0].urls.stable.checksum'
-          brew info python3 --json | jq '.[0].versions.stable'
+          # brew info python3 --json | jq '.[0].name'
+          # brew info python3 --json | jq '.[0].urls.stable.checksum'
+          # brew info python3 --json | jq '.[0].versions.stable'
           brew --cache
           brew --prefix
           which python3
