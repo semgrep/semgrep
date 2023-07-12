@@ -1581,3 +1581,133 @@ def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
     mock_send.assert_called_once()
+
+
+def test_existing_supply_chain_finding(
+    git_tmp_path_with_commit, snapshot, mocker, run_semgrep: RunSemgrep
+):
+    repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
+    file_content = dedent(
+        """
+        rules:
+        - id: supply-chain1
+          message: "found a dependency"
+          languages: [python]
+          severity: ERROR
+          r2c-internal-project-depends-on:
+            namespace: pypi
+            package: python-dateutil
+            version: == 2.8.2
+          metadata:
+            dev.semgrep.actions: [block]
+            sca-kind: upgrade-only
+        """
+    ).lstrip()
+    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ScanHandler,
+        "_get_scan_config_from_app",
+        return_value={
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+            "ignored_files": [],
+            "policy_names": ["audit", "comment", "block"],
+            "rule_config": file_content,
+        },
+    )
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                head_commit,
+                head_commit[:7],
+                base_commit,
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "base_output.txt",
+    )
+
+    post_calls = AppSession.post.call_args_list
+    num_old_post_calls = len(post_calls)
+    findings_json = post_calls[1].kwargs["json"]
+    assert len(findings_json["findings"]) == 1
+
+    lockfile1 = repo_copy_base / "poetry.lock"
+    lockfile1.write_text(
+        dedent(
+            """\
+        [[package]]
+        name = "badlib"
+        version = "99.99.99"
+        description = "it's bad"
+        category = "dev"
+        optional = false
+        python-versions = ">=3.7"
+
+        [[package]]
+        name = "some-other-lib"
+        version = "1.1.1"
+        description = "it's bad"
+        category = "dev"
+        optional = false
+        python-versions = ">=3.7"
+
+        [[package]]
+        name = "mypy"
+        version = "0.950"
+        description = "Optional static typing for Python"
+        category = "dev"
+        optional = false
+        python-versions = ">=3.6"
+
+        [[package]]
+        name = "python-dateutil"
+        version = "2.8.2"
+        description = "Extensions to the standard Python datetime module"
+        category = "main"
+        optional = false
+        python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+        """
+        )
+    )
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add lockfile"], check=True, capture_output=True
+    )
+    new_head_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors", "--baseline-commit", head_commit],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                new_head_commit,
+                new_head_commit[:7],
+                head_commit,
+                re.compile(
+                    r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
+                ),
+            ]
+        ),
+        "new_output.txt",
+    )
+    post_calls = AppSession.post.call_args_list
+    findings_json = post_calls[num_old_post_calls + 1].kwargs["json"]
+    assert len(findings_json["findings"]) == 0
