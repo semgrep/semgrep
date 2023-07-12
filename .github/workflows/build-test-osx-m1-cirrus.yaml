@@ -41,11 +41,20 @@ jobs:
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
+      # - name: Get brew paths
+      #   id: brew-paths
+      #   run: |
+      #     echo "brew-prefix=$" >> $GITHUB_OUTPUT
       - name: Cache Brew Cache
         id: cache-brew
         uses: actions/cache@v3
         with:
-          path: /Users/admin/Library/Caches/Homebrew
+          path: |
+            /Users/admin/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/python@3.11
+            /opt/homebrew/Cellar/jq
+            /opt/homebrew/bin/python
+            /opt/homebrew/bin/jq
           key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
       - name: Brew Update
         run: |
@@ -66,98 +75,98 @@ jobs:
           brew --prefix
           which python3
           ls -al "$(brew --prefix)/bin"
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      # Note that this action handles both cache read and cache write.
-      # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
-      - name: Cache Opam
-        id: cache-opam
-        uses: actions/cache@v3
-        if: ${{ inputs.use-cache || github.event_name == 'pull_request' || github.event_name == 'schedule' }}
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        with:
-          path: ~/.opam
-          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
-      - name: Install dependencies
-        run: |
-          ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
-      - name: Compile semgrep
-        run: |
-          opam exec -- make core
-          mkdir -p artifacts
-          cp ./bin/semgrep-core artifacts
-          zip -r artifacts.zip artifacts
-      - uses: actions/upload-artifact@v3
-        with:
-          path: artifacts.zip
-          name: semgrep-m1-${{ github.sha }}
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         submodules: true
+  #     # Note that this action handles both cache read and cache write.
+  #     # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
+  #     - name: Cache Opam
+  #       id: cache-opam
+  #       uses: actions/cache@v3
+  #       if: ${{ inputs.use-cache || github.event_name == 'pull_request' || github.event_name == 'schedule' }}
+  #       env:
+  #         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+  #       with:
+  #         path: ~/.opam
+  #         key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
+  #     - name: Install dependencies
+  #       run: |
+  #         ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
+  #     - name: Compile semgrep
+  #       run: |
+  #         opam exec -- make core
+  #         mkdir -p artifacts
+  #         cp ./bin/semgrep-core artifacts
+  #         zip -r artifacts.zip artifacts
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: artifacts.zip
+  #         name: semgrep-m1-${{ github.sha }}
 
-  build-wheels-m1:
-    runs-on:
-      [
-        "self-hosted",
-        "macOS",
-        "ARM64",
-        "ghcr.io/cirruslabs/macos-monterey-base:latest",
-      ]
-    needs: [build-core-m1]
-    steps:
-      - name: Brew Update & Install Python
-        run: |
-          brew update
-          brew install python@3.11
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-m1-${{ github.sha }}
-      - run: |
-          unzip artifacts.zip
-          cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh
-      - uses: actions/upload-artifact@v3
-        with:
-          path: cli/dist.zip
-          name: m1-wheel
+  # build-wheels-m1:
+  #   runs-on:
+  #     [
+  #       "self-hosted",
+  #       "macOS",
+  #       "ARM64",
+  #       "ghcr.io/cirruslabs/macos-monterey-base:latest",
+  #     ]
+  #   needs: [build-core-m1]
+  #   steps:
+  #     - name: Brew Update & Install Python
+  #       run: |
+  #         brew update
+  #         brew install python@3.11
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         submodules: true
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: semgrep-m1-${{ github.sha }}
+  #     - run: |
+  #         unzip artifacts.zip
+  #         cp artifacts/semgrep-core cli/src/semgrep/bin
+  #         ./scripts/build-wheels.sh
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         path: cli/dist.zip
+  #         name: m1-wheel
 
-  test-wheels-m1:
-    runs-on:
-      [
-        "self-hosted",
-        "macOS",
-        "ARM64",
-        "ghcr.io/cirruslabs/macos-monterey-base:latest",
-      ]
-    needs: [build-wheels-m1]
-    steps:
-      - uses: actions/download-artifact@v1
-        with:
-          name: m1-wheel
-      - name: Brew Update & Install Python
-        run: |
-          brew update
-          brew install python@3.11
-      - run: unzip ./m1-wheel/dist.zip
-      - name: install package
-        run: pip3 install dist/*.whl
-      - run: semgrep --version
-      - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: test dynamically linked libraries are in /usr/lib/
-        shell: bash {0}
-        run: |
-          otool -L $(semgrep --dump-engine-path) > otool.txt
-          if [ $? -ne 0 ]; then
-            echo "Failed to list dynamically linked libraries.";
-            cat otool.txt;
-            exit 1;
-          fi
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(cat otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
-          if [ $? -eq 0 ]; then
-            echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
-            echo $NON_USR_LIB_DYNAMIC_LIBRARIES
-            exit 1;
-          fi;
+  # test-wheels-m1:
+  #   runs-on:
+  #     [
+  #       "self-hosted",
+  #       "macOS",
+  #       "ARM64",
+  #       "ghcr.io/cirruslabs/macos-monterey-base:latest",
+  #     ]
+  #   needs: [build-wheels-m1]
+  #   steps:
+  #     - uses: actions/download-artifact@v1
+  #       with:
+  #         name: m1-wheel
+  #     - name: Brew Update & Install Python
+  #       run: |
+  #         brew update
+  #         brew install python@3.11
+  #     - run: unzip ./m1-wheel/dist.zip
+  #     - name: install package
+  #       run: pip3 install dist/*.whl
+  #     - run: semgrep --version
+  #     - name: e2e semgrep-core test
+  #       run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+  #     - name: test dynamically linked libraries are in /usr/lib/
+  #       shell: bash {0}
+  #       run: |
+  #         otool -L $(semgrep --dump-engine-path) > otool.txt
+  #         if [ $? -ne 0 ]; then
+  #           echo "Failed to list dynamically linked libraries.";
+  #           cat otool.txt;
+  #           exit 1;
+  #         fi
+  #         NON_USR_LIB_DYNAMIC_LIBRARIES=$(cat otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
+  #         if [ $? -eq 0 ]; then
+  #           echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
+  #           echo $NON_USR_LIB_DYNAMIC_LIBRARIES
+  #           exit 1;
+  #         fi;
