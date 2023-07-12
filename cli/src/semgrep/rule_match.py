@@ -543,16 +543,6 @@ class RuleMatch:
         """
         commit_date_app_format = datetime.fromtimestamp(int(commit_date)).isoformat()
 
-        # Follow semgrep.dev severity conventions
-        if self.severity.value == RuleSeverity.ERROR.value:
-            app_severity = 2
-        elif self.severity.value == RuleSeverity.WARNING.value:
-            app_severity = 1
-        elif self.severity.value == RuleSeverity.EXPERIMENT.value:
-            app_severity = 4
-        else:
-            app_severity = 0
-
         hashes = out.FindingHashes(
             start_line_hash=self.start_line_hash,
             end_line_hash=self.end_line_hash,
@@ -568,7 +558,7 @@ class RuleMatch:
             end_line=self.end.line,
             end_column=self.end.col,
             message=self.message,
-            severity=app_severity,
+            severity=self.severity.value,
             index=self.index,
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,

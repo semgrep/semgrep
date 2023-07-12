@@ -168,13 +168,6 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
     try List.assoc `Non_blocking groups with
     | Not_found -> [] )
 
-(* from rule_match.py *)
-let severity_to_int = function
-  | "EXPERIMENT" -> 4
-  | "WARNING" -> 1
-  | "ERROR" -> 2
-  | _ -> 0
-
 let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
   let (r : Out.finding) =
     Out.
@@ -186,7 +179,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
         end_line = m.end_.line;
         end_column = m.end_.col;
         message = m.Out.extra.Out.message;
-        severity = severity_to_int m.Out.extra.Out.severity;
+        severity = `String m.Out.extra.Out.severity;
         index;
         commit_date = "";
         (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
