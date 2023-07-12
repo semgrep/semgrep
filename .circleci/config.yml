@@ -21,7 +21,7 @@ jobs:
     docker:
       - image: returntocorp/semgrep:develop
         user: root
-    working_directory: /src
+    working_directory: /circleci
     steps:
       - checkout
       # Dogfooding on the bleeding edge by using jsonnet, the new syntax, osemgrep!
