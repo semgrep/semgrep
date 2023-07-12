@@ -65,6 +65,7 @@ jobs:
           brew --cache
           brew --prefix
           which python3
+          ls -al "$(brew --prefix)/bin"
       - uses: actions/checkout@v3
         with:
           submodules: true
