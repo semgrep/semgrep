@@ -47,6 +47,16 @@ jobs:
       - name: Brew Install Python
         run: |
           brew install python@3.11
+      - name: Debug Info
+        run: |
+          brew info python3 --json | jq '.[0].name'
+          brew info python3 --json | jq '.[0].urls.stable.checksum'
+          brew info python3 --json | jq '.[0].version.stable'
+          brew info python3 --json | jq '.[0].versions.stable'
+          brew --cache
+          brew --prefix
+          which python
+          which python3
       - uses: actions/checkout@v3
         with:
           submodules: true
