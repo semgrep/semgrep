@@ -61,6 +61,10 @@ jobs:
         if: steps.cache-brew.outputs.cache-hit != 'true'
         run: |
           brew install python@3.11
+      - name: Re-link Python3
+        if: steps.cache-brew.outputs.cache-hit == 'true'
+        run: |
+          brew link python@3.11
       - name: Debug Info
         run: |
           set -x
