@@ -422,60 +422,130 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
-and eval_plus_object2 _env _tk objl objr : V.object_ A.bracket =
+(*TODO MAKE THESE ACTUALLY USEFUL NOT STUPID*)
+and _generate_fresh_super l = "super"
+and _generate_fresh_self l = "self"
+
+and _perform_substitution_kw_exp super self prog =
+  match (super, self) with
+  | Some _, Some _ -> prog
+  | None, Some _ -> prog
+  | Some _, None -> prog
+  | _ -> prog
+
+and _perform_substitution_kw_assert super self (tok, exp) : obj_assert =
+  (tok, _perform_substitution_kw_exp super self exp)
+
+and _perform_substitution_kw_field super self (field : V.field) : V.field =
+  let e = field.fld_value.e in
+  let new_e = _perform_substitution_kw_exp super self e in
+  {
+    fld_name = field.fld_name;
+    fld_hidden = field.fld_hidden;
+    (* TODO: WRONG!!  THE LAZY VALUE SHOULD ALSO BE UPDATED SOMEHOW?? *)
+    fld_value = { v = field.fld_value.v; e = new_e };
+  }
+
+(* TODO: How to actually care about the environment? *)
+and _merge_fields _env left right sup : V.field list = left
+
+and eval_plus_object2 _env _tk (objl : V.object_ A.bracket)
+    (objr : V.object_ A.bracket) : V.object_ A.bracket =
+  (*Break down objl and objr so we have access to the asserts and the fields *)
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
-  let rightentries =
+
+  (* hashsets of field names *)
+  let hash_of_right_fields =
     rflds
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
-  let leftentries =
+  let hash_of_left_fields =
     lflds
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
 
   let asserts = lassert @ rassert in
+
+  (* fields that exist only in the left object *)
   let lflds_no_overlap =
     lflds
     |> List.filter (fun { V.fld_name = s, _; _ } ->
-           not (Hashtbl.mem rightentries s))
+           not (Hashtbl.mem hash_of_right_fields s))
   in
+
+  (* fields that only exist in the right object *)
   let rflds_no_overlap =
     rflds
     |> List.filter (fun { V.fld_name = s, _; _ } ->
-           not (Hashtbl.mem leftentries s))
+           not (Hashtbl.mem hash_of_left_fields s))
   in
 
+  (* hashset of the names of fields that exist only in the right object *)
   let rflds_no_overlap_hash =
     rflds_no_overlap
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
+  (* hashset of the names of fields that exist only in the left object *)
   let lflds_no_overlap_hash =
     lflds_no_overlap
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
 
+  (* fields that exist in both left and right (of the left object)*)
   let lflds_overlap =
     lflds
     |> List.filter (fun { V.fld_name = s, _; _ } ->
            not (Hashtbl.mem lflds_no_overlap_hash s))
   in
 
+  (* fileds that exist in both left and right (of the right object)*)
   let rflds_overlap =
     rflds
     |> List.filter (fun { V.fld_name = s, _; _ } ->
            not (Hashtbl.mem rflds_no_overlap_hash s))
   in
 
-  (* TODO this is wrong *)
-  ( l,
-    ( asserts,
-      lflds_no_overlap @ rflds_no_overlap @ lflds_overlap @ rflds_overlap ),
-    r )
+  let super = LId (_generate_fresh_super _env.locals) in
+  let self = LId (_generate_fresh_self _env.locals) in
+
+  (* TODO: TOKENS ARE WRONG *)
+  let new_flds_right =
+    List.map
+      (_perform_substitution_kw_field (Some super) (Some self))
+      lflds_no_overlap
+    @ List.map
+        (_perform_substitution_kw_field (Some super) (Some self))
+        rflds_no_overlap
+  in
+  let new_assert_list =
+    (List.map (fun x ->
+         _perform_substitution_kw_assert (Some super) (Some self) x))
+      lassert
+  in
+  let new_right_obj : V.object_ A.bracket =
+    (_tk, (new_assert_list, new_flds_right), _tk)
+  in
+
+  (*TODO VERY WRONG TOKEN, NOT SURE WHAT TO PUT HERE RIGHT NOW *)
+  let new_left_obj =
+    match eval_expr _env (IdSpecial (Super, _tk)) with
+    | V.Object nlo -> nlo
+    | _ -> raise (Error ("this should not happen", _tk))
+  in
+  (*TODO ENVIRONMENT MAY NEED TO BE DIFFERENT, TOKENS DEFINITELY NEED TO BE DIFFERENT *)
+  let e_s = eval_plus_object2 _env _tk new_left_obj new_right_obj in
+  let final_fields =
+    lflds_no_overlap @ rflds_no_overlap
+    @ _merge_fields _env lflds_overlap rflds_overlap e_s
+  in
+
+  (* TODO this is very wrong, need to add the real semantics *)
+  (l, (asserts, final_fields), r)
 
 (* This is a very naive implementation of plus for objects that
  * just merge the fields.
