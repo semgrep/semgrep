@@ -45,6 +45,12 @@ jobs:
         run: |
           brew update
           brew install python@3.11
+      - name: Brew Update
+        run: |
+          brew update
+      - name: Brew Install Python
+        run: |
+          brew install python@3.11
       - uses: actions/checkout@v3
         with:
           submodules: true
