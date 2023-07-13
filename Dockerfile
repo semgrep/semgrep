@@ -191,8 +191,8 @@ RUN addgroup --system semgrep \
 #USER semgrep
 
 # Workaround for rootless containers as git operations may fail due to dubious ownership of /src
-RUN echo -e "[safe]\n	directory = /src"  > ~root/.gitconfig
-RUN echo -e "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
+RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
+RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
 
 
