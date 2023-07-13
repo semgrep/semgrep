@@ -1,0 +1,3 @@
+Added rule option `interfile: true`, so this can be set under `options:` as it
+is the norm for rule options. This rule option shall replace setting `interfile`
+under `metadata`. Metadata is not mean to have any effect on how a rule is run.
