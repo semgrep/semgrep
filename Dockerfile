@@ -97,24 +97,34 @@ RUN eval "$(opam env)" &&\
     # Sanity check
     /src/semgrep/_build/default/src/main/Main.exe -version
 
+###############################################################################
+# Step2: Build the semgrep Python wheel
+###############################################################################
+# This is an intermediary stage used for building Python wheels. Semgrep users
+# don't need to use this.
 FROM python:3.7-alpine AS semgrep-wheel
 
 WORKDIR /semgrep
 
+# Install some deps (build-base because ruamel.yaml has native code, zip because we need zip)
 RUN apk add --no-cache build-base zip
 
+# Copy in the CLI
 COPY cli ./
 
+# Copy in semgrep-core executable
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe src/semgrep/bin/semgrep-core
 
+# Build the source distribution and binary wheel
+# TODO: do we actually need the sdist?
 RUN python setup.py sdist bdist_wheel
 
+# Copy and run scripts/validate-wheel.sh to ensure that the generated wheel works properly
 COPY scripts/validate-wheel.sh ./scripts/validate-wheel.sh
-
 RUN ./scripts/validate-wheel.sh dist/*.whl
 
 ###############################################################################
-# Step2: Build the final docker image with Python wrapper and semgrep-core bin
+# Step3: Build the final docker image with Python wrapper and semgrep-core bin
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
