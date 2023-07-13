@@ -1,1 +1,0 @@
-Workaround for rootless containers as git operations may fail due to dubious ownership of /src
