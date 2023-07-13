@@ -345,13 +345,13 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
-  # build-test-manylinux-x86:
-  #   needs: [build-test-core-x86]
-  #   uses: ./.github/workflows/build-test-manylinux-x86.yaml
-  #   secrets: inherit
+  build-test-manylinux-x86:
+    needs: [build-test-core-x86]
+    uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
 
   build-test-manylinux-aarch64:
-    #needs: [build-test-docker]
+    needs: [build-test-docker]
     uses: ./.github/workflows/build-test-manylinux-aarch64.yaml
     secrets: inherit
 
