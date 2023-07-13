@@ -116,6 +116,9 @@ jobs:
           sudo chmod 750 /Users/runner
           sudo mkdir /Users/runner/hostedtoolcache
           sudo chmod 750 /Users/runner/hostedtoolcache
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
       - uses: actions/checkout@v3
         with:
           submodules: true
