@@ -28,5 +28,5 @@ jobs:
           docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} zip -r - dist > /tmp/dist.zip
       - uses: actions/upload-artifact@v3
         with:
-          name: wheel-manylinux-aarch64
+          name: manylinux-wheel-aarch64
           path: /tmp/dist.zip
