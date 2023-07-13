@@ -123,6 +123,8 @@ jobs:
           python-version: "3.11"
       - uses: actions/checkout@v3
       - name: Debug Info
+        env:
+          CFLAGS: "-Wsign-compare -Wunreachable-code -fno-common -dynamic -DNDEBUG -g -fwrapv -O3 -Wall -g"
         run: |
           python3 --version
           which python3
