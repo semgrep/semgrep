@@ -528,52 +528,6 @@ let range_of_any_opt any =
   [@@profiling]
 
 (*****************************************************************************)
-(* Identifiers from any *)
-(*****************************************************************************)
-
-class ['self] id_visitor =
-  object (_self : 'self)
-    inherit ['self] AST_generic.iter_no_id_info as super
-
-    method! visit_name store name =
-      match name with
-      | Id (id, id_info) ->
-          super#visit_name store name;
-          push (id, id_info) store
-      | IdQualified _ -> super#visit_name store name
-
-    method! visit_pattern store pat =
-      match pat with
-      | PatAs (_, (id, id_info))
-      | PatId (id, id_info) ->
-          super#visit_pattern store pat;
-          push (id, id_info) store
-      | PatLiteral _
-      | PatConstructor _
-      | PatRecord _
-      | PatTuple _
-      | PatList _
-      | PatKeyVal _
-      | PatUnderscore _
-      | PatDisj _
-      | PatTyped _
-      | PatWhen _
-      | PatType _
-      | PatEllipsis _
-      | DisjPat _
-      | OtherPat _ ->
-          super#visit_pattern store pat
-  end
-
-let ids_of_any : AST_generic.any -> (G.ident * G.id_info) list =
-  let v = new id_visitor in
-  let ids = ref [] in
-  fun any ->
-    v#visit_any ids any;
-    !ids
-  [@@profiling]
-
-(*****************************************************************************)
 (* Fix token locations *)
 (*****************************************************************************)
 

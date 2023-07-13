@@ -688,7 +688,7 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
                (x, (y, z, (a, b)))
                and taint all the inner identifiers
             *)
-            let ids = AST_generic_helpers.ids_of_any (G.P pat) in
+            let ids = Visit_pattern_ids.visit (G.P pat) in
             List.fold_left
               (fun env (id, pinfo) -> add_to_env env id pinfo None)
               env ids
