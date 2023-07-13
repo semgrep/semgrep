@@ -1651,7 +1651,6 @@ let parse_secrets_fields env rule_dict : R.secrets_spec =
       )
       "secrets"
   in
-  ignore secrets;
   let req = take rule_dict env yaml_to_dict "request" in
   let res = take rule_dict env yaml_to_dict "response" in
   let url = take req env parse_string "url" in
