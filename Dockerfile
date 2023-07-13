@@ -190,6 +190,12 @@ RUN addgroup --system semgrep \
 # We can set it by default once we fix the circle ci workflows
 #USER semgrep
 
+# Workaround for rootless containers as git operations may fail due to dubious ownership of /src
+RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
+RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
+	chown semgrep:semgrep ~semgrep/.gitconfig
+
+
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
 # to interactively explore the docker image.
