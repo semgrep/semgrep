@@ -1,17 +1,8 @@
-open Http_lwt_client
-(* The http-lwt-client package offers:
-   - HTTP/1 and HTTP/2 support (using http/af and h2)
-   - TLS support (using OCaml-TLS)
-   - IPv4 and IPv6 connection establishment (via happy-eyeballs)
-*)
-
-(* The HTTP lwt client library uses happy_eyeballs as the underlying
-   layer for establishing connections. It uses DNS, and comes with a small DNS
-   cache. We use a single happy_eyeballs instance to reuse the cache present.
-*)
-let happy_eyeballs = Happy_eyeballs_lwt.create ()
-(* TODO: extend to allow to curl with JSON as answer *)
-let get ?headers url = 
+open Piaf
+ (* TODO: extend to allow to curl with JSON as answer *)
+(* This deadcode is the old impl get/post via happy eyeballs;
+ why is it still here? idk
+ let get ?headers url =
   let bodyf _ acc data = Lwt.return (acc ^ data) in
 let promise = request ~follow_redirect:true ~happy_eyeballs ?headers (Uri.to_string url) bodyf "" in
   let r = Lwt_main.run promise in
@@ -47,4 +38,24 @@ let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
       let err = "HTTP request failed: " ^ msg in
       Logs.debug (fun m -> m "%s" err);
       Error (-1, err)
-  [@@profiling]
+  [@@profiling
+*)
+let get ?headers url =
+  Lwt_result.(
+  Client.Oneshot.get ?headers url
+    >>=
+    fun x ->
+       Body.to_string x.body
+)
+|> Lwt_main.run
+|> (function Error _ -> Error "get failed" | Ok a -> Ok a)
+
+let post ~body ?(headers = [ ("content-type", "application/json") ]) url =
+  Lwt_result.(
+  Client.Oneshot.post ~headers ~body:(Body.of_string body) url
+    >>=
+    fun x ->
+       Body.to_string x.body
+)
+|> Lwt_main.run
+|> (function Error _ -> Error (-1,"post failed") | Ok a -> Ok a)

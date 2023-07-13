@@ -3,6 +3,7 @@
  (wrapped false)
   (libraries
     lwt
-    uri http-lwt-client
+    uri
+    piaf
   )
 )

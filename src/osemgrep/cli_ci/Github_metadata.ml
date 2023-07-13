@@ -202,7 +202,19 @@ let _find_branchoff_point_from_github_api env =
   | Some gh_token, Some api_url, Some head_branch_hash -> (
       let headers = [ ("Authorization", Fmt.str "Bearer %s" gh_token) ] in
       let open Lwt.Infix in
-      Http_lwt_client.request ~meth:`GET ~headers
+        (* This is the worst thing I've ever done, I am so sorry
+         * The bogus cast object takes place of a real call to a
+         * thing that is able to make an HTTP request + write to
+         * a Buffer TODO: replace this with something real
+         *)
+        (Obj.magic "This is a fake function"
+         : (string * string) list
+         -> string
+         -> (int -> Buffer.t -> string -> Buffer.t Lwt.t)
+         ->  Buffer.t
+         -> [`Ok of Buffer.t | `Error of int] Lwt.t
+        )
+              headers
         (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
            Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash)
         (fun _resp buf str ->
@@ -210,7 +222,7 @@ let _find_branchoff_point_from_github_api env =
           Lwt.return buf)
         (Buffer.create 0x100)
       >>= function
-      | Ok ({ Http_lwt_client.status = `OK; _ }, buf) ->
+      | `Ok (buf) ->
           let body = Buffer.contents buf |> Yojson.Basic.from_string in
           let commit =
             Option.bind
