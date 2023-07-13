@@ -24,81 +24,83 @@ on:
     - cron: 27 * * * *
 
 jobs:
-  # build-core-m1:
-  #   name: Build the OSX M1 binaries
-  #   runs-on:
-  #     [
-  #       "self-hosted",
-  #       "macOS",
-  #       "ARM64",
-  #       "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
-  #     ]
-  #   env:
-  #     OPAM_SWITCH_NAME: "4.14.0"
-  #   steps:
-  #     - name: Setup runner directory
-  #       run: |
-  #         sudo mkdir /Users/runner
-  #         sudo chown admin:staff /Users/runner
-  #         sudo chmod 750 /Users/runner
-  #     - name: Cache Brew Cache
-  #       id: cache-brew
-  #       uses: actions/cache@v3
-  #       with:
-  #         path: |
-  #           /Users/admin/Library/Caches/Homebrew
-  #           /opt/homebrew/Cellar/python@3.11
-  #         key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
-  #     - name: Brew Update
-  #       if: steps.cache-brew.outputs.cache-hit != 'true'
-  #       run: |
-  #         brew update
-  #     - name: Brew Install Python
-  #       if: steps.cache-brew.outputs.cache-hit != 'true'
-  #       run: |
-  #         brew install python@3.11
-  #     - name: Re-link Python3
-  #       if: steps.cache-brew.outputs.cache-hit == 'true'
-  #       run: |
-  #         brew link python@3.11
-  #     - name: Debug Info
-  #       run: |
-  #         set -x
-  #         # brew info python3 --json | jq '.[0].name'
-  #         # brew info python3 --json | jq '.[0].urls.stable.checksum'
-  #         # brew info python3 --json | jq '.[0].versions.stable'
-  #         brew --cache
-  #         brew --prefix
-  #         which python3
-  #         ls -al "$(brew --prefix)/bin"
-  #         python3 --version
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: true
-  #     # Note that this action handles both cache read and cache write.
-  #     # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
-  #     - name: Cache Opam
-  #       id: cache-opam
-  #       uses: actions/cache@v3
-  #       if: ${{ inputs.use-cache || github.event_name == 'pull_request' || github.event_name == 'schedule' }}
-  #       env:
-  #         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-  #       with:
-  #         path: ~/.opam
-  #         key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
-  #     - name: Install dependencies
-  #       run: |
-  #         ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
-  #     - name: Compile semgrep
-  #       run: |
-  #         opam exec -- make core
-  #         mkdir -p artifacts
-  #         cp ./bin/semgrep-core artifacts
-  #         zip -r artifacts.zip artifacts
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         path: artifacts.zip
-  #         name: semgrep-m1-${{ github.sha }}
+  build-core-m1:
+    name: Build the OSX M1 binaries
+    runs-on:
+      [
+        "self-hosted",
+        "macOS",
+        "ARM64",
+        "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
+      ]
+    env:
+      OPAM_SWITCH_NAME: "4.14.0"
+    steps:
+      - name: Setup runner directory
+        run: |
+          sudo mkdir /Users/runner
+          sudo chown admin:staff /Users/runner
+          sudo chmod 750 /Users/runner
+      - name: Cache Brew Cache
+        id: cache-brew
+        uses: actions/cache@v3
+        with:
+          path: |
+            /Users/admin/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/python@3.11
+          key: "${{ runner.os }}-${{ runner.arch }}-brew-cache-E038jVAPUmLOFgsT"
+      - name: Brew Update
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        run: |
+          brew update
+      - name: Brew Install Python
+        if: steps.cache-brew.outputs.cache-hit != 'true'
+        run: |
+          brew install python@3.11
+      - name: Re-link Python3
+        if: steps.cache-brew.outputs.cache-hit == 'true'
+        run: |
+          brew link python@3.11
+      - name: Debug Info
+        run: |
+          set -x
+          # brew info python3 --json | jq '.[0].name'
+          # brew info python3 --json | jq '.[0].urls.stable.checksum'
+          # brew info python3 --json | jq '.[0].versions.stable'
+          brew --cache
+          brew --prefix
+          which python3
+          ls -al "$(brew --prefix)/bin"
+          python3 --version
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      # Note that this action handles both cache read and cache write.
+      # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
+      - name: Cache Opam
+        id: cache-opam
+        uses: actions/cache@v3
+        if: ${{ inputs.use-cache || github.event_name == 'pull_request' || github.event_name == 'schedule' }}
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        with:
+          path: ~/.opam
+          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
+      - name: Install dependencies
+        run: |
+          ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
+      - name: Compile semgrep
+        run: |
+          opam exec -- make core
+          mkdir -p artifacts
+          cp ./bin/semgrep-core artifacts
+          zip -r artifacts.zip artifacts
+      - name: Save Semgrep Core Binary
+        id: cache-semgrep-core
+        uses: actions/cache/save@v3
+        with:
+          path: artifacts.zip
+          key: osx-m1-semgrep-core-zzNanjJqY+maTpzu
 
   build-wheels-m1:
     runs-on:
@@ -127,7 +129,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: artifacts.zip
-          key: osx-m1-semgrep-core-VzlGZQINFX2
+          key: osx-m1-semgrep-core-zzNanjJqY+maTpzu
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
