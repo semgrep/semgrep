@@ -128,6 +128,7 @@ jobs:
         run: |
           python3 --version
           which python3
+          pip3 install setuptools==67.6.1 wheel==0.40.0
           python3 scripts/debug.py
       - name: Restore Semgrep Core Binary
         id: cache-semgrep-core
