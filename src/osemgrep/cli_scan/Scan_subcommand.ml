@@ -184,8 +184,6 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Conduct the scan *)
 (*****************************************************************************)
 
-type errors = Out.core_error list [@@deriving show]
-
 let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -264,7 +262,6 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     Metrics_.add_errors res.core.errors;
 
     (* step4: report matches *)
-    Common.pr2 (show_errors res.core.errors);
     let errors_skipped = errors_to_skipped res.core.errors in
     let semgrepignored, included, excluded, size, other_ignored =
       analyze_skipped semgrepignored_targets
