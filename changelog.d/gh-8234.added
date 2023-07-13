@@ -1,0 +1,1 @@
+feat(attribute ellipsis argument): Added support for ellipsis patterns in attribute argument position. (e.g. `#[get(...)]`)
