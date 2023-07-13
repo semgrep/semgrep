@@ -74,6 +74,9 @@ type t = {
 }
 [@@deriving show]
 
+type semgrep_engine =
+  t -> Exception.t option * Report.final_result * Fpath.t list
+
 (*
    Default values for all the semgrep-core command-line arguments and options.
 

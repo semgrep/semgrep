@@ -12,6 +12,12 @@ module Out = Semgrep_output_v1_t
 module RP = Report
 
 (*****************************************************************************)
+(* To run the pro engine, including multistep rules *)
+(*****************************************************************************)
+
+let invoke_semgrep_core_proprietary = ref None
+
+(*****************************************************************************)
 (* Logging/Profiling/Debugging *)
 (*****************************************************************************)
 
@@ -178,6 +184,8 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Conduct the scan *)
 (*****************************************************************************)
 
+type errors = Out.core_error list [@@deriving show]
+
 let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -220,7 +228,24 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
       | { output_format; _ } -> (output_format, None)
     in
     let core () =
-      Core_runner.invoke_semgrep_core
+      let invoke_semgrep_core =
+        match conf.engine_type with
+        | `OSS, _ ->
+            Core_runner.invoke_semgrep_core
+              ~engine:Run_semgrep.semgrep_with_raw_results_and_exn_handler
+        | `PRO, _ -> (
+            match !invoke_semgrep_core_proprietary with
+            | None ->
+                (* TODO: improve this error message depending on what the instructions should be *)
+                failwith
+                  "You have requested running semgrep with a setting that \
+                   requires the pro engine, but do not have the pro engine. \
+                   You may need to acquire a different binary."
+            | Some invoke_semgrep_core_proprietary ->
+                let roots = conf.target_roots in
+                invoke_semgrep_core_proprietary roots conf.engine_type)
+      in
+      invoke_semgrep_core
         ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
         ~file_match_results_hook conf.core_runner_conf filtered_rules errors
         targets
@@ -239,6 +264,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     Metrics_.add_errors res.core.errors;
 
     (* step4: report matches *)
+    Common.pr2 (show_errors res.core.errors);
     let errors_skipped = errors_to_skipped res.core.errors in
     let semgrepignored, included, excluded, size, other_ignored =
       analyze_skipped semgrepignored_targets

@@ -1,3 +1,9 @@
+(* Semgrep Pro hook *)
+(* TODO it might be better to pass this through and avoid the hook,
+   but it was fairly annoying to *)
+val invoke_semgrep_core_proprietary :
+  (Fpath.t list -> Engine_type.t -> Core_runner.semgrep_core_runner) option ref
+
 (*
    Parse a semgrep-scan command, execute it and exit.
 
