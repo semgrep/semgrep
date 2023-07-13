@@ -14,11 +14,6 @@ on:
         required: true
         type: boolean
         default: false
-      multi-arch:
-        description: Publish a multi-arch docker image
-        required: true
-        type: boolean
-        default: false
 
   workflow_call:
     inputs:
@@ -27,11 +22,6 @@ on:
         required: true
         type: boolean
         default: true
-      multi-arch:
-        description: Publish a multi-arch docker image
-        required: true
-        type: boolean
-        default: false
 
   push:
     branches:
@@ -46,7 +36,6 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       dry-run: ${{steps.dry-run.outputs.dry-run}}
-      multi-arch: ${{steps.multi-arch.outputs.multi-arch}}
     steps:
       - name: Evaluate Dry Run
         id: dry-run
@@ -57,16 +46,6 @@ jobs:
           else
             echo "dry-run=false" >> $GITHUB_OUTPUT
             echo "Setting dry-run to FALSE"
-          fi
-      - name: Evaluate Multi-Arch
-        id: multi-arch
-        run: |
-          if [[ "${{ inputs.multi-arch }}" == "true" || "${{ inputs.multi-arch }}" == "" ]]; then
-            echo "multi-arch=true" >> $GITHUB_OUTPUT
-            echo "Setting multi-arch to TRUE"
-          else
-            echo "multi-arch=false" >> $GITHUB_OUTPUT
-            echo "Setting multi-arch to FALSE"
           fi
 
   park-pypi-packages:
@@ -121,7 +100,6 @@ jobs:
       artifact-name: image-release
       file: Dockerfile
       enable-tests: true
-      multi-arch: ${{ needs.inputs.outputs.multi-arch == 'true' }}
 
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
@@ -162,7 +140,6 @@ jobs:
       artifact-name: image-release
       repository-name: ${{ github.repository }}
       dry-run: ${{ needs.inputs.outputs.dry-run == 'true' }}
-      multi-arch: ${{ needs.inputs.outputs.multi-arch == 'true' }}
 
   upload-wheels:
     name: Upload Wheels to PyPI
