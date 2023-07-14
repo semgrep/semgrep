@@ -137,6 +137,13 @@ jobs:
       ]
     needs: [build-wheels-m1]
     steps:
+      - name: Setup runner directory
+        run: |
+          sudo mkdir /Users/runner
+          sudo chmod 750 /Users/runner
+          sudo mkdir /Users/runner/hostedtoolcache
+          sudo chmod 750 /Users/runner/hostedtoolcache
+          sudo chown -R admin:staff /Users/runner
       - uses: actions/download-artifact@v1
         with:
           name: m1-wheel
