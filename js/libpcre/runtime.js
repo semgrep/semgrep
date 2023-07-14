@@ -2,35 +2,35 @@
 var libpcre = globalThis.LibPcreModule;
 
 //Provides: NULL const
-var NULL = 0;
+const NULL = 0;
 
 //Provides: PCRE_CONFIG_UTF8 const
-var PCRE_CONFIG_UTF8 = 0;
+const PCRE_CONFIG_UTF8 = 0;
 //Provides: PCRE_CONFIG_NEWLINE const
-var PCRE_CONFIG_NEWLINE = 1;
+const PCRE_CONFIG_NEWLINE = 1;
 //Provides: PCRE_CONFIG_LINK_SIZE const
-var PCRE_CONFIG_LINK_SIZE = 2;
+const PCRE_CONFIG_LINK_SIZE = 2;
 
 //Provides: PCRE_CONFIG_MATCH_LIMIT const
-var PCRE_CONFIG_MATCH_LIMIT = 4;
+const PCRE_CONFIG_MATCH_LIMIT = 4;
 //Provides: PCRE_CONFIG_STACKRECURSE const
-var PCRE_CONFIG_STACKRECURSE = 5;
+const PCRE_CONFIG_STACKRECURSE = 5;
 
 //Provides: PCRE_CONFIG_MATCH_LIMIT_RECURSION const
-var PCRE_CONFIG_MATCH_LIMIT_RECURSION = 7;
+const PCRE_CONFIG_MATCH_LIMIT_RECURSION = 7;
 
 //Provides: PCRE_STUDY_JIT_COMPILE const
-var PCRE_STUDY_JIT_COMPILE = 0x0001;
+const PCRE_STUDY_JIT_COMPILE = 0x0001;
 
 //Provides: PCRE_EXTRA_MATCH_LIMIT const
-var PCRE_EXTRA_MATCH_LIMIT = 0x0002;
+const PCRE_EXTRA_MATCH_LIMIT = 0x0002;
 //Provides: PCRE_EXTRA_MATCH_LIMIT_RECURSION const
-var PCRE_EXTRA_MATCH_LIMIT_RECURSION = 0x0010;
+const PCRE_EXTRA_MATCH_LIMIT_RECURSION = 0x0010;
 
 //Provides: PCRE_INFO_SIZE const
-var PCRE_INFO_SIZE = 1;
+const PCRE_INFO_SIZE = 1;
 //Provides: PCRE_INFO_CAPTURECOUNT const
-var PCRE_INFO_CAPTURECOUNT = 2;
+const PCRE_INFO_CAPTURECOUNT = 2;
 
 //Provides: PCRE_INFO_NAMEENTRYSIZE const
 const PCRE_INFO_NAMEENTRYSIZE = 7;
@@ -42,7 +42,7 @@ const PCRE_INFO_NAMECOUNT = 8;
 const PCRE_INFO_NAMETABLE = 9;
 
 //Provides: PCRE_ERROR_NOMATCH const
-var PCRE_ERROR_NOMATCH = -1;
+const PCRE_ERROR_NOMATCH = -1;
 
 //Provides: STRUCT_PCRE_EXTRA const
 var STRUCT_PCRE_EXTRA = {
@@ -80,36 +80,44 @@ var STRUCT_PCRE = {
   nullpad_ptr: 54,
 };
 
+//Provides: auto_malloc
+//Requires: libpcre
+function auto_malloc(size, func) {
+  const ptr = libpcre._malloc(size);
+  try {
+    return func(ptr);
+  } finally {
+    libpcre._free(ptr);
+  }
+}
+
 //Provides: pcre_ocaml_init const
 function pcre_ocaml_init() {
   // noop
 }
+
 //Provides: pcre_version_stub const
 //Requires: libpcre
 function pcre_version_stub() {
-  var ptr = libpcre._pcre_version();
-  var value = libpcre.UTF8ToString(ptr);
-  return value;
+  return libpcre.UTF8ToString(libpcre._pcre_version());
 }
 
 //Provides: pcre_config_get_int
-//Requires: libpcre
+//Requires: libpcre, auto_malloc
 function pcre_config_get_int(what) {
-  var ptr = libpcre._malloc(4);
-  libpcre._pcre_config(what, ptr);
-  var value = libpcre.getValue(ptr, "i8");
-  libpcre._free(ptr);
-  return value;
+  return auto_malloc(1, (ptr) => {
+    libpcre._pcre_config(what, ptr);
+    return libpcre.getValue(ptr, "i8");
+  });
 }
 
 //Provides: pcre_config_get_long
-//Requires: libpcre
+//Requires: libpcre, auto_malloc
 function pcre_config_get_long(what) {
-  var ptr = libpcre._malloc(4);
-  libpcre._pcre_config(what, ptr);
-  var value = libpcre.getValue(ptr, "i16");
-  libpcre._free(ptr);
-  return value;
+  return auto_malloc(2, (ptr) => {
+    libpcre._pcre_config(what, ptr);
+    return libpcre.getValue(ptr, "i16");
+  });
 }
 
 //Provides: pcre_config_utf8_stub const
@@ -147,22 +155,24 @@ function pcre_config_match_limit_recursion_stub_bc() {
 function pcre_config_stackrecurse_stub() {
   return pcre_config_get_int(PCRE_CONFIG_STACKRECURSE);
 }
-//Provides: pcre_make_string
+
+//Provides: pcre_alloc_string
 //Requires: libpcre, PCRE_CONFIG_UTF8
-function pcre_make_string(v_opt, string) {
+function pcre_alloc_string(v_opt, js_string) {
   var ptr;
   if (v_opt & PCRE_CONFIG_UTF8) {
-    ptr = libpcre._malloc(string.length * 4 + 1);
-    libpcre.stringToUTF8(string, ptr);
+    const length = new TextEncoder().encode(js_string).length;
+    ptr = libpcre._malloc(length + 1);
+    libpcre.stringToUTF8(js_string, ptr);
   } else {
-    ptr = libpcre._malloc(string.length + 1);
-    libpcre.stringToAscii(string, ptr);
+    ptr = libpcre._malloc(js_string.length + 1);
+    libpcre.stringToAscii(js_string, ptr);
   }
   return ptr;
 }
 
 //Provides: pcre_compile_stub_bc
-//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_make_string
+//Requires: PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string
 function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
   //size_t regexp_size, ocaml_regexp_size = sizeof(struct pcre_ocaml_regexp);
   var regexp_info_ptr = libpcre._malloc(16);
@@ -179,7 +189,7 @@ function pcre_compile_stub_bc(v_opt, v_tables, v_pat) {
     throw new Error("need to do something with v_tables");
   }
 
-  var pattern_ptr = pcre_make_string(v_opt, v_pat);
+  var pattern_ptr = pcre_alloc_string(v_opt, v_pat);
 
   /* Compiles the pattern */
   var regexp_ptr = libpcre._pcre_compile(
@@ -318,7 +328,7 @@ function handle_exec_error(loc, ret) {
 }
 
 //Provides: pcre_exec_stub_bc
-//Requires: handle_exec_error, libpcre, pcre_make_string
+//Requires: handle_exec_error, libpcre, pcre_alloc_string, caml_invalid_argument
 function pcre_exec_stub_bc(
   v_opt,
   v_rex,
@@ -332,26 +342,26 @@ function pcre_exec_stub_bc(
   var ret;
   var is_dfa = !!v_workspace;
   var pos = v_pos;
-  var len = v_subj.length;
+  var len = new TextEncoder().encode(v_subj).length; // TODO: bytes or characters?
   var subj_start = v_subj_start;
 
-  var v_subj_ptr = pcre_make_string(v_opt, v_subj);
+  var v_subj_ptr = pcre_alloc_string(v_opt, v_subj);
 
-  var ovec_len = v_ovec.length;
+  var ovec_len = v_ovec.length - 1;
 
   if (pos > len || pos < subj_start) {
-    throw new Error("Pcre.pcre_exec_stub: illegal position");
+    caml_invalid_argument("Pcre.pcre_exec_stub: illegal position");
   }
 
   if (subj_start > len || subj_start < 0) {
-    throw new Error("Pcre.pcre_exec_stub: illegal subject start");
+    caml_invalid_argument("Pcre.pcre_exec_stub: illegal subject start");
   }
 
   pos -= subj_start;
   len -= subj_start;
 
-  var ocaml_subj_ptr = v_subj_ptr + subj_start;
-  var opt = v_opt;
+  const ocaml_subj_ptr = v_subj_ptr + subj_start;
+  const opt = v_opt;
 
   if (!v_maybe_cof) {
     var ovec_ptr = libpcre._malloc(ovec_len * 4);
@@ -373,7 +383,7 @@ function pcre_exec_stub_bc(
       handle_exec_error("pcre_exec_stub", ret);
     } else {
       for (var i = 0; i < ovec_len; i++) {
-        v_ovec[i] = libpcre.getValue(ovec_ptr + i * 4, "i32");
+        v_ovec[i + 1] = libpcre.getValue(ovec_ptr + i * 4, "i32");
       }
     }
   } else {
