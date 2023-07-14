@@ -33,8 +33,6 @@ if WHEEL_CMD in sys.argv:
             abi = "none"
             if "macosx" in plat:
                 plat = "macosx_11_0_arm64" if "arm" in plat else "macosx_10_14_x86_64"
-            else:
-                plat = "any"
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
@@ -113,7 +111,7 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.30.0",
+    version="1.32.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

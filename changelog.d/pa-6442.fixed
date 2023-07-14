@@ -1,1 +1,0 @@
-Fixed python semgrep pattern parsing to also parse match statements, by chaining in the python tree-sitter parser, and adding metavariable support to the python tree-sitter parser.

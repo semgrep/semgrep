@@ -45,7 +45,12 @@ type expansion =
   | Expand_semgrep_metavar of (* $FOO in ${$FOO} *) string wrap
 
 (* Fragment of a string possibly containing variable expansions
-   or semgrep metavariables. This is similar to what we do in AST_bash.ml. *)
+   or semgrep metavariables. This is similar to what we do in AST_bash.ml.
+
+   TODO: evaluate String_content fragments (remove quotes and evaluate
+   escape sequences) so that they can be compared regardless of
+   quoting/escaping.
+*)
 type string_fragment =
   | String_content of string wrap
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) (loc * expansion)

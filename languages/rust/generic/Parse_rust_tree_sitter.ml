@@ -49,6 +49,11 @@ let deoptionalize l =
   in
   deopt [] l
 
+let in_pattern env =
+  match env.H.extra with
+  | Target -> false
+  | Pattern -> true
+
 (*****************************************************************************)
 (* Intermediate AST-like types *)
 (*****************************************************************************)
@@ -694,10 +699,11 @@ and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
       let name = map_path_name env x in
       G.PatConstructor (name, [])
 
-and map_meta_argument (env : env) (x : CST.anon_choice_meta_item_fefa160) :
+and map_meta_argument (env : env) (x : CST.anon_choice_ellips_738a19f) :
     G.argument =
   match x with
   (* TODO: With modifications to the rust grammar this could be a lot better. *)
+  | `Ellips tok -> G.(Arg (Ellipsis (token env tok) |> e))
   | `Meta_item x -> map_meta_item_to_argument env x
   | `Lit x -> G.(Arg (L (map_literal env x) |> e))
 
@@ -1410,12 +1416,18 @@ and map_expression (env : env) (x : CST.expression) =
         }
       in
       G.Lambda func_def
-  | `Paren_exp (v1, v2, v3) ->
-      let _lparen = token env v1 (* "(" *) in
-      let expr = map_expression env v2 in
-      let _rparen = token env v3 (* ")" *) in
-      let x = expr in
-      x.G.e
+  | `Paren_exp (_v1, v2, _v3) -> (
+      match v2 with
+      | `Exp e ->
+          let x = map_expression env e in
+          x.G.e
+      | `Semg_typed_meta (v, c, t) ->
+          let metavar = ident env v in
+          if AST_generic.is_metavar_name (fst metavar) && in_pattern env then
+            let colon = token env c in
+            let type_ = map_type_ env t in
+            G.TypedMetavar (metavar, colon, type_)
+          else raise Impossible)
   | `Struct_exp (v1, v2) ->
       let name : G.name =
         match v1 with
