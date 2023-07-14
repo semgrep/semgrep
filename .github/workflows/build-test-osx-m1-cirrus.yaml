@@ -83,7 +83,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: artifacts.zip
-          key: osx-m1-semgrep-core-zzNanjJqY+maTpzu
+          key: osx-m1-semgrep-core-eA81a8pohotw5xvF
 
   build-wheels-m1:
     runs-on:
@@ -117,7 +117,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: artifacts.zip
-          key: osx-m1-semgrep-core-zzNanjJqY+maTpzu
+          key: osx-m1-semgrep-core-eA81a8pohotw5xvF
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
