@@ -33,8 +33,6 @@ if WHEEL_CMD in sys.argv:
             abi = "none"
             if "macosx" in plat:
                 plat = "macosx_11_0_arm64" if "arm" in plat else "macosx_10_14_x86_64"
-            else:
-                plat = "any"
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
