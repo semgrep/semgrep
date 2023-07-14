@@ -93,6 +93,7 @@ jobs:
         "ARM64",
         "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
+    needs: [build-core-m1]
     steps:
       - name: Setup runner directory
         run: |
