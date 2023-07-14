@@ -170,11 +170,11 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
 
 (* from rule_match.py
    TODO do these numbers have meaning? *)
-let severity_to_num = function
-  | "EXPERIMENT" -> "4"
-  | "WARNING" -> "1"
-  | "ERROR" -> "2"
-  | _ -> "0"
+let severity_to_int = function
+  | "EXPERIMENT" -> `Int 4
+  | "WARNING" -> `Int 1
+  | "ERROR" -> `Int 2
+  | _ -> `Int 0
 
 let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
   let (r : Out.finding) =
@@ -187,8 +187,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
         end_line = m.end_.line;
         end_column = m.end_.col;
         message = m.Out.extra.Out.message;
-        severity =
-          Yojson.Safe.from_string (severity_to_num m.Out.extra.Out.severity);
+        severity = severity_to_int m.Out.extra.Out.severity;
         index;
         commit_date = "";
         (* TODO datetime.fromtimestamp(int(commit_date)).isoformat() *)
