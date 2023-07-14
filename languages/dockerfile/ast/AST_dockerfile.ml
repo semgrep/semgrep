@@ -57,8 +57,10 @@ type double_quoted_string_fragment =
 
 type docker_string_fragment =
   | Unquoted of string wrap
-  | Single_quoted of loc * string wrap bracket
-  | Double_quoted of loc * double_quoted_string_fragment list bracket
+  (* Using 'string wrap bracket' rather than 'string bracket' since it's the
+     type expected by the generic AST. *)
+  | Single_quoted of (loc * string wrap bracket)
+  | Double_quoted of (loc * double_quoted_string_fragment list bracket)
   (* Expansion and Frag_semgrep_metavar: see Dbl_expansion and
      Dbl_frag_semgrep_metavar *)
   | Expansion of (loc * expansion)
@@ -129,8 +131,6 @@ type image_spec = {
   digest : (tok (* @ *) * docker_string) option;
 }
 
-type image_alias = docker_string
-
 type label_pair =
   | Label_semgrep_ellipsis of tok
   | Label_pair of loc * var_or_metavar (* key *) * tok (* = *) * docker_string
@@ -138,7 +138,6 @@ type label_pair =
 (* value *)
 
 type protocol = TCP | UDP
-type path = docker_string
 type path_or_ellipsis = str_or_ellipsis
 
 type array_or_paths =
@@ -167,14 +166,16 @@ type instruction =
       * string wrap
       * param option
       * image_spec
-      * (tok (* as *) * image_alias) option
+      * (tok (* as *) * docker_string) option
   | Run of cmd
   | Cmd of cmd
   | Label of loc * string wrap * label_pair list
   | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
   | Env of loc * string wrap * label_pair list
-  | Add of loc * string wrap * param option * path_or_ellipsis list * path
-  | Copy of loc * string wrap * param option * path_or_ellipsis list * path
+  | Add of
+      loc * string wrap * param option * path_or_ellipsis list * docker_string
+  | Copy of
+      loc * string wrap * param option * path_or_ellipsis list * docker_string
   | Entrypoint of loc * string wrap * argv_or_shell
   | Volume of loc * string wrap * array_or_paths
   | User of
@@ -182,7 +183,7 @@ type instruction =
       * string wrap
       * docker_string (* user *)
       * (tok (* : *) * docker_string) (* group *) option
-  | Workdir of loc * string wrap * path
+  | Workdir of loc * string wrap * docker_string
   | Arg of loc * string wrap * var_or_metavar * (tok * docker_string) option
   | Onbuild of loc * string wrap * instruction
   | Stopsignal of loc * string wrap * docker_string
@@ -263,7 +264,6 @@ let argv_or_shell_loc = function
 
 let param_loc ((loc, _) : param) : loc = loc
 let image_spec_loc (x : image_spec) = x.loc
-let image_alias_loc = docker_string_loc
 
 let label_pair_loc = function
   | Label_semgrep_ellipsis tok -> (tok, tok)
@@ -311,18 +311,3 @@ let instruction_loc = function
   | Cross_build_xxx (loc, _, _) -> loc
   | Instr_semgrep_ellipsis tok -> (tok, tok)
   | Instr_semgrep_metavar (_, tok) -> (tok, tok)
-
-(***************************************************************************)
-(* String manipulation *)
-(***************************************************************************)
-
-let simple_string_contents ((_loc, fragments) : docker_string) :
-    string wrap option =
-  match fragments with
-  | [ Unquoted x ] -> Some x
-  | [ Single_quoted (_loc, (_open, x, _close)) ] -> Some x
-  | [ Double_quoted (_loc, (_open, dbl_fragments, _close)) ] -> (
-      match dbl_fragments with
-      | [ Dbl_string_content x ] -> Some x
-      | _ -> None)
-  | _ -> None
