@@ -238,98 +238,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         },
         {
           "fingerprints": {
-            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "foo.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 13,
-                  "endLine": 18,
-                  "snippet": {
-                    "text": "    baz == 4  # nosemgrep"
-                  },
-                  "startColumn": 5,
-                  "startLine": 18
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "useless comparison to 4"
-          },
-          "properties": {},
-          "ruleId": "eqeq-four",
-          "suppressions": [
-            {
-              "kind": "inSource"
-            }
-          ]
-        },
-        {
-          "fingerprints": {
-            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "foo.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 13,
-                  "endLine": 19,
-                  "snippet": {
-                    "text": "    baz == 4"
-                  },
-                  "startColumn": 5,
-                  "startLine": 19
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "useless comparison to 4"
-          },
-          "properties": {},
-          "ruleId": "eqeq-four"
-        },
-        {
-          "fingerprints": {
-            "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "foo.py",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 13,
-                  "endLine": 27,
-                  "snippet": {
-                    "text": "    sink(d2)"
-                  },
-                  "startColumn": 5,
-                  "startLine": 27
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "unsafe use of danger"
-          },
-          "properties": {},
-          "ruleId": "taint-test"
-        },
-        {
-          "fingerprints": {
             "matchBasedId/v1": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
           },
           "fixes": [
@@ -444,6 +352,98 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "kind": "inSource"
             }
           ]
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 13,
+                  "endLine": 18,
+                  "snippet": {
+                    "text": "    baz == 4  # nosemgrep"
+                  },
+                  "startColumn": 5,
+                  "startLine": 18
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison to 4"
+          },
+          "properties": {},
+          "ruleId": "eqeq-four",
+          "suppressions": [
+            {
+              "kind": "inSource"
+            }
+          ]
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 13,
+                  "endLine": 19,
+                  "snippet": {
+                    "text": "    baz == 4"
+                  },
+                  "startColumn": 5,
+                  "startLine": 19
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison to 4"
+          },
+          "properties": {},
+          "ruleId": "eqeq-four"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "foo.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 13,
+                  "endLine": 27,
+                  "snippet": {
+                    "text": "    sink(d2)"
+                  },
+                  "startColumn": 5,
+                  "startLine": 27
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "unsafe use of danger"
+          },
+          "properties": {},
+          "ruleId": "taint-test"
         },
         {
           "fingerprints": {
@@ -594,7 +594,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 2 Supply Chain rules:
+  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
 
 
   CODE RULES
@@ -611,9 +611,9 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 13 findings (10 blocking) from 6 rules.
-  Uploading findings.
-  View results in Semgrep Cloud Platform:
+  Found 13 findings (10 blocking) from 7 rules.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   Has findings for blocking rules so exiting with code 1

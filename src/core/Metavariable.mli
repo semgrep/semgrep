@@ -43,6 +43,7 @@ val is_metavar_name : string -> bool
 
 (* example: "$...FOO" is a metavariable ellipsis *)
 val is_metavar_ellipsis : string -> bool
+val mvars_of_regexp_string : string -> mvar list
 
 (* example: "$1" *)
 val is_metavar_for_capture_group : string -> bool

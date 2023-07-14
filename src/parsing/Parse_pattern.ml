@@ -41,6 +41,11 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   | G.S { G.s = G.ExprStmt (e, sc); _ }
     when Tok.is_fake sc || Tok.content_of_tok sc = "" ->
       normalize_any lang (G.E e)
+  (* Any name pattern which is a metavariable should be sorted into an
+     E pattern, so we can properly match it against E nodes.
+  *)
+  | G.Name (Id ((s, t), idinfo)) when Metavariable.is_metavar_name s ->
+      G.E (G.N (Id ((s, t), idinfo)) |> G.e)
   (* TODO: generalizing to other languages generate many regressions *)
   | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
       normalize_any lang (G.Name name)
@@ -72,7 +77,6 @@ let parse_pattern_ref =
 let parse_pattern ?(print_errors = false) lang str =
   let any = !parse_pattern_ref print_errors lang str in
   let any = normalize_any lang any in
-  Caching.prepare_pattern any;
   Check_pattern.check lang any;
   any
   [@@profiling]

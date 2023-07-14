@@ -117,57 +117,99 @@ let lval_is_prefix lval1 lval2 =
       eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
   | __else__ -> false
 
+(* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
+ * some benchmarks, if we can e.g. double the limit without affecting perf then
+ * just remove this. We could try something clever based e.g. on live-variable
+ * analysis, but there is a high risk that the "solution" may introduce perf
+ * problems of its own... *)
+let remove_some_lval_from_tainted_set tainted =
+  (* Try to make space for a new l-value by removing an auxiliary _tmp one first.
+   * By using using `find_first_opt` we try to find the one with the lowest sid,
+   * which hopefully isn't needed anymore... (unless it's inside a loop...).
+   * This could perhaps (?) break monotonicity and cause divergence of the fixpoint,
+   * but the Limits_semgrep.taint_FIXPOINT_TIMEOUT seconds timeout would take care
+   * of that. *)
+  match
+    tainted
+    |> LvalMap.find_first_opt (fun lval ->
+           match lval.base with
+           (* auxiliary _tmp variables get fake tokens *)
+           | Var var -> Tok.is_fake (snd var.ident)
+           | VarSpecial _
+           | Mem _ ->
+               false)
+  with
+  | None -> None
+  | Some (lval, _) -> Some (lval, LvalMap.remove lval tainted)
+
+let check_tainted_lvals_limit tainted new_lval =
+  if
+    (not (LvalMap.mem new_lval tainted))
+    && !Flag_semgrep.max_tainted_lvals > 0
+    && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals
+  then (
+    match remove_some_lval_from_tainted_set tainted with
+    | Some (dropped_lval, tainted) ->
+        logger#warning
+          "Already tracking too many tainted l-values, dropped %s in order to \
+           track %s"
+          (Display_IL.string_of_lval dropped_lval)
+          (Display_IL.string_of_lval new_lval);
+        Some tainted
+    | None ->
+        logger#warning
+          "Already tracking too many tainted l-values, will not track %s"
+          (Display_IL.string_of_lval new_lval);
+        None)
+  else Some tainted
+
 let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
-  | Some _
-    when (not (LvalMap.mem lval tainted))
-         && !Flag_semgrep.max_tainted_lvals > 0
-         && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals ->
-      logger#warning
-        "Already tracking too many tainted l-values, will not track %s"
-        (Display_IL.string_of_lval lval);
-      lval_env
-  | Some lval ->
-      let taints =
-        (* If the lvalue is a simple variable, we record it as part of
-           the taint trace. *)
-        match lval with
-        | { IL.base = Var var; rev_offset = [] } ->
-            let var_tok = snd var.ident in
-            if Tok.is_fake var_tok then taints
-            else
-              taints
-              |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-        | __else__ -> taints
-      in
+  | Some lval -> (
       if Taints.is_empty taints then lval_env
       else
-        {
-          tainted =
-            LvalMap.update lval
-              (function
-                | None -> Some taints
-                (* THINK: couldn't we just replace the existing taints? *)
-                | Some taints' ->
-                    if
-                      !Flag_semgrep.max_taint_set_size = 0
-                      || Taints.cardinal taints'
-                         < !Flag_semgrep.max_taint_set_size
-                    then Some (Taints.union taints taints')
-                    else (
-                      logger#warning
-                        "Already tracking too many taint sources for %s, will \
-                         not track more"
-                        (Display_IL.string_of_lval lval);
-                      Some taints'))
-              tainted;
-          propagated;
-          cleaned = LvalSet.remove lval cleaned;
-        }
+        match check_tainted_lvals_limit tainted lval with
+        | None -> lval_env
+        | Some tainted ->
+            let taints =
+              (* If the lvalue is a simple variable, we record it as part of
+                 the taint trace. *)
+              match lval with
+              | { IL.base = Var var; rev_offset = [] } ->
+                  let var_tok = snd var.ident in
+                  if Tok.is_fake var_tok then taints
+                  else
+                    taints
+                    |> Taints.map (fun t ->
+                           { t with tokens = var_tok :: t.tokens })
+              | __else__ -> taints
+            in
+            {
+              tainted =
+                LvalMap.update lval
+                  (function
+                    | None -> Some taints
+                    (* THINK: couldn't we just replace the existing taints? *)
+                    | Some taints' ->
+                        if
+                          !Flag_semgrep.max_taint_set_size = 0
+                          || Taints.cardinal taints'
+                             < !Flag_semgrep.max_taint_set_size
+                        then Some (Taints.union taints taints')
+                        else (
+                          logger#warning
+                            "Already tracking too many taint sources for %s, \
+                             will not track more"
+                            (Display_IL.string_of_lval lval);
+                          Some taints'))
+                  tainted;
+              propagated;
+              cleaned = LvalSet.remove lval cleaned;
+            })
 
 let propagate_to prop_var taints env =
   if Taints.is_empty taints then env

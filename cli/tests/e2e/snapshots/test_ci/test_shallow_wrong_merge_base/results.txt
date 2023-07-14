@@ -55,9 +55,9 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
-  Found 1 finding (0 blocking) from 6 rules.
-  Uploading findings.
-  View results in Semgrep Cloud Platform:
+  Found 1 finding (0 blocking) from 7 rules.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings
     https://semgrep.dev/orgs/org_name/supply-chain
   No blocking findings so exiting with code 0

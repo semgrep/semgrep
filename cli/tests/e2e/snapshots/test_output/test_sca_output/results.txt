@@ -6,9 +6,11 @@
 
     targets/dependency_aware/monorepo/webapp1/app.js with lockfile
   targets/dependency_aware/monorepo/webapp1/yarn.lock
-       rules.dependency_aware.js-sca
+       bad-lib - CVE-FOO-BAR
+          Severity: HIGH
           oh no
 
+           ▶▶┆ Fixed for bad-lib at versions: 0.0.9, 1.0.1
             1┆ bad()
 
 
@@ -17,9 +19,11 @@
 └────────────────────────────────────┘
 
     targets/dependency_aware/monorepo/webapp2/yarn.lock
-       rules.dependency_aware.js-sca
+       bad-lib - CVE-FOO-BAR
+          Severity: HIGH
           oh no
 
+           ▶▶┆ Fixed for bad-lib at versions: 0.0.9, 1.0.1
             5┆ bad-lib@0.0.7:
             6┆   version "0.0.7"
 

@@ -1,0 +1,12 @@
+rules:
+  - id: no-direct-db-exec
+    languages:
+      - go
+    message: Detected a direct use of db exec.
+    patterns:
+    - pattern: $DB.Exec(...)
+    - pattern-not: $DB.Exec("...")
+    - metavariable-type:
+        metavariable: $DB
+        type: "*sql.DB"
+    severity: WARNING

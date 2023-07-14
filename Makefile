@@ -429,7 +429,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
 #Dogfooding osemgrep!
@@ -445,9 +445,8 @@ DOCKER_IMAGE=returntocorp/semgrep:develop
 # If you get parsing errors while running this command, maybe you have an old
 # cached version of the docker image. You can invalidate the cache with
 #   'docker rmi returntocorp/semgrep:develop`
-# We're dogfooding osemgrep here too! which is now part of the docker image.
 check_with_docker:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) osemgrep $(SEMGREP_ARGS)
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
 
 ###############################################################################
 # Martin's targets

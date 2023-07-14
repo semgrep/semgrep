@@ -49,6 +49,12 @@ type conf = {
   profile : bool;
   (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
   legacy : bool;
+  (* osemgrep-only: currently to explicitely choose osemgrep over pysemgrep.
+   * The flag is actually removed in cli/bin/semgrep when calling osemgrep,
+   * but if people explicitely call osemgrep, it's nice to also accept
+   * the --experimental flag
+   *)
+  experimental : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -125,6 +131,7 @@ let default : conf =
     time_flag = false;
     (* ultimately should be set to true when we release osemgrep *)
     legacy = false;
+    experimental = false;
     output_format = Output_format.Text;
     logging_level = Some Logs.Warning;
     force_color = false;
@@ -651,13 +658,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine ast_caching autofix baseline_commit config dryrun dump_ast
-      dump_config emacs error exclude exclude_rule_ids force_color include_ json
-      lang legacy logging_level max_chars_per_line max_lines_per_finding
-      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
-      pattern profile project_root registry_caching replacement
-      respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo
-      time_flag timeout timeout_threshold validate version version_check vim =
+      dump_config emacs error exclude exclude_rule_ids experimental force_color
+      include_ json lang legacy logging_level max_chars_per_line
+      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
+      nosem optimizations pattern profile project_root registry_caching
+      replacement respect_git_ignore rewrite_rule_ids scan_unknown_extensions
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo time_flag timeout timeout_threshold validate version
+      version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color ~level:logging_level;
@@ -898,6 +906,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       strict;
       time_flag;
       legacy;
+      experimental;
       (* ugly: *)
       version;
       show_supported_languages;
@@ -913,8 +922,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * combine above! *)
     const combine $ o_ast_caching $ o_autofix $ o_baseline_commit $ o_config
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
-    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
+    $ o_exclude_rule_ids $ CLI_common.o_experimental $ o_force_color $ o_include
+    $ o_json $ o_lang $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
     $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ CLI_common.o_profile
     $ o_project_root $ o_registry_caching $ o_replacement $ o_respect_git_ignore
