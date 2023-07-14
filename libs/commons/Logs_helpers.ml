@@ -107,6 +107,7 @@ let setup_logging ~force_color ~level =
          | "dns_cache"
          | "dns_client"
          | "happy-eyeballs"
+         | "http_lwt_client"
          (* those are the one we are really interested in *)
          | "application" ->
              ()
