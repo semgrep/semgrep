@@ -36,7 +36,8 @@ jobs:
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
           NONINTERACTIVE: 1
-        run: brew install semgrep --HEAD --debug
+        # See https://github.com/Homebrew/brew/issues/1742 for context on the brew link step.
+        run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       - name: Check installed correctly
         env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
