@@ -106,6 +106,8 @@ jobs:
         with:
           python-version: "3.11"
       - uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: Debug Info
         run: |
           python3 --version
