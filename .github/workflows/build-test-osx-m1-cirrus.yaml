@@ -123,7 +123,7 @@ jobs:
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh
+          ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
