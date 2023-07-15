@@ -1,1 +1,0 @@
-Fixed an issue leading to incorrect autofix results involving JS/TS async arrow functions (e.g. `async () => {}`, etc.).

@@ -408,3 +408,11 @@ rules:
     fix: ""
     languages: [ocaml]
     severity: WARNING
+
+  - id: no-match-x-x-with
+    pattern: match $X, $X with ... -> ...
+    message: >-
+      Pattern matching on ($X, $X) is pointless, you are comparing $X with itself.
+      You probably meant ($X, something-else) and this is due to a typo.
+    languages: [ocaml]
+    severity: WARNING

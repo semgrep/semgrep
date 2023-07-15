@@ -31,8 +31,8 @@ WORKDIR /src/semgrep
 # copy over the entire semgrep repository
 COPY . .
 
-# remove folders that aren't necessary for the semgrep-core build
-RUN rm -rf cli js .github .circleci
+# remove files and folders that aren't necessary for the semgrep-core build
+RUN rm -rf cli js .github .circleci Dockerfile
 
 # we *do* need the cli's semgrep_interfaces folder, however
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
@@ -98,7 +98,33 @@ RUN eval "$(opam env)" &&\
     /src/semgrep/_build/default/src/main/Main.exe -version
 
 ###############################################################################
-# Step2: Build the final docker image with Python wrapper and semgrep-core bin
+# Step2: Build the semgrep Python wheel
+###############################################################################
+# This is an intermediary stage used for building Python wheels. Semgrep users
+# don't need to use this.
+FROM python:3.7-alpine AS semgrep-wheel
+
+WORKDIR /semgrep
+
+# Install some deps (build-base because ruamel.yaml has native code, zip because we need zip)
+RUN apk add --no-cache build-base zip
+
+# Copy in the CLI
+COPY cli ./
+
+# Copy in semgrep-core executable
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe src/semgrep/bin/semgrep-core
+
+# Build the source distribution and binary wheel
+# TODO: do we actually need the sdist?
+RUN python setup.py sdist bdist_wheel
+
+# Copy and run scripts/validate-wheel.sh to ensure that the generated wheel works properly
+COPY scripts/validate-wheel.sh ./scripts/validate-wheel.sh
+RUN ./scripts/validate-wheel.sh dist/*.whl
+
+###############################################################################
+# Step3: Build the final docker image with Python wrapper and semgrep-core bin
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
@@ -159,7 +185,7 @@ RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
      # running this pre-compiles some python files for faster startup times
-     SEMGREP_SKIP_ARM64_CHECK=1 semgrep --version &&\
+     semgrep --version &&\
      apk del .build-deps
 
 # Let the user know how their container was built
@@ -172,8 +198,7 @@ RUN ln -s semgrep-core /usr/local/bin/osemgrep
 
 # ???
 ENV SEMGREP_IN_DOCKER=1 \
-    SEMGREP_USER_AGENT_APPEND="Docker" \
-    SEMGREP_SKIP_ARM64_CHECK=1
+    SEMGREP_USER_AGENT_APPEND="Docker"
 
 # The command we tell people to run for testing semgrep in Docker is
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
@@ -189,6 +214,12 @@ RUN addgroup --system semgrep \
 # Disabling defaulting to the user semgrep for now
 # We can set it by default once we fix the circle ci workflows
 #USER semgrep
+
+# Workaround for rootless containers as git operations may fail due to dubious ownership of /src
+RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
+RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
+	chown semgrep:semgrep ~semgrep/.gitconfig
+
 
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
