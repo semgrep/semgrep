@@ -390,43 +390,46 @@ function pcre_exec_stub_bc(
 function pcre_names_stub(v_rex) {
   const { regexp_ptr, extra_ptr } = v_rex;
 
-  auto_malloc([4, 4, 4], ([name_count_ptr, entry_size_ptr, tbl_ptr_ptr]) => {
-    var ret = libpcre._pcre_fullinfo(
-      regexp_ptr,
-      extra_ptr,
-      PCRE_INFO_NAMECOUNT,
-      name_count_ptr
-    );
-    if (ret != 0) throw new Error("pcre_names_stub: namecount");
+  return auto_malloc(
+    [4, 4, 4],
+    ([name_count_ptr, entry_size_ptr, tbl_ptr_ptr]) => {
+      var ret = libpcre._pcre_fullinfo(
+        regexp_ptr,
+        extra_ptr,
+        PCRE_INFO_NAMECOUNT,
+        name_count_ptr
+      );
+      if (ret != 0) throw new Error("pcre_names_stub: namecount");
 
-    ret = libpcre._pcre_fullinfo(
-      regexp_ptr,
-      extra_ptr,
-      PCRE_INFO_NAMEENTRYSIZE,
-      entry_size_ptr
-    );
-    if (ret != 0) throw new Error("pcre_names_stub: nameentrysize");
+      ret = libpcre._pcre_fullinfo(
+        regexp_ptr,
+        extra_ptr,
+        PCRE_INFO_NAMEENTRYSIZE,
+        entry_size_ptr
+      );
+      if (ret != 0) throw new Error("pcre_names_stub: nameentrysize");
 
-    ret = libpcre._pcre_fullinfo(
-      regexp_ptr,
-      extra_ptr,
-      PCRE_INFO_NAMETABLE,
-      tbl_ptr_ptr
-    );
-    if (ret != 0) throw new Error("pcre_names_stub: nametable");
+      ret = libpcre._pcre_fullinfo(
+        regexp_ptr,
+        extra_ptr,
+        PCRE_INFO_NAMETABLE,
+        tbl_ptr_ptr
+      );
+      if (ret != 0) throw new Error("pcre_names_stub: nametable");
 
-    var result = [];
+      var result = [];
 
-    const name_count = libpcre.getValue(name_count_ptr, "i32");
-    const entry_size = libpcre.getValue(entry_size_ptr, "i32");
-    var tbl_ptr = libpcre.getValue(tbl_ptr_ptr, "i32");
+      const name_count = libpcre.getValue(name_count_ptr, "i32");
+      const entry_size = libpcre.getValue(entry_size_ptr, "i32");
+      var tbl_ptr = libpcre.getValue(tbl_ptr_ptr, "i32");
 
-    for (var i = 0; i < name_count; i++) {
-      result[i] = libpcre.UTF8ToString(tbl_ptr + 2);
-      tbl_ptr += entry_size;
+      for (var i = 0; i < name_count; i++) {
+        result[i] = libpcre.UTF8ToString(tbl_ptr + 2);
+        tbl_ptr += entry_size;
+      }
+      return caml_js_to_array(result);
     }
-    return caml_js_to_array(result);
-  });
+  );
 }
 
 //Always
