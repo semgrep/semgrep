@@ -1,0 +1,2 @@
+# MATCH:
+avg by (foo) (avg_over_time((avg by (foo) (some_metric))[1h:]))
