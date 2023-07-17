@@ -98,6 +98,7 @@ jobs:
   build-core-osx:
     name: Build the OSX binaries
     needs: [evaluate-tags]
+    # Converts the string output to a JSON array to be used with the runs-on tag.
     runs-on: ${{ fromJson(needs.evaluate-tags.outputs.runs-on) }}
     env:
       # This name is used in the cache key. If we update to a newer version of
@@ -152,6 +153,7 @@ jobs:
           name: semgrep-osx-${{ github.sha }}-${{ env.OSX_ARCHITECTURE }}
 
   build-wheels-osx:
+    # Converts the string output to a JSON array to be used with the runs-on tag.
     runs-on: ${{ fromJson(needs.evaluate-tags.outputs.runs-on) }}
     needs: [build-core-osx, evaluate-tags]
     steps:
@@ -172,6 +174,7 @@ jobs:
 
   test-wheels-osx-x86:
     needs: [build-wheels-osx, evaluate-tags]
+    # Converts the string output to a JSON array to be used with the runs-on tag.
     runs-on: ${{ fromJson(needs.evaluate-tags.outputs.runs-on) }}
     steps:
       - uses: actions/download-artifact@v1
