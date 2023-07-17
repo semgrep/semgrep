@@ -26,9 +26,7 @@ class ['self] pat_id_visitor =
           super#visit_pattern store pat;
           Common.push (id, id_info) store
       | G.OtherPat (_, [ G.E { e = G.Record (_b1, fields, _b2); _ } ]) ->
-          (* JS allows object destructuring in the parameter list. Associate
-           * each local variable bound in a destructuring with the positional
-           * function parameter that it comes from. *)
+          (* JS allows object destructuring in the parameter list. *)
           (* TODO Handle array destructuring *)
           (* TODO Recurse into multi-level destructuring *)
           (* TODO Make this analysis field-sensitive *)
