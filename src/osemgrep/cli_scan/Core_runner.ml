@@ -53,7 +53,8 @@ type result = {
   *)
 }
 
-(* function *)
+(* Type for the core runner function, which can either be invoked by
+   invoke_semgrep_core or invoke_semgrep_core_proprietary *)
 
 type semgrep_core_runner =
   ?respect_git_ignore:bool ->

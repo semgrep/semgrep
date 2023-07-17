@@ -228,10 +228,10 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     let core () =
       let invoke_semgrep_core =
         match conf.engine_type with
-        | `OSS, _ ->
+        | OSS ->
             Core_runner.invoke_semgrep_core
               ~engine:Run_semgrep.semgrep_with_raw_results_and_exn_handler
-        | `PRO, _ -> (
+        | PRO _ -> (
             match !invoke_semgrep_core_proprietary with
             | None ->
                 (* TODO: improve this error message depending on what the instructions should be *)
