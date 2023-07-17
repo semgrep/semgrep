@@ -168,8 +168,7 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
     try List.assoc `Non_blocking groups with
     | Not_found -> [] )
 
-(* from rule_match.py
-   TODO do these numbers have meaning? *)
+(* from rule_match.py *)
 let severity_to_int = function
   | "EXPERIMENT" -> `Int 4
   | "WARNING" -> `Int 1
