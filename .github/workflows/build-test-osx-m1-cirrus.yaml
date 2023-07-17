@@ -3,7 +3,7 @@
 
 # coupling: if you modify this file, modify also build-test-osx-x86.yaml
 # This file is mostly a copy-paste of build-test-osx-x86.yaml
-name: "[Test]: Build/Test OSX M1 - Cirrus Runners"
+name: build-test-osx-m1
 
 on:
   workflow_dispatch:
@@ -20,8 +20,6 @@ on:
         required: false
         type: boolean
         default: true
-  schedule:
-    - cron: 27 * * * *
 
 jobs:
   build-core-m1:
@@ -52,7 +50,7 @@ jobs:
       - name: Cache Opam
         id: cache-opam
         uses: actions/cache@v3
-        if: ${{ inputs.use-cache || github.event_name == 'pull_request' || github.event_name == 'schedule' }}
+        if: ${{ inputs.use-cache || github.event_name == 'pull_request' }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:
@@ -70,7 +68,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: artifacts.zip
-          name: semgrep-m1-${{ github.sha }}-cirrus
+          name: semgrep-m1-${{ github.sha }}
 
   build-wheels-m1:
     runs-on:
@@ -86,8 +84,6 @@ jobs:
         run: |
           sudo mkdir /Users/runner
           sudo chmod 750 /Users/runner
-          sudo mkdir /Users/runner/hostedtoolcache
-          sudo chmod 750 /Users/runner/hostedtoolcache
           sudo chown -R admin:staff /Users/runner
       - uses: actions/setup-python@v4
         with:
@@ -97,8 +93,9 @@ jobs:
           submodules: true
       - uses: actions/download-artifact@v3
         with:
-          name: semgrep-m1-${{ github.sha }}-cirrus
-      - run: |
+          name: semgrep-m1-${{ github.sha }}
+      - name: Build Wheels
+        run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
@@ -121,8 +118,6 @@ jobs:
         run: |
           sudo mkdir /Users/runner
           sudo chmod 750 /Users/runner
-          sudo mkdir /Users/runner/hostedtoolcache
-          sudo chmod 750 /Users/runner/hostedtoolcache
           sudo chown -R admin:staff /Users/runner
       - uses: actions/download-artifact@v1
         with:
