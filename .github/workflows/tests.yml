@@ -359,8 +359,8 @@ jobs:
     uses: ./.github/workflows/build-test-osx-x86.yaml
     secrets: inherit
 
-  build-test-osx-m1:
-    uses: ./.github/workflows/build-test-osx-m1.yaml
+  build-test-osx-arm64:
+    uses: ./.github/workflows/build-test-osx-arm64.yaml
     secrets: inherit
 
   build-test-javascript:
