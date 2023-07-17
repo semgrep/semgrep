@@ -1,9 +1,9 @@
-# This workflow builds and tests the semgrep-core binary for macOS M1
-# and generates the m1-wheel for pypi.
+# This workflow builds and tests the semgrep-core binary for macOS arm64
+# and generates the arm64-wheel for pypi.
 
 # coupling: if you modify this file, modify also build-test-osx-x86.yaml
 # This file is mostly a copy-paste of build-test-osx-x86.yaml
-name: "[Test]: Build/Test OSX M1 - Cirrus Runners"
+name: build-test-osx-arm64
 
 on:
   workflow_dispatch:
@@ -20,12 +20,10 @@ on:
         required: false
         type: boolean
         default: true
-  schedule:
-    - cron: 27 * * * *
 
 jobs:
-  build-core-m1:
-    name: Build the OSX M1 binaries
+  build-core-osx-arm64:
+    name: Build the OSX arm64 binaries
     runs-on:
       [
         "self-hosted",
@@ -41,10 +39,9 @@ jobs:
           sudo mkdir /Users/runner
           sudo chown admin:staff /Users/runner
           sudo chmod 750 /Users/runner
-      - name: Brew Update & Install Python
-        run: |
-          brew update
-          brew install python@3.11
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -53,7 +50,7 @@ jobs:
       - name: Cache Opam
         id: cache-opam
         uses: actions/cache@v3
-        if: ${{ inputs.use-cache || github.event_name == 'pull_request' || github.event_name == 'schedule' }}
+        if: ${{ inputs.use-cache || github.event_name == 'pull_request' }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:
@@ -71,9 +68,9 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: artifacts.zip
-          name: semgrep-m1-${{ github.sha }}
+          name: semgrep-osx-arm64-${{ github.sha }}
 
-  build-wheels-m1:
+  build-wheels-osx-arm64:
     runs-on:
       [
         "self-hosted",
@@ -81,28 +78,33 @@ jobs:
         "ARM64",
         "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
-    needs: [build-core-m1]
+    needs: [build-core-osx-arm64]
     steps:
-      - name: Brew Update & Install Python
+      - name: Setup runner directory
         run: |
-          brew update
-          brew install python@3.11
+          sudo mkdir /Users/runner
+          sudo chmod 750 /Users/runner
+          sudo chown -R admin:staff /Users/runner
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
       - uses: actions/checkout@v3
         with:
           submodules: true
       - uses: actions/download-artifact@v3
         with:
-          name: semgrep-m1-${{ github.sha }}
-      - run: |
+          name: semgrep-osx-arm64-${{ github.sha }}
+      - name: Build Wheels
+        run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh
+          ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
-          name: m1-wheel
+          name: osx-arm64-wheel
 
-  test-wheels-m1:
+  test-wheels-osx-arm64:
     runs-on:
       [
         "self-hosted",
@@ -110,16 +112,20 @@ jobs:
         "ARM64",
         "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
-    needs: [build-wheels-m1]
+    needs: [build-wheels-osx-arm64]
     steps:
+      - name: Setup runner directory
+        run: |
+          sudo mkdir /Users/runner
+          sudo chmod 750 /Users/runner
+          sudo chown -R admin:staff /Users/runner
       - uses: actions/download-artifact@v1
         with:
-          name: m1-wheel
-      - name: Brew Update & Install Python
-        run: |
-          brew update
-          brew install python@3.11
-      - run: unzip ./m1-wheel/dist.zip
+          name: osx-arm64-wheel
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: unzip ./osx-arm64-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version
