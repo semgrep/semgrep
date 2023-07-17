@@ -37,7 +37,7 @@
 #
 # See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f for more information.
 
-# coupling: if you modify this file, modify also build-test-osx-m1.yaml
+# coupling: if you modify this file, modify also build-test-osx-arm64.yaml
 name: build-test-osx-x86
 
 on:
@@ -125,13 +125,13 @@ jobs:
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh
+          ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
           name: osx-wheel
 
-  test-wheels-osx:
+  test-wheels-osx-x86:
     runs-on: macos-12
     needs: [build-wheels-osx]
     steps:
