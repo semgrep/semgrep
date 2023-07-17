@@ -32,7 +32,7 @@ jobs:
         id: runs-on
         run: |
           echo "runs-on=['self-hosted','macOS','ARM64','ghcr.io/cirruslabs/macos-monterey-xcode:latest']" >> $GITHUB_OUTPUT
-  build-core-m1:
+  build-core-osx-arm64:
     name: Build the OSX M1 binaries
     needs: [evaluate-tags]
     runs-on: ${{ fromJson(needs.evaluate-tags.outputs.runs-on) }}
