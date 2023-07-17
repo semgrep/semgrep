@@ -171,17 +171,6 @@ and eval_expr (env : env) (v : expr) : value_ =
              env.locals
       in
       eval_expr { env with locals } e
-      (* let locals =
-           binds
-           |> List.fold_left
-                (fun acc (B (id, _teq, e)) ->
-                  (* closure! *)
-                  (* TODO? should we use env.locals or acc ? *)
-                  let binding = (e,acc) in
-                  Map_.add (LId (fst id)) binding acc)
-                env.locals
-         in
-         eval_expr { env with locals } e *)
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
       let l, index, _r = (eval_bracket eval_expr) env v2 in
@@ -200,7 +189,7 @@ and eval_expr (env : env) (v : expr) : value_ =
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
-      (*TODO: THIS NEEDS TO BE A LOT MORE COMPLEX  *)
+      (* TODO: THIS NEEDS TO BE MORE COMPLEX  *)
       | ObjectVal (_l, (_assertsTODO, fields), _r), Primitive (Str (fld, tk))
         -> (
           match
@@ -424,174 +413,12 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
-(*TODO MAKE THESE ACTUALLY USEFUL NOT STUPID*)
-and _generate_fresh_super () = "super"
-and _generate_fresh_self () = "self"
-
-and _update_environment super self env =
-  let new_locals =
-    match (super, self) with
-    | Some su, Some se -> env.locals |> Map_.add LSelf se |> Map_.add LSuper su
-    | Some su, None -> env.locals |> Map_.add LSuper su
-    | None, Some se -> env.locals |> Map_.add LSelf se
-    | _ -> env.locals
-  in
-  { locals = new_locals; depth = env.depth }
-
-and _update_environment_assert super self ((tok, exp), env) : asserts =
-  let new_env = _update_environment super self env in
-  ((tok, exp), new_env)
-
-and _update_environment_field super self (field : value_field) : value_field =
-  let new_env = _update_environment super self (snd field.vfld_value) in
-  {
-    vfld_name = field.vfld_name;
-    vfld_hidden = field.vfld_hidden;
-    vfld_value = (fst field.vfld_value, new_env);
-  }
-
-and find_field_with_name fields n =
-  match fields with
-  | { vfld_name = s; vfld_hidden = h; vfld_value = fld_val } :: t ->
-      if s =*= n then
-        Some { vfld_name = s; vfld_hidden = h; vfld_value = fld_val }
-      else find_field_with_name t n
-  | [] -> None
-
-and _merge_fields _env left right sup_name sup : value_field list =
-  Common.map
-    (fun { vfld_name = s_l; vfld_hidden = h_l; _ } ->
-      let r = find_field_with_name right s_l in
-      match r with
-      | Some { vfld_name = s_r; vfld_hidden = h_r; vfld_value = e_i, env_i } ->
-          let hidden =
-            match fst h_r with
-            | A.Visible -> h_l
-            | _ -> h_r
-          in
-
-          let mid_env = _update_environment (Some sup) None env_i in
-          let final_locals =
-            mid_env.locals
-            |> Map_.add sup_name
-                 (Expr (IdSpecial (Super, Tok.unsafe_fake_tok "super"), mid_env))
-            |> Map_.add sup_name
-                 (Expr (IdSpecial (Self, Tok.unsafe_fake_tok "self"), mid_env))
-          in
-
-          let final_env = { locals = final_locals; depth = mid_env.depth } in
-
-          {
-            vfld_name = s_r;
-            vfld_hidden = hidden;
-            vfld_value = (e_i, final_env);
-          }
-      | None ->
-          raise
-            (Error
-               ( "this should not happen",
-                 Tok.unsafe_fake_tok "this shouldn't happen" )))
-    left
-
-and eval_plus_object _env _tk (objl : object_ A.bracket)
-    (objr : object_ A.bracket) : object_ A.bracket =
-  (*Break down objl and objr so we have access to the asserts and the fields *)
-  let l, (lassert, lflds), _r = objl in
-  let _, (rassert, rflds), r = objr in
-
-  (* hashsets of field names *)
-  let hash_of_right_fields =
-    rflds
-    |> Common.map (fun { vfld_name = s, _; _ } -> s)
-    |> Common.hashset_of_list
-  in
-  let hash_of_left_fields =
-    lflds
-    |> Common.map (fun { vfld_name = s, _; _ } -> s)
-    |> Common.hashset_of_list
-  in
-
-  let asserts = lassert @ rassert in
-
-  (* fields that exist only in the left object *)
-  let lflds_no_overlap =
-    lflds
-    |> List.filter (fun { vfld_name = s, _; _ } ->
-           not (Hashtbl.mem hash_of_right_fields s))
-  in
-
-  (* fields that only exist in the right object *)
-  let rflds_no_overlap =
-    rflds
-    |> List.filter (fun { vfld_name = s, _; _ } ->
-           not (Hashtbl.mem hash_of_left_fields s))
-  in
-
-  (* hashset of the names of fields that exist only in the right object *)
-  let rflds_no_overlap_hash =
-    rflds_no_overlap
-    |> Common.map (fun { vfld_name = s, _; _ } -> s)
-    |> Common.hashset_of_list
-  in
-  (* hashset of the names of fields that exist only in the left object *)
-  let lflds_no_overlap_hash =
-    lflds_no_overlap
-    |> Common.map (fun { vfld_name = s, _; _ } -> s)
-    |> Common.hashset_of_list
-  in
-
-  (* fields that exist in both left and right (of the left object)*)
-  let lflds_overlap =
-    lflds
-    |> List.filter (fun { vfld_name = s, _; _ } ->
-           not (Hashtbl.mem lflds_no_overlap_hash s))
-  in
-
-  (* fileds that exist in both left and right (of the right object)*)
-  let rflds_overlap =
-    rflds
-    |> List.filter (fun { vfld_name = s, _; _ } ->
-           not (Hashtbl.mem rflds_no_overlap_hash s))
-  in
-
-  (* INCORRECT TOKENS AND UNSURE ABOUT ENVIRONMENT *)
-  let super = Expr (Id (_generate_fresh_super (), _tk), _env) in
-  let self = Expr (Id (_generate_fresh_self (), _tk), _env) in
-
-  let new_flds_right =
-    List.map (_update_environment_field (Some super) (Some self)) lflds
-  in
-
-  let new_assert_list_right =
-    List.map (_update_environment_assert (Some super) (Some self)) lassert
-  in
-
-  let new_right_obj : object_ A.bracket =
-    (l, (new_assert_list_right, new_flds_right), _r)
-  in
-
-  let e_s =
-    try
-      match eval_expr _env (IdSpecial (Super, Tok.unsafe_fake_tok "super")) with
-      | ObjectVal nlo -> eval_plus_object _env _tk nlo new_right_obj
-      | _ -> raise (Error ("this should not happen", _tk))
-    with
-    | Error _ -> new_right_obj
-  in
-
-  let final_fields =
-    lflds_no_overlap @ rflds_no_overlap
-    @ _merge_fields _env lflds_overlap rflds_overlap (LId "super")
-        (Val (ObjectVal e_s, _env))
-  in
-  (l, (asserts, final_fields), r)
-
 (* This is a very naive implementation of plus for objects that
  * just merge the fields.
  * TODO: handle inheritance with complex self/super semantic in the presence
  * of plus
  *)
-(*and eval_plus_object _env _tk objl objr : object_ A.bracket =
+and eval_plus_object _env _tk objl objr : object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
   let hobjr =
@@ -606,7 +433,7 @@ and eval_plus_object _env _tk (objl : object_ A.bracket)
     |> List.filter (fun { vfld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
   in
   let flds = lflds' @ rflds in
-  (l, (asserts, flds), r)*)
+  (l, (asserts, flds), r)
 
 and eval_binary_op env el (op, tk) er =
   match op with
@@ -771,50 +598,6 @@ and eval_obj_inside env (l, x, r) : value_ =
       in
       let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
       ObjectVal (l, (asserts_with_env, fields), r)
-      (*(* sanity check no duplicated fields *)
-      let hdupes = Hashtbl.create 16 in
-      (* We need a 'let rec' below because while defining the object o,
-       * we need to add in the environment a binding from LSelf to o
-       * when evaluating the field value.
-       * The use of lazy_o below is a bit ugly but is a trick to overcome
-       * let-rec limitations (you can't do 'let rec o = <a_value>').
-       * See https://stackoverflow.com/questions/19859953/limitations-of-let-rec-in-ocaml
-       *)
-      let rec lazy_o =
-        lazy
-          (Object
-             ( l,
-               ( assertsTODO,
-                 fields
-                 |> Common.map_filter
-                      (fun
-                        { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value }
-                      ->
-                        match eval_expr env ei with
-                        | (Primitive (Null _),_) -> None
-                        | (Primitive (Str ((str, _) as fld_name)),_) ->
-                            if Hashtbl.mem hdupes str then
-                              error tk (spf "duplicate field name: \"%s\"" str)
-                            else Hashtbl.add hdupes str true;
-
-                            let fld_value =
-                              let v =
-                                lazy
-                                  (let locals =
-                                     env.locals |> Map_.add LSelf lazy_o
-                                     |> Map_.add LSuper (lazy empty_obj)
-                                   in
-                                   eval_expr { env with locals } fld_value)
-                              in
-                              { v; e = fld_value }
-                            in
-                            Some { fld_name; fld_hidden; fld_value }
-                        | v ->
-                            error tk
-                              (spf "field name was not a string: %s" (sv v))) ),
-               r ))
-      in
-      Lazy.force lazy_o*)
   | ObjectComp _x -> error l "TODO: ObjectComp"
 (*
       let v = eval_obj_comprehension env x in
@@ -840,16 +623,14 @@ and tostring (v : value_) : string =
   let j = manifest_value v in
   JSON.string_of_json j
 
+(*Same as eval_expr but with profiling *)
 and eval_program (e : Core_jsonnet.program) (env : env) : value_ =
-  (*let empty_env = { locals = Map_.empty; depth = 0 } in*)
-
-  (*let v = eval_expr empty_env e in*)
   let v = eval_expr env e in
   v
   [@@profiling]
 
 (*****************************************************************************)
-(* Entry point *)
+(* Manfestation *)
 (*****************************************************************************)
 and manifest_value (v : value_) : JSON.t =
   match v with
@@ -886,9 +667,3 @@ and manifest_value (v : value_) : JSON.t =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(*let error tk s =
-    (* TODO? if Parse_info.is_fake tk ... *)
-    raise (Error (s, tk))
-
-  let sv e = (*show_value_ e*) "hello"*)

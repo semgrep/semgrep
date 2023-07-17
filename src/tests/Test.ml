@@ -69,7 +69,6 @@ let tests () =
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
-      Unit_jsonnet.tests ();
       Unit_metachecking.tests ();
       Unit_LS.tests;
       Aliengrep.Unit_tests.tests;

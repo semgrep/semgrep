@@ -6,7 +6,6 @@ module FT = File_type
 module C = Semgrep_dashdash_config
 module R = Rule
 module XP = Xpattern
-module U = Utilities_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
