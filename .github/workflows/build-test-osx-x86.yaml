@@ -37,7 +37,7 @@
 #
 # See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f for more information.
 
-# coupling: if you modify this file, modify also build-test-osx-m1.yaml
+# coupling: if you modify this file, modify also build-test-osx-arm64.yaml
 name: build-test-osx-x86
 
 on:
