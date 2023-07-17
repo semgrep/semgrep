@@ -25,9 +25,35 @@ class ['self] pat_id_visitor =
       | PatId (id, id_info) ->
           super#visit_pattern store pat;
           Common.push (id, id_info) store
+      | G.OtherPat (_, [ G.E { e = G.Record (_b1, fields, _b2); _ } ]) ->
+          (* JS allows object destructuring in the parameter list. Associate
+           * each local variable bound in a destructuring with the positional
+           * function parameter that it comes from. *)
+          (* TODO Handle array destructuring *)
+          (* TODO Recurse into multi-level destructuring *)
+          (* TODO Make this analysis field-sensitive *)
+          List.iter
+            (function
+              | G.F
+                  {
+                    s =
+                      G.DefStmt
+                        ( { name = G.EN (G.Id (_id, _idinfo)); _ },
+                          G.FieldDefColon
+                            {
+                              vinit =
+                                Some
+                                  { e = G.N (G.Id (local_id, local_idinfo)); _ };
+                              _;
+                            } );
+                    _;
+                  } ->
+                  Common.push (local_id, local_idinfo) store
+              | _else_ -> ())
+            fields
+      | PatRecord _
       | PatLiteral _
       | PatConstructor _
-      | PatRecord _
       | PatTuple _
       | PatList _
       | PatKeyVal _
