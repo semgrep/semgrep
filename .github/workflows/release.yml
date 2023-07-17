@@ -104,6 +104,8 @@ jobs:
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml
     secrets: inherit
+    with:
+      wheel-artifact-name: osx-x86-wheel
 
   build-test-osx-arm64:
     uses: ./.github/workflows/build-test-osx-arm64.yaml
@@ -114,8 +116,6 @@ jobs:
   build-test-core-x86:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
-    with:
-      wheel-artifact-name: osx-x86-wheel
 
   build-test-manylinux-x86:
     needs: [build-test-core-x86]
@@ -169,8 +169,8 @@ jobs:
       - name: Download Osx Artifact
         uses: actions/download-artifact@v3
         with:
-          name: osx-wheel
-          path: osx-wheel
+          name: osx-x86-wheel
+          path: osx-x86-wheel
       - name: Download OSX ARM64 Artifact
         uses: actions/download-artifact@v3
         with:
