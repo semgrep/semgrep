@@ -44,17 +44,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - name: Debug Info
-        run: |
-          set -x
-          # brew info python3 --json | jq '.[0].name'
-          # brew info python3 --json | jq '.[0].urls.stable.checksum'
-          # brew info python3 --json | jq '.[0].versions.stable'
-          brew --cache
-          brew --prefix
-          which python3
-          ls -al "$(brew --prefix)/bin"
-          python3 --version
       - uses: actions/checkout@v3
         with:
           submodules: true
@@ -83,7 +72,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: artifacts.zip
-          key: osx-m1-semgrep-core-eA81a8pohotw5xvF
+          name: semgrep-m1-${{ github.sha }}
 
   build-wheels-m1:
     runs-on:
@@ -108,18 +97,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Debug Info
-        run: |
-          python3 --version
-          which python3
-          pip3 install setuptools==67.6.1 wheel==0.40.0
-          python3 scripts/debug.py
       - name: Restore Semgrep Core Binary
         id: cache-semgrep-core
         uses: actions/cache/restore@v3
         with:
-          path: artifacts.zip
-          key: osx-m1-semgrep-core-eA81a8pohotw5xvF
+          name: semgrep-m1-${{ github.sha }}
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
