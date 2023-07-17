@@ -6,7 +6,7 @@
 # which can be statically linked.
 #
 # Then 'semgrep-core' alone is copied to another Alpine-based container
-# which takes care of the 'semgrep-cli' Python wrapping.
+# which takes care of the 'semgrep-cli' (a.k.a. pysemgrep) Python wrapping.
 #
 # We use Alpine because it allows to generate the smallest Docker images.
 # We use this two-steps process because *building* semgrep-core itself
@@ -32,6 +32,9 @@ WORKDIR /src/semgrep
 COPY . .
 
 # remove files and folders that aren't necessary for the semgrep-core build
+# coupling: see the (dirs ...) directive in the toplevel dune file for the list
+# of directories containing OCaml code and which should not be added below
+# (except js/ which contains OCaml code but is not used to build semgrep-core)
 RUN rm -rf cli js .github .circleci Dockerfile
 
 # we *do* need the cli's semgrep_interfaces folder, however
@@ -60,6 +63,10 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #    is not without problems when used inside Github actions (GHA) or even inside
 #    this Dockerfile.
 #
+#    update: we recently started to cache the ~/.opam/ directory in CI so
+#    in theory we could get rid of ocaml-layer and instead use the official
+#    opam docker image combined with this ~/.opam/ caching to speedup things.
+#
 #  - 'alpine', the official Alpine Docker image, but this would require some
 #    extra 'apk' commands to install opam, and extra commands to setup OCaml
 #    with this opam from scratch, and more importantly this would take
@@ -68,6 +75,8 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #    tools like gcc, make, which are not provided by default on Alpine.
 #
 # An alternative to ocaml-layer would be to use https://depot.dev/
+# update: we actually started to use depot.dev to speedup multi-arch (arm)
+# docker image, so maybe we could use it to get rid of ocaml-layer
 #
 # Note that the Docker base image below currently uses OCaml 4.14.0
 # coupling: if you modify the OCaml version there, you probably also need
@@ -151,7 +160,7 @@ RUN apk update &&\
 # - libstdc++: for the Python jsonnet binding now used in pysemgrep
 #   note: do not put libstdc++6, you'll get 'missing library' or 'unresolved
 #   symbol' errors
-#   TODO: remove once the osemgrep port is done
+#   TODO: remove once the osemgrep/ojsonnet port is done
 # - git, git-lfs, openssh: so that the semgrep docker image can be used in
 #   Github actions (GHA) and get git submodules and use ssh to get those submodules
 # - bash, curl, jq: various utilities useful in CI jobs (e.g., our benchmark jobs,
@@ -215,7 +224,8 @@ RUN addgroup --system semgrep \
 # We can set it by default once we fix the circle ci workflows
 #USER semgrep
 
-# Workaround for rootless containers as git operations may fail due to dubious ownership of /src
+# Workaround for rootless containers as git operations may fail due to dubious
+# ownership of /src
 RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
 RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
