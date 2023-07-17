@@ -1,4 +1,4 @@
-(* Yoann Padioleau
+(* (* Yoann Padioleau
  *
  * Copyright (C) 2022 r2c
  *
@@ -16,6 +16,7 @@ open Common
 module J = JSON
 module V = Value_jsonnet
 module A = AST_jsonnet
+module E = Eval_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -41,7 +42,8 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
-let sv e = V.show_value_ e
+let sv e = (*V.show_value_ e*) "hello"
+
 
 (*****************************************************************************)
 (* Entry point *)
@@ -59,7 +61,8 @@ let rec manifest_value (v : Value_jsonnet.value_) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> Common.map (fun lzv ->
-               let v = Lazy.force lzv.V.v in
+               (*let v = Lazy.force lzv.V.v*)
+                let v = E.eval_program lzv Utilities_jsonnet.empty_env in
                manifest_value v))
   | V.Object (_l, (_assertsTODO, fields), _r) as _o ->
       (* TODO: evaluate asserts *)
@@ -70,8 +73,9 @@ let rec manifest_value (v : Value_jsonnet.value_) : JSON.t =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   let v = Lazy.force fld_value.v in
+                   (*let v = Lazy.force fld_value.v*)
+                   let v = E.eval_program (fst fld_value) (snd fld_value)  in
                    let j = manifest_value v in
                    Some (fst fld_name, j))
       in
-      J.Object xs
+      J.Object xs *)

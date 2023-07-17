@@ -30,15 +30,18 @@ let test_maker () =
                | Ok json_file -> json_file
                | Error msg -> failwith msg
              in
-             let res = Y.from_string (File.read_file comparison_file_path) in
+             let correct =
+               Y.from_string (File.read_file comparison_file_path)
+             in
 
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
-             let value_ = Eval_jsonnet.eval_program core in
-             let json =
-               JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
+             let value_ =
+               Eval_jsonnet.eval_program core Core_jsonnet.empty_env
              in
-             Alcotest.(check bool)
-               "these should've been equal" (Y.equal json res) true ))
+             let json = JSON.to_yojson (Eval_jsonnet.manifest_value value_) in
+             let fmt = format_of_string "expected %s but got %s" in
+             let result = Printf.sprintf fmt (Y.show correct) (Y.show json) in
+             Alcotest.(check bool) result (Y.equal json correct) true ))
 
 let tests () = test_maker ()

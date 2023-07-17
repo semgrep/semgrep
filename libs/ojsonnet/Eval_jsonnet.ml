@@ -15,7 +15,6 @@
 open Common
 open Core_jsonnet
 module A = AST_jsonnet
-module V = Value_jsonnet
 module J = JSON
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -31,18 +30,19 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-type env = {
-  (* The spec uses a lambda-calculus inspired substitution model, but
-   * it is probably simpler and more efficient to use a classic
-   * environment where the locals are defined. Jsonnet uses lazy
-   * evaluation so we model this by using Lazy below.
-   *)
-  locals : (local_id, V.value_ Lazy.t) Map_.t;
-  (* for call tracing *)
-  depth : int;
-}
 
-and local_id = LSelf | LSuper | LId of string
+(*type env = {
+    (* The spec uses a lambda-calculus inspired substitution model, but
+     * it is probably simpler and more efficient to use a classic
+     * environment where the locals are defined. Jsonnet uses lazy
+     * evaluation so we model this by using Lazy below.
+     *)
+    locals : (local_id, (expr * env)) Map_.t;
+    (* for call tracing *)
+    depth : int;
+  }
+
+  and local_id = LSelf | LSuper | LId of string*)
 
 exception Error of string * Tok.t
 
@@ -60,7 +60,7 @@ let error tk s =
 let fk = Tok.unsafe_fake_tok ""
 
 let sv e =
-  let s = V.show_value_ e in
+  let s = show_value_ e in
   if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
 
 let eval_bracket ofa env (v1, v2, v3) =
@@ -79,20 +79,6 @@ let string_of_local_id = function
   | LSuper -> "super"
   | LId s -> s
 
-let lookup env tk local_id =
-  let lzv =
-    try Map_.find local_id env.locals with
-    | Not_found ->
-        error tk
-          (spf "could not find '%s' in the environment"
-             (string_of_local_id local_id))
-  in
-  Lazy.force lzv
-
-let tostring (v : Value_jsonnet.value_) : string =
-  let j = Manifest_jsonnet.manifest_value v in
-  JSON.string_of_json j
-
 let log_call env str tk =
   logger#trace "calling %s> %s at %s"
     (Common2.repeat "-" env.depth |> Common.join "")
@@ -102,63 +88,69 @@ let log_call env str tk =
 (* Builtins *)
 (*****************************************************************************)
 (* alt: could move to Value_jsonnet.ml *)
-let std_type _env (v : V.value_) : string =
+let std_type _env (v : value_) : string =
   match v with
-  | V.Primitive (V.Null _) -> "null"
-  | V.Primitive (V.Bool _) -> "boolean"
-  | V.Primitive (V.Double _) -> "number"
-  | V.Primitive (V.Str _) -> "string"
-  | V.Object _ -> "object"
-  | V.Array _ -> "array"
-  | V.Function _ -> "function"
+  | Primitive (Null _) -> "null"
+  | Primitive (Bool _) -> "boolean"
+  | Primitive (Double _) -> "number"
+  | Primitive (Str _) -> "string"
+  | ObjectVal _ -> "object"
+  | Array _ -> "array"
+  | Function _ -> "function"
 
-let std_primivite_equals _env (v : V.value_) (v' : V.value_) : bool =
+let std_primivite_equals _env (v : value_) (v' : value_) : bool =
   match (v, v') with
-  | V.Primitive p, V.Primitive p' -> (
+  | Primitive p, Primitive p' -> (
       match (p, p') with
       (* alt: use deriving and Primitive.eq *)
-      | V.Null _, V.Null _ -> true
-      | V.Bool (b, _), V.Bool (b', _) -> b =:= b'
-      | V.Str (s, _), V.Str (s', _) -> s = s'
-      | V.Double (f, _), V.Double (f', _) -> f =*= f'
-      | V.Null _, _
-      | V.Bool _, _
-      | V.Str _, _
-      | V.Double _, _ ->
+      | Null _, Null _ -> true
+      | Bool (b, _), Bool (b', _) -> b =:= b'
+      | Str (s, _), Str (s', _) -> s = s'
+      | Double (f, _), Double (f', _) -> f =*= f'
+      | Null _, _
+      | Bool _, _
+      | Str _, _
+      | Double _, _ ->
           false)
   (* Should we raise an exn if one of the value is not a primitive?
    * No, the spec seems to not restrict what v and v' can be.
    *)
   | _else_ -> false
 
+let rec lookup env tk local_id =
+  let entry =
+    try Map_.find local_id env.locals with
+    | Not_found ->
+        error tk
+          (spf "could not find '%s' in the environment"
+             (string_of_local_id local_id))
+  in
+  match entry with
+  | Val v -> fst v
+  | Expr e -> eval_expr (snd e) (fst e)
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
 
-let rec eval_expr (env : env) (v : expr) : V.value_ =
+and eval_expr (env : env) (v : expr) : value_ =
   match v with
   | L v ->
       let prim =
         match v with
-        | A.Null tk -> V.Null tk
-        | A.Bool (b, tk) -> V.Bool (b, tk)
-        | A.Str x -> V.Str (A.string_of_string_ x)
+        | A.Null tk -> Null tk
+        | A.Bool (b, tk) -> Bool (b, tk)
+        | A.Str x -> Str (A.string_of_string_ x)
         | A.Number (s, tk) ->
             (* TODO: double check things *)
             let f = float_of_string s in
-            V.Double (f, tk)
+            Double (f, tk)
       in
-      V.Primitive prim
+      Primitive prim
   (* lazy evaluation of Array elements and Functions *)
   | Array (l, xs, r) ->
-      let elts =
-        xs |> Array.of_list
-        |> Array.map (fun e ->
-               let v = lazy (eval_expr env e) in
-               { V.v; e })
-      in
-      V.Array (l, elts, r)
-  | Lambda v -> V.Function v
+      let elts = xs |> Common.map (fun x -> (x, env)) |> Array.of_list in
+      Array (l, elts, r)
+  | Lambda v -> Function v
   | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (LId s)
   | IdSpecial (Self, tk) -> lookup env tk LSelf
@@ -173,71 +165,83 @@ let rec eval_expr (env : env) (v : expr) : V.value_ =
       let locals =
         binds
         |> List.fold_left
-             (fun acc (B (id, _teq, e)) ->
-               (* closure! *)
-               (* TODO? should we use env.locals or acc ? *)
-               let lzv = lazy (eval_expr { env with locals = env.locals } e) in
-               Map_.add (LId (fst id)) lzv acc)
+             (fun acc (B (id, _teq, e_i)) ->
+               let binding = Expr (e_i, env) in
+               Map_.add (LId (fst id)) binding acc)
              env.locals
       in
       eval_expr { env with locals } e
+      (* let locals =
+           binds
+           |> List.fold_left
+                (fun acc (B (id, _teq, e)) ->
+                  (* closure! *)
+                  (* TODO? should we use env.locals or acc ? *)
+                  let binding = (e,acc) in
+                  Map_.add (LId (fst id)) binding acc)
+                env.locals
+         in
+         eval_expr { env with locals } e *)
   | ArrayAccess (v1, v2) -> (
       let e = eval_expr env v1 in
-      let l, e', _r = (eval_bracket eval_expr) env v2 in
-      match (e, e') with
-      | V.Array (_l, arr, _r), V.Primitive (V.Double (f, tkf)) ->
+      let l, index, _r = (eval_bracket eval_expr) env v2 in
+      match (e, index) with
+      | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
           if Float.is_integer f then
             let i = int_of_float f in
             match i with
             | _ when i < 0 ->
-                error tkf (spf "negative value for array index: %s" (sv e'))
+                error tkf (spf "negative value for array index: %s" (sv index))
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
-                Lazy.force ei.v
+                (* TODO: Is this the right environment to evaluate in? *)
+                eval_expr (snd ei) (fst ei)
+                (*Lazy.force ei.v*)
             | _else_ ->
-                error tkf (spf "Out of bound for array index: %s" (sv e'))
-          else error tkf (spf "Not an integer: %s" (sv e'))
-      (*TODO: need one more check? *)
-      | V.Object (_l, (_assertsTODO, fields), _r), V.Primitive (V.Str (fld, tk))
+                error tkf (spf "Out of bound for array index: %s" (sv index))
+          else error tkf (spf "Not an integer: %s" (sv index))
+      (*TODO: THIS NEEDS TO BE A LOT MORE COMPLEX  *)
+      | ObjectVal (_l, (_assertsTODO, fields), _r), Primitive (Str (fld, tk))
         -> (
           match
             fields
-            |> List.find_opt (fun (field : V.field) -> fst field.fld_name = fld)
+            |> List.find_opt (fun (field : value_field) ->
+                   fst field.vfld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld -> Lazy.force fld.fld_value.v)
+          | Some fld -> eval_expr env (fst fld.vfld_value))
       (* TODO? support ArrayAccess for Strings? *)
-      | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv e')))
+      | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
           match eval_expr env e with
-          | V.Primitive (V.Bool (b, tk)) -> V.Primitive (V.Bool (not b, tk))
+          | Primitive (Bool (b, tk)) -> Primitive (Bool (not b, tk))
           | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
       | UPlus -> (
           match eval_expr env e with
-          | V.Primitive (V.Double (f, tk)) -> V.Primitive (V.Double (f, tk))
+          | Primitive (Double (f, tk)) -> Primitive (Double (f, tk))
           | v -> error tk (spf "Not a number for unary +: %s" (sv v)))
       | UMinus -> (
           match eval_expr env e with
-          | V.Primitive (V.Double (f, tk)) -> V.Primitive (V.Double (-.f, tk))
+          | Primitive (Double (f, tk)) -> Primitive (Double (-.f, tk))
           | v -> error tk (spf "Not a number for unary -: %s" (sv v)))
       | UTilde -> (
           match eval_expr env e with
-          | V.Primitive (V.Double (f, tk)) ->
+          | Primitive (Double (f, tk)) ->
               let f = f |> Int64.of_float |> Int64.lognot |> Int64.to_float in
-              V.Primitive (V.Double (f, tk))
+              Primitive (Double (f, tk))
           | v -> error tk (spf "Not a number for unary -: %s" (sv v))))
   | BinaryOp (el, (op, tk), er) -> eval_binary_op env el (op, tk) er
   | If (tif, e1, e2, e3) -> (
       match eval_expr env e1 with
-      | V.Primitive (V.Bool (b, _)) ->
+      | Primitive (Bool (b, _)) ->
           if b then eval_expr env e2 else eval_expr env e3
       | v -> error tif (spf "not a boolean for if: %s" (sv v)))
   | Error (tk, e) -> (
       match eval_expr env e with
-      | V.Primitive (V.Str (s, tk)) -> error tk (spf "ERROR: %s" s)
+      | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
@@ -250,7 +254,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
       Primitive (Str (s, l))
   (* this method is called in std.jsonnet equals()::, and calls to
    * this equals() are generated in Desugar_jsonnet when
-   * desugaring the == opeerator.
+   * desugaring the == operator.
    *)
   | "type", _else_ ->
       error tk
@@ -275,7 +279,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
       | Array (_, arr, _) ->
           let i = Array.length arr in
           Primitive (Double (float_of_int i, tk))
-      | Object (_, (_asserts, flds), _) ->
+      | ObjectVal (_, (_asserts, flds), _) ->
           let i = List.length flds in
           (* TODO: in the spec they use std.objectFieldsEx *)
           Primitive (Double (float_of_int i, tk))
@@ -285,18 +289,16 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
                (sv v)))
   | "makeArray", [ Arg e; Arg e' ] -> (
       log_call env ("std." ^ method_str) l;
-      let mk_lazy_val i fdef =
-        let e =
-          Call
-            (Lambda fdef, (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk))
-        in
-        { V.v = lazy (eval_expr env e); e }
-      in
-      match (eval_expr env e, e') with
-      | Primitive (Double (n, tk)), Lambda fdef ->
+      match (eval_expr env e, eval_expr env e') with
+      | Primitive (Double (n, tk)), Function fdef ->
           if Float.is_integer n then
-            Array
-              (fk, Array.init (Float.to_int n) (fun i -> mk_lazy_val i fdef), fk)
+            let n = Float.to_int n in
+            let e i =
+              Call
+                ( Lambda fdef,
+                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
+            in
+            Array (fk, Array.init n (fun i -> (e i, env)), fk)
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -306,7 +308,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
            (List.length args))
   | "filter", [ Arg e; Arg e' ] -> (
       match (eval_expr env e, eval_expr env e') with
-      | V.Function f, V.Array (l, eis, r) ->
+      | Function f, Array (l, eis, r) ->
           (* note that we do things lazily even here, so we still
            * return an Array with the same lazy value elements in it,
            * but just filtered
@@ -316,16 +318,16 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
             eis |> Array.to_list |> Common.index_list
             |> List.filter_map (fun (ei, ji) ->
                    match eval_std_filter_element env tk f ei with
-                   | V.Primitive (V.Bool (false, _)) -> None
-                   | V.Primitive (V.Bool (true, _)) -> Some ji
+                   | Primitive (Bool (false, _)), _ -> None
+                   | Primitive (Bool (true, _)), _ -> Some ji
                    | v ->
                        error tk
                          (spf "filter function must return boolean, got: %s"
-                            (sv v)))
+                            (sv (fst v))))
             |> Array.of_list
             |> Array.map (fun idx -> eis.(idx))
           in
-          V.Array (l, elts', r)
+          Array (l, elts', r)
       | v1, v2 ->
           error tk
             (spf
@@ -338,18 +340,18 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
            (List.length args))
   | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
       match (eval_expr env e, eval_expr env e', eval_expr env e'') with
-      | V.Object o, V.Primitive (V.Str (s, _)), V.Primitive (V.Bool (b, _)) ->
+      | ObjectVal o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
           let _, (_asserts, flds), _ = o in
           let eltopt =
-            flds |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
+            flds |> List.find_opt (fun { vfld_name; _ } -> fst vfld_name = s)
           in
           let b =
             match eltopt with
             | None -> false
-            | Some { V.fld_hidden = visibility, _; _ } ->
+            | Some { vfld_hidden = visibility, _; _ } ->
                 visibility <> A.Hidden || b
           in
-          V.Primitive (V.Bool (b, tk))
+          Primitive (Bool (b, tk))
       | v1, v2, v3 ->
           error tk
             (spf
@@ -366,24 +368,24 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
 
 (* In theory, we should just recursively evaluate f(ei), but
  * ei is actually not an expression but a lazy_value coming from
- * a V.array, so we can't just call eval_call(). The code below is
+ * a array, so we can't just call eval_call(). The code below is
  * a specialization of eval_call and eval_expr for Local.
  *)
 and eval_std_filter_element (env : env) (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.value_ =
-  ignore (env, f, ei);
+    (ei : program * env) : value_ * env =
+  (*ignore (env, f, ei);*)
   match f with
   | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
       (* similar to eval_expr for Local *)
-      let locals = Map_.add (LId (fst id)) ei.v env.locals in
+      let locals = Map_.add (LId (fst id)) (Expr ei) env.locals in
       (* similar to eval_call *)
-      eval_expr { (*env with*) depth = env.depth + 1; locals } f_body
+      (*TODO: Is the environment correct? *)
+      (eval_expr { (*env with*) depth = env.depth + 1; locals } f_body, env)
   | _else_ -> error tk "filter function takes 1 parameter"
 
 and eval_call env e0 (largs, args, _rargs) =
   match eval_expr env e0 with
-  | V.Function { f_tok = _; f_params = lparams, params, rparams; f_body = eb }
-    ->
+  | Function { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
       let fstr =
         match e0 with
         | Id (s, _) -> s
@@ -423,34 +425,76 @@ and eval_call env e0 (largs, args, _rargs) =
   | v -> error largs (spf "not a function: %s" (sv v))
 
 (*TODO MAKE THESE ACTUALLY USEFUL NOT STUPID*)
-and _generate_fresh_super l = "super"
-and _generate_fresh_self l = "self"
+and _generate_fresh_super () = "super"
+and _generate_fresh_self () = "self"
 
-and _perform_substitution_kw_exp super self prog =
-  match (super, self) with
-  | Some _, Some _ -> prog
-  | None, Some _ -> prog
-  | Some _, None -> prog
-  | _ -> prog
+and _update_environment super self env =
+  let new_locals =
+    match (super, self) with
+    | Some su, Some se -> env.locals |> Map_.add LSelf se |> Map_.add LSuper su
+    | Some su, None -> env.locals |> Map_.add LSuper su
+    | None, Some se -> env.locals |> Map_.add LSelf se
+    | _ -> env.locals
+  in
+  { locals = new_locals; depth = env.depth }
 
-and _perform_substitution_kw_assert super self (tok, exp) : obj_assert =
-  (tok, _perform_substitution_kw_exp super self exp)
+and _update_environment_assert super self ((tok, exp), env) : asserts =
+  let new_env = _update_environment super self env in
+  ((tok, exp), new_env)
 
-and _perform_substitution_kw_field super self (field : V.field) : V.field =
-  let e = field.fld_value.e in
-  let new_e = _perform_substitution_kw_exp super self e in
+and _update_environment_field super self (field : value_field) : value_field =
+  let new_env = _update_environment super self (snd field.vfld_value) in
   {
-    fld_name = field.fld_name;
-    fld_hidden = field.fld_hidden;
-    (* TODO: WRONG!!  THE LAZY VALUE SHOULD ALSO BE UPDATED SOMEHOW?? *)
-    fld_value = { v = field.fld_value.v; e = new_e };
+    vfld_name = field.vfld_name;
+    vfld_hidden = field.vfld_hidden;
+    vfld_value = (fst field.vfld_value, new_env);
   }
 
-(* TODO: How to actually care about the environment? *)
-and _merge_fields _env left right sup : V.field list = left
+and find_field_with_name fields n =
+  match fields with
+  | { vfld_name = s; vfld_hidden = h; vfld_value = fld_val } :: t ->
+      if s =*= n then
+        Some { vfld_name = s; vfld_hidden = h; vfld_value = fld_val }
+      else find_field_with_name t n
+  | [] -> None
 
-and eval_plus_object2 _env _tk (objl : V.object_ A.bracket)
-    (objr : V.object_ A.bracket) : V.object_ A.bracket =
+and _merge_fields _env left right sup_name sup : value_field list =
+  Common.map
+    (fun { vfld_name = s_l; vfld_hidden = h_l; _ } ->
+      let r = find_field_with_name right s_l in
+      match r with
+      | Some { vfld_name = s_r; vfld_hidden = h_r; vfld_value = e_i, env_i } ->
+          let hidden =
+            match fst h_r with
+            | A.Visible -> h_l
+            | _ -> h_r
+          in
+
+          let mid_env = _update_environment (Some sup) None env_i in
+          let final_locals =
+            mid_env.locals
+            |> Map_.add sup_name
+                 (Expr (IdSpecial (Super, Tok.unsafe_fake_tok "super"), mid_env))
+            |> Map_.add sup_name
+                 (Expr (IdSpecial (Self, Tok.unsafe_fake_tok "self"), mid_env))
+          in
+
+          let final_env = { locals = final_locals; depth = mid_env.depth } in
+
+          {
+            vfld_name = s_r;
+            vfld_hidden = hidden;
+            vfld_value = (e_i, final_env);
+          }
+      | None ->
+          raise
+            (Error
+               ( "this should not happen",
+                 Tok.unsafe_fake_tok "this shouldn't happen" )))
+    left
+
+and eval_plus_object _env _tk (objl : object_ A.bracket)
+    (objr : object_ A.bracket) : object_ A.bracket =
   (*Break down objl and objr so we have access to the asserts and the fields *)
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
@@ -458,12 +502,12 @@ and eval_plus_object2 _env _tk (objl : V.object_ A.bracket)
   (* hashsets of field names *)
   let hash_of_right_fields =
     rflds
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.map (fun { vfld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
   let hash_of_left_fields =
     lflds
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.map (fun { vfld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
 
@@ -472,79 +516,74 @@ and eval_plus_object2 _env _tk (objl : V.object_ A.bracket)
   (* fields that exist only in the left object *)
   let lflds_no_overlap =
     lflds
-    |> List.filter (fun { V.fld_name = s, _; _ } ->
+    |> List.filter (fun { vfld_name = s, _; _ } ->
            not (Hashtbl.mem hash_of_right_fields s))
   in
 
   (* fields that only exist in the right object *)
   let rflds_no_overlap =
     rflds
-    |> List.filter (fun { V.fld_name = s, _; _ } ->
+    |> List.filter (fun { vfld_name = s, _; _ } ->
            not (Hashtbl.mem hash_of_left_fields s))
   in
 
   (* hashset of the names of fields that exist only in the right object *)
   let rflds_no_overlap_hash =
     rflds_no_overlap
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.map (fun { vfld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
   (* hashset of the names of fields that exist only in the left object *)
   let lflds_no_overlap_hash =
     lflds_no_overlap
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.map (fun { vfld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
 
   (* fields that exist in both left and right (of the left object)*)
   let lflds_overlap =
     lflds
-    |> List.filter (fun { V.fld_name = s, _; _ } ->
+    |> List.filter (fun { vfld_name = s, _; _ } ->
            not (Hashtbl.mem lflds_no_overlap_hash s))
   in
 
   (* fileds that exist in both left and right (of the right object)*)
   let rflds_overlap =
     rflds
-    |> List.filter (fun { V.fld_name = s, _; _ } ->
+    |> List.filter (fun { vfld_name = s, _; _ } ->
            not (Hashtbl.mem rflds_no_overlap_hash s))
   in
 
-  let super = LId (_generate_fresh_super _env.locals) in
-  let self = LId (_generate_fresh_self _env.locals) in
+  (* INCORRECT TOKENS AND UNSURE ABOUT ENVIRONMENT *)
+  let super = Expr (Id (_generate_fresh_super (), _tk), _env) in
+  let self = Expr (Id (_generate_fresh_self (), _tk), _env) in
 
-  (* TODO: TOKENS ARE WRONG *)
   let new_flds_right =
-    List.map
-      (_perform_substitution_kw_field (Some super) (Some self))
-      lflds_no_overlap
-    @ List.map
-        (_perform_substitution_kw_field (Some super) (Some self))
-        rflds_no_overlap
-  in
-  let new_assert_list =
-    (List.map (fun x ->
-         _perform_substitution_kw_assert (Some super) (Some self) x))
-      lassert
-  in
-  let new_right_obj : V.object_ A.bracket =
-    (_tk, (new_assert_list, new_flds_right), _tk)
+    List.map (_update_environment_field (Some super) (Some self)) lflds
   in
 
-  (*TODO VERY WRONG TOKEN, NOT SURE WHAT TO PUT HERE RIGHT NOW *)
-  let new_left_obj =
-    match eval_expr _env (IdSpecial (Super, _tk)) with
-    | V.Object nlo -> nlo
-    | _ -> raise (Error ("this should not happen", _tk))
+  let new_assert_list_right =
+    List.map (_update_environment_assert (Some super) (Some self)) lassert
   in
-  (*TODO ENVIRONMENT MAY NEED TO BE DIFFERENT, TOKENS DEFINITELY NEED TO BE DIFFERENT *)
-  let e_s = eval_plus_object2 _env _tk new_left_obj new_right_obj in
+
+  let new_right_obj : object_ A.bracket =
+    (l, (new_assert_list_right, new_flds_right), _r)
+  in
+
+  let e_s =
+    try
+      match eval_expr _env (IdSpecial (Super, Tok.unsafe_fake_tok "super")) with
+      | ObjectVal nlo -> eval_plus_object _env _tk nlo new_right_obj
+      | _ -> raise (Error ("this should not happen", _tk))
+    with
+    | Error _ -> new_right_obj
+  in
+
   let final_fields =
     lflds_no_overlap @ rflds_no_overlap
-    @ _merge_fields _env lflds_overlap rflds_overlap e_s
+    @ _merge_fields _env lflds_overlap rflds_overlap (LId "super")
+        (Val (ObjectVal e_s, _env))
   in
-
-  (* TODO this is very wrong, need to add the real semantics *)
   (l, (asserts, final_fields), r)
 
 (* This is a very naive implementation of plus for objects that
@@ -552,49 +591,47 @@ and eval_plus_object2 _env _tk (objl : V.object_ A.bracket)
  * TODO: handle inheritance with complex self/super semantic in the presence
  * of plus
  *)
-and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
+(*and eval_plus_object _env _tk objl objr : object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
   let hobjr =
     rflds
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.map (fun { vfld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
   (* TODO: this currently just merges the f *)
   let asserts = lassert @ rassert in
   let lflds' =
     lflds
-    |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
+    |> List.filter (fun { vfld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
   in
   let flds = lflds' @ rflds in
-  (l, (asserts, flds), r)
+  (l, (asserts, flds), r)*)
 
 and eval_binary_op env el (op, tk) er =
   match op with
   | Plus -> (
       match (eval_expr env el, eval_expr env er) with
-      | V.Array (l1, arr1, _r1), V.Array (_l2, arr2, r2) ->
-          V.Array (l1, Array.append arr1 arr2, r2)
-      | V.Primitive (V.Double (f1, tk)), V.Primitive (V.Double (f2, _)) ->
-          V.Primitive (V.Double (f1 +. f2, tk))
-      | V.Primitive (V.Str (s1, tk1)), V.Primitive (V.Str (s2, _tk2)) ->
-          V.Primitive (V.Str (s1 ^ s2, tk1))
-      | V.Primitive (V.Str (s, tk)), v ->
-          V.Primitive (V.Str (s ^ tostring v, tk))
-      | v, V.Primitive (V.Str (s, tk)) ->
-          V.Primitive (V.Str (tostring v ^ s, tk))
-      | V.Object objl, V.Object objr ->
+      | Array (l1, arr1, _r1), Array (_l2, arr2, r2) ->
+          Array (l1, Array.append arr1 arr2, r2)
+      | Primitive (Double (f1, tk)), Primitive (Double (f2, _)) ->
+          Primitive (Double (f1 +. f2, tk))
+      | Primitive (Str (s1, tk1)), Primitive (Str (s2, _tk2)) ->
+          Primitive (Str (s1 ^ s2, tk1))
+      | Primitive (Str (s, tk)), v -> Primitive (Str (s ^ tostring v, tk))
+      | v, Primitive (Str (s, tk)) -> Primitive (Str (tostring v ^ s, tk))
+      | ObjectVal objl, ObjectVal objr ->
           let obj = eval_plus_object env tk objl objr in
-          V.Object obj
+          ObjectVal obj
       | v1, v2 ->
           error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
   | And -> (
       match eval_expr env el with
-      | V.Primitive (V.Bool (b, _)) as v -> if b then eval_expr env er else v
+      | Primitive (Bool (b, _)) as v -> if b then eval_expr env er else v
       | v -> error tk (spf "Not a boolean for &&: %s" (sv v)))
   | Or -> (
       match eval_expr env el with
-      | V.Primitive (V.Bool (b, _)) as v -> if b then v else eval_expr env er
+      | Primitive (Bool (b, _)) as v -> if b then v else eval_expr env er
       | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
   | Lt
   | LtE
@@ -621,7 +658,7 @@ and eval_binary_op env el (op, tk) er =
   | Mult
   | Div -> (
       match (eval_expr env el, eval_expr env er) with
-      | V.Primitive (V.Double (f1, itk)), V.Primitive (V.Double (f2, _)) ->
+      | Primitive (Double (f1, itk)), Primitive (Double (f2, _)) ->
           let op =
             match op with
             | Minus -> ( -. )
@@ -629,7 +666,7 @@ and eval_binary_op env el (op, tk) er =
             | Div -> ( /. )
             | _else_ -> assert false
           in
-          V.Primitive (V.Double (op f1 f2, itk))
+          Primitive (Double (op f1 f2, itk))
       | v1, v2 ->
           error tk
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
@@ -642,7 +679,7 @@ and eval_binary_op env el (op, tk) er =
       let v1 = eval_expr env el in
       let v2 = eval_expr env er in
       match (v1, v2) with
-      | V.Primitive (V.Double (f1, tk1)), V.Primitive (V.Double (f2, tk2)) ->
+      | Primitive (Double (f1, tk1)), Primitive (Double (f2, tk2)) ->
           let i1 = Int64.of_float f1 in
           let i2 = Int64.of_float f2 in
           let i64 =
@@ -662,7 +699,7 @@ and eval_binary_op env el (op, tk) er =
             | BitXor -> Int64.logxor i1 i2
             | _else_ -> assert false
           in
-          V.Primitive (V.Double (Int64.to_float i64, tk1))
+          Primitive (Double (Int64.to_float i64, tk1))
       | v1, v2 ->
           error tk
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
@@ -677,27 +714,25 @@ and eval_binary_op env el (op, tk) er =
  * return a cmp.
  *)
 and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
-  let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
+  let rec eval_std_cmp_value_ (v_el : value_) (v_er : value_) : cmp =
     match (v_el, v_er) with
-    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
-    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
-    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
-    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 = Lazy.force ax.(0).v in
-        let b0 = Lazy.force bx.(0).v in
+    | Array (_, [||], _), Array (_, [||], _) -> Eq
+    | Array (_, [||], _), Array (_, _, _) -> Inf
+    | Array (_, _, _), Array (_, [||], _) -> Sup
+    | Array (al, ax, ar), Array (bl, bx, br) -> (
+        let a0 = eval_expr (snd ax.(0)) (fst ax.(0)) in
+        let b0 = eval_expr (snd ax.(0)) (fst bx.(0)) in
+        (*let a0 = Lazy.force ax.(0).v in*)
+        (*let b0 = Lazy.force bx.(0).v in*)
         match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
         | Eq ->
-            let a_sub =
-              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
-            in
-            let b_sub =
-              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
-            in
+            let a_sub = Array (al, Array.sub ax 1 (Array.length ax - 1), ar) in
+            let b_sub = Array (bl, Array.sub bx 1 (Array.length bx - 1), br) in
             eval_std_cmp_value_ a_sub b_sub)
-    | V.Primitive (V.Double (fl, _)), V.Primitive (V.Double (fr, _)) ->
+    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
         Float.compare fl fr |> int_to_cmp
-    | V.Primitive (V.Str (strl, _)), V.Primitive (V.Str (strr, _)) ->
+    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
         (* TODO? or use unicode? *)
         String.compare strl strr |> int_to_cmp
     (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
@@ -712,10 +747,31 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
 (* eval_obj_inside *)
 (*****************************************************************************)
 
-and eval_obj_inside env (l, x, r) : V.value_ =
+and eval_obj_inside env (l, x, r) : value_ =
+  let hdupes = Hashtbl.create 16 in
   match x with
   | Object (assertsTODO, fields) ->
-      (* sanity check no duplicated fields *)
+      let fields =
+        fields
+        |> Common.map_filter
+             (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
+               match eval_expr env ei with
+               | Primitive (Null _) -> None
+               | Primitive (Str ((str, _) as fld_name)) ->
+                   if Hashtbl.mem hdupes str then
+                     error tk (spf "duplicate field name: \"%s\"" str)
+                   else Hashtbl.add hdupes str true;
+                   Some
+                     {
+                       vfld_name = fld_name;
+                       vfld_hidden = fld_hidden;
+                       vfld_value = (fld_value, env);
+                     }
+               | v -> error tk (spf "field name was not a string: %s" (sv v)))
+      in
+      let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
+      ObjectVal (l, (asserts_with_env, fields), r)
+      (*(* sanity check no duplicated fields *)
       let hdupes = Hashtbl.create 16 in
       (* We need a 'let rec' below because while defining the object o,
        * we need to add in the environment a binding from LSelf to o
@@ -726,7 +782,7 @@ and eval_obj_inside env (l, x, r) : V.value_ =
        *)
       let rec lazy_o =
         lazy
-          (V.Object
+          (Object
              ( l,
                ( assertsTODO,
                  fields
@@ -735,8 +791,8 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                         { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value }
                       ->
                         match eval_expr env ei with
-                        | V.Primitive (V.Null _) -> None
-                        | V.Primitive (V.Str ((str, _) as fld_name)) ->
+                        | (Primitive (Null _),_) -> None
+                        | (Primitive (Str ((str, _) as fld_name)),_) ->
                             if Hashtbl.mem hdupes str then
                               error tk (spf "duplicate field name: \"%s\"" str)
                             else Hashtbl.add hdupes str true;
@@ -746,19 +802,19 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                                 lazy
                                   (let locals =
                                      env.locals |> Map_.add LSelf lazy_o
-                                     |> Map_.add LSuper (lazy V.empty_obj)
+                                     |> Map_.add LSuper (lazy empty_obj)
                                    in
                                    eval_expr { env with locals } fld_value)
                               in
-                              { V.v; e = fld_value }
+                              { v; e = fld_value }
                             in
-                            Some { V.fld_name; fld_hidden; fld_value }
+                            Some { fld_name; fld_hidden; fld_value }
                         | v ->
                             error tk
                               (spf "field name was not a string: %s" (sv v))) ),
                r ))
       in
-      Lazy.force lazy_o
+      Lazy.force lazy_o*)
   | ObjectComp _x -> error l "TODO: ObjectComp"
 (*
       let v = eval_obj_comprehension env x in
@@ -780,9 +836,59 @@ and eval_for_comp env v =
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
+and tostring (v : value_) : string =
+  let j = manifest_value v in
+  JSON.string_of_json j
 
-let eval_program (e : Core_jsonnet.program) : Value_jsonnet.value_ =
-  let empty_env = { locals = Map_.empty; depth = 0 } in
-  let v = eval_expr empty_env e in
+and eval_program (e : Core_jsonnet.program) (env : env) : value_ =
+  (*let empty_env = { locals = Map_.empty; depth = 0 } in*)
+
+  (*let v = eval_expr empty_env e in*)
+  let v = eval_expr env e in
   v
   [@@profiling]
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+and manifest_value (v : value_) : JSON.t =
+  match v with
+  | Primitive x -> (
+      match x with
+      | Null _t -> J.Null
+      | Bool (b, _tk) -> J.Bool b
+      | Double (f, _tk) -> J.Float f
+      | Str (s, _tk) -> J.String s)
+  | Function { f_tok = tk; _ } -> error tk (spf "Function value: %s" (sv v))
+  | Array (_, arr, _) ->
+      J.Array
+        (arr |> Array.to_list
+        |> Common.map (fun entry ->
+               (*let v = Lazy.force lzv.v*)
+               let v = eval_program (fst entry) (snd entry) in
+               manifest_value v))
+  | ObjectVal (_l, (_assertsTODO, fields), _r) as _o ->
+      (* TODO: evaluate asserts *)
+      let xs =
+        fields
+        |> Common.map_filter (fun { vfld_name; vfld_hidden; vfld_value } ->
+               match fst vfld_hidden with
+               | A.Hidden -> None
+               | A.Visible
+               | A.ForcedVisible ->
+                   (*let v = Lazy.force fld_value.v*)
+                   let v = eval_program (fst vfld_value) (snd vfld_value) in
+                   let j = manifest_value v in
+                   Some (fst vfld_name, j))
+      in
+      J.Object xs
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(*let error tk s =
+    (* TODO? if Parse_info.is_fake tk ... *)
+    raise (Error (s, tk))
+
+  let sv e = (*show_value_ e*) "hello"*)

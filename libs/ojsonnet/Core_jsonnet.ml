@@ -161,11 +161,77 @@ and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
-(* Program *)
+(* Env *)
 (*****************************************************************************)
+type env = {
+  (* The spec uses a lambda-calculus inspired substitution model, but
+   * it is probably simpler and more efficient to use a classic
+   * environment where the locals are defined. Jsonnet uses lazy
+   * evaluation so we model this by using Lazy below.
+   *)
+  locals : (local_id, local) Map_.t;
+  (* for call tracing *)
+  depth : int;
+}
 
-type program = expr [@@deriving show]
+and local_id = LSelf | LSuper | LId of string
+and local = Val of (value_ * env) | Expr of (expr * env)
+
+(*****************************************************************************)
+(* Values *)
+(*****************************************************************************)
+and value_ =
+  | Primitive of primitive
+  | ObjectVal of object_ AST_jsonnet.bracket
+  | Function of function_definition
+  | Array of (expr * env) array AST_jsonnet.bracket
+
+(* mostly like AST_jsonnet.literal but with evaluated Double instead of
+ * Number and a simplified string!
+ * Is float good enough? That's what we use in JSON.t so should be good.
+ * TODO? string good enough for unicode? codepoints?
+ *)
+and primitive =
+  | Null of AST_jsonnet.tok
+  | Bool of bool AST_jsonnet.wrap
+  | Double of float AST_jsonnet.wrap
+  | Str of string AST_jsonnet.wrap
+
+and object_ = asserts list * value_field list
+
+(* opti? make it a hashtbl of string -> field for faster lookup? *)
+and value_field = {
+  (* like Str, strictly evaluated! *)
+  vfld_name : string AST_jsonnet.wrap;
+  vfld_hidden : AST_jsonnet.hidden AST_jsonnet.wrap;
+  vfld_value : expr * env;
+}
+
+and asserts = obj_assert * env [@@deriving show]
+
+(*(* old: was just C.expr but this can't work because manifest
+ * can't be passed the correct environment to evaluate the array
+ * elts or fields
+ *)
+and lazy_value = {
+  (* lazy closures built from a call to Eval_jsonnet.eval_expr *)
+  v : value_ Lazy.t;
+  (* just for debugging as we can't inspect closures *)
+  e : C.expr;
+}
+[@@deriving show]*)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+let empty_obj : value_ =
+  let fk = Tok.unsafe_fake_tok "" in
+  ObjectVal (fk, ([], []), fk)
+
+let empty_env = { locals = Map_.empty; depth = 0 }
+
+(*****************************************************************************)
+(* Program *)
+(*****************************************************************************)
+
+type program = expr [@@deriving show]
