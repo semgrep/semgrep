@@ -390,7 +390,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (Lang.Bash, "bash", ".bash");
         (Lang.Dockerfile, "dockerfile", ".dockerfile");
         (Lang.Python, "python", ".py");
-        (Lang.Promql , "promql", ".promql");
+        (Lang.Promql, "promql", ".promql");
         (Lang.Js, "js", ".js");
         (Lang.Ts, "ts", ".ts");
         (Lang.Json, "json", ".json");

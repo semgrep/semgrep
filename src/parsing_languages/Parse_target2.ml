@@ -225,7 +225,7 @@ let just_parse_with_lang lang file =
   | Lang.Clojure ->
       run file [ TreeSitter Parse_clojure_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
-  | Lang.Promql->
+  | Lang.Promql ->
       run file [ TreeSitter Parse_promql_tree_sitter.parse ] (fun x -> x)
   | Lang.Protobuf ->
       run file [ TreeSitter Parse_protobuf_tree_sitter.parse ] (fun x -> x)
