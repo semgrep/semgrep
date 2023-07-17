@@ -22,15 +22,20 @@ on:
         default: true
 
 jobs:
-  build-core-osx-arm64:
-    name: Build the OSX arm64 binaries
-    runs-on:
-      [
-        "self-hosted",
-        "macOS",
-        "ARM64",
-        "ghcr.io/cirruslabs/macos-monterey-xcode:latest",
-      ]
+  evaluate-tags:
+    name: Evalute Architecture Build Tags
+    runs-on: ubuntu-22.04
+    outputs:
+      runs-on: ${{steps.runs-on.outputs.runs-on}}
+    steps:
+      - name: Generate `runs-on` tag list
+        id: runs-on
+        run: |
+          echo "runs-on=['self-hosted','macOS','ARM64','ghcr.io/cirruslabs/macos-monterey-xcode:latest']" >> $GITHUB_OUTPUT
+  build-core-m1:
+    name: Build the OSX M1 binaries
+    needs: [evaluate-tags]
+    runs-on: ${{ fromJson(needs.evaluate-tags.outputs.runs-on) }}
     env:
       OPAM_SWITCH_NAME: "4.14.0"
     steps:

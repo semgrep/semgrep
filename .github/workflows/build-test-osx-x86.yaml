@@ -59,7 +59,7 @@ on:
 jobs:
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: macos-12
+    runs-on: [macos-12]
     env:
       # This name is used in the cache key. If we update to a newer version of
       # ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
