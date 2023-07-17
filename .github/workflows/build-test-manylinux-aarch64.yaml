@@ -13,6 +13,7 @@ jobs:
       id-token: write
     steps:
       - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
       - uses: depot/setup-action@v1
       - name: Build and test python wheel
         id: build-semgrep-wheel
@@ -22,6 +23,7 @@ jobs:
           platforms: linux/arm64
           outputs: type=docker,dest=/tmp/image.tar
           target: semgrep-wheel
+          buildx-fallback: true
       - name: Extract wheel from docker image
         run: |
           docker load --input /tmp/image.tar
