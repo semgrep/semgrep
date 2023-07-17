@@ -62,3 +62,4 @@ jobs:
     secrets: inherit
     with:
       architecture: x86
+      use-cache: ${{ inputs.use-cache }}

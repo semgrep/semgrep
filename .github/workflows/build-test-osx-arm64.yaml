@@ -27,3 +27,4 @@ jobs:
     secrets: inherit
     with:
       architecture: arm64
+      use-cache: ${{ inputs.use-cache }}
