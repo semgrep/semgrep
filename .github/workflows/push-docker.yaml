@@ -16,10 +16,6 @@ on:
         type: boolean
         description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
         default: true
-      multi-arch:
-        required: true
-        type: boolean
-        description: Whether or not we intend to push a multi-arch docker image
 
   workflow_call:
     inputs:
@@ -36,43 +32,11 @@ on:
         type: boolean
         description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
         default: true
-      multi-arch:
-        required: true
-        type: boolean
 
 jobs:
   push-docker:
     name: Push Semgrep Docker Image
     runs-on: ubuntu-22.04
-    if: ${{ ! inputs.multi-arch }}
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: /tmp
-      - name: Load image
-        run: |
-          docker load --input /tmp/image.tar
-      - name: List Images
-        if: ${{ inputs.dry-run }}
-        run: |
-          docker image list --digests
-      - uses: docker/login-action@v2
-        if: ${{ ! inputs.dry-run }}
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push Image
-        if: ${{ ! inputs.dry-run }}
-        run: |
-          docker push --all-tags "${{ inputs.repository-name }}"
-  push-docker-multi-arch:
-    name: Push Semgrep Docker Image (multi-arch)
-    runs-on: ubuntu-22.04
-    if: ${{ inputs.multi-arch }}
     steps:
       - uses: iarekylew00t/regctl-installer@v1
       - uses: actions/download-artifact@v3

@@ -321,7 +321,6 @@ jobs:
       repository-name: ${{ github.repository }}
       file: Dockerfile
       enable-tests: true
-      multi-arch: true
 
   push-docker:
     needs: [build-test-docker]
@@ -332,7 +331,6 @@ jobs:
       artifact-name: image-test
       repository-name: ${{ github.repository }}
       dry-run: false
-      multi-arch: true
 
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]
@@ -350,6 +348,11 @@ jobs:
   build-test-manylinux-x86:
     needs: [build-test-core-x86]
     uses: ./.github/workflows/build-test-manylinux-x86.yaml
+    secrets: inherit
+
+  build-test-manylinux-aarch64:
+    needs: [build-test-docker]
+    uses: ./.github/workflows/build-test-manylinux-aarch64.yaml
     secrets: inherit
 
   build-test-osx-x86:

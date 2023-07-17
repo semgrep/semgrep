@@ -6,6 +6,95 @@
 
 <!-- insertion point -->
 
+## [1.32.0](https://github.com/returntocorp/semgrep/releases/tag/v1.32.0) - 2023-07-13
+
+### Added
+
+- feat(docker): Create a semgrep user for our docker container so that people can run it as a non-root user (gh-8116)
+- feat(typed metavar): Typed metavariable support for Rust
+
+  Users can create `TypedMetavar` using Rust's type annotation syntax `:`.
+  For example, the following rule works for matching `HttpResponseBuilder`
+  type of variables:
+
+  ````
+  rules:
+  - id: no-direct-response-write
+    patterns:
+    - pattern: '($BUILDER : HttpResponseBuilder).body(...)'
+    - pattern-not: '($BUILDER : HttpResponseBuilder).body("...".to_string())'
+    message: find dangerous codes
+    severity: WARNING
+    languages: [rust]
+  ``` (gh-8200)
+  ````
+
+### Fixed
+
+- baseline scans reporting on existing findings (baseline-supply-chain)
+- Fixed an issue leading to incorrect autofix results involving JS/TS async arrow functions (e.g. `async () => {}`, etc.). (gh-7353)
+- Workaround for rootless containers as git operations may fail due to dubious ownership of /src (gh-8267)
+
+## [1.31.2](https://github.com/returntocorp/semgrep/releases/tag/v1.31.2) - 2023-07-07
+
+No significant changes.
+
+## [1.31.1](https://github.com/returntocorp/semgrep/releases/tag/v1.31.1) - 2023-07-07
+
+No significant changes.
+
+## [1.31.0](https://github.com/returntocorp/semgrep/releases/tag/v1.31.0) - 2023-07-07
+
+### Added
+
+- Make CLI hit the new endpoint for the reliable fixed status on the Semgrep app. (cod-16)
+- feat(rule syntax): Metavariable Type Extension for Semgrep Rule Syntax 2.0
+
+  This PR introduces the changes made in Semgrep rule syntax 1.0 to version 2.0 as well.
+
+  # rule syntax 2.0
+
+  rules:
+
+  - id: no-string-eqeq
+    message: find errors
+    severity: WARNING
+    languages:
+    - java
+      match:
+      all: - not: null == (String $Y) - $X == (String $Y)
+
+  # rule syntax 2.0 after proposed change
+
+  rules:
+
+  - id: no-string-eqeq
+    message: find errors
+    severity: WARNING
+    languages:
+    - java
+      match:
+      all: - not: null == $Y - $X == $Y
+      where: - metavariable: $Y
+      type: String (gh-8183)
+
+- Rust: Added the ability to taint macro calls through its arguments, in macro calls
+  with multiple arguments. (pa-2902)
+- Add severity and suggested upgrade versions to Supply Chain findings (sc-772)
+- Added support for pnpm lockfile versions >= 6.0 (sc-824)
+- (sc-866)
+
+### Fixed
+
+- Fixed an issue leading to incorrect autofix results involving JS/TS arrow functions (e.g. `() => {}`). (gh-7353)
+- Dockerfile support: single-quoted strings are now parsed without an error. (gh-7780)
+- Fixes Go issue with patterns like make(...); make(...,$X); make($A,$B). (gh-8171)
+- Fixed rust attribute patterns to allow matching on simple attribute syntax. (pa-2903)
+- Rust: Fixed a bug where standalone metavariable patterns
+  were not matching as expected (pa-2915)
+- Fixed python semgrep pattern parsing to also parse match statements, by chaining in the python tree-sitter parser, and adding metavariable support to the python tree-sitter parser. (pa-6442)
+- poetry.lock parsing: handle empty toml tables, quoted table keys, and arbitrarily placed comments (sc-834)
+
 ## [1.30.0](https://github.com/returntocorp/semgrep/releases/tag/v1.30.0) - 2023-06-28
 
 ### Added

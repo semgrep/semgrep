@@ -938,9 +938,10 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) : catch =
   let v1 = (* "catch" *) token env v1 in
   let catch =
     match v2 with
-    | Some tok ->
+    | Some (`Id tok) ->
         let id = map_identifier env tok in
         CatchPattern (PatId (id, empty_id_info ()))
+    | Some (`Semg_ellips tok) -> CatchPattern (PatEllipsis (token env tok))
     | None -> CatchPattern (PatUnderscore (fake "underscore"))
   in
   let _v3 = map_terminator_opt env v3 in

@@ -214,28 +214,32 @@ let rec _show_source { call_trace; label; precondition } =
      This may change, for instance, if we have ever propagated this taint to
      a different label.
   *)
+  let rec depth acc = function
+    | PM _ -> acc
+    | Call (_, _, x) -> depth (acc + 1) x
+  in
+  let pm, ts = pm_of_trace call_trace in
+  let tok1, tok2 = pm.range_loc in
+  let r = Range.range_of_token_locations tok1 tok2 in
   let precondition_prefix = _show_taints_with_precondition precondition in
-  precondition_prefix ^ _show_call_trace (fun _ -> label) call_trace
+  let str =
+    let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
+    toks |> Common.map Tok.content_of_tok |> String.concat "_"
+  in
+  Printf.sprintf "<%s(%d,%d)%s#%s/%s|t:%d>" precondition_prefix r.start r.end_
+    str ts.label label (depth 0 call_trace)
 
 and _show_taints_with_precondition precondition =
   match precondition with
   | None -> ""
   | Some (ts, pre) ->
-      Common.spf "[%d|if %s]" (List.length ts) (_show_precondition pre)
+      Common.spf "PRE|%s|if %s|"
+        (Common.map _show_taint ts |> String.concat " + ")
+        (_show_precondition pre)
 
 and _show_taint taint =
-  let rec depth acc = function
-    | PM _ -> acc
-    | Call (_, _, x) -> depth (acc + 1) x
-  in
   match taint.orig with
-  | Src { call_trace; label; precondition } ->
-      let pm, _ = pm_of_trace call_trace in
-      let tok1, tok2 = pm.range_loc in
-      let r = Range.range_of_token_locations tok1 tok2 in
-      let precondition_prefix = _show_taints_with_precondition precondition in
-      Printf.sprintf "%s(%d,%d)#%s|%d|" precondition_prefix r.start r.end_ label
-        (depth 0 call_trace)
+  | Src src -> _show_source src
   | Arg arg_lval -> _show_arg arg_lval
 
 let _show_sink { rule_sink; _ } = rule_sink.R.sink_id
@@ -334,7 +338,7 @@ type signature = Findings.t
 let pick_taint taint1 taint2 =
   (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
      * of them, but we want the one with the shortest trace. *)
-  match (taint1.orig, taint1.orig) with
+  match (taint1.orig, taint2.orig) with
   | Arg _, Arg _ -> taint2
   | Src src1, Src src2 ->
       let call_trace_cmp =
@@ -497,8 +501,7 @@ let labels_in_precondition pre =
  *   is `A and not B`, we can reduce that to having taint '?1' and precondition
  *   `not B`.
  *)
-let rec solve_precondition ?(ignore_poly_taint = false) ~taints pre :
-    bool option =
+let rec solve_precondition ~ignore_poly_taint ~taints pre : bool option =
   let open Common in
   let sure_labels, maybe_labels, has_poly_taint = labels_in_taints taints in
   let rec loop = function
@@ -542,7 +545,9 @@ and labels_in_taints taints =
              sure_labels := LabelSet.add label !sure_labels
          | Src { label; precondition = Some (incoming, pre); _ } -> (
              match
-               solve_precondition ~taints:(Taint_set.of_list incoming) pre
+               solve_precondition ~ignore_poly_taint:false
+                 ~taints:(Taint_set.of_list incoming)
+                 pre
              with
              | Some true -> sure_labels := LabelSet.add label !sure_labels
              | Some false -> ()
@@ -579,37 +584,58 @@ let taints_satisfy_requires taints pre =
       logger#error "Could not solve taint label precondition";
       false
 
+let filter_relevant_taints requires taints =
+  let labels = labels_in_precondition requires in
+  (* If the precondition is 'A' we don't care about taint with label 'B' or 'C'. *)
+  taints
+  |> Taint_set.filter (fun t ->
+         match t.orig with
+         | Arg _ -> true
+         | Src src -> LabelSet.mem src.label labels)
+
 (* Just a straightforward bottom-up map on preconditions. *)
 let rec map_preconditions f taint =
   match taint.orig with
-  | Arg _ -> taint
-  | Src { precondition = None; _ } -> taint
-  | Src ({ precondition = Some (incoming, expr); _ } as src) ->
-      let new_incoming = incoming |> Common.map (map_preconditions f) |> f in
-      let new_precondition = Some (new_incoming, expr) in
-      { taint with orig = Src { src with precondition = new_precondition } }
+  | Arg _ -> Some taint
+  | Src { precondition = None; _ } -> Some taint
+  | Src ({ precondition = Some (incoming, expr); _ } as src) -> (
+      let new_incoming =
+        incoming
+        |> Common.map_filter (map_preconditions f)
+        |> f |> Taint_set.of_list
+      in
+      let new_incoming = filter_relevant_taints expr new_incoming in
+      match
+        solve_precondition ~ignore_poly_taint:false ~taints:new_incoming expr
+      with
+      | Some false -> None
+      | Some true ->
+          Some { taint with orig = Src { src with precondition = None } }
+      | None ->
+          let new_incoming = new_incoming |> Taint_set.elements in
+          let new_precondition = Some (new_incoming, expr) in
+          Some
+            {
+              taint with
+              orig = Src { src with precondition = new_precondition };
+            })
 
 (*****************************************************************************)
 (* New taints *)
 (*****************************************************************************)
 
 let src_of_pm ~incoming (pm, (x : Rule.taint_source)) =
-  let labels = labels_in_precondition x.source_requires in
-  let relevant_incoming =
-    (* If the precondition is 'A' we don't care about taint with label 'B' or 'C'. *)
-    incoming
-    |> Taint_set.filter (fun t ->
-           match t.orig with
-           | Arg _ -> true
-           | Src src -> LabelSet.mem src.label labels)
-  in
+  let relevant_incoming = filter_relevant_taints x.source_requires incoming in
   (* We don't expect to be able to solve preconditions here, but we need to try
    * in order to simplify away the trivial cases. Otherwise if we had e.g. a pattern
    * source like `pattern: $X` that matches tons of things, with label 'B' and a
    * 'requires' like `A`, we could be generating lots of 'B's in places where we know
    * for sure that we don't have any 'A'!
    *)
-  match solve_precondition ~taints:relevant_incoming x.source_requires with
+  match
+    solve_precondition ~ignore_poly_taint:false ~taints:relevant_incoming
+      x.source_requires
+  with
   | Some false -> None
   | Some true ->
       Some

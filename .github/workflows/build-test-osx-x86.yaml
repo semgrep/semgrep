@@ -125,13 +125,13 @@ jobs:
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh
+          ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
           name: osx-wheel
 
-  test-wheels-osx:
+  test-wheels-osx-x86:
     runs-on: macos-12
     needs: [build-wheels-osx]
     steps:
