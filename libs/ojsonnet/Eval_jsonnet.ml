@@ -16,6 +16,7 @@ open Common
 open Core_jsonnet
 module A = AST_jsonnet
 module J = JSON
+open Value_jsonnet
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -30,19 +31,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-
-(*type env = {
-    (* The spec uses a lambda-calculus inspired substitution model, but
-     * it is probably simpler and more efficient to use a classic
-     * environment where the locals are defined. Jsonnet uses lazy
-     * evaluation so we model this by using Lazy below.
-     *)
-    locals : (local_id, (expr * env)) Map_.t;
-    (* for call tracing *)
-    depth : int;
-  }
-
-  and local_id = LSelf | LSuper | LId of string*)
 
 exception Error of string * Tok.t
 
@@ -125,9 +113,9 @@ let rec lookup env tk local_id =
           (spf "could not find '%s' in the environment"
              (string_of_local_id local_id))
   in
-  match entry with
-  | Val v -> fst v
-  | Expr e -> eval_expr (snd e) (fst e)
+  match entry.value with
+  | Val v -> v
+  | Unevaluated e -> eval_expr entry.env e
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
@@ -148,7 +136,11 @@ and eval_expr (env : env) (v : expr) : value_ =
       Primitive prim
   (* lazy evaluation of Array elements and Functions *)
   | Array (l, xs, r) ->
-      let elts = xs |> Common.map (fun x -> (x, env)) |> Array.of_list in
+      let elts =
+        xs
+        |> Common.map (fun x -> { value = Unevaluated x; env })
+        |> Array.of_list
+      in
       Array (l, elts, r)
   | Lambda v -> Function v
   | O v -> eval_obj_inside env v
@@ -166,7 +158,7 @@ and eval_expr (env : env) (v : expr) : value_ =
         binds
         |> List.fold_left
              (fun acc (B (id, _teq, e_i)) ->
-               let binding = Expr (e_i, env) in
+               let binding = { value = Unevaluated e_i; env } in
                Map_.add (LId (fst id)) binding acc)
              env.locals
       in
@@ -181,11 +173,12 @@ and eval_expr (env : env) (v : expr) : value_ =
             match i with
             | _ when i < 0 ->
                 error tkf (spf "negative value for array index: %s" (sv index))
-            | _ when i >= 0 && i < Array.length arr ->
+            | _ when i >= 0 && i < Array.length arr -> (
                 let ei = arr.(i) in
                 (* TODO: Is this the right environment to evaluate in? *)
-                eval_expr (snd ei) (fst ei)
-                (*Lazy.force ei.v*)
+                match ei.value with
+                | Val v -> v
+                | Unevaluated e -> eval_expr ei.env e)
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
@@ -198,15 +191,10 @@ and eval_expr (env : env) (v : expr) : value_ =
                    fst field.vfld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld ->
-              let new_self = ObjectVal (_l, (_assertsTODO, fields), _r) in
-              let locals =
-                env.locals
-                |> Map_.add LSelf (Val (new_self, env))
-                |> Map_.add LSuper (Val (empty_obj, env))
-              in
-
-              eval_expr { env with locals } (fst fld.vfld_value))
+          | Some fld -> (
+              match fld.vfld_value.value with
+              | Val v -> v
+              | Unevaluated e -> eval_expr fld.vfld_value.env e))
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
@@ -295,7 +283,10 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array (fk, Array.init n (fun i -> (e i, env)), fk)
+            Array
+              ( fk,
+                Array.init n (fun i -> { value = Unevaluated (e i); env }),
+                fk )
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -369,12 +360,11 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
  * a specialization of eval_call and eval_expr for Local.
  *)
 and eval_std_filter_element (env : env) (tk : tok) (f : function_definition)
-    (ei : program * env) : value_ * env =
-  (*ignore (env, f, ei);*)
+    (ei : lazy_value) : value_ * env =
   match f with
   | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
       (* similar to eval_expr for Local *)
-      let locals = Map_.add (LId (fst id)) (Expr ei) env.locals in
+      let locals = Map_.add (LId (fst id)) ei env.locals in
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
       (eval_expr { (*env with*) depth = env.depth + 1; locals } f_body, env)
@@ -555,10 +545,18 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
     | Array (_, [||], _), Array (_, _, _) -> Inf
     | Array (_, _, _), Array (_, [||], _) -> Sup
     | Array (al, ax, ar), Array (bl, bx, br) -> (
-        let a0 = eval_expr (snd ax.(0)) (fst ax.(0)) in
-        let b0 = eval_expr (snd ax.(0)) (fst bx.(0)) in
-        (*let a0 = Lazy.force ax.(0).v in*)
-        (*let b0 = Lazy.force bx.(0).v in*)
+        let a0 =
+          match ax.(0).value with
+          | Val v -> v
+          | Unevaluated e -> eval_expr ax.(0).env e
+        in
+
+        let b0 =
+          match bx.(0).value with
+          | Val v -> v
+          | Unevaluated e -> eval_expr bx.(0).env e
+        in
+
         match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
         | Eq ->
@@ -596,11 +594,22 @@ and eval_obj_inside env (l, x, r) : value_ =
                    if Hashtbl.mem hdupes str then
                      error tk (spf "duplicate field name: \"%s\"" str)
                    else Hashtbl.add hdupes str true;
+                   let obj_inside = (l, Object (assertsTODO, fields), r) in
+                   let new_self = O obj_inside in
+                   let locals =
+                     env.locals
+                     |> Map_.add LSelf { value = Unevaluated new_self; env }
+                     |> Map_.add LSuper { value = Val empty_obj; env }
+                   in
                    Some
                      {
                        vfld_name = fld_name;
                        vfld_hidden = fld_hidden;
-                       vfld_value = (fld_value, env);
+                       vfld_value =
+                         {
+                           value = Unevaluated fld_value;
+                           env = { env with locals };
+                         };
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
@@ -653,9 +662,10 @@ and manifest_value (v : value_) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> Common.map (fun entry ->
-               (*let v = Lazy.force lzv.v*)
-               let v = eval_program (fst entry) (snd entry) in
-               manifest_value v))
+               manifest_value
+                 (match entry.value with
+                 | Val v -> v
+                 | Unevaluated e -> eval_expr entry.env e)))
   | ObjectVal (_l, (_assertsTODO, fields), _r) as _o ->
       (* TODO: evaluate asserts *)
       let xs =
@@ -668,13 +678,17 @@ and manifest_value (v : value_) : JSON.t =
                    (*let v = Lazy.force fld_value.v*)
                    let new_self = ObjectVal (_l, (_assertsTODO, fields), _r) in
                    let locals =
-                     (snd vfld_value).locals
-                     |> Map_.add LSelf (Val (new_self, snd vfld_value))
-                     |> Map_.add LSuper (Val (empty_obj, snd vfld_value))
+                     vfld_value.env.locals
+                     |> Map_.add LSelf
+                          { value = Val new_self; env = vfld_value.env }
+                     |> Map_.add LSuper
+                          { value = Val empty_obj; env = vfld_value.env }
                    in
                    let v =
-                     eval_program (fst vfld_value)
-                       { (snd vfld_value) with locals }
+                     match vfld_value.value with
+                     | Val v -> v
+                     | Unevaluated e ->
+                         eval_expr { vfld_value.env with locals } e
                    in
                    let j = manifest_value v in
                    Some (fst vfld_name, j))

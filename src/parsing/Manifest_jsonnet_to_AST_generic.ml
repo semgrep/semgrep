@@ -16,7 +16,7 @@
 module G = AST_generic
 module A = AST_jsonnet
 module E = Eval_jsonnet
-open Core_jsonnet
+open Value_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -51,9 +51,10 @@ let rec value_to_expr (v : value_) : G.expr =
       let xs =
         arr |> Array.to_list
         |> Common.map (fun entry ->
-               (*let v = Lazy.force lzv.v*)
-               let v = E.eval_program (fst entry) (snd entry) in
-               value_to_expr v)
+               value_to_expr
+                 (match entry.value with
+                 | Val v -> v
+                 | Unevaluated e -> E.eval_program e entry.env))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
   | ObjectVal (l, (_assertsTODO, fields), r) ->
@@ -66,7 +67,11 @@ let rec value_to_expr (v : value_) : G.expr =
                | A.Visible
                | A.ForcedVisible ->
                    (*let v = Lazy.force fld_value.v *)
-                   let v = E.eval_program (fst vfld_value) (snd vfld_value) in
+                   let v =
+                     match vfld_value.value with
+                     | Val v -> v
+                     | Unevaluated e -> E.eval_program e vfld_value.env
+                   in
                    let e = value_to_expr v in
                    let k = G.L (G.String (fb vfld_name)) |> G.e in
                    Some (G.keyval k (snd vfld_name) e))

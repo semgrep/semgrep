@@ -1857,7 +1857,7 @@ let parse_file ?error_recovery file =
            * Use osemgrep --dump-config instead.
            *)
           let core = Desugar_jsonnet.desugar_program file ast in
-          let value_ = Eval_jsonnet.eval_program core Core_jsonnet.empty_env in
+          let value_ = Eval_jsonnet.eval_program core Value_jsonnet.empty_env in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else
           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
