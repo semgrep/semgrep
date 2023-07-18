@@ -64,6 +64,7 @@ type t = Language.t =
   | Lua
   | Ocaml
   | Php
+  | Promql
   | Protobuf
   | Python2
   | Python3

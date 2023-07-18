@@ -86,7 +86,7 @@ jobs:
       - name: Build image (via depot.dev)
         id: build-image-depot
         if: ${{ inputs.use-depot-for-docker-build }}
-        uses: depot/build-push-action@v1.7.1
+        uses: depot/build-push-action@v1.8.0
         with:
           project: fhmxj6w9z8
           platforms: linux/${{ matrix.architecture }}

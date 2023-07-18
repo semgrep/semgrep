@@ -1,40 +1,46 @@
-(* pad: this is not a great filename, but I just want to keep AST_generic.ml
- * as small as possible (it is already very big).
+(* Martin Jambon
+ *
+ * Copyright (C) 2021-2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
  *)
 
 (*****************************************************************************)
-(* Accessories *)
+(* Prelude *)
 (*****************************************************************************)
-
-(* A set of metavariables. Access cost is O(log n). *)
-module String_set = struct
-  type t = string Set_.t
-  type string_list = string list [@@deriving show]
-
-  let pp fmt x = pp_string_list fmt (Set_.elements x)
-end
+(* Provide different equality over the generic AST constructs.
+ *
+ * In theory 'deriving eq' can provide only one equal (that can
+ * be customized), but by using globals we can provide multiple equals.
+ *
+ * TODO: this module uses a global, so this might not play well with
+ * OCaml 5.0 at some point.
+ *)
 
 (*****************************************************************************)
-(* Comparison and hashing *)
+(* Types and globals *)
 (*****************************************************************************)
 
 (*
-   Create a node ID that is guaranteed to be unique within an AST,
-   as long as the whole AST is created within the same process.
-
-   Such ID should not be expected to be unique across ASTs,
-   since ASTs can be loaded from an external cache, for example.
-*)
-module Node_ID = Gensym.MkId ()
-
-(*
-   Trickery to offer three collections of equality functions:
+   Trickery to offer different collections of equality functions:
 
    - structural equality: do two AST nodes have the same structure?
-     This disregards IDs assigned uniquely to AST nodes.
+     This is the equality we usually want. Note that we already don't
+     care about token location thanks to Tok.t_always_equal.
+     This also disregards IDs that could be assigned uniquely to AST nodes
+     (old: we don't anymore, but we could).
    - referential equality: are these two AST nodes physically the same?
      This is essentially physical equality but it tolerates copying or even
-     some transformation as long as the node ID is preserved.
+     some transformation as long as a node ID is preserved.
+     (old: was use for stmts matching caching but got removed now).
    - syntactic equality: do two AST nodes represent the same code?
      This disregards the id_info inferred about Id nodes. This means
      that `secret1` in a YAML file is considered to be the same as
@@ -45,35 +51,21 @@ module Node_ID = Gensym.MkId ()
    so as to select structural or referential equality.
 *)
 
-type busy_with_equal =
-  | Not_busy
-  | Structural_equal
-  | Referential_equal
-  | Syntactic_equal
+type busy_with_equal = Not_busy | Structural_equal | Syntactic_equal
+(* old:  | Referential_equal *)
 
 (* global state! managed by the with_equal_* functions *)
 let busy_with_equal = ref Not_busy
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let equal_id_info equal a b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Syntactic_equal -> true
   | Structural_equal -> equal a b
-  | Referential_equal -> equal a b
-
-let equal_stmt_field_s equal_stmt_kind a b =
-  match !busy_with_equal with
-  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
-  | Syntactic_equal -> equal_stmt_kind a b
-  | Structural_equal -> equal_stmt_kind a b
-  | Referential_equal -> true
-
-let equal_stmt_field_s_id a b =
-  match !busy_with_equal with
-  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
-  | Syntactic_equal -> true
-  | Structural_equal -> true
-  | Referential_equal -> Node_ID.equal a b
 
 (*
    Wrap one of the generated equal_* functions into one that selects
@@ -89,8 +81,7 @@ let with_syntactic_equal equal a b =
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
   | Syntactic_equal
-  | Structural_equal
-  | Referential_equal ->
+  | Structural_equal ->
       failwith "an equal is already in progress"
 
 (*
@@ -105,22 +96,5 @@ let with_structural_equal equal a b =
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
   | Syntactic_equal
-  | Structural_equal
-  | Referential_equal ->
-      failwith "an equal is already in progress"
-
-(*
-   Wrap one of the generated equal_* functions into one that selects
-   referential equality, using node IDs when available.
-*)
-let with_referential_equal equal a b =
-  match !busy_with_equal with
-  | Not_busy ->
-      busy_with_equal := Referential_equal;
-      Fun.protect
-        ~finally:(fun () -> busy_with_equal := Not_busy)
-        (fun () -> equal a b)
-  | Syntactic_equal
-  | Structural_equal
-  | Referential_equal ->
+  | Structural_equal ->
       failwith "an equal is already in progress"

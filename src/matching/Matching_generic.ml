@@ -18,7 +18,6 @@ module G = AST_generic
 module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
-module Env = Metavariable_capture
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -74,7 +73,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavariable_capture.t;
+  mv : Metavariable.bindings;
   stmts_match_span : Stmts_match_span.t;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
@@ -197,7 +196,7 @@ let ( let* ) o f = o >>= f
 (*****************************************************************************)
 
 let add_mv_capture key value (env : tin) =
-  { env with mv = Env.add_capture key value env.mv }
+  { env with mv = (key, value) :: env.mv }
 
 let extend_stmts_match_span rightmost_stmt (env : tin) =
   let stmts_match_span =
@@ -321,7 +320,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
-  match Common2.assoc_opt mvar tin.mv.full_env with
+  match Common2.assoc_opt mvar tin.mv with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -353,9 +352,8 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
 let empty_environment ?(mvar_context = None) lang config =
   let mv =
     match mvar_context with
-    | None -> Env.empty
-    | Some bindings ->
-        { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
+    | None -> []
+    | Some bindings -> bindings
   in
   { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
 
