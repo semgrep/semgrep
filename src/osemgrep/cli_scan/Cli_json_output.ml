@@ -407,7 +407,7 @@ let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
 (* skipping the python intermediate FileTargetingLog for now *)
 let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
     Out.cli_skipped_target list option =
-  let* skipped_targets = skipped_targets in
+  let* skipped_targets_list = skipped_targets in
 
   (* TODO: skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
@@ -417,7 +417,7 @@ let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
    * core_failure_lines_by_file in target_manager.py
    *)
   let core_skipped =
-    skipped_targets |> Common.map cli_skipped_target_of_skipped_target
+    skipped_targets_list |> Common.map cli_skipped_target_of_skipped_target
   in
   (* TODO: need to sort *)
   Some core_skipped
