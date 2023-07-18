@@ -1,0 +1,2 @@
+# MATCH:
+some_metric{...}

@@ -103,3 +103,6 @@
 [submodule "languages/protobuf/tree-sitter/semgrep-proto"]
 	path = languages/protobuf/tree-sitter/semgrep-proto
 	url = https://github.com/returntocorp/semgrep-proto.git
+[submodule "languages/tree-sitter-lang/semgrep-promql"]
+	path = languages/tree-sitter-lang/semgrep-promql
+	url = https://github.com/returntocorp/semgrep-promql.git
