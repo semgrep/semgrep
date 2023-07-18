@@ -286,9 +286,7 @@ class ScanHandler:
             all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [match.to_app_finding_format(commit_date) for match in new_matches]
-        ignores = [
-            match.to_app_finding_format(commit_date).to_json() for match in new_ignored
-        ]
+        ignores = [match.to_app_finding_format(commit_date) for match in new_ignored]
         token = (
             # GitHub (cloud)
             os.getenv("GITHUB_TOKEN")
