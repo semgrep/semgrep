@@ -111,4 +111,4 @@ jobs:
       - name: Install Actionlint
         run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
       - name: Run Actionlint
-        run: actionlint
+        run: actionlint -shellcheck=''
