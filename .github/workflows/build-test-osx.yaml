@@ -154,7 +154,7 @@ jobs:
       - uses: actions/download-artifact@v1
         with:
           name: ${{ env.WHEEL_ARTIFACT_NAME }}
-      - run: unzip ./osx-wheel/dist.zip
+      - run: unzip ./${{ env.WHEEL_ARTIFACT_NAME }}/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version
