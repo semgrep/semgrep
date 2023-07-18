@@ -74,7 +74,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* incoming environment *)
 type tin = {
   mv : Metavariable.bindings;
-  stmts_match_span : Stmts_match_span.t;
+  (* This is for storing the subset of statements that are actually
+   * matched in Match_patterns.match_sts_sts.
+   * alt: we could instead abuse the mv field and store those
+   * statements in a magical "!STMTS!" metavar, but using a
+   * separate field seems cleaner.
+   *)
+  stmts_matched : AST_generic.stmt list;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Rule_options.t;
@@ -198,11 +204,9 @@ let ( let* ) o f = o >>= f
 let add_mv_capture key value (env : tin) =
   { env with mv = (key, value) :: env.mv }
 
-let extend_stmts_match_span rightmost_stmt (env : tin) =
-  let stmts_match_span =
-    Stmts_match_span.extend rightmost_stmt env.stmts_match_span
-  in
-  { env with stmts_match_span }
+let extend_stmts_matched rightmost_stmt (env : tin) =
+  let stmts_matched = rightmost_stmt :: env.stmts_matched in
+  { env with stmts_matched }
 
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
@@ -331,10 +335,6 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
         (* valu remains the metavar witness *)
       else None
   | None ->
-      (* 'backrefs' is the set of metavariables that may be referenced later
-         in the pattern. It's inherited from the last stmt pattern,
-         so it might contain a few extra members.
-      *)
       (* first time the metavar is bound, just add it to the environment *)
       Some (add_mv_capture mvar valu tin)
 
@@ -355,7 +355,7 @@ let empty_environment ?(mvar_context = None) lang config =
     | None -> []
     | Some bindings -> bindings
   in
-  { mv; stmts_match_span = []; lang; config; deref_sym_vals = 0 }
+  { mv; stmts_matched = []; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)

@@ -76,7 +76,7 @@ let hook_find_possible_parents = ref None
 (*****************************************************************************)
 
 let env_add_matched_stmt rightmost_stmt (tin : tin) =
-  [ extend_stmts_match_span rightmost_stmt tin ]
+  [ extend_stmts_matched rightmost_stmt tin ]
 
 (* equivalence: on different indentation
  * todo? work? was copy-pasted from XHP sgrep matcher
