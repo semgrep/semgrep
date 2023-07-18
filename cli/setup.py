@@ -93,6 +93,7 @@ install_requires = [
     "colorama~=0.4.0",
     "defusedxml~=0.7.1",
     "glom~=22.1",
+    "jsonnet~=0.18",
     "jsonschema~=4.6",
     "packaging>=21.0",
     "peewee~=3.14",
@@ -106,7 +107,7 @@ install_requires = [
     "wcmatch~=8.3",
 ]
 
-extras_require = {"experiments": ["jsonnet~=0.18"]}
+extras_require = {}
 
 setuptools.setup(
     name="semgrep",
