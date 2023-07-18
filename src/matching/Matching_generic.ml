@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -355,7 +355,7 @@ let empty_environment ?(mvar_context = None) lang config =
     | None -> []
     | Some bindings -> bindings
   in
-  { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
+  { mv; stmts_match_span = []; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)
