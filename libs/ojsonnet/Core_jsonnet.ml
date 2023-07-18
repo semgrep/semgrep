@@ -167,7 +167,7 @@ type env = {
   (* The spec uses a lambda-calculus inspired substitution model, but
    * it is probably simpler and more efficient to use a classic
    * environment where the locals are defined. Jsonnet uses lazy
-   * evaluation so we model this by using Lazy below.
+   * evaluation so we model this by allowing unevaluated expressions in environment below.
    *)
   locals : (local_id, local) Map_.t;
   (* for call tracing *)
@@ -208,18 +208,6 @@ and value_field = {
 }
 
 and asserts = obj_assert * env [@@deriving show]
-
-(*(* old: was just C.expr but this can't work because manifest
- * can't be passed the correct environment to evaluate the array
- * elts or fields
- *)
-and lazy_value = {
-  (* lazy closures built from a call to Eval_jsonnet.eval_expr *)
-  v : value_ Lazy.t;
-  (* just for debugging as we can't inspect closures *)
-  e : C.expr;
-}
-[@@deriving show]*)
 
 (*****************************************************************************)
 (* Helpers *)

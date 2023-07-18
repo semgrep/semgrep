@@ -198,7 +198,15 @@ and eval_expr (env : env) (v : expr) : value_ =
                    fst field.vfld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld -> eval_expr env (fst fld.vfld_value))
+          | Some fld ->
+              let new_self = ObjectVal (_l, (_assertsTODO, fields), _r) in
+              let locals =
+                env.locals
+                |> Map_.add LSelf (Val (new_self, env))
+                |> Map_.add LSuper (Val (empty_obj, env))
+              in
+
+              eval_expr { env with locals } (fst fld.vfld_value))
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
@@ -658,7 +666,16 @@ and manifest_value (v : value_) : JSON.t =
                | A.Visible
                | A.ForcedVisible ->
                    (*let v = Lazy.force fld_value.v*)
-                   let v = eval_program (fst vfld_value) (snd vfld_value) in
+                   let new_self = ObjectVal (_l, (_assertsTODO, fields), _r) in
+                   let locals =
+                     (snd vfld_value).locals
+                     |> Map_.add LSelf (Val (new_self, snd vfld_value))
+                     |> Map_.add LSuper (Val (empty_obj, snd vfld_value))
+                   in
+                   let v =
+                     eval_program (fst vfld_value)
+                       { (snd vfld_value) with locals }
+                   in
                    let j = manifest_value v in
                    Some (fst vfld_name, j))
       in
