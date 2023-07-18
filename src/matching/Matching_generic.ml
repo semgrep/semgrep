@@ -354,8 +354,7 @@ let empty_environment ?(mvar_context = None) lang config =
   let mv =
     match mvar_context with
     | None -> Env.empty
-    | Some bindings ->
-        { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
+    | Some bindings -> { full_env = bindings; min_env = [] }
   in
   { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
 
