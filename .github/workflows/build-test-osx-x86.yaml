@@ -129,7 +129,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
-          name: osx-wheel
+          name: osx-x86-wheel
 
   test-wheels-osx-x86:
     runs-on: macos-12
@@ -137,8 +137,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v1
         with:
-          name: osx-wheel
-      - run: unzip ./osx-wheel/dist.zip
+          name: osx-x86-wheel
+      - run: unzip ./osx-x86-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version

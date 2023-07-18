@@ -1,3 +1,21 @@
+(* Martin Jambon
+ *
+ * Copyright (C) 2022 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (*
    Track the location of the leftmost and rightmost matched statements,
    when matching a sequence a statements.
@@ -48,12 +66,46 @@
          '| Span of { ... }' syntax in semgrep.
 *)
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type span = {
   left_stmts : AST_generic.stmt list;
   right_stmts : AST_generic.stmt list;
 }
 
 type t = Empty | Span of span
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let merge_and_deduplicate get_key a b =
+  let tbl = Hashtbl.create 100 in
+  let acc = ref [] in
+  let add values =
+    List.iter
+      (fun v ->
+        let k = get_key v in
+        if not (Hashtbl.mem tbl k) then (
+          Hashtbl.add tbl k ();
+          acc := v :: !acc))
+      values
+  in
+  add a;
+  add b;
+  List.rev !acc
+
+let extract_tokens stmts =
+  AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
+
+let is_not_before ~min_loc tok = Tok.compare_pos min_loc tok <= 0
+let is_not_after ~max_loc tok = Tok.compare_pos tok max_loc <= 0
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 (* Add a statement to the set of statements matched by the current pattern,
    for the sake of eventually determining the match location. *)
@@ -77,28 +129,6 @@ let location x =
       in
       Some (min_loc, max_loc)
   [@@profiling]
-
-let merge_and_deduplicate get_key a b =
-  let tbl = Hashtbl.create 100 in
-  let acc = ref [] in
-  let add values =
-    List.iter
-      (fun v ->
-        let k = get_key v in
-        if not (Hashtbl.mem tbl k) then (
-          Hashtbl.add tbl k ();
-          acc := v :: !acc))
-      values
-  in
-  add a;
-  add b;
-  List.rev !acc
-
-let extract_tokens stmts =
-  AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
-
-let is_not_before ~min_loc tok = Tok.compare_pos min_loc tok <= 0
-let is_not_after ~max_loc tok = Tok.compare_pos tok max_loc <= 0
 
 (* Extract a deduplicated list of the original tokens *)
 let list_original_tokens x =

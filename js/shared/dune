@@ -1,4 +1,5 @@
 (library
+ (public_name semgrep.semgrep_js_shared)
  (name semgrep_js_shared)
  (wrapped false)
  (libraries js_of_ocaml semgrep.parsing)
