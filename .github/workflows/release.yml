@@ -21,7 +21,6 @@ on:
         description: "Run the release in dry-run mode, e.g., without changing external state (like pushing to PyPI/Docker)"
         required: true
         type: boolean
-        default: true
 
   push:
     branches:

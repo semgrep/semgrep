@@ -105,7 +105,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: reviewdog/action-actionlint@v1
+      - uses: actions/setup-go@v4
         with:
-          fail_on_error: true
-          actionlint_flags: -ignore 'workflow command "set-output" was deprecated. ".+"'
+          go-version: "1.19"
+      - name: Install Actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
+      - name: Run Actionlint
+        run: actionlint -shellcheck=''
