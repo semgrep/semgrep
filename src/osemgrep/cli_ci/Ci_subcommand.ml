@@ -252,7 +252,7 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
         | Some _ as t -> t
         | None -> Sys.getenv_opt "BITBUCKET_TOKEN" (* Bitbucket Cloud *))
   in
-  let api_scans_findings =
+  let ci_scan_results =
     Out.
       {
         (* send a backup token in case the app is not available *)
@@ -267,7 +267,7 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
   in
   let findings_and_ignores =
     JSON.json_of_string
-    @@ Semgrep_output_v1_j.string_of_api_scans_findings api_scans_findings
+    @@ Semgrep_output_v1_j.string_of_ci_scan_results ci_scan_results
   in
   if
     List.exists

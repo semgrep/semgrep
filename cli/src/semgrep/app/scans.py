@@ -296,7 +296,7 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
-        api_scans_findings = out.ApiScansFindings(
+        ci_scan_results = out.CiScanResults(
             # send a backup token in case the app is not available
             token=token,
             findings=findings,
@@ -305,7 +305,7 @@ class ScanHandler:
             renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
         )
-        findings_and_ignores = api_scans_findings.to_json()
+        findings_and_ignores = ci_scan_results.to_json()
 
         if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
             logger.info("Some experimental rules were run during execution.")
