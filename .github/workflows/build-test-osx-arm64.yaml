@@ -45,16 +45,15 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      # Note that this action handles both cache read and cache write.
-      # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
-      - name: Cache Opam
-        id: cache-opam
-        uses: actions/cache@v3
-        if: ${{ inputs.use-cache || github.event_name == 'pull_request' }}
+      - name: Restore Opam Cache
+        id: restore-opam-cache
+        uses: actions/cache/restore@v3
+        if: ${{ inputs.use-cache }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:
           path: ~/.opam
+          #TODO: we should add the md5sum of opam.lock as part of the key
           key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
       - name: Install dependencies
         run: |
@@ -69,6 +68,18 @@ jobs:
         with:
           path: artifacts.zip
           name: semgrep-osx-arm64-${{ github.sha }}
+      # By default, the actions/cache workflow will not save the directory to the cache if a cache hit occurs in
+      # restore-opam-cache. This allows us to manually save off the ~/.opam dir, keeping things up to date and speedy.
+      - name: Save Opam Cache
+        id: save-opam-cache
+        uses: actions/cache/restore@v3
+        if: ${{ inputs.use-cache }}
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        with:
+          path: ~/.opam
+          #TODO: we should add the md5sum of opam.lock as part of the key
+          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
 
   build-wheels-osx-arm64:
     runs-on:
