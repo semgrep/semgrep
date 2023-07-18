@@ -64,4 +64,5 @@ jobs:
       runs-on: "['macos-12']"
       architecture: "x86"
       wheel-artifact-name: osx-x86-wheel
+      wheel-plat-name: macosx_10_14_x86_64
       use-cache: ${{ inputs.use-cache }}

@@ -29,4 +29,5 @@ jobs:
       runs-on: "['self-hosted','macOS','ARM64','ghcr.io/cirruslabs/macos-monterey-xcode:latest']"
       architecture: "arm64"
       wheel-artifact-name: osx-arm64-wheel
+      wheel-plat-name: macosx_11_0_arm64
       use-cache: ${{ inputs.use-cache }}

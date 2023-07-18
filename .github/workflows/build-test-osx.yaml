@@ -56,6 +56,10 @@ on:
         description: "The name under which to store the wheel artifact"
         required: true
         type: string
+      wheel-plat-name:
+        description: "The platform tag/name to apply to the built wheels"
+        required: true
+        type: string
       runs-on:
         description: "The `runs-on` tags for the runner that the job will run on."
         required: true
@@ -64,6 +68,7 @@ on:
 env:
   OSX_ARCHITECTURE: ${{ inputs.architecture }}
   WHEEL_ARTIFACT_NAME: ${{ inputs.wheel-artifact-name }}
+  WHEEL_PLAT_NAME: ${{ inputs.wheel-plat-name }}
 
 jobs:
   build-core-osx:
@@ -136,7 +141,7 @@ jobs:
       - run: |
           unzip artifacts.zip
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
+          ./scripts/build-wheels.sh --plat-name "${WHEEL_PLAT_NAME}"
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
