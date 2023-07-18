@@ -178,10 +178,10 @@ jobs:
         run: unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
       - name: Unzip OSX x86 Wheel
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./osx-x86-wheel/dist.zip "*.whl
+        run: unzip ./osx-x86-wheel/dist.zip "*.whl"
       - name: Unzip OSX ARM64 Wheel
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./osx-arm64-wheel/dist.zip "*.whl
+        run: unzip ./osx-arm64-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@master
         if: ${{ !contains(github.ref, '-test-release') && needs.inputs.outputs.dry-run != 'true' }}
