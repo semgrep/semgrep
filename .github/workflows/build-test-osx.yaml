@@ -156,7 +156,9 @@ jobs:
           name: ${{ env.WHEEL_ARTIFACT_NAME }}
       - run: unzip ./${{ env.WHEEL_ARTIFACT_NAME }}/dist.zip
       - name: install package
-        run: pip3 install dist/*.whl
+        run: |
+          pip3 install dist/*.whl
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -
