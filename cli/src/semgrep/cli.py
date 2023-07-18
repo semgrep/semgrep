@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-import os
-import platform
-import sys
 from typing import Dict
 
 import click
@@ -15,7 +12,6 @@ from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.commands.shouldafound import shouldafound
 from semgrep.default_group import DefaultGroup
-from semgrep.error import FATAL_EXIT_CODE
 from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
@@ -48,16 +44,6 @@ def maybe_set_git_safe_directories() -> None:
         )
 
 
-def abort_if_linux_arm64() -> None:
-    """
-    Exit with FATAL_EXIT_CODE if the user is running on Linux ARM64.
-    Print helpful error message.
-    """
-    if platform.machine() in {"arm64", "aarch64"} and platform.system() == "Linux":
-        logger.error("Semgrep does not support Linux ARM64")
-        sys.exit(FATAL_EXIT_CODE)
-
-
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
 @click.help_option("--help", "-h")
 @click.pass_context
@@ -71,10 +57,6 @@ def cli(ctx: click.Context) -> None:
     """
     state = get_state()
     state.terminal.init_for_cli()
-
-    # SEMGREP_SKIP_ARM64_CHECK is temporary -- we'll remove the check entirely once we're consistently pushing arm64 docker images and python wheels
-    if not os.getenv("SEMGREP_SKIP_ARM64_CHECK"):
-        abort_if_linux_arm64()
 
     commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
 

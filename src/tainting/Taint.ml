@@ -338,7 +338,7 @@ type signature = Findings.t
 let pick_taint taint1 taint2 =
   (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
      * of them, but we want the one with the shortest trace. *)
-  match (taint1.orig, taint1.orig) with
+  match (taint1.orig, taint2.orig) with
   | Arg _, Arg _ -> taint2
   | Src src1, Src src2 ->
       let call_trace_cmp =
@@ -601,7 +601,7 @@ let rec map_preconditions f taint =
   | Src ({ precondition = Some (incoming, expr); _ } as src) -> (
       let new_incoming =
         incoming
-        |> List.filter_map (map_preconditions f)
+        |> Common.map_filter (map_preconditions f)
         |> f |> Taint_set.of_list
       in
       let new_incoming = filter_relevant_taints expr new_incoming in

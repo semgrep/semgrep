@@ -6,6 +6,35 @@
 
 <!-- insertion point -->
 
+## [1.32.0](https://github.com/returntocorp/semgrep/releases/tag/v1.32.0) - 2023-07-13
+
+### Added
+
+- feat(docker): Create a semgrep user for our docker container so that people can run it as a non-root user (gh-8116)
+- feat(typed metavar): Typed metavariable support for Rust
+
+  Users can create `TypedMetavar` using Rust's type annotation syntax `:`.
+  For example, the following rule works for matching `HttpResponseBuilder`
+  type of variables:
+
+  ````
+  rules:
+  - id: no-direct-response-write
+    patterns:
+    - pattern: '($BUILDER : HttpResponseBuilder).body(...)'
+    - pattern-not: '($BUILDER : HttpResponseBuilder).body("...".to_string())'
+    message: find dangerous codes
+    severity: WARNING
+    languages: [rust]
+  ``` (gh-8200)
+  ````
+
+### Fixed
+
+- baseline scans reporting on existing findings (baseline-supply-chain)
+- Fixed an issue leading to incorrect autofix results involving JS/TS async arrow functions (e.g. `async () => {}`, etc.). (gh-7353)
+- Workaround for rootless containers as git operations may fail due to dubious ownership of /src (gh-8267)
+
 ## [1.31.2](https://github.com/returntocorp/semgrep/releases/tag/v1.31.2) - 2023-07-07
 
 No significant changes.

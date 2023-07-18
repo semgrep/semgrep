@@ -53,7 +53,8 @@ type result = {
   *)
 }
 
-(* function *)
+(* Type for the core runner function, which can either be invoked by
+   invoke_semgrep_core or invoke_semgrep_core_proprietary *)
 
 type semgrep_core_runner =
   ?respect_git_ignore:bool ->
@@ -226,8 +227,7 @@ let invoke_semgrep_core
     ?(engine = Run_semgrep.semgrep_with_raw_results_and_exn_handler)
     ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
     (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
-    (all_targets : Fpath.t list) :
-    Exception.t option * Report.final_result * Fpath.t Set_.t =
+    (all_targets : Fpath.t list) =
   let config : Runner_config.t = runner_config_of_conf conf in
   let config = { config with file_match_results_hook } in
 

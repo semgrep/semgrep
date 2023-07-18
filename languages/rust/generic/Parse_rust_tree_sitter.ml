@@ -699,10 +699,11 @@ and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
       let name = map_path_name env x in
       G.PatConstructor (name, [])
 
-and map_meta_argument (env : env) (x : CST.anon_choice_meta_item_fefa160) :
+and map_meta_argument (env : env) (x : CST.anon_choice_ellips_738a19f) :
     G.argument =
   match x with
   (* TODO: With modifications to the rust grammar this could be a lot better. *)
+  | `Ellips tok -> G.(Arg (Ellipsis (token env tok) |> e))
   | `Meta_item x -> map_meta_item_to_argument env x
   | `Lit x -> G.(Arg (L (map_literal env x) |> e))
 

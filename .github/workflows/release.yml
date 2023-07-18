@@ -105,8 +105,8 @@ jobs:
     uses: ./.github/workflows/build-test-osx-x86.yaml
     secrets: inherit
 
-  build-test-osx-m1:
-    uses: ./.github/workflows/build-test-osx-m1.yaml
+  build-test-osx-arm64:
+    uses: ./.github/workflows/build-test-osx-arm64.yaml
     secrets: inherit
 
   build-test-core-x86:
@@ -125,6 +125,7 @@ jobs:
       [
         build-test-docker,
         build-test-manylinux-x86,
+        build-test-manylinux-aarch64,
         build-test-osx-x86,
         build-test-osx-m1,
       ]
@@ -151,6 +152,11 @@ jobs:
         with:
           name: manylinux-wheel
           path: manylinux-wheel
+      - name: Download aarch64 Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: manylinux-wheel-aarch64
+          path: manylinux-wheel-aarch64
       - name: Download Osx Artifact
         uses: actions/download-artifact@v3
         with:
@@ -161,8 +167,10 @@ jobs:
         with:
           name: m1-wheel
           path: m1-wheel
-      - name: Unzip
+      - name: Unzip x86_64 Wheel
         run: unzip ./manylinux-wheel/dist.zip
+      - name: Unzip aarch64 Wheel
+        run: unzip ./manylinux-wheel-aarch64/dist.zip "*.whl"
       - name: Unzip OSX Wheel
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
         run: unzip ./osx-wheel/dist.zip "*.whl"

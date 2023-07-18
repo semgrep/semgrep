@@ -47,21 +47,56 @@ type expansion =
 (* Fragment of a string possibly containing variable expansions
    or semgrep metavariables. This is similar to what we do in AST_bash.ml.
 
-   TODO: evaluate String_content fragments (remove quotes and evaluate
-   escape sequences) so that they can be compared regardless of
-   quoting/escaping.
+   TODO: evaluate String_content fragments so that they can be compared
+   regardless of escaping.
 *)
-type string_fragment =
-  | String_content of string wrap
-  | Expansion of (* $X in program mode, ${X}, ${X ... } *) (loc * expansion)
-  | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
+type double_quoted_string_fragment =
+  | Dbl_string_content of (* escaped *) string wrap
+  | Dbl_expansion of (* $X in program mode, ${X}, ${X ... } *) (loc * expansion)
+  | Dbl_frag_semgrep_metavar of (* $X in pattern mode *) string wrap
 
-(* Used for quoted and unquoted strings for now *)
-type str = loc * string_fragment list
-type str_or_ellipsis = Str_str of str | Str_semgrep_ellipsis of tok
+type docker_string_fragment =
+  | Unquoted of string wrap
+  (* Using 'string wrap bracket' rather than 'string bracket' since it's the
+     type expected by the generic AST. *)
+  | Single_quoted of (loc * string wrap bracket)
+  | Double_quoted of (loc * double_quoted_string_fragment list bracket)
+  (* Expansion and Frag_semgrep_metavar: see Dbl_expansion and
+     Dbl_frag_semgrep_metavar *)
+  | Expansion of (loc * expansion)
+  | Frag_semgrep_metavar of string wrap
+
+(* A string which is possibly the concatenation of several fragments.
+
+   We need to be able to represent this:
+
+     a'b'"c$D${E}f"$G
+
+   a: Unquoted
+   b: Single_quoted
+   c: Dbl_string_content
+   d: Dbl_expansion or Dbl_frag_semgrep_metavar
+   e: Dbl_expansion
+   f: Dbl_string_content
+   g: Expansion
+
+   After evaluation of the escape sequences, it can be simplified into
+   fewer fragments of 3 kinds:
+   - string data
+   - variable expansion
+   - semgrep metavariable (in the context of a semgrep pattern only)
+
+   In our example, the fragments would be: "abc", $D, $E, "f", $G.
+   This simplification may or may not be performed when converting to
+   Semgrep's generic AST.
+*)
+type docker_string = loc * docker_string_fragment list
+type str_or_ellipsis = Str_str of docker_string | Str_semgrep_ellipsis of tok
 
 type array_elt =
-  | Arr_string of str
+  (* JSON string array, not to be confused with ordinary double-quoted strings
+     that don't obey the JSON syntax (see docker_string). *)
+  | Arr_string of loc * string wrap bracket
   | Arr_metavar of string wrap
   | Arr_ellipsis of tok
 
@@ -91,21 +126,18 @@ type param =
 
 type image_spec = {
   loc : loc;
-  name : str;
-  tag : (tok (* : *) * str) option;
-  digest : (tok (* @ *) * str) option;
+  name : docker_string;
+  tag : (tok (* : *) * docker_string) option;
+  digest : (tok (* @ *) * docker_string) option;
 }
-
-type image_alias = str
 
 type label_pair =
   | Label_semgrep_ellipsis of tok
-  | Label_pair of loc * var_or_metavar (* key *) * tok (* = *) * str
+  | Label_pair of loc * var_or_metavar (* key *) * tok (* = *) * docker_string
 
 (* value *)
 
 type protocol = TCP | UDP
-type path = str
 type path_or_ellipsis = str_or_ellipsis
 
 type array_or_paths =
@@ -126,7 +158,7 @@ type healthcheck =
 type expose_port =
   | Expose_semgrep_ellipsis of tok
   | Expose_port of (* port/protocol *) string wrap * string wrap option
-  | Expose_fragment of string_fragment
+  | Expose_fragment of docker_string_fragment
 
 type instruction =
   | From of
@@ -134,25 +166,27 @@ type instruction =
       * string wrap
       * param option
       * image_spec
-      * (tok (* as *) * image_alias) option
+      * (tok (* as *) * docker_string) option
   | Run of cmd
   | Cmd of cmd
   | Label of loc * string wrap * label_pair list
   | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
   | Env of loc * string wrap * label_pair list
-  | Add of loc * string wrap * param option * path_or_ellipsis list * path
-  | Copy of loc * string wrap * param option * path_or_ellipsis list * path
+  | Add of
+      loc * string wrap * param option * path_or_ellipsis list * docker_string
+  | Copy of
+      loc * string wrap * param option * path_or_ellipsis list * docker_string
   | Entrypoint of loc * string wrap * argv_or_shell
   | Volume of loc * string wrap * array_or_paths
   | User of
       loc
       * string wrap
-      * str (* user *)
-      * (tok (* : *) * str) (* group *) option
-  | Workdir of loc * string wrap * path
-  | Arg of loc * string wrap * var_or_metavar * (tok * str) option
+      * docker_string (* user *)
+      * (tok (* : *) * docker_string) (* group *) option
+  | Workdir of loc * string wrap * docker_string
+  | Arg of loc * string wrap * var_or_metavar * (tok * docker_string) option
   | Onbuild of loc * string wrap * instruction
-  | Stopsignal of loc * string wrap * str
+  | Stopsignal of loc * string wrap * docker_string
   | Healthcheck of loc * string wrap * healthcheck
   | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
   | Maintainer (* deprecated *) of loc * string wrap * string_or_metavar
@@ -189,15 +223,23 @@ let expansion_loc x =
   let tok = expansion_tok x in
   (tok, tok)
 
-let string_fragment_loc = function
-  | String_content (_, tok) -> (tok, tok)
+let double_quoted_string_fragment_loc = function
+  | Dbl_string_content (_, tok) -> (tok, tok)
+  | Dbl_expansion (loc, _) -> loc
+  | Dbl_frag_semgrep_metavar (_, tok) -> (tok, tok)
+
+let docker_string_fragment_loc (x : docker_string_fragment) =
+  match x with
+  | Unquoted (_, tok) -> (tok, tok)
+  | Single_quoted (loc, _) -> loc
+  | Double_quoted (loc, _) -> loc
   | Expansion (loc, _) -> loc
   | Frag_semgrep_metavar (_, tok) -> (tok, tok)
 
-let str_loc ((loc, _) : str) = loc
+let docker_string_loc ((loc, _) : docker_string) = loc
 
 let str_or_ellipsis_loc = function
-  | Str_str str -> str_loc str
+  | Str_str str -> docker_string_loc str
   | Str_semgrep_ellipsis tok -> (tok, tok)
 
 (* Re-using the type used for double-quoted strings in bash *)
@@ -222,7 +264,6 @@ let argv_or_shell_loc = function
 
 let param_loc ((loc, _) : param) : loc = loc
 let image_spec_loc (x : image_spec) = x.loc
-let image_alias_loc = str_loc
 
 let label_pair_loc = function
   | Label_semgrep_ellipsis tok -> (tok, tok)
@@ -246,7 +287,7 @@ let expose_port_loc = function
   | Expose_semgrep_ellipsis tok -> (tok, tok)
   | Expose_port ((_, tok1), Some (_, tok2)) -> (tok1, tok2)
   | Expose_port ((_, tok), None) -> (tok, tok)
-  | Expose_fragment x -> string_fragment_loc x
+  | Expose_fragment x -> docker_string_fragment_loc x
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc

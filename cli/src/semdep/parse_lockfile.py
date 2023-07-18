@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
@@ -114,7 +115,6 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
     return manifest_path
 
 
-@lru_cache(maxsize=1000)
 def parse_lockfile_path(
     lockfile_path: Path,
 ) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
@@ -123,6 +123,22 @@ def parse_lockfile_path(
 
     Also returns Optional DependencyParseError as second return value if there was a problem
     parsing the lockfile
+
+    Raises SemgrepError if the lockfile is not supported
+    """
+    file_changed_timestamp = os.stat(lockfile_path).st_mtime
+    return _parse_lockfile_path_helper(lockfile_path, file_changed_timestamp)
+
+
+@lru_cache(maxsize=1000)
+def _parse_lockfile_path_helper(
+    lockfile_path: Path, file_changed_timestamp: float
+) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
+    """
+    Parse a lockfile and return it as a list of dependency objects
+
+    Takes file_changed_timestamp to help invalidate the cache in case the file has changed
+    which can happen between a head <-> baseline scan transition
     """
     manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()

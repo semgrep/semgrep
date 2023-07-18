@@ -131,7 +131,7 @@ let default : conf =
     strict = false;
     profile = false;
     time_flag = false;
-    engine_type = (`OSS, None);
+    engine_type = OSS;
     (* ultimately should be set to true when we release osemgrep *)
     legacy = false;
     experimental = false;
@@ -730,10 +730,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let engine_type =
       match (oss, pro_lang, pro_intrafile, pro) with
       | false, false, false, false -> default.engine_type
-      | true, false, false, false -> (`OSS, None)
-      | false, true, false, false -> (`PRO, Some Engine_type.Language_only)
-      | false, false, true, false -> (`PRO, Some Engine_type.Intrafile)
-      | false, false, false, true -> (`PRO, Some Engine_type.Interfile)
+      | true, false, false, false -> OSS
+      | false, true, false, false -> PRO Engine_type.Language_only
+      | false, false, true, false -> PRO Engine_type.Intrafile
+      | false, false, false, true -> PRO Engine_type.Interfile
       | _else_ ->
           (* TOPORT: list the possibilities *)
           Error.abort
