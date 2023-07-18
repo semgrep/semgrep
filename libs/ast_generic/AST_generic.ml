@@ -179,14 +179,14 @@ let version = "1.32.0"
 (* Some notes on deriving *)
 (*****************************************************************************)
 (* Here are the different 'deriving' we use:
- *  - 'deriving show' for obviously being able to print AST constructs
+ *  - 'deriving show' for obviously printing AST constructs
  *     in debugging statements (very convenient in OCaml given the absence
- *     of type class and a generic 'show' function)
- *  - 'deriving eq' to be able to compare AST constructs, which is
+ *     of type classes and a generic 'show' function as in Haskell)
+ *  - 'deriving eq' to compare AST constructs, which is
  *     mostly used in Semgrep for metavariable content comparison, so
  *     that when one use a pattern like '$X == $X', we make sure the
  *     AST constructs on the lhs and rhs of '==' contains the same code.
- *     We actually perform equality module token location, that is we don't
+ *     We actually perform equality "modulo" token location, that is we don't
  *     consider the token location when performing the equality. See the
  *     comment about Tok.t_always_equal below
  * - 'deriving hash' to hash AST constructs. This was used for stmts
@@ -441,7 +441,6 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
-    method visit_node_id_t _env _ = ()
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -506,7 +505,6 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
-    method visit_node_id_t _env x = x
   end
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -563,18 +561,20 @@ and qualifier =
 (*****************************************************************************)
 (* The derived equal is overriden for multiple fields of id_info. This is
    to allow certain modes of equality to ignore id_info when comparing
-   AST nodes. See AST_utils.Syntactic_equal for details *)
+   AST nodes. See AST_generic_equals.Syntactic_equal for details *)
 and id_info = {
   id_resolved : resolved_name option ref;
       [@equal
-        AST_utils.equal_id_info (Common.equal_ref_option equal_resolved_name)]
+        AST_generic_equals.equal_id_info
+          (Common.equal_ref_option equal_resolved_name)]
   (* variable tagger (naming) *)
   (* sgrep: in OCaml we also use that to store the type of
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
    *)
   id_type : type_ option ref;
-      [@equal AST_utils.equal_id_info (Common.equal_ref_option equal_type_)]
+      [@equal
+        AST_generic_equals.equal_id_info (Common.equal_ref_option equal_type_)]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
@@ -604,7 +604,7 @@ and id_info = {
      that skips a target file if some identifier in the pattern AST doesn't
      exist in the source of the target.
   *)
-  id_hidden : bool; [@equal AST_utils.equal_id_info (fun a b -> a = b)]
+  id_hidden : bool; [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
@@ -1140,14 +1140,7 @@ and argument =
  * made Semgrep noticeably faster (an average of 1.35x on a set of 9 repos) on
  * our stress-test-monorepo benchmark. *)
 and stmt = {
-  s : stmt_kind;
-      [@equal AST_utils.equal_stmt_field_s equal_stmt_kind] [@hash.ignore]
-  (* this can be used to compare and hash more efficiently stmts,
-   * or in semgrep to quickly know if a stmt is a children of another stmt.
-   * TODO: is this still used after we remove stmts maching caching?
-   *)
-  s_id : AST_utils.Node_ID.t;
-      [@equal AST_utils.equal_stmt_field_s_id] [@name "node_id_t"]
+  s : stmt_kind; [@hash.ignore]
   (* todo? we could store a range: (tok * tok) to delimit the range of a stmt
    * which would allow us to remove some of the extra 'tok' in stmt_kind.
    * Indeed, the main use of those 'tok' is to accurately report a match range
@@ -2132,7 +2125,7 @@ let sc = Tok.unsafe_fake_tok ""
 (* ------------------------------------------------------------------------- *)
 
 (* statements *)
-let s skind = { s = skind; s_id = AST_utils.Node_ID.mk (); s_range = None }
+let s skind = { s = skind; s_range = None }
 
 (* expressions *)
 let e ekind = { e = ekind; e_id = 0; e_range = None }

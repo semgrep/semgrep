@@ -134,7 +134,7 @@ and rule_id = {
 [@@deriving show, eq]
 
 let uniq pms =
-  let eq = AST_utils.with_structural_equal equal in
+  let eq = AST_generic_equals.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
   pms
   |> List.iter (fun pm ->

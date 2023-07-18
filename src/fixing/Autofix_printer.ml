@@ -44,7 +44,7 @@ let ( let/ ) = Result.bind
 module ASTTable = Hashtbl.Make (struct
   type t = AST_generic.any
 
-  let equal = AST_utils.with_structural_equal AST_generic.equal_any
+  let equal = AST_generic_equals.with_structural_equal AST_generic.equal_any
   let hash = AST_generic.hash_any
 end)
 
