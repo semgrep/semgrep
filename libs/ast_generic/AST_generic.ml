@@ -25,7 +25,7 @@
  *  - Python, Ruby, Lua, Julia, Elixir
  *  - Javascript, Typescript, Vue
  *  - PHP, Hack
- *  - Java, C#, Kotlin
+ *  - Java, Apex, Kotlin, C#
  *  - C, C++
  *  - Go
  *  - Swift
@@ -37,7 +37,7 @@
  *  - JSON, XML, YAML
  *  - Jsonnet, Terraform
  *  - HTML
- * TODO: SQL, Sqlite, PostgresSQL
+ * TODO: SQL, Sqlite, PostgresSQL, Protobuf, Promql
  *
  * See Lang.ml for the list of supported languages.
  * See IL.ml for a generic IL (Intermediate language) better suited for
@@ -170,7 +170,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.20.0"
+let version = "1.32.0"
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -256,7 +256,7 @@ module IdInfoId = Gensym.MkId ()
  * This single id simplifies further analysis that need to care less about
  * maintaining scoping information, for example to deal with variable
  * shadowing, or functions using the same parameter names
- * (even though you still need to handle specially recursive functions), etc.
+ * (even though you still need to handle specially recursive functions).
  *
  * See Naming_AST.ml for more information.
  *
@@ -587,8 +587,8 @@ and id_info = {
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
-(* See explanation for @name where the visitors are generated at the end of this
- * long recursive type. *)
+(* See explanation for @name where the visitors are generated at the end of
+ * this long recursive type. *)
 and id_info_id = (IdInfoId.t[@name "id_info_id_t"])
 
 (*****************************************************************************)
@@ -1112,8 +1112,8 @@ and argument =
 (* NOTE: We used to have a Bloom filter optimization that annotated statements
  * with the strings occurring in it, for which we had a `s_strings` mutable
  * field here. We disabled this optimization in 0.116.0 after realizing that it
- * (no longer?) had a meaningful effect on performance. (And because it hadtricky
- * interactions with const-prop and sym-prop, see #4670, and PA-1920 / PR #6179.)
+ * had a meaningful effect on performance. (and because it had tricky
+ * interactions with const-prop and sym-prop, see #4670, and PA-1920/PR-#6179)
  * Finally, Bloom-filter's code was removed in 1.22.0, and paradoxically, that
  * made Semgrep noticeably faster (an average of 1.35x on a set of 9 repos) on
  * our stress-test-monorepo benchmark. *)
@@ -1130,33 +1130,20 @@ and stmt = {
    * Indeed, the main use of those 'tok' is to accurately report a match range
    * in semgrep.
    *)
-  mutable s_use_cache : bool; [@equal fun _a _b -> true] [@hash.ignore]
-  (* whether this is a strategic point for match result caching.
-     This field is relevant for patterns only.
-
-     This applies to the caching optimization, in which the results of
-     matching lists of statements can be cached. A list of statements
-     is identified by its leading node. In the current implementation,
-     the fields 's_id', 's_use_caching', and 's_backrefs' are treated as
-     properties of a (non-empty) list of statements, rather than of individual
-     statements. A cleaner implementation would consist of a custom
-     list type in which each list has these properties, including the
-     empty list.
-  *)
-  mutable s_backrefs : (AST_utils.String_set.t[@name "string_set_t"]) option;
-      [@equal fun _a _b -> true] [@hash.ignore]
-  (* set of metavariables referenced in the "rest of the pattern", as
-     determined by matching order.
-     This field is relevant for patterns only.
-
-     This is used to determine which of the bound
-     metavariables should be added to the cache key for this node.
-     This field is set on pattern ASTs only, in a pass right after parsing
-     and before matching.
-  *)
   (* used to quickly get the range of a statement *)
   mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_backrefs : (AST_utils.String_set.t[@name "string_set_t"]) option;
+      [@equal fun _a _b -> true] [@hash.ignore]
+      (* set of metavariables referenced in the "rest of the pattern", as
+         determined by matching order.
+         This field is relevant for patterns only.
+
+         This is used to determine which of the bound
+         metavariables should be added to the cache key for this node.
+         This field is set on pattern ASTs only, in a pass right after parsing
+         and before matching.
+      *)
 }
 
 and stmt_kind =
@@ -2137,7 +2124,6 @@ let s skind =
   {
     s = skind;
     s_id = AST_utils.Node_ID.mk ();
-    s_use_cache = false;
     s_backrefs = None;
     s_range = None;
   }
