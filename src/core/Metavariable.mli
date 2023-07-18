@@ -61,7 +61,7 @@ val mvalue_of_any : AST_generic.any -> mvalue option
  * of a metavariable into a program so we can use evaluate_formula on it *)
 val program_of_mvalue : mvalue -> AST_generic.program option
 
-(* See the comment in AST_utils.ml for the difference between
+(* See the comment in AST_generic_equals.ml for the difference between
  * the Syntactic and Structural equal.
  *)
 module Syntactic : sig
