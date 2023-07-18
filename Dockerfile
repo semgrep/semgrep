@@ -111,7 +111,7 @@ RUN eval "$(opam env)" &&\
 ###############################################################################
 # This is an intermediary stage used for building Python wheels. Semgrep users
 # don't need to use this.
-FROM python:3.7-alpine AS semgrep-wheel
+FROM python:3.11-alpine AS semgrep-wheel
 
 WORKDIR /semgrep
 
@@ -137,7 +137,7 @@ RUN ./scripts/validate-wheel.sh dist/*.whl
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-FROM python:3.11.3-alpine AS semgrep-cli
+FROM python:3.11.4-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 
