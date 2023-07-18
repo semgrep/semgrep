@@ -1,6 +1,5 @@
 {
     "token": null,
-    "gitlab_token": null,
     "findings": [
         {
             "check_id": "eqeq-bad",
@@ -114,9 +113,11 @@
             "is_blocking": true
         }
     ],
+    "ignores": [],
     "searched_paths": [
         "foo.py"
     ],
+    "renamed_paths": [],
     "rule_ids": [
         "eqeq-bad",
         "eqeq-five",
