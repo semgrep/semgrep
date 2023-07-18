@@ -1432,7 +1432,10 @@ let check_function_signature env fun_exp args args_taints =
                          T.Call (eorig, t.tokens, src.call_trace)
                        in
                        let* taint =
-                         { orig = Src { src with call_trace }; tokens = [] }
+                         {
+                           Taint.orig = Src { src with call_trace };
+                           tokens = [];
+                         }
                          |> subst_in_precondition
                        in
                        Some (`Return (Taints.singleton taint))

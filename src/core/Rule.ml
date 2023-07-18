@@ -90,7 +90,8 @@ end = struct
   let compare = String.compare
 
   let ends_with r ~suffix:inc_or_exc_rule =
-    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+    r = inc_or_exc_rule
+    || Stdcompat.String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
 end
 
 type rule_id = ID.t [@@deriving show, eq]

@@ -127,7 +127,7 @@ let expr_of_body_or_clauses tk (x : body_or_clauses_generic) : G.expr =
       G.stmt_to_expr block
   | Right clauses ->
       let fdef = stab_clauses_to_function_definition tk clauses in
-      Lambda fdef |> G.e
+      G.Lambda fdef |> G.e
 
 (* following Elixir semantic (unsugaring do/end block in keywords) *)
 let kwds_of_do_block (bl : do_block_generic) : keywords_generic =
@@ -337,7 +337,7 @@ and map_expr env v : G.expr =
       let e = map_expr env v1 in
       let items = (map_bracket map_items) env v3 in
       let tuple = G.Container (G.Tuple, items) |> G.e in
-      DotAccess (e, tdot, G.FDynamic tuple) |> G.e
+      G.DotAccess (e, tdot, G.FDynamic tuple) |> G.e
   (* only inside a Call *)
   | DotAnon (v1, tdot) ->
       let e = map_expr env v1 in
@@ -358,8 +358,8 @@ and map_expr env v : G.expr =
       match v1 with
       | Left (op, tk) -> G.opcall (op, tk) [ e ]
       | Right id ->
-          let n = N (H.name_of_id id) |> G.e in
-          Call (n, fb [ G.Arg e ]) |> G.e)
+          let n = G.N (H.name_of_id id) |> G.e in
+          G.Call (n, fb [ G.Arg e ]) |> G.e)
   | BinaryOp (v1, v2, v3) -> (
       let e1 = map_expr env v1 in
       let op = map_wrap_operator env v2 in
@@ -367,8 +367,8 @@ and map_expr env v : G.expr =
       match op with
       | Left (op, tk) -> G.opcall (op, tk) [ e1; e2 ]
       | Right id ->
-          let n = N (H.name_of_id id) |> G.e in
-          Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e)
+          let n = G.N (H.name_of_id id) |> G.e in
+          G.Call (n, fb ([ e1; e2 ] |> Common.map G.arg)) |> G.e)
   | OpArity (v1, tslash, v3) ->
       let id = map_wrap_operator_ident env v1 in
       let x = (map_wrap (map_option map_int)) env v3 in
@@ -449,7 +449,7 @@ and map_remote_dot env (v1, tdot, v3) : G.expr =
     | Left id -> G.FN (H.name_of_id id)
     | Right (quoted : quoted_generic) -> G.FDynamic (expr_of_quoted quoted)
   in
-  DotAccess (e, tdot, fld) |> G.e
+  G.DotAccess (e, tdot, fld) |> G.e
 
 and map_stab_clause env (v : stab_clause) : stab_clause_generic =
   let (vargs, vwhenopt), tarrow, vbody = v in
