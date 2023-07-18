@@ -1,0 +1,17 @@
+# If the core workflows are changed, run a release dry run.
+
+name: Release Dry Run
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/*release*"
+      - ".github/workflows/*build-test*"
+
+jobs:
+  release-dry-run:
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
+    with:
+      dry-run: true
