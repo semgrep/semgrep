@@ -26,7 +26,7 @@ let at_url_maybe ppf () =
   else
     Fmt.pf ppf " at %a"
       Fmt.(styled `Bold string)
-      (Uri.to_string Semgrep_envvsears.v.semgrep_url)
+      (Uri.to_string Semgrep_envvars.v.semgrep_url)
 
 let decode_rules data =
   Common2.with_tmp_file ~str:data ~ext:"json" (fun file ->
