@@ -108,4 +108,3 @@ jobs:
       - uses: reviewdog/action-actionlint@v1
         with:
           fail_on_error: true
-          actionlint_flags: -ignore 'workflow command "set-output" was deprecated. ".+"'
