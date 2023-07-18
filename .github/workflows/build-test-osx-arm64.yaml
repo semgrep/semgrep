@@ -20,13 +20,6 @@ on:
         required: false
         type: boolean
         default: true
-    outputs:
-      wheel-artifact-name:
-        description: "The name under which the wheel artifact was stored"
-        value: ${{ jobs.build-wheels-osx-arm64.outputs.wheel-artifact-name }}
-
-env:
-  WHEEL_ARTIFACT_NAME: osx-arm64-wheel
 
 jobs:
   build-core-osx-arm64:
@@ -86,8 +79,6 @@ jobs:
         "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
     needs: [build-core-osx-arm64]
-    outputs:
-      wheel-artifact-name: ${{ steps.wheel-artifact-name.outputs.wheel-artifact-name }}
     steps:
       - name: Setup runner directory
         run: |
@@ -111,11 +102,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
-          name: ${{ env.WHEEL_ARTIFACT_NAME }}
-      - name: Set Wheel Name Output
-        id: wheel-artifact-name
-        run: |
-          echo "wheel-artifact-name=${WHEEL_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          name: osx-arm64-wheel
 
   test-wheels-osx-arm64:
     runs-on:
@@ -134,11 +121,11 @@ jobs:
           sudo chown -R admin:staff /Users/runner
       - uses: actions/download-artifact@v1
         with:
-          name: ${{ env.WHEEL_ARTIFACT_NAME }}
+          name: osx-arm64-wheel
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - run: unzip "./${{ env.WHEEL_ARTIFACT_NAME }}/dist.zip"
+      - run: unzip ./osx-arm64-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version

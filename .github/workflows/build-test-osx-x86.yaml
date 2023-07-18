@@ -55,13 +55,6 @@ on:
         required: false
         type: boolean
         default: true
-    outputs:
-      wheel-artifact-name:
-        description: "The name under which the wheel artifact was stored"
-        value: ${{ jobs.build-wheels-osx.outputs.wheel-artifact-name }}
-
-env:
-  WHEEL_ARTIFACT_NAME: osx-x86-wheel
 
 jobs:
   build-core-osx:
@@ -122,8 +115,6 @@ jobs:
   build-wheels-osx:
     runs-on: macos-12
     needs: [build-core-osx]
-    outputs:
-      wheel-artifact-name: ${{ steps.wheel-artifact-name.outputs.wheel-artifact-name }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -138,11 +129,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: cli/dist.zip
-          name: ${{ env.WHEEL_ARTIFACT_NAME }}
-      - name: Set Wheel Name Output
-        id: wheel-artifact-name
-        run: |
-          echo "wheel-artifact-name=${WHEEL_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          name: osx-x86-wheel
 
   test-wheels-osx-x86:
     runs-on: macos-12
@@ -150,8 +137,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v1
         with:
-          name: ${{ env.WHEEL_ARTIFACT_NAME }}
-      - run: unzip "./${{ env.WHEEL_ARTIFACT_NAME }}/dist.zip"
+          name: osx-x86-wheel
+      - run: unzip ./osx-x86-wheel/dist.zip
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version

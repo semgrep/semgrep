@@ -5,21 +5,12 @@ name: build-test-manylinux-x86
 on:
   workflow_dispatch:
   workflow_call:
-    outputs:
-      wheel-artifact-name:
-        description: "The name under which the wheel artifact was stored"
-        value: ${{ jobs.build-wheels-manylinux.outputs.wheel-artifact-name }}
-
-env:
-  WHEEL_ARTIFACT_NAME: manylinux-x86-wheel
 
 jobs:
   build-wheels-manylinux:
     runs-on: ubuntu-latest
     #pad: What is this sgrep-xxx image?
     container: returntocorp/sgrep-build:ubuntu-16.04
-    outputs:
-      wheel-artifact-name: ${{ steps.wheel-artifact-name.outputs.wheel-artifact-name }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -39,12 +30,8 @@ jobs:
           ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
-          name: "${{ env.WHEEL_ARTIFACT_NAME }}"
+          name: manylinux-x86-wheel
           path: cli/dist.zip
-      - name: Set Wheel Name Output
-        id: wheel-artifact-name
-        run: |
-          echo "wheel-artifact-name=${WHEEL_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
 
   test-wheels-manylinux:
     runs-on: ubuntu-latest
@@ -53,8 +40,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v1
         with:
-          name: "${{ env.WHEEL_ARTIFACT_NAME }}"
-      - run: unzip "./${{ env.WHEEL_ARTIFACT_NAME }}/dist.zip"
+          name: manylinux-x86-wheel
+      - run: unzip ./manylinux-x86-wheel/dist.zip
       - name: install package
         run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
       - name: test package
