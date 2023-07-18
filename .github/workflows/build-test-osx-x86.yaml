@@ -58,117 +58,27 @@ on:
     outputs:
       wheel-artifact-name:
         description: "The name under which the wheel artifact was stored"
-        value: ${{ jobs.build-wheels-osx.outputs.wheel-artifact-name }}
+        value: ${{ jobs.wheel-name.outputs.wheel-artifact-name }}
 
 env:
   WHEEL_ARTIFACT_NAME: osx-x86-wheel
 
 jobs:
-  build-core-osx:
-    name: Build the OSX binaries
-    runs-on: macos-12
-    env:
-      # This name is used in the cache key. If we update to a newer version of
-      # ocaml, we'll want to change the OPAM_SWITCH_NAME as well to avoid issues
-      # with caching.
-      OPAM_SWITCH_NAME: "4.14.0"
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      # Note that this action handles both cache read and cache write.
-      # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
-      # Things are saved automatically by GHA in a "Post Cache Opam" phase runs
-      # when the full job has been completed (click on 'Details' in the PR for the
-      # check to see this phase).
-      # Note that this works and speedup things because of the way OPAM works
-      # and osx-setup-for-release.sh is written. Indeed, this script checks
-      # if the opam switch is already created, and if a package is already
-      # installed (in ~/.opam), then opam install on this package will do nothing.
-      # If we use new packages in semgrep.opam, then we currently would still
-      # hit the cache unfortunately, but we would spend time only for installing
-      # those new packages (ideally we would want to regenerate the cache by
-      # using an opam.pock in the cache key).
-      # TODO? Should we use instead the actions/cache/save@v3 and
-      # actions/cache/restore@v3 instead like in build-test-javascript.yaml?
-      - name: Cache Opam
-        id: cache-opam
-        uses: actions/cache@v3
-        if: ${{ inputs.use-cache }}
-        # The size of the tgz of ~/.opam is around 500MB, which usually takes less than
-        # 2min to download from GHA. If it takes more than that, that means something
-        # wrong is going on in which case it's better to timeout early than spend
-        # 10min (the default timeout) and then still timeout.
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        with:
-          path: ~/.opam
-          #TODO: we should add the md5sum of opam.lock as part of the key
-          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
-      - name: Install dependencies
-        run: |
-          ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
-      - name: Compile semgrep
-        run: |
-          opam exec -- make core
-          mkdir -p artifacts
-          cp ./bin/semgrep-core artifacts
-          zip -r artifacts.zip artifacts
-      - uses: actions/upload-artifact@v3
-        with:
-          path: artifacts.zip
-          name: semgrep-osx-${{ github.sha }}
-
-  build-wheels-osx:
-    runs-on: macos-12
-    needs: [build-core-osx]
+  wheel-name:
+    runs-on: ubuntu-22.04
     outputs:
       wheel-artifact-name: ${{ steps.wheel-artifact-name.outputs.wheel-artifact-name }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - uses: actions/download-artifact@v3
-        with:
-          name: semgrep-osx-${{ github.sha }}
-      - run: |
-          unzip artifacts.zip
-          cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
-      - uses: actions/upload-artifact@v3
-        with:
-          path: cli/dist.zip
-          name: ${{ env.WHEEL_ARTIFACT_NAME }}
       - name: Set Wheel Name Output
         id: wheel-artifact-name
         run: |
           echo "wheel-artifact-name=${WHEEL_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
-
-  test-wheels-osx-x86:
-    runs-on: macos-12
-    needs: [build-wheels-osx]
-    steps:
-      - uses: actions/download-artifact@v1
-        with:
-          name: ${{ env.WHEEL_ARTIFACT_NAME }}
-      - run: unzip "./${{ env.WHEEL_ARTIFACT_NAME }}/dist.zip"
-      - name: install package
-        run: pip3 install dist/*.whl
-      - run: semgrep --version
-      - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -
-      - name: test dynamically linked libraries are in /usr/lib/
-        shell: bash {0}
-        run: |
-          otool -L $(semgrep --dump-engine-path) > otool.txt
-          if [ $? -ne 0 ]; then
-            echo "Failed to list dynamically linked libraries.";
-            cat otool.txt;
-            exit 1;
-          fi
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(cat otool.txt | tail -n +2 | grep -v "^\s*/usr/lib/")
-          if [ $? -eq 0 ]; then
-            echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
-            echo $NON_USR_LIB_DYNAMIC_LIBRARIES
-            exit 1;
-          fi;
+  build-core-osx-arm64:
+    uses: ./.github/workflows/build-test-osx.yaml
+    secrets: inherit
+    needs: [wheel-name]
+    with:
+      runs-on: "['self-hosted','macOS','ARM64','ghcr.io/cirruslabs/macos-monterey-xcode:latest']"
+      architecture: "arm64"
+      wheel-artifact-name: ${{ needs.wheel-name.outputs.wheel-artifact-name }}
+      use-cache: ${{ inputs.use-cache }}
