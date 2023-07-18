@@ -18,7 +18,6 @@ module G = AST_generic
 module MV = Metavariable
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
-module Env = Metavariable_capture
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -74,7 +73,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
-  mv : Metavariable_capture.t;
+  mv : Metavariable.bindings;
   stmts_match_span : Stmts_match_span.t;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
@@ -197,7 +196,7 @@ let ( let* ) o f = o >>= f
 (*****************************************************************************)
 
 let add_mv_capture key value (env : tin) =
-  { env with mv = Env.add_capture key value env.mv }
+  { env with mv = (key, value) :: env.mv }
 
 let extend_stmts_match_span rightmost_stmt (env : tin) =
   let stmts_match_span =

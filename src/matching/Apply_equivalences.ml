@@ -19,7 +19,6 @@ module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module MV = Metavariable
 module Eq = Equivalence
-module Env = Metavariable_capture
 
 (*****************************************************************************)
 (* Matchers for code equivalence mode *)
