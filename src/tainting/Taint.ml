@@ -108,16 +108,26 @@ let rec _show_call_trace show_thing = function
 (* Signatures *)
 (*****************************************************************************)
 
-type arg_pos = string * int [@@deriving show, compare]
-type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
+type arg_pos = { name : string; index : int } [@@deriving show, compare]
+type arg_base = Bthis | Barg of arg_pos [@@deriving show, compare]
+type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
 
-let _show_arg { pos = s, i; offset = os } =
+let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
+
+let _show_base base =
+  match base with
+  | Bthis -> "this"
+  | Barg pos -> _show_pos pos
+
+let _show_arg { base; offset = os } =
+  _show_base base
+  ^
   if os <> [] then
     let os_str =
       os |> Common.map (fun n -> fst n.IL.ident) |> String.concat "."
     in
-    Printf.sprintf "arg(%s)#%d.%s" s i os_str
-  else Printf.sprintf "arg(%s)#%d" s i
+    "." ^ os_str
+  else ""
 
 (*****************************************************************************)
 (* Taint *)
@@ -184,11 +194,10 @@ let compare_source
       | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
   | other -> other
 
-let compare_arg a1 a2 =
-  let pos1 = a1.pos in
-  let pos2 = a2.pos in
-  match compare_arg_pos pos1 pos2 with
-  | 0 -> List.compare IL_helpers.compare_name a1.offset a2.offset
+let compare_arg { base = base1; offset = offset1 }
+    { base = base2; offset = offset2 } =
+  match compare_arg_base base1 base2 with
+  | 0 -> List.compare IL_helpers.compare_name offset1 offset2
   | other -> other
 
 let compare_orig orig1 orig2 =
@@ -205,7 +214,7 @@ let compare_taint taint1 taint2 =
 
 let _show_taint_label taint =
   match taint.orig with
-  | Arg { pos = s, i; _ } -> Printf.sprintf "arg(%s)#%d" s i
+  | Arg { base; offset = _ } -> _show_base base
   | Src src -> src.label
 
 let rec _show_precondition = function

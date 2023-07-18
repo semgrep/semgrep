@@ -16,8 +16,9 @@ type 'a call_trace =
 type sink = { pm : Pattern_match.t; rule_sink : Rule.taint_sink }
 [@@deriving show]
 
-type arg_pos = string * int [@@deriving show]
-type arg = { pos : arg_pos; offset : IL.name list } [@@deriving show]
+type arg_pos = { name : string; index : int } [@@deriving show]
+type arg_base = Bthis | Barg of arg_pos [@@deriving show]
+type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
 
 type source = {
   call_trace : Rule.taint_source call_trace;
