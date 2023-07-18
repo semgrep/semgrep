@@ -1,5 +1,4 @@
-# This workflow builds and tests the semgrep-core binary for macOS X86
-# and generates the osx-wheel for pypi.
+# This workflow builds and tests the semgrep-core binary and wheels for generic OSX
 
 # This workflow uses the actions/cache@v3 GHA extension to cache
 # the ~/.opam directory, which is different from what we do for our other
@@ -38,7 +37,7 @@
 # See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f for more information.
 
 # coupling: if you modify this file, modify also build-test-osx-m1.yaml
-name: build-test-osx-x86
+name: build-test-osx
 
 on:
   workflow_call:
@@ -147,7 +146,7 @@ jobs:
           path: cli/dist.zip
           name: ${{ env.WHEEL_ARTIFACT_NAME }}
 
-  test-wheels-osx-x86:
+  test-wheels-osx:
     needs: [build-wheels-osx]
     # Converts the string output to a JSON array to be used with the runs-on tag.
     runs-on: ${{ fromJson(inputs.runs-on) }}
