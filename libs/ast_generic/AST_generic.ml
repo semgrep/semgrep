@@ -160,6 +160,9 @@
  *    of a VarDef, as done in Python for example).
  *)
 
+(*****************************************************************************)
+(* AST versioning *)
+(*****************************************************************************)
 (* !! Modify version below each time you modify the generic AST!!
  * There are now a few places where we cache the generic AST in a marshalled
  * form on disk (e.g., in src/parsing/Parsing_with_cache.ml) and reading back
@@ -172,7 +175,28 @@
  *)
 let version = "1.32.0"
 
-(* Provide hash_* and hash_fold_* for the core ocaml types *)
+(*****************************************************************************)
+(* Some notes on deriving *)
+(*****************************************************************************)
+(* Here are the different 'deriving' we use:
+ *  - 'deriving show' for obviously being able to print AST constructs
+ *     in debugging statements (very convenient in OCaml given the absence
+ *     of type class and a generic 'show' function)
+ *  - 'deriving eq' to be able to compare AST constructs, which is
+ *     mostly used in Semgrep for metavariable content comparison, so
+ *     that when one use a pattern like '$X == $X', we make sure the
+ *     AST constructs on the lhs and rhs of '==' contains the same code.
+ *     We actually perform equality module token location, that is we don't
+ *     consider the token location when performing the equality. See the
+ *     comment about Tok.t_always_equal below
+ * - 'deriving hash' to hash AST constructs. This was used for stmts
+ *    matching caching, but we removed this optimization, but we now
+ *    use AST hashing in Autofix_printer.ASTTable and we also hash
+ *    formulas (which contains patterns, which contains AST_generic constructs)
+ *    in Match_tainting_mode.Formula_tbl
+ *)
+
+(* Provide hash_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
 (* ppx_hash refuses to hash mutable fields but we do it anyway. *)
@@ -1120,6 +1144,7 @@ and stmt = {
       [@equal AST_utils.equal_stmt_field_s equal_stmt_kind] [@hash.ignore]
   (* this can be used to compare and hash more efficiently stmts,
    * or in semgrep to quickly know if a stmt is a children of another stmt.
+   * TODO: is this still used after we remove stmts maching caching?
    *)
   s_id : AST_utils.Node_ID.t;
       [@equal AST_utils.equal_stmt_field_s_id] [@name "node_id_t"]
