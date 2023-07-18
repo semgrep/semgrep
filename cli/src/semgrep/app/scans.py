@@ -302,16 +302,12 @@ class ScanHandler:
             # send a backup token in case the app is not available
             token=token,
             findings=findings,
+            ignores=ignores,
             searched_paths=[str(t) for t in sorted(targets)],
+            renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
-            gitlab_token=None,
         )
-        # TODO: add those fields in semgrep_output_v1.atd spec
-        findings_and_ignores = {
-            **api_scans_findings.to_json(),
-            "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
-            "ignores": ignores,
-        }
+        findings_and_ignores = api_scans_findings.to_json()
 
         if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
             logger.info("Some experimental rules were run during execution.")

@@ -257,27 +257,17 @@ let prepare_for_report ~blocking_findings:_ findings _errors rules ~targets
       {
         (* send a backup token in case the app is not available *)
         findings;
+        ignores;
         token = ci_token;
-        gitlab_token = None;
         searched_paths = List.sort String.compare targets;
+        (* TODO: get renamed_paths, depends on baseline_commit *)
+        renamed_paths = [];
         rule_ids;
       }
   in
-  (* TODO: add those fields below in semgrep_output_v1.atd spec *)
   let findings_and_ignores =
-    let ignores =
-      Common.map
-        (fun f -> JSON.json_of_string (Semgrep_output_v1_j.string_of_finding f))
-        ignores
-    in
-    match
-      JSON.json_of_string
-        (Semgrep_output_v1_j.string_of_api_scans_findings api_scans_findings)
-    with
-    | JSON.Object data ->
-        JSON.Object
-          (("renamed_paths", Array []) :: ("ignores", Array ignores) :: data)
-    | _ -> invalid_arg "expected a json object"
+    JSON.json_of_string
+    @@ Semgrep_output_v1_j.string_of_api_scans_findings api_scans_findings
   in
   if
     List.exists
