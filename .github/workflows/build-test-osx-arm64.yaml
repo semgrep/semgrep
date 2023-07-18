@@ -13,10 +13,6 @@ on:
         required: true
         type: boolean
         default: true
-      wheel-artifact-name:
-        description: "The name under which to store the wheel artifact"
-        type: string
-        default: osx-arm64-wheel
   workflow_call:
     inputs:
       use-cache:
@@ -24,13 +20,13 @@ on:
         required: false
         type: boolean
         default: true
+    outputs:
       wheel-artifact-name:
-        description: "The name under which to store the wheel artifact"
-        type: string
-        default: osx-arm64-wheel
+        description: "The name under which the wheel artifact was stored"
+        value: ${{ jobs.build-wheels-osx-arm64.outputs.wheel-artifact-name }}
 
 env:
-  WHEEL_ARTIFACT_NAME: ${{ inputs.wheel-artifact-name }}
+  WHEEL_ARTIFACT_NAME: osx-arm64-wheel
 
 jobs:
   build-core-osx-arm64:
@@ -90,6 +86,8 @@ jobs:
         "ghcr.io/cirruslabs/macos-monterey-base:latest",
       ]
     needs: [build-core-osx-arm64]
+    outputs:
+      wheel-artifact-name: ${{ steps.wheel-artifact-name.outputs.wheel-artifact-name }}
     steps:
       - name: Setup runner directory
         run: |
@@ -114,6 +112,10 @@ jobs:
         with:
           path: cli/dist.zip
           name: ${{ env.WHEEL_ARTIFACT_NAME }}
+      - name: Set Wheel Name Output
+        id: wheel-artifact-name
+        run: |
+          echo "wheel-artifact-name=${WHEEL_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
 
   test-wheels-osx-arm64:
     runs-on:

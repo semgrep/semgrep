@@ -3,6 +3,13 @@ name: build-test-manylinux-aarch64
 on:
   workflow_dispatch:
   workflow_call:
+    outputs:
+      wheel-artifact-name:
+        description: "The name under which the wheel artifact was stored"
+        value: ${{ jobs.build-wheel.outputs.wheel-artifact-name }}
+
+env:
+  WHEEL_ARTIFACT_NAME: manylinux-aarch64-wheel
 
 jobs:
   build-wheel:
@@ -11,6 +18,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      wheel-artifact-name: ${{ steps.wheel-artifact-name.outputs.wheel-artifact-name }}
     steps:
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
@@ -30,5 +39,9 @@ jobs:
           docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} zip -r - dist > /tmp/dist.zip
       - uses: actions/upload-artifact@v3
         with:
-          name: manylinux-wheel-aarch64
+          name: "${{ env.WHEEL_ARTIFACT_NAME }}"
           path: /tmp/dist.zip
+      - name: Set Wheel Name Output
+        id: wheel-artifact-name
+        run: |
+          echo "wheel-artifact-name=${WHEEL_ARTIFACT_NAME}" >> $GITHUB_OUTPUT
