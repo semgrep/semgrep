@@ -3,18 +3,6 @@
  *)
 
 (*****************************************************************************)
-(* Accessories *)
-(*****************************************************************************)
-
-(* A set of metavariables. Access cost is O(log n). *)
-module String_set = struct
-  type t = string Set_.t
-  type string_list = string list [@@deriving show]
-
-  let pp fmt x = pp_string_list fmt (Set_.elements x)
-end
-
-(*****************************************************************************)
 (* Comparison and hashing *)
 (*****************************************************************************)
 
@@ -35,6 +23,7 @@ module Node_ID = Gensym.MkId ()
    - referential equality: are these two AST nodes physically the same?
      This is essentially physical equality but it tolerates copying or even
      some transformation as long as the node ID is preserved.
+     (old: was use for stmts matching caching but got removed now).
    - syntactic equality: do two AST nodes represent the same code?
      This disregards the id_info inferred about Id nodes. This means
      that `secret1` in a YAML file is considered to be the same as
@@ -45,11 +34,8 @@ module Node_ID = Gensym.MkId ()
    so as to select structural or referential equality.
 *)
 
-type busy_with_equal =
-  | Not_busy
-  | Structural_equal
-  | Referential_equal
-  | Syntactic_equal
+type busy_with_equal = Not_busy | Structural_equal | Syntactic_equal
+(* old:  | Referential_equal *)
 
 (* global state! managed by the with_equal_* functions *)
 let busy_with_equal = ref Not_busy
@@ -59,21 +45,19 @@ let equal_id_info equal a b =
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Syntactic_equal -> true
   | Structural_equal -> equal a b
-  | Referential_equal -> equal a b
 
 let equal_stmt_field_s equal_stmt_kind a b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Syntactic_equal -> equal_stmt_kind a b
   | Structural_equal -> equal_stmt_kind a b
-  | Referential_equal -> true
 
-let equal_stmt_field_s_id a b =
+let equal_stmt_field_s_id _a _b =
   match !busy_with_equal with
   | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Syntactic_equal -> true
   | Structural_equal -> true
-  | Referential_equal -> Node_ID.equal a b
+(* old:  | Referential_equal -> Node_ID.equal a b *)
 
 (*
    Wrap one of the generated equal_* functions into one that selects
@@ -89,8 +73,7 @@ let with_syntactic_equal equal a b =
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
   | Syntactic_equal
-  | Structural_equal
-  | Referential_equal ->
+  | Structural_equal ->
       failwith "an equal is already in progress"
 
 (*
@@ -105,22 +88,5 @@ let with_structural_equal equal a b =
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
   | Syntactic_equal
-  | Structural_equal
-  | Referential_equal ->
-      failwith "an equal is already in progress"
-
-(*
-   Wrap one of the generated equal_* functions into one that selects
-   referential equality, using node IDs when available.
-*)
-let with_referential_equal equal a b =
-  match !busy_with_equal with
-  | Not_busy ->
-      busy_with_equal := Referential_equal;
-      Fun.protect
-        ~finally:(fun () -> busy_with_equal := Not_busy)
-        (fun () -> equal a b)
-  | Syntactic_equal
-  | Structural_equal
-  | Referential_equal ->
+  | Structural_equal ->
       failwith "an equal is already in progress"

@@ -26,13 +26,13 @@ type mvalue =
       string
       * (* token without enclosing quotes *) AST_generic.tok
       * (* original token *) AST_generic.tok
-[@@deriving show, eq, hash]
+[@@deriving show, eq]
 
 (* note that the mvalue acts as the value of the metavar and also
    as its concrete code "witness". You can get position information from it
    (if it is not Tok.Ab(stractPos)).
 *)
-type bindings = (mvar * mvalue) list [@@deriving show, eq, hash]
+type bindings = (mvar * mvalue) list [@@deriving show, eq]
 
 (* return whether a string could be a metavariable name (e.g., "$FOO", but not
  * "FOO"). This mostly check for the regexp $[A-Z_][A-Z_0-9]* but
@@ -61,6 +61,9 @@ val mvalue_of_any : AST_generic.any -> mvalue option
  * of a metavariable into a program so we can use evaluate_formula on it *)
 val program_of_mvalue : mvalue -> AST_generic.program option
 
+(* See the comment in AST_utils.ml for the difference between
+ * the Syntactic and Structural equal.
+ *)
 module Syntactic : sig
   val equal_mvalue : mvalue -> mvalue -> bool
   val equal_bindings : bindings -> bindings -> bool
@@ -69,10 +72,4 @@ end
 module Structural : sig
   val equal_mvalue : mvalue -> mvalue -> bool
   val equal_bindings : bindings -> bindings -> bool
-end
-
-module Referential : sig
-  val equal_mvalue : mvalue -> mvalue -> bool
-  val equal_bindings : bindings -> bindings -> bool
-  val hash_bindings : bindings -> int
 end

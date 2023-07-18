@@ -13,6 +13,9 @@
  * LICENSE for more details.
  *)
 
+(* We need deriving 'hash' below because formulas are now hashed
+ * in Match_tainting_mode.Formula_tbl and formula contain patterns.
+ *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
 (*****************************************************************************)

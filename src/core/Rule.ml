@@ -123,6 +123,9 @@ type 'a loc = {
  * negation in the presence of metavariables.
  *
  * less? enforce invariant that Not can only appear in And?
+ *
+ * We use 'deriving hash' for formula because of the
+ * Match_tainting_mode.Formula_tbl formula cache.
  *)
 type formula =
   | P of Xpattern.t (* a leaf pattern *)
