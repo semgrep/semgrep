@@ -418,7 +418,6 @@ class virtual ['self] iter_parent =
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
     method visit_node_id_t _env _ = ()
-    method visit_string_set_t _env _ = ()
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
@@ -484,7 +483,6 @@ class virtual ['self] map_parent =
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
     method visit_node_id_t _env x = x
-    method visit_string_set_t _env x = x
   end
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -1133,17 +1131,6 @@ and stmt = {
   (* used to quickly get the range of a statement *)
   mutable s_range : (Tok.location * Tok.location) option;
       [@equal fun _a _b -> true] [@hash.ignore]
-  mutable s_backrefs : (AST_utils.String_set.t[@name "string_set_t"]) option;
-      [@equal fun _a _b -> true] [@hash.ignore]
-      (* set of metavariables referenced in the "rest of the pattern", as
-         determined by matching order.
-         This field is relevant for patterns only.
-
-         This is used to determine which of the bound
-         metavariables should be added to the cache key for this node.
-         This field is set on pattern ASTs only, in a pass right after parsing
-         and before matching.
-      *)
 }
 
 and stmt_kind =
@@ -2120,13 +2107,7 @@ let sc = Tok.unsafe_fake_tok ""
 (* ------------------------------------------------------------------------- *)
 
 (* statements *)
-let s skind =
-  {
-    s = skind;
-    s_id = AST_utils.Node_ID.mk ();
-    s_backrefs = None;
-    s_range = None;
-  }
+let s skind = { s = skind; s_id = AST_utils.Node_ID.mk (); s_range = None }
 
 (* expressions *)
 let e ekind = { e = ekind; e_id = 0; e_range = None }
