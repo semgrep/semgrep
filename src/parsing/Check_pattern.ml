@@ -35,6 +35,7 @@ let lang_has_no_dollar_ids =
     | Vue
     | Ruby
     | Php
+    | Promql
     | Hack
     | Bash
     | Dockerfile
