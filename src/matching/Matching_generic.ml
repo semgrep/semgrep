@@ -321,7 +321,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
-  match Common2.assoc_opt mvar tin.mv.full_env with
+  match Common2.assoc_opt mvar tin.mv with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -353,8 +353,8 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
 let empty_environment ?(mvar_context = None) lang config =
   let mv =
     match mvar_context with
-    | None -> Env.empty
-    | Some bindings -> { full_env = bindings }
+    | None -> []
+    | Some bindings -> bindings
   in
   { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
 

@@ -40,8 +40,7 @@ let match_e_e_for_equivalences _ruleid lang a b =
 (*****************************************************************************)
 (* Substituters *)
 (*****************************************************************************)
-let subst_e (env : Env.t) e =
-  let bindings = env.full_env in
+let subst_e (bindings : MV.bindings) e =
   let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.map_legacy as super

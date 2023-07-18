@@ -6,13 +6,12 @@ open Metavariable
    which are eventually returned if matching is successful.
 *)
 
-type t = { (* All metavariable captures *)
-           full_env : bindings }
+type t = bindings
 
-let empty = { full_env = [] }
+let empty = []
 
 (* Get the value bound to a metavariable or return None. *)
-let get_capture k env = List.assoc_opt k env.full_env
+let get_capture k env = List.assoc_opt k env
 
 (*
      To be called each time a new value is captured, i.e. bound to a
@@ -20,5 +19,5 @@ let get_capture k env = List.assoc_opt k env.full_env
   *)
 let add_capture k v env =
   let kv = (k, v) in
-  let full_env = kv :: env.full_env in
-  { full_env }
+  let full_env = kv :: env in
+  full_env

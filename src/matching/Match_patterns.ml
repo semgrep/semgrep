@@ -155,7 +155,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
            (* Found a match *)
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
-                  let env = env.mv.full_env in
+                  let mv = env.mv in
                   match AST_generic_helpers.range_of_any_opt (any x) with
                   | None ->
                       (* TODO: Report a warning to the user? *)
@@ -172,7 +172,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                         {
                           PM.rule_id;
                           file;
-                          env;
+                          env = mv;
                           range_loc;
                           tokens;
                           taint_trace = None;
@@ -311,7 +311,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let env = env.mv.full_env in
+                              let mv = env.mv in
                               let tokens =
                                 lazy (AST_generic_helpers.ii_of_any (E x))
                               in
@@ -320,7 +320,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 {
                                   PM.rule_id;
                                   file;
-                                  env;
+                                  env = mv;
                                   range_loc;
                                   tokens;
                                   taint_trace = None;
@@ -359,7 +359,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                      (* Found a match *)
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
-                            let env = env.mv.full_env in
+                            let mv = env.mv in
                             match
                               AST_generic_helpers.range_of_any_opt (S x)
                             with
@@ -379,7 +379,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   {
                                     PM.rule_id;
                                     file;
-                                    env;
+                                    env = mv;
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
@@ -415,7 +415,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                               match Stmts_match_span.location span with
                               | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let env = env.mv.full_env in
+                                  let mv = env.mv in
                                   let tokens =
                                     lazy
                                       (Stmts_match_span.list_original_tokens
@@ -426,7 +426,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     {
                                       PM.rule_id;
                                       file;
-                                      env;
+                                      env = mv;
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
@@ -508,7 +508,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                               match Stmts_match_span.location span with
                               | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let env = env.mv.full_env in
+                                  let mv = env.mv in
                                   let tokens =
                                     lazy
                                       (Stmts_match_span.list_original_tokens
@@ -519,7 +519,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     {
                                       PM.rule_id;
                                       file;
-                                      env;
+                                      env = mv;
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
