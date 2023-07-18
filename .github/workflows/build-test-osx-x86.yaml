@@ -91,7 +91,7 @@ jobs:
         with:
           path: ~/.opam
           #TODO: we should add the md5sum of opam.lock as part of the key
-          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-jpLFDCCCAsC3RGTj"
+          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
       - name: Install dependencies
         run: |
           ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
@@ -116,7 +116,7 @@ jobs:
         with:
           path: ~/.opam
           #TODO: we should add the md5sum of opam.lock as part of the key
-          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-jpLFDCCCAsC3RGTj"
+          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
 
   build-wheels-osx:
     runs-on: macos-12
