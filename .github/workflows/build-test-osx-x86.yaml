@@ -109,7 +109,7 @@ jobs:
       # restore-opam-cache. This allows us to manually save off the ~/.opam dir, keeping things up to date and speedy.
       - name: Save Opam Cache
         id: save-opam-cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/save@v3
         if: ${{ inputs.use-cache }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
