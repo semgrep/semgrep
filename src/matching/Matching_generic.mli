@@ -2,7 +2,7 @@
 
 (* incoming environment *)
 type tin = {
-  mv : Metavariable_capture.t;
+  mv : Metavariable.bindings;
   stmts_match_span : Stmts_match_span.t;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
