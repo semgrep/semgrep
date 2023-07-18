@@ -61,6 +61,6 @@ jobs:
           --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
           --header 'content-type: application/json' \
           --data '{
-            "commit_sha": "${{needs.release-setup.outputs.version}}",
+            "commit_sha": "${{ github.sha }}",
             "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
           }'
