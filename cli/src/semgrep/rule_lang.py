@@ -456,6 +456,10 @@ class RuleValidation:
         "pattern-sinks",
         "pattern-sources",
         "join",
+        #secret mode top level keys
+        "secrets",
+        "request",
+        "response"
     }
     INVALID_SENTINEL = " is not allowed for "
     INVALID_FOR_MODE_SENTINEL = "False schema does not allow"
