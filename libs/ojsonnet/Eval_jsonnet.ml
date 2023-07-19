@@ -190,7 +190,16 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
                    fst field.fld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld -> evaluate_lazy_value_ fld.fld_value)
+          | Some fld -> (
+              let new_self = V.Object (_l, (_assertsTODO, fields), _r) in
+              let locals =
+                env.locals
+                |> Map_.add V.LSelf { V.value = V.Val new_self; env }
+                |> Map_.add V.LSuper { V.value = Val V.empty_obj; env }
+              in
+              match fld.fld_value.value with
+              | V.Val v -> v
+              | Unevaluated e -> eval_expr { env with locals } e))
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
@@ -586,22 +595,11 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                    if Hashtbl.mem hdupes str then
                      error tk (spf "duplicate field name: \"%s\"" str)
                    else Hashtbl.add hdupes str true;
-                   let obj_inside = (l, Object (assertsTODO, fields), r) in
-                   let new_self = O obj_inside in
-                   let locals =
-                     env.locals
-                     |> Map_.add V.LSelf { V.value = Unevaluated new_self; env }
-                     |> Map_.add V.LSuper { V.value = Val V.empty_obj; env }
-                   in
                    Some
                      {
                        V.fld_name;
                        fld_hidden;
-                       fld_value =
-                         {
-                           value = Unevaluated fld_value;
-                           env = { env with locals };
-                         };
+                       fld_value = { value = Unevaluated fld_value; env };
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
@@ -670,6 +668,22 @@ and manifest_value (v : V.value_) : JSON.t =
                    let new_self = V.Object (_l, (_assertsTODO, fields), _r) in
                    let locals =
                      fld_value.env.locals
+                     (* We need to do these assignment on field access rather than on
+                        object creation, since when objects are merged, we need self to
+                        reference the new merged object rather than the original. Here's
+                        such an example:
+                        ({ name : self.y } + {y : 42})["name"]
+                        If we were to do the assignment of self before doing the field access
+                        we would have the following (incorrect) evaluation where o = { name : self.y }
+                        ({name : o.y} + {y : 42})["name"]
+                        o.y
+                        {name : self.y}.y
+                        Error no such field.
+                        However, if we only assign self on access, we get the following (correct) evaluation
+                        ({ name : self.y } + {y : 42})["name"]
+                        { name : self.y, y : 42 }["name"]
+                        {name: self.y, y : 42}[y]
+                        42 *)
                      |> Map_.add V.LSelf
                           { V.value = Val new_self; env = fld_value.env }
                      |> Map_.add V.LSuper
