@@ -1,0 +1,23 @@
+name: Populate Cache
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 2 * * *"
+
+jobs:
+  populate-osx-x86-cache:
+    name: Populate OSX x86 Cache
+    uses: ./.github/workflows/build-test-osx-x86.yaml
+    secrets: inherit
+    with:
+      use-cache: true
+      refresh-cache: true
+
+  populate-osx-arm64-cache:
+    name: Populate OSX arm64 Cache
+    uses: ./.github/workflows/build-test-osx-arm64.yaml
+    secrets: inherit
+    with:
+      use-cache: true
+      refresh-cache: true

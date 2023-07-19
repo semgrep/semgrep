@@ -48,6 +48,10 @@ on:
         required: true
         type: boolean
         default: true
+      refresh-cache:
+        description: "Re-write the ~/.opam dir to the cache for subsequent runs"
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       use-cache:
@@ -55,6 +59,10 @@ on:
         required: false
         type: boolean
         default: true
+      refresh-cache:
+        description: "Re-write the ~/.opam dir to the cache for subsequent runs"
+        type: boolean
+        default: false
 
 jobs:
   build-core-osx:
@@ -110,7 +118,7 @@ jobs:
       - name: Save Opam Cache
         id: save-opam-cache
         uses: actions/cache/save@v3
-        if: ${{ inputs.use-cache }}
+        if: ${{ inputs.refresh-cache }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:

@@ -13,6 +13,10 @@ on:
         required: true
         type: boolean
         default: true
+      refresh-cache:
+        description: "Re-write the ~/.opam dir to the cache for subsequent runs"
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       use-cache:
@@ -20,6 +24,10 @@ on:
         required: false
         type: boolean
         default: true
+      refresh-cache:
+        description: "Re-write the ~/.opam dir to the cache for subsequent runs"
+        type: boolean
+        default: false
 
 jobs:
   build-core-osx-arm64:
