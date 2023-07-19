@@ -16,7 +16,7 @@ open Common
 module G = AST_generic
 module H = AST_generic_helpers
 
-(* Provide hash_* and hash_fold_* for the core ocaml types *)
+(* Provide hash_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -84,7 +84,7 @@ type mvalue =
       string
       * (* token without enclosing quotes *) AST_generic.tok
       * (* original token *) AST_generic.tok
-[@@deriving show, eq, hash]
+[@@deriving show, eq]
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
@@ -195,12 +195,9 @@ let str_of_mval x = show_mvalue x
    it is not Parse_info.Ab(stractPos)
 
    TODO: ensure that ["$A", Foo; "$B", Bar] and ["$B", Bar; "$A", Foo]
-   are equivalent for the equal and hash functions.
-   The current implementation is incorrect in general but should work in the
-   context of memoizing pattern matching.
+   are equivalent for the equal functions.
 *)
-type bindings = (mvar * mvalue) list (* = Common.assoc *)
-[@@deriving show, eq, hash]
+type bindings = (mvar * mvalue) list (* = Common.assoc *) [@@deriving show, eq]
 
 (* ex: $X, $FAIL, $VAR2, $_
  * Note that some languages such as PHP or Javascript allows '$' in identifier
@@ -257,17 +254,11 @@ let metavar_for_capture_group = "^\\(\\$[0-9]+\\)$"
 let is_metavar_for_capture_group s = s =~ metavar_for_capture_group
 
 module Syntactic = struct
-  let equal_mvalue = AST_utils.with_syntactic_equal equal_mvalue
-  let equal_bindings = AST_utils.with_syntactic_equal equal_bindings
+  let equal_mvalue = AST_generic_equals.with_syntactic_equal equal_mvalue
+  let equal_bindings = AST_generic_equals.with_syntactic_equal equal_bindings
 end
 
 module Structural = struct
-  let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
-  let equal_bindings = AST_utils.with_structural_equal equal_bindings
-end
-
-module Referential = struct
-  let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
-  let equal_bindings = AST_utils.with_referential_equal equal_bindings
-  let hash_bindings = hash_bindings
+  let equal_mvalue = AST_generic_equals.with_structural_equal equal_mvalue
+  let equal_bindings = AST_generic_equals.with_structural_equal equal_bindings
 end

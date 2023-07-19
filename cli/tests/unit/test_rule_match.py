@@ -441,6 +441,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
     )
 
 
+@pytest.mark.quick
 def test_supply_chain_blocking():
     assert create_sca_rule_match("reachable", True, out.Direct()).is_blocking
     assert create_sca_rule_match("reachable", True, out.Transitive()).is_blocking

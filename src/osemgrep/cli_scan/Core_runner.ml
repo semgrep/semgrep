@@ -53,6 +53,20 @@ type result = {
   *)
 }
 
+(* Type for the core runner function, which can either be invoked by
+   invoke_semgrep_core or invoke_semgrep_core_proprietary *)
+
+type semgrep_core_runner =
+  ?respect_git_ignore:bool ->
+  ?file_match_results_hook:
+    (Fpath.t -> Report.partial_profiling Report.match_result -> unit) option ->
+  conf ->
+  (* LATER? use Config_resolve.rules_and_origin instead? *)
+  Rule.rules ->
+  Rule.invalid_rule_error list ->
+  Fpath.t list ->
+  result
+
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
@@ -180,10 +194,11 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
 (*
    Take in rules and targets and return object with findings.
 *)
-let invoke_semgrep_core ?(respect_git_ignore = true)
-    ?(file_match_results_hook = None) (conf : conf) (all_rules : Rule.t list)
-    (rule_errors : Rule.invalid_rule_error list) (all_targets : Fpath.t list) :
-    result =
+let invoke_semgrep_core
+    ?(engine = Run_semgrep.semgrep_with_raw_results_and_exn_handler)
+    ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
+    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
+    (all_targets : Fpath.t list) : result =
   let config : Runner_config.t = runner_config_of_conf conf in
   let config = { config with file_match_results_hook } in
 
@@ -247,9 +262,7 @@ let invoke_semgrep_core ?(respect_git_ignore = true)
       let config = prepare_config_for_semgrep_core config lang_jobs in
 
       (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-      let _exn_opt_TODO, res, files =
-        Run_semgrep.semgrep_with_raw_results_and_exn_handler config
-      in
+      let _exn_opt_TODO, res, files = engine config in
 
       let scanned = Set_.of_list files in
 

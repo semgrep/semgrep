@@ -331,22 +331,6 @@
       }
     }
   ],
-  "token": null,
-  "gitlab_token": null,
-  "searched_paths": [
-    "foo.py"
-  ],
-  "rule_ids": [
-    "eqeq-bad",
-    "eqeq-five",
-    "eqeq-four",
-    "abceversion1",
-    "taint-test",
-    "supply-chain1",
-    "supply-chain2",
-    "supply-chain3"
-  ],
-  "renamed_paths": [],
   "ignores": [
     {
       "check_id": "abceversion1",
@@ -519,5 +503,20 @@
         "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
       }
     }
+  ],
+  "token": null,
+  "searched_paths": [
+    "foo.py"
+  ],
+  "renamed_paths": [],
+  "rule_ids": [
+    "eqeq-bad",
+    "eqeq-five",
+    "eqeq-four",
+    "abceversion1",
+    "taint-test",
+    "supply-chain1",
+    "supply-chain2",
+    "supply-chain3"
   ]
 }

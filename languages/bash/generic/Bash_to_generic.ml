@@ -94,6 +94,14 @@ module G = AST_generic
 
 let fb = Tok.unsafe_fake_bracket
 
+(*
+   Convert a pair (loc, x) to a bracket, which uses a leading and trailing
+   token to indicate the location.
+*)
+let bracket (loc : loc) x : 'a bracket =
+  let start, end_ = loc in
+  (start, x, end_)
+
 (* We apply a different mapping whether we're parsing a pattern or target
    program. *)
 type env = AST_bash.input_kind
@@ -346,7 +354,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
             let patterns =
               Common.map
                 (fun e ->
-                  let tok, _ = expression_loc e in
+                  let tok, _ = AST_bash_loc.expression_loc e in
                   let pat =
                     (* TODO: convert bash expression to generic pattern *)
                     G.OtherPat (("", tok), [ G.E (expression env e) ])
@@ -386,7 +394,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.While (while_, G.Cond cond, body) |> G.s)
   | Until_loop (loc, until, cond, do_, body, done_) ->
-      let cond_loc = blist_loc cond in
+      let cond_loc = AST_bash_loc.blist_loc cond in
       let neg_cond =
         blist env cond |> stmt_group env loc |> as_expr
         |> negate_expr until cond_loc
@@ -402,7 +410,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
          and such. *)
       assignments |> block
   | Negated_command (loc, excl_tok, cmd) ->
-      let cmd_loc = command_loc cmd in
+      let cmd_loc = AST_bash_loc.command_loc cmd in
       let cmd = command env cmd |> as_expr in
       let e = negate_expr excl_tok cmd_loc cmd in
       Expr (loc, e)
@@ -410,7 +418,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let first_tok =
         match def.function_ with
         | Some function_tok -> function_tok
-        | None -> fst (variable_name_loc def.name)
+        | None -> fst (AST_bash_loc.variable_name_loc def.name)
       in
       let def_kind =
         G.FuncDef
@@ -528,7 +536,7 @@ let program_with_env (env : env) x = blist (env : env) x |> Common.map as_stmt
 *)
 let any (x : blist) =
   let env = Pattern in
-  match blist_as_expression x with
+  match AST_bash_builder.blist_as_expression x with
   | Some e -> G.E (expression env e)
   (* TODO: simply | None -> G.Ss (program env x) but got regressions
    * problem with Parse_pattern.normalize_any probably

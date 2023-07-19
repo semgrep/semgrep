@@ -1,7 +1,7 @@
 (executables
  (names Parser)
  (libraries parser_javascript.ast_generic parser_javascript.menhir
-   parser_typescript.tree_sitter semgrep_js_shared integers_stubs_js
+   parser_typescript.tree_sitter semgrep.semgrep_js_shared integers_stubs_js
    ctypes_stubs_js)
  (modes js)
  (js_of_ocaml
