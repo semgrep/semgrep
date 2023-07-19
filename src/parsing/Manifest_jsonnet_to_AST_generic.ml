@@ -12,9 +12,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module V = Value_jsonnet
+
 module G = AST_generic
 module A = AST_jsonnet
+module E = Eval_jsonnet
+module V = Value_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -26,7 +28,6 @@ module A = AST_jsonnet
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
 let error tk s = raise (Parsing_error.Other_error (s, tk))
 let fb = Tok.unsafe_fake_bracket
 
@@ -39,22 +40,24 @@ let rec value_to_expr (v : V.value_) : G.expr =
   | V.Primitive x ->
       let literal =
         match x with
-        | V.Null tk -> G.Null tk
-        | V.Bool (b, tk) -> G.Bool (b, tk)
-        | V.Double (f, tk) -> G.Float (Some f, tk)
-        | V.Str (s, tk) -> G.String (fb (s, tk))
+        | Null tk -> G.Null tk
+        | Bool (b, tk) -> G.Bool (b, tk)
+        | Double (f, tk) -> G.Float (Some f, tk)
+        | Str (s, tk) -> G.String (fb (s, tk))
       in
       G.L literal |> G.e
-  | V.Function { f_tok = tk; _ } -> error tk "Function value"
-  | V.Array (l, arr, r) ->
+  | Lambda { f_tok = tk; _ } -> error tk "Lambda value"
+  | Array (l, arr, r) ->
       let xs =
         arr |> Array.to_list
-        |> Common.map (fun lzv ->
-               let v = Lazy.force lzv.V.v in
-               value_to_expr v)
+        |> Common.map (fun (entry : V.lazy_value) ->
+               value_to_expr
+                 (match entry.value with
+                 | Val v -> v
+                 | Unevaluated e -> E.eval_program_with_env entry.env e))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
-  | V.Object (l, (_assertsTODO, fields), r) ->
+  | Object (l, (_assertsTODO, fields), r) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
@@ -63,7 +66,12 @@ let rec value_to_expr (v : V.value_) : G.expr =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   let v = Lazy.force fld_value.v in
+                   (*let v = Lazy.force fld_value.v *)
+                   let v =
+                     match fld_value.value with
+                     | Val v -> v
+                     | Unevaluated e -> E.eval_program_with_env fld_value.env e
+                   in
                    let e = value_to_expr v in
                    let k = G.L (G.String (fb fld_name)) |> G.e in
                    Some (G.keyval k (snd fld_name) e))
