@@ -55,7 +55,7 @@ let yojson_of_t settings = to_yojson settings
 
 let find_targets_conf_of_t settings =
   let include_ =
-    if List.length settings.include_ > 0 then Some settings.include_ else None
+    if settings.include_ <> [] then Some settings.include_ else None
   in
   Find_targets.
     {
