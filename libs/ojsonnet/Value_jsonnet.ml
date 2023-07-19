@@ -22,6 +22,8 @@
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
  *)
 
+module A = AST_jsonnet
+
 (*****************************************************************************)
 (* Env *)
 (*****************************************************************************)
@@ -51,9 +53,9 @@ and lazy_value = { value : val_or_unevaluated_; env : env }
 (*****************************************************************************)
 and value_ =
   | Primitive of primitive
-  | Object of object_ AST_jsonnet.bracket
+  | Object of object_ A.bracket
   | Lambda of Core_jsonnet.function_definition
-  | Array of lazy_value array AST_jsonnet.bracket
+  | Array of lazy_value array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
@@ -61,18 +63,18 @@ and value_ =
  * TODO? string good enough for unicode? codepoints?
  *)
 and primitive =
-  | Null of AST_jsonnet.tok
-  | Bool of bool AST_jsonnet.wrap
-  | Double of float AST_jsonnet.wrap
-  | Str of string AST_jsonnet.wrap
+  | Null of A.tok
+  | Bool of bool A.wrap
+  | Double of float A.wrap
+  | Str of string A.wrap
 
 and object_ = asserts list * value_field list
 
 (* opti? make it a hashtbl of string -> field for faster lookup? *)
 and value_field = {
   (* like Str, strictly evaluated! *)
-  fld_name : string AST_jsonnet.wrap;
-  fld_hidden : AST_jsonnet.hidden AST_jsonnet.wrap;
+  fld_name : string A.wrap;
+  fld_hidden : A.hidden A.wrap;
   fld_value : lazy_value;
 }
 

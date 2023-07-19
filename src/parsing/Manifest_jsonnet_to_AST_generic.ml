@@ -54,7 +54,7 @@ let rec value_to_expr (v : V.value_) : G.expr =
                value_to_expr
                  (match entry.value with
                  | Val v -> v
-                 | Unevaluated e -> E.eval_program e entry.env))
+                 | Unevaluated e -> E.eval_program_with_env entry.env e))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
   | Object (l, (_assertsTODO, fields), r) ->
@@ -70,7 +70,7 @@ let rec value_to_expr (v : V.value_) : G.expr =
                    let v =
                      match fld_value.value with
                      | Val v -> v
-                     | Unevaluated e -> E.eval_program e fld_value.env
+                     | Unevaluated e -> E.eval_program_with_env fld_value.env e
                    in
                    let e = value_to_expr v in
                    let k = G.L (G.String (fb fld_name)) |> G.e in

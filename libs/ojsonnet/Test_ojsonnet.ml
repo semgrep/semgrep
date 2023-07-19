@@ -1,5 +1,4 @@
 open Common
-module V = Value_jsonnet
 
 let dump_jsonnet_ast file =
   (* let cst = Tree_sitter_jsonnet.Parse.file file in *)
@@ -15,13 +14,13 @@ let dump_jsonnet_core file =
 let dump_jsonnet_value file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program ~use_std:false file ast in
-  let value_ = Eval_jsonnet.eval_program core V.empty_env in
+  let value_ = Eval_jsonnet.eval_program core in
   pr2 (Value_jsonnet.show_value_ value_)
 
 let dump_jsonnet_json file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program file ast in
-  let value_ = Eval_jsonnet.eval_program core V.empty_env in
+  let value_ = Eval_jsonnet.eval_program core in
   let json = Manifest_jsonnet.manifest_value value_ in
   let str = JSON.string_of_json json in
   pr2 str

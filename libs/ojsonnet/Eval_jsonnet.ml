@@ -633,10 +633,12 @@ and tostring (v : V.value_) : string =
   JSON.string_of_json j
 
 (*Same as eval_expr but with profiling *)
-and eval_program (e : Core_jsonnet.program) (env : V.env) : V.value_ =
-  let v = eval_expr env e in
-  v
+and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.value_ =
+  eval_expr env e
   [@@profiling]
+
+and eval_program (e : Core_jsonnet.program) : V.value_ =
+  eval_program_with_env V.empty_env e
 
 (*****************************************************************************)
 (* Manfestation *)
