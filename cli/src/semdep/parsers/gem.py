@@ -5,14 +5,17 @@ Based on https://stackoverflow.com/questions/7517524/understanding-the-gemfile-l
 from pathlib import Path
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -70,11 +73,14 @@ gemfile = (
 
 def parse_gemfile(
     lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    deps_opt = safe_path_parse(lockfile_path, gemfile, ParserName.gemfile_lock)
-    if not deps_opt:
-        return []
-    deps, manifest_deps = deps_opt
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, gemfile, ParserName.gemfile_lock),
+        None,
+    )
+    if not parsed_lockfile:
+        return [], errors
+    deps, manifest_deps = parsed_lockfile
     output = []
     for line_number, dep in deps:
         if not dep:
@@ -89,4 +95,4 @@ def parse_gemfile(
                 line_number=line_number,
             )
         )
-    return output
+    return output, errors

@@ -16,13 +16,12 @@ from enum import auto
 from enum import Enum
 from pathlib import Path
 from re import escape
-from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Dict
+from typing import Generic
 from typing import List
 from typing import Optional
-from typing import overload
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
@@ -261,32 +260,17 @@ class DependencyParserError(Exception):
         }
 
 
-@overload
-def safe_path_parse(
-    path: Optional[Path],
-    parser: "Parser[A]",
-    parser_name: ParserName,
-    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
-) -> Optional[A]:
-    ...
+@dataclass
+class DependencyFileToParse(Generic[A]):
+    path: Path
+    parser: Union["Parser[A]", Callable[[str], A]]
+    parser_name: ParserName
+    preprocessor: Callable[[str], str] = lambda ξ: ξ  # noqa: E731
 
 
-@overload
-def safe_path_parse(
-    path: Optional[Path],
-    parser: Callable[[str], A],
-    parser_name: ParserName,
-    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
-) -> Optional[A]:
-    ...
-
-
-def safe_path_parse(
-    path: Any,
-    parser: Any,
-    parser_name: Any,
-    preprocess: Any = lambda ξ: ξ,  # ξ kinda looks like a string hehe
-) -> Any:
+def parse_dependency_file(
+    file_to_parse: Optional[DependencyFileToParse[A]],
+) -> Union[A, DependencyParserError, None]:
     """
     Run [parser] on the text in [path]
 
@@ -296,24 +280,28 @@ def safe_path_parse(
 
     Raises DependencyParserError if it fails to parse the file in PATH with PARSER
     """
-    if not path:
+    if not file_to_parse:
         return None
 
-    text = path.read_text()
-    text = preprocess(text)
+    text = file_to_parse.path.read_text()
+    text = file_to_parse.preprocessor(text)
 
     try:
-        if isinstance(parser, Parser):
-            return parser.parse(text)
+        if isinstance(file_to_parse.parser, Parser):
+            return file_to_parse.parser.parse(text)
         else:
-            return parser(text)
+            return file_to_parse.parser(text)
 
     except YAMLError as e:
-        raise DependencyParserError(path, parser_name, str(e))
+        return DependencyParserError(
+            file_to_parse.path, file_to_parse.parser_name, str(e)
+        )
     except RecursionError:
         reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
-        console.print(f"Failed to parse {path} - {reason}")
-        raise DependencyParserError(path, parser_name, reason)
+        console.print(f"Failed to parse {file_to_parse.path} - {reason}")
+        return DependencyParserError(
+            file_to_parse.path, file_to_parse.parser_name, reason
+        )
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
@@ -322,7 +310,9 @@ def safe_path_parse(
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
-        location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
+        location = (
+            f"[bold]{file_to_parse.path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
+        )
 
         if line < len(text_lines):
             offending_line = text_lines[line]
@@ -331,13 +321,36 @@ def safe_path_parse(
                 f"{line_prefix}{offending_line}\n"
                 f"{' ' * (col + len(line_prefix))}^"
             )
-            raise DependencyParserError(
-                path, parser_name, error_str, line + 1, col + 1, offending_line
+            return DependencyParserError(
+                file_to_parse.path,
+                file_to_parse.parser_name,
+                error_str,
+                line + 1,
+                col + 1,
+                offending_line,
             )
         else:
-            reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+            reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
             console.print(f"Failed to parse {location} - {reason}")
-            raise DependencyParserError(path, parser_name, reason, line + 1, col + 1)
+            return DependencyParserError(
+                file_to_parse.path, file_to_parse.parser_name, reason, line + 1, col + 1
+            )
+
+
+def safe_parse_lockfile_and_manifest(
+    lockfile_to_parse: DependencyFileToParse[A],
+    manifest_to_parse: Optional[DependencyFileToParse[B]],
+) -> Tuple[Optional[A], Optional[B], List[DependencyParserError]]:
+    errors = []
+    parsed_manifest = parse_dependency_file(manifest_to_parse)
+    parsed_lockfile = parse_dependency_file(lockfile_to_parse)
+    if isinstance(parsed_manifest, DependencyParserError):
+        errors.append(parsed_manifest)
+        parsed_manifest = None
+    if isinstance(parsed_lockfile, DependencyParserError):
+        errors.append(parsed_lockfile)
+        parsed_lockfile = None
+    return parsed_lockfile, parsed_manifest, errors
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.

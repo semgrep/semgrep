@@ -7,14 +7,17 @@ from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from semdep.external.parsy import regex
 from semdep.parsers import preprocessors
 from semdep.parsers.poetry import key_value
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import pair
 from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -43,24 +46,27 @@ manifest = (
 
 def parse_pipfile(
     lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName.jsondoc)
-    if not lockfile_json_opt:
-        return []
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
 
-    deps = lockfile_json_opt.as_dict()["default"].as_dict()
-    manifest_deps = safe_path_parse(
-        manifest_path,
-        manifest,
-        ParserName.pipfile,
-        preprocess=preprocessors.CommentRemover(),
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, json_doc, ParserName.jsondoc),
+        DependencyFileToParse(
+            manifest_path, manifest, ParserName.pipfile, preprocessors.CommentRemover()
+        )
+        if manifest_path
+        else None,
     )
+
+    if not parsed_lockfile:
+        return [], errors
+
+    deps = parsed_lockfile.as_dict()["default"].as_dict()
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
     sanitized_manifest_deps = (
-        {dep.lower().replace("-", "_") for dep in manifest_deps}
-        if manifest_deps
-        else manifest_deps
+        {dep.lower().replace("-", "_") for dep in parsed_manifest}
+        if parsed_manifest
+        else parsed_manifest
     )
 
     def extract_pipfile_hashes(
@@ -101,4 +107,4 @@ def parse_pipfile(
                 line_number=dep_json.line_number,
             )
         )
-    return output
+    return output, errors

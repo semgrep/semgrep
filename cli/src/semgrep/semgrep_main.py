@@ -300,10 +300,9 @@ def run_rules(
                 # Warning temporal assumption: this is the only place we process
                 # parse errors. We silently toss them in other places we call parse_lockfile_path
                 # It doesn't really matter where it gets handled as long as we collect the parse errors somewhere
-                deps, parse_error = parse_lockfile_path(lockfile)
+                deps, parse_errors = parse_lockfile_path(lockfile)
                 dependencies[str(lockfile)] = deps
-                if parse_error:
-                    dependency_parser_errors.append(parse_error)
+                dependency_parser_errors.extend(parse_errors)
     return (
         rule_matches_by_rule,
         semgrep_errors,
