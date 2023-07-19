@@ -113,9 +113,8 @@ let rec lookup (env : V.env) tk local_id =
           (spf "could not find '%s' in the environment"
              (string_of_local_id local_id))
   in
-  match entry.value with
-  | Val v -> v
-  | Unevaluated e -> eval_expr entry.env e
+  evaluate_lazy_value_ entry
+
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
@@ -173,12 +172,10 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
             match i with
             | _ when i < 0 ->
                 error tkf (spf "negative value for array index: %s" (sv index))
-            | _ when i >= 0 && i < Array.length arr -> (
+            | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
                 (* TODO: Is this the right environment to evaluate in? *)
-                match ei.value with
-                | Val v -> v
-                | Unevaluated e -> eval_expr ei.env e)
+                evaluate_lazy_value_ ei
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
@@ -191,10 +188,7 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
                    fst field.fld_name = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
-          | Some fld -> (
-              match fld.fld_value.value with
-              | Val v -> v
-              | Unevaluated e -> eval_expr fld.fld_value.env e))
+          | Some fld -> evaluate_lazy_value_ fld.fld_value)
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
@@ -545,17 +539,9 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
     | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
     | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
     | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
-        let a0 =
-          match ax.(0).value with
-          | Val v -> v
-          | Unevaluated e -> eval_expr ax.(0).env e
-        in
+        let a0 = evaluate_lazy_value_ ax.(0) in
 
-        let b0 =
-          match bx.(0).value with
-          | Val v -> v
-          | Unevaluated e -> eval_expr bx.(0).env e
-        in
+        let b0 = evaluate_lazy_value_ bx.(0) in
 
         match eval_std_cmp_value_ a0 b0 with
         | (Inf | Sup) as r -> r
@@ -666,10 +652,7 @@ and manifest_value (v : V.value_) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> Common.map (fun (entry : V.lazy_value) ->
-               manifest_value
-                 (match entry.value with
-                 | V.Val v -> v
-                 | V.Unevaluated e -> eval_expr entry.env e)))
+               manifest_value (evaluate_lazy_value_ entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) as _o ->
       (* TODO: evaluate asserts *)
       let xs =
@@ -702,3 +685,7 @@ and manifest_value (v : V.value_) : JSON.t =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+and evaluate_lazy_value_ (v : V.lazy_value) =
+  match v.value with
+  | Val v -> v
+  | Unevaluated e -> eval_expr v.env e
