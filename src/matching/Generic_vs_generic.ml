@@ -22,8 +22,7 @@ open Common
  * but it's easy to be confused on what is a pattern and what is the target,
  * so at least using different G and B helps a bit.
  *
- * subtle: use 'b' to report errors, because 'a' is the sgrep pattern and it
- * has no file information usually.
+ * subtle: use 'b' to report errors, because 'a' is the pattern.
  *)
 module B = AST_generic
 module G = AST_generic
