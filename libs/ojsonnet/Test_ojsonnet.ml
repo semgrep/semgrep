@@ -22,6 +22,6 @@ let dump_jsonnet_json file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program file ast in
   let value_ = Eval_jsonnet.eval_program core V.empty_env in
-  let json = Eval_jsonnet.manifest_value value_ in
+  let json = Manifest_jsonnet.manifest_value value_ in
   let str = JSON.string_of_json json in
   pr2 str

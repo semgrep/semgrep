@@ -571,9 +571,9 @@ and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
 (*****************************************************************************)
 
 and eval_obj_inside env (l, x, r) : V.value_ =
-  let hdupes = Hashtbl.create 16 in
   match x with
   | Object (assertsTODO, fields) ->
+      let hdupes = Hashtbl.create 16 in
       let fields =
         fields
         |> Common.map_filter

@@ -34,7 +34,9 @@ let test_maker () =
              let value_ =
                Eval_jsonnet.eval_program core Value_jsonnet.empty_env
              in
-             let json = JSON.to_yojson (Eval_jsonnet.manifest_value value_) in
+             let json =
+               JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
+             in
              let fmt = format_of_string "expected %s \n but got %s" in
              let result =
                Printf.sprintf fmt (Y.to_string correct) (Y.to_string json)
