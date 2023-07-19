@@ -668,6 +668,22 @@ and manifest_value (v : V.value_) : JSON.t =
                    let new_self = V.Object (_l, (_assertsTODO, fields), _r) in
                    let locals =
                      fld_value.env.locals
+                     (* We need to do these assignment on field access rather than on
+                        object creation, since when objects are merged, we need self to
+                        reference the new merged object rather than the original. Here's
+                        such an example:
+                        ({ name : self.y } + {y : 42})["name"]
+                        If we were to do the assignment of self before doing the field access
+                        we would have the following (incorrect) evaluation where o = { name : self.y }
+                        ({name : o.y} + {y : 42})["name"]
+                        o.y
+                        {name : self.y}.y
+                        Error no such field.
+                        However, if we only assign self on access, we get the following (correct) evaluation
+                        ({ name : self.y } + {y : 42})["name"]
+                        { name : self.y, y : 42 }["name"]
+                        {name: self.y, y : 42}[y]
+                        42 *)
                      |> Map_.add V.LSelf
                           { V.value = Val new_self; env = fld_value.env }
                      |> Map_.add V.LSuper
