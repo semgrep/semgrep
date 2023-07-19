@@ -31,7 +31,6 @@ on:
         required: true
         type: boolean
         description: Whether a dry-run (e.g., print tags to push) should be peformed. Actually push images if false.
-        default: true
 
 jobs:
   push-docker:
