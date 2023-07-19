@@ -292,7 +292,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
      POST to /api/agent/scans/<scan_id>/complete *)
   let complete =
     let errors =
-      List.map
+      Common.map
         (fun e ->
           JSON.json_of_string (Semgrep_output_v1_j.string_of_cli_error e))
         errors
