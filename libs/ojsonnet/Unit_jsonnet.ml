@@ -2,7 +2,8 @@ open Common
 open File.Operators
 module Y = Yojson.Basic
 
-let dir = Fpath.v "tests/jsonnet/eval"
+let dir_pass = Fpath.v "tests/jsonnet/eval_pass"
+let dir_fail = Fpath.v "tests/jsonnet/eval_fail"
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Common2.dbe_of_filename !!file in
@@ -14,7 +15,7 @@ let related_file_of_target ~ext ~file =
     in
     Error msg
 
-let test_maker () =
+let test_maker dir pass_or_fail =
   Common2.glob (spf "%s/*%s" !!dir "jsonnet")
   |> File.Path.of_strings
   |> Common.map (fun file ->
@@ -31,14 +32,21 @@ let test_maker () =
 
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
-             let value_ = Eval_jsonnet.eval_program core in
-             let json =
-               JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
-             in
-             let fmt = format_of_string "expected %s \n but got %s" in
-             let result =
-               Printf.sprintf fmt (Y.to_string correct) (Y.to_string json)
-             in
-             Alcotest.(check bool) result true (Y.equal json correct) ))
+             (* Currently slightly hacky, since we later may want to test for errors thrown *)
+             try
+               let value_ = Eval_jsonnet.eval_program core in
+               let json =
+                 JSON.to_yojson (Manifest_jsonnet.manifest_value value_)
+               in
+               let fmt = format_of_string "expected %s \n but got %s" in
+               let result =
+                 Printf.sprintf fmt (Y.to_string correct) (Y.to_string json)
+               in
 
-let tests () = test_maker ()
+               Alcotest.(check bool) result pass_or_fail (Y.equal json correct)
+             with
+             | Eval_jsonnet.Error _ ->
+                 Alcotest.(check bool)
+                   "this threw an error" (not pass_or_fail) true ))
+
+let tests () = test_maker dir_pass true @ test_maker dir_fail false
