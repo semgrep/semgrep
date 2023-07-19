@@ -4,6 +4,7 @@
 
 module G = AST_generic
 open AST_dockerfile
+module DLoc = AST_dockerfile_loc
 
 type env = AST_bash.input_kind
 
@@ -164,7 +165,7 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
       [ call_shell loc Sh [ args ] ]
   | Other_shell_command (shell_compat, code) ->
       let args = [ unquoted_string_expr code ] in
-      let loc = wrap_loc code in
+      let loc = DLoc.wrap_loc code in
       [ call_shell loc shell_compat args ]
 
 let param_arg (x : param) : G.argument =
@@ -369,7 +370,7 @@ let instruction env (x : instruction) : G.stmt =
   let expr = instruction_expr env x in
   match expr.e with
   | StmtExpr stmt -> stmt
-  | _ -> stmt_of_expr (instruction_loc x) expr
+  | _ -> stmt_of_expr (DLoc.instruction_loc x) expr
 
 let program_with_env (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
