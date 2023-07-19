@@ -15,6 +15,7 @@ from semgrep.app import auth
 from semgrep.commands.login import make_login_url
 from semgrep.error import SemgrepError
 from semgrep.lsp.config import LSPConfig
+from semgrep.semgrep_core import compute_executable_path
 from semgrep.state import get_state
 from semgrep.types import JsonObject
 
@@ -33,7 +34,14 @@ class SemgrepCoreLSServer:
         self.polling: bool = True
 
     def start_ls(self) -> None:
-        cmd = ["/Users/r2cuser/r2c/semgrep/bin/osemgrep", "lsp"]
+        path = compute_executable_path("osemgrep")
+        if not path:
+            self.notify_show_message(
+                1,
+                "Could not find osemgrep executable, exiting...",
+            )
+            return
+        cmd = [path, "lsp"]
         self.core_process = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
@@ -68,7 +76,7 @@ class SemgrepCoreLSServer:
         if status is not None and status != 0:
             self.notify_show_message(
                 1,
-                f"Semgrep core process died with status {status}, exiting...",
+                f"OSemgrep process died with status {status}, exiting...",
             )
             self.exit_code = status
             self.polling = False
