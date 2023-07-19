@@ -27,8 +27,8 @@ and lazy_value = { value : val_or_unevaluated_; env : env }
 (*****************************************************************************)
 and value_ =
   | Primitive of primitive
-  | ObjectVal of object_ AST_jsonnet.bracket
-  | Function of Core_jsonnet.function_definition
+  | Object of object_ AST_jsonnet.bracket
+  | Lambda of Core_jsonnet.function_definition
   | Array of lazy_value array AST_jsonnet.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
@@ -47,9 +47,9 @@ and object_ = asserts list * value_field list
 (* opti? make it a hashtbl of string -> field for faster lookup? *)
 and value_field = {
   (* like Str, strictly evaluated! *)
-  vfld_name : string AST_jsonnet.wrap;
-  vfld_hidden : AST_jsonnet.hidden AST_jsonnet.wrap;
-  vfld_value : lazy_value;
+  fld_name : string AST_jsonnet.wrap;
+  fld_hidden : AST_jsonnet.hidden AST_jsonnet.wrap;
+  fld_value : lazy_value;
 }
 
 and asserts = Core_jsonnet.obj_assert * env [@@deriving show]
@@ -59,7 +59,7 @@ and asserts = Core_jsonnet.obj_assert * env [@@deriving show]
 (*****************************************************************************)
 let empty_obj : value_ =
   let fk = Tok.unsafe_fake_tok "" in
-  ObjectVal (fk, ([], []), fk)
+  Object (fk, ([], []), fk)
 
 let empty_env = { locals = Map_.empty; depth = 0 }
 
