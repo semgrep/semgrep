@@ -1,0 +1,8 @@
+rules:
+  - id: eqeq-five
+    pattern: $X == 5
+    message: "useless comparison to 5"
+    languages: [python]
+    severity: ERROR
+    metadata:
+    fix: $X == 2

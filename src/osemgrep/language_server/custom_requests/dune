@@ -1,0 +1,21 @@
+(library
+ (name osemgrep_language_server_custom_requests)
+ (wrapped false)
+ (libraries
+   yaml
+   uuidm
+   lsp
+   lwt
+   lwt.unix
+
+   commons
+   semgrep_core_cli
+   osemgrep_cli_scan
+ )
+ (preprocess
+  (pps
+    lwt_ppx
+    profiling.ppx
+  )
+ )
+)
