@@ -1,6 +1,7 @@
 (* Yoann Padioleau
+ * Sophia Roshal
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,6 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+
 open Common
 open Core_jsonnet
 module A = AST_jsonnet
