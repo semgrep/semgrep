@@ -14,14 +14,14 @@ exports[`deep parses a pattern 1`] = `
               "loc": {
                 "end": {
                   "col": 34,
-                  "line": 17,
-                  "offset": 296,
+                  "line": 15,
+                  "offset": 280,
                 },
                 "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
                 "start": {
                   "col": 22,
-                  "line": 17,
-                  "offset": 284,
+                  "line": 15,
+                  "offset": 268,
                 },
               },
               "matches": [
@@ -56,14 +56,14 @@ exports[`deep parses a pattern 1`] = `
           "loc": {
             "end": {
               "col": 24,
-              "line": 15,
-              "offset": 249,
+              "line": 13,
+              "offset": 233,
             },
             "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
             "start": {
               "col": 7,
-              "line": 15,
-              "offset": 232,
+              "line": 13,
+              "offset": 216,
             },
           },
           "matches": [
@@ -98,14 +98,14 @@ exports[`deep parses a pattern 1`] = `
               "loc": {
                 "end": {
                   "col": 33,
-                  "line": 12,
-                  "offset": 206,
+                  "line": 10,
+                  "offset": 190,
                 },
                 "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
                 "start": {
                   "col": 22,
-                  "line": 12,
-                  "offset": 195,
+                  "line": 10,
+                  "offset": 179,
                 },
               },
               "matches": [
@@ -182,14 +182,14 @@ exports[`deep parses a pattern 1`] = `
           "loc": {
             "end": {
               "col": 22,
-              "line": 10,
-              "offset": 160,
+              "line": 8,
+              "offset": 144,
             },
             "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
             "start": {
               "col": 7,
-              "line": 10,
-              "offset": 145,
+              "line": 8,
+              "offset": 129,
             },
           },
           "matches": [
@@ -511,14 +511,14 @@ exports[`deep parses a pattern 1`] = `
               "loc": {
                 "end": {
                   "col": 34,
-                  "line": 17,
-                  "offset": 296,
+                  "line": 15,
+                  "offset": 280,
                 },
                 "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
                 "start": {
                   "col": 22,
-                  "line": 17,
-                  "offset": 284,
+                  "line": 15,
+                  "offset": 268,
                 },
               },
               "matches": [],
@@ -531,14 +531,14 @@ exports[`deep parses a pattern 1`] = `
           "loc": {
             "end": {
               "col": 24,
-              "line": 15,
-              "offset": 249,
+              "line": 13,
+              "offset": 233,
             },
             "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
             "start": {
               "col": 7,
-              "line": 15,
-              "offset": 232,
+              "line": 13,
+              "offset": 216,
             },
           },
           "matches": [],
@@ -551,14 +551,14 @@ exports[`deep parses a pattern 1`] = `
               "loc": {
                 "end": {
                   "col": 33,
-                  "line": 12,
-                  "offset": 206,
+                  "line": 10,
+                  "offset": 190,
                 },
                 "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
                 "start": {
                   "col": 22,
-                  "line": 12,
-                  "offset": 195,
+                  "line": 10,
+                  "offset": 179,
                 },
               },
               "matches": [],
@@ -571,14 +571,14 @@ exports[`deep parses a pattern 1`] = `
           "loc": {
             "end": {
               "col": 22,
-              "line": 10,
-              "offset": 160,
+              "line": 8,
+              "offset": 144,
             },
             "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
             "start": {
               "col": 7,
-              "line": 10,
-              "offset": 145,
+              "line": 8,
+              "offset": 129,
             },
           },
           "matches": [],
@@ -610,14 +610,14 @@ exports[`deep parses a pattern 1`] = `
               "loc": {
                 "end": {
                   "col": 34,
-                  "line": 17,
-                  "offset": 296,
+                  "line": 15,
+                  "offset": 280,
                 },
                 "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
                 "start": {
                   "col": 22,
-                  "line": 17,
-                  "offset": 284,
+                  "line": 15,
+                  "offset": 268,
                 },
               },
               "matches": [
@@ -652,14 +652,14 @@ exports[`deep parses a pattern 1`] = `
           "loc": {
             "end": {
               "col": 24,
-              "line": 15,
-              "offset": 249,
+              "line": 13,
+              "offset": 233,
             },
             "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
             "start": {
               "col": 7,
-              "line": 15,
-              "offset": 232,
+              "line": 13,
+              "offset": 216,
             },
           },
           "matches": [
@@ -694,14 +694,14 @@ exports[`deep parses a pattern 1`] = `
               "loc": {
                 "end": {
                   "col": 33,
-                  "line": 12,
-                  "offset": 206,
+                  "line": 10,
+                  "offset": 190,
                 },
                 "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
                 "start": {
                   "col": 22,
-                  "line": 12,
-                  "offset": 195,
+                  "line": 10,
+                  "offset": 179,
                 },
               },
               "matches": [],
@@ -714,14 +714,14 @@ exports[`deep parses a pattern 1`] = `
           "loc": {
             "end": {
               "col": 22,
-              "line": 10,
-              "offset": 160,
+              "line": 8,
+              "offset": 144,
             },
             "path": "/Users/r2cuser/r2c/semgrep-proprietary/semgrep/js/engine/tests/test-rule-java.json",
             "start": {
               "col": 7,
-              "line": 10,
-              "offset": 145,
+              "line": 8,
+              "offset": 129,
             },
           },
           "matches": [],
