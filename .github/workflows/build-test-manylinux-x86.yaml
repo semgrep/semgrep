@@ -35,7 +35,7 @@ jobs:
 
   test-wheels-manylinux:
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux1_x86_64
+    container: quay.io/pypa/manylinux2014_x86_64
     needs: [build-wheels-manylinux]
     steps:
       - uses: actions/download-artifact@v1
@@ -43,7 +43,7 @@ jobs:
           name: manylinux-x86-wheel
       - run: unzip ./manylinux-x86-wheel/dist.zip
       - name: install package
-        run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
+        run: /opt/python/cp37-cp37m/bin/pip install dist/*manylinux*.whl
       - name: test package
         run: |
           export PATH=/opt/python/cp37-cp37m/bin:$PATH

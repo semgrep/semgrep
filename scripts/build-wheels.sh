@@ -10,5 +10,20 @@
 set -e
 pip3 install setuptools wheel
 cd cli && python3 setup.py sdist bdist_wheel "$@"
+
+for wheel_filename in dist/*.whl; do
+    if [[ ! $wheel_filename =~ ^(.*-)linux(_[a-z0-9_]+\.whl)$ ]]; then
+        echo "Skipping wheel: $wheel_filename"
+        continue
+    fi
+
+    manylinux_filename="${BASH_REMATCH[1]}manylinux2014${BASH_REMATCH[2]}"
+    musllinux_filename="${BASH_REMATCH[1]}musllinux_1_0${BASH_REMATCH[2]}"
+
+    cp -v "$wheel_filename" "$manylinux_filename"
+    cp -v "$wheel_filename" "$musllinux_filename"
+    rm "$wheel_filename"
+done
+
 # Zipping for a stable name to upload as an artifact
 zip -r dist.zip dist
