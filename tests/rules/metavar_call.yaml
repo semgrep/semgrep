@@ -1,0 +1,9 @@
+rules:
+- id: case-insensitive-function-name
+  message: blah
+  languages: [php]
+  severity: WARNING
+  patterns:
+  - pattern: $FUN(...)
+  - pattern-inside: function $FUN(...) { ... }
+
