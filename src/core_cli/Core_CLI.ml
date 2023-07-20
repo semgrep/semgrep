@@ -324,6 +324,10 @@ let dump_rule file =
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
+let dump_contributions () =
+  let contributions = Parse_contribution.get_contributions () in
+  pr (Semgrep_output_v1_j.string_of_contributions contributions)
+
 let prefilter_of_rules file =
   let rules = Parse_rule.parse file in
   let xs =
@@ -473,6 +477,9 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_helpers.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+    ( "-dump_contributions",
+      " dump on stdout the commit contributions in JSON",
+      Arg_helpers.mk_action_0_arg dump_contributions );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
