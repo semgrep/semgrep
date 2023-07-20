@@ -6,14 +6,13 @@ const js = require("../../languages/typescript/dist/index.cjs");
 const enginePromise = EngineFactory("./dist/semgrep-engine.wasm");
 
 const engineExec = async () => {
-
   const engine = await enginePromise;
   const a = await java.ParserFactory();
   engine.addParser(a);
   const b = await js.ParserFactory();
   engine.addParser(b);
   return engine;
-}
+};
 
 describe("engine", () => {
   test("handles valid language", async () => {
@@ -34,7 +33,7 @@ describe("engine", () => {
       "python",
       `${__dirname}/test-rule-python.json`,
       `${__dirname}`,
-      [`dirname}/../../languages/python/tests/test.py`],
+      [`dirname}/../../languages/python/tests/test.py`]
     );
     expect(engine.isMissingLanguages()).toBe(true);
     expect(engine.getMissingLanguages()).toEqual(["python"]);
@@ -50,12 +49,7 @@ describe("yaml parser", () => {
     const targetPath = path.resolve(`${__dirname}/test.yaml`);
     const result = JSON.parse(
       engine
-        .execute(
-          "yaml",
-          rulePath,
-          `${__dirname}`,
-          [targetPath]
-        )
+        .execute("yaml", rulePath, `${__dirname}`, [targetPath])
         .replaceAll(rulePath, "test-rule-yaml.json")
         .replaceAll(targetPath, "test.yaml")
         .replaceAll("PRO", "OSS")

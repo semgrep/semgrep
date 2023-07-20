@@ -2,9 +2,7 @@
   "rules": [
     {
       "id": "test-deep",
-      "languages": [
-        "java"
-      ],
+      "languages": ["java"],
       "message": "Test",
       "mode": "taint",
       "pattern-sinks": [
@@ -20,7 +18,7 @@
       "severity": "WARNING",
       "metadata": {
         "interfile": true
-      },
+      }
     }
   ]
 }

@@ -13,7 +13,7 @@ export interface Engine {
     language: string,
     rulesFilename: string,
     root: string,
-    targetFilenames: string[],
+    targetFilenames: string[]
   ) => string;
   writeFile: (filename: string, content: string) => void;
   deleteFile: (filename: string) => void;
