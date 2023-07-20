@@ -19,13 +19,14 @@ from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.util import DependencyParserError
-from semdep.parsers.util import ParserName
 from semdep.parsers.yarn import parse_yarn
 from semgrep.console import console
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
+from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
@@ -169,7 +170,11 @@ def _parse_lockfile_path_helper(
             console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
-                [DependencyParserError(lockfile_path, ParserName.cargo, str(e))],
+                [
+                    DependencyParserError(
+                        str(lockfile_path), ScaParserName(CargoParser()), str(e)
+                    )
+                ],
             )
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")
