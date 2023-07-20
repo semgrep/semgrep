@@ -1,15 +1,5 @@
 {
   "exit_code": 1,
-  "dependency_parser_errors": [
-    {
-      "path": "Pipfile.lock",
-      "parser": "jsondoc",
-      "reason": "expected one of ['\"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']",
-      "line": 2,
-      "col": 1,
-      "text": "invalid"
-    }
-  ],
   "stats": {
     "findings": 10,
     "errors": [],
@@ -27,5 +17,18 @@
       }
     },
     "engine_requested": "OSS"
-  }
+  },
+  "dependency_parser_errors": [
+    {
+      "path": "Pipfile.lock",
+      "parser": "jsondoc",
+      "reason": "expected one of ['\"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']",
+      "position": {
+        "line": 2,
+        "col": 1,
+        "offset": 1
+      },
+      "text": "invalid"
+    }
+  ]
 }
