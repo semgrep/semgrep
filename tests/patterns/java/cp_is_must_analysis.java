@@ -7,7 +7,7 @@ class A {
     }
     public void method2(boolean condition){
         if(condition){
-            str = "hello"
+            str = "hello";
         }
         //OK: test
         X.test(str);
@@ -26,10 +26,10 @@ class A {
     }
     public void method5(boolean condition){
         if(condition){
-            str = "hello"
+            str = "hello";
         }
         else {
-            str = "hello"
+            str = "hello";
         }
         //ERROR: test
         X.test(str);
