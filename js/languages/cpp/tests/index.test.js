@@ -12,7 +12,7 @@ test("getLangs", async () => {
 
 test("it parses a pattern", async () => {
   const parser = await parserPromise;
-  const pattern = parser.parsePattern(true, LANG, "std::cout << $X");
+  const pattern = parser.parsePattern(false, LANG, "std::cout << $X");
   expect(typeof pattern).toEqual("object");
 });
 
