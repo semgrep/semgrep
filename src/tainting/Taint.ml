@@ -86,8 +86,12 @@ let length_of_call_trace ct =
 type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink } [@@deriving show]
 
 let compare_metavar_env env1 env2 =
+  (* It's important that we only return 0 if the two bindings are
+     structurally equal. Otherwise, there will be many duplicates.
+     We use Stdlib.compare in the other case because deriving
+     compare is rather difficult and the specific ordering doesn't
+     matter. *)
   if Metavariable.Structural.equal_bindings env1 env2 then 0
-    (* It's ok here because we've checked equality *)
   else Stdlib.compare env1 env2
 
 let compare_matches pm1 pm2 =
