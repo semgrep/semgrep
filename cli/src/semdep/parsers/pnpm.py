@@ -2,112 +2,88 @@
 Parsers for pnpm-lock.yaml files
 Based on https://github.com/pnpm/spec/blob/master/lockfile/5.2.md
 """
+import re
 from pathlib import Path
 from typing import List
 from typing import Optional
 
-from semdep.external.parsy import regex
-from semdep.external.parsy import string
-from semdep.external.parsy import string_from
-from semdep.parsers.util import mark_line
-from semdep.parsers.util import pair
 from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_path_parse
 from semdep.parsers.util import transitivity
-from semdep.parsers.util import upto
+from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import YamlMap
+from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 
 
-consume_line = regex(r"[^\n]*\n")
-
-# Section for the direct dependencies, should look something like
-# specifiers:
-#     '@types/jsdom': ^1.2.3
-#     jsdom: 1.2.3
-#     typescript: ~1.2.5
-
-whitespace_not_newline = regex("[^\\S\r\n]+")
-
-package = whitespace_not_newline >> upto(":", consume_other=True)
-version_specifier = upto("\n")
-dep = pair(
-    package, string(" ") >> string_from("~", "^").optional() >> version_specifier
-)
-
-direct_dependencies_identifier = whitespace_not_newline.optional() >> string(
-    "specifiers:"
-)
-
-direct_dependencies = (
-    direct_dependencies_identifier
-    >> string("\n")
-    >> mark_line(dep).sep_by(string("\n").at_least(1))
-)
+def get_key_values(yaml: YamlTree[YamlMap], field: str) -> List[str]:
+    try:
+        map = yaml.value[field].value
+        return [k.value for k in map.keys()] if map else []
+    except KeyError:
+        return []
 
 
-# Section for the transitive dependencies, should look something like
-# packages:
-#
-#     /@foo/bar/1.2.3:
-#         resolution: {integrity: sha512-...}
-#         engines: {node: '>=1.2.3'}
-#         dependencies:
-#             '@fizz/buzz': 2.3.4
-#
-#     /min/4.5.6:
-#        resolution: {integrity: sha512-...}
-#        engines: {node: '>=1.2.3'}
-#        dependencies:
-#            'max': 2.3.4
-#        transitivePeerDependencies:
-#             - mathPackage
+def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
+    return get_key_values(yaml, "specifiers")
 
-packages_identifier = whitespace_not_newline.optional() >> string("packages:")
 
-# "/foo/1.2.3:"
-# "/@foo/bar/1.2.3:"
-raw_dependency = regex(" */(@.+/.+)/([^:]+)", flags=0, group=(1, 2)) | regex(
-    " */(.+)/([^:]+)", flags=0, group=(1, 2)
-)
-
-# resolution: {integrity: sha512-...}
-# transitivePeerDependencies:
-#   - mathPackage
-not_used_info = regex("( *-[^\n]*)|( *[^:\n]*:[^\n]*)").sep_by(string("\n"))
-
-full_raw_dependency = mark_line(raw_dependency) << not_used_info
-
-all_dependencies = (
-    packages_identifier >> string("\n\n") >> full_raw_dependency.sep_by(string("\n\n"))
-)
-
-# if using pnpm workspaces, lockfile will have multiple direct dependencies
-# sections. in that case, we'll capture all of them, then flatten the array
-# below
-direct_dependencies_data = (
-    consume_line.until(direct_dependencies_identifier) >> direct_dependencies
-).at_least(1)
-packages_data = consume_line.until(packages_identifier) >> all_dependencies
-all_dependency_data = (
-    pair(direct_dependencies_data, packages_data) << consume_line.many()
-)
+def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
+    return get_key_values(yaml, "dependencies") + get_key_values(
+        yaml, "devDependencies"
+    )
 
 
 def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    ret = safe_path_parse(lockfile_path, all_dependency_data, ParserName.pnpm_lock)
-    if not ret:
+    yaml: Optional[YamlTree] = safe_path_parse(
+        lockfile_path,
+        (
+            lambda text: parse_yaml_preserve_spans(
+                text, str(lockfile_path), allow_null=True
+            )
+        ),
+        ParserName.pnpm_lock,
+    )
+    if not yaml or not isinstance(yaml.value, YamlMap):
         return []
-    direct_deps, all_deps = ret
-    if not direct_deps or not all_deps:
+    try:
+        lockfile_version = float(yaml.value["lockfileVersion"].value)
+    except KeyError:
         return []
+    if lockfile_version <= 5.4:
+        parse_direct = parse_direct_pre_6
+    else:
+        parse_direct = parse_direct_post_6
 
-    # direct deps is an array of arrays b/c of workspaces
-    direct_deps_flattened = [wd for workspace in direct_deps for wd in workspace]
+    if "importers" in yaml.value:
+        direct_deps = {
+            x for _, v in yaml.value["importers"].value.items() for x in parse_direct(v)
+        }
+    else:
+        direct_deps = set(parse_direct(yaml))
+    try:
+        package_map = yaml.value["packages"].value
+        if not package_map:
+            return []
+        all_deps: List[tuple[int, tuple[str, str]]] = []
+        for key, map in package_map.items():
+            if map.value and "name" in map.value and "version" in map.value:
+                all_deps.append(
+                    (
+                        key.span.start.line,
+                        (map.value["name"].value, map.value["version"].value),
+                    )
+                )
+            else:
+                match = re.compile(r"/(.+)/([^/]+)").match(key.value)
+                if match:
+                    # re does not have a way for us to refine the type of the match to what we know it is
+                    all_deps.append((key.span.start.line, match.groups()))  # type: ignore
 
-    # packages that start with @ will look like "'@foo/bar'"
-    direct_deps_set = {ps.replace("'", "") for _, (ps, _) in direct_deps_flattened}
+    except KeyError:
+        return []
     output = []
     for line_number, (package_str, version_str) in all_deps:
         if not package_str or not version_str:
@@ -117,7 +93,7 @@ def parse_pnpm(lockfile_path: Path, _: Optional[Path]) -> List[FoundDependency]:
                 package=package_str,
                 version=version_str,
                 ecosystem=Ecosystem(Npm()),
-                transitivity=transitivity(direct_deps_set, [package_str]),
+                transitivity=transitivity(direct_deps, [package_str]),
                 line_number=line_number,
                 allowed_hashes={},
             )

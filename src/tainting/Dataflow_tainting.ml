@@ -782,7 +782,7 @@ let fix_poly_taint_with_field env lval st =
                                     *   type info and we used to remove taint, e.g. if Boolean
                                     *   and integer expressions didn't propagate taint. *)
                                 List.length offset
-                                < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
+                                < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
                                { arg with offset = arg.offset @ [ n ] }
                              in
@@ -884,7 +884,8 @@ let handle_taint_propagators env thing taints =
            I'll come back to this later.
         *)
         match
-          T.solve_precondition ~taints prop.spec.prop.propagator_requires
+          T.solve_precondition ~ignore_poly_taint:false ~taints
+            prop.spec.prop.propagator_requires
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
@@ -1430,14 +1431,14 @@ let check_function_signature env fun_exp args args_taints =
                        let call_trace =
                          T.Call (eorig, t.tokens, src.call_trace)
                        in
-                       Some
-                         (`Return
-                           (Taints.singleton
-                              ({
-                                 orig = Src { src with call_trace };
-                                 tokens = [];
-                               }
-                              |> subst_in_precondition)))
+                       let* taint =
+                         {
+                           Taint.orig = Src { src with call_trace };
+                           tokens = [];
+                         }
+                         |> subst_in_precondition
+                       in
+                       Some (`Return (Taints.singleton taint))
                    | Arg arg ->
                        let* arg_taints = arg_to_taints arg in
                        (* Get the token of the function *)
@@ -1498,12 +1499,8 @@ let check_function_signature env fun_exp args args_taints =
                             taint signature will fail to realize that the taint of `source_a` is
                             going into `sink_of_a_and_b`, and we will fail to produce a finding.
                          *)
-                         [
-                           {
-                             T.taint = taint |> subst_in_precondition;
-                             sink_trace;
-                           };
-                         ]
+                         let+ taint = taint |> subst_in_precondition in
+                         [ { T.taint; sink_trace } ]
                      | Arg arg ->
                          (* Here, we modify the call trace associated to the argument,
                             and then we replace it by all the taints that correspond to it.
@@ -1531,7 +1528,10 @@ let check_function_signature env fun_exp args args_taints =
             |> List.concat_map (fun t ->
                    let dst_taints =
                      match t.T.orig with
-                     | Src _ -> Taints.singleton (t |> subst_in_precondition)
+                     | Src _ -> (
+                         match t |> subst_in_precondition with
+                         | None -> Taints.empty
+                         | Some t -> Taints.singleton t)
                      | Arg src_arg ->
                          (* Taint is flowing from one argument to another argument
                           * (or possibly the callee object). Given the formal poly
@@ -1550,7 +1550,7 @@ let check_function_signature env fun_exp args args_taints =
                    else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
       Some
-        (fun_sig
+        (fun_sig |> T.Findings.elements
         |> List.concat_map process_sig
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->

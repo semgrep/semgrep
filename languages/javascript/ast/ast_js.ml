@@ -429,7 +429,7 @@ and function_definition = {
   f_kind : AST_generic.function_kind wrap;
   (* less: move that in entity? but some anon func have attributes too *)
   f_attrs : attribute list;
-  f_params : parameter list; (* TODO: bracket *)
+  f_params : parameter list bracket;
   (* typescript-ext: *)
   f_rettype : type_ option;
   f_body : stmt;

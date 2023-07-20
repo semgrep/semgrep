@@ -81,7 +81,12 @@ type finding =
   | ToArg of taint list * arg
 [@@deriving show]
 
-type signature = finding list
+val compare_finding : finding -> finding -> int
+
+module Findings : Set.S with type elt = finding
+module Findings_tbl : Hashtbl.S with type key = finding
+
+type signature = Findings.t
 (** A taint signature, it is simply a list of findings for a function.
  *
  * Note that `ArgToSink` and `ArgToReturn` introduce a form of
@@ -121,7 +126,7 @@ val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
 
 val solve_precondition :
-  ?ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
+  ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
 
 val taints_satisfy_requires : taint list -> Rule.precondition -> bool
 
@@ -132,7 +137,7 @@ val taints_of_pms :
    Since this only acts on the children of a taint, the type remains
    the same.
 *)
-val map_preconditions : (taint list -> taint list) -> taint -> taint
+val map_preconditions : (taint list -> taint list) -> taint -> taint option
 val show_taints : taints -> string
 val _show_arg : arg -> string
 val _show_finding : finding -> string

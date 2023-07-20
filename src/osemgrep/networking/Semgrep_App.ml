@@ -71,6 +71,19 @@ let get_deployment_from_token ~token =
 
 let default_semgrep_app_config_url = "api/agent/deployments/scans/config"
 
+let scan_config ?(sca = false) ?(dry_run = true) ?(full_scan = true) repo_name =
+  let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
+  Uri.(
+    add_query_params'
+      (with_path Semgrep_envvars.v.semgrep_url default_semgrep_app_config_url)
+      [
+        ("sca", json_bool_to_string sca);
+        ("dry_run", json_bool_to_string dry_run);
+        ("full_scan", json_bool_to_string full_scan);
+        ("repo_name", repo_name);
+        ("semgrep_version", Version.version);
+      ])
+
 let url_for_policy ~token_opt =
   match get_deployment_id ~token_opt with
   | None ->
@@ -82,15 +95,4 @@ let url_for_policy ~token_opt =
           Error.abort
             (spf
                "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
-      | Some repo_name ->
-          Uri.(
-            add_query_params'
-              (with_path Semgrep_envvars.v.semgrep_url
-                 default_semgrep_app_config_url)
-              [
-                ("sca", "False");
-                ("dry_run", "True");
-                ("full_scan", "True");
-                ("repo_name", repo_name);
-                ("semgrep_version", Version.version);
-              ]))
+      | Some repo_name -> scan_config repo_name)

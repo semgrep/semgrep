@@ -47,8 +47,16 @@ type conf = {
   rewrite_rule_ids : bool;
   time_flag : bool;
   profile : bool;
+  (* Engine selection *)
+  engine_type : Engine_type.t;
   (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
   legacy : bool;
+  (* osemgrep-only: currently to explicitely choose osemgrep over pysemgrep.
+   * The flag is actually removed in cli/bin/semgrep when calling osemgrep,
+   * but if people explicitely call osemgrep, it's nice to also accept
+   * the --experimental flag
+   *)
+  experimental : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
@@ -106,7 +114,7 @@ let default : conf =
         (* Maxing out number of cores used to 16 if more not requested to
          * not overload on large machines
          *)
-        Core_runner.num_jobs = Int.min 16 (Parmap_helpers.get_cpu_count ());
+        Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
         timeout = 30.0 (* seconds *);
         timeout_threshold = 3;
         max_memory_mb = 0;
@@ -123,8 +131,10 @@ let default : conf =
     strict = false;
     profile = false;
     time_flag = false;
+    engine_type = OSS;
     (* ultimately should be set to true when we release osemgrep *)
     legacy = false;
+    experimental = false;
     output_format = Output_format.Text;
     logging_level = Some Logs.Warning;
     force_color = false;
@@ -426,6 +436,36 @@ let o_vim : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
+(* TOPORT "Engine type" (mutually exclusive) *)
+(* ------------------------------------------------------------------ *)
+
+let o_oss : bool Term.t =
+  let info = Arg.info [ "oss" ] ~doc:{|Run with the OSS engine.|} in
+  Arg.value (Arg.flag info)
+
+let o_pro_languages : bool Term.t =
+  let info =
+    Arg.info [ "pro-languages" ]
+      ~doc:
+        {|Run a language only supported by the pro engine without extra analysis features.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_pro_intrafile : bool Term.t =
+  let info =
+    Arg.info [ "pro-intrafile" ]
+      ~doc:{|Run with intrafile cross-function analysis.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_pro : bool Term.t =
+  let info =
+    Arg.info [ "pro" ]
+      ~doc:{|Run with all pro engine features including cross-file analysis.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
 (* TOPORT "Configuration options" *)
 (* ------------------------------------------------------------------ *)
 let o_config : string list Term.t =
@@ -651,13 +691,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine ast_caching autofix baseline_commit config dryrun dump_ast
-      dump_config emacs error exclude exclude_rule_ids force_color include_ json
-      lang legacy logging_level max_chars_per_line max_lines_per_finding
-      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
-      pattern profile project_root registry_caching replacement
-      respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo
-      time_flag timeout timeout_threshold validate version version_check vim =
+      dump_config emacs error exclude exclude_rule_ids experimental force_color
+      include_ json lang legacy logging_level max_chars_per_line
+      max_lines_per_finding max_memory_mb max_target_bytes metrics num_jobs
+      nosem optimizations oss pattern pro profile project_root pro_intrafile
+      pro_lang registry_caching replacement respect_git_ignore rewrite_rule_ids
+      scan_unknown_extensions severity show_supported_languages strict
+      target_roots test test_ignore_todo time_flag timeout timeout_threshold
+      validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color ~level:logging_level;
@@ -685,6 +726,19 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _else_ ->
           (* TOPORT: list the possibilities *)
           Error.abort "Mutually exclusive options --json/--emacs/--vim"
+    in
+    let engine_type =
+      match (oss, pro_lang, pro_intrafile, pro) with
+      | false, false, false, false -> default.engine_type
+      | true, false, false, false -> OSS
+      | false, true, false, false -> PRO Engine_type.Language_only
+      | false, false, true, false -> PRO Engine_type.Intrafile
+      | false, false, false, true -> PRO Engine_type.Interfile
+      | _else_ ->
+          (* TOPORT: list the possibilities *)
+          Error.abort
+            "Mutually exclusive options \
+             --oss/--pro-languages/--pro-intrafile/--pro"
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
@@ -893,11 +947,13 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       registry_caching;
       version_check;
       output_format;
+      engine_type;
       profile;
       rewrite_rule_ids;
       strict;
       time_flag;
       legacy;
+      experimental;
       (* ugly: *)
       version;
       show_supported_languages;
@@ -913,11 +969,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * combine above! *)
     const combine $ o_ast_caching $ o_autofix $ o_baseline_commit $ o_config
     $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
-    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
+    $ o_exclude_rule_ids $ CLI_common.o_experimental $ o_force_color $ o_include
+    $ o_json $ o_lang $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ CLI_common.o_profile
-    $ o_project_root $ o_registry_caching $ o_replacement $ o_respect_git_ignore
+    $ o_num_jobs $ o_nosem $ o_optimizations $ o_oss $ o_pattern $ o_pro
+    $ CLI_common.o_profile $ o_project_root $ o_pro_intrafile $ o_pro_languages
+    $ o_registry_caching $ o_replacement $ o_respect_git_ignore
     $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate

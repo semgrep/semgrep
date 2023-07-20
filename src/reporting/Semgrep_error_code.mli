@@ -63,6 +63,7 @@ val severity_of_error :
 (* extract all the lines with ERROR: comment in test files *)
 val expected_error_lines_of_files :
   ?regexp:string ->
+  ?ok_regexp:string option ->
   Common.filename list ->
   (Common.filename * int) (* line with ERROR *) list
 

@@ -4,6 +4,7 @@ I could not find any comprehensive description of this format online, I just loo
 If you find any sort of spec, please link it here
 Here's the docs for poetry: https://python-poetry.org/docs/
 """
+import re
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -12,6 +13,7 @@ from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.parsers import preprocessors
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import ParserName
@@ -56,6 +58,8 @@ quoted_value = (
     << string('"')
 )
 
+
+new_lines = regex("\n+", re.MULTILINE)
 # Examples:
 # foo
 plain_value = upto("\n")
@@ -63,6 +67,7 @@ plain_value = upto("\n")
 # A value in a key-value pair.
 value = list_value | object_value | quoted_value | plain_value
 
+key = regex(r'("[^"]*"|[^\s=]+)\s*=\s*', flags=0, group=1).map(lambda x: x.strip('"'))
 
 # A key-value pair.
 # Examples:
@@ -71,7 +76,9 @@ value = list_value | object_value | quoted_value | plain_value
 # foo = [
 #     bar, baz
 # ]
-key_value = pair(regex(r"([^\s=]+)\s*=\s*", flags=0, group=1), value)
+key_value = pair(key, value)
+
+key_value_list = key_value.sep_by(new_lines)
 
 # A poetry dependency
 # Example:
@@ -82,9 +89,7 @@ key_value = pair(regex(r"([^\s=]+)\s*=\s*", flags=0, group=1), value)
 # category = "main"
 # optional = false
 # python-versions = ">=3.6"
-poetry_dep = mark_line(
-    string("[[package]]\n") >> key_value.sep_by(string("\n")).map(lambda x: dict(x))
-)
+poetry_dep = mark_line(string("[[package]]\n") >> key_value_list.map(lambda x: dict(x)))
 
 # Poetry Source which we ignore
 # Example:
@@ -93,27 +98,29 @@ poetry_dep = mark_line(
 # url = "https://artifact.semgrep.com/"
 # secondary = False
 poetry_source_extra = (
-    string("[[") >> upto("]") << string("]]\n") >> key_value.sep_by(string("\n"))
+    string("[[") >> upto("]") << string("]]\n") >> key_value_list
 ).map(lambda _: None)
 
 # Extra data from a dependency, which we just treat as standalone data and ignore
+# The at_least(1) is to handle empty tables with no extra newlines. This was easier than overhauling everything to support that
 # Example:
 # [package.extras]
 # dev = ["coverage", "django", "flake8", "isort", "pillow", "sqlalchemy", "mongoengine", "wheel (>=0.32.0)", "tox", "zest.releaser"]
 # doc = ["sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
-poetry_dep_extra = (string("[") >> upto("]") << string("]\n")) >> key_value.sep_by(
-    string("\n")
-).map(lambda _: None)
-
-
-comment = regex(r" *#([^\n]*)", flags=0, group=1)
+#
+# [package.dependencies]
+# [package.dependencies.typing_extensions]
+# python = "<3.10"
+# version = ">=4.0"
+poetry_dep_extra = (string("[") >> upto("]") << string("]\n")).at_least(
+    1
+) >> key_value_list.map(lambda _: None)
 
 # A whole poetry file
 poetry = (
-    comment.many()
-    >> string("\n").many()
+    string("\n").many()
     >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
-    .sep_by(string("\n\n"))
+    .sep_by(new_lines)
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()
 )
@@ -126,21 +133,35 @@ poetry = (
 # faker = "^13.11.0"
 manifest_deps = string("[tool.poetry.dependencies]\n") >> key_value.map(
     lambda x: x[0]
-).sep_by(string("\n"))
+).sep_by(new_lines)
 
 # A whole pyproject.toml file. We only about parsing the manifest_deps
-manifest = (manifest_deps | poetry_dep_extra | poetry_source_extra).sep_by(
-    string("\n").times(min=1, max=float("inf"))
-).map(lambda xs: {y for x in xs if x for y in x}) << string("\n").optional()
+manifest = (
+    string("\n").many()
+    >> (manifest_deps | poetry_dep_extra | poetry_source_extra)
+    .sep_by(new_lines)
+    .map(lambda xs: {y for x in xs if x for y in x})
+    << string("\n").optional()
+)
 
 
 def parse_poetry(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, poetry, ParserName.poetry_lock)
+    deps = safe_path_parse(
+        lockfile_path,
+        poetry,
+        ParserName.poetry_lock,
+        preprocess=preprocessors.CommentRemover(),
+    )
     if not deps:
         return []
-    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.pyproject_toml)
+    manifest_deps = safe_path_parse(
+        manifest_path,
+        manifest,
+        ParserName.pyproject_toml,
+        preprocess=preprocessors.CommentRemover(),
+    )
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
     sanitized_manifest_deps = (
@@ -166,3 +187,24 @@ def parse_poetry(
             )
         )
     return output
+
+
+text = """\
+[[package]]
+category = "main"
+description = "Internationalization utilities"
+name = "babel"
+optional = false
+python-versions = ">=3.7"
+version = "2.12.1"
+
+[package.dependencies]
+[package.dependencies.pytz]
+python = "<3.9"
+version = ">=2015.7"
+"""
+
+text = """\
+[package.dependencies]
+[package.dependencies.pytz]
+"""

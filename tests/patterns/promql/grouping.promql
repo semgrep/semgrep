@@ -1,0 +1,2 @@
+# MATCH:
+sum by (a, b, c) (some_metric)

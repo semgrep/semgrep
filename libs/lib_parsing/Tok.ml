@@ -63,7 +63,7 @@ type location = {
    *)
   pos : Pos.t;
 }
-[@@deriving show { with_path = false }, eq, compare]
+[@@deriving show { with_path = false }, eq]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
@@ -290,6 +290,30 @@ let str_of_info_fake_ok ii =
 let combine_toks x xs =
   let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
   tok_add_s str x
+
+let empty_tok_after tok : t =
+  match loc_of_tok tok with
+  | Ok loc ->
+      let prev_len = String.length loc.str in
+      let loc =
+        {
+          str = "";
+          pos =
+            {
+              loc.pos with
+              charpos = loc.pos.charpos + prev_len;
+              column = loc.pos.column + prev_len;
+            };
+        }
+      in
+      tok_of_loc loc
+  | Error _ -> rewrap_str "" tok
+
+let combine_bracket_contents (open_, xs, _close) =
+  let toks = Common.map snd xs in
+  match toks with
+  | x :: xs -> combine_toks x xs
+  | [] -> empty_tok_after open_
 
 let split_tok_at_bytepos pos ii =
   let loc = unsafe_loc_of_tok ii in

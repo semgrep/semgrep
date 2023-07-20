@@ -1,0 +1,11 @@
+rules:
+- id: eqeq
+  patterns:
+    - pattern: |
+        foo
+      pattern-not: |
+        bar
+  message: |
+    You need to hyphenate each pattern so it's a different item in the list.
+  languages: [py]
+  severity: WARNING

@@ -1,6 +1,7 @@
 ; OCaml implementation of the 'semgrep interactive' subcommand.
 
 (library
+  (public_name semgrep.osemgrep_cli_interactive)
   (name osemgrep_cli_interactive)
   (wrapped false)
   (inline_tests)

@@ -110,6 +110,11 @@ val undo_ac_matching_nf :
 (* Sets the e_range on the expression based on the left and right tokens
  * provided. No-op if either has a fake location. *)
 val set_e_range : Tok.t -> Tok.t -> AST_generic.expr -> unit
+
+(* Sets the e_range on the expression to the range defined by the given anys.
+ * Noop if no location information for the anys is available (including if the
+ * any list is empty). *)
+val set_e_range_with_anys : AST_generic.any list -> AST_generic.expr -> unit
 val ii_of_any : AST_generic.any -> Tok.t list
 val info_of_any : AST_generic.any -> Tok.t
 
