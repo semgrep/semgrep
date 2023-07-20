@@ -1705,7 +1705,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
-  | Some ("secrets", _), _ ->
+  | Some ("semgrep_internal_postprocessor", _), _ ->
       `Secrets (parse_secrets_fields env rule_dict)
   | Some ("step", _), _ ->
       let steps = take rule_dict env parse_steps "steps" in
