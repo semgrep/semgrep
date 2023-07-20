@@ -322,9 +322,6 @@ class ScanHandler:
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
             dependency_parser_errors=dependency_parser_errors,
-            dependencies=out.CiScanDependencies(lockfile_dependencies)
-            if self._dependency_query
-            else None,
             stats=out.CiScanCompleteStats(
                 findings=len(
                     [match for match in new_matches if not match.from_transient_scan]
@@ -345,39 +342,9 @@ class ScanHandler:
                 engine_requested=engine_requested.name,
             ),
         )
-        # complete = {
-        #     "exit_code": 1
-        #     if any(match.is_blocking and not match.is_ignored for match in all_matches)
-        #     else 0,
-        #     "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
-        #     "stats": {
-        #         "findings": len(
-        #             [match for match in new_matches if not match.from_transient_scan]
-        #         ),
-        #         "errors": [error.to_dict() for error in errors],
-        #         "total_time": total_time,
-        #         "unsupported_exts": dict(ignored_ext_freqs),
-        #         "lockfile_scan_info": dependency_counts,
-        #         "parse_rate": {
-        #             lang: {
-        #                 "targets_parsed": data.num_targets - data.targets_with_errors,
-        #                 "num_targets": data.num_targets,
-        #                 "bytes_parsed": data.num_bytes - data.error_bytes,
-        #                 "num_bytes": data.num_bytes,
-        #             }
-        #             for (lang, data) in parse_rate.get_errors_by_lang().items()
-        #         },
-        #         "engine_requested": engine_requested.name,
-        #     },
-        # }
 
-        # if self._dependency_query:
-        #     lockfile_dependencies_json = {}
-        #     for path, dependencies in lockfile_dependencies.items():
-        #         lockfile_dependencies_json[path] = [
-        #             dependency.to_json() for dependency in dependencies
-        #         ]
-        #     complete["dependencies"] = lockfile_dependencies_json
+        if self._dependency_query:
+            complete.dependencies = out.CiScanDependencies(lockfile_dependencies)
 
         complete_json = complete.to_json()
         if self.dry_run:

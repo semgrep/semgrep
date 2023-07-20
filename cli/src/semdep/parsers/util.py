@@ -54,25 +54,6 @@ C = TypeVar("C")
 Pos = Tuple[int, int]
 
 
-# class ParserName(Enum):
-#     gemfile_lock = auto()
-#     go_mod = auto()
-#     go_sum = auto()
-#     gradle_lockfile = auto()
-#     gradle_build = auto()
-#     jsondoc = auto()
-#     pipfile = auto()
-#     pnpm_lock = auto()
-#     poetry_lock = auto()
-#     pyproject_toml = auto()
-#     requirements = auto()
-#     yarn_1 = auto()
-#     yarn_2 = auto()
-#     pomtree = auto()
-#     cargo = auto()
-#     composer_lock = auto()
-
-
 def not_any(*chars: str) -> "Parser[str]":
     """
     [chars] must contain only single character strings.
