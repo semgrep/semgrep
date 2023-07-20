@@ -1,3 +1,4 @@
+
 ##############################################################################
 # Prelude
 ##############################################################################
@@ -62,6 +63,7 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -393,6 +395,7 @@ def run_scan(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     int,
+    Contributions,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
