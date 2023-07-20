@@ -583,6 +583,8 @@ and id_info = {
      exist in the source of the target.
   *)
   id_hidden : bool; [@equal AST_utils.equal_id_info (fun a b -> a = b)]
+  id_case_insensitive : bool;
+      [@equal AST_utils.equal_id_info (fun a b -> a = b)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
@@ -2167,21 +2169,23 @@ let p x = x
 let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None }
 
-let empty_id_info ?(hidden = false) () =
+let empty_id_info ?(hidden = false) ?(case_insensitive = false) () =
   {
     id_resolved = ref None;
     id_type = ref None;
     id_svalue = ref None;
     id_hidden = hidden;
+    id_case_insensitive = case_insensitive;
     id_info_id = id_info_id ();
   }
 
-let basic_id_info ?(hidden = false) resolved =
+let basic_id_info ?(hidden = false) ?(case_insensitive = false) resolved =
   {
     id_resolved = ref (Some resolved);
     id_type = ref None;
     id_svalue = ref None;
     id_hidden = hidden;
+    id_case_insensitive = case_insensitive;
     id_info_id = id_info_id ();
   }
 
