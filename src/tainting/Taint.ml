@@ -109,15 +109,15 @@ let rec _show_call_trace show_thing = function
 (*****************************************************************************)
 
 type arg_pos = { name : string; index : int } [@@deriving show, compare]
-type arg_base = Bthis | Barg of arg_pos [@@deriving show, compare]
+type arg_base = BThis | BArg of arg_pos [@@deriving show, compare]
 type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
 
 let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
 
 let _show_base base =
   match base with
-  | Bthis -> "this"
-  | Barg pos -> _show_pos pos
+  | BThis -> "this"
+  | BArg pos -> _show_pos pos
 
 let _show_arg { base; offset = os } =
   _show_base base

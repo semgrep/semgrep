@@ -1322,7 +1322,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
   in
   let* lval, obj =
     match sig_arg.base with
-    | Bthis -> (
+    | BThis -> (
         match fun_exp with
         | {
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
@@ -1330,7 +1330,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
         } ->
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
         | __else__ -> None)
-    | Barg pos -> (
+    | BArg pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
         match (arg_exp.e, sig_arg.offset) with
         | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
@@ -1370,7 +1370,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
 let taints_of_sig_arg env fparams fun_exp args_exps args_taints
     (sig_arg : T.arg) =
   match sig_arg with
-  | { base = Barg pos; offset = [] } ->
+  | { base = BArg pos; offset = [] } ->
       find_pos_in_actual_args args_taints fparams pos
   | __else__ ->
       (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
