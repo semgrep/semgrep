@@ -51,6 +51,7 @@ from semgrep.rule import Rule
 from semgrep.rule import RuleProduct
 from semgrep.rule_match import RuleMatchMap
 from semgrep.rule_match import RuleMatchSet
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Contributions
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -123,6 +124,7 @@ def invoke_semgrep(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
     ) = main(
@@ -386,6 +388,7 @@ def main(
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
+    Contributions,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -507,6 +510,10 @@ def main(
         optimizations=optimizations,
         core_opts_str=core_opts_str,
     )
+
+    contributions_start_time = time.time()
+    contributions = core_runner.invoke_semgrep_dump_contributions()
+    profiler.save("contributions_time", contributions_start_time)
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
@@ -650,4 +657,5 @@ def main(
         shown_severities,
         dependencies,
         dependency_parser_errors,
+        contributions,
     )
