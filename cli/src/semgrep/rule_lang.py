@@ -456,7 +456,6 @@ class RuleValidation:
         "pattern-sinks",
         "pattern-sources",
         "join",
-        #secret mode top level keys
         "secrets",
         "request",
         "response"
