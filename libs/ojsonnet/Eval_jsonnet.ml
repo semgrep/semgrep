@@ -117,6 +117,8 @@ let rec lookup (env : V.env) tk local_id =
   in
   evaluate_lazy_value_ entry
 
+and lookup_no_eval (env : V.env) local_id = Map_.find local_id env.locals
+
 (*****************************************************************************)
 (* eval_expr *)
 (*****************************************************************************)
@@ -421,21 +423,63 @@ and eval_call env e0 (largs, args, _rargs) =
  * TODO: handle inheritance with complex self/super semantic in the presence
  * of plus
  *)
-and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
+and eval_plus_object _env _tk objl objr original_object_left :
+    V.object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
-  let hobjr =
+  let hash_of_right_field_names =
     rflds
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
   (* TODO: this currently just merges the f *)
   let asserts = lassert @ rassert in
-  let lflds' =
+  let lflds_no_overlap =
     lflds
-    |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+           not (Hashtbl.mem hash_of_right_field_names s))
   in
-  let flds = lflds' @ rflds in
+
+  let new_fields_right =
+    rflds
+    |> List.map (fun { V.fld_name; fld_hidden; fld_value = { V.value; env } } ->
+           try
+             let current_super = lookup_no_eval env LSuper in
+             match current_super.value with
+             | V.Val _ -> raise Not_found
+             | V.Unevaluated e ->
+                 let new_super =
+                   BinaryOp
+                     (original_object_left, (Plus, Tok.unsafe_fake_tok "+"), e)
+                 in
+                 let locals =
+                   Map_.add V.LSuper
+                     {
+                       V.value = Unevaluated new_super;
+                       env = current_super.env;
+                     }
+                     env.locals
+                 in
+                 {
+                   V.fld_name;
+                   fld_hidden;
+                   fld_value = { V.value; env = { env with locals } };
+                 }
+           with
+           | Not_found ->
+               let new_super = original_object_left in
+               let locals =
+                 Map_.add V.LSuper
+                   { V.value = Unevaluated new_super; env }
+                   env.locals
+               in
+               {
+                 V.fld_name;
+                 fld_hidden;
+                 fld_value = { V.value; env = { env with locals } };
+               })
+  in
+  let flds = lflds_no_overlap @ new_fields_right in
   (l, (asserts, flds), r)
 
 and eval_binary_op env el (op, tk) er =
@@ -451,7 +495,7 @@ and eval_binary_op env el (op, tk) er =
       | Primitive (Str (s, tk)), v -> Primitive (Str (s ^ tostring v, tk))
       | v, Primitive (Str (s, tk)) -> Primitive (Str (tostring v ^ s, tk))
       | V.Object objl, V.Object objr ->
-          let obj = eval_plus_object env tk objl objr in
+          let obj = eval_plus_object env tk objl objr el in
           V.Object obj
       | v1, v2 ->
           error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
@@ -686,8 +730,13 @@ and manifest_value (v : V.value_) : JSON.t =
                         42 *)
                      |> Map_.add V.LSelf
                           { V.value = Val new_self; env = fld_value.env }
-                     |> Map_.add V.LSuper
-                          { V.value = Val V.empty_obj; env = fld_value.env }
+                     |>
+                     try
+                       Map_.add V.LSuper (lookup_no_eval fld_value.env V.LSuper)
+                     with
+                     | Not_found ->
+                         Map_.add V.LSuper
+                           { V.value = Val V.empty_obj; env = fld_value.env }
                    in
                    let v =
                      match fld_value.value with
