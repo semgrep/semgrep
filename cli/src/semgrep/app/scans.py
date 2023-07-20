@@ -286,9 +286,7 @@ class ScanHandler:
             all_matches, lambda match: bool(match.is_ignored)
         )
         findings = [match.to_app_finding_format(commit_date) for match in new_matches]
-        ignores = [
-            match.to_app_finding_format(commit_date).to_json() for match in new_ignored
-        ]
+        ignores = [match.to_app_finding_format(commit_date) for match in new_ignored]
         token = (
             # GitHub (cloud)
             os.getenv("GITHUB_TOKEN")
@@ -298,20 +296,16 @@ class ScanHandler:
             or os.getenv("BITBUCKET_TOKEN")
         )
 
-        api_scans_findings = out.ApiScansFindings(
+        ci_scan_results = out.CiScanResults(
             # send a backup token in case the app is not available
             token=token,
             findings=findings,
+            ignores=ignores,
             searched_paths=[str(t) for t in sorted(targets)],
+            renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
-            gitlab_token=None,
         )
-        # TODO: add those fields in semgrep_output_v1.atd spec
-        findings_and_ignores = {
-            **api_scans_findings.to_json(),
-            "renamed_paths": [str(rt) for rt in sorted(renamed_targets)],
-            "ignores": ignores,
-        }
+        findings_and_ignores = ci_scan_results.to_json()
 
         if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
             logger.info("Some experimental rules were run during execution.")

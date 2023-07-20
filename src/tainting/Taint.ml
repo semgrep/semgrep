@@ -139,31 +139,33 @@ type source = {
 and orig = Src of source | Arg of arg [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
-let rec compare_precondition (ts1, f1) (ts2, f2) =
-  match List.compare compare_taint ts1 ts2 with
-  | 0 ->
-      (* We use polymorphic compare here, because these preconditions
-         should be safe to compare, due to carrying no extraneous
-         data, and otherwise only comprising of base types.
-      *)
-      Stdlib.compare f1 f2
-  | other -> other
+let compare_precondition (_ts1, f1) (_ts2, f2) =
+  (* We don't consider the "incoming" taints here, assuming both
+     preconditions come from otherwise the same source.
+     See 'pick_taint' below for details. *)
+  (* We use polymorphic compare here, because these preconditions
+      should be safe to compare, due to carrying no extraneous
+      data, and otherwise only comprising of base types.
+  *)
+  Stdlib.compare f1 f2
 
-and compare_source s1 s2 =
+let compare_source
+    { call_trace = call_trace1; label = label1; precondition = precondition1 }
+    { call_trace = call_trace2; label = label2; precondition = precondition2 } =
   (* Comparing metavariable environments this way is not robust, e.g.:
    * [("$A",e1);("$B",e2)] is not considered equal to [("$B",e2);("$A",e1)].
    * For our purposes, this is OK.
    *)
-  let pm1, ts1 = pm_of_trace s1.call_trace
-  and pm2, ts2 = pm_of_trace s2.call_trace in
+  let pm1, ts1 = pm_of_trace call_trace1
+  and pm2, ts2 = pm_of_trace call_trace2 in
   match
     (* TODO: I'm pretty suspicious of Stdlib.compare here,
        the metavariable environments include tokens *)
     Stdlib.compare
-      (pm1.rule_id, pm1.range_loc, pm1.env, s1.label, ts1.R.label)
-      (pm2.rule_id, pm2.range_loc, pm2.env, s2.label, ts2.R.label)
+      (pm1.rule_id, pm1.range_loc, pm1.env, label1, ts1.R.label)
+      (pm2.rule_id, pm2.range_loc, pm2.env, label2, ts2.R.label)
   with
-  | 0 ->
+  | 0 -> (
       (* It's important that we include preconditions as a distinguishing factor
          between two taints.
 
@@ -172,24 +174,31 @@ and compare_source s1 s2 =
          if we pick the wrong one, we might fallaciously say a taint label finding does
          not actually occur.
       *)
-      Option.compare compare_precondition s1.precondition s2.precondition
+      match (precondition1, precondition2) with
+      | None, _
+      | _, None ->
+          (* 'None' here is the same as 'true', although the `requires` of both taints
+           * may not be the same, in this specific case we consider them "the same",
+           * see 'pick_best_taint'. *)
+          0
+      | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
   | other -> other
 
-and compare_arg a1 a2 =
+let compare_arg a1 a2 =
   let pos1 = a1.pos in
   let pos2 = a2.pos in
   match compare_arg_pos pos1 pos2 with
   | 0 -> List.compare IL_helpers.compare_name a1.offset a2.offset
   | other -> other
 
-and compare_orig orig1 orig2 =
+let compare_orig orig1 orig2 =
   match (orig1, orig2) with
   | Arg a1, Arg a2 -> compare_arg a1 a2
   | Src p, Src q -> compare_source p q
   | Arg _, Src _ -> -1
   | Src _, Arg _ -> 1
 
-and compare_taint taint1 taint2 =
+let compare_taint taint1 taint2 =
   (* THINK: Right now we disregard the trace because we just want to keep one
    * potential path. *)
   compare_orig taint1.orig taint2.orig
@@ -335,40 +344,24 @@ type signature = Findings.t
 (* Taint sets *)
 (*****************************************************************************)
 
-let pick_taint taint1 taint2 =
-  (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
-     * of them, but we want the one with the shortest trace. *)
-  match (taint1.orig, taint2.orig) with
-  | Arg _, Arg _ -> taint2
-  | Src src1, Src src2 ->
-      let call_trace_cmp =
-        Int.compare
-          (length_of_call_trace src1.call_trace)
-          (length_of_call_trace src2.call_trace)
-      in
-      if call_trace_cmp < 0 then taint1
-      else if call_trace_cmp > 0 then taint2
-      else if
-        (* same length *)
-        List.length taint1.tokens < List.length taint2.tokens
-      then taint1
-      else taint2
-  | Src _, Arg _
-  | Arg _, Src _ ->
-      logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
-      taint2
-
 module Taint_set = struct
+  (* NOTE "Taint sets"
+   *
+   * Why not just 'Set.Make(...)' using `compare_taint`? If we did this, then
+   * given two taints that we consider "the same", we would pick one arbitrarily.
+   * While we consider then _essentially_ "the same", there are deatils such as
+   * the call trace or the precondition (for labeled taint) that may differ, and
+   * we want to pick "the best". This is what this data structure is for, the
+   * key functions are 'add' and 'pick_best_taint'.
+   *)
   module Taint_map = Map.Make (struct
     type t = orig
 
-    let compare k1 k2 =
-      match (k1, k2) with
-      | Arg _, Src _ -> -1
-      | Src _, Arg _ -> 1
-      | Arg a1, Arg a2 -> compare_arg a1 a2
-      | Src s1, Src s2 -> compare_source s1 s2
+    let compare = compare_orig
   end)
+  (* TODO: Use a 'Set' instead, 'Map' is error prone, the same problem in 'map'
+   * may apply to 'union' as well. Not even clear that using a 'Map' here has any
+   * advantages. *)
 
   type t = taint Taint_map.t
 
@@ -380,8 +373,12 @@ module Taint_set = struct
     let eq t1 t2 = compare_taint t1 t2 = 0 in
     Taint_map.equal eq set1 set2
 
-  let add taint set =
-    (* We only want to keep one trace per taint source.
+  let to_seq set = set |> Taint_map.to_seq |> Seq.map snd
+  let elements set = set |> to_seq |> List.of_seq
+
+  let rec add taint set =
+    (* If two taints are "the same", we still want to pick "the best", e.g.
+     * the one with the shortest trace.
      *
      * This also helps avoiding infinite loops, which can happen when inferring
      * taint sigantures for functions like this:
@@ -397,7 +394,7 @@ module Taint_set = struct
      * iteration we have a "new" taint source made by the tainted input passing N
      * times through `f`, and so the fixpoint computation diverges. This is actually
      * rather tricky and removing the `if (true)` or the `g` breaks the infinite loop,
-     * but this has not been investigated in detail.
+     * but this has not been investigated in detail. (TODO)
      *
      * THINK: We could do more clever things like checking whether a trace is an
      *   extension of another trace and such. This could also be dealt with in the
@@ -408,12 +405,65 @@ module Taint_set = struct
     set
     |> Taint_map.update taint.orig (function
          | None -> Some taint
-         | Some taint' -> Some (pick_taint taint taint'))
+         | Some taint' -> Some (pick_best_taint taint taint'))
 
-  let union set1 set2 =
+  and union set1 set2 =
     Taint_map.union
-      (fun _k taint1 taint2 -> Some (pick_taint taint1 taint2))
+      (fun _k taint1 taint2 -> Some (pick_best_taint taint1 taint2))
       set1 set2
+
+  and of_list taints =
+    List.fold_left (fun set taint -> add taint set) Taint_map.empty taints
+
+  and pick_best_taint taint1 taint2 =
+    (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
+       * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
+    match (taint1.orig, taint2.orig) with
+    | Arg _, Arg _ -> taint2
+    | Src src1, Src src2 ->
+        let precondition =
+          (* We don't pick a precondition, but we merge them! *)
+          match (src1.precondition, src2.precondition) with
+          | None, _
+          | _, None ->
+              (* We could have 'None, Some_' or 'Some _, None' here. That could mean
+               * that there are two sources for the same label with different 'requires',
+               * or perhaps the same 'requires' but one was trivially true in the context?
+               *
+               * In any case, if this happens, we just assume that no precondition
+               * is needed to generate the label. *)
+              None
+          | Some (ts1, p1), Some (ts2, _p2) ->
+              (* p1 = p2 given compare_precondition
+               * Then we merge both lists of "incoming" taints, this also removes
+               * from each individual taint list.
+               *
+               * Otherwise we end up with taint sets where most of the taints are
+               * essentially the same. This is probably due to
+               * [see note "Taint-tracking via ranges" in Match_tainting_mode],
+               * and not having "Top_sources" [see note "Top sinks" in Dataflow_tainting].
+               *)
+              let ts = union (of_list ts1) (of_list ts2) |> elements in
+              Some (ts, p1)
+        in
+        let taint1 = { taint1 with orig = Src { src1 with precondition } } in
+        let taint2 = { taint2 with orig = Src { src2 with precondition } } in
+        let call_trace_cmp =
+          Int.compare
+            (length_of_call_trace src1.call_trace)
+            (length_of_call_trace src2.call_trace)
+        in
+        if call_trace_cmp < 0 then taint1
+        else if call_trace_cmp > 0 then taint2
+        else if
+          (* same length *)
+          List.length taint1.tokens < List.length taint2.tokens
+        then taint1
+        else taint2
+    | Src _, Arg _
+    | Arg _, Src _ ->
+        logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
+        taint2
 
   let diff set1 set2 =
     set1 |> Taint_map.filter (fun k _ -> not (Taint_map.mem k set2))
@@ -443,12 +493,6 @@ module Taint_set = struct
   let iter f set = Taint_map.iter (fun _k -> f) set
   let fold f set acc = Taint_map.fold (fun _k -> f) set acc
   let filter f set = Taint_map.filter (fun _k -> f) set
-
-  let of_list taints =
-    List.fold_left (fun set taint -> add taint set) Taint_map.empty taints
-
-  let to_seq set = set |> Taint_map.to_seq |> Seq.map snd
-  let elements set = set |> to_seq |> List.of_seq
 
   let concat_map f set =
     let bindings = Taint_map.bindings set in

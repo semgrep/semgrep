@@ -1,0 +1,21 @@
+rules:
+- id: too-long-range-in-query
+  languages: [yaml]
+  severity: WARNING
+  patterns:
+  - pattern-inside: |
+      expr: $PROMQL
+  - metavariable-pattern:
+      language: promql 
+      metavariable: $PROMQL
+      patterns:
+      - pattern-either: 
+        - pattern: $F(...)[$RANGE:$STEP]
+        - pattern: $F(...)[$RANGE:]
+        - pattern: $X{...}[$RANGE]
+      - metavariable-regex:
+          metavariable: $RANGE
+          regex: '(?![0-9]{1,2}(m|h))'
+  message: Ranges should usually a small and expressed in minutes or hours
+
+
