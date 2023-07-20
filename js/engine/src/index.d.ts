@@ -12,7 +12,8 @@ export interface Engine {
   execute: (
     language: string,
     rulesFilename: string,
-    targetFilename: string
+    root: string,
+    targetFilenames: string[],
   ) => string;
   writeFile: (filename: string, content: string) => void;
   deleteFile: (filename: string) => void;

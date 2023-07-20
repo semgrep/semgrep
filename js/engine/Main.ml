@@ -71,20 +71,35 @@ let _ =
          | Some lang -> Js.some (Js.string (Lang.to_lowercase_alnum lang))
          | None -> Js.null
 
-       method execute language rule_file source_file : string =
+       method execute language rule_file root source_files : string =
+        let xlang = Xlang.of_string (Js.to_string language) in
+        let rules_and_errors = Parse_rule.parse_and_filter_invalid_rules
+               (Fpath.v (Js.to_string rule_file)) in
+        let source_files = Js.to_array source_files |> Array.to_list |> List.map Js.to_string in
+        let rule_ids = rules_and_errors |> fst |> List.map (fun r -> fst r.Rule.id ) in
+        let target_mappings = List.map (fun f -> Input_to_core_t.{
+            path = f;
+            language = xlang;
+            rule_nums = Common.mapi (fun i _ -> i) rule_ids;
+          }) source_files in
+        let targets =  Input_to_core_t.({
+            target_mappings = target_mappings;
+            rule_ids = (rule_ids :> string list);
+          })
+        in
          let config : Runner_config.t =
            {
              Runner_config.default with
              rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
              lang = Some (Xlang.of_string (Js.to_string language));
              output_format = Json false;
-             roots = [ Fpath.v (Js.to_string source_file) ];
+             roots = [ Fpath.v (Js.to_string root) ];
+             target_source = Some (Runner_config.Targets targets);
              matching_explanations = true;
            }
          in
          let timed_rules =
-           ( Parse_rule.parse_and_filter_invalid_rules
-               (Fpath.v (Js.to_string rule_file)),
+           ( rules_and_errors,
              0. )
          in
          let res, files = Run_semgrep.semgrep_with_rules config timed_rules in

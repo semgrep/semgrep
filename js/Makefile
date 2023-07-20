@@ -1,5 +1,5 @@
 .PHONY: default
-default: libyaml engine languages
+default: pro-setup libyaml engine languages
 
 .PHONY: build
 build:
@@ -40,9 +40,21 @@ languages:
 engine:
 	cd engine; $(MAKE)
 
+.PHONY: pro-setup
+pro-setup:
+ifdef SEMGREP_PRO
+	ln -s -f ../_build ../_build
+	ln -s -f ../semgrep/js/languages ../_build/default/js/languages
+endif
+
+
 .PHONY: clean
 clean:
 	cd libpcre; $(MAKE) clean
 	cd libyaml; $(MAKE) clean
 	cd engine; $(MAKE) clean
 	cd languages; $(MAKE) clean
+ifdef SEMGREP_PRO
+	rm -f ../_build/default/js/languages
+	rm -f ../_build
+endif

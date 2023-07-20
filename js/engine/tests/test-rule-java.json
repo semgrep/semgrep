@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {
+      "id": "test-deep",
+      "languages": [
+        "java"
+      ],
+      "message": "Test",
+      "mode": "taint",
+      "pattern-sinks": [
+        {
+          "pattern": "sink(...)"
+        }
+      ],
+      "pattern-sources": [
+        {
+          "pattern": "user_input"
+        }
+      ],
+      "severity": "WARNING",
+      "metadata": {
+        "interfile": true
+      },
+    }
+  ]
+}
