@@ -6,21 +6,28 @@ open Cmdliner
 (*
    Shared CLI flags, CLI processing helpers, and help messages for the
    semgrep CLI.
-
-   TODO: parser+printer for file path so we can write things like:
-
-        Arg.value (Arg.opt (Arg.some CLI_common.fpath) None info)
-
-      instead of
-
-        Arg.value (Arg.opt (Arg.some Arg.string) None info)
-        (* + having to convert the string to an fpath by hand *)
-
-      The main benefit would be to clarify error messages by having Fpath.t
-      instead of string.
-
-   val fpath : Fpath.t Cmdliner.conv????
 *)
+
+(*************************************************************************)
+(* Types *)
+(*************************************************************************)
+
+(* Used mostly to decide between pysemgrep and osemgrep for now (could be
+ * used for different things later).
+ * Legacy is also used to specify whether to keep pysemgrep
+ * behavior/limitations/errors even when we stay in osemgrep land.
+ *)
+type maturity = Experimental | Legacy [@@deriving show]
+
+type conf = {
+  (* mix of --debug, --quiet, --verbose *)
+  logging_level : Logs.level option;
+  (* osemgrep-only: pad poor's man profiling info for now *)
+  profile : bool;
+  (* osemgrep-only: mix of --experimental, --legacy *)
+  maturity : maturity option;
+}
+[@@deriving show]
 
 (*************************************************************************)
 (* Verbosity options (mutually exclusive) *)
@@ -113,14 +120,58 @@ let o_profile : bool Term.t =
   Arg.value (Arg.flag info)
 
 (*************************************************************************)
-(* Misc *)
+(* Maturity options *)
 (*************************************************************************)
 
+(* We could remove the flags below and handle them manually in
+ * cli/bin/semgrep or in ../cli/CLI.ml and remove them from Sys.argv
+ * before going further in the individual cli_xxx/
+ * (especially because they're mostly used for the pysemgrep/osemgrep
+ * dispatch for now), but it's still useful to have them as explicit flags
+ * so they show up in the man pages (e.g., in 'semgrep scan --help').
+ * It's also nice to accept the --experimental flag for people explicitely
+ * calling osemgrep directly.
+ *)
+
+(* osemgrep-only:  *)
 let o_experimental : bool Term.t =
   let info =
     Arg.info [ "experimental" ] ~doc:{|Enable experimental features.|}
   in
   Arg.value (Arg.flag info)
+
+(* osemgrep-only:  *)
+let o_legacy : bool Term.t =
+  let info =
+    (* alt: Keep the pysemgrep behaviors/limitations/errors *)
+    Arg.info [ "legacy" ] ~doc:{|Prefer old (legacy) behavior.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_maturity : maturity option Term.t =
+  let combine experimental legacy =
+    match (experimental, legacy) with
+    | false, false -> None
+    | true, false -> Some Experimental
+    | false, true -> Some Legacy
+    | true, true ->
+        Error.abort "mutually exclusive options --experimental/--legacy"
+  in
+  Term.(const combine $ o_experimental $ o_legacy)
+
+(*************************************************************************)
+(* Term for all common CLI flags *)
+(*************************************************************************)
+
+let o_common : conf Term.t =
+  let combine logging profile maturity =
+    { logging_level = logging; profile; maturity }
+  in
+  Term.(const combine $ o_logging $ o_profile $ o_maturity)
+
+(*************************************************************************)
+(* Misc *)
+(*************************************************************************)
 
 let help_page_bottom =
   [
