@@ -37,6 +37,7 @@ type env = unit H.env
 
 let str = H.str
 let fb = Tok.unsafe_fake_bracket
+let ft str = (str, Tok.unsafe_fake_tok str)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -125,15 +126,19 @@ let map_label_matcher (env : env) ((v1, v2, v3) : CST.label_matcher) =
   let n = G.N (H2.name_of_id v1) |> G.e in
   G.Container (G.Tuple, fb [ n; v2 |> G.e; v3 ]) |> G.e
 
-let map_label_selectors (env : env) ((t1, v1, t2) : CST.label_selectors) =
-  let map_choice_semg_ellips env x =
-    match x with
-    | `Semg_ellips tok ->
-        let _, t = str env tok in
-        G.Ellipsis t |> G.e
-    | `Label_matc x -> map_label_matcher env x
-  in
-  let v1 =
+let map_series_matcher (env : env) ((v1, v2) : CST.series_matcher) =
+  (*
+      http_requests_total{a="b"} -> {(__name__, "=", http_requests_total), (a ,"=", b)})
+  *)
+  let map_label_selectors_to_list (env : env) ((_, v1, _) : CST.label_selectors)
+      =
+    let map_choice_semg_ellips env x =
+      match x with
+      | `Semg_ellips tok ->
+          let _, t = str env tok in
+          G.Ellipsis t |> G.e
+      | `Label_matc x -> map_label_matcher env x
+    in
     match v1 with
     | Some (h, t, _) ->
         let h = map_choice_semg_ellips env h in
@@ -141,26 +146,29 @@ let map_label_selectors (env : env) ((t1, v1, t2) : CST.label_selectors) =
         [ h ] @ t
     | None -> []
   in
-  let _, t1 = str env t1 in
-  let _, t2 = str env t2 in
-  G.Container (G.Set, (t1, v1, t2)) |> G.e
 
-let map_series_matcher (env : env) ((v1, v2) : CST.series_matcher) =
-  (*
-      http_requests_total{a="b"} -> (http_requests_total, {(a ,"=", b)})
-  *)
-  let v1 =
-    match v1 with
-    | `Semg_meta tok -> str env tok
-    | `Id tok -> str env tok
+  let map_name_to_name_label_matcher env v1 =
+    (* "http_requests_total" is equivalent to {__name__="http_requests_total"} *)
+    let n =
+      G.N
+        (H2.name_of_id
+           (match v1 with
+           | `Semg_meta tok -> str env tok
+           | `Id tok -> str env tok))
+      |> G.e
+    in
+    let l = G.N (H2.name_of_id (ft "__name__")) |> G.e in
+    let eq = G.L (G.String (fb (ft "="))) |> G.e in
+    G.Container (G.Tuple, fb [ l; eq; n ]) |> G.e
   in
-  let n = G.N (H2.name_of_id v1) |> G.e in
-  let v2 =
+
+  let name_matcher = map_name_to_name_label_matcher env v1 in
+  let labels =
     match v2 with
-    | Some x -> map_label_selectors env x
-    | None -> G.Container (G.Set, fb []) |> G.e
+    | Some x -> map_label_selectors_to_list env x
+    | None -> []
   in
-  G.Container (G.Tuple, fb [ n; v2 ]) |> G.e
+  G.Container (G.Tuple, fb ([ name_matcher ] @ labels)) |> G.e
 
 let map_instant_vector_selector (env : env)
     ((v1, _) : CST.instant_vector_selector) =
@@ -208,7 +216,7 @@ let map_function_grouping (env : env) ((v1, t1, v2, t2) : CST.grouping) =
         G.Container (G.Tuple, (t1, [ h ] @ t, t2)) |> G.e
     | None -> G.Container (G.Tuple, (t1, [], t2)) |> G.e
   in
-  [ G.ArgKwd (k, v) ]
+  [ G.ArgKwdOptional (k, v) ]
 
 let rec map_function_args (env : env) ((_, v1, _) : CST.function_args) =
   let map_choice_semg_ellips env x =
