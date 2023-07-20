@@ -235,6 +235,7 @@ type taint_spec = {
 and taint_source = {
   source_formula : formula;
   source_by_side_effect : bool;
+  source_control : bool;
   label : string;
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not

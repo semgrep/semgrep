@@ -57,6 +57,9 @@ val clean : env -> IL.lval -> env
     clean the entire array! This seems drastic but it should help reducing FPs.
  *)
 
+val add_control_taints : env -> Taint.taints -> env
+val get_control_taints : env -> Taint.taints
+
 val union : env -> env -> env
 (** Compute the environment for the join of two branches.
 

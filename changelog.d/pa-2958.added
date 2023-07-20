@@ -1,0 +1,22 @@
+taint-mode: Added **experimental** `control: true` option to `pattern-sources`,
+e.g.:
+
+```yaml
+    pattern-sources:
+      - control: true
+        pattern: source(...)
+```
+
+Such sources taint the "control flow" (or the program counter) so that it is
+possible to implement reachability queries that do not require the flow of any
+data. Thus, Semgrep reports a finding in the code below, because after `source()`
+the flow of control will reach `sink()`, even if no data is flowing between both:
+
+```python
+def test():
+  source()
+  foo()
+  bar()
+  #ruleid: test
+  sink()
+```

@@ -559,8 +559,6 @@ let pm_of_finding finding =
         sink = { pm = sink_pm; _ };
         merged_env;
       } ->
-      (* TODO: We might want to report functions that let input taint
-         * go into a sink (?) *)
       if
         not
           (T.taints_satisfy_requires
@@ -568,17 +566,20 @@ let pm_of_finding finding =
              requires)
       then None
       else
-        (* these arg taints are not useful to us, because we are within
-           the function, not at the call-site. so we don't know what
-           the argument taints are.
-        *)
-        let source_taints, _args_taints =
+        (* We only report actual sources reaching a sink. If users want Semgrep to
+         * report function parameters reaching a sink without sanitization, then
+         * they need to specify the parameters as taint sources. *)
+        let source_taints =
           taints
-          |> Common.partition_either
+          |> Common.map_filter
                (fun { T.taint = { orig; tokens }; sink_trace } ->
                  match orig with
-                 | Src src -> Left (src, tokens, sink_trace)
-                 | Arg arg -> Right arg)
+                 | Src src -> Some (src, tokens, sink_trace)
+                 (* even if there is any taint "variable", it's irrelevant for the
+                  * finding, since the precondition is satisfied. *)
+                 | Arg _
+                 | Control ->
+                     None)
         in
         (* The old behavior used to be that, for sinks with a `requires`, we would
            generate a finding per every single taint source going in. Later deduplication

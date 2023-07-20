@@ -105,12 +105,18 @@ let rec _show_call_trace show_thing = function
       Printf.sprintf "Call(... %s)" (_show_call_trace show_thing trace)
 
 (*****************************************************************************)
-(* Signatures *)
+(* Taint arguments ("variables", kind of) *)
 (*****************************************************************************)
 
 type arg_pos = { name : string; index : int } [@@deriving show, compare]
 type arg_base = BThis | BArg of arg_pos [@@deriving show, compare]
 type arg = { base : arg_base; offset : IL.name list } [@@deriving show]
+
+let compare_arg { base = base1; offset = offset1 }
+    { base = base2; offset = offset2 } =
+  match compare_arg_base base1 base2 with
+  | 0 -> List.compare IL_helpers.compare_name offset1 offset2
+  | other -> other
 
 let _show_pos { name = s; index = i } = Printf.sprintf "arg(%s@%d)" s i
 
@@ -139,14 +145,14 @@ type source = {
       (* This is needed because we may change the label of a taint,
          from the original source that it came from.
          This happens from propagators which change the label of the taint.
-         We don't put it under `taint`, though, because Arg taints are
-         supposed to be polymorphic in label.
+         We don't put it under `taint`, though, because Arg and Control taints
+         are polymorphic in label.
       *)
   precondition : (taint list * R.precondition) option;
 }
 [@@deriving show]
 
-and orig = Src of source | Arg of arg [@@deriving show]
+and orig = Src of source | Arg of arg | Control [@@deriving show]
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]
 
 let compare_precondition (_ts1, f1) (_ts2, f2) =
@@ -194,18 +200,15 @@ let compare_source
       | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
   | other -> other
 
-let compare_arg { base = base1; offset = offset1 }
-    { base = base2; offset = offset2 } =
-  match compare_arg_base base1 base2 with
-  | 0 -> List.compare IL_helpers.compare_name offset1 offset2
-  | other -> other
-
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with
-  | Arg a1, Arg a2 -> compare_arg a1 a2
   | Src p, Src q -> compare_source p q
-  | Arg _, Src _ -> -1
-  | Src _, Arg _ -> 1
+  | Arg a1, Arg a2 -> compare_arg a1 a2
+  | Control, Control -> 0
+  | Src _, (Arg _ | Control) -> -1
+  | Arg _, Control -> -1
+  | Arg _, Src _ -> 1
+  | Control, (Arg _ | Src _) -> 1
 
 let compare_taint taint1 taint2 =
   (* THINK: Right now we disregard the trace because we just want to keep one
@@ -214,8 +217,9 @@ let compare_taint taint1 taint2 =
 
 let _show_taint_label taint =
   match taint.orig with
-  | Arg { base; offset = _ } -> _show_base base
   | Src src -> src.label
+  | Arg arg -> _show_arg arg
+  | Control -> "<control>"
 
 let rec _show_precondition = function
   | R.PLabel str -> str
@@ -258,7 +262,8 @@ and _show_taints_with_precondition precondition =
 and _show_taint taint =
   match taint.orig with
   | Src src -> _show_source src
-  | Arg arg_lval -> _show_arg arg_lval
+  | Arg arg -> _show_arg arg
+  | Control -> "<control>"
 
 let _show_sink { rule_sink; _ } = rule_sink.R.sink_id
 
@@ -428,7 +433,11 @@ module Taint_set = struct
     (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
        * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
     match (taint1.orig, taint2.orig) with
-    | Arg _, Arg _ -> taint2
+    | Arg _, Arg _
+    | Control, Control ->
+        (* Polymorphic taint should only be intraprocedural so the call-trace is irrelevant. *)
+        if List.length taint1.tokens < List.length taint2.tokens then taint1
+        else taint2
     | Src src1, Src src2 ->
         let precondition =
           (* We don't pick a precondition, but we merge them! *)
@@ -469,8 +478,7 @@ module Taint_set = struct
           List.length taint1.tokens < List.length taint2.tokens
         then taint1
         else taint2
-    | Src _, Arg _
-    | Arg _, Src _ ->
+    | (Src _ | Arg _ | Control), (Src _ | Arg _ | Control) ->
         logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
         taint2
 
@@ -593,7 +601,9 @@ and labels_in_taints taints =
   taints
   |> Taint_set.iter (fun taint ->
          match taint.orig with
-         | Arg _ -> has_poly_taint := true
+         | Arg _
+         | Control ->
+             has_poly_taint := true
          | Src { label; precondition = None; _ } ->
              sure_labels := LabelSet.add label !sure_labels
          | Src { label; precondition = Some (incoming, pre); _ } -> (
@@ -643,13 +653,17 @@ let filter_relevant_taints requires taints =
   taints
   |> Taint_set.filter (fun t ->
          match t.orig with
-         | Arg _ -> true
-         | Src src -> LabelSet.mem src.label labels)
+         | Src src -> LabelSet.mem src.label labels
+         | Arg _
+         | Control ->
+             true)
 
 (* Just a straightforward bottom-up map on preconditions. *)
 let rec map_preconditions f taint =
   match taint.orig with
-  | Arg _ -> Some taint
+  | Arg _
+  | Control ->
+      Some taint
   | Src { precondition = None; _ } -> Some taint
   | Src ({ precondition = Some (incoming, expr); _ } as src) -> (
       let new_incoming =

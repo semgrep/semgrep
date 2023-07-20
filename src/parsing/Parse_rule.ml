@@ -1322,6 +1322,9 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_bool "by-side-effect"
       |> Option.value ~default:false
     in
+    let source_control =
+      take_opt dict env parse_bool "control" |> Option.value ~default:false
+    in
     let label =
       take_opt dict env parse_string "label"
       |> Option.value ~default:R.default_source_label
@@ -1331,7 +1334,13 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       |> Option.value ~default:default_source_requires
     in
     let source_formula = f env dict in
-    { R.source_formula; source_by_side_effect; label; source_requires }
+    {
+      R.source_formula;
+      source_by_side_effect;
+      source_control;
+      label;
+      source_requires;
+    }
   in
   if is_old then
     let dict = yaml_to_dict env key value in
@@ -1343,6 +1352,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
         {
           source_formula;
           source_by_side_effect = false;
+          source_control = false;
           label = R.default_source_label;
           source_requires = default_source_requires;
         }
