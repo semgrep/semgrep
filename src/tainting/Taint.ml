@@ -23,18 +23,19 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 (* NOTE "on compare functions":
  *
- * We should get rid of `Stdlib.compare` in taint code, and ppx_deriving is probably
- * not much better. The problem is having "automagic" comparisons that silently
- * change as you change data types. Automagic comparisons are very convenient but
- * sometimes the comparison is not what you want. Initially I just thought that if
- * you carefully considered whether that automagic comparison is OK for each data
- * type then you are fine... So we used `Stdlib.compare` in several places, until
- * one day `Taint.arg` evolved, and we added an `offset` to it, and we forgot to
- * revisit whether `Stdlib.compare` was still a good option (it wasn't)... and this
- * led to duplicates which led to an explosion in the size of taint sets and to big
- * perf problems. I think the only way to get warned about this is to write these
+ * We should be careful about using ppx_deriving. The problem is having "automagic"
+ * comparisons that silently change as you change data types. Automagic comparisons
+ * are very convenient but sometimes the comparison is not what you want. Initially
+ * I just thought that if you carefully considered whether that automagic comparison
+ * is OK for each data type then you are fine... So we used `Stdlib.compare` in several
+ * places, until one day `Taint.arg` evolved, and we added an `offset` to it, and we
+ * forgot to revisit whether `Stdlib.compare` was still a good option (it wasn't)...
+ * and this led to duplicates which led to an explosion in the size of taint sets and
+ * to big perf problems. I think the only way to get warned about this is to write these
  * comparisons manually, no matter how painful it is, so the typechecker will force
- * you to revisit the comparison functions if the types change.
+ * you to revisit the comparison functions if the types change. It's safe to use
+ * ppx_deriving when all the types are primitive, but if any is not then it can be
+ * cause these problems.
  *
  * Besides, we now favor the use of pattern matching over record field access, e.g.
  * ```ocaml
@@ -84,11 +85,28 @@ let length_of_call_trace ct =
 
 type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink } [@@deriving show]
 
+let compare_metavar_env env1 env2 =
+  if Metavariable.Structural.equal_bindings env1 env2 then 0
+    (* It's ok here because we've checked equality *)
+  else Stdlib.compare env1 env2
+
+let compare_matches pm1 pm2 =
+  let compare_rule_id =
+    String.compare
+      (Rule.ID.to_string pm1.PM.rule_id.id)
+      (Rule.ID.to_string pm2.PM.rule_id.id)
+  in
+  if compare_rule_id <> 0 then compare_rule_id
+  else
+    let compare_range_loc = compare pm1.range_loc pm2.range_loc in
+    if compare_range_loc <> 0 then compare_range_loc
+    else compare_metavar_env pm1.env pm2.env
+
 let compare_sink { pm = pm1; rule_sink = sink1 } { pm = pm2; rule_sink = sink2 }
     =
-  Stdlib.compare
-    (sink1.Rule.sink_id, pm1.rule_id, pm1.range_loc, pm1.env)
-    (sink2.Rule.sink_id, pm2.rule_id, pm2.range_loc, pm2.env)
+  match String.compare sink1.Rule.sink_id sink2.Rule.sink_id with
+  | 0 -> compare_matches pm1 pm2
+  | other -> other
 
 let rec pm_of_trace = function
   | PM (pm, x) -> (pm, x)
@@ -144,19 +162,6 @@ let compare_precondition (_ts1, f1) (_ts2, f2) =
      preconditions come from otherwise the same source.
      See 'pick_taint' below for details. *)
   R.compare_precondition f1 f2
-
-and compare_matches pm1 pm2 =
-  let compare_rule_id =
-    String.compare
-      (Rule.ID.to_string pm1.PM.rule_id.id)
-      (Rule.ID.to_string pm2.PM.rule_id.id)
-  in
-  if compare_rule_id <> 0 then compare_rule_id
-  else
-    let compare_range_loc = compare pm1.range_loc pm2.range_loc in
-    if compare_range_loc <> 0 then compare_range_loc
-    else if Metavariable.Structural.equal_bindings pm1.env pm2.env then 0
-    else Stdlib.compare pm1.env pm2.env
 
 let compare_source
     { call_trace = call_trace1; label = label1; precondition = precondition1 }
@@ -295,7 +300,10 @@ let compare_taints_to_sink
   match compare_sink sink1 sink2 with
   | 0 -> (
       match List.compare compare_taint_to_sink_item ttsis1 ttsis2 with
-      | 0 -> Stdlib.compare (pre1, env1) (pre2, env2)
+      | 0 -> (
+          match R.compare_precondition pre1 pre2 with
+          | 0 -> compare_metavar_env env1 env2
+          | other -> other)
       | other -> other)
   | other -> other
 
@@ -322,7 +330,7 @@ let compare_finding fi1 fi2 =
   | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
   | ToReturn (ts1, tok1), ToReturn (ts2, tok2) -> (
       match List.compare compare_taint ts1 ts2 with
-      | 0 -> Stdlib.compare tok1 tok2
+      | 0 -> Tok.compare tok1 tok2
       | other -> other)
   | ToArg (ts1, a1), ToArg (ts2, a2) -> (
       match List.compare compare_taint ts1 ts2 with
