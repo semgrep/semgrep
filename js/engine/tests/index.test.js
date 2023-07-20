@@ -1,16 +1,22 @@
+const SEMGREP_PRO = process.env.SEMGREP_PRO;
 const path = require("path");
 const { EngineFactory } = require("../dist/index.cjs");
-const java = require("../../languages/java/dist/index.cjs");
-const js = require("../../languages/typescript/dist/index.cjs");
+
+if (SEMGREP_PRO) {
+  const java = require("../../languages/java/dist/index.cjs");
+  const js = require("../../languages/typescript/dist/index.cjs");
+}
 
 const enginePromise = EngineFactory("./dist/semgrep-engine.wasm");
 
 const engineExec = async () => {
   const engine = await enginePromise;
-  const a = await java.ParserFactory();
-  engine.addParser(a);
-  const b = await js.ParserFactory();
-  engine.addParser(b);
+  if (SEMGREP_PRO) {
+    const a = await java.ParserFactory();
+    engine.addParser(a);
+    const b = await js.ParserFactory();
+    engine.addParser(b);
+  }
   return engine;
 };
 
@@ -73,7 +79,7 @@ describe("yaml parser", () => {
   });
 });
 
-if (process.env.SEMGREP_PRO) {
+if (SEMGREP_PRO) {
   describe("deep", () => {
     test("parses a pattern", async () => {
       const engine = await engineExec();
