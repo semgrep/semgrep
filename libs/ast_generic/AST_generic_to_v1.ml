@@ -123,6 +123,7 @@ and map_id_info x =
    id_type = v_id_type;
    id_svalue = v3;
    id_hidden = _not_available_in_v1;
+   id_case_insensitive = _not_available_in_v1';
    id_info_id = _IGNORED;
   } ->
       let v3 = map_of_ref (map_of_option map_svalue) v3 in

@@ -196,6 +196,7 @@ and vof_id_info
       id_type = v_id_type;
       id_svalue = v3;
       id_hidden;
+      id_case_insensitive;
       id_info_id;
     } =
   let bnds = [] in
@@ -210,6 +211,9 @@ and vof_id_info
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_bool id_hidden in
   let bnd = ("id_hidden", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_bool id_case_insensitive in
+  let bnd = ("id_case_insensitive", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_int (IdInfoId.to_int id_info_id) in
   let bnd = ("id_info_id", arg) in
