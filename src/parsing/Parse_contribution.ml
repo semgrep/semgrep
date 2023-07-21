@@ -3,8 +3,9 @@
 open Common
 
 let git_json_format =
-  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_author_name\": \"%an\", \
-   \"commit_author_email\": \"%ae\", \"commit_timestamp\": \"%ai\"}"
+  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%ai\", \
+   \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
+   \"%ae\"}}"
 
 let get_git_logs () : string list =
   let cmd = Bos.Cmd.(v "git" % "log" % git_json_format) in
@@ -23,4 +24,4 @@ let get_contributions () : Semgrep_output_v1_j.contributions =
   let contributions =
     List.map (fun f -> Semgrep_output_v1_j.contribution_of_string f) logs
   in
-  { contributions }
+  contributions
