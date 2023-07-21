@@ -264,7 +264,10 @@ module Server = struct
       Search.on_request server.session.config
         (Session.targets { server.session with only_git_dirty = false })
     in
-    match [ (Search.meth, search_handler) ] |> List.assoc_opt meth with
+    match
+      [ (Search.meth, search_handler); (ShowAst.meth, ShowAst.on_request) ]
+      |> List.assoc_opt meth
+    with
     | None ->
         logger#warning "Unhandled custom request %s" meth;
         (None, server)

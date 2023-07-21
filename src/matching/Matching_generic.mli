@@ -2,8 +2,8 @@
 
 (* incoming environment *)
 type tin = {
-  mv : Metavariable_capture.t;
-  stmts_match_span : Stmts_match_span.t;
+  mv : Metavariable.bindings;
+  stmts_matched : AST_generic.stmt list;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Rule_options.t;
@@ -56,7 +56,7 @@ val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
 (* Update the matching list of statements by providing a new matching
    statement. *)
-val extend_stmts_match_span : AST_generic.stmt -> tin -> tin
+val extend_stmts_matched : AST_generic.stmt -> tin -> tin
 
 val envf :
   Metavariable.mvar AST_generic.wrap -> Metavariable.mvalue -> tin -> tout

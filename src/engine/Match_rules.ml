@@ -39,7 +39,7 @@ exception File_timeout
 (*****************************************************************************)
 
 let timeout_function rule file timeout f =
-  let saved_busy_with_equal = !AST_utils.busy_with_equal in
+  let saved_busy_with_equal = !AST_generic_equals.busy_with_equal in
   let timeout = if timeout <= 0. then None else Some timeout in
   match
     Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
@@ -48,7 +48,7 @@ let timeout_function rule file timeout f =
   | None ->
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
-      AST_utils.busy_with_equal := saved_busy_with_equal;
+      AST_generic_equals.busy_with_equal := saved_busy_with_equal;
       logger#info "timeout for rule %s on file %s"
         (fst rule.R.id :> string)
         file;

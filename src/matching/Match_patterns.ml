@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
- * Copyright (C) 2019, 2020 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -79,15 +79,11 @@ let match_sts_sts rule a b env =
        * a sequence of statements pattern (AST_generic.Ss) to match all
        * the rest, we don't want to report the whole Ss as a match but just
        * the actually matched subset.
-       *
-       * TODO? do we need to generate unique key? we don't want
-       * nested calls to m_stmts_deep to pollute our metavar? We need
-       * to pass the key to m_stmts_deep?
        *)
       let env =
         match b with
         | [] -> env
-        | stmt :: _ -> MG.extend_stmts_match_span stmt env
+        | stmt :: _ -> MG.extend_stmts_matched stmt env
       in
       GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
   [@@profiling]
@@ -155,7 +151,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
            (* Found a match *)
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
-                  let env = env.mv.full_env in
+                  let mv = env.mv in
                   match AST_generic_helpers.range_of_any_opt (any x) with
                   | None ->
                       (* TODO: Report a warning to the user? *)
@@ -172,7 +168,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                         {
                           PM.rule_id;
                           file;
-                          env;
+                          env = mv;
                           range_loc;
                           tokens;
                           taint_trace = None;
@@ -186,6 +182,12 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                       hook pm));
   (* try the rules on substatements and subexpressions *)
   k x
+
+let location_stmts stmts =
+  AST_generic_helpers.range_of_any_opt (AST_generic.Ss stmts)
+
+let list_original_tokens_stmts stmts =
+  AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -311,7 +313,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let env = env.mv.full_env in
+                              let mv = env.mv in
                               let tokens =
                                 lazy (AST_generic_helpers.ii_of_any (E x))
                               in
@@ -320,7 +322,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 {
                                   PM.rule_id;
                                   file;
-                                  env;
+                                  env = mv;
                                   range_loc;
                                   tokens;
                                   taint_trace = None;
@@ -359,7 +361,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                      (* Found a match *)
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
-                            let env = env.mv.full_env in
+                            let mv = env.mv in
                             match
                               AST_generic_helpers.range_of_any_opt (S x)
                             with
@@ -379,7 +381,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   {
                                     PM.rule_id;
                                     file;
-                                    env;
+                                    env = mv;
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
@@ -411,22 +413,20 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let span = env.stmts_match_span in
-                              match Stmts_match_span.location span with
+                              let matched = env.stmts_matched in
+                              match location_stmts matched with
                               | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let env = env.mv.full_env in
+                                  let mv = env.mv in
                                   let tokens =
-                                    lazy
-                                      (Stmts_match_span.list_original_tokens
-                                         span)
+                                    lazy (list_original_tokens_stmts matched)
                                   in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   let pm =
                                     {
                                       PM.rule_id;
                                       file;
-                                      env;
+                                      env = mv;
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
@@ -504,22 +504,20 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let span = env.stmts_match_span in
-                              match Stmts_match_span.location span with
+                              let matched = env.stmts_matched in
+                              match location_stmts matched with
                               | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let env = env.mv.full_env in
+                                  let mv = env.mv in
                                   let tokens =
-                                    lazy
-                                      (Stmts_match_span.list_original_tokens
-                                         span)
+                                    lazy (list_original_tokens_stmts matched)
                                   in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   let pm =
                                     {
                                       PM.rule_id;
                                       file;
-                                      env;
+                                      env = mv;
                                       range_loc;
                                       tokens;
                                       taint_trace = None;

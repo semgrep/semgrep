@@ -19,7 +19,9 @@ module MV = Metavariable
 
 let ( let/ ) = Result.bind
 
-(******************************************************************************)
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (* Handles AST printing for the purposes of autofix.
  *
  * The main printing logic happens elsewhere. This module's main purpose is to
@@ -31,7 +33,10 @@ let ( let/ ) = Result.bind
  * - It lets us make minimal changes to target files by carrying over
  *   formatting, comments, etc. from the original code.
  *)
-(******************************************************************************)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 (* This lets us avoid the polymorphic hash function and polymorphic equality,
  * which will take into account extraneous information such as e_range, leading
@@ -39,7 +44,7 @@ let ( let/ ) = Result.bind
 module ASTTable = Hashtbl.Make (struct
   type t = AST_generic.any
 
-  let equal = AST_utils.with_structural_equal AST_generic.equal_any
+  let equal = AST_generic_equals.with_structural_equal AST_generic.equal_any
   let hash = AST_generic.hash_any
 end)
 
@@ -184,9 +189,9 @@ let make_external_printer ~metavars ~target_contents ~fix_pattern_ast
     in
     Ok (Immutable_buffer.of_string str)
 
-(******************************************************************************)
+(*****************************************************************************)
 (* Entry Point *)
-(******************************************************************************)
+(*****************************************************************************)
 
 let print_ast ~lang ~metavars ~target_contents ~fix_pattern_ast ~fix_pattern
     fixed_ast =
