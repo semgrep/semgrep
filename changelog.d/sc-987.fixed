@@ -1,1 +1,0 @@
-Fixed bug in gradle.lockfile parser where we would error on `empty=` with nothing after it
