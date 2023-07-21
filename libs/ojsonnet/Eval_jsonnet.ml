@@ -439,10 +439,6 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
-(* This is a very naive implementation of plus for objects that
- * just merge the fields.
- * TODO: handle "inheritance" with complex super semantic with plus
- *)
 and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
@@ -457,8 +453,16 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
     lflds
     |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
   in
-  (* TODO: should bind Super and adjust the env in all rflds *)
-  let rflds' = rflds in
+  (* Add Super for the right fields *)
+  let rflds' =
+    rflds
+    |> Common.map (fun ({ V.fld_value = { value; env }; _ } as fld) ->
+           let locals =
+             env.locals
+             |> Map_.add V.LSuper { V.value = V.Val (V.Object objl); env }
+           in
+           { fld with fld_value = { value; env = { env with locals } } })
+  in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
 
