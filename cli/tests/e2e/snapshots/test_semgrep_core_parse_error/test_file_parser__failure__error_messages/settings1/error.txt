@@ -45,7 +45,7 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24mtargets/bad/invalid_python.py (3 lines skipped)[0m
+   • [36m[22m[24mtargets/bad/invalid_python.py (2 lines skipped)[0m
 
 
 
