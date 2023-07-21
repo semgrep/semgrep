@@ -27,7 +27,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let rule = Rule.rule_of_xpattern xlang xpat in
   let rule = { rule with id = (Rule.ID.of_string "print", fk) } in
   let hrules = Rule.hrules_of_rules [ rule ] in
-  let scanned = List.map (fun f -> Fpath.v f) files |> Set_.of_list in
+  let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
     let extra =
       Out.
@@ -98,7 +98,7 @@ let session_targets () =
     let user_settings = { session.user_settings with only_git_dirty } in
     let session = { session with user_settings; workspace_folders } in
     let session = set_session_targets session workspace_folders in
-    let targets = session |> Session.targets |> List.map Fpath.to_string in
+    let targets = session |> Session.targets |> Common.map Fpath.to_string in
     let targets = Common.sort targets in
     let expected = Common.sort expected in
     Alcotest.(check (list string)) "targets" expected targets

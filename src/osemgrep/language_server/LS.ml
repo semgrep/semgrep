@@ -84,7 +84,9 @@ module MessageHandler = struct
     let targets = Some targets in
     let results, _ = run_semgrep ~targets server in
     let results =
-      List.map (fun (m : Out.cli_match) -> { m with path = file_path }) results
+      Common.map
+        (fun (m : Out.cli_match) -> { m with path = file_path })
+        results
     in
     let files = [ file ] in
     Session.record_results server.session results files;
