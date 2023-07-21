@@ -191,6 +191,13 @@ let dump_v_to_format (v : OCaml.v) =
   | Text -> OCaml.string_of_v v
   | Json _ -> J.string_of_json (json_of_v v)
 
+let dump_parsing_errors file (res : Parsing_result2.t) =
+  pr2 (spf "WARNING: fail to fully parse %s" !!file);
+  pr2 (Parsing_result2.format_errors ~style:Auto res);
+  pr2
+    (Common.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
+    |> String.concat "\n")
+
 (* works with -lang *)
 let dump_pattern (file : Fpath.t) =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
@@ -201,25 +208,28 @@ let dump_pattern (file : Fpath.t) =
       let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
-      pr s)
+      pr s
+      (*
+      if Parsing_result2.has_error res then (
+        dump_parsing_errors file res;
+        Runner_exit.(exit_semgrep False)
+      )
+*))
 
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
-      let { Parsing_result2.ast; skipped_tokens; _ } =
+      let res =
         if naming then Parse_target.parse_and_resolve_name lang !!file
         else Parse_target.just_parse_with_lang lang !!file
       in
-      let v = Meta_AST.vof_any (AST_generic.Pr ast) in
+      let v = Meta_AST.vof_any (AST_generic.Pr res.ast) in
       (* 80 columns is too little *)
       Format.set_margin 120;
       let s = dump_v_to_format v in
       pr s;
-      if skipped_tokens <> [] then (
-        pr2 (spf "WARNING: fail to fully parse %s" !!file);
-        pr2
-          (Common.map (fun e -> "  " ^ Dumper.dump e) skipped_tokens
-          |> String.concat "\n");
+      if Parsing_result2.has_error res then (
+        dump_parsing_errors file res;
         Runner_exit.(exit_semgrep False)))
 
 (* temporary *)
