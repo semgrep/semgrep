@@ -40,10 +40,11 @@ module MessageHandler = struct
     let targets = Option.value ~default:(Session.targets session) targets in
     Logs.app (fun m -> m "Running Semgrep with %d rules" (List.length rules));
     let runner_conf = Session.runner_conf session in
-    let res =
+    let run =
       Core_runner.invoke_semgrep_core ~respect_git_ignore:true
         ~file_match_results_hook:None runner_conf rules [] targets
     in
+    let res = Core_runner.create_core_result rules run in
     let scanned = res.scanned |> Set_.elements in
     Logs.app (fun m -> m "Scanned %d files" (List.length scanned));
     let only_git_dirty = session.user_settings.only_git_dirty in
