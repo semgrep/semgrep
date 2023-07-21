@@ -1,3 +1,5 @@
+open Common
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -347,9 +349,13 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
    exit code. *)
 let run (conf : Ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:conf.force_color
-    ~level:conf.logging_level;
+    ~level:conf.common.logging_level;
   Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+  let settings =
+    Semgrep_settings.load
+      ~legacy:(conf.common.maturity =*= Some CLI_common.Legacy)
+      ()
+  in
   let deployment =
     match (settings.api_token, conf.rules_source) with
     | None, Rules_source.Configs [] ->
