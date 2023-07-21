@@ -1239,7 +1239,7 @@ Exception raised: `{e}`
             [], returncode, " ".join(cmd), runner.stdout, runner.stderr
         )
         contributions = core.Contributions.from_json(output_json)
-        logger.debug(f"semgrep ran in {datetime.now() - start}")
+        logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
         return contributions
 
     def invoke_semgrep_core(

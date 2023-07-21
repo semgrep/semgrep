@@ -22,6 +22,6 @@ let get_git_logs () : string list =
 let get_contributions () : Semgrep_output_v1_j.contributions =
   let logs = get_git_logs () in
   let contributions =
-    List.map (fun f -> Semgrep_output_v1_j.contribution_of_string f) logs
+    Common.map (fun f -> Semgrep_output_v1_j.contribution_of_string f) logs
   in
   contributions
