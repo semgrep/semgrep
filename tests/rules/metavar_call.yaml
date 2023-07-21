@@ -1,6 +1,6 @@
 rules:
-- id: case-insensitive-function-name
-  message: blah
+- id: test
+  message: Php function references are case insensitive.
   languages: [php]
   severity: WARNING
   patterns:

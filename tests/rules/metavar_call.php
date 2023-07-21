@@ -1,12 +1,18 @@
 <?php
 function foo() {
-    // Function references are not case sensitive.
-    // MATCH:
+
+    # ruleid:test
     foo();
-    // MATCH:
+
+    # ruleid:test
     Foo();
-    // MATCH:
+
+    # ruleid:test
     FOO();
+
+    # ok:test
+    bar();
+    
     return 1;
 }
 ?>

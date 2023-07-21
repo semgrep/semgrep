@@ -85,6 +85,15 @@ type tin = {
 (* list of possible outcoming matching environments *)
 and tout = tin list
 
+let empty_environment ?(mvar_context = None) lang config =
+  let mv =
+    match mvar_context with
+    | None -> Env.empty
+    | Some bindings ->
+        { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
+  in
+  { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
+
 (* A matcher is something taking an element A and an element B
  * (for this module A will be the AST of the pattern and B
  * the AST of the program we want to match over), then some environment
@@ -205,11 +214,30 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
   in
   { env with stmts_match_span }
 
+(* TODO: Make this more accurate and less error prone. *)
+let is_php_function_id a = not (String.starts_with ~prefix:"$" a)
+
+let id_string_equal ?(case_sensitive = true) a b =
+  if case_sensitive then a = b
+  else String.lowercase_ascii a = String.lowercase_ascii b
+
+let php_id_string_equal a b =
+  let case_sensitive = not (is_php_function_id a && is_php_function_id b) in
+  id_string_equal ~case_sensitive a b
+
+let lang_id_string_equal l a b =
+  if l =*= Lang.Php then php_id_string_equal a b
+  else id_string_equal ~case_sensitive:true a b
+
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
-let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
-    (b : MV.mvalue) : bool =
+
+let rec equal_ast_bound_code' (config : Rule_options.t) (lang : Lang.t)
+    (a : MV.mvalue) (b : MV.mvalue) : bool =
+  Printf.printf "lang: %s  a: %s b: %s\n   %s\n\n" (Lang.show lang)
+    (MV.show_mvalue a) (MV.show_mvalue b)
+    Printexc.(get_callstack 100 |> raw_backtrace_to_string);
   let res =
     match (a, b) with
     (* if one of the two IDs is not resolved, then we allow
@@ -228,7 +256,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         MV.Id ((s2, _), _) )
     | ( MV.Id ((s1, _), _),
         MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
-        s1 = s2
+        lang_id_string_equal lang s1 s2
     (* In Ruby, they use atoms for metaprogramming to generate fields
      * (e.g., 'serialize :tags ... post.tags') in which case we want
      * a Text metavariable like :$INPUT to be compared with an Id
@@ -239,7 +267,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         MV.Text (s2, _, _) )
     | ( MV.Text (s1, _, _),
         MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
-        s1 = s2
+        lang_id_string_equal lang s1 s2
     (* A variable occurrence that is known to have a constant value is equal to
      * that same constant value.
      *
@@ -257,7 +285,12 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
        This almost certainly should break something at some point in the future, but for
        now we can allow it.
     *)
-    | MV.Id ((s1, _), None), MV.Id ((s2, _), Some _) -> s1 = s2
+    | MV.Id ((s1, _), None), MV.Id ((s2, _), Some _) ->
+        lang_id_string_equal lang s1 s2
+    | MV.Id ((s1, _), _), MV.Id ((s2, _), _)
+      when lang =*= Lang.Php && is_php_function_id s1 && is_php_function_id s2
+      ->
+        id_string_equal ~case_sensitive:false s1 s2
     (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
@@ -307,10 +340,10 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
          * (this is useful in the Javascript transpilation context of
          * complex pattern parameter).
          *)
-        equal_ast_bound_code config a (MV.Id (b_id, Some b_id_info))
+        equal_ast_bound_code' config lang a (MV.Id (b_id, Some b_id_info))
     (* TODO: we should get rid of that too, we should properly bind to MV.N *)
     | MV.E { e = G.N (G.Id (a_id, a_id_info)); _ }, MV.Id _ ->
-        equal_ast_bound_code config (MV.Id (a_id, Some a_id_info)) b
+        equal_ast_bound_code' config lang (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
 
@@ -320,6 +353,11 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         (spf "A != B\nA = %s\nB = %s\n" (MV.str_of_mval a) (MV.str_of_mval b)));
   res
 
+(* TODO: Delete this an grab enviroment from where this is called *)
+let equal_ast_bound_code config : MV.mvalue -> MV.mvalue -> bool =
+  (* TODO: Using arbitrary language besides PHP for prototyping purposes *)
+  equal_ast_bound_code' config Lang.C
+
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
   match Common2.assoc_opt mvar tin.mv.full_env with
   | Some valu' ->
@@ -328,7 +366,7 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
        * Moreover here we know both valu and valu' are regular code,
        * not patterns, so we can just use the generic '=' of OCaml.
        *)
-      if equal_ast_bound_code tin.config valu valu' then Some tin
+      if equal_ast_bound_code' tin.config tin.lang valu valu' then Some tin
         (* valu remains the metavar witness *)
       else None
   | None ->
@@ -349,15 +387,6 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
       logger#ldebug
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
-
-let empty_environment ?(mvar_context = None) lang config =
-  let mv =
-    match mvar_context with
-    | None -> Env.empty
-    | Some bindings ->
-        { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
-  in
-  { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)

@@ -168,12 +168,8 @@ let should_match_call = function
   | G.IncrDecr _ ->
       false
 
-let is_php_function_id a = not (String.starts_with ~prefix:"$" a)
-
-let m_php_id_string a b =
-  if is_php_function_id a && is_php_function_id b then
-    m_string (String.lowercase_ascii a) (String.lowercase_ascii b)
-  else m_string a b
+let m_lang_ident_string_equal lang a b =
+  lang_id_string_equal lang a b |> m_bool true
 
 (*****************************************************************************)
 (* Name *)
@@ -195,12 +191,7 @@ let m_ident a b =
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
   (* general case *)
-  | a, b ->
-      with_lang (fun lang ->
-          let m_id_string =
-            if lang =*= Lang.Php then m_php_id_string else m_string
-          in
-          (m_wrap m_id_string) a b)
+  | a, b -> with_lang (fun lang -> m_wrap (m_lang_ident_string_equal lang) a b)
 
 (* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
@@ -585,10 +576,7 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
   | _, _ ->
       (* TODO: Consider generalizing identifiers to a have field that indicates if they are case sensitive *)
       with_lang (fun lang ->
-          let m_id_string =
-            if lang =*= Lang.Php then m_php_id_string else m_string
-          in
-          let* () = m_wrap m_id_string a1 b1 in
+          let* () = m_wrap (m_lang_ident_string_equal lang) a1 b1 in
           m_id_info a2 b2)
 
 and m_ident_and_empty_id_info a1 b1 =
