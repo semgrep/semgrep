@@ -31,6 +31,8 @@ if WHEEL_CMD in sys.argv:
             _, _, plat = bdist_wheel.get_tag(self)
             python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
             abi = "none"
+            if plat == "linux_x86_64":
+                plat = "any"
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
