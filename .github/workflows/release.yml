@@ -172,7 +172,8 @@ jobs:
           name: osx-arm64-wheel
           path: osx-arm64-wheel
       - name: Unzip x86_64 Wheel
-        run: unzip ./manylinux-x86-wheel/dist.zip "*.whl"
+        run: |
+          unzip ./manylinux-x86-wheel/dist.zip
       - name: Unzip aarch64 Wheel
         run: unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
       - name: Unzip OSX x86 Wheel
