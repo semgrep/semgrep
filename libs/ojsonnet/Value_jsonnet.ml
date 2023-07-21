@@ -31,7 +31,8 @@ type env = {
   (* The spec uses a lambda-calculus inspired substitution model, but
    * it is probably simpler and more efficient to use a classic
    * environment where the locals are defined. Jsonnet uses lazy
-   * evaluation so we model this by allowing unevaluated expressions in environment below.
+   * evaluation so we model this by allowing unevaluated expressions in
+   * environment below.
    *)
   locals : (local_id, lazy_value) Map_.t;
   (* for call tracing *)
@@ -40,11 +41,14 @@ type env = {
 
 and local_id = LSelf | LSuper | LId of string
 
-(* This used to be wrapped in an explicit "lazy" rather than keeping around an environment
-   however, this does not work with the object merge + operator, since we need to be able
-   to access the environment in which fields of the object are evaluated in. It is also neccesary
-   to keep around and environment even for values, since there could be nested objects/arrays which
-   also have lazy semantics themselves, and thus again need to be able to modify a specifc environment *)
+(* This used to be wrapped in an explicit "lazy" rather than keeping around an
+   environment however, this does not work with the object merge + operator,
+   since we need to be able to access the environment in which fields of the
+   object are evaluated in. It is also neccesary to keep around and
+   environment even for values, since there could be nested objects/arrays
+   which also have lazy semantics themselves, and thus again need to be able
+   to modify a specifc environment
+*)
 and val_or_unevaluated_ = Val of value_ | Unevaluated of Core_jsonnet.expr
 and lazy_value = { value : val_or_unevaluated_; env : env }
 
