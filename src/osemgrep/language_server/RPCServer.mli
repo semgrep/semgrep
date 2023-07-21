@@ -1,3 +1,12 @@
+(** All Language Servers have a lifecycle according to the specs as follows:
+    Uninitialzed -> must ignore all requests until the initialize request is received.
+    Running -> normal state until shutdown is called
+    Stopped -> exit process
+
+    This struct keeps track of the actual server lifecycle
+    See:
+    https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#lifeCycleMessages
+ *)
 module State : sig
   type t = Uninitialized | Running | Stopped
 end

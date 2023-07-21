@@ -22,7 +22,7 @@ from semgrep.types import JsonObject
 log = logging.getLogger(__name__)
 
 # This is essentially a "middleware" between the client and the core LS. Since
-# core/osemgrep does't have the target manager yet, we need to do that stuff
+# core/osemgrep does't have login functionality, we need to do that stuff
 # here.
 class SemgrepCoreLSServer:
     def __init__(self) -> None:
@@ -41,9 +41,11 @@ class SemgrepCoreLSServer:
                 "Could not find osemgrep executable, exiting...",
             )
             return
-        cmd = [path, "lsp"]
+        cmd = ["osemgrep", "lsp"]
+        executable = str(self.config.engine_type.get_binary_path())
         self.core_process = subprocess.Popen(
             cmd,
+            executable=executable,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
         )

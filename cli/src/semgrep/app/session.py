@@ -185,7 +185,6 @@ class AppSession(requests.Session):
         method, url = args
         error_handler.push_request(method, url, **kwargs)
         try:
-            print(f"Sending request: {args} {kwargs}")
             response = super().request(*args, **kwargs)
         except requests.exceptions.SSLError as err:
             raise enhance_ssl_error_message(err)
