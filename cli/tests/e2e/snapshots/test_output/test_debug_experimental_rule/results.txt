@@ -34,7 +34,7 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 --- semgrep-core stderr ---
 fatal: not a git repository (or any of the parent directories): .git
 --- end semgrep-core stderr ---
-semgrep ran in 0:00:00.176939
+semgrep contributions ran in <MASKED>
 Rules:
 Experimental Rules:
 - rules.experiment.research-experiment
