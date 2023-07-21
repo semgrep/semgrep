@@ -92,7 +92,7 @@ let targets session =
     |> fst
   in
   let targets =
-    session.workspace_folders |> List.map workspace_targets |> List.flatten
+    session.workspace_folders |> List.concat_map workspace_targets
   in
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
@@ -121,12 +121,12 @@ let fetch_rules session =
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
   let rules_source =
-    session.user_settings.configuration |> List.map Fpath.v
-    |> List.map Fpath.normalize
-    |> List.map (fun f ->
+    session.user_settings.configuration |> Common.map Fpath.v
+    |> Common.map Fpath.normalize
+    |> Common.map (fun f ->
            let p = Fpath.rem_prefix (Fpath.v "~/") f in
            Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> List.map Fpath.to_string
+    |> Common.map Fpath.to_string
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then [ "auto" ] else rules_source
