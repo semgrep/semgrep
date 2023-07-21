@@ -65,7 +65,7 @@ type semgrep_core_runner =
   Rule.rules ->
   Rule.invalid_rule_error list ->
   Fpath.t list ->
-  result
+  Exception.t option * Report.final_result * Fpath.t Set_.t
 
 (*************************************************************************)
 (* Helpers *)
@@ -187,6 +187,35 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
     rule_source = Some (Rules rules);
   }
 
+(* Create the core result structure from the results *)
+(* LATER: we want to avoid this intermediate data structure but
+ * for now that's what pysemgrep used to get so simpler to return it.
+ *)
+let create_core_result all_rules (_exns, res, scanned) =
+  let match_results =
+    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+      (Set_.cardinal scanned) res
+  in
+
+  (* TOPORT? or move in semgrep-core so get info ASAP
+     if match_results.skipped_targets:
+         for skip in match_results.skipped_targets:
+             if skip.rule_id:
+                 rule_info = f"rule {skip.rule_id}"
+             else:
+                 rule_info = "all rules"
+             logger.verbose(
+                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+             )
+  *)
+
+  (* TOADAPT:
+      match exn with
+      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
+      | None -> ())
+  *)
+  { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
@@ -198,7 +227,7 @@ let invoke_semgrep_core
     ?(engine = Run_semgrep.semgrep_with_raw_results_and_exn_handler)
     ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
     (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
-    (all_targets : Fpath.t list) : result =
+    (all_targets : Fpath.t list) =
   let config : Runner_config.t = runner_config_of_conf conf in
   let config = { config with file_match_results_hook } in
 
@@ -212,25 +241,14 @@ let invoke_semgrep_core
   | err :: _ ->
       (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
       let exn = Rule.Err (Rule.InvalidRule err) in
-      (* like in Run_semgrep.semgrep_with_raw_results_and_exn_handler *)
       let e = Exception.catch exn in
-      let err = Semgrep_error_code.exn_to_error "" e in
-      (* like in semgrep_with_rules_and_formatted_output *)
-      let error = JSON_report.error_to_error err in
-      let core =
+      let res =
         {
-          Out.matches = [];
-          errors = [ error ];
-          skipped_targets = None;
-          skipped_rules = None;
-          explanations = None;
-          time = None;
-          stats = { okfiles = 0; errorfiles = 0 };
-          rules_by_engine = [];
-          engine_requested = `OSS;
+          RP.empty_final_result with
+          errors = [ Semgrep_error_code.exn_to_error "" e ];
         }
       in
-      { core; hrules = Rule.hrules_of_rules all_rules; scanned = Set_.empty }
+      (Some e, res, Set_.empty)
   | [] ->
       (* TODO: we should not need to use Common.map below, because
          Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
@@ -262,7 +280,7 @@ let invoke_semgrep_core
       let config = prepare_config_for_semgrep_core config lang_jobs in
 
       (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-      let _exn_opt_TODO, res, files = engine config in
+      let exn, res, files = engine config in
 
       let scanned = Set_.of_list files in
 
@@ -273,33 +291,5 @@ let invoke_semgrep_core
       Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
       Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
 
-      (* TODO: should get this from Run_semgrep *)
-      let _exnTODO = None in
-      (* similar to Run_semgrep.semgrep_with_rules_and_formatted_output *)
-      (* LATER: we want to avoid this intermediate data structure but
-       * for now that's what pysemgrep used to get so simpler to return it.
-       *)
-      let match_results =
-        JSON_report.match_results_of_matches_and_errors
-          (Some Autofix.render_fix) (Set_.cardinal scanned) res
-      in
-
-      (* TOPORT? or move in semgrep-core so get info ASAP
-         if match_results.skipped_targets:
-             for skip in match_results.skipped_targets:
-                 if skip.rule_id:
-                     rule_info = f"rule {skip.rule_id}"
-                 else:
-                     rule_info = "all rules"
-                 logger.verbose(
-                     f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-                 )
-      *)
-
-      (* TOADAPT:
-          match exn with
-          | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
-          | None -> ())
-      *)
-      { core = match_results; hrules = Rule.hrules_of_rules all_rules; scanned }
+      (exn, res, scanned)
   [@@profiling]
