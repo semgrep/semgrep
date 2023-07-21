@@ -34,6 +34,7 @@ type t = {
   timeout : int; [@default 30]
   timeout_threshold : int; [@key "timeoutThreshold"] [@default 3]
   only_git_dirty : bool; [@key "onlyGitDirty"] [@default true]
+  ci : bool; [@default true]
 }
 [@@deriving yojson]
 
@@ -48,6 +49,7 @@ let default =
     timeout = 30;
     timeout_threshold = 3;
     only_git_dirty = true;
+    ci = true (* Secret setting for testing purposes *);
   }
 
 let t_of_yojson json = of_yojson json

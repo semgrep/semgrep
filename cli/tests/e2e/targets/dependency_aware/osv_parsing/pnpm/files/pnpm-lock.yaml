@@ -1,0 +1,47 @@
+lockfileVersion: 5.4
+
+specifiers:
+  my-file-package: file:./projects/package-a.tgz
+
+dependencies:
+  my-file-package: file:./projects/package-a.tgz
+
+packages:
+  file:projects/package-a.tgz:
+    resolution: { integrity: sha512-IGZcvUzTIN7kALye9n4gFuh8nWXFrWp4P/UT2btEHCRDJvVODIGJgVsFNOGnDYc543OmTs8keZBa5tkMMoHIgg==, tarball: file:projects/package-a.tgz }
+    name: 'my-file-package'
+    version: 0.0.0
+    dev: false
+
+  file:../a-local-package:
+    resolution: {directory: ../local-package, type: directory}
+    name: a-local-package
+    version: 1.0.0
+    dev: false
+
+  file:../a-local-package/nested:
+    resolution: {directory: ../a-local-package/nested, type: directory}
+    name: a-nested-local-package
+    version: 1.0.0
+    dev: false
+
+  file:..:
+    resolution: {directory: .., type: directory}
+    name: one-up
+    version: 1.0.0
+    dev: false
+
+  file:.._react-dom@18.2.0:
+    resolution: {directory: .., type: directory}
+    name: one-up-with-peer
+    version: 1.0.0
+    dev: false
+    peerDependencies:
+      react-dom: ^18.0.0
+
+  # file based dependencies must always have a name so this is impossible,
+  # but we want to ensure we don't panic just in case
+  file:../nameless-package:
+    resolution: {directory: ../nameless-package, type: directory}
+    version: 1.0.0
+    dev: false

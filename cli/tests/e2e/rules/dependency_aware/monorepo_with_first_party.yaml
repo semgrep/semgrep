@@ -8,6 +8,20 @@ rules:
     message: oh no
     languages: [js]
     severity: WARNING
+    metadata:
+      sca-kind: reachable
+      category: security
+      confidence: HIGH
+      sca-schema: 20230302
+      sca-severity: HIGH
+      sca-fix-versions:
+      - bad-lib: 0.0.9
+      - bad-lib: 1.0.1
+      - bad-lib-2: 2.0.1
+      publish-date: '2023-06-13T18:30:39Z'
+      owasp:
+      - A06:2021 - Vulnerable and Outdated Components
+      sca-vuln-database-identifier: CVE-FOO-BAR
   - id: js-other
     pattern: bad()
     message: this is always bad

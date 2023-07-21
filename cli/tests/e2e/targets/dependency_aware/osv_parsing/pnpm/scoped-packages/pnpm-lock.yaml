@@ -1,0 +1,14 @@
+lockfileVersion: 5.3
+
+specifiers:
+  '@typescript-eslint/types': ^5.0.0
+
+dependencies:
+  '@typescript-eslint/types': 5.13.0
+
+packages:
+
+  /@typescript-eslint/types/5.13.0:
+    resolution: {integrity: sha512-LmE/KO6DUy0nFY/OoQU0XelnmDt+V8lPQhh8MOVa7Y5k2gGRd6U9Kp3wAjhB4OHg57tUO0nOnwYQhRRyEAyOyg==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    dev: false

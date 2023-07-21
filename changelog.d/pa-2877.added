@@ -1,3 +1,0 @@
-Rule syntax: Errors during rule parsing are now better. For instance,
-parsing will now complain if you miss a hyphen in a list of patterns,
-or if you try to give a string to `patterns` or `pattern-either`.

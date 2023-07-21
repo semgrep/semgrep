@@ -1,5 +1,6 @@
 ; This library should contain all the entry points to access the internet.
 (library
+  (public_name semgrep.osemgrep_networking)
   (name osemgrep_networking)
   (wrapped false)
   (libraries

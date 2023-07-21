@@ -30,3 +30,13 @@ val report_failure :
   dry_run:bool -> token:string -> scan_id:string -> int -> (unit, string) result
 (** [report_failure ~dry+run ~token ~scan_id exit_code] reports the failure
     for [scan_id] to Semgrep App. *)
+
+val report_findings :
+  token:string ->
+  scan_id:string ->
+  dry_run:bool ->
+  findings_and_ignores:JSON.t ->
+  complete:JSON.t ->
+  (bool * string, string) result
+(** [report_findings ~token ~scan_id ~dry_run ~findings_and_ignores ~complete]
+    reports the findings to Semgrep App. *)

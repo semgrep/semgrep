@@ -8,6 +8,7 @@ type t = {
   timeout : int;
   timeout_threshold : int;
   only_git_dirty : bool;
+  ci : bool;
 }
 
 val default : t

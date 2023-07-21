@@ -89,11 +89,11 @@ let fix_sgrep_module_item xs =
   | xs -> Stmts xs
 
 let mk_Fun ?(id=None) ?(attrs=[]) ?(props=[])
-  f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
+  f_kind (_generics,f_params,f_rettype) (lc,xs,rc) =
   let f_attrs = (props |> List.map attr) @ attrs in
   Fun ({ f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs }, id)
 
-let mk_FuncDef props f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
+let mk_FuncDef props f_kind (_generics,f_params,f_rettype) (lc,xs,rc) =
   let f_attrs = props |> List.map attr in
   FuncDef { f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs }
 
@@ -433,7 +433,7 @@ sgrep_spatch_pattern:
      Partial (PartialDef (mk_def (Some $4,
       FuncDef
        { f_kind = (Method, $5)
-       ; f_params = $6
+       ; f_params = $5, $6, $7
        ; f_body = Block (fb $5 [])
        ; f_rettype = $8
        ; f_attrs = $1 @ static @ async

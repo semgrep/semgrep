@@ -1,6 +1,7 @@
 ; OCaml implementation of the 'semgrep lsp' subcommand.
 
 (library
+  (public_name semgrep.osemgrep_cli_lsp)
   (name osemgrep_cli_lsp)
   (wrapped false)
   (libraries

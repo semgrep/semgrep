@@ -1,2 +1,0 @@
-engine: Removed matching cache optimization which had been previously disabled by
-default in 1.22.0 (we got no reports of any performance regression during this time).

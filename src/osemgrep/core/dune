@@ -4,6 +4,7 @@
 ; Eventually, this will be merged with the /core library from semgrep-core
 
 (library
+  (public_name semgrep.osemgrep_core)
   (name osemgrep_core)
   (wrapped false)
   (libraries

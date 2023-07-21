@@ -190,7 +190,10 @@ module MessageHandler = struct
       let runner rules = run_semgrep _server ~rules:(Some rules) |> fst in
       Search.on_request runner params
     in
-    match [ (Search.meth, search_handler) ] |> List.assoc_opt meth with
+    match
+      [ (Search.meth, search_handler); (ShowAst.meth, ShowAst.on_request) ]
+      |> List.assoc_opt meth
+    with
     | None ->
         Logs.warn (fun m -> m "Unhandled custom request %s" meth);
         (None, server)

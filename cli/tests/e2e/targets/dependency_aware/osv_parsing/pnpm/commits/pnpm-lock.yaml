@@ -1,0 +1,48 @@
+lockfileVersion: 5.3
+
+specifiers:
+  my-bitbucket-package: ssh://git@bitbucket.org:my-org/my-bitbucket-package#main
+  '@my-scope/my-package': git@github.com:my-org/my-package.git
+  mocks: github:my-org/mocks#main
+
+dependencies:
+  my-bitbucket-package: git@bitbucket.org+my-org/my-bitbucket-package/6104ae42cd32c3d724036d3964678f197b2c9cdb
+  '@my-scope/my-package': github.com/my-org/my-package/267087851ad5fac92a184749c27cd539e2fc862e
+  mocks: github.com/my-org/mocks/590f321b4eb3f692bb211bd74e22947639a6f79d
+
+packages:
+  git@bitbucket.org+my-org/my-bitbucket-project/6104ae42cd32c3d724036d3964678f197b2c9cdb:
+    resolution: { commit: 6104ae42cd32c3d724036d3964678f197b2c9cdb, repo: git@bitbucket.org:my-org/my-bitbucket-project.git, type: git }
+    name: my-bitbucket-package
+    version: 1.0.0
+    dev: false
+
+  github.com/my-org/my-package/267087851ad5fac92a184749c27cd539e2fc862e:
+    resolution: {commit: 267087851ad5fac92a184749c27cd539e2fc862e, repo: git+ssh://git@github.com/my-org/my-package.git, type: git}
+    name: '@my-scope/my-package'
+    version: 1.0.0
+    dependencies:
+      '@my-scope/my-other-package': github.com/my-org/my-other-package/1b54f894c648dde79b6f2060f9a6b47bb62c1125
+    dev: false
+
+  github.com/my-org/my-other-package/fbfc962ab51eb1d754749b68c064460221fbd689:
+    resolution: {commit: fbfc962ab51eb1d754749b68c064460221fbd689, repo: git+ssh://git@github.com/my-org/my-other-package.git, type: git}
+    name: '@my-scope/my-other-package'
+    version: 1.0.0
+    dev: false
+
+  github.com/my-org/faker-parser/d2dc42a9351d4d89ec48c525e34f612b6d77993f:
+    resolution: {tarball: https://codeload.github.com/my-org/faker-parser/tar.gz/d2dc42a9351d4d89ec48c525e34f612b6d77993f}
+    name: faker-parser
+    version: 0.0.1
+    dependencies:
+      faker: 5.5.3
+    dev: false
+
+  github.com/my-org/mocks/590f321b4eb3f692bb211bd74e22947639a6f79d:
+    resolution: {tarball: https://codeload.github.com/my-org/mocks/tar.gz/590f321b4eb3f692bb211bd74e22947639a6f79d}
+    name: mocks
+    version: 20.0.1
+    dependencies:
+      faker-parser: github.com/my-org/faker-parser/d2dc42a9351d4d89ec48c525e34f612b6d77993f
+    dev: false

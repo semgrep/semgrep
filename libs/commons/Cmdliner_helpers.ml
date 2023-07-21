@@ -1,6 +1,30 @@
 open Common
 open Cmdliner
 
+(*************************************************************************)
+(* Prelude *)
+(*************************************************************************)
+(* Cmdliner helpers not found in the default API.
+
+   TODO: parser+printer for file path so we can write things like:
+
+        Arg.value (Arg.opt (Arg.some fpath) None info)
+
+      instead of
+
+        Arg.value (Arg.opt (Arg.some Arg.string) None info)
+        (* + having to convert the string to an fpath by hand *)
+
+      The main benefit would be to clarify error messages by having Fpath.t
+      instead of string.
+
+   val fpath : Fpath.t Cmdliner.conv????
+*)
+
+(*************************************************************************)
+(* Entry points *)
+(*************************************************************************)
+
 let uri =
   let parser str = Ok (Uri.of_string str) in
   let pp = Fmt.(using Uri.to_string string) in

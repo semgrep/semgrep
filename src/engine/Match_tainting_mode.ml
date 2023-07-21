@@ -149,7 +149,7 @@ module Formula_tbl = struct
   include Hashtbl.Make (struct
     type t = Rule.formula
 
-    let equal = AST_utils.with_structural_equal Rule.equal_formula
+    let equal = AST_generic_equals.with_structural_equal Rule.equal_formula
     let hash = Rule.hash_formula
   end)
 
@@ -681,8 +681,18 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
                     add_to_env env id ii None
                 | G.F _ -> env)
               env fields
+        | G.ParamPattern pat ->
+            (* Here, we just get all the identifiers in the pattern, which may
+               themselves be sources.
+               This is so we can handle patterns such as:
+               (x, (y, z, (a, b)))
+               and taint all the inner identifiers
+            *)
+            let ids = Visit_pattern_ids.visit (G.P pat) in
+            List.fold_left
+              (fun env (id, pinfo) -> add_to_env env id pinfo None)
+              env ids
         | G.Param { pname = None; _ }
-        | G.ParamPattern _
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
         | G.ParamEllipsis _

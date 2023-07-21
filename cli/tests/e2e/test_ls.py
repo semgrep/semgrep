@@ -1,13 +1,4 @@
-#  e2e tests
-#  didOpen/didSave + diagnostics
-#  codeAction
-#  login/logout process
-#  scan workspace (Both)
-#  refresh rules
-#  git dirty vs no git dirty
-#  git vs no git
-#  stress tests of: open multiple files, save multiple files, deleting files
-#                   scan workspace, refresh rules, login/logout
+import re
 import shutil
 import subprocess
 import time
@@ -37,6 +28,7 @@ DEFAULT_CAPABILITIES = {
             "maxMemory": 0,
             "maxTargetBytes": 0,
             "onlyGitDirty": True,
+            "ci": False,
         },
         "trace": {"server": "verbose"},
         "metrics": {
@@ -53,6 +45,8 @@ if x == 5: # auto rule
 if x == 4: # CI rule
     print("hello")
 """
+
+PROG_REGEX = re.compile(r"Pr([\s\S]*)")
 
 
 @pytest.fixture
@@ -309,6 +303,15 @@ def send_semgrep_search(server, pattern, language=None):
     )
 
 
+def send_semgrep_show_ast(server, uri, named=False):
+    params = {"uri": uri, "named": named}
+    send_msg(
+        server,
+        "semgrep/showAst",
+        params,
+    )
+
+
 def check_diagnostics(response, file, expected_ids):
     assert response["method"] == "textDocument/publishDiagnostics"
     assert response["params"]["uri"] == f"file://{file}"
@@ -460,6 +463,14 @@ def test_ls_ext(
     response = next(responses)
     results = response["result"]
     assert len(results["locations"]) == 3
+
+    # showAst
+    for file in files:
+        send_semgrep_show_ast(server, f"file://{file}")
+        response = next(responses)
+        results = response["result"]
+        # output looks like a program AST
+        assert PROG_REGEX.match(results)
 
     send_exit(server)
 

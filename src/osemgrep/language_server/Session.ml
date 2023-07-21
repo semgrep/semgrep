@@ -115,7 +115,10 @@ let fetch_ci_rules_and_origins () =
 
 (* TODO Default to auto *)
 let fetch_rules session =
-  let%lwt ci_rules = fetch_ci_rules_and_origins () in
+  let%lwt ci_rules =
+    if session.user_settings.ci then fetch_ci_rules_and_origins ()
+    else Lwt.return_none
+  in
   let home = Unix.getenv "HOME" |> Fpath.v in
   let rules_source =
     session.user_settings.configuration |> List.map Fpath.v
