@@ -31,6 +31,10 @@ Done loading local config from rules/experiment/experiment.yaml
 loaded 1 configs in<MASKED>
 running 1 rules from 1 config rules/experiment/experiment.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev<MASKED>
+--- semgrep-core stderr ---
+fatal: not a git repository (or any of the parent directories): .git
+--- end semgrep-core stderr ---
+semgrep contributions ran in <MASKED>
 Rules:
 Experimental Rules:
 - rules.experiment.research-experiment

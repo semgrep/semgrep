@@ -722,6 +722,8 @@ def test_full_run(
                 re.compile(
                     r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
                 ),
+                re.compile(r'"commit_hash": "(.*)",?'),
+                re.compile(r'"commit_timestamp": "(.*)",?'),
             ]
         ),
         "results.txt",
@@ -761,6 +763,11 @@ def test_full_run(
     for f in findings_and_ignores_json["ignores"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
+    for f in findings_and_ignores_json["contributions"]:
+        assert f["commit_hash"] is not None
+        f["commit_hash"] = "sanitized"
+        assert f["commit_timestamp"] is not None
+        f["commit_timestamp"] = "sanitized"
     snapshot.assert_match(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
@@ -844,6 +851,8 @@ def test_lockfile_parse_failure_reporting(
                 re.compile(
                     r"\(<MagicMock name='post\(\)\.json\(\)\.get\(\)' id='\d+'>\)"
                 ),
+                re.compile(r'"commit_hash": "(.*)",?'),
+                re.compile(r'"commit_timestamp": "(.*)",?'),
             ]
         ),
         "results.txt",
@@ -859,6 +868,11 @@ def test_lockfile_parse_failure_reporting(
     for f in findings_and_ignores_json["ignores"]:
         assert f["commit_date"] is not None
         f["commit_date"] = "sanitized"
+    for f in findings_and_ignores_json["contributions"]:
+        assert f["commit_hash"] is not None
+        f["commit_hash"] = "sanitized"
+        assert f["commit_timestamp"] is not None
+        f["commit_timestamp"] = "sanitized"
     snapshot.assert_match(
         json.dumps(findings_and_ignores_json, indent=2), "findings_and_ignores.json"
     )
@@ -1273,6 +1287,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSe
                 head_commit[:7],
                 base_commit,
                 re.compile(r'"commit_date": (.*),?'),
+                re.compile(r'"commit_timestamp": "(.*)",?'),
                 re.compile(r'"total_time": (.*),?'),
                 re.compile(r'"event_id": (.*),?'),
             ]

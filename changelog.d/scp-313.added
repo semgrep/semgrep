@@ -1,0 +1,1 @@
+Added `-dump_contributions` flag to semgrep-core and include contributions when posting findings to Scan API.

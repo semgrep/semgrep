@@ -1175,6 +1175,27 @@ Exception raised: `{e}`
 
     # end _run_rules_direct_to_semgrep_core
 
+    def invoke_semgrep_dump_contributions(self) -> core.Contributions:
+        start = datetime.now()
+        if self._binary_path is None:  # should never happen, doing this for mypy
+            raise SemgrepError("semgrep engine not found.")
+        cmd = [
+            str(self._binary_path),
+            "-json",
+            "-dump_contributions",
+        ]
+        # only scanning combined rules
+        runner = StreamingSemgrepCore(cmd, 1, self._engine_type)
+        returncode = runner.execute()
+
+        # Process output
+        output_json = self._extract_core_output(
+            [], returncode, " ".join(cmd), runner.stdout, runner.stderr
+        )
+        contributions = core.Contributions.from_json(output_json)
+        logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
+        return contributions
+
     def invoke_semgrep(
         self,
         target_manager: TargetManager,

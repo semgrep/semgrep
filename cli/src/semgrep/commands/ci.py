@@ -369,6 +369,7 @@ def ci(
             shown_severities,
             dependencies,
             dependency_parser_errors,
+            contributions,
         ) = semgrep.semgrep_main.main(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -511,6 +512,7 @@ def ci(
                 metadata.commit_datetime,
                 dependencies,
                 dependency_parser_errors,
+                contributions,
                 engine_type,
                 progress_bar,
             )
