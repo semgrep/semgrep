@@ -213,6 +213,7 @@ def test_debug_experimental_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
                 re.compile(r"(.*Main\.Parse_target.*)"),
                 re.compile(r"(.*Main\.Core_CLI.*)"),
                 re.compile(r"semgrep ran in (.*) on 1 files"),
+                re.compile(r"semgrep contributions ran in (.*)"),
                 re.compile(r"\"total_time\":(.*)"),
                 re.compile(r"\"commit_date\":(.*)"),
                 re.compile(r"-targets (.*) -timeout"),
