@@ -378,8 +378,8 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
         | Some t -> Ok (Some (token, t)))
   in
   (* TODO: pass baseline commit! *)
-  let contributions = Parse_contribution.get_contributions () in
   let metadata = generate_meta_from_environment None in
+  let contributions = Parse_contribution.get_contributions () in
   match deployment with
   | Error e -> e
   | Ok depl -> (
