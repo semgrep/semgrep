@@ -254,8 +254,9 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
         ~file_match_results_hook conf.core_runner_conf filtered_rules errors
         targets
     in
+    let exn_and_matches = Profiler.record profiler ~name:"core_time" core in
     let (res : Core_runner.result) =
-      Profiler.record profiler ~name:"core_time" core
+      Core_runner.create_core_result filtered_rules exn_and_matches
     in
 
     Metrics_.add_engine_type

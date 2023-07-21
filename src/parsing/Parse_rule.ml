@@ -1601,6 +1601,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
     (Rule.ID.of_string (* TODO: is this really a rule ID? *) step_id_str, tok)
   in
   let step_languages = parse_languages ~id rule_options languages in
+  let env = { env with languages = step_languages } in
   let step_paths = take_opt rd env parse_paths "paths" in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
