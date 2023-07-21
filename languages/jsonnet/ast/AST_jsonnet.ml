@@ -31,9 +31,11 @@
  * used in https://github.com/sourcegraph/lsif-jsonnet
  *
  * The main uses for this file are:
- *  - for Semgrep to allow people to use Jsonnet patterns to match
- *    over Jsonnet code
- *  - For advanced Semgrep users to write Semgrep rules in jsonnet instead
+ *  - to support the language Jsonnet in Semgrep,
+ *    that is to give the ability for jsonnet developers to use Jsonnet patterns
+ *    to match over Jsonnet code, that is to write jsonnet rules (just like
+ *    C developers can write C rules).
+ *  - for advanced Semgrep users to write Semgrep rules in jsonnet instead
  *    of YAML (Semgrep 2.0).
  *  - for ojsonnet, a Jsonnet interpreter written in OCaml,
  *    so we can use it in osemgrep instead of having to write an OCaml
@@ -41,8 +43,8 @@
  *    better error messages when there is an error in a Jsonnet
  *    semgrep rule. Indeed, right now the error will be mostly
  *    reported on the resulting (also called "manifested") JSON.
- *    This could also enable certain holistic optimizations or
- *    static checks at some point.
+ *    This could also enable at some point certain holistic optimizations or
+ *    static checks.
  *)
 
 (*****************************************************************************)
