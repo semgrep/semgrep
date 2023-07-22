@@ -583,7 +583,7 @@ let word_chars_of_strings env xs =
              (spf "Multibyte word characters aren't supported: %S" long))
 
 (* Aliengrep brace pairs are specified as strings because ATD doesn't have
-   a char type and because they could multibyte UTF-8-encoded characters.
+   a char type and because they could be multibyte UTF-8-encoded characters.
    For now, aliengrep only supports single-byte characters. *)
 let brace_pairs_of_string_pairs env xs =
   xs
