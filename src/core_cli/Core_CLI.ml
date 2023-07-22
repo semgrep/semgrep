@@ -208,13 +208,7 @@ let dump_pattern (file : Fpath.t) =
       let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
       let v = Meta_AST.vof_any any in
       let s = dump_v_to_format v in
-      pr s
-      (*
-      if Parsing_result2.has_error res then (
-        dump_parsing_errors file res;
-        Runner_exit.(exit_semgrep False)
-      )
-*))
+      pr s)
 
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
