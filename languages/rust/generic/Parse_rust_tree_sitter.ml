@@ -132,6 +132,17 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
          * We may extend this if there are more prefix operators that are
          * important to allow within macros.
          *)
+        (* NOTE: We only deal with the case where there is one on the front,
+           because as it turns out, the Rust tree-sitter parser will parse
+           something like
+
+           &*x
+           as
+           &* x
+
+           as in, with &* as a single token. So let's just not deal with
+           that for now.
+        *)
         let* change_expr =
           match str with
           | "&" -> Some (fun e -> Ref (tk, e) |> G.e)
