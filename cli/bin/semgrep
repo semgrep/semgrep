@@ -68,6 +68,15 @@ def find_semgrep_core_path():
     sys.exit(2)
        
 
+# when python imports a module, i.e. `import semgrep.FOO`, it runs the module's
+# top-level code, which is the code that is not inside any function or class.
+#
+# This means that if we try and run a function from the semgrep package in a subprocess,
+# we would end up calling os.execvp or main(), which causes a bunch of errors. So
+# we need to make sure that we only run the below code when this file is run as an executable.
+#
+# The above explanation is my understanding, but tbh I think python is weirder under the hood
+# with this stuff.
 if __name__ == "__main__":
     if "--experimental" in sys.argv:
         #alt: we could  extend osemgrep (and pysemgrep) to accept a new --experimental
