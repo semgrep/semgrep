@@ -2910,7 +2910,22 @@ and m_parameter_list a b =
 
 and m_parameter a b =
   match (a, b) with
-  | G.Param { pname = Some (str, tok); _ }, _
+  (* Only match a metavariable unconditionally if it has no other characteristics than
+     being a metavariable.
+     Otherwise, we might match and not check that things like types or default
+     instantiation are the same.
+     Decided not to match ParamRest and ParamHashSplat, and ParamEllipsis, which
+     don't behave like "singular" params.
+  *)
+  | ( G.Param
+        {
+          pname = Some (str, tok);
+          ptype = None;
+          pdefault = None;
+          pattrs = [];
+          pinfo = _;
+        },
+      (OtherParam _ | ParamPattern _ | ParamReceiver _) )
     when Metavariable.is_metavar_name str ->
       envf (str, tok) (MV.Params [ b ])
   (* boilerplate *)
