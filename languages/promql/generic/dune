@@ -1,0 +1,12 @@
+(library
+ (public_name parser_promql.ast_generic)
+ (name parser_promql_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing lib_parsing_tree_sitter
+   tree-sitter-lang.promql
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

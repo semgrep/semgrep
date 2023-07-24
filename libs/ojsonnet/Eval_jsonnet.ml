@@ -149,6 +149,9 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
   | O v -> eval_obj_inside env v
   | Id (s, tk) -> lookup env tk (V.LId s)
   | IdSpecial (Self, tk) -> lookup env tk V.LSelf
+  (* TODO: check if super is in the environment and if not error with
+   * RUNTIME ERROR: attempt to use super when there is no super class.
+   *)
   | IdSpecial (Super, tk) -> lookup env tk V.LSuper
   | Call
       ( (ArrayAccess
@@ -183,9 +186,9 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
           else error tkf (spf "Not an integer: %s" (sv index))
-      (* TODO: THIS NEEDS TO BE MORE COMPLEX  *)
-      | V.Object (_l, (_assertsTODO, fields), _r), Primitive (Str (fld, tk))
-        -> (
+      (* Field access! A tricky operation. *)
+      | ( (V.Object (_l, (_assertsTODO, fields), _r) as obj),
+          Primitive (Str (fld, tk)) ) -> (
           match
             fields
             |> List.find_opt (fun (field : V.value_field) ->
@@ -193,15 +196,35 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
-              let new_self = V.Object (_l, (_assertsTODO, fields), _r) in
-              let locals =
-                env.locals
-                |> Map_.add V.LSelf { V.value = V.Val new_self; env }
-                |> Map_.add V.LSuper { V.value = Val V.empty_obj; env }
-              in
               match fld.fld_value.value with
               | V.Val v -> v
-              | Unevaluated e -> eval_expr { env with locals } e))
+              | V.Unevaluated e ->
+                  (* Late-bound self.
+                   * We need to do the self assignment on field access rather
+                   * than on object creation, because when objects are merged,
+                   * we need self to reference the new merged object rather
+                   * than the original. Here's such an example:
+                   *
+                   *    ({ name : self.y } + {y : 42})["name"]
+                   *
+                   * If we were to do the assignment of self before doing the
+                   * field access, we would have the following (incorrect)
+                   * evaluation where o = { name : self.y }
+                   *       ({name : o.y} + {y : 42})["name"]
+                   *       o.y
+                   *       {name : self.y}.y
+                   *       Error no such field.
+                   * However, if we only assign self on access, we get the
+                   * following (correct) evaluation
+                   *      ({ name : self.y } + {y : 42})["name"]
+                   *      { name : self.y, y : 42 }["name"]
+                   *      {name: self.y, y : 42}[y]
+                   *      42
+                   *)
+                  let locals =
+                    env.locals |> Map_.add V.LSelf { V.value = V.Val obj; env }
+                  in
+                  eval_expr { env with locals } e))
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call env e0 args
@@ -418,11 +441,8 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
-(* This is a very naive implementation of plus for objects that
- * just merge the fields.
- * TODO: handle inheritance with complex self/super semantic in the presence
- * of plus
- *)
+(* TODO: figure out how to reconcile super/self. Super is now built up correctly,
+   however, when there is a reference to self in the super object the incorrect (original super) self is referenced *)
 and eval_plus_object _env _tk objl objr original_object_left :
     V.object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
@@ -432,7 +452,7 @@ and eval_plus_object _env _tk objl objr original_object_left :
     |> Common.map (fun { V.fld_name = s, _; _ } -> s)
     |> Common.hashset_of_list
   in
-  (* TODO: this currently just merges the f *)
+
   let asserts = lassert @ rassert in
   let lflds_no_overlap =
     lflds
@@ -443,10 +463,16 @@ and eval_plus_object _env _tk objl objr original_object_left :
   let new_fields_right =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value = { V.value; env } } ->
+           (* This builds up the super object. If a super already exists, then we need to
+              add the new left object to that. Otherwise, the new left object is the base super
+           *)
            try
              let current_super = lookup_no_eval env LSuper in
              match current_super.value with
-             | V.Val _ -> raise Not_found
+             | V.Val _ ->
+                 raise Not_found
+                 (* TODO: this is hacky. The way super is currently built up, it should never be a value,
+                    but should have this raise a different exception eventually and catch both *)
              | V.Unevaluated e ->
                  let new_super =
                    BinaryOp
@@ -643,6 +669,11 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                      {
                        V.fld_name;
                        fld_hidden;
+                       (* fields are evaluated lazily! Sometimes with an
+                        * env adjusted (see eval_plus_object()).
+                        * We do not bind Self here! This is done on field
+                        * access instead (late bound).
+                        *)
                        fld_value = { value = Unevaluated fld_value; env };
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
@@ -685,6 +716,10 @@ and eval_program (e : Core_jsonnet.program) : V.value_ =
 (*****************************************************************************)
 (* Manfestation *)
 (*****************************************************************************)
+(* After we switched to explicitely representing the environment in
+ * Value_jsonnet.ml, this function became mutually recursive with
+ * eval_expr() and so need to be defined in the same file.
+ *)
 and manifest_value (v : V.value_) : JSON.t =
   match v with
   | Primitive x -> (
@@ -699,7 +734,7 @@ and manifest_value (v : V.value_) : JSON.t =
         (arr |> Array.to_list
         |> Common.map (fun (entry : V.lazy_value) ->
                manifest_value (evaluate_lazy_value_ entry)))
-  | V.Object (_l, (_assertsTODO, fields), _r) as _o ->
+  | V.Object (_l, (_assertsTODO, fields), _r) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
@@ -708,26 +743,10 @@ and manifest_value (v : V.value_) : JSON.t =
                | A.Hidden -> None
                | A.Visible
                | A.ForcedVisible ->
-                   (*let v = Lazy.force fld_value.v*)
                    let new_self = V.Object (_l, (_assertsTODO, fields), _r) in
+                   (* similar to what we do in eval_expr on field access *)
                    let locals =
                      fld_value.env.locals
-                     (* We need to do these assignment on field access rather than on
-                        object creation, since when objects are merged, we need self to
-                        reference the new merged object rather than the original. Here's
-                        such an example:
-                        ({ name : self.y } + {y : 42})["name"]
-                        If we were to do the assignment of self before doing the field access
-                        we would have the following (incorrect) evaluation where o = { name : self.y }
-                        ({name : o.y} + {y : 42})["name"]
-                        o.y
-                        {name : self.y}.y
-                        Error no such field.
-                        However, if we only assign self on access, we get the following (correct) evaluation
-                        ({ name : self.y } + {y : 42})["name"]
-                        { name : self.y, y : 42 }["name"]
-                        {name: self.y, y : 42}[y]
-                        42 *)
                      |> Map_.add V.LSelf
                           { V.value = Val new_self; env = fld_value.env }
                      |>

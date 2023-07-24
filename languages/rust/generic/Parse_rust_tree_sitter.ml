@@ -1527,16 +1527,22 @@ and map_expression_ending_with_block (env : env)
 
 and map_expression_statement (env : env) (x : CST.expression_statement) : G.stmt
     =
+  (* We don't want to get ExprStmt of StmtExpr, if possible. *)
+  let simplify sc expr =
+    match expr with
+    | { G.e = G.StmtExpr stmt; _ } -> stmt
+    | expr -> G.ExprStmt (expr, sc) |> G.s
+  in
   match x with
   | `Choice_exp_SEMI x -> (
       match x with
       | `Exp_SEMI (v1, v2) ->
           let expr = map_expression env v1 in
-          let semicolon = token env v2 (* ";" *) in
-          G.ExprStmt (expr, semicolon) |> G.s
+          let sc = token env v2 (* ";" *) in
+          simplify sc expr
       | `Choice_unsafe_blk x ->
           let expr = map_expression_ending_with_block env x in
-          G.ExprStmt (expr, sc) |> G.s)
+          simplify sc expr)
   | `Ellips_SEMI (v1, v2) ->
       let ellipsis = token env v1 (* "..." *) in
       let sc = token env v2 (* ";" *) in
