@@ -38,7 +38,6 @@ from semdep.external.parsy import success
 from semgrep.console import console
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Position
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -264,7 +263,6 @@ def parse_dependency_file(
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
-        position = Position(e.index.line + 1, e.index.column + 1, e.index.offset)
         line_prefix = f"{line + 1} | "
         text_lines = text.splitlines() + (
             ["<trailing newline>"] if text.endswith("\n") else []
@@ -285,14 +283,15 @@ def parse_dependency_file(
                 str(file_to_parse.path),
                 file_to_parse.parser_name,
                 error_str,
-                position,
+                line,
+                col,
                 offending_line,
             )
         else:
             reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
             console.print(f"Failed to parse {location} - {reason}")
             return DependencyParserError(
-                str(file_to_parse.path), file_to_parse.parser_name, reason, position
+                str(file_to_parse.path), file_to_parse.parser_name, reason, line, col
             )
 
 
