@@ -1223,7 +1223,7 @@ and stmt_aux env st =
                  obj_lval with
                  rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
                })
-            (SameAs (N cons |> G.e))
+            (SameAs (G.N cons |> G.e))
           (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
            * looks at the eorig, but maybe it shouldn't? *)
         in
@@ -1241,6 +1241,25 @@ and stmt_aux env st =
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
+      (* Expressions inside types still need to be dflow'd!
+       *   ex: In C we need to be able to const prop:
+       *       int e = 3;
+       *       int arr[e]; // s.t arr : TyArray(Var e)
+       * So in IL we lift this type expr to be a stmt:
+       *     _tmp = e
+       *     DECL arr
+       *)
+  | G.DefStmt
+      ( ent,
+        G.VarDef
+          {
+            G.vinit = None;
+            vtype = Some { t = G.TyArray ((_, Some e, _), _); _ };
+          } ) ->
+      let ss, e' = expr_with_pre_stmts env e in
+      let lv = lval_of_ent env ent in
+      let inst = mk_i (Assign (lv, e')) (SameAs e) in
+      ss @ [ mk_s @@ Instr inst ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (stmt env)
@@ -1579,7 +1598,8 @@ and stmt env st =
 and function_body env fbody =
   let implicit_return_hack body_stmt =
     match body_stmt with
-    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby -> (
+    | G.Block (_, ss, _) when env.lang =*= Lang.Ruby || env.lang =*= Lang.Rust
+      -> (
         match List.rev ss with
         | { s = G.ExprStmt (e, tok); _ } :: rev_ss' ->
             Some (List.rev rev_ss', (e, tok))

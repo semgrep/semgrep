@@ -1,0 +1,13 @@
+rules:
+  - id: no-string-eqeq
+    message: find errors
+    severity: WARNING
+    languages:
+      - java
+    match:
+      all:
+        - not: null == $Y
+        - $X == $Y
+      where:
+        - metavariable: $Y
+          type: String

@@ -317,6 +317,8 @@ and metavarcond_step1 x =
   | R.CondNestedFormula _ -> None
   | R.CondRegexp (mvar, re, const_prop) ->
       Some (MvarRegexp (mvar, re, const_prop))
+  (* TODO? maybe we should extract the strings from the type constraint *)
+  | R.CondType _ -> None
   | R.CondAnalysis _ -> None
 
 (*****************************************************************************)

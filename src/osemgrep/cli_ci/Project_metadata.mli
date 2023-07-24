@@ -36,6 +36,8 @@ type 'e t = {
   extension : 'e;  (** Some environments extend metadata. *)
 }
 
+val to_dict : 'e t -> JSON.t
+
 module type S = sig
   type env
   type extension

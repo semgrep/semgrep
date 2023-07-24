@@ -1,0 +1,14 @@
+rules:
+  - id: numeric-regex-capture-rule
+    message: |
+      This will work, but only for a bit, because we will sunset numeric
+      regex capture groups later.
+    languages:
+      - python
+    severity: WARNING
+    pattern-either:
+      - patterns:
+          - pattern-regex: "foo\\(.*\\)"
+          - metavariable-regex:
+              metavariable: $1
+              regex: "150"

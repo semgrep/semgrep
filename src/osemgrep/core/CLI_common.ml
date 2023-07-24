@@ -116,6 +116,12 @@ let o_profile : bool Term.t =
 (* Misc *)
 (*************************************************************************)
 
+let o_experimental : bool Term.t =
+  let info =
+    Arg.info [ "experimental" ] ~doc:{|Enable experimental features.|}
+  in
+  Arg.value (Arg.flag info)
+
 let help_page_bottom =
   [
     `S Manpage.s_authors;

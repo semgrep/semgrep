@@ -6,6 +6,7 @@
  (name semgrep_core)
  (wrapped false)
  (libraries
+   stdcompat
    str
    yaml
    atdgen-runtime

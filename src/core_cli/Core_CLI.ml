@@ -567,18 +567,6 @@ let options actions =
     ( "-use_parsing_cache",
       Arg.String (fun s -> use_parsing_cache := Some (Fpath.v s)),
       " <dir> store and use the parsed generic ASTs in dir" );
-    ( "-opt_cache",
-      Arg.Set Flag.with_opt_cache,
-      " enable caching optimization during matching" );
-    ( "-no_opt_cache",
-      Arg.Clear Flag.with_opt_cache,
-      " disable caching optimization during matching" );
-    ( "-opt_max_cache",
-      Arg.Unit
-        (fun () ->
-          Flag.with_opt_cache := true;
-          Flag.max_cache := true),
-      " cache matches more aggressively; implies -opt_cache (experimental)" );
     ( "-max_target_bytes",
       Arg.Set_int Flag.max_target_bytes,
       " maximum size of a single target file, in bytes. This applies to \

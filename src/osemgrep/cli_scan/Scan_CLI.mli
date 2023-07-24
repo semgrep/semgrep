@@ -23,8 +23,11 @@ type conf = {
   rewrite_rule_ids : bool;
   time_flag : bool;
   profile : bool;
+  engine_type : Engine_type.t;
   (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
   legacy : bool;
+  (* osemgrep-only: currently to explicitely choose osemgrep over pysemgrep *)
+  experimental : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)

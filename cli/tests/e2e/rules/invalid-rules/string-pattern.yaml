@@ -1,0 +1,8 @@
+rules:
+- id: eqeq
+  pattern-either:
+    - "foo"
+  message: |
+    You can't use string literals as patterns in old-style rules! 
+  languages: [py]
+  severity: WARNING

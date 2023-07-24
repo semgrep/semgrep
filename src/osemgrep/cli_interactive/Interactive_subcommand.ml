@@ -659,7 +659,7 @@ let split_line (t1 : Tok.location) (t2 : Tok.location) (row, line) =
     let lb = if row = t1.pos.line then Some t1.pos.column else None in
     let rb = if row = end_line then Some end_col else None in
     let l_rev, m_rev, r_rev, _ =
-      String.fold_left
+      Stdcompat.String.fold_left
         (fun (l, m, r, i) c ->
           match placement_wrt_bound (lb, rb) i with
           | Common.Left3 _ -> (c :: l, m, r, i + 1)
@@ -718,7 +718,7 @@ let preview_of_match { Pattern_match.range_loc = t1, t2; _ } file state =
     let max_line_num_len =
       line_num_imgs
       |> Common.map (fun line_num_img -> I.width line_num_img)
-      |> List.fold_left Int.max 0
+      |> List.fold_left max 0
     in
     line_num_imgs
     |> Common.map (fun line_num_img ->
@@ -971,7 +971,7 @@ let parse_command ({ xlang; _ } as state : state) =
   | "exit" -> Exit
   | "any" -> Any
   | "all" -> All
-  | _ when String.starts_with ~prefix:"not " s ->
+  | _ when Stdcompat.String.starts_with ~prefix:"not " s ->
       let s = Str.string_after s 4 in
       (* TODO: error handle *)
       let lang = Xlang.to_lang_exn xlang in

@@ -1,0 +1,14 @@
+lockfileVersion: '6.0'
+
+dependencies:
+  acorn:
+    specifier: 8.7.0
+    version: 8.7.0
+
+packages:
+
+  /acorn@8.7.0:
+    resolution: {integrity: sha512-V/LGr1APy+PXIwKebEWrkZPwoeoF+w1jiOBUmuxuiUIaOHtob8Qc9BTrYo7VuI5fR8tqsy+buA2WFooR5olqvQ==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+    dev: false

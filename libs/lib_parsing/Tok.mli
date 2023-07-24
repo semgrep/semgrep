@@ -3,6 +3,14 @@
  *
  * The types below are a bit complicated because we want
  * to represent "fake" and "expanded" tokens.
+
+   TODO: please explain the role of a Tok.t. Is it a best effort to track
+   the start/end location of a node? What can we do with a tok e.g. is it
+   reliable to extract the string from it or does it not make sense in general
+   since it's only a best effort to report error locations?
+   What about empty tokens representing a position in a file such as the
+   position of the contents of an empty string literal - how to create them?
+   Why are there fake tokens at all? When is it safe to use them?
  *)
 
 (*****************************************************************************)
@@ -85,8 +93,17 @@ val first_loc_of_file : Common.filename -> location
  * [combine_toks t1 ts] will return a token where t1::ts
  * have been combined in a single token, with a starting pos
  * of t1.pos.
+   TODO: please explain how to represent an empty string literal in the
+   generic AST, which has type 'string wrap bracket'.
  *)
 val combine_toks : t -> t list -> t
+
+(* Create the empty token corresponding to the position right after a
+   given token. This is intended for representing empty strings and such. *)
+val empty_tok_after : t -> t
+
+(* Safe combination of a list of tokens contained within quotes or similar. *)
+val combine_bracket_contents : t * ('a * t) list * t -> t
 
 (* this function assumes the full content of the token is on the same
  * line, otherwise the line/col of the result might be wrong *)

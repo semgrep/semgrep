@@ -25,6 +25,7 @@
 type ('key, 'v) t =
   | Empty
   | Node of ('key, 'v) t * 'key * 'v * ('key, 'v) t * int
+[@@deriving show]
 
 let empty = Empty
 
@@ -142,3 +143,25 @@ let rec fold f m accu =
 (* addons pad *)
 let of_list xs = List.fold_left (fun acc (k, v) -> add k v acc) empty xs
 let to_list t = fold (fun k v acc -> (k, v) :: acc) t []
+
+let rec update x f = function
+  | Empty -> (
+      match f None with
+      | None -> Empty
+      | Some data -> Node (Empty, x, data, Empty, 1))
+  | Node (l, v, d, r, h) as m ->
+      let c = compare x v in
+      if c = 0 then
+        match f (Some d) with
+        | None -> merge l r
+        | Some data ->
+            if d == data (* nosem *) then m else Node (l, x, data, r, h)
+      else if c < 0 then
+        let ll = update x f l in
+        if l == ll (* nosem *) then m else bal ll v d r
+      else
+        let rr = update x f r in
+        if r == rr (* nosem *) then m else bal l v d rr
+(* NOTE(dinosaure): this implementation was taken from the standard library
+   (since 4.06) and it uses physical equality to be able to manipulate huge
+   tree (and avoid a /traversal comparison/ into subtree). *)

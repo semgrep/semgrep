@@ -1,6 +1,7 @@
 (* Yoann Padioleau
+ * Sophia Roshal
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,8 +13,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module A = AST_jsonnet
-module C = Core_jsonnet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,14 +22,39 @@ module C = Core_jsonnet
  * See https://jsonnet.org/ref/spec.html#jsonnet_values
  *)
 
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
+module A = AST_jsonnet
 
-type value_ =
+(*****************************************************************************)
+(* Env *)
+(*****************************************************************************)
+type env = {
+  (* The spec uses a lambda-calculus inspired substitution model, but
+   * it is probably simpler and more efficient to use a classic
+   * environment where the locals are defined. Jsonnet uses lazy
+   * evaluation so we model this by allowing unevaluated expressions in environment below.
+   *)
+  locals : (local_id, lazy_value) Map_.t;
+  (* for call tracing *)
+  depth : int;
+}
+
+and local_id = LSelf | LSuper | LId of string
+
+(* This used to be wrapped in an explicit "lazy" rather than keeping around an environment
+   however, this does not work with the object merge + operator, since we need to be able
+   to access the environment in which fields of the object are evaluated in. It is also neccesary
+   to keep around and environment even for values, since there could be nested objects/arrays which
+   also have lazy semantics themselves, and thus again need to be able to modify a specifc environment *)
+and val_or_unevaluated_ = Val of value_ | Unevaluated of Core_jsonnet.expr
+and lazy_value = { value : val_or_unevaluated_; env : env }
+
+(*****************************************************************************)
+(* Values *)
+(*****************************************************************************)
+and value_ =
   | Primitive of primitive
   | Object of object_ A.bracket
-  | Function of C.function_definition
+  | Lambda of Core_jsonnet.function_definition
   | Array of lazy_value array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
@@ -44,27 +68,17 @@ and primitive =
   | Double of float A.wrap
   | Str of string A.wrap
 
-and object_ = C.obj_assert list * field list
+and object_ = asserts list * value_field list
 
 (* opti? make it a hashtbl of string -> field for faster lookup? *)
-and field = {
+and value_field = {
   (* like Str, strictly evaluated! *)
   fld_name : string A.wrap;
   fld_hidden : A.hidden A.wrap;
   fld_value : lazy_value;
 }
 
-(* old: was just C.expr but this can't work because manifest
- * can't be passed the correct environment to evaluate the array
- * elts or fields
- *)
-and lazy_value = {
-  (* lazy closures built from a call to Eval_jsonnet.eval_expr *)
-  v : value_ Lazy.t;
-  (* just for debugging as we can't inspect closures *)
-  e : C.expr;
-}
-[@@deriving show]
+and asserts = Core_jsonnet.obj_assert * env [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -72,3 +86,9 @@ and lazy_value = {
 let empty_obj : value_ =
   let fk = Tok.unsafe_fake_tok "" in
   Object (fk, ([], []), fk)
+
+let empty_env = { locals = Map_.empty; depth = 0 }
+
+(*****************************************************************************)
+(* Program *)
+(*****************************************************************************)

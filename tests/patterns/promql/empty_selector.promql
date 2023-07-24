@@ -1,0 +1,2 @@
+# MATCH:
+avg(some_metric)
