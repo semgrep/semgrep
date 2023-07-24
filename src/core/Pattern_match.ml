@@ -120,7 +120,7 @@ and rule_id = {
    * Note that when we process a full rule, this id can temporarily
    * contain a Rule.pattern_id.
    *)
-  id : Rule.ID.t;
+  id : Rule_ID.t;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml.
    *
    * TODO should we remove these fields and just pass around a Rule.t or

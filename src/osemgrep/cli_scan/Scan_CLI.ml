@@ -800,7 +800,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let rule_filtering_conf =
       {
         Rule_filtering.exclude_rule_ids =
-          Common.map Rule.ID.of_string exclude_rule_ids;
+          Common.map Rule_ID.of_string exclude_rule_ids;
         severity;
       }
     in

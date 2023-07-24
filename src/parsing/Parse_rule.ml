@@ -56,7 +56,7 @@ type key = string R.wrap
 
 type env = {
   (* id of the current rule (needed by some exns) *)
-  id : Rule.rule_id;
+  id : Rule_ID.t;
   (* languages of the current rule (needed by parse_pattern) *)
   languages : Rule.languages;
   (* whether we are underneath a `metavariable-pattern` *)
@@ -583,7 +583,7 @@ let word_chars_of_strings env xs =
              (spf "Multibyte word characters aren't supported: %S" long))
 
 (* Aliengrep brace pairs are specified as strings because ATD doesn't have
-   a char type and because they could multibyte UTF-8-encoded characters.
+   a char type and because they could be multibyte UTF-8-encoded characters.
    For now, aliengrep only supports single-byte characters. *)
 let brace_pairs_of_string_pairs env xs =
   xs
@@ -1513,10 +1513,10 @@ let parse_rules_to_run_with_extract env key value =
   let ruleids_dict = yaml_to_dict env key value in
   let inc_opt, exc_opt =
     ( take_opt ruleids_dict env
-        (parse_string_wrap_list Rule.ID.of_string)
+        (parse_string_wrap_list Rule_ID.of_string)
         "include",
       take_opt ruleids_dict env
-        (parse_string_wrap_list Rule.ID.of_string)
+        (parse_string_wrap_list Rule_ID.of_string)
         "exclude" )
   in
   (* alt: we could use report_unparsed_fields(), but better to raise an error for now
@@ -1598,7 +1598,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
   in
   let step_id_str, tok = key in
   let id =
-    (Rule.ID.of_string (* TODO: is this really a rule ID? *) step_id_str, tok)
+    (Rule_ID.of_string (* TODO: is this really a rule ID? *) step_id_str, tok)
   in
   let step_languages = parse_languages ~id rule_options languages in
   let env = { env with languages = step_languages } in
@@ -1700,7 +1700,7 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
   (* We need a rule ID early to produce useful error messages. *)
   let ((rule_id, _) as id) =
     let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
-    (Rule.ID.of_string rule_id_str, tok)
+    (Rule_ID.of_string rule_id_str, tok)
   in
   let languages = take_no_env rd parse_string_wrap_list_no_env "languages" in
   let options_opt, options_key =
@@ -1885,7 +1885,7 @@ let parse_and_filter_invalid_rules file = parse_file ~error_recovery:true file
 let parse_xpattern xlang (str, tok) =
   let env =
     {
-      id = Rule.ID.of_string "anon-pattern";
+      id = Rule_ID.of_string "anon-pattern";
       languages = Rule.languages_of_xlang xlang;
       in_metavariable_pattern = false;
       path = [];

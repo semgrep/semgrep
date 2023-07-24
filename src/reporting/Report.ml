@@ -83,7 +83,7 @@ let mode = ref MNo_info
 (* Save time information as we run each rule *)
 
 type rule_profiling = {
-  rule_id : Rule.rule_id;
+  rule_id : Rule_ID.t;
   parse_time : float;
   match_time : float;
 }
@@ -127,7 +127,7 @@ type final_profiling = {
 }
 [@@deriving show]
 
-type rule_id_and_engine_kind = Rule.ID.t * Pattern_match.engine_kind
+type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 [@@deriving show]
 
 type final_result = {

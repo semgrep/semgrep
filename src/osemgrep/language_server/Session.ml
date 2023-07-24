@@ -152,7 +152,7 @@ let fetch_rules session =
   in
   let rules =
     Common.uniq_by
-      (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
+      (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
   let rule_filtering_conf =
