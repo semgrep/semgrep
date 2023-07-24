@@ -406,18 +406,32 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
      * we can have a single visitor for all calls, given that the old
      * `mk_visitor` was pretty expensive, and constructing a visitor object may
      * be as well. *)
+    let i = ref 0 in
     let ff = ref (fun _ -> assert false) in
     let ok = ref true in
     let vout =
-      object
-        inherit [_] G.iter
+      object (self : 'self)
+        inherit [_] G.iter_no_id_info
 
-        method! visit_id_info _env ii =
+        method! visit_id_info env ii =
           ok := !ok && !ff ii;
+          (match !(ii.id_svalue) with
+          | Some (Sym e) when !ok ->
+              (* Following `id_svalue`s can explode in pathological cases,
+               * see 'tests/rules/sym_prop_explosion.js', so we need to
+               * set a bound. *)
+              if !i < 1000 then (
+                incr i;
+                self#visit_expr env e)
+              else ok := false
+          | None
+          | Some _ ->
+              ());
           if not !ok then raise Exit
       end
     in
     fun f ast ->
+      i := 0;
       ff := f;
       ok := true;
       try
@@ -436,7 +450,7 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
       for_all_id_info
         (fun ii ->
           (* Note the use of physical equality, we are looking for the *same*
-           * id_svalue ref, that tells us it's the same variable occurrence. *)
+                * id_svalue ref, that tells us it's the same variable occurrence. *)
           not (phys_equal id_info.id_svalue ii.id_svalue))
         (G.E e)
   | G.NotCst
@@ -449,9 +463,8 @@ let set_svalue_ref id_info c' =
     match !(id_info.id_svalue) with
     | None -> id_info.id_svalue := Some c'
     | Some c -> id_info.id_svalue := Some (refine c c')
-  else
-    logger#error "Cycle check failed for %s := %s" (G.show_id_info id_info)
-      (G.show_svalue c')
+  else logger#error "Cycle check failed for %s := ..." (G.show_id_info id_info)
+(* (G.show_svalue c') *)
 
 (*****************************************************************************)
 (* Transfer *)
