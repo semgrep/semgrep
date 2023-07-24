@@ -97,8 +97,8 @@ let compare_metavar_env env1 env2 =
 let compare_matches pm1 pm2 =
   let compare_rule_id =
     String.compare
-      (Rule.ID.to_string pm1.PM.rule_id.id)
-      (Rule.ID.to_string pm2.PM.rule_id.id)
+      (Rule_ID.to_string pm1.PM.rule_id.id)
+      (Rule_ID.to_string pm2.PM.rule_id.id)
   in
   if compare_rule_id <> 0 then compare_rule_id
   else
