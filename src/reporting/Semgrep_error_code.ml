@@ -32,7 +32,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * less: we should define everything in Output_from_core.atd, not just typ:
  *)
 type error = {
-  rule_id : Rule.rule_id option;
+  rule_id : Rule_ID.t option;
   typ : Out.core_error_kind;
   loc : Tok.location;
   msg : string;

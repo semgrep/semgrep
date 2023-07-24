@@ -56,7 +56,7 @@ type key = string R.wrap
 
 type env = {
   (* id of the current rule (needed by some exns) *)
-  id : Rule.rule_id;
+  id : Rule_ID.t;
   (* languages of the current rule (needed by parse_pattern) *)
   languages : Rule.languages;
   (* whether we are underneath a `metavariable-pattern` *)

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -45,12 +45,6 @@ type 'a loc = {
   path : string list; (* path to pattern in YAML rule *)
 }
 [@@deriving show, eq]
-
-(*****************************************************************************)
-(* Rule IDs (now defined in Rule_ID.ml) *)
-(*****************************************************************************)
-
-type rule_id = Rule_ID.t [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)
@@ -283,8 +277,8 @@ type extract_spec = {
 (* SR wants to be able to choose rules to run on
    Behaves the same as paths *)
 and extract_rule_ids = {
-  required_rules : rule_id wrap list;
-  excluded_rules : rule_id wrap list;
+  required_rules : Rule_ID.t wrap list;
+  excluded_rules : Rule_ID.t wrap list;
 }
 
 (* Method to combine extracted ranges within a file:
@@ -395,7 +389,7 @@ type steps = step list [@@deriving show]
 
 type 'mode rule_info = {
   (* MANDATORY fields *)
-  id : rule_id wrap;
+  id : Rule_ID.t wrap;
   mode : 'mode;
   (* Currently a dummy value for extract mode rules *)
   message : string;
@@ -440,7 +434,7 @@ type rule = mode rule_info [@@deriving show]
 (* aliases *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
-type hrules = (rule_id, t) Hashtbl.t
+type hrules = (Rule_ID.t, t) Hashtbl.t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -473,12 +467,12 @@ let partition_rules (rules : rules) :
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
  *)
-let last_matched_rule : rule_id option ref = ref None
+let last_matched_rule : Rule_ID.t option ref = ref None
 
 (* Those are recoverable errors; We can just skip the rules containing them.
  * TODO? put in Output_from_core.atd?
  *)
-type invalid_rule_error = invalid_rule_error_kind * rule_id * Tok.t
+type invalid_rule_error = invalid_rule_error_kind * Rule_ID.t * Tok.t
 
 and invalid_rule_error_kind =
   | InvalidLanguage of string (* the language string *)

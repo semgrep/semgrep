@@ -192,7 +192,7 @@ let convert_from_json_array_to_string json =
 (* Error reporting *)
 (*****************************************************************************)
 
-let report_unbound_mvar (ruleid : Rule.rule_id) mvar m =
+let report_unbound_mvar (ruleid : Rule_ID.t) mvar m =
   let { Range.start; end_ } = Pattern_match.range m in
   logger#warning
     "The extract metavariable for rule %s (%s) wasn't bound in a match; \

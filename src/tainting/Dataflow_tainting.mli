@@ -28,7 +28,7 @@ type a_propagator = {
 
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
-  rule_id : Rule.rule_id;  (** Taint rule id, for Deep Semgrep. *)
+  rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
   is_source : AST_generic.any -> Rule.taint_source tmatch list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)

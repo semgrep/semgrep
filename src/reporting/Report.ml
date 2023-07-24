@@ -83,7 +83,7 @@ let mode = ref MNo_info
 (* Save time information as we run each rule *)
 
 type rule_profiling = {
-  rule_id : Rule.rule_id;
+  rule_id : Rule_ID.t;
   parse_time : float;
   match_time : float;
 }

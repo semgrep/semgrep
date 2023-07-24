@@ -290,7 +290,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> Common.map (fun (((rule_id : Rule.rule_id), _pat), n) ->
+             |> Common.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
                     let details =
                       spf
                         "found %i matches for rule %s, which exceeds the \
@@ -592,7 +592,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
  * by using the include/exclude fields.).
  *)
 let targets_of_config (config : Runner_config.t)
-    (all_rule_ids_when_no_target_file : Rule.rule_id list) :
+    (all_rule_ids_when_no_target_file : Rule_ID.t list) :
     In.targets * Out.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
