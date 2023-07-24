@@ -1,3 +1,5 @@
+open Common
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -23,7 +25,7 @@ let invoke_semgrep_core_proprietary = ref None
 
 let setup_logging (conf : Scan_CLI.conf) =
   CLI_common.setup_logging ~force_color:conf.force_color
-    ~level:conf.logging_level;
+    ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Semgrep version: %s" Version.version);
   ()
 
@@ -34,7 +36,7 @@ let setup_profiling (conf : Scan_CLI.conf) =
       else if config.report_time then Report.mode := MTime
       else Report.mode := MNo_info;
   *)
-  if conf.profile then (
+  if conf.common.profile then (
     (* ugly: no need to set Common.profile, this was done in CLI.ml *)
     Logs.debug (fun m -> m "Profile mode On");
     Logs.debug (fun m -> m "disabling -j when in profiling mode");
@@ -56,7 +58,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       (* alt: raise a Semgrep_error that would be catched by CLI_Common
        * wrapper instead of returning an exit code directly? *)
       match () with
-      | _ when x.severity = Out.Error ->
+      | _ when x.severity =*= Out.Error ->
           Cli_json_output.exit_code_of_error_type x.error_type
       | _ when strict -> Cli_json_output.exit_code_of_error_type x.error_type
       | _else_ -> Exit_code.ok)
@@ -175,7 +177,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let map = List.fold_left fold Map_.empty res.core.Out.matches in
   Map_.fold
     (fun rule_id n acc ->
-      match Rule.ID.of_string_opt rule_id with
+      match Rule_ID.of_string_opt rule_id with
       | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
       | None -> acc)
     map []
@@ -191,7 +193,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
   (* TODO: we should probably warn the user about rules using the same id *)
   let rules =
     Common.uniq_by
-      (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
+      (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
   if Common.null rules then Error Exit_code.missing_config
@@ -220,7 +222,11 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     (* step3: running the engine *)
     let output_format, file_match_results_hook =
       match conf with
-      | { output_format = Output_format.Text; legacy = false; _ } ->
+      | {
+       output_format = Output_format.Text;
+       common = { maturity = Some CLI_common.Experimental; _ };
+       _;
+      } ->
           ( Output_format.TextIncremental,
             Some (file_match_results_hook conf filtered_rules) )
       | { output_format; _ } -> (output_format, None)
@@ -248,8 +254,9 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
         ~file_match_results_hook conf.core_runner_conf filtered_rules errors
         targets
     in
+    let exn_and_matches = Profiler.record profiler ~name:"core_time" core in
     let (res : Core_runner.result) =
-      Profiler.record profiler ~name:"core_time" core
+      Core_runner.create_core_result filtered_rules exn_and_matches
     in
 
     Metrics_.add_engine_type
@@ -289,7 +296,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     Logs.info (fun m ->
         m "%a" Skipped_report.pp_skipped
           ( conf.targeting_conf.respect_git_ignore,
-            conf.legacy,
+            conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
             semgrepignored,
             included,
@@ -300,7 +307,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
     Logs.app (fun m ->
         m "%a" Summary_report.pp_summary
           ( conf.targeting_conf.respect_git_ignore,
-            conf.legacy,
+            conf.common.maturity,
             conf.targeting_conf.max_target_bytes,
             semgrepignored,
             included,
@@ -340,7 +347,11 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   Profiler.start profiler ~name:"total_time";
   let config () =
     Metrics_.configure conf.metrics;
-    let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+    let settings =
+      Semgrep_settings.load
+        ~legacy:(conf.common.maturity =*= Some CLI_common.Legacy)
+        ()
+    in
     if Metrics_.is_enabled conf.metrics then
       Metrics_.add_project_url (Git_wrapper.get_project_url ());
     Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
@@ -381,10 +392,10 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* Let's go *)
       (* --------------------------------------------------------- *)
       (* step0: potentially notify user about metrics *)
-      if not (settings.has_shown_metrics_notification = Some true) then (
+      if not (settings.has_shown_metrics_notification =*= Some true) then (
         (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
         let esc =
-          if Fmt.style_renderer Fmt.stderr = `Ansi_tty then "\027[22m\027[24m"
+          if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[22m\027[24m"
           else ""
         in
         Logs.warn (fun m ->

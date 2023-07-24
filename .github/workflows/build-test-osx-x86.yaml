@@ -69,6 +69,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+
+      # Note that this actions does cache read and cache write.
       # See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows for more information on GHA caching.
       # Note that this works and speedup things because of the way OPAM works
       # and osx-setup-for-release.sh is written. Indeed, this script checks
@@ -78,20 +80,17 @@ jobs:
       # hit the cache unfortunately, but we would spend time only for installing
       # those new packages (ideally we would want to regenerate the cache by
       # using an opam.pock in the cache key).
-      - name: Restore Opam Cache
-        id: restore-opam-cache
-        uses: actions/cache/restore@v3
+      - name: Cache Opam
+        uses: actions/cache@v3
         if: ${{ inputs.use-cache }}
-        # The size of the tgz of ~/.opam is around 500MB, which usually takes less than
-        # 2min to download from GHA. If it takes more than that, that means something
-        # wrong is going on in which case it's better to timeout early than spend
-        # 10min (the default timeout) and then still timeout.
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         with:
           path: ~/.opam
           #TODO: we should add the md5sum of opam.lock as part of the key
-          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps
       - name: Install dependencies
         run: |
           ./scripts/osx-setup-for-release.sh "${{ env.OPAM_SWITCH_NAME }}"
@@ -105,18 +104,6 @@ jobs:
         with:
           path: artifacts.zip
           name: semgrep-osx-${{ github.sha }}
-      # By default, the actions/cache workflow will not save the directory to the cache if a cache hit occurs in
-      # restore-opam-cache. This allows us to manually save off the ~/.opam dir, keeping things up to date and speedy.
-      - name: Save Opam Cache
-        id: save-opam-cache
-        uses: actions/cache/save@v3
-        if: ${{ inputs.use-cache }}
-        env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        with:
-          path: ~/.opam
-          #TODO: we should add the md5sum of opam.lock as part of the key
-          key: "${{ runner.os }}-${{ runner.arch }}-${{ env.OPAM_SWITCH_NAME }}-opam-deps"
 
   build-wheels-osx:
     runs-on: macos-12

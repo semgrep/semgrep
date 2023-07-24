@@ -33,6 +33,9 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep lsp" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
+(* At some point we should support --stdio, --socket etc.
+   https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#implementationConsiderations *)
+
 let parse_argv (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
   CLI_common.eval_value ~argv cmd

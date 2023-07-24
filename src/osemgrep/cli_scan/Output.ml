@@ -164,8 +164,8 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
    * it here.
    *)
   let cli_output : Out.cli_output =
-    Cli_json_output.cli_output_of_core_results ~logging_level:conf.logging_level
-      res
+    Cli_json_output.cli_output_of_core_results
+      ~logging_level:conf.common.logging_level res
   in
   let cli_output () =
     let keep_ignored =

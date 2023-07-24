@@ -22,6 +22,7 @@
    exit code. *)
 let run (conf : Lsp_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  LS.start ();
   Exit_code.ok
 
 (*****************************************************************************)
