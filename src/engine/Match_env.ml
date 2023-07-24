@@ -83,7 +83,7 @@ let error env msg =
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
   {
-    PM.id = Rule.ID.of_string (string_of_int id);
+    PM.id = Rule_ID.of_string (string_of_int id);
     pattern_string = str;
     message = "";
     fix = None;

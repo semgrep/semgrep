@@ -111,11 +111,11 @@ let check_includes_and_excludes rule extract_rule_ids =
           counterproductive semgrep rules that prevent us from doing so. *)
        List.length required_rules =|= 0
       || List.exists
-           (fun r' -> Rule.ID.ends_with (fst r) ~suffix:(fst r'))
+           (fun r' -> Rule_ID.ends_with (fst r) ~suffix:(fst r'))
            required_rules)
       && not
            (List.exists
-              (fun r' -> Rule.ID.ends_with (fst r) ~suffix:(fst r'))
+              (fun r' -> Rule_ID.ends_with (fst r) ~suffix:(fst r'))
               excluded_rules)
 
 (* Compute the rules that should be run for the extracted

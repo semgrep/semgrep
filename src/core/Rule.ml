@@ -28,74 +28,6 @@ open Ppx_hash_lib.Std.Hash.Builtin
  * See also Mini_rule.ml where formula and many other features disappear.
  *)
 
-(*
-   A rule ID is a string. This creates a dedicated type to clarify interfaces
-   and error messages. The coercion operator can be used as an alternative
-   to 'to_string x': '(x :> string)' to obtain a plain string.
-*)
-module ID : sig
-  type t = private string [@@deriving show, eq]
-
-  exception Malformed_rule_ID of string
-
-  val to_string : t -> string
-  val of_string : string -> t
-  val of_string_opt : string -> t option
-  val to_string_list : t list -> string list
-  val of_string_list : string list -> t list
-  val compare : t -> t -> int
-
-  (* Validation function called by of_string.
-     Checks for the format [a-zA-Z0-9._-]* *)
-  val validate : string -> bool
-
-  (* Remove any forbidden characters to produce a valid rule ID fragment. *)
-  val sanitize_string : string -> string
-
-  (*
-     Rule ids are prepended with the `path.to.the.rules.file.`, so
-     when comparing a rule (r) with the rule to be included or excluded,
-     allow for a preceding path
-
-       "path.to.foo.bar" ~suffix:"foo.bar" -> true
-       "foo.bar" ~suffix:"foo.bar" -> true
-       "xfoo.bar" ~suffix:"foo.bar" -> false
-  *)
-  val ends_with : t -> suffix:t -> bool
-end = struct
-  type t = string [@@deriving show, eq]
-
-  exception Malformed_rule_ID of string
-
-  let to_string x = x
-
-  let validate =
-    let rex = SPcre.regexp "^[a-zA-Z0-9._-]*$" in
-    fun str -> SPcre.pmatch_noerr ~rex str
-
-  let sanitize_string str =
-    let buf = Buffer.create (String.length str) in
-    String.iter
-      (function
-        | ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '.' | '_' | '-') as c ->
-            Buffer.add_char buf c
-        | _junk -> ())
-      str;
-    Buffer.contents buf
-
-  let of_string x = if not (validate x) then raise (Malformed_rule_ID x) else x
-  let of_string_opt x = if validate x then Some x else None
-  let to_string_list x = x
-  let of_string_list x = x
-  let compare = String.compare
-
-  let ends_with r ~suffix:inc_or_exc_rule =
-    r = inc_or_exc_rule
-    || Stdcompat.String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
-end
-
-type rule_id = ID.t [@@deriving show, eq]
-
 (*****************************************************************************)
 (* Position information *)
 (*****************************************************************************)
@@ -113,6 +45,12 @@ type 'a loc = {
   path : string list; (* path to pattern in YAML rule *)
 }
 [@@deriving show, eq]
+
+(*****************************************************************************)
+(* Rule IDs (now defined in Rule_ID.ml) *)
+(*****************************************************************************)
+
+type rule_id = Rule_ID.t [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)
@@ -697,7 +635,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
 let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   {
-    id = (ID.of_string "-e", fk);
+    id = (Rule_ID.of_string "-e", fk);
     mode = `Search (P xpat);
     (* alt: could put xpat.pstr for the message *)
     message = "";
@@ -728,4 +666,4 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
    which is clearly not enough comparing to the Python code. But, again, we can
    improve that by serialize everything and compute a hash from it. *)
 let sha256_of_rule rule =
-  Digestif.SHA256.digest_string (ID.to_string (fst rule.id))
+  Digestif.SHA256.digest_string (Rule_ID.to_string (fst rule.id))

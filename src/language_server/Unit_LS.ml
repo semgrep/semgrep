@@ -36,7 +36,7 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (lazy pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
-  let rule = { rule with id = (Rule.ID.of_string "print", fk) } in
+  let rule = { rule with id = (Rule_ID.of_string "print", fk) } in
   let rule_id =
     {
       Pattern_match.id = fst rule.id;

@@ -178,7 +178,7 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
   let target_mappings = List.concat target_mappings in
   let rules = rules |> List.rev |> List.concat in
   let rule_ids =
-    Common.map (fun r -> fst r.Rule.id |> Rule.ID.to_string) rules
+    Common.map (fun r -> fst r.Rule.id |> Rule_ID.to_string) rules
   in
   let targets : Input_to_core_t.targets = { target_mappings; rule_ids } in
   {

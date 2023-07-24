@@ -382,7 +382,7 @@ let parse_pattern lang_pattern str =
            (R.InvalidRule
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-                Rule.ID.of_string "no-id",
+                Rule_ID.of_string "no-id",
                 Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
@@ -541,7 +541,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   let id_pairs =
     list_of_rule_ids
-    |> Common.mapi (fun i x -> (i, Rule.ID.of_string x))
+    |> Common.mapi (fun i x -> (i, Rule_ID.of_string x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
@@ -947,7 +947,7 @@ let semgrep_with_rules_and_formatted_output config =
 
 let minirule_of_pattern lang pattern_string pattern =
   {
-    MR.id = Rule.ID.of_string "anon-pattern";
+    MR.id = Rule_ID.of_string "anon-pattern";
     pattern_string;
     pattern;
     inside = false;
