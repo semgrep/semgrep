@@ -759,6 +759,10 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
   | `Type x -> (
       let ty = map_type_ env x in
       match ty.t with
+      (* If this type is a singular identifier that is a metavariable,
+       * then the user probably meant to write a metavariable parameter.
+       * So let's translate it to one.
+       *)
       | G.TyN (Id (((s, _) as id), _))
         when AST_generic.is_metavar_name s && in_pattern env ->
           let param =
