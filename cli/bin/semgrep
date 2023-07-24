@@ -68,25 +68,27 @@ def find_semgrep_core_path():
     sys.exit(2)
        
 
-if "--experimental" in sys.argv:
-    #alt: we could  extend osemgrep (and pysemgrep) to accept a new --experimental
-    # flag instead of removing the flag below. However, in osemgrep we do a few
-    # pattern matching of Sys.argv and if we have 'osemgrep --experimental --help'
-    # this would be interpreted as 'osemgrep scan --experimental --help' (because
-    # scan is the default command), and we would not get the simple semgrep --help
-    # message showing all the subcommands. So simpler to just remove --experimental.
-    sys.argv.remove("--experimental")
-    # We could have moved the code below in a separate 'osemgrep', like for 'pysemgrep',
-    # but we don't want users to be exposed to another command, so better to hide it.
-    # We expose 'pysemgrep' because osemgrep itself might need to fallback to pysemgrep
-    # and it's better to avoid the possibility of an infinite loop by simply using
-    # a different program name. Morever, in case of big problems, we can always
-    # tell users to run pysemgrep instead of semgrep and be sure they'll get the
-    # old behavior.
-    path = find_semgrep_core_path()
-    # If you call semgrep-core as osemgrep, then we get osemgrep behavior,
-    # see src/main/Main.ml
-    sys.argv[0] = "osemgrep"
-    os.execvp(str(path), sys.argv)
-else:
-    os.execvp("pysemgrep", sys.argv)
+if __name__ == "__main__":
+    if "--experimental" in sys.argv:
+        #alt: we could  extend osemgrep (and pysemgrep) to accept a new --experimental
+        # flag instead of removing the flag below. However, in osemgrep we do a few
+        # pattern matching of Sys.argv and if we have 'osemgrep --experimental --help'
+        # this would be interpreted as 'osemgrep scan --experimental --help' (because
+        # scan is the default command), and we would not get the simple semgrep --help
+        # message showing all the subcommands. So simpler to just remove --experimental.
+        sys.argv.remove("--experimental")
+        # We could have moved the code below in a separate 'osemgrep', like for 'pysemgrep',
+        # but we don't want users to be exposed to another command, so better to hide it.
+        # We expose 'pysemgrep' because osemgrep itself might need to fallback to pysemgrep
+        # and it's better to avoid the possibility of an infinite loop by simply using
+        # a different program name. Morever, in case of big problems, we can always
+        # tell users to run pysemgrep instead of semgrep and be sure they'll get the
+        # old behavior.
+        path = find_semgrep_core_path()
+        # If you call semgrep-core as osemgrep, then we get osemgrep behavior,
+        # see src/main/Main.ml
+        sys.argv[0] = "osemgrep"
+        os.execvp(str(path), sys.argv)
+    else:
+        import semgrep.__main__
+        sys.exit(semgrep.__main__.main())
