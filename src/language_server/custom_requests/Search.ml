@@ -51,7 +51,7 @@ let rules_of_pattern pat lang_opt =
     | XP.Regexp _ ->
         ());
     let rule = Rule.rule_of_xpattern xlang xpat in
-    { rule with id = (Rule.ID.of_string "-", fk) }
+    { rule with id = (Rule_ID.of_string "-", fk) }
   in
   match lang_opt with
   | Some lang ->
@@ -94,12 +94,12 @@ let search_semgrep config targets pat lang_opt =
       (fun i r ->
         {
           r with
-          Rule.id = (Rule.ID.of_string (string_of_int i), Tok.unsafe_fake_tok "");
+          Rule.id = (Rule_ID.of_string (string_of_int i), Tok.unsafe_fake_tok "");
         })
       rules
   in
   let rule_ids =
-    Common.map (fun r -> fst r.Rule.id |> Rule.ID.to_string) rules
+    Common.map (fun r -> fst r.Rule.id |> Rule_ID.to_string) rules
   in
   let rules_by_lang =
     Common.group_by (fun r -> r.Rule.languages.target_analyzer) rules
@@ -114,7 +114,7 @@ let search_semgrep config targets pat lang_opt =
         in
         let rule_nums =
           Common.map
-            (fun r -> fst r.Rule.id |> Rule.ID.to_string |> int_of_string)
+            (fun r -> fst r.Rule.id |> Rule_ID.to_string |> int_of_string)
             rules
         in
         { t with In.rule_nums })

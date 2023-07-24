@@ -121,7 +121,7 @@ let of_matches ?(only_git_dirty = true) matches (hrules : Rule.hrules) files =
   let matches =
     Common.map
       (fun (m : Out.core_match) ->
-        let rule = Hashtbl.find_opt hrules (Rule.ID.of_string m.rule_id) in
+        let rule = Hashtbl.find_opt hrules (Rule_ID.of_string m.rule_id) in
         let rule =
           match rule with
           | Some rule -> rule

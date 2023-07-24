@@ -177,7 +177,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let map = List.fold_left fold Map_.empty res.core.Out.matches in
   Map_.fold
     (fun rule_id n acc ->
-      match Rule.ID.of_string_opt rule_id with
+      match Rule_ID.of_string_opt rule_id with
       | Some rule_id -> (Hashtbl.find res.hrules rule_id, n) :: acc
       | None -> acc)
     map []
@@ -193,7 +193,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
   (* TODO: we should probably warn the user about rules using the same id *)
   let rules =
     Common.uniq_by
-      (fun r1 r2 -> Rule.ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
+      (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
       rules
   in
   if Common.null rules then Error Exit_code.missing_config
