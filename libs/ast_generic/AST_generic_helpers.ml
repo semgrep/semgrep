@@ -101,10 +101,10 @@ let add_type_args_opt_to_name name topt =
   | None -> name
   | Some t -> add_type_args_to_name name t
 
-let name_of_ids xs =
+let name_of_ids ?(case_insensitive = false) xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"
-  | [ x ] -> Id (x, empty_id_info ())
+  | [ x ] -> Id (x, empty_id_info ~case_insensitive ())
   | x :: xs ->
       let qualif =
         if xs =*= [] then None
@@ -136,7 +136,8 @@ let add_suffix_to_name suffix name =
           name_middle = new_name_middle;
         }
 
-let name_of_id id = Id (id, empty_id_info ())
+let name_of_id ?(case_insensitive = false) id =
+  Id (id, empty_id_info ~case_insensitive ())
 
 let name_of_dot_access e =
   let rec fetch_ids = function
