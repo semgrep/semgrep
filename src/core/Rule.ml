@@ -88,9 +88,7 @@ end = struct
   let to_string_list x = x
   let of_string_list x = x
   let compare = String.compare
-
-  let ends_with r ~suffix:inc_or_exc_rule =
-    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+  let ends_with r ~suffix:inc_or_exc_rule = r = inc_or_exc_rule
 end
 
 type rule_id = ID.t [@@deriving show, eq]

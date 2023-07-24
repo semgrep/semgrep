@@ -211,12 +211,7 @@ let (run :
  fun file xs fconvert ->
   let xs =
     match () with
-    | () when !Flag.tree_sitter_only ->
-        xs
-        |> Common.exclude (function
-             | Pfff _ -> true
-             | TreeSitter _ -> false)
-    | () when !Flag.pfff_only ->
+    | _ when true ->
         xs
         |> Common.exclude (function
              | TreeSitter _ -> true

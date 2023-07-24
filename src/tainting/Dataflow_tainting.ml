@@ -1434,7 +1434,7 @@ let check_function_signature env fun_exp args args_taints =
                          (`Return
                            (Taints.singleton
                               ({
-                                 orig = Src { src with call_trace };
+                                 Taint.orig = Src { src with call_trace };
                                  tokens = [];
                                }
                               |> subst_in_precondition)))

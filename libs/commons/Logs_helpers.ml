@@ -103,6 +103,8 @@ let setup_logging ~force_color ~level =
          (* let's keep the logs for those networking libraries to
           * help debug networking issues (e.g., timeout).
           *)
+         | "http_lwt_client"
+         | "http_lwt_unix"
          | "dns"
          | "dns_cache"
          | "dns_client"
