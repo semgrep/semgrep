@@ -6,6 +6,152 @@
 
 <!-- insertion point -->
 
+## [1.29.0](https://github.com/returntocorp/semgrep/releases/tag/v1.29.0) - 2023-06-26
+
+### Added
+
+- feat(rule syntax): Metavariable Type Extension for Semgrep Rule Syntax
+
+  We've added a dedicated field for annotating the type information of
+  metavariables. By adopting this approach, instead of relying solely on
+  language-specific casting syntax, we provide an additional way to enhance
+  the overall usability by eliminating the need to write redundant type cast
+  expressions for a single metavariable.
+
+  Moreover, the new syntax brings other benefits, including improved support for
+  target languages that lack built-in casting syntax. It also promotes a unified
+  approach to expressing type, pattern, and regex constraints for metavariables,
+  resulting in improved consistency across rule definitions.
+
+  Current syntax:
+
+  ```
+  rules:
+    - id: no-string-eqeq
+      severity: WARNING
+      message: find errors
+      languages:
+        - java
+      patterns:
+        - pattern-not: null == (String $Y)
+        - pattern: $X == (String $Y)
+  ```
+
+  Added syntax:
+
+  ````
+  rules:
+    - id: no-string-eqeq
+      severity: WARNING
+      message: find errors
+      languages:
+        - java
+      patterns:
+        - pattern-not: null == $Y
+        - pattern: $X == $Y
+        - metavariable-type:
+            metavariable: $Y
+            type: String
+  ``` (gh-8119)
+  ````
+
+- feat(rule syntax): Support metavariable-type field for Python
+
+  `metavariable-type` field is now supported for Python too. (gh-8126)
+
+- New --experimental flag to switch to a new implementation of Semgrep entirely
+  written in OCaml with faster startup time, incremental display of matches,
+  AST and registry caching, a new interactive mode and more. Not all
+  features of the legacy Python Semgrep have been ported though. (osemgrep)
+- Matching: Writing a pattern which is a sequence of statements, such as
+  ```
+  foo();
+  ...
+  bar();
+  ```
+  now allows matching to sequences of statements within objects, classes,
+  and related language constructs, in all languages. (pa-2754)
+
+### Changed
+
+- taint-mode: Several improvements to `taint_assume_safe_{booleans,numbers}` options.
+  Most notably, we will now use type info provided by explicit type casts, and we will
+  also use const-prop info to infer types. (pa-2777)
+
+### Fixed
+
+- Added support for post-pip0614 decorators; now semgrep accepts decorators of
+  the form `@ named_expr_test NEWLINE`, so for example with the pattern
+  `lambda $X:$X($X)`:
+
+  ````python
+  #match 1
+  @omega := lambda ha:ha(ha)
+  def func():
+    return None
+
+  #match 2
+  @omega[lambda a:a(a)].a.b.c.f("wahoo")
+  def fun():
+    return None
+  ``` (gh-4946)
+  ````
+
+- Fixed a typing issue with go; where semgrep with the pattern
+  '($VAR : *tau.rho).$F()` wouldn't produce a match in the
+  following:
+
+  ```go
+  func f() {
+    i_1 := &tau.rho{}
+    i_2 := new(tau.rho)
+
+    i_1.shift() //miss one
+    i_2.left()  //miss two
+
+    return 101
+  }
+  ```
+
+  but now we don't miss those two findings! (gh-6733)
+
+- Constant propagation is now applied to stack array declarations in C; so
+  a pattern `$TYPE $NAME[101];` will now produce two matches in the following snippet:
+
+  ````c
+  int main() {
+
+    int bad_len = 101;
+    /* match 1 */
+    int arr1[101];
+    /* match 2 */
+    int arr2[bad_len];
+    return 0;
+  }
+  ``` (gh-8037)
+  ````
+
+- Solidity: allow metavariables for version, as in `pragma solidity >= $VER;` (gh-8104)
+- Added support for parsing patterns of the form
+  ```
+  #[Attr1]
+  #[Attr2]
+  ```
+  In code such as
+  ```
+  #[Attr1]
+  #[Attr2]
+  function test ()
+  {
+      echo "Test";
+  }
+  ```
+  Previously, to match against multiple attributes it was required to write
+  ````
+  #[Attr1, Attr2]
+  ``` (pa-7398)
+  ````
+
 ## [1.28.0](https://github.com/returntocorp/semgrep/releases/tag/v1.28.0) - 2023-06-21
 
 ### Added

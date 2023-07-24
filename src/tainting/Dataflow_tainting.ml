@@ -782,7 +782,7 @@ let fix_poly_taint_with_field env lval st =
                                     *   type info and we used to remove taint, e.g. if Boolean
                                     *   and integer expressions didn't propagate taint. *)
                                 List.length offset
-                                < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
+                                < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
                                { arg with offset = arg.offset @ [ n ] }
                              in
@@ -1550,7 +1550,7 @@ let check_function_signature env fun_exp args args_taints =
                    else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
       Some
-        (fun_sig
+        (fun_sig |> T.Findings.elements
         |> List.concat_map process_sig
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->

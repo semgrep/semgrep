@@ -258,6 +258,7 @@ let rec eval env code =
       match v with
       | String s ->
           (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
+          (* TODO? allow capture group mvars from this *)
           let regexp = SPcre.regexp ~flags:[ `ANCHORED ] re in
           let res = SPcre.pmatch_noerr ~rex:regexp s in
           let v = Bool res in

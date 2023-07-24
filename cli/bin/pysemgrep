@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+# This script will be installed by pip somewhere in PATH (e.g., /opt/local/bin/)
+# because it's mentioned in ../setup.py with 'scripts=[..., "bin/pysemgrep"]'.
+# Thus, osemgrep can easily fallback to pysemgrep (without any further
+# dispatch like in semgrep) by simply calling 'execvp("pysemgrep", ...)'.
+#
+# Note that the first bang line above is adjusted by 'pipenv install' or 'pip'
+# to point to the "right" Python interpreter (e.g., /opt/local/bin/python3.11),
+# the one linked to the 'pip' used to install semgrep. This Python interpreter
+# then knows where to find the Semgrep Python source files referenced below
+# with semgrep.__main__.xxx
+# (e.g., in /opt/local/lib/site-packages/python3.11/semgrep/)
+
+import sys
+import semgrep.__main__
+sys.exit(semgrep.__main__.main())

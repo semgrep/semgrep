@@ -2120,6 +2120,17 @@ and m_generic_targ_vs_type_targ lang tok a b =
        * and this will assume covariance. But it's probably not a big deal, and
        * they don't have to be invariant in all cases anyway. *)
       m_generic_type_vs_type_t lang tok t1 t2
+  (* TODO equivalence between Java `List<?>` and `List<? extends Object>`? *)
+  | G.TAWildcard (_, None), Type.TAWildcard None -> return ()
+  | G.TAWildcard (_, Some kinda), Type.TAWildcard (Some kindb) -> (
+      match (kinda, kindb) with
+      | ((false, _), t1), Type.TAUpper t2
+      | ((true, _), t1), Type.TALower t2 ->
+          m_generic_type_vs_type_t lang tok t1 t2
+      | _, Type.TAUpper _
+      | _, Type.TALower _ ->
+          fail ())
+  | G.TA _, Type.TAWildcard _
   | G.TA _, Type.OtherTypeArg _
   (* TODO Represent more typearg kinds in Type.t? *)
   | G.TAWildcard _, _
@@ -2800,6 +2811,24 @@ and m_list__m_type_parameter a b =
 
 and m_definition_kind a b =
   match (a, b) with
+  (* We maintain an equivalence between a FieldDefColon of an ellipsis
+     with any other definition. This is because FieldDefColon appears
+     when describing the RHS of a record, so this describes a record
+     like
+     { x = ... }
+     The FieldDefColon case is matched as different than other
+     `definition_kind` structures, like a `FuncDef`, so we
+     have to explicitly whitelist it so that we can match those with the
+     ellipsis.
+
+     A concrete example is TS, when you have
+     { func: function (opts) { return "whatever"; } }
+     which is a record containing an entry which is a `FuncDef`.
+
+     For now, we only whitelist the FuncDef case.
+  *)
+  | G.FieldDefColon { vinit = Some { e = Ellipsis _; _ }; _ }, B.FuncDef _ ->
+      return ()
   (* boilerplate *)
   | G.EnumEntryDef a1, B.EnumEntryDef b1 -> m_enum_entry_definition a1 b1
   | G.FuncDef a1, B.FuncDef b1 -> m_function_definition a1 b1

@@ -485,6 +485,9 @@ type hidden_by_your_nanny
 val ( == ) : hidden_by_your_nanny
 val ( != ) : hidden_by_your_nanny
 
+val equal_ref_option :
+  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
+
 (*****************************************************************************)
 (* Operators *)
 (*****************************************************************************)
