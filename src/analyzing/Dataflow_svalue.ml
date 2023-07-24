@@ -420,7 +420,8 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
               (* Following `id_svalue`s can explode in pathological cases,
                * see 'tests/rules/sym_prop_explosion.js', so we need to
                * set a bound. *)
-              if !i < 1000 then (
+              if !i < Limits_semgrep.svalue_prop_MAX_VISIT_SYM_IN_CYCLE_CHECK
+              then (
                 incr i;
                 self#visit_expr env e)
               else ok := false
@@ -450,7 +451,7 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
       for_all_id_info
         (fun ii ->
           (* Note the use of physical equality, we are looking for the *same*
-                * id_svalue ref, that tells us it's the same variable occurrence. *)
+           * id_svalue ref, that tells us it's the same variable occurrence. *)
           not (phys_equal id_info.id_svalue ii.id_svalue))
         (G.E e)
   | G.NotCst
