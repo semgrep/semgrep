@@ -30,6 +30,8 @@ class SemgrepCoreLSServer:
         self.std_writer = JsonRpcStreamWriter(sys.stdout.buffer)
         self.config = LSPConfig({})
         self.core_process: Optional[subprocess.Popen] = None
+        self.core_writer = JsonRpcStreamWriter(sys.stdout.buffer)
+        self.core_reader = JsonRpcStreamReader(sys.stdin.buffer)
         self.exit_code: int = 0
         self.polling: bool = True
 
