@@ -2910,6 +2910,9 @@ and m_parameter_list a b =
 
 and m_parameter a b =
   match (a, b) with
+  | G.Param { pname = Some (str, tok); _ }, _
+    when Metavariable.is_metavar_name str ->
+      envf (str, tok) (MV.Params [ b ])
   (* boilerplate *)
   | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->

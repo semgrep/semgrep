@@ -756,18 +756,32 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
   | `X__ tok ->
       (* ellided parameter *)
       G.ParamPattern (G.PatUnderscore (token env tok))
-  | `Type x ->
+  | `Type x -> (
       let ty = map_type_ env x in
-      let param =
-        {
-          G.pname = None;
-          G.ptype = Some ty;
-          G.pdefault = None;
-          G.pattrs = [];
-          G.pinfo = G.empty_id_info ();
-        }
-      in
-      G.Param param
+      match ty.t with
+      | G.TyN (Id (((s, _) as id), _))
+        when AST_generic.is_metavar_name s && in_pattern env ->
+          let param =
+            {
+              G.pname = Some id;
+              G.ptype = None;
+              G.pdefault = None;
+              G.pattrs = [];
+              G.pinfo = G.empty_id_info ();
+            }
+          in
+          G.Param param
+      | _ ->
+          let param =
+            {
+              G.pname = None;
+              G.ptype = Some ty;
+              G.pdefault = None;
+              G.pattrs = [];
+              G.pinfo = G.empty_id_info ();
+            }
+          in
+          G.Param param)
 
 and map_closure_parameter (env : env) (x : CST.anon_choice_pat_4717dcc) :
     G.parameter =
