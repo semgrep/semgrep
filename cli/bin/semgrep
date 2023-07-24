@@ -89,4 +89,5 @@ if "--experimental" in sys.argv:
     sys.argv[0] = "osemgrep"
     os.execvp(str(path), sys.argv)
 else:
-    os.execvp("pysemgrep", sys.argv)
+    import semgrep.__main__
+    sys.exit(semgrep.__main__.main())
