@@ -93,7 +93,8 @@ repos:
 
           # some packages ship with type definitions
           - attrs~=21.3
-          - click~=8.0
+          # click 8.1.4's new decorator type hints don't seem to work well
+          - click<8.1.4
           - defusedxml~=0.7.1
           - packaging~=21.0
           - requests~=2.22
