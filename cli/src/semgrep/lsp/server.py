@@ -15,7 +15,6 @@ from semgrep.app import auth
 from semgrep.commands.login import make_login_url
 from semgrep.error import SemgrepError
 from semgrep.lsp.config import LSPConfig
-from semgrep.semgrep_core import compute_executable_path
 from semgrep.state import get_state
 from semgrep.types import JsonObject
 
@@ -30,19 +29,10 @@ class SemgrepCoreLSServer:
         self.std_writer = JsonRpcStreamWriter(sys.stdout.buffer)
         self.config = LSPConfig({})
         self.core_process: Optional[subprocess.Popen] = None
-        self.core_writer = JsonRpcStreamWriter(sys.stdout.buffer)
-        self.core_reader = JsonRpcStreamReader(sys.stdin.buffer)
         self.exit_code: int = 0
         self.polling: bool = True
 
     def start_ls(self) -> None:
-        path = compute_executable_path("osemgrep")
-        if not path:
-            self.notify_show_message(
-                1,
-                "Could not find osemgrep executable, exiting...",
-            )
-            return
         cmd = ["osemgrep", "lsp"]
         executable = str(self.config.engine_type.get_binary_path())
         self.core_process = subprocess.Popen(
