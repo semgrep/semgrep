@@ -12,9 +12,8 @@ type conf = {
   target_roots : Fpath.t list;
   targeting_conf : Find_targets.conf;
   core_runner_conf : Core_runner.conf;
-  logging_level : Logs.level option;
-  profile : bool;
   turbo : bool;
+  common : CLI_common.conf;
 }
 [@@deriving show]
 

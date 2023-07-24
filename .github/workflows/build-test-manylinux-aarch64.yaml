@@ -27,7 +27,7 @@ jobs:
       - name: Extract wheel from docker image
         run: |
           docker load --input /tmp/image.tar
-          docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} zip -r - dist > /tmp/dist.zip
+          docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} cat cli/dist.zip > /tmp/dist.zip
       - uses: actions/upload-artifact@v3
         with:
           name: manylinux-aarch64-wheel

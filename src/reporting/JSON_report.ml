@@ -299,7 +299,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
 let error_to_error err =
   let file = err.E.loc.pos.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
-  let rule_id = Option.map Rule.ID.to_string err.E.rule_id in
+  let rule_id = Option.map Rule_ID.to_string err.E.rule_id in
   let error_type = err.E.typ in
   let severity = E.severity_of_error err.E.typ in
   let message = err.E.msg in

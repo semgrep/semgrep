@@ -34,6 +34,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* This can be captured in Run_semgrep.ml *)
 exception File_timeout
 
+(* TODO make this one of the Semgrep_error_code exceptions *)
+exception Multistep_rules_not_available
+exception Postprocessor_rules_not_available
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -100,9 +103,12 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | (`Step _ | `Secrets _)->
+           | `Secrets _ ->
+             pr2 (Rule.show_rule r);
+             raise Postprocessor_rules_not_available
+           | `Steps _ ->
                pr2 (Rule.show_rule r);
-               raise Common.Todo)
+               raise Multistep_rules_not_available)
   in
   (* Taint rules are only relevant to each other if they are meant to be
      analyzing the same language.
@@ -201,9 +207,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
                      match_hook xconf xtarget
-               | `Step _ as mode ->
-                   pr2 (Rule.show_rule { r with mode });
-                   raise Common.Todo))
+               | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res = RP.collate_rule_results !!(xtarget.Xtarget.file) res_total in

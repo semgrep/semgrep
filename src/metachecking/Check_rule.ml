@@ -198,7 +198,7 @@ let check r =
     check_formula { r; errors = ref [] } r.languages.target_analyzer f
   | `Secrets _ -> (* TODO *) []
   | `Taint _ -> (* TODO *) []
-  | `Step _ -> (* TODO *) []
+  | `Steps _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =

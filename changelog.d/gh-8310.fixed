@@ -1,1 +1,0 @@
-Fixed error where we were not filtering the logging of a new third party library.
