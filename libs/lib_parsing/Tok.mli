@@ -68,7 +68,7 @@ val pp_full_token_info : bool ref
  * are actually not automatically derived; Tok.ml provides customized
  * behavior where we assume all tokens are equal.
  * This is used by Semgrep in AST_generic and Raw_tree to be able to
-q * check for equality of big AST constructs (e.g., complex expressions) by not
+ * check for equality of big AST constructs (e.g., complex expressions) by not
  * caring about differences in token positions.
  *)
 type t_always_equal = t [@@deriving show, eq, hash]

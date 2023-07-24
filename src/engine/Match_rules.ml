@@ -103,7 +103,7 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | `Step _ ->
+           | `Steps _ ->
                pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
   in
@@ -204,7 +204,7 @@ let check ~match_hook ~timeout ~timeout_threshold (xconf : Match_env.xconfig)
                    Match_search_mode.check_rule
                      { r with mode = `Search extract_spec.R.formula }
                      match_hook xconf xtarget
-               | `Step _ -> raise Multistep_rules_not_available))
+               | `Steps _ -> raise Multistep_rules_not_available))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   let res = RP.collate_rule_results !!(xtarget.Xtarget.file) res_total in

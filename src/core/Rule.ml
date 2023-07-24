@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-module G = AST_generic
 module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -33,10 +32,12 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (*****************************************************************************)
 
 (* This is similar to what we do in AST_generic to get precise
- * error location when a rule is malformed.
+ * error location when a rule is malformed (and also to get some
+ * special equality and hashing; see the comment for Tok.t_always_equal
+ *in Tok.mli)
  *)
-type tok = AST_generic.tok [@@deriving show, eq, hash]
-type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
+type tok = Tok.t_always_equal [@@deriving show, eq, hash]
+type 'a wrap = 'a * tok [@@deriving show, eq, hash]
 
 (* To help report pattern errors in the playground *)
 type 'a loc = {
@@ -78,10 +79,6 @@ type formula =
    *)
   | Inside of tok * formula
 
-(* Represents all of the metavariables that are being focused by a single
-   `focus-metavariable`. *)
-and focus_mv_list = tok * MV.mvar list
-
 (* The conjunction must contain at least
  * one positive "term" (unless it's inside a CondNestedFormula, in which
  * case there is not such a restriction).
@@ -118,26 +115,10 @@ and metavar_cond =
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
 and metavar_analysis_kind = CondEntropy | CondReDoS
-[@@deriving show, eq, hash]
 
-(* TODO? store also the compiled glob directly? but we preprocess the pattern
- * in Filter_target.filter_paths, so we would need to recompile it anyway,
- * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
- *)
-type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
-[@@deriving show]
-
-type paths = {
-  (* If not empty, list of file path patterns (globs) that
-   * the file path must at least match once to be considered for the rule.
-   * Called 'include' in our doc but really it is a 'require'.
-   * TODO? use wrap? to also get location of include/require field?
-   *)
-  require : glob list;
-  (* List of file path patterns we want to exclude. *)
-  exclude : glob list;
-}
-[@@deriving show]
+(* Represents all of the metavariables that are being focused by a single
+   `focus-metavariable`. *)
+and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -264,35 +245,35 @@ let get_sink_requires { sink_requires = _, expr; _ } =
 (* Extract mode (semgrep as a preprocessor) *)
 (*****************************************************************************)
 
-type extract_spec = {
+type extract = {
   formula : formula;
-  reduce : extract_reduction;
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
   extract : MV.mvar;
   extract_rule_ids : extract_rule_ids option;
+  (* map/reduce *)
   transform : extract_transform;
+  reduce : extract_reduction;
 }
 
-(* SR wants to be able to choose rules to run on
-   Behaves the same as paths *)
+(* SR wants to be able to choose rules to run on.
+   Behaves the same as paths. *)
 and extract_rule_ids = {
   required_rules : Rule_ID.t wrap list;
   excluded_rules : Rule_ID.t wrap list;
 }
-
-(* Method to combine extracted ranges within a file:
-    - either treat them as separate files; or
-    - concatentate them together
-*)
-and extract_reduction = Separate | Concat [@@deriving show]
 
 (* Method to transform extracted content:
     - either treat them as a raw string; or
     - transform JSON array into a raw string
 *)
 and extract_transform = NoTransform | Unquote | ConcatJsonArray
-[@@deriving show]
+
+(* Method to combine extracted ranges within a file:
+    - either treat them as separate files; or
+    - concatentate them together
+*)
+and extract_reduction = Separate | Concat [@@deriving show]
 
 (*****************************************************************************)
 (* Languages definition *)
@@ -360,28 +341,55 @@ type languages = {
 [@@deriving show]
 
 (*****************************************************************************)
+(* Paths *)
+(*****************************************************************************)
+
+(* TODO? store also the compiled glob directly? but we preprocess the pattern
+ * in Filter_target.filter_paths, so we would need to recompile it anyway,
+ * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
+ *)
+type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
+[@@deriving show]
+
+(* TODO? should we provide a pattern-path: Xpattern to combine
+ * with other Xpattern instead of adhoc paths: extra field in the rule?
+ *)
+type paths = {
+  (* If not empty, list of file path patterns (globs) that
+   * the file path must at least match once to be considered for the rule.
+   * Called 'include' in our doc but really it is a 'require'.
+   * TODO? use wrap? to also get location of include/require field?
+   *)
+  require : glob list;
+  (* List of file path patterns we want to exclude. *)
+  exclude : glob list;
+}
+[@@deriving show]
+
+(*****************************************************************************)
 (* Shared mode definitions *)
 (*****************************************************************************)
 
 (* Polymorhic variants used to improve type checking of rules (see below) *)
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract ] [@@deriving show]
+
+(* Step mode includes rules that use search_mode and taint_mode *)
+(* Later, if we keep it, we might want to make all rules have steps,
+   but for the experiment this is easier to remove *)
+type steps_mode = [ `Steps of step list ] [@@deriving show]
 
 (*****************************************************************************)
-(* Step mode *)
+(* Steps mode *)
 (*****************************************************************************)
-
-type mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
-
-type step = {
+and step = {
   step_mode : mode_for_step;
   step_languages : languages;
   step_paths : paths option;
 }
-[@@deriving show]
 
-type steps = step list [@@deriving show]
+and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)
@@ -412,21 +420,8 @@ type 'mode rule_info = {
 and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
-(* Step mode includes rules that use search_mode and taint_mode *)
-(* Later, if we keep it, we might want to make all rules have steps,
-   but for the experiment this is easier to remove *)
-type step_mode = [ `Step of steps ] [@@deriving show]
-
-type mode = [ search_mode | taint_mode | extract_mode | step_mode ]
+type mode = [ search_mode | taint_mode | extract_mode | steps_mode ]
 [@@deriving show]
-
-(* If you know your function accepts only a certain kind of rule,
- * you can use those precise types below.
- *)
-type search_rule = search_mode rule_info [@@deriving show]
-type taint_rule = taint_mode rule_info [@@deriving show]
-type extract_rule = extract_mode rule_info [@@deriving show]
-type step_rule = step_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
@@ -436,6 +431,14 @@ type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 type hrules = (Rule_ID.t, t) Hashtbl.t
 
+(* If you know your function accepts only a certain kind of rule,
+ * you can use those precise types below.
+ *)
+type search_rule = search_mode rule_info [@@deriving show]
+type taint_rule = taint_mode rule_info [@@deriving show]
+type extract_rule = extract_mode rule_info [@@deriving show]
+type steps_rule = steps_mode rule_info [@@deriving show]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -444,7 +447,7 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list * step_rule list =
+    search_rule list * taint_rule list * extract_rule list * steps_rule list =
   let rec part_rules search taint extract step = function
     | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev step)
     | r :: l -> (
@@ -455,7 +458,7 @@ let partition_rules (rules : rules) :
             part_rules search ({ r with mode = t } :: taint) extract step l
         | `Extract _ as e ->
             part_rules search taint ({ r with mode = e } :: extract) step l
-        | `Step _ as j ->
+        | `Steps _ as j ->
             part_rules search taint extract ({ r with mode = j } :: step) l)
   in
   part_rules [] [] [] [] rules

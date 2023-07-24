@@ -1625,7 +1625,7 @@ let parse_step_fields env key (value : G.expr) : R.step =
   in
   { step_languages; step_paths; step_mode }
 
-let parse_steps env key (value : G.expr) : R.steps =
+let parse_steps env key (value : G.expr) : R.step list =
   let parse_step step = parse_step_fields env key step in
   match value.G.e with
   | G.Container (Array, (_, xs, _)) -> Common.map parse_step xs
@@ -1670,9 +1670,10 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
+  (* TODO? should we use "mode: steps" instead? *)
   | Some ("step", _), _ ->
       let steps = take rule_dict env parse_steps "steps" in
-      `Step steps
+      `Steps steps
   | Some key, _ ->
       error_at_key env.id key
         (spf
