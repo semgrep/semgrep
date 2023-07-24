@@ -145,6 +145,11 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry_empty_table",
         ),
+        # This test should produce a parse error in the manifest file, but it should *still* produce findings, because the lockfile can be parsed
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/manifest_parse_error",
+        ),
     ],
 )
 def test_dependency_aware_rules(
