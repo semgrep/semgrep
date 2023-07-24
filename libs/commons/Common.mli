@@ -40,15 +40,6 @@ val ( =:= ) : bool -> bool -> bool
 val ( =*= ) : 'a -> 'a -> bool
 
 (*****************************************************************************)
-(* Comparison *)
-(*****************************************************************************)
-
-val compare_string : string -> string -> int
-val compare_int : int -> int -> int
-val compare_bool : bool -> bool -> int
-val compare_list : ('a -> 'a -> int) -> 'a list -> 'a list -> int
-
-(*****************************************************************************)
 (* Printing/debugging *)
 (*****************************************************************************)
 (* see also Dumper.ml *)
@@ -164,7 +155,7 @@ val split : string (* sep regexp *) -> string -> string list
  * Ideally 'filename' should be a different type like in Scala with the
  * Path module: https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
  *)
-type filename = string [@@deriving show, eq, compare]
+type filename = string [@@deriving show, eq, ord]
 
 (*
    Check that the file exists and produce a valid absolute path for the file.

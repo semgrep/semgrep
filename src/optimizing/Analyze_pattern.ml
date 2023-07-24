@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -33,19 +33,10 @@ open AST_generic
  *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
  *  - the Semgrep.ml engine to skip entire files!
- *
- * TODO:
- *  - extract identifiers, and basic strings
- *  - TODO extract filenames in import
  *)
 
 (*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-let _error s = failwith s
-
-(*****************************************************************************)
-(* Extractions *)
+(* Entry points *)
 (*****************************************************************************)
 
 let extract_strings_and_mvars ?lang any =

@@ -80,7 +80,10 @@ let error env t s =
 (*****************************************************************************)
 
 let unknown_metavar_in_comparison env f =
-  let mvar_is_ok mv mvs = Set.mem mv mvs in
+  let mvar_is_ok mv mvs =
+    (* TODO: remove when we kill numeric capture groups *)
+    Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
+  in
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
     | P { pat; pstr = pstr, _; pid = _pid } ->

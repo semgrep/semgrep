@@ -150,6 +150,9 @@ type t = {
   (* Preprocess comments away to facilitate matching with spacegrep. *)
   ?generic_comment_style: generic_comment_style option;
 
+  (* Whether a rule should be considered for interfile analysis. *)
+  ~interfile <ocaml default="false"> : bool;
+
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
    *)

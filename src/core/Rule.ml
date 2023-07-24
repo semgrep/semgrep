@@ -90,7 +90,8 @@ end = struct
   let compare = String.compare
 
   let ends_with r ~suffix:inc_or_exc_rule =
-    r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
+    r = inc_or_exc_rule
+    || Stdcompat.String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
 end
 
 type rule_id = ID.t [@@deriving show, eq]
@@ -122,6 +123,9 @@ type 'a loc = {
  * negation in the presence of metavariables.
  *
  * less? enforce invariant that Not can only appear in And?
+ *
+ * We use 'deriving hash' for formula because of the
+ * Match_tainting_mode.Formula_tbl formula cache.
  *)
 type formula =
   | P of Xpattern.t (* a leaf pattern *)
@@ -216,7 +220,7 @@ type precondition =
   | PAnd of precondition list
   | POr of precondition list
   | PNot of precondition
-[@@deriving show, compare]
+[@@deriving show, ord]
 
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
@@ -706,3 +710,22 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
     paths = None;
     metadata = None;
   }
+
+(* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
+   serialise the rule into JSON format, then produce the hash from this
+   serialisation. However, there is no way (yet?) to serialise OCaml [Rule.t]s
+   into JSON format. It exists, however, a path where we should be able to
+   serialize a [Rule.t] via [ppx] (or by hands). It requires more work because
+   we must have a way to serialize all types required by [Rule.t] but the
+   propagation of a [ppx] such as [ppx_deriving.show] demonstrates that it's
+   possible to implement such function.
+
+   Actually, we tried to use [Marshal] and produce a hash from the /marshalled/
+   output but [Rule.t] contains some custom blocks that the [Marshal] module can
+   not handle.
+
+   Currently, we did the choice to **only** hash the [ID.t] of the given rule
+   which is clearly not enough comparing to the Python code. But, again, we can
+   improve that by serialize everything and compute a hash from it. *)
+let sha256_of_rule rule =
+  Digestif.SHA256.digest_string (ID.to_string (fst rule.id))

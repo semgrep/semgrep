@@ -92,6 +92,8 @@ let setup_logging ~force_color ~level =
          | "ca-certs"
          | "bos"
          | "happy-eyeballs.lwt"
+         | "http_lwt_client"
+         | "http_lwt_unix"
          | "mirage-crypto-rng.lwt"
          | "mirage-crypto-rng-lwt"
          | "mirage-crypto-rng.unix"

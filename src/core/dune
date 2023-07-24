@@ -6,6 +6,7 @@
  (name semgrep_core)
  (wrapped false)
  (libraries
+   stdcompat
    str
    yaml
    atdgen-runtime
@@ -28,8 +29,8 @@
      ppx_profiling
      ppx_deriving.show
      ppx_deriving.eq
+     ppx_deriving.ord
      ppx_hash
-     ppx_compare
      visitors.ppx
    )
  )

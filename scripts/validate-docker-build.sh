@@ -25,7 +25,7 @@ EOF
 
 image=$default_image
 if [[ $# -gt 0 ]]; then
-  if [[ $# -gt 1 ]]; then
+  if [[ $# -gt 2 ]]; then
     error "too many arguments"
   fi
   case "$1" in
@@ -38,27 +38,43 @@ if [[ $# -gt 0 ]]; then
   esac
 fi
 
-# Running just the image should print help without error.
-docker run "$image"
+platform=${2:-}
 
-# Random valid shell commands should run ok
-docker run "$image" echo -l -a -t -r -v -e -f
+docker_args=()
 
-# Semgrep should run when a config is passed
-docker run "$image" semgrep --config=p/ci --help
+if [[ -n $platform ]]; then
+  docker_args+=(--platform "$platform")
+fi
 
-# Semgrep should run when just help is requested
-docker run "$image" semgrep --help
+echo "Running just the image should print help without error"
+docker run "${docker_args[@]}" "$image"
+echo " -> OK"
 
-# Semgrep should run when a subcommand is passed
-docker run "$image" semgrep ci --help
-docker run "$image" semgrep publish --help
+echo "Random valid shell commands should run ok"
+docker run "${docker_args[@]}" "$image" echo -l -a -t -r -v -e -f
+echo " -> OK"
 
-# Semgrep should be able to return findings
-echo "if 1 == 1: pass" \
-    | docker run -i "$image" semgrep -l python -e '$X == $X' - \
-    | grep -q "1 == 1"
+echo "Semgrep should run when a config is passed"
+docker run "${docker_args[@]}" "$image" semgrep --config=p/ci --help
+echo " -> OK"
 
+echo "Semgrep should run when just help is requested"
+docker run "${docker_args[@]}" "$image" semgrep --help
+echo " -> OK"
+
+echo "Semgrep should run when a subcommand is passed"
+docker run "${docker_args[@]}" "$image" semgrep ci --help
+docker run "${docker_args[@]}" "$image" semgrep publish --help
+echo " -> OK"
+
+echo "Semgrep should be able to return findings (stdin)"
+result=$(echo "if 1 == 1: pass" | docker run "${docker_args[@]}" -i "$image" semgrep -l python -e '$X == $X' -)
+echo "${result}" | grep -q "1 == 1"
+echo " -> OK"
+
+echo "Semgrep should be able to return findings (file)"
 TEMP_DIR=$(mktemp -d)
 echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
-docker run -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"
+result=$(docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X')
+echo "${result}" | grep -q "1 == 1"
+echo " -> OK"

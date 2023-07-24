@@ -66,7 +66,12 @@ def foo_contents() -> str:
 
 
 def get_rule_match(
-    filepath="foo.py", start_line=3, end_line=3, rule_id="rule_id", metavars=None
+    filepath="foo.py",
+    start_line=3,
+    end_line=3,
+    rule_id="rule_id",
+    metavars=None,
+    metadata=None,
 ) -> RuleMatch:
     return RuleMatch(
         message="message",
@@ -84,6 +89,7 @@ def get_rule_match(
             ),
         ),
         extra={"metavars": metavars if metavars else {}},
+        metadata=metadata if metadata else {},
     )
 
 
@@ -161,3 +167,55 @@ def test_line_hashes_hash_correct_line(mocker, double_eqeq_rule, foo_contents):
     assert matches[1].start_line_hash != matches[1].end_line_hash
     assert matches[0].start_line_hash == matches[1].end_line_hash
     assert matches[0].end_line_hash == matches[1].start_line_hash
+
+
+@pytest.mark.quick
+def test_same_code_hash_for_previous_scan_finding(mocker, foo_contents):
+    """
+    For the reliable fixed status work, we start sending rules run during the previous
+    scan too.
+
+    As the engine can't process two rules with same rule.id, we override the rule.id for
+    previous scan findings with something unique. However, we store the original rule.id
+    in the metadata.
+
+    Before computing the match_based_id, we fetch the rule.id from the metadata and use
+    it to compute the match_based_id.
+
+    This test ensures that the match_based_id for the previous scan finding is same as
+    the match_based_id for the current scan finding.
+    """
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
+    curr_scan_metadata = {
+        "semgrep.dev": {
+            "rule": {
+                "rule_id": "rule_id",
+                "version_id": "version1",
+                "url": "https://semgrep.dev/r/python.eqeq-five",
+                "shortlink": "https://sg.run/abcd",
+            },
+            "src": "unchanged",
+        }
+    }
+    prev_scan_metadata = {
+        "semgrep.dev": {
+            "rule": {
+                "rule_id": "rule_idversion1",
+                "version_id": "version1",
+                "url": "https://semgrep.dev/r/python.eqeq-five",
+                "shortlink": "https://sg.run/abcd",
+                "rule_name": "rule_id",
+            },
+            "src": "previous-scan",
+        }
+    }
+    curr_scan_match = get_rule_match(
+        start_line=3, end_line=3, metadata=curr_scan_metadata, rule_id="rule_id"
+    )
+    prev_scan_match = get_rule_match(
+        start_line=3, end_line=3, metadata=prev_scan_metadata, rule_id="rule_idversion1"
+    )
+    assert curr_scan_match.syntactic_id == prev_scan_match.syntactic_id
+    assert curr_scan_match.match_based_id == prev_scan_match.match_based_id
+    assert curr_scan_match.code_hash == prev_scan_match.code_hash
+    assert prev_scan_match.pattern_hash == prev_scan_match.pattern_hash

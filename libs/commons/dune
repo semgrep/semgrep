@@ -2,6 +2,7 @@
  (public_name commons)
  (wrapped false)
  (libraries
+   stdcompat
    str
    unix
    fpath
@@ -17,7 +18,7 @@
    re
    pcre
    parmap
-   digestif.c
+   digestif.ocaml
  )
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
@@ -25,7 +26,6 @@
      ppx_deriving.show
      ppx_deriving.eq
      ppx_deriving.ord
-     ppx_compare
      ppx_hash
    )
  )

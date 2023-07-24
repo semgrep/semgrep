@@ -1,0 +1,1 @@
+Updated semgrep-interfaces, changed `api_scans_findings` to `ci_scan_results`, removed `gitlab_token` field and added `ignores` and `renamed_paths` field to `ci_scan_results`.

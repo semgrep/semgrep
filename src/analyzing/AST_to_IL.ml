@@ -1223,7 +1223,7 @@ and stmt_aux env st =
                  obj_lval with
                  rev_offset = [ { o = Dot cons'; oorig = NoOrig } ];
                })
-            (SameAs (N cons |> G.e))
+            (SameAs (G.N cons |> G.e))
           (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
            * looks at the eorig, but maybe it shouldn't? *)
         in

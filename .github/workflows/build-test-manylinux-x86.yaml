@@ -15,23 +15,22 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts-release
-      - run: tar xf ocaml-build-artifacts.tgz
       #pad: Why do we have this weird setup python step?
       - name: Setup Python
         run: |
           rm /usr/bin/python
           ln `which python3.7` /usr/bin/python3
       - run: apt-get update && apt install -y zip musl-tools
-      - env:
-          # Relative because build-wheels does a 'cd semgrep'
-          SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
-        run: ./scripts/build-wheels.sh
+      - uses: actions/download-artifact@v3
+        with:
+          name: ocaml-build-artifacts-release
+      - run: |
+          tar xf ocaml-build-artifacts.tgz
+          cp ocaml-build-artifacts/bin/semgrep-core cli/src/semgrep/bin
+          ./scripts/build-wheels.sh
       - uses: actions/upload-artifact@v3
         with:
-          name: manylinux-wheel
+          name: manylinux-x86-wheel
           path: cli/dist.zip
 
   test-wheels-manylinux:
@@ -41,8 +40,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v1
         with:
-          name: manylinux-wheel
-      - run: unzip ./manylinux-wheel/dist.zip
+          name: manylinux-x86-wheel
+      - run: unzip ./manylinux-x86-wheel/dist.zip
       - name: install package
         run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
       - name: test package

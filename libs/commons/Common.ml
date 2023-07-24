@@ -67,23 +67,6 @@ let ( =*= ) = ( = )
 let ( = ) = String.equal
 
 (*****************************************************************************)
-(* Comparison *)
-(*****************************************************************************)
-
-(* To use `ppx_compare`, it's necessary to have `Ppx_compare_lib.Builtin
-   functions available. This means that we would have to open
-   Ppx_compare_lib.Builtin everywhere it's used. I personally find
-   that annoying so I prefer to copy them through Common *)
-
-module C = Ppx_compare_lib.Builtin
-
-(* Add more as necessary *)
-let compare_string = C.compare_string
-let compare_int = C.compare_int
-let compare_bool = C.compare_bool
-let compare_list = C.compare_list
-
-(*****************************************************************************)
 (* Debugging/logging *)
 (*****************************************************************************)
 
@@ -756,7 +739,7 @@ let null_string s = s = ""
 
 (* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
 type filename = string (* TODO could check that exist :) type sux *)
-[@@deriving show, eq, compare]
+[@@deriving show, eq, ord]
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s

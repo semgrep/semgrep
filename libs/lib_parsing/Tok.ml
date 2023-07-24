@@ -63,7 +63,7 @@ type location = {
    *)
   pos : Pos.t;
 }
-[@@deriving show { with_path = false }, eq, compare]
+[@@deriving show { with_path = false }, eq, ord]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
@@ -114,7 +114,7 @@ type t =
    * polluate in debug mode.
    *)
   | Ab
-[@@deriving show { with_path = false }, eq]
+[@@deriving show { with_path = false }, eq, ord]
 
 type t_always_equal = t [@@deriving show]
 
@@ -291,6 +291,30 @@ let combine_toks x xs =
   let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
   tok_add_s str x
 
+let empty_tok_after tok : t =
+  match loc_of_tok tok with
+  | Ok loc ->
+      let prev_len = String.length loc.str in
+      let loc =
+        {
+          str = "";
+          pos =
+            {
+              loc.pos with
+              charpos = loc.pos.charpos + prev_len;
+              column = loc.pos.column + prev_len;
+            };
+        }
+      in
+      tok_of_loc loc
+  | Error _ -> rewrap_str "" tok
+
+let combine_bracket_contents (open_, xs, _close) =
+  let toks = Common.map snd xs in
+  match toks with
+  | x :: xs -> combine_toks x xs
+  | [] -> empty_tok_after open_
+
 let split_tok_at_bytepos pos ii =
   let loc = unsafe_loc_of_tok ii in
   let str = loc.str in
@@ -436,17 +460,17 @@ let compare_pos ii1 ii2 =
   let pos1 = get_pos ii1 in
   let pos2 = get_pos ii2 in
   match (pos1, pos2) with
-  | Real p1, Real p2 -> compare p1.pos.charpos p2.pos.charpos
+  | Real p1, Real p2 -> Int.compare p1.pos.charpos p2.pos.charpos
   | Virt (p1, _), Real p2 ->
-      if compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
+      if Int.compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
   | Real p1, Virt (p2, _) ->
-      if compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
+      if Int.compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
   | Virt (p1, o1), Virt (p2, o2) -> (
       let poi1 = p1.pos.charpos in
       let poi2 = p2.pos.charpos in
-      match compare poi1 poi2 with
+      match Int.compare poi1 poi2 with
       | -1 -> -1
-      | 0 -> compare o1 o2
+      | 0 -> Int.compare o1 o2
       | 1 -> 1
       | _ -> raise Impossible)
 

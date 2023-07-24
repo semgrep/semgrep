@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
- * Copyright (C) 2019, 2020 r2c
+ * Copyright (C) 2019-2023 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -79,15 +79,11 @@ let match_sts_sts rule a b env =
        * a sequence of statements pattern (AST_generic.Ss) to match all
        * the rest, we don't want to report the whole Ss as a match but just
        * the actually matched subset.
-       *
-       * TODO? do we need to generate unique key? we don't want
-       * nested calls to m_stmts_deep to pollute our metavar? We need
-       * to pass the key to m_stmts_deep?
        *)
       let env =
         match b with
         | [] -> env
-        | stmt :: _ -> MG.extend_stmts_match_span stmt env
+        | stmt :: _ -> MG.extend_stmts_matched stmt env
       in
       GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
   [@@profiling]
@@ -148,14 +144,14 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
 let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
     any x =
   rules
-  |> List.iter (fun (pattern, rule, cache) ->
-         let env = MG.empty_environment cache lang config in
+  |> List.iter (fun (pattern, rule) ->
+         let env = MG.empty_environment lang config in
          let matches_with_env = matcher rule pattern x env in
          if matches_with_env <> [] then
            (* Found a match *)
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
-                  let env = env.mv.full_env in
+                  let mv = env.mv in
                   match AST_generic_helpers.range_of_any_opt (any x) with
                   | None ->
                       (* TODO: Report a warning to the user? *)
@@ -172,7 +168,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                         {
                           PM.rule_id;
                           file;
-                          env;
+                          env = mv;
                           range_loc;
                           tokens;
                           taint_trace = None;
@@ -186,6 +182,12 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                       hook pm));
   (* try the rules on substatements and subexpressions *)
   k x
+
+let location_stmts stmts =
+  AST_generic_helpers.range_of_any_opt (AST_generic.Ss stmts)
+
+let list_original_tokens_stmts stmts =
+  AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -244,28 +246,23 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            (* less: normalize the pattern? *)
            let any = rule.MR.pattern in
            let any = Apply_equivalences.apply equivs lang any in
-           let cache =
-             if !Flag.with_opt_cache then Some (Caching.Cache.create ())
-             else None
-           in
            (* Annotate exp, stmt, stmts patterns with the rule strings *)
            let push_with_annotation _any pattern rules =
-             Common.push (pattern, rule, cache) rules
+             Common.push (pattern, rule) rules
            in
            match any with
            | E pattern -> push_with_annotation any pattern expr_rules
            | S pattern -> push_with_annotation any pattern stmt_rules
            | Ss pattern -> push_with_annotation any pattern stmts_rules
-           | T pattern -> Common.push (pattern, rule, cache) type_rules
-           | P pattern -> Common.push (pattern, rule, cache) pattern_rules
-           | At pattern -> Common.push (pattern, rule, cache) attribute_rules
-           | Fld pattern -> Common.push (pattern, rule, cache) fld_rules
-           | Flds pattern -> Common.push (pattern, rule, cache) flds_rules
-           | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
-           | Name pattern -> Common.push (pattern, rule, cache) name_rules
-           | Raw pattern -> Common.push (pattern, rule, cache) raw_rules
-           | XmlAt pattern ->
-               Common.push (pattern, rule, cache) xml_attribute_rules
+           | T pattern -> Common.push (pattern, rule) type_rules
+           | P pattern -> Common.push (pattern, rule) pattern_rules
+           | At pattern -> Common.push (pattern, rule) attribute_rules
+           | Fld pattern -> Common.push (pattern, rule) fld_rules
+           | Flds pattern -> Common.push (pattern, rule) flds_rules
+           | Partial pattern -> Common.push (pattern, rule) partial_rules
+           | Name pattern -> Common.push (pattern, rule) name_rules
+           | Raw pattern -> Common.push (pattern, rule) raw_rules
+           | XmlAt pattern -> Common.push (pattern, rule) xml_attribute_rules
            | Args _
            | Params _
            | Xmls _
@@ -303,22 +300,20 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            * against an expression recursively
            *)
           !expr_rules
-          |> List.iter (fun (pattern, rule, cache) ->
+          |> List.iter (fun (pattern, rule) ->
                  match AST_generic_helpers.range_of_any_opt (E x) with
                  | None ->
                      logger#error "Skipping because we lack range info: %s"
                        (show_expr_kind x.e);
                      ()
                  | Some range_loc when range_filter range_loc ->
-                     let env =
-                       MG.empty_environment ~mvar_context cache lang config
-                     in
+                     let env = MG.empty_environment ~mvar_context lang config in
                      let matches_with_env = match_e_e rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let env = env.mv.full_env in
+                              let mv = env.mv in
                               let tokens =
                                 lazy (AST_generic_helpers.ii_of_any (E x))
                               in
@@ -327,7 +322,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 {
                                   PM.rule_id;
                                   file;
-                                  env;
+                                  env = mv;
                                   range_loc;
                                   tokens;
                                   taint_trace = None;
@@ -359,14 +354,14 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            *)
           let visit_stmt () =
             !stmt_rules
-            |> List.iter (fun (pattern, rule, cache) ->
-                   let env = MG.empty_environment cache lang config in
+            |> List.iter (fun (pattern, rule) ->
+                   let env = MG.empty_environment lang config in
                    let matches_with_env = match_st_st rule pattern x env in
                    if matches_with_env <> [] then
                      (* Found a match *)
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
-                            let env = env.mv.full_env in
+                            let mv = env.mv in
                             match
                               AST_generic_helpers.range_of_any_opt (S x)
                             with
@@ -386,7 +381,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   {
                                     PM.rule_id;
                                     file;
-                                    env;
+                                    env = mv;
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
@@ -410,30 +405,28 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            * in matches_with_env here.
            *)
           !stmts_rules
-          |> List.iter (fun (pattern, rule, cache) ->
+          |> List.iter (fun (pattern, rule) ->
                  Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
-                     let env = MG.empty_environment cache lang config in
+                     let env = MG.empty_environment lang config in
                      let matches_with_env = match_sts_sts rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let span = env.stmts_match_span in
-                              match Stmts_match_span.location span with
+                              let matched = env.stmts_matched in
+                              match location_stmts matched with
                               | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let env = env.mv.full_env in
+                                  let mv = env.mv in
                                   let tokens =
-                                    lazy
-                                      (Stmts_match_span.list_original_tokens
-                                         span)
+                                    lazy (list_original_tokens_stmts matched)
                                   in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   let pm =
                                     {
                                       PM.rule_id;
                                       file;
-                                      env;
+                                      env = mv;
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
@@ -502,31 +495,29 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
              fields, we allow it to match to fields.
           *)
           !stmts_rules
-          |> List.iter (fun (pattern, rule, cache) ->
+          |> List.iter (fun (pattern, rule) ->
                  Profiling.profile_code "Semgrep_generic.kfields" (fun () ->
                      let x = Common.map (fun (F x) -> x) x in
-                     let env = MG.empty_environment cache lang config in
+                     let env = MG.empty_environment lang config in
                      let matches_with_env = match_sts_sts rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
-                              let span = env.stmts_match_span in
-                              match Stmts_match_span.location span with
+                              let matched = env.stmts_matched in
+                              match location_stmts matched with
                               | None -> () (* empty sequence or bug *)
                               | Some range_loc ->
-                                  let env = env.mv.full_env in
+                                  let mv = env.mv in
                                   let tokens =
-                                    lazy
-                                      (Stmts_match_span.list_original_tokens
-                                         span)
+                                    lazy (list_original_tokens_stmts matched)
                                   in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   let pm =
                                     {
                                       PM.rule_id;
                                       file;
-                                      env;
+                                      env = mv;
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
