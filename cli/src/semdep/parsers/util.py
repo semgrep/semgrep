@@ -341,6 +341,9 @@ def safe_parse_lockfile_and_manifest(
     lockfile_to_parse: DependencyFileToParse[A],
     manifest_to_parse: Optional[DependencyFileToParse[B]],
 ) -> Tuple[Optional[A], Optional[B], List[DependencyParserError]]:
+    """
+    Parse a lockfile and a manifest file, returning the results along with a list of errors that occurred in either parser
+    """
     errors = []
     parsed_manifest = parse_dependency_file(manifest_to_parse)
     parsed_lockfile = parse_dependency_file(lockfile_to_parse)
