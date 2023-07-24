@@ -62,7 +62,11 @@ OLD_LOCKFILE_PARSERS = {
 }
 
 NEW_LOCKFILE_PARSERS: Dict[
-    str, Callable[[Path, Optional[Path]], List[FoundDependency]]
+    str,
+    Callable[
+        [Path, Optional[Path]],
+        Tuple[List[FoundDependency], List[DependencyParserError]],
+    ],
 ] = {
     "requirements.txt": parse_requirements,  # Python
     "requirements3.txt": parse_requirements,  # Python
@@ -117,7 +121,7 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
 
 def parse_lockfile_path(
     lockfile_path: Path,
-) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
 
@@ -133,7 +137,7 @@ def parse_lockfile_path(
 @lru_cache(maxsize=1000)
 def _parse_lockfile_path_helper(
     lockfile_path: Path, file_changed_timestamp: float
-) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
 
@@ -144,11 +148,7 @@ def _parse_lockfile_path_helper(
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
-
-        try:
-            return (parse_lockfile(lockfile_path, manifest_path), None)
-        except DependencyParserError as e:
-            return ([], e)
+        return parse_lockfile(lockfile_path, manifest_path)
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         lockfile_text = lockfile_path.read_text()
@@ -160,7 +160,7 @@ def _parse_lockfile_path_helper(
         try:
             return (
                 list(OLD_LOCKFILE_PARSERS[lockfile_name](lockfile_text, manifest_text)),
-                None,
+                [],
             )
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
@@ -169,7 +169,7 @@ def _parse_lockfile_path_helper(
             console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
-                DependencyParserError(lockfile_path, ParserName.cargo, str(e)),
+                [DependencyParserError(lockfile_path, ParserName.cargo, str(e))],
             )
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")
