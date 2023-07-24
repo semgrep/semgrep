@@ -34,7 +34,7 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (* This is similar to what we do in AST_generic to get precise
  * error location when a rule is malformed (and also to get some
  * special equality and hashing; see the comment for Tok.t_always_equal
- *in Tok.mli)
+ * in Tok.mli)
  *)
 type tok = Tok.t_always_equal [@@deriving show, eq, hash]
 type 'a wrap = 'a * tok [@@deriving show, eq, hash]
@@ -375,9 +375,10 @@ type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract ] [@@deriving show]
 
-(* Step mode includes rules that use search_mode and taint_mode *)
-(* Later, if we keep it, we might want to make all rules have steps,
-   but for the experiment this is easier to remove *)
+(* Steps mode includes rules that use search_mode and taint_mode.
+ * Later, if we keep it, we might want to make all rules have steps,
+ * but for the experiment this is easier to remove.
+ *)
 type steps_mode = [ `Steps of step list ] [@@deriving show]
 
 (*****************************************************************************)
