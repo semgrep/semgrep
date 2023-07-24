@@ -398,7 +398,7 @@ type paths = {
 (* Polymorhic variants used to improve type checking of rules (see below) *)
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract ] [@@deriving show]
 type secrets_mode = [ `Secrets of secrets_spec ] [@@deriving show]
 
 (* Steps mode includes rules that use search_mode and taint_mode.
@@ -450,7 +450,7 @@ and severity = Error | Warning | Info | Inventory | Experiment
 (* Step mode includes rules that use search_mode and taint_mode *)
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
-type step_mode = [ `Step of steps ] [@@deriving show]
+type step_mode = [ `Step of step ] [@@deriving show]
 
 type mode = [ search_mode | taint_mode | extract_mode | secrets_mode | step_mode ]
 [@@deriving show]
@@ -471,14 +471,6 @@ type rule = mode rule_info [@@deriving show]
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 type hrules = (Rule_ID.t, t) Hashtbl.t
-
-(* If you know your function accepts only a certain kind of rule,
- * you can use those precise types below.
- *)
-type search_rule = search_mode rule_info [@@deriving show]
-type taint_rule = taint_mode rule_info [@@deriving show]
-type extract_rule = extract_mode rule_info [@@deriving show]
-type steps_rule = steps_mode rule_info [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)

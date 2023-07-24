@@ -669,13 +669,9 @@ let extracted_targets_of_config (config : Runner_config.t)
         | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
         | `Search _
         | `Taint _
-<<<<<<< HEAD
         | `Step _
         | `Secrets _
           ->
-=======
-        | `Steps _ ->
->>>>>>> 15cc0be9d27d4a36558a72a4ca77029f5339c16a
             None)
       all_rules
   in
@@ -776,7 +772,7 @@ let semgrep_with_rules ?match_hook config
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
                     match r.R.mode with
-                    | (`Extract _ | `Secrets _ )-> false
+                    | (`Extract _ | `Secrets _ ) -> false
                     | `Search _
                     | `Taint _
                     | `Steps _ ->
