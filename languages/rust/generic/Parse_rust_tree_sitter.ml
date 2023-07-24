@@ -99,9 +99,14 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
      arguments, so we produce a single `Any`, which is `Args`.
      Note that <expr> can also occur once with no commas, or zero times.
   *)
-  let macro_item_to_arg = function
-    | MacAny (G.E e) -> Some (G.Arg e)
-    | MacAny (G.I e) -> Some (G.Arg (G.N (G.Id (e, G.empty_id_info ())) |> G.e))
+  (* `change_expr` is needed for if we end up parsing a prefix operator like
+   * or &, and we need to modify the next expression. This doesn't associate
+   * properly to the expression itself, so we need to do a little parsing of our own.
+   *)
+  let macro_item_to_arg ~change_expr = function
+    | MacAny (G.E e) -> Some (G.Arg (change_expr e))
+    | MacAny (G.I e) ->
+        Some (G.Arg (G.N (G.Id (e, G.empty_id_info ())) |> G.e |> change_expr))
     | MacAny (G.Ar arg) -> Some arg
     | MacAny _
     | MacTreeBis _
@@ -111,7 +116,7 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
   let rec try_as_normal_args = function
     | [] -> Some []
     | [ mac ] ->
-        let* arg = macro_item_to_arg mac in
+        let* arg = macro_item_to_arg ~change_expr:Fun.id mac in
         Some [ arg ]
     (* For now, we just directly case on the token to see if its a comma.
        This is a fragile approach, because I'm a little suspicious and I
@@ -121,10 +126,29 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
        It's also a lot more work to bring this information over from
        when we first parse the token.
     *)
-    | mac :: MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
-        let* arg = macro_item_to_arg mac in
-        let* args = try_as_normal_args rest in
+    | MacAny (G.Tk (Tok.OriginTok { str; _ } as tk)) :: mac :: rest ->
+        (* Here, we instantiate the `change_expr` function, which will
+         * modify any enclosed expression.
+         * We may extend this if there are more prefix operators that are
+         * important to allow within macros.
+         *)
+        let* change_expr =
+          match str with
+          | "&" -> Some (fun e -> Ref (tk, e) |> G.e)
+          | "*" -> Some (fun e -> DeRef (tk, e) |> G.e)
+          | _ -> None
+        in
+        let* arg = macro_item_to_arg ~change_expr mac in
+        let* args = try_as_normal_args' rest in
         Some (arg :: args)
+    | mac :: rest ->
+        let* arg = macro_item_to_arg ~change_expr:Fun.id mac in
+        let* args = try_as_normal_args' rest in
+        Some (arg :: args)
+  and try_as_normal_args' = function
+    | [] -> Some []
+    | MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
+        try_as_normal_args rest
     | _ -> None
   in
   match try_as_normal_args xs with
