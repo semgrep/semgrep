@@ -12,7 +12,7 @@ function foo() {
 
     # ok:test
     bar();
-    
+
     return 1;
 }
 ?>

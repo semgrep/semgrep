@@ -173,7 +173,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.32.0"
+let version = "1.33.1"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -605,7 +605,8 @@ and id_info = {
      exist in the source of the target.
   *)
   id_hidden : bool; [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
-  id_case_insensitive : bool; [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
+  id_case_insensitive : bool;
+      [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
@@ -2183,8 +2184,8 @@ let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?hidden ?(attrs = []) ?(tparams = []) id =
-  let idinfo = empty_id_info ?hidden () in
+let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?(tparams = []) id =
+  let idinfo = empty_id_info ?hidden ?case_insensitive () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)
