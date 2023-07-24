@@ -363,20 +363,28 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 [@@deriving show]
 
 (*****************************************************************************)
-(* Secrets mode *)
+(* secrets mode *)
 (*****************************************************************************)
 
-(*TODO: actualy figure this out*)
+type request_spec = {
+  url : Uri.t;
+  meth : [`GET | `POST];
+  headers : (string * string) list
+}
+[@@deriving show]
+
+type response_sepc = {
+  return_code : int;
+}
+[@@deriving show]
+
 type secrets_spec = {
-  (* secrets: *)
+  (* postprocessor-patterns: *)
   secrets : formula list;
   (* request: *)
-  url : string;
-  method_ : string;
-  headers : (string * string) list;
+  request : request_spec;
   (* response: *)
-  return_code : int;
-  (*...TODO...*)
+  response : response_sepc
 }
 [@@deriving show]
 (*****************************************************************************)
