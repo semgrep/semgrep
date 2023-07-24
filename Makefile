@@ -199,6 +199,13 @@ core-test:
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
+# This is for working on one or a few specific test cases.
+# It rebuilds the test executable which can then be called with
+# './test <filter>' where <filter> selects the tests to run.
+.PHONY: build-core-test
+build-core-test:
+	dune build ./_build/default/src/tests/test.exe
+
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
 core-e2etest:

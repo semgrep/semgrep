@@ -71,7 +71,7 @@ manifest = (
 
 gradle = (
     string(PREFIX)
-    >> (dep | (string("empty=") >> consume_line))
+    >> (dep | (regex("empty=[^\n]*").result(None)))
     .sep_by(string("\n"))
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()

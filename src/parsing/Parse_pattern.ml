@@ -50,6 +50,7 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
       normalize_any lang (G.Name name)
   | G.E { e = G.RawExpr x; _ } -> normalize_any lang (G.Raw x)
+  | G.E { e = G.StmtExpr s; _ } -> normalize_any lang (G.S s)
   | G.Raw (List [ x ]) -> normalize_any lang (G.Raw x)
   (* TODO: taken from ml_to_generic.ml:
    * | G.E {e = G.StmtExpr s; _} -> G.S s?

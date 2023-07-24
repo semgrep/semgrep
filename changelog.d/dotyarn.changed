@@ -1,0 +1,1 @@
+Targets in a `.yarn/` directory are now ignored by the default .semgrepignore patterns.

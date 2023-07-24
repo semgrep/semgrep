@@ -159,6 +159,56 @@ let remove_blank_prefix (x : string wrap) : string wrap =
       (Tok.content_of_tok tok, tok)
 
 (*****************************************************************************)
+(* Parsing bash *)
+(*****************************************************************************)
+
+type ellipsis_or_bash =
+  | Semgrep_ellipsis of tok
+  | Bash of AST_bash.blist option
+
+(* A plain ellipsis such as '...' (not e.g. '...;') is identified so
+   that we can treat it as special dockerfile syntax rather than bash
+   syntax.
+
+   Alternatively, this can be done be extending the tree-sitter-dockerfile
+   grammar.
+*)
+let is_plain_ellipsis =
+  let rex = SPcre.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
+  fun s ->
+    match SPcre.pmatch ~rex s with
+    | Ok res -> res
+    | Error _err -> false
+
+(* hack to obtain correct locations when parsing a string extracted from
+   a larger file. *)
+let shift_locations (str, tok) =
+  let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
+  let column (* 0-based *) = max 0 (Tok.col_of_tok tok) in
+  String.make line '\n' ^ String.make column ' ' ^ str
+
+let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
+  let input_kind, _ = env.extra in
+  match input_kind with
+  | Pattern when is_plain_ellipsis (fst shell_cmd) ->
+      Semgrep_ellipsis (snd shell_cmd)
+  | _ ->
+      let ts_res =
+        H.wrap_parser
+          (fun () ->
+            let str = shift_locations shell_cmd in
+            Tree_sitter_bash.Parse.string str)
+          (fun cst ->
+            let bash_env : Parse_bash_tree_sitter.env =
+              { env with extra = input_kind }
+            in
+            Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
+      in
+      (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
+         module of ocaml-tree-sitter-core. *)
+      Bash ts_res.program
+
+(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 
@@ -595,52 +645,6 @@ let label_pair (env : env) (x : CST.label_pair) : label_pair =
       let loc = (var_or_metavar_tok key, DLoc.docker_string_loc value |> snd) in
       Label_pair (loc, key, eq, value)
 
-(* hack to obtain correct locations when parsing a string extracted from
-   a larger file. *)
-let shift_locations (str, tok) =
-  let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
-  let column (* 0-based *) = max 0 (Tok.col_of_tok tok) in
-  String.make line '\n' ^ String.make column ' ' ^ str
-
-(* A plain ellipsis such as '...' (not e.g. '...;') is identified so
-   that we can treat it as special dockerfile syntax rather than bash
-   syntax.
-
-   Alternatively, this can be done be extending the tree-sitter-dockerfile
-   grammar.
-*)
-let is_plain_ellipsis =
-  let rex = SPcre.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
-  fun s ->
-    match SPcre.pmatch ~rex s with
-    | Ok res -> res
-    | Error _err -> false
-
-type ellipsis_or_bash =
-  | Semgrep_ellipsis of tok
-  | Bash of AST_bash.blist option
-
-let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
-  let input_kind, _ = env.extra in
-  match input_kind with
-  | Pattern when is_plain_ellipsis (fst shell_cmd) ->
-      Semgrep_ellipsis (snd shell_cmd)
-  | _ ->
-      let ts_res =
-        H.wrap_parser
-          (fun () ->
-            let str = shift_locations shell_cmd in
-            Tree_sitter_bash.Parse.string str)
-          (fun cst ->
-            let bash_env : Parse_bash_tree_sitter.env =
-              { env with extra = input_kind }
-            in
-            Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
-      in
-      (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
-         module of ocaml-tree-sitter-core. *)
-      Bash ts_res.program
-
 (* This is for reconstructing a shell snippet and preserve line/column
    location.
 *)
@@ -1033,7 +1037,7 @@ let source_file (env : env) (xs : CST.source_file) =
   List.rev instrs
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let parse file =

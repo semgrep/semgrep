@@ -1,3 +1,5 @@
+open Common
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -132,7 +134,7 @@ let partition_rules (filtered_rules : Rule.t list) =
       (fun r ->
         Common2.string_match_substring
           (Str.regexp "r2c-internal-cai")
-          (Rule.ID.to_string (fst r.Rule.id)))
+          (Rule_ID.to_string (fst r.Rule.id)))
       filtered_rules
   in
   let blocking_rules, non_blocking_rules =
@@ -213,7 +215,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
     ~(ignored_targets : Out.cli_skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =
-    Common.map (fun r -> Rule.ID.to_string (fst r.Rule.id)) rules
+    Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
   in
   (*
       we want date stamps assigned by the app to be assigned such that the
@@ -347,9 +349,13 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
    exit code. *)
 let run (conf : Ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:conf.force_color
-    ~level:conf.logging_level;
+    ~level:conf.common.logging_level;
   Metrics_.configure conf.metrics;
-  let settings = Semgrep_settings.load ~legacy:conf.legacy () in
+  let settings =
+    Semgrep_settings.load
+      ~legacy:(conf.common.maturity =*= Some CLI_common.Legacy)
+      ()
+  in
   let deployment =
     match (settings.api_token, conf.rules_source) with
     | None, Rules_source.Configs [] ->
@@ -578,7 +584,7 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                         List.exists
                           (fun r ->
                             String.equal "r2c-internal-project-depends-on"
-                              (Rule.ID.to_string (fst r.Rule.id)))
+                              (Rule_ID.to_string (fst r.Rule.id)))
                           filtered_rules
                       then
                         Logs.app (fun m ->

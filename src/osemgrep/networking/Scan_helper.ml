@@ -64,6 +64,34 @@ let extract_rule_config data =
   with
   | e -> Error ("Failed to decode config: " ^ Printexc.to_string e ^ ": " ^ data)
 
+let fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository =
+  let url = Semgrep_App.scan_config ~sca ~dry_run ~full_scan repository in
+  let%lwt content =
+    let headers =
+      [
+        ("Authorization", Fmt.str "Bearer %s" token);
+        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ]
+    in
+    let%lwt response = Http_helpers.get_async ~headers url in
+    let results =
+      match response with
+      | Ok _ as r -> r
+      | Error msg ->
+          Error
+            (Printf.sprintf "Failed to download config from %s: %s"
+               (Uri.to_string url) msg)
+    in
+    Lwt.return results
+  in
+  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
+  let conf =
+    match content with
+    | Error _ as e -> e
+    | Ok content -> extract_rule_config content
+  in
+  Lwt.return conf
+
 let fetch_scan_config ~token ~sca ~dry_run ~full_scan repository =
   (* TODO (see below): once we have the CLI logic in place to ignore findings that are from old rule versions
      if self.dry_run:
@@ -74,20 +102,8 @@ let fetch_scan_config ~token ~sca ~dry_run ~full_scan repository =
        # CLI logic in place to ignore findings that are from old rule versions
        # app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
   *)
-  let url = Semgrep_App.scan_config ~sca ~dry_run ~full_scan repository in
-  let content =
-    let headers = [ ("authorization", "Bearer " ^ token) ] in
-    match Http_helpers.get ~headers url with
-    | Ok _ as r -> r
-    | Error msg ->
-        Error
-          (Printf.sprintf "Failed to download config from %s: %s"
-             (Uri.to_string url) msg)
-  in
-  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
-  match content with
-  | Error _ as e -> e
-  | Ok content -> extract_rule_config content
+  Lwt_main.run
+    (fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repository)
 
 let report_failure ~dry_run ~token ~scan_id exit_code =
   if dry_run then (

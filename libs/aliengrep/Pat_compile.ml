@@ -135,14 +135,19 @@ let end_of_line_pat = {|(?:\z|(?=\r?\n))|}
    Because of this limitation and because we need backtracking when matching
    an ellipsis followed by a specific node, this pattern must remain inline.
 *)
-let ellipsis_pat_of_spacing_param ~excluded_brace sp =
+let ellipsis_pat_of_spacing_param ?(with_whitespace_padding = false)
+    ~excluded_brace sp =
   let exclude_char =
     match excluded_brace with
     | None -> ""
     | Some c -> sprintf {|(?!%s)|} (Pcre.quote (String.make 1 c))
   in
-  sprintf {|(?: %s(?&%s)(?:%s%s(?&%s))*? )??|} exclude_char sp.node_name
-    sp.whitespace_pat exclude_char sp.node_name
+  if with_whitespace_padding then
+    sprintf {|(?: %s %s (?: (?&%s) %s)*? )??|} sp.whitespace_pat exclude_char
+      sp.node_name sp.whitespace_pat
+  else
+    sprintf {|(?: %s (?&%s) (?: %s %s (?&%s))*? )??|} exclude_char sp.node_name
+      sp.whitespace_pat exclude_char sp.node_name
 
 let ellipsis_pat ~excluded_brace param =
   ellipsis_pat_of_spacing_param ~excluded_brace param.ellipsis
@@ -317,8 +322,8 @@ let to_regexp (conf : Conf.t) (ast : Pat_AST.t) =
       |> Common.map (fun (open_, close) ->
              sprintf {|%s%s%s|}
                (String.make 1 open_ |> Pcre_util.quote)
-               (ellipsis_pat_of_spacing_param ~excluded_brace:(Some close)
-                  sparam)
+               (ellipsis_pat_of_spacing_param ~with_whitespace_padding:true
+                  ~excluded_brace:(Some close) sparam)
                (String.make 1 close |> Pcre_util.quote))
       |> String.concat "\n  | ")
   in

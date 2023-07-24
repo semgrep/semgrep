@@ -3,9 +3,6 @@
    to another type of tree.
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27-32"]
-
 open Common
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
@@ -25,7 +22,7 @@ let str = H.str
 
 (* This is used where we incorrectly support an ellipsis instead of
    just a metavariable. *)
-let fresh_metavariable_name =
+let _fresh_metavariable_name =
   let counter = ref 0 in
   let get () =
     let n =
@@ -40,7 +37,7 @@ let fresh_metavariable_name =
    Replace the last element of a list.
    This is usually a sign that something wasn't done right.
 *)
-let map_last l f =
+let _map_last l f =
   match List.rev l with
   | [] -> []
   | last :: other -> List.rev (f last :: other)
@@ -81,7 +78,7 @@ let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
   let term_loc = AST_bash_loc.wrap_loc term in
   let rec add_to blist : blist =
     match blist with
-    | Seq (loc, a, b) -> if is_empty_blist b then add_to a else blist
+    | Seq (_loc, a, b) -> if is_empty_blist b then add_to a else blist
     | Pipelines (loc, pipelines) ->
         let pipelines =
           replace_last pipelines (fun pip ->
@@ -137,11 +134,11 @@ let unary_test_operator (env : env) (tok : ts_tok) : unary_test_operator wrap =
     | "-N" -> Was_modified_since_last_read
     | "-O" -> Is_owned_by_effective_user_id
     | "-S" -> Is_socket
-    | other -> Other_unary_test_operator
+    | _other -> Other_unary_test_operator
   in
   (op, tok)
 
-let binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
+let _binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
   let s, tok = str env tok in
   let op =
     match s with
@@ -159,22 +156,22 @@ let binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
     | "-le" -> Int_lesser_equal
     | "-gt" -> Int_greater_than
     | "-ge" -> Int_greater_equal
-    | other -> Other_binary_test_operator
+    | _other -> Other_binary_test_operator
   in
   (op, tok)
 
-let string_content (env : env) (tok : CST.string_content) : string wrap =
+let _string_content (env : env) (tok : CST.string_content) : string wrap =
   str env tok
 
-let simple_heredoc_body (env : env) (tok : CST.simple_heredoc_body) :
+let _simple_heredoc_body (env : env) (tok : CST.simple_heredoc_body) :
     string wrap =
   str env tok
 
-let ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
+let _ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
   (* pattern "\\$'([^']|\\\\')*'" *)
   str env tok
 
-let variable_name (env : env) (tok : CST.variable_name) : string wrap =
+let _variable_name (env : env) (tok : CST.variable_name) : string wrap =
   str env tok
 
 let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
@@ -184,15 +181,15 @@ let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
   | `LF tok -> (Foreground Fg_newline, token env tok (* "\n" *))
   | `AMP tok -> (Background, token env tok (* "&" *))
 
-let empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
-let file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
+let _empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
+let _file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
 
 (* file_descriptor *)
 
-let concat (_env : env) (_tok : CST.concat) : unit = ()
+let _concat (_env : env) (_tok : CST.concat) : unit = ()
 
 (* -e, -z, etc. *)
-let test_operator (env : env) (tok : CST.test_operator) : string wrap =
+let _test_operator (env : env) (tok : CST.test_operator) : string wrap =
   str env tok
 
 let simple_variable_name (env : env) (x : CST.simple_variable_name) :
@@ -214,7 +211,7 @@ let special_variable_name (env : env) (x : CST.special_variable_name) :
     | `X_0 tok -> str env tok (* "0" *)
     | `X__ tok -> (* "_" *) str env tok)
 
-let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
+let _heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
   token env tok
 
 let word (env : env) (tok : CST.word) : expression =
@@ -229,19 +226,19 @@ let extended_word (env : env) (x : CST.extended_word) =
   | `Semg_meta tok -> Var_semgrep_metavar (str env tok)
   | `Word tok -> Simple_variable_name (str env tok)
 
-let heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
+let _heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
 
-let raw_string (env : env) (tok : CST.raw_string) : string wrap =
+let _raw_string (env : env) (tok : CST.raw_string) : string wrap =
   (* pattern "'[^']*'" *)
   str env tok
 
-let regex (env : env) (tok : CST.regex) = token env tok
-let heredoc_body_end (env : env) (tok : CST.heredoc_body_end) = token env tok
+let _regex (env : env) (tok : CST.regex) = token env tok
+let _heredoc_body_end (env : env) (tok : CST.heredoc_body_end) = token env tok
 
-let heredoc_body_middle (env : env) (tok : CST.heredoc_body_middle) =
+let _heredoc_body_middle (env : env) (tok : CST.heredoc_body_middle) =
   token env tok
 
-let special_character (env : env) (tok : CST.special_character) : string wrap =
+let _special_character (env : env) (tok : CST.special_character) : string wrap =
   str env tok
 
 let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
@@ -267,7 +264,7 @@ let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
         | `BANG tok -> Special_variable_name (str env tok (* "!" *))
         | `HASH tok -> Special_variable_name (str env tok (* "#" *))
       in
-      let name_s, name_tok = variable_name_wrap var_name in
+      let _name_s, name_tok = variable_name_wrap var_name in
       let loc = (dollar_tok, name_tok) in
       match env.extra with
       | Pattern -> (
@@ -324,7 +321,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
   match x with
   | `Exp_choice_EQ_exp (v1, v2, v3) ->
       let left = expression env v1 in
-      let op =
+      let _opTODO =
         match v2 with
         | `EQ tok -> token env tok (* "=" *)
         | `EQEQ tok -> token env tok (* "==" *)
@@ -640,7 +637,7 @@ and expression (env : env) (x : CST.expression) : test_expression =
       (* This is a construct valid in arithmetic mode only. *)
       let cond = expression env v1 in
       let _v2 = token env v2 (* "?" *) in
-      let branch1 = expression env v3 in
+      let _branch1TODO = expression env v3 in
       let _v4 = token env v4 (* ":" *) in
       let branch2 = expression env v5 in
       let start, _ = AST_bash_loc.test_expression_loc cond in
@@ -836,7 +833,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
           let loc = AST_bash_loc.string_fragment_loc frag in
           String_fragment (loc, frag)
       | `Str_expa (v1, v2) ->
-          let dollar = token env v1 (* "$" *) in
+          let _dollarTODO = token env v1 (* "$" *) in
           let e =
             match v2 with
             | `Str x ->
@@ -901,7 +898,8 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
       | None -> cmd
       | Some op ->
           let _, end_ = AST_bash_loc.wrap_loc op in
-          let loc2 = (fst loc, end_) in
+          (* TODO? should use loc2 below? martin? *)
+          let _loc2 = (fst loc, end_) in
           Control_operator (loc, cmd, op))
 
 (*
@@ -1108,7 +1106,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let for_ = token env v1 (* "for" *) in
-      let header_open_ = token env v2 (* "((" *) in
+      let _header_open_ = token env v2 (* "((" *) in
       let _x () =
         match v3 with
         | Some x -> expression env x
@@ -1126,13 +1124,13 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> expression env x
         | None -> todo env ()
       in
-      let header_close = token env v8 (* "))" *) in
+      let _header_close = token env v8 (* "))" *) in
       let _x () =
         match v9 with
         | Some tok -> token env tok (* ";" *)
         | None -> todo env ()
       in
-      let body_open, body, body_close =
+      let _body_open, body, body_close =
         match v10 with
         | `Do_group x -> do_group env x
         | `Comp_stmt x -> compound_statement env x
@@ -1401,7 +1399,7 @@ and test_command (env : env) (v1 : CST.test_command) : command =
       Bash_test (loc, (open_, e, close))
   | `LPARLPAR_exp_RPARRPAR (v1, v2, v3) ->
       let open_ = token env v1 (* "((" *) in
-      let e = expression env v2 in
+      let _eTODO = expression env v2 in
       let close = token env v3 (* "))" *) in
       let loc = (open_, close) in
       Arithmetic_expression (loc, (open_, TODO loc, close))
@@ -1467,7 +1465,7 @@ and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
       Empty_expression loc
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let parse file =

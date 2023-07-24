@@ -23,6 +23,12 @@ val rules_from_rules_source :
 
 (* internals *)
 
+val rules_from_dashdash_config_async :
+  token_opt:Auth.token option ->
+  registry_caching:bool ->
+  Semgrep_dashdash_config.config_kind ->
+  rules_and_origin list Lwt.t
+
 (* [rules_from_dashdash_config] returns a list of rules_and_origin
  * because the [config_kind] can be a [Dir], in which case we return one
  * rules_and_origin per files in this folder.

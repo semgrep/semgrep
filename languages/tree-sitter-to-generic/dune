@@ -13,7 +13,6 @@
    tree-sitter-lang.dart
    tree-sitter-lang.hack
    tree-sitter-lang.html
-   tree-sitter-lang.promql
    tree-sitter-lang.vue
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))

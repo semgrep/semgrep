@@ -1,0 +1,19 @@
+rules:
+  - id: taint-rust-returns
+    message: Semgrep found a match
+    languages:
+      - rust
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-inside: |
+              fn $FUNC(...) -> $RET {
+                ...
+              }
+          - pattern: |
+              source
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              return ...

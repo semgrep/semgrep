@@ -1,5 +1,5 @@
 type conf = {
-  exclude_rule_ids : Rule.rule_id list;
+  exclude_rule_ids : Rule_ID.t list;
   severity : Severity.rule_severity list;
 }
 [@@deriving show]

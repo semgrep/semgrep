@@ -492,7 +492,7 @@ let translate_formula iformula =
 
 let mk_fake_rule lang formula =
   {
-    Rule.id = (Rule.ID.of_string "-i", fk);
+    Rule.id = (Rule_ID.of_string "-i", fk);
     mode = `Search formula;
     (* alt: could put xpat.pstr for the message *)
     message = "";
@@ -1229,7 +1229,7 @@ let interactive_loop ~turbo xlang xtargets =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run (conf : Interactive_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:false ~level:conf.logging_level;
+  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let targets, _skipped =
     Find_targets.get_targets conf.targeting_conf conf.target_roots
   in
