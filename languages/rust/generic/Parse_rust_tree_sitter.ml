@@ -156,8 +156,11 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
         let* arg = macro_item_to_arg ~change_expr:Fun.id mac in
         let* args = try_as_normal_args' rest in
         Some (arg :: args)
+  (* This function just deals with immediately after consuming an arg.
+   *)
   and try_as_normal_args' = function
     | [] -> Some []
+    | [ MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) ] -> None
     | MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
         try_as_normal_args rest
     | _ -> None
