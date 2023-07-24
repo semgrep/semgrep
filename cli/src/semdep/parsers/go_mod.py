@@ -13,10 +13,12 @@ from semdep.external.parsy import alt
 from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -73,13 +75,16 @@ go_mod = (
 
 def parse_go_mod(
     lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    specs = safe_path_parse(lockfile_path, go_mod, ParserName.go_mod)
-    if not specs:
-        return []
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, go_mod, ParserName.go_mod), None
+    )
+    if not parsed_lockfile:
+        return [], errors
     exclude = set()
     output = []
-    for dir, data in specs:
+    for dir, data in parsed_lockfile:
         if dir == "exclude":
             for ((_, dep), _) in data:
                 if dep:
@@ -102,4 +107,4 @@ def parse_go_mod(
                             resolved_url=package,  # Go package names are URLs
                         )
                     )
-    return [d for d in output if (d.package, d.version) not in exclude]
+    return [d for d in output if (d.package, d.version) not in exclude], errors
