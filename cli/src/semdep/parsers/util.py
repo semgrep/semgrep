@@ -12,8 +12,6 @@ causing no runtime errors.
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
-from enum import auto
-from enum import Enum
 from pathlib import Path
 from re import escape
 from typing import Callable
@@ -38,11 +36,14 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semgrep.console import console
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -52,25 +53,6 @@ B = TypeVar("B")
 C = TypeVar("C")
 
 Pos = Tuple[int, int]
-
-
-class ParserName(Enum):
-    gemfile_lock = auto()
-    go_mod = auto()
-    go_sum = auto()
-    gradle_lockfile = auto()
-    gradle_build = auto()
-    jsondoc = auto()
-    pipfile = auto()
-    pnpm_lock = auto()
-    poetry_lock = auto()
-    pyproject_toml = auto()
-    requirements = auto()
-    yarn_1 = auto()
-    yarn_2 = auto()
-    pomtree = auto()
-    cargo = auto()
-    composer_lock = auto()
 
 
 def not_any(*chars: str) -> "Parser[str]":
@@ -237,34 +219,10 @@ def parse_error_to_str(e: ParseError) -> str:
 
 
 @dataclass
-class DependencyParserError(Exception):
-    """
-    Encapsulate failure to parse file using parsy
-    """
-
-    path: Path
-    parser: ParserName
-    reason: str
-    line: Optional[int] = None
-    col: Optional[int] = None
-    text: Optional[str] = None
-
-    def to_json(self) -> Dict[str, Union[Optional[str], Optional[int]]]:
-        return {
-            "path": str(self.path),
-            "parser": self.parser.name,
-            "reason": self.reason,
-            "line": self.line,
-            "col": self.col,
-            "text": self.text,
-        }
-
-
-@dataclass
 class DependencyFileToParse(Generic[A]):
     path: Path
     parser: Union["Parser[A]", Callable[[str], A]]
-    parser_name: ParserName
+    parser_name: ScaParserName
     preprocessor: Callable[[str], str] = lambda ξ: ξ  # noqa: E731
 
 
@@ -294,13 +252,13 @@ def parse_dependency_file(
 
     except YAMLError as e:
         return DependencyParserError(
-            file_to_parse.path, file_to_parse.parser_name, str(e)
+            file_to_parse.path.name, file_to_parse.parser_name, str(e)
         )
     except RecursionError:
         reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
         console.print(f"Failed to parse {file_to_parse.path} - {reason}")
         return DependencyParserError(
-            file_to_parse.path, file_to_parse.parser_name, reason
+            str(file_to_parse.path), file_to_parse.parser_name, reason
         )
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
@@ -322,18 +280,18 @@ def parse_dependency_file(
                 f"{' ' * (col + len(line_prefix))}^"
             )
             return DependencyParserError(
-                file_to_parse.path,
+                str(file_to_parse.path),
                 file_to_parse.parser_name,
                 error_str,
-                line + 1,
-                col + 1,
+                line,
+                col,
                 offending_line,
             )
         else:
             reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
             console.print(f"Failed to parse {location} - {reason}")
             return DependencyParserError(
-                file_to_parse.path, file_to_parse.parser_name, reason, line + 1, col + 1
+                str(file_to_parse.path), file_to_parse.parser_name, reason, line, col
             )
 
 
