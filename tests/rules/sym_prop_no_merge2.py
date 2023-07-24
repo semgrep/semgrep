@@ -2,15 +2,15 @@ def test1():
     if cond():
         y = f(x)
         # ruleid: test
-        x = g(y)
+        z = g(y)
     # OK:
-    return x
+    return z
 
 def test2():
     while cond():
         y = f(x)
         # ruleid: test
-        x = g(y)
+        z = g(y)
     # OK:
-    return x
+    return z
 

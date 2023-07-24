@@ -8,6 +8,10 @@
  * Note that 'Time_limit.set_timeout' cannot be nested. *)
 let svalue_prop_FIXPOINT_TIMEOUT = 0.1
 
+(* Bounds the number of times that we will follow an 'id_svalue' during
+ * a cycle check. See 'Dataflow_svalue.no_cycles_in_svalue'. *)
+let svalue_prop_MAX_VISIT_SYM_IN_CYCLE_CHECK = 1000
+
 (*****************************************************************************)
 (* Taint analysis *)
 (*****************************************************************************)
