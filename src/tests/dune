@@ -19,11 +19,11 @@
     semgrep.synthesizing
     semgrep.reporting
     semgrep.engine
-    semgrep.language_server
     parser_python.menhir parser_python.ast_generic
     semgrep.data
 
     osemgrep_targeting
+    osemgrep_language_server
   )
  (preprocess
    (pps

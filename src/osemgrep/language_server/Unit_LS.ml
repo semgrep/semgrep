@@ -2,32 +2,21 @@ open Lsp
 open Types
 open Testutil
 open File.Operators
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 module In = Input_to_core_t
 
 (** Try to test all of the more complex parts of the LS, but save the e2e stuff
     for the python side as testing there is easier *)
 
 let mock_session () =
-  let mock_config = Runner_config.default in
   let capabilities = ServerCapabilities.create () in
-  let session = Session.create capabilities mock_config in
+  let session = Session.create capabilities in
   session
 
-let set_session_targets (session : Session.t) files =
-  let target_mappings =
-    Common.map
-      (fun file ->
-        { In.path = file; language = L (Python, []); rule_nums = [] })
-      files
-  in
-  let targets : In.targets = { target_mappings; rule_ids = [] } in
-  let target_source = Some (Runner_config.Targets targets) in
-  let config = { session.config with target_source } in
-  { session with config }
+let set_session_targets (session : Session.t) folders =
+  { session with workspace_folders = folders }
 
-let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
-    =
+let mock_run_results (files : string list) : Core_runner.result =
   let pattern_string = "print(...)" in
   let lang = Lang.Python in
   let fk = Tok.unsafe_fake_tok "" in
@@ -37,41 +26,48 @@ let mock_run_results (files : string list) : Pattern_match.t list * Rule.t list
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
   let rule = { rule with id = (Rule_ID.of_string "print", fk) } in
-  let rule_id =
-    {
-      Pattern_match.id = fst rule.id;
-      message = rule.message;
-      languages = [ lang ];
-      fix = None;
-      pattern_string;
-    }
-  in
+  let hrules = Rule.hrules_of_rules [ rule ] in
+  let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let range_loc : Tok.location * Tok.location =
-      ( { str = ""; pos = { charpos = 0; line = 1; column = 0; file } },
+    let extra =
+      Out.
         {
-          str = "";
-          pos =
-            {
-              charpos = String.length "print(\"hello world\")";
-              line = 1;
-              column = 0;
-              file;
-            };
-        } )
+          message = Some "test";
+          metavars = [];
+          dataflow_trace = None;
+          rendered_fix = None;
+          engine_kind = `OSS;
+          extra_extra = None;
+        }
     in
-    {
-      Pattern_match.rule_id;
-      file;
-      range_loc;
-      tokens = Lazy.from_val [];
-      env = [];
-      taint_trace = None;
-      engine_kind = Pattern_match.OSS;
-    }
+    Out.
+      {
+        rule_id = "print";
+        location =
+          {
+            start = { line = 1; col = 1; offset = 1 };
+            end_ = { line = 1; col = 1; offset = 1 };
+            path = file;
+          };
+        extra;
+      }
   in
   let matches = Common.map match_of_file files in
-  (matches, [ rule ])
+  let core =
+    Out.
+      {
+        matches;
+        errors = [];
+        skipped_targets = None;
+        skipped_rules = None;
+        explanations = None;
+        time = None;
+        rules_by_engine = [];
+        engine_requested = `OSS;
+        stats = { okfiles = List.length files; errorfiles = 0 };
+      }
+  in
+  Core_runner.{ core; hrules; scanned }
 
 let mock_workspace ?(git = false) () =
   let rand_dir () =
@@ -97,12 +93,12 @@ let add_file ?(git = false) ?(dirty = false)
   file
 
 let session_targets () =
-  let test_session files expected workspace_folders only_git_dirty =
+  let test_session expected workspace_folders only_git_dirty =
     let session = mock_session () in
-    let session = { session with only_git_dirty; workspace_folders } in
-    let session = set_session_targets session files in
-    let { In.target_mappings; _ } = Session.targets session in
-    let targets = Common.map (fun target -> target.In.path) target_mappings in
+    let user_settings = { session.user_settings with only_git_dirty } in
+    let session = { session with user_settings; workspace_folders } in
+    let session = set_session_targets session workspace_folders in
+    let targets = session |> Session.targets |> Common.map Fpath.to_string in
     let targets = Common.sort targets in
     let expected = Common.sort expected in
     Alcotest.(check (list string)) "targets" expected targets
@@ -113,16 +109,15 @@ let session_targets () =
     let file2 = add_file workspace () in
     let files = [ file1; file2 ] in
     let expected = files in
-    test_session files expected [ workspace ] only_git_dirty
+    test_session expected [ workspace ] only_git_dirty
   in
   let test_git_dirty () =
     let workspace = mock_workspace ~git:true () in
-    let file1 = add_file ~git:true workspace () in
+    let _file1 = add_file ~git:true workspace () in
     let file2 = add_file ~git:true ~dirty:true workspace () in
     let file3 = add_file workspace () in
-    let files = [ file1; file2; file3 ] in
     let expected = [ file2; file3 ] in
-    test_session files expected [ workspace ] true
+    test_session expected [ workspace ] true
   in
   let test_multi_workspaces only_git_dirty () =
     let workspace1 = mock_workspace ~git:true () in
@@ -130,9 +125,8 @@ let session_targets () =
     let file1 = add_file ~git:true ~dirty:true workspace1 () in
     let file2 = add_file ~git:true ~dirty:true workspace2 () in
     let file3 = add_file ~git:true ~dirty:true workspace2 () in
-    let files = [ file1; file2; file3 ] in
-    let expected = files in
-    test_session files expected [ workspace1; workspace2 ] only_git_dirty
+    let expected = [ file1; file2; file3 ] in
+    test_session expected [ workspace1; workspace2 ] only_git_dirty
   in
   let test_multi_some_dirty only_git_dirty () =
     let workspace1 = mock_workspace ~git:true () in
@@ -140,9 +134,8 @@ let session_targets () =
     let file1 = add_file ~git:true ~dirty:true workspace1 () in
     let file2 = add_file ~git:false workspace2 () in
     let file3 = add_file ~git:false workspace2 () in
-    let files = [ file1; file2; file3 ] in
     let expected = [ file1; file2; file3 ] in
-    test_session files expected [ workspace1; workspace2 ] only_git_dirty
+    test_session expected [ workspace1; workspace2 ] only_git_dirty
   in
   let tests =
     [
@@ -164,15 +157,10 @@ let session_targets () =
 
 let processed_run () =
   let test_processed_run files expected only_git_dirty =
-    let matches, rules = mock_run_results files in
-    let hrules = Rule.hrules_of_rules rules in
-    let matches, _ =
-      Processed_run.of_matches ~only_git_dirty matches hrules
-        (File.Path.of_strings files)
-    in
+    let results = mock_run_results files in
+    let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches
-      |> Common.map (fun ((m, _) : Processed_run.t) -> m.Out.location.path)
+      matches |> Common.map (fun (m : Out.cli_match) -> m.path)
     in
     let final_files = Common.sort final_files in
     let expected = Common.sort expected in

@@ -6,6 +6,16 @@ val start_scan :
     is about to be started, and returns the scan id from the server. If
     [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
 
+val fetch_scan_config_async :
+  token:string ->
+  sca:bool ->
+  dry_run:bool ->
+  full_scan:bool ->
+  string ->
+  (string, string) result Lwt.t
+(** [fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repo] returns a promise of the rules
+    for the provided configuration. *)
+
 val fetch_scan_config :
   token:string ->
   sca:bool ->
