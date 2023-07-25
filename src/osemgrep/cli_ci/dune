@@ -8,7 +8,6 @@
     cmdliner
     commons
     emile
-    piaf ; TODO: figure out if this is actually needed
     osemgrep_configuring
     osemgrep_core
     osemgrep_networking
