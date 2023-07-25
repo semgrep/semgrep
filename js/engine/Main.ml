@@ -71,7 +71,17 @@ let _ =
          | Some lang -> Js.some (Js.string (Lang.to_lowercase_alnum lang))
          | None -> Js.null
 
-       method execute language rule_file root source_files : string =
+       (* Here we take in root, and source_files, where source_files are
+          the scan targets. Normally the playground will only scan one file
+          and have no use for roots. The pro engine can scan multiple files
+          and needs roots, so to keep the API consistent we have oss accept
+          a root and multiple source_files.
+       *)
+       (* coupling: This is similar to semgrep_with_rules, the main
+          difference being we prepare the rules and targets ourselves
+          since we have a narrow use case of running one rule file on
+          set files *)
+       method execute language rule_file _root source_files : string =
          let xlang = Xlang.of_string (Js.to_string language) in
          let rules_and_errors =
            Parse_rule.parse_and_filter_invalid_rules
@@ -103,7 +113,6 @@ let _ =
              Runner_config.default with
              rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
              output_format = Json false;
-             roots = [ Fpath.v (Js.to_string root) ];
              target_source = Some (Runner_config.Targets targets);
              matching_explanations = true;
            }
