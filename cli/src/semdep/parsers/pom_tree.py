@@ -16,13 +16,14 @@ from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import ParsedDependency
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pomtree
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
@@ -124,7 +125,7 @@ def parse_pom_tree(
     tree_path: Path, _: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(tree_path, pom_tree, ParserName.pomtree),
+        DependencyFileToParse(tree_path, pom_tree, ScaParserName(Pomtree())),
         None,
     )
     if not parsed_lockfile:
