@@ -74,7 +74,8 @@ pom_tree = (
     << string("\n").optional()
 )
 
-
+# Dictionaries are not hashable, so we need to convert them to objects which are
+# This will speed up the next iteration that takes place where we remove duplicates
 def dict_to_obj(d: Dict[str, Any]) -> ParsedDependency:
     return ParsedDependency(
         line_number=d["line_number"],
