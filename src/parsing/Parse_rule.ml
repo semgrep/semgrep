@@ -1727,6 +1727,9 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
+  (* TODO: change this mode name to something more descriptive + not intentionally
+   * ambigous sometime later.
+   *)
   | Some ("semgrep_internal_postprocessor", _), _ ->
       `Secrets (parse_secrets_fields env rule_dict)
   (* TODO? should we use "mode: steps" instead? *)
