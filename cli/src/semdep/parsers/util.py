@@ -16,6 +16,7 @@ from enum import auto
 from enum import Enum
 from pathlib import Path
 from re import escape
+from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Dict
@@ -38,6 +39,7 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semgrep.console import console
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -354,6 +356,38 @@ def safe_parse_lockfile_and_manifest(
         errors.append(parsed_lockfile)
         parsed_lockfile = None
     return parsed_lockfile, parsed_manifest, errors
+
+
+class ParsedDependency:
+    """
+    A dependency parsed from a lockfile
+    """
+
+    line_number: int
+    depth: int
+    transitivity: Transitivity
+    children: List[DependencyChild]
+    package: str
+    version: str
+
+    def __init__(
+        self,
+        line_number: int,
+        depth: int,
+        transitivity: Transitivity,
+        children: List[DependencyChild],
+        package: str,
+        version: str,
+    ) -> None:
+        self.line_number = line_number
+        self.depth = depth
+        self.transitivity = transitivity
+        self.children = children
+        self.package = package
+        self.version = version
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__dict__[key]
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
