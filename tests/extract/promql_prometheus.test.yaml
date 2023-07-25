@@ -1,0 +1,14 @@
+groups:
+- name: test
+  rules:
+  - alert: ExtractMeFirst
+    # ruleid: never-sum-then-rate
+    expr: rate(sum by (job) (http_requests_total{job="node"})[5m:])
+  - alert: ExtractMeSecond
+    expr: |
+      # ruleid: never-sum-then-rate
+      rate(sum by (job) (http_requests_total{job="node"})[5m:])
+  - alert: ExtractMeThird
+    expr: |-
+      # ruleid: never-sum-then-rate
+      rate(sum by (job) (http_requests_total{job="node"})[5m:])
