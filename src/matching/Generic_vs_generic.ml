@@ -2925,7 +2925,7 @@ and m_parameter a b =
           pattrs = [];
           pinfo = _;
         },
-      (OtherParam _ | ParamPattern _ | ParamReceiver _) )
+      (OtherParam _ | ParamPattern _ | ParamReceiver _ | Param _) )
     when Metavariable.is_metavar_name str ->
       envf (str, tok) (MV.Params [ b ])
   (* boilerplate *)
