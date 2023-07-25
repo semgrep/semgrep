@@ -669,7 +669,7 @@ let extracted_targets_of_config (config : Runner_config.t)
         | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
         | `Search _
         | `Taint _
-        | `Step _
+        | `Steps _
         | `Secrets _
           ->
             None)

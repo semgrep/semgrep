@@ -450,9 +450,8 @@ and severity = Error | Warning | Info | Inventory | Experiment
 (* Step mode includes rules that use search_mode and taint_mode *)
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
-type step_mode = [ `Step of step ] [@@deriving show]
 
-type mode = [ search_mode | taint_mode | extract_mode | secrets_mode | step_mode ]
+type mode = [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
 [@@deriving show]
 
 (* If you know your function accepts only a certain kind of rule,
@@ -462,7 +461,7 @@ type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
 type secrets_rule = secrets_mode rule_info [@@deriving show]
-type step_rule = step_mode rule_info [@@deriving show]
+type step_rule = steps_mode rule_info [@@deriving show]
 
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
@@ -493,7 +492,7 @@ let partition_rules (rules : rules) :
           part_rules search taint ({ r with mode = e } :: extract) secrets step l
         | `Secrets _ as s ->
           part_rules search taint extract ({r with mode = s} :: secrets) step l
-        | `Step _ as j ->
+        | `Steps _ as j ->
             part_rules search taint extract secrets ({ r with mode = j } :: step) l)
   in
   part_rules [] [] [] [] [] rules
