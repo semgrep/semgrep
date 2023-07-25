@@ -590,6 +590,7 @@ let resolve lang prog =
                     (* TODO handle nested destructuring? *)
                 | _ -> ())
               fields
+        | { name = EPattern (PatId (id, id_info)); _ }, VarDef { vinit; vtype }
         | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
         (* note that some languages such as Python do not have VarDef
          * construct
