@@ -17,13 +17,14 @@ from semdep.parsers.util import consume_line
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Requirements
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
 whitespace = whitespace | string("\\\n")
@@ -108,13 +109,13 @@ def parse_requirements(
         DependencyFileToParse(
             lockfile_path,
             requirements,
-            ParserName.requirements,
+            ScaParserName(Requirements()),
             preprocessors.CommentRemover(),
         ),
         DependencyFileToParse(
             manifest_path,
             requirements,
-            ParserName.requirements,
+            ScaParserName(Requirements()),
             preprocessors.CommentRemover(),
         )
         if manifest_path

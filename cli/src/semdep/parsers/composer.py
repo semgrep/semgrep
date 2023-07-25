@@ -13,12 +13,13 @@ from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ComposerLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.verbose_logging import getLogger
 
 # Instantiate logger
@@ -46,8 +47,8 @@ def parse_composer_lock(
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
 
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, json_doc, ParserName.composer_lock),
-        DependencyFileToParse(manifest_path, json_doc, ParserName.composer_lock)
+        DependencyFileToParse(lockfile_path, json_doc, ScaParserName(ComposerLock())),
+        DependencyFileToParse(manifest_path, json_doc, ScaParserName(ComposerLock()))
         if manifest_path
         else None,
     )
