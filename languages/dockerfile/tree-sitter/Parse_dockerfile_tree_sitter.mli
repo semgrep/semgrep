@@ -1,5 +1,8 @@
 (*
    Map tree-sitter-dockerfile CST to an AST.
+
+   Note that this relies on Parse_bash_tree_sitter.ml to parse
+   the bash constructs inside the Dockerfile.
 *)
 
 val parse :

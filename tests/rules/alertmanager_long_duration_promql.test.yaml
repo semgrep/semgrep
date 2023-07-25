@@ -1,0 +1,16 @@
+groups:
+- name: example
+  rules:
+  - alert: BadAlert
+    # ruleid: too-long-range-in-query
+    expr: sum_over_time(some_metric{foo="bar", bar="baz"}[1y]) > 0
+    labels:
+      severity: test
+    annotations:
+      summary: An alert that should be found because long range
+  - alert: GoodAlert
+    expr: increase(some_metric[10m]) > 0
+    labels:
+      severity: test
+    annotations:
+      summary: An harmless alert that should not be found

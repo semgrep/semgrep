@@ -7,12 +7,15 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -110,16 +113,22 @@ def parse_dependencies_field(
 
 def parse_package_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    lockfile_json_opt = safe_path_parse(lockfile_path, json_doc, ParserName.jsondoc)
-    if not lockfile_json_opt:
-        return []
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, json_doc, ParserName.jsondoc),
+        DependencyFileToParse(manifest_path, json_doc, ParserName.jsondoc)
+        if manifest_path
+        else None,
+    )
 
-    lockfile_json = lockfile_json_opt.as_dict()
+    if not parsed_lockfile:
+        return [], errors
+
+    lockfile_json = parsed_lockfile.as_dict()
 
     lockfile_version_opt = lockfile_json.get("lockfileVersion")
     if not lockfile_version_opt:
-        return []
+        return [], errors
 
     lockfile_version = lockfile_version_opt.as_int()
 
@@ -129,23 +138,22 @@ def parse_package_lock(
         deps = lockfile_json.get("packages")
         if deps is None:
             logger.debug("Found package-lock with no 'packages'")
-            return []
-        return parse_packages_field(deps.as_dict())
+            return [], errors
+        return parse_packages_field(deps.as_dict()), errors
     else:
         deps = lockfile_json.get("dependencies")
         if deps is None:
             logger.debug("Found package-lock with no 'dependencies'")
-            return []
+            return [], errors
 
-        manifest_json_opt = safe_path_parse(manifest_path, json_doc, ParserName.jsondoc)
-        if not manifest_json_opt:
+        if not parsed_manifest:
             manifest_deps = None
         else:
-            manifest_json = manifest_json_opt.as_dict()
+            manifest_json = parsed_manifest.as_dict()
             manifest_deps = (
                 set(manifest_json["dependencies"].as_dict().keys())
                 if "dependencies" in manifest_json
                 else set()
             )
 
-        return parse_dependencies_field(deps.as_dict(), manifest_deps, False)
+        return parse_dependencies_field(deps.as_dict(), manifest_deps, False), errors

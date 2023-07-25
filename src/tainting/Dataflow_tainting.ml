@@ -80,7 +80,7 @@ type a_propagator = {
 
 type config = {
   filepath : Common.filename;
-  rule_id : R.rule_id;
+  rule_id : Rule_ID.t;
   is_source : G.any -> R.taint_source tmatch list;
   is_propagator : AST_generic.any -> a_propagator tmatch list;
   is_sink : G.any -> R.taint_sink tmatch list;
@@ -722,7 +722,7 @@ let find_pos_in_actual_args args_taints fparams =
                (i + 1, rest))
          (0, remaining_params)
   in
-  fun (s, i) ->
+  fun ({ name = s; index = i } : Taint.arg_pos) ->
     let taint_opt =
       match
         (Hashtbl.find_opt name_to_taints s, Hashtbl.find_opt idx_to_taints i)
@@ -782,7 +782,7 @@ let fix_poly_taint_with_field env lval st =
                                     *   type info and we used to remove taint, e.g. if Boolean
                                     *   and integer expressions didn't propagate taint. *)
                                 List.length offset
-                                < Limits_semgrep.taint_MAX_LVAL_OFFSET ->
+                                < Limits_semgrep.taint_MAX_POLY_OFFSET ->
                              let arg' =
                                { arg with offset = arg.offset @ [ n ] }
                              in
@@ -884,7 +884,8 @@ let handle_taint_propagators env thing taints =
            I'll come back to this later.
         *)
         match
-          T.solve_precondition ~taints prop.spec.prop.propagator_requires
+          T.solve_precondition ~ignore_poly_taint:false ~taints
+            prop.spec.prop.propagator_requires
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
@@ -1320,8 +1321,8 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
     sig_arg.offset |> Common.map (fun x -> { o = Dot x; oorig = NoOrig })
   in
   let* lval, obj =
-    match sig_arg.pos with
-    | "<this>", -1 -> (
+    match sig_arg.base with
+    | BThis -> (
         match fun_exp with
         | {
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
@@ -1329,7 +1330,7 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
         } ->
             Some ({ base = Var obj; rev_offset = List.rev os }, obj)
         | __else__ -> None)
-    | pos -> (
+    | BArg pos -> (
         let* arg_exp = find_pos_in_actual_args args_exps fparams pos in
         match (arg_exp.e, sig_arg.offset) with
         | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
@@ -1368,9 +1369,9 @@ let lval_of_sig_arg fun_exp fparams args_exps (sig_arg : T.arg) =
 (* What is the taint denoted by 'sig_arg' ? *)
 let taints_of_sig_arg env fparams fun_exp args_exps args_taints
     (sig_arg : T.arg) =
-  match sig_arg.offset with
-  | [] when snd sig_arg.pos >= 0 (* not `this`/`self` *) ->
-      find_pos_in_actual_args args_taints fparams sig_arg.pos
+  match sig_arg with
+  | { base = BArg pos; offset = [] } ->
+      find_pos_in_actual_args args_taints fparams pos
   | __else__ ->
       (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'. *)
       let* lval, _obj = lval_of_sig_arg fun_exp fparams args_exps sig_arg in
@@ -1430,14 +1431,14 @@ let check_function_signature env fun_exp args args_taints =
                        let call_trace =
                          T.Call (eorig, t.tokens, src.call_trace)
                        in
-                       Some
-                         (`Return
-                           (Taints.singleton
-                              ({
-                                 orig = Src { src with call_trace };
-                                 tokens = [];
-                               }
-                              |> subst_in_precondition)))
+                       let* taint =
+                         {
+                           Taint.orig = Src { src with call_trace };
+                           tokens = [];
+                         }
+                         |> subst_in_precondition
+                       in
+                       Some (`Return (Taints.singleton taint))
                    | Arg arg ->
                        let* arg_taints = arg_to_taints arg in
                        (* Get the token of the function *)
@@ -1498,12 +1499,8 @@ let check_function_signature env fun_exp args args_taints =
                             taint signature will fail to realize that the taint of `source_a` is
                             going into `sink_of_a_and_b`, and we will fail to produce a finding.
                          *)
-                         [
-                           {
-                             T.taint = taint |> subst_in_precondition;
-                             sink_trace;
-                           };
-                         ]
+                         let+ taint = taint |> subst_in_precondition in
+                         [ { T.taint; sink_trace } ]
                      | Arg arg ->
                          (* Here, we modify the call trace associated to the argument,
                             and then we replace it by all the taints that correspond to it.
@@ -1531,7 +1528,10 @@ let check_function_signature env fun_exp args args_taints =
             |> List.concat_map (fun t ->
                    let dst_taints =
                      match t.T.orig with
-                     | Src _ -> Taints.singleton (t |> subst_in_precondition)
+                     | Src _ -> (
+                         match t |> subst_in_precondition with
+                         | None -> Taints.empty
+                         | Some t -> Taints.singleton t)
                      | Arg src_arg ->
                          (* Taint is flowing from one argument to another argument
                           * (or possibly the callee object). Given the formal poly
@@ -1550,7 +1550,7 @@ let check_function_signature env fun_exp args args_taints =
                    else [ `UpdateEnv (dst_lval, dst_taints) ])
       in
       Some
-        (fun_sig
+        (fun_sig |> T.Findings.elements
         |> List.concat_map process_sig
         |> List.fold_left
              (fun (taints_acc, lval_env) fsig ->
@@ -1666,6 +1666,13 @@ let check_tainted_instr env instr : Taints.t * Lval_env.t =
       in
       let taints = Taints.union taints taints_propagated in
       check_orig_if_sink env instr.iorig taints;
+      let taints =
+        match LV.lval_of_instr_opt instr with
+        | None -> taints
+        | Some lval ->
+            check_type_and_drop_taints_if_bool_or_number env taints type_of_lval
+              lval
+      in
       (taints, lval_env')
 
 (* Test whether a `return' is tainted, and if it is also a sink,

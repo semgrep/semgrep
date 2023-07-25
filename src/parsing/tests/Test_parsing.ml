@@ -201,13 +201,16 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_elixir.Boilerplate.dump_tree
   | Lang.Julia ->
       Tree_sitter_julia.Parse.file file
-      |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_julia.Boilerplate.dump_tree
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
   | Lang.Cairo ->
       Tree_sitter_cairo.Parse.file file
       |> dump_and_print_errors Tree_sitter_cairo.Boilerplate.dump_tree
+  | Lang.Promql ->
+      Tree_sitter_promql.Parse.file file
+      |> dump_and_print_errors Tree_sitter_promql.Boilerplate.dump_tree
   | Lang.Protobuf ->
       Tree_sitter_proto.Parse.file file
       |> dump_and_print_errors Tree_sitter_proto.Boilerplate.dump_tree

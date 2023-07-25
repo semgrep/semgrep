@@ -48,7 +48,7 @@ module type S =
 (** The type of the map keys. *)
 
 (*type (+'a) t *)
-type ('key, 'a) t
+type ('key, 'a) t [@@deriving show]
 (** The type of maps from type [key] to type ['a]. *)
 
 val empty : ('key, 'a) t
@@ -121,3 +121,13 @@ module Make (Ord : OrderedType) : S with type key = Ord.t
 (* addons pad *)
 val of_list : ('key * 'a) list -> ('key, 'a) t
 val to_list : ('key, 'a) t -> ('key * 'a) list
+
+val update : 'key -> ('a option -> 'a option) -> ('key, 'a) t -> ('key, 'a) t
+(** [update key f m] returns a map containing the same bindings as [m], except
+    for the binding of [key]. Depending on the value of [y] where [y] is
+    [f (find_opt key m)], the binding of [key] is added, removed or updated. If
+    [y] is [None], the binding is removed if it exists; otherwise, if [y] is
+    [Some z] then [key] is associated to [z] in the resulting map.  If [key] was
+    already bound in [m] to a value that is physically equal to [z], [m] is
+    returned unchanged (the result of the function is then physically equal to
+    [m]). *)

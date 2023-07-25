@@ -59,6 +59,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle_trailing_newline",
         ),
         (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle_empty=",
+        ),
+        (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/poetry",
         ),
@@ -132,6 +136,23 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/php-sca.yaml",
             "dependency_aware/php",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_quoted_key",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_comments",
+        ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/poetry_empty_table",
+        ),
+        # This test should produce a parse error in the manifest file, but it should *still* produce findings, because the lockfile can be parsed
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/manifest_parse_error",
         ),
     ],
 )
@@ -227,6 +248,21 @@ def test_maven_version_comparison(version, specifier, outcome):
         "targets/dependency_aware/osv_parsing/poetry/one-package-with-metadata/poetry.lock",
         "targets/dependency_aware/osv_parsing/poetry/two-packages/poetry.lock",
         "targets/dependency_aware/osv_parsing/poetry/source-git/poetry.lock",
+        "targets/dependency_aware/osv_parsing/pnpm/commits/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/empty/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/one-package/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/peer-dependencies-advanced/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/no-packages/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/one-package-dev/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/scoped-packages-v6-lockfile/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/peer-dependencies/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/one-package-v6-lockfile/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/scoped-packages/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/multiple-packages/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/tarball/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
+        "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
     ],
 )
 # These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
@@ -237,7 +273,7 @@ def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     _, error = parse_lockfile_path_in_tmp(Path(target))
     assert len(caplog.records) == 0
-    assert error is None
+    assert len(error) == 0
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent

@@ -7,6 +7,7 @@ https://docs.gradle.org/current/userguide/dependency_management_for_java_project
 from pathlib import Path
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import Parser
@@ -15,9 +16,11 @@ from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
 from semdep.parsers.util import consume_word
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -67,7 +70,7 @@ manifest = (
 
 gradle = (
     string(PREFIX)
-    >> (dep | (string("empty=") >> consume_line))
+    >> (dep | (regex("empty=[^\n]*").result(None)))
     .sep_by(string("\n"))
     .map(lambda xs: [x for x in xs if x])
     << string("\n").optional()
@@ -76,13 +79,17 @@ gradle = (
 
 def parse_gradle(
     lockfile_path: Path, manifest_path: Optional[Path]
-) -> List[FoundDependency]:
-    deps = safe_path_parse(lockfile_path, gradle, ParserName.gradle_lockfile)
-    if not deps:
-        return []
-    manifest_deps = safe_path_parse(manifest_path, manifest, ParserName.gradle_build)
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(lockfile_path, gradle, ParserName.gradle_lockfile),
+        DependencyFileToParse(manifest_path, manifest, ParserName.gradle_build)
+        if manifest_path
+        else None,
+    )
+    if not parsed_lockfile:
+        return [], errors
     output = []
-    for line_number, (package, version) in deps:
+    for line_number, (package, version) in parsed_lockfile:
         output.append(
             FoundDependency(
                 package=package,
@@ -90,8 +97,8 @@ def parse_gradle(
                 ecosystem=Ecosystem(Maven()),
                 resolved_url=None,
                 allowed_hashes={},
-                transitivity=transitivity(manifest_deps, [package]),
+                transitivity=transitivity(parsed_manifest, [package]),
                 line_number=line_number,
             )
         )
-    return output
+    return output, errors

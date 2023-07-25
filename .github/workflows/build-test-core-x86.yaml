@@ -13,6 +13,10 @@ jobs:
   build-test-core-x86:
     name: Build Test Semgrep Core
     runs-on: ubuntu-latest
+    # This container has opam already installed, as well as an opam switch 4.14.0
+    # already created, and a big set of packages already installed. Thus,
+    # the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
+    # almost a noop.
     container: returntocorp/ocaml:alpine-2023-06-16
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root

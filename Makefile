@@ -85,9 +85,7 @@ core:
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
 	rm -f cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
 	cp bin/semgrep-core cli/src/semgrep/bin/
-	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
@@ -200,6 +198,13 @@ core-test:
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
+
+# This is for working on one or a few specific test cases.
+# It rebuilds the test executable which can then be called with
+# './test <filter>' where <filter> selects the tests to run.
+.PHONY: build-core-test
+build-core-test:
+	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
@@ -431,7 +436,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
 #Dogfooding osemgrep!
@@ -447,9 +452,8 @@ DOCKER_IMAGE=returntocorp/semgrep:develop
 # If you get parsing errors while running this command, maybe you have an old
 # cached version of the docker image. You can invalidate the cache with
 #   'docker rmi returntocorp/semgrep:develop`
-# We're dogfooding osemgrep here too! which is now part of the docker image.
 check_with_docker:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) osemgrep $(SEMGREP_ARGS)
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
 
 ###############################################################################
 # Martin's targets

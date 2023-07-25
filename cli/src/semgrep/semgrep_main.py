@@ -179,7 +179,11 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(
-        [rule for rule in rules if rule.product == RuleProduct.sast],
+        [
+            rule
+            for rule in rules
+            if rule.product == RuleProduct.sast and (not rule.from_transient_scan)
+        ],
         target_manager,
     )
     sca_plan = CoreRunner.plan_core_run(
@@ -296,10 +300,9 @@ def run_rules(
                 # Warning temporal assumption: this is the only place we process
                 # parse errors. We silently toss them in other places we call parse_lockfile_path
                 # It doesn't really matter where it gets handled as long as we collect the parse errors somewhere
-                deps, parse_error = parse_lockfile_path(lockfile)
+                deps, parse_errors = parse_lockfile_path(lockfile)
                 dependencies[str(lockfile)] = deps
-                if parse_error:
-                    dependency_parser_errors.append(parse_error)
+                dependency_parser_errors.extend(parse_errors)
     return (
         rule_matches_by_rule,
         semgrep_errors,
@@ -539,7 +542,10 @@ def main(
         {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
 
-    findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
+    findings_count = sum(
+        len([match for match in matches if not match.from_transient_scan])
+        for matches in rule_matches_by_rule.values()
+    )
 
     # Run baseline if needed
     if baseline_handler:

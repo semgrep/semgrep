@@ -18,7 +18,6 @@
 
     ; internal deps in src/
     semgrep.core
-    semgrep.language_server
     semgrep.running
     semgrep.metachecking
     semgrep.parsing.tests ; Test_parsing.parsing_stats

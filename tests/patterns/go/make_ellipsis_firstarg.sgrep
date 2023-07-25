@@ -1,0 +1,1 @@
+$CHANNEL := make(..., $FOO)

@@ -138,6 +138,7 @@ val semgrep_with_raw_results_and_exn_handler :
 *)
 
 val semgrep_with_rules :
+  ?match_hook:(string -> Pattern_match.t -> unit) ->
   Runner_config.t ->
   (Rule.t list * Rule.invalid_rule_error list) * float ->
   Report.final_result * Fpath.t list
@@ -201,7 +202,7 @@ val rules_from_rule_source :
 
 val targets_of_config :
   Runner_config.t ->
-  Rule.rule_id list ->
+  Rule_ID.t list ->
   Input_to_core_t.targets * Output_from_core_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed

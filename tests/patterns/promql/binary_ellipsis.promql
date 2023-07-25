@@ -1,0 +1,2 @@
+#MATCH:
+sum(rate(http_requests_total{status_code=~"5.."}[5m])) > 0.1

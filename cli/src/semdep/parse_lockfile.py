@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
@@ -61,7 +62,11 @@ OLD_LOCKFILE_PARSERS = {
 }
 
 NEW_LOCKFILE_PARSERS: Dict[
-    str, Callable[[Path, Optional[Path]], List[FoundDependency]]
+    str,
+    Callable[
+        [Path, Optional[Path]],
+        Tuple[List[FoundDependency], List[DependencyParserError]],
+    ],
 ] = {
     "requirements.txt": parse_requirements,  # Python
     "requirements3.txt": parse_requirements,  # Python
@@ -114,25 +119,36 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
     return manifest_path
 
 
-@lru_cache(maxsize=1000)
 def parse_lockfile_path(
     lockfile_path: Path,
-) -> Tuple[List[FoundDependency], Optional[DependencyParserError]]:
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
 
     Also returns Optional DependencyParseError as second return value if there was a problem
     parsing the lockfile
+
+    Raises SemgrepError if the lockfile is not supported
+    """
+    file_changed_timestamp = os.stat(lockfile_path).st_mtime
+    return _parse_lockfile_path_helper(lockfile_path, file_changed_timestamp)
+
+
+@lru_cache(maxsize=1000)
+def _parse_lockfile_path_helper(
+    lockfile_path: Path, file_changed_timestamp: float
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    """
+    Parse a lockfile and return it as a list of dependency objects
+
+    Takes file_changed_timestamp to help invalidate the cache in case the file has changed
+    which can happen between a head <-> baseline scan transition
     """
     manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
-
-        try:
-            return (parse_lockfile(lockfile_path, manifest_path), None)
-        except DependencyParserError as e:
-            return ([], e)
+        return parse_lockfile(lockfile_path, manifest_path)
 
     if lockfile_name in OLD_LOCKFILE_PARSERS:
         lockfile_text = lockfile_path.read_text()
@@ -144,7 +160,7 @@ def parse_lockfile_path(
         try:
             return (
                 list(OLD_LOCKFILE_PARSERS[lockfile_name](lockfile_text, manifest_text)),
-                None,
+                [],
             )
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
@@ -153,7 +169,7 @@ def parse_lockfile_path(
             console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
-                DependencyParserError(lockfile_path, ParserName.cargo, str(e)),
+                [DependencyParserError(lockfile_path, ParserName.cargo, str(e))],
             )
     else:
         raise SemgrepError(f"don't know how to parse this filename: {lockfile_path}")

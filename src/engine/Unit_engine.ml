@@ -283,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = Rule.ID.of_string "unit-testing";
+      MR.id = Rule_ID.of_string "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -310,7 +310,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
 
    If foo/bar.sgrep is not found, POLYGLOT/bar.sgrep is used instead.
 *)
-let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
+let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
   |> Common.map (fun file ->
          ( Fpath.basename file,
@@ -343,58 +343,54 @@ let regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang =
               *     (Filename.concat data_path "basic_equivalences.yml")
               * else []
               *)
-             Common.save_excursion Flag_semgrep.with_opt_cache with_caching
-               (fun () ->
-                 let matches =
-                   match_pattern ~lang
-                     ~hook:(fun { Pattern_match.range_loc; _ } ->
-                       let start_loc, _end_loc = range_loc in
-                       E.error
-                         (Rule.ID.of_string "test-pattern")
-                         start_loc "" Out.SemgrepMatchFound)
-                     ~file ~pattern ~fix_pattern
-                 in
-                 (match fix_pattern with
-                 | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches
-                 | None -> ());
-                 let actual = !E.g_errors in
-                 let expected = E.expected_error_lines_of_files [ !!file ] in
-                 E.compare_actual_to_expected_for_alcotest actual expected) ))
+             let matches =
+               match_pattern ~lang
+                 ~hook:(fun { Pattern_match.range_loc; _ } ->
+                   let start_loc, _end_loc = range_loc in
+                   E.error
+                     (Rule_ID.of_string "test-pattern")
+                     start_loc "" Out.SemgrepMatchFound)
+                 ~file ~pattern ~fix_pattern
+             in
+             (match fix_pattern with
+             | Some _ -> compare_fixes ~polyglot_pattern_path ~file matches
+             | None -> ());
+             let actual = !E.g_errors in
+             let expected = E.expected_error_lines_of_files [ !!file ] in
+             E.compare_actual_to_expected_for_alcotest actual expected ))
 
 let pack_regression_tests_for_lang ~test_pattern_path ~polyglot_pattern_path
-    ~with_caching lang dir ext =
+    lang dir ext =
   pack_tests
     (spf "semgrep %s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
      let files =
        Common2.glob (spf "%s/*%s" !!dir ext) |> File.Path.of_strings
      in
-     regression_tests_for_lang ~polyglot_pattern_path ~with_caching files lang)
+     regression_tests_for_lang ~polyglot_pattern_path files lang)
 
-let pack_regression_tests ~with_caching lang_tests =
-  let name_suffix = if with_caching then " with caching" else " no caching" in
-  pack_suites ("lang testing" ^ name_suffix) lang_tests
+let pack_regression_tests lang_tests = pack_suites "lang testing" lang_tests
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
-    ~with_caching lang_data =
+    lang_data =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let lang_tests =
     lang_data
     |> Common.map (fun (lang, dir, ext) ->
            pack_regression_tests_for_lang ~test_pattern_path
-             ~polyglot_pattern_path ~with_caching lang dir ext)
+             ~polyglot_pattern_path lang dir ext)
   in
-  pack_regression_tests ~with_caching lang_tests
+  pack_regression_tests lang_tests
 
-let lang_regression_tests ~polyglot_pattern_path ~with_caching =
+let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
   let regular_tests =
     make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
-      ~with_caching
       [
         (Lang.Bash, "bash", ".bash");
         (Lang.Dockerfile, "dockerfile", ".dockerfile");
         (Lang.Python, "python", ".py");
+        (Lang.Promql, "promql", ".promql");
         (Lang.Js, "js", ".js");
         (Lang.Ts, "ts", ".ts");
         (Lang.Json, "json", ".json");
@@ -430,7 +426,7 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
       ]
   in
   let irregular_tests =
-    pack_regression_tests ~with_caching
+    pack_regression_tests
       [
         pack_tests "semgrep Typescript on Javascript (no JSX)"
           (let dir = test_pattern_path / "js" in
@@ -440,16 +436,14 @@ let lang_regression_tests ~polyglot_pattern_path ~with_caching =
              |> File.Path.of_strings
            in
            let lang = Lang.Ts in
-           regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
-             lang);
+           regression_tests_for_lang ~polyglot_pattern_path files lang);
         pack_tests "semgrep C++ on C tests"
           (let dir = test_pattern_path / "c" in
            let files =
              Common2.glob (spf "%s/*.c" !!dir) |> File.Path.of_strings
            in
            let lang = Lang.Cpp in
-           regression_tests_for_lang ~polyglot_pattern_path ~with_caching files
-             lang);
+           regression_tests_for_lang ~polyglot_pattern_path files lang);
       ]
   in
   regular_tests @ irregular_tests
@@ -853,8 +847,7 @@ let tests () =
   List.flatten
     [
       (* full testing for many languages *)
-      lang_regression_tests ~polyglot_pattern_path ~with_caching:false;
-      lang_regression_tests ~polyglot_pattern_path ~with_caching:true;
+      lang_regression_tests ~polyglot_pattern_path;
       eval_regression_tests ();
       filter_irrelevant_rules_tests ();
       extract_tests ();

@@ -10,6 +10,7 @@ module AST = AST_dockerfile
 module CST = Tree_sitter_dockerfile.CST
 open AST_dockerfile
 module H = Parse_tree_sitter_helpers
+module DLoc = AST_dockerfile_loc
 
 (*
    This is preferred for debugging since it raises Assert_failures where
@@ -31,15 +32,18 @@ type env = (AST_bash.input_kind * shell_compatibility) H.env
 let token = H.token
 let str = H.str
 
+(* TODO: This basic stuff should not exist here. Move it to Tok. *)
 let concat_tokens first_tok other_toks : string wrap =
   let tok = Tok.combine_toks first_tok other_toks in
   (Tok.content_of_tok tok, tok)
 
+(* TODO: This basic stuff should not exist here. Move it to Tok. *)
 let opt_concat_tokens toks : string wrap option =
   match toks with
   | first_tok :: other_toks -> Some (concat_tokens first_tok other_toks)
   | [] -> None
 
+(* TODO: This basic stuff should not exist here. Move it to Tok. *)
 (* Requires at least one token, which must be guaranteed statically. *)
 let unsafe_concat_tokens toks : string wrap =
   match opt_concat_tokens toks with
@@ -50,38 +54,67 @@ let unsafe_concat_tokens toks : string wrap =
         let s = "" in
         (s, Tok.unsafe_fake_tok s)
 
+let concat_string_wraps ((_open, xs, _close) as x) =
+  let tok = Tok.combine_bracket_contents x in
+  let str = Common.map fst xs |> String.concat "" in
+  (str, tok)
+
 (*
    Collapse consecutive literal string fragments.
 
    This is useful to detect special fragments that otherwise could get split,
    such as the ellipsis for COPY/ADD that get split into "." and "..".
+   This could also avoid complications during matching.
 *)
-let simplify_fragments (fragments : string_fragment list) : string_fragment list
-    =
+let collapse_fragments ~(view_collapsible_fragment : 'a -> tok option)
+    ~(reconstruct_collapsed_fragment : string wrap -> 'a) (fragments : 'a list)
+    : 'a list =
   let concat toks tail =
     match toks with
     | [] -> tail
     | first :: others ->
         let tok = Tok.combine_toks first others in
-        String_content (Tok.content_of_tok tok, tok) :: tail
+        reconstruct_collapsed_fragment (Tok.content_of_tok tok, tok) :: tail
   in
   let rec simplify acc = function
     | [] -> concat (List.rev acc) []
-    | String_content (_, tok) :: xs -> simplify (tok :: acc) xs
-    | special :: xs -> concat (List.rev acc) (special :: simplify [] xs)
+    | x :: xs -> (
+        match view_collapsible_fragment x with
+        | None -> concat (List.rev acc) (x :: simplify [] xs)
+        | Some tok -> simplify (tok :: acc) xs)
   in
   simplify [] fragments
+
+let collapse_unquoted_fragments (fragments : docker_string_fragment list) :
+    docker_string_fragment list =
+  collapse_fragments
+    ~view_collapsible_fragment:(function
+      | Unquoted (_, tok) -> Some tok
+      | _ -> None)
+    ~reconstruct_collapsed_fragment:(fun s -> Unquoted s)
+    fragments
+
+(* Same as 'collapse_unquoted_fragments' but within a double-quoted string *)
+let collapse_double_quoted_fragments
+    (fragments : double_quoted_string_fragment list) :
+    double_quoted_string_fragment list =
+  collapse_fragments
+    ~view_collapsible_fragment:(function
+      | Dbl_string_content (_, tok) -> Some tok
+      | _ -> None)
+    ~reconstruct_collapsed_fragment:(fun s -> Dbl_string_content s)
+    fragments
 
 (* best effort to extract the name of the shell *)
 let classify_shell ((_open, ar, _close) : string_array) :
     shell_compatibility option =
   let command =
     match ar with
-    | Arr_string (_, [ String_content ("/usr/bin/env", _) ])
-      :: Arr_string (_loc, [ String_content (name, _) ])
+    | Arr_string (_, (_, ("/usr/bin/env", _), _))
+      :: Arr_string (_, (_, (name, _), _))
       :: _ ->
         Some name
-    | Arr_string (_loc, [ String_content (path, _) ]) :: _ -> Some path
+    | Arr_string (_, (_, (path, _), _)) :: _ -> Some path
     | _ -> None
   in
   match command with
@@ -126,6 +159,56 @@ let remove_blank_prefix (x : string wrap) : string wrap =
       (Tok.content_of_tok tok, tok)
 
 (*****************************************************************************)
+(* Parsing bash *)
+(*****************************************************************************)
+
+type ellipsis_or_bash =
+  | Semgrep_ellipsis of tok
+  | Bash of AST_bash.blist option
+
+(* A plain ellipsis such as '...' (not e.g. '...;') is identified so
+   that we can treat it as special dockerfile syntax rather than bash
+   syntax.
+
+   Alternatively, this can be done be extending the tree-sitter-dockerfile
+   grammar.
+*)
+let is_plain_ellipsis =
+  let rex = SPcre.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
+  fun s ->
+    match SPcre.pmatch ~rex s with
+    | Ok res -> res
+    | Error _err -> false
+
+(* hack to obtain correct locations when parsing a string extracted from
+   a larger file. *)
+let shift_locations (str, tok) =
+  let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
+  let column (* 0-based *) = max 0 (Tok.col_of_tok tok) in
+  String.make line '\n' ^ String.make column ' ' ^ str
+
+let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
+  let input_kind, _ = env.extra in
+  match input_kind with
+  | Pattern when is_plain_ellipsis (fst shell_cmd) ->
+      Semgrep_ellipsis (snd shell_cmd)
+  | _ ->
+      let ts_res =
+        H.wrap_parser
+          (fun () ->
+            let str = shift_locations shell_cmd in
+            Tree_sitter_bash.Parse.string str)
+          (fun cst ->
+            let bash_env : Parse_bash_tree_sitter.env =
+              { env with extra = input_kind }
+            in
+            Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
+      in
+      (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
+         module of ocaml-tree-sitter-core. *)
+      Bash ts_res.program
+
+(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 
@@ -140,7 +223,7 @@ let remove_blank_prefix (x : string wrap) : string wrap =
    is the expansion of the FOO argument while ${$FOO} is the expansion
    of any argument represented by the metavariable $FOO.
 *)
-let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
+let expansion (env : env) ((v1, v2) : CST.expansion) : docker_string_fragment =
   let dollar = token env v1 (* "$" *) in
   match v2 with
   | `Var tok -> (
@@ -166,6 +249,13 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       let close = token env v3 (* "}" *) in
       let loc = (dollar, close) in
       Expansion (loc, expansion)
+
+let double_quoted_expansion (env : env) (x : CST.expansion) :
+    double_quoted_string_fragment =
+  match expansion env x with
+  | Frag_semgrep_metavar x -> Dbl_frag_semgrep_metavar x
+  | Expansion x -> Dbl_expansion x
+  | _ -> assert false
 
 let param (env : env) ((v1, v2, v3, v4) : CST.param) : param =
   let dashdash = token env v1 (* "--" *) in
@@ -194,7 +284,7 @@ let expose_port (env : env) (x : CST.expose_port) : expose_port =
       let port_num = port_tok |> Tok.content_of_tok in
       Expose_port ((port_num, port_tok), protocol)
 
-let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
+let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * docker_string =
   let colon = token env v1 (* ":" *) in
   let tag =
     match v2 with
@@ -207,16 +297,17 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
           |> Common.map (fun x ->
                  match x with
                  | `Imm_tok_pat_bcfc287 tok ->
-                     String_content (str env tok (* pattern [^@\s\$]+ *))
+                     Unquoted (str env tok (* pattern [^@\s\$]+ *))
                  | `Imme_expa x -> expansion env x)
-          |> simplify_fragments
+          |> collapse_unquoted_fragments
         in
-        let loc = Tok_range.of_list string_fragment_loc fragments in
+        let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
         (loc, fragments)
   in
   (colon, tag)
 
-let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
+let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * docker_string
+    =
   let at = token env v1 (* "@" *) in
   let digest =
     match v2 with
@@ -229,11 +320,11 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
           |> Common.map (fun x ->
                  match x with
                  | `Imm_tok_pat_d2727a0 tok ->
-                     String_content (str env tok (* pattern [a-zA-Z0-9:]+ *))
+                     Unquoted (str env tok (* pattern [a-zA-Z0-9:]+ *))
                  | `Imme_expa x -> expansion env x)
-          |> simplify_fragments
+          |> collapse_unquoted_fragments
         in
-        let loc = Tok_range.of_list string_fragment_loc fragments in
+        let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
         (loc, fragments)
   in
   (at, digest)
@@ -241,7 +332,7 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
 let image_name (env : env) ((x, xs) : CST.image_name) =
   let first_fragment =
     match x with
-    | `Pat_8165e5f tok -> String_content (str env tok (* pattern [^@:\s\$-]+ *))
+    | `Pat_8165e5f tok -> Unquoted (str env tok (* pattern [^@:\s\$-]+ *))
     | `Expa x -> expansion env x
   in
   let fragments =
@@ -249,17 +340,17 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
     |> Common.map (fun x ->
            match x with
            | `Imm_tok_pat_2b37705 tok ->
-               String_content (str env tok (* pattern [^@:\s\$]+ *))
+               Unquoted (str env tok (* pattern [^@:\s\$]+ *))
            | `Imme_expa x -> expansion env x)
   in
-  let fragments = first_fragment :: fragments |> simplify_fragments in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let fragments = first_fragment :: fragments |> collapse_unquoted_fragments in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
-let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
+let image_alias (env : env) ((x, xs) : CST.image_alias) : docker_string =
   let first_fragment =
     match x with
-    | `Pat_9a14b5c tok -> String_content (str env tok)
+    | `Pat_9a14b5c tok -> Unquoted (str env tok)
     | `Expa x -> expansion env x
   in
   let other_fragments =
@@ -267,56 +358,59 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
     |> Common.map (fun x ->
            match x with
            | `Imm_tok_pat_9a14b5c tok ->
-               String_content (str env tok (* pattern [-a-zA-Z0-9_]+ *))
+               Unquoted (str env tok (* pattern [-a-zA-Z0-9_]+ *))
            | `Imme_expa x -> expansion env x)
   in
-  let fragments = first_fragment :: other_fragments |> simplify_fragments in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let fragments =
+    first_fragment :: other_fragments |> collapse_unquoted_fragments
+  in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
 let immediate_user_name_or_group_fragment (env : env)
-    (x : CST.immediate_user_name_or_group_fragment) : string_fragment =
+    (x : CST.immediate_user_name_or_group_fragment) : docker_string_fragment =
   match x with
-  | `Imm_tok_pat_b295287 tok ->
-      String_content (str env tok (* pattern [a-z][-a-z0-9_]* *))
+  | `Imm_tok_pat_7642c4f tok ->
+      Unquoted (str env tok (* pattern ([a-zA-Z][-a-zA-Z0-9_]*|[0-9]+) *))
   | `Imme_expa x -> expansion env x
 
 let immediate_user_name_or_group (env : env)
-    (xs : CST.immediate_user_name_or_group) : str =
+    (xs : CST.immediate_user_name_or_group) : docker_string =
   let fragments = Common.map (immediate_user_name_or_group_fragment env) xs in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
-let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) : str =
+let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) :
+    docker_string =
   let head =
     match x with
-    | `Pat_b295287 tok -> String_content (str env tok)
+    | `Pat_05444c2 tok -> Unquoted (str env tok)
     | `Expa x -> expansion env x
   in
   let tail = Common.map (immediate_user_name_or_group_fragment env) xs in
-  let fragments = head :: tail |> simplify_fragments in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let fragments = head :: tail |> collapse_unquoted_fragments in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
-let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
+let unquoted_string (env : env) (xs : CST.unquoted_string) : docker_string =
   let fragments =
     Common.map
       (fun x ->
         match x with
-        | `Imm_tok_pat_24a1611 tok ->
-            String_content (str env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *))
-        | `Imm_tok_bsla tok -> String_content (str env tok (* "\\ " *))
+        | `Imm_tok_pat_9f6bbb9 tok ->
+            Unquoted (str env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *))
+        | `Imm_tok_bsla tok -> Unquoted (str env tok (* "\\ " *))
         | `Imme_expa x -> expansion env x)
       xs
-    |> simplify_fragments
+    |> collapse_unquoted_fragments
   in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
-let path0 (env : env) ((v1, v2) : CST.path) : string_fragment list =
+let path0 (env : env) ((v1, v2) : CST.path) : docker_string_fragment list =
   let first_fragment =
     match v1 with
-    | `Pat_1167a92 tok -> String_content (str env tok (* pattern [^-\s\$] *))
+    | `Pat_1167a92 tok -> Unquoted (str env tok (* pattern [^-\s\$] *))
     | `Expa x -> expansion env x
   in
   let more_fragments =
@@ -324,28 +418,29 @@ let path0 (env : env) ((v1, v2) : CST.path) : string_fragment list =
       (fun x ->
         match x with
         | `Imm_tok_pat_0c7fc22 tok ->
-            String_content (str env tok (* pattern [^\s\$]+ *))
+            Unquoted (str env tok (* pattern [^\s\$]+ *))
         | `Imme_expa x -> expansion env x)
       v2
   in
-  first_fragment :: more_fragments |> simplify_fragments
+  first_fragment :: more_fragments |> collapse_unquoted_fragments
 
-let path (env : env) (x : CST.path) : str =
+let path (env : env) (x : CST.path) : docker_string =
   let fragments = path0 env x in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
 let path_or_ellipsis (env : env) (x : CST.path) : str_or_ellipsis =
   match (env.extra, path0 env x) with
-  | (Pattern, _), [ String_content ("...", tok) ] -> Str_semgrep_ellipsis tok
+  | (Pattern, _), [ Unquoted ("...", tok) ] -> Str_semgrep_ellipsis tok
   | _, fragments ->
-      let loc = Tok_range.of_list string_fragment_loc fragments in
+      let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
       Str_str (loc, fragments)
 
-let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) : str =
+let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) :
+    docker_string =
   let first_fragment =
     match x with
-    | `Pat_441cd81 tok -> String_content (str env tok)
+    | `Pat_441cd81 tok -> Unquoted (str env tok)
     | `Expa x -> expansion env x
   in
   let other_fragments =
@@ -353,16 +448,18 @@ let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) : str =
       (fun x ->
         match x with
         | `Imm_tok_pat_441cd81 tok ->
-            String_content (str env tok (* pattern [A-Z0-9]+ *))
+            Unquoted (str env tok (* pattern [A-Z0-9]+ *))
         | `Imme_expa x -> expansion env x)
       xs
   in
-  let fragments = first_fragment :: other_fragments |> simplify_fragments in
-  let loc = Tok_range.of_list string_fragment_loc fragments in
+  let fragments =
+    first_fragment :: other_fragments |> collapse_unquoted_fragments
+  in
+  let loc = Tok_range.of_list DLoc.docker_string_fragment_loc fragments in
   (loc, fragments)
 
 let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
-    str =
+    loc * double_quoted_string_fragment list bracket =
   let open_ = str env v1 (* "\"" *) in
   let contents =
     Common.map
@@ -370,20 +467,40 @@ let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
         match x with
         | `Imm_tok_pat_589b0f8 tok ->
             let s = str env tok (* pattern "[^\"\\n\\\\\\$]+" *) in
-            String_content s
-        | `Esc_seq tok ->
+            Dbl_string_content s
+        | `Double_quoted_esc_seq tok ->
+            (* TODO: provide unescaped version *)
             let s = str env tok (* escape_sequence *) in
-            String_content s
-        | `Imme_expa x -> expansion env x)
+            Dbl_string_content s
+        | `BSLASH tok ->
+            let s = str env tok in
+            Dbl_string_content s (* lone, unescaped backslash *)
+        | `Imme_expa x -> double_quoted_expansion env x)
       v2
   in
   let close = str env v3 (* "\"" *) in
   let loc = (wrap_tok open_, wrap_tok close) in
-  let fragments =
-    (String_content open_ :: contents) @ [ String_content close ]
-    |> simplify_fragments
+  let fragments = collapse_double_quoted_fragments contents in
+  (loc, (wrap_tok open_, fragments, wrap_tok close))
+
+let single_quoted_string (env : env) ((v1, v2, v3) : CST.single_quoted_string) :
+    loc * string wrap bracket =
+  let open_ = token env v1 (* "'" *) in
+  let contents =
+    Common.map
+      (fun x ->
+        match x with
+        | `Imm_tok_pat_0ab9261 tok -> str env tok (* literal characters *)
+        | `Single_quoted_esc_seq tok ->
+            (* TODO: provide unescaped version *)
+            str env tok (* single_quoted_escape_sequence *)
+        | `BSLASH tok -> str env tok (* lone, unescaped backslash *))
+      v2
   in
-  (loc, fragments)
+  let close = token env v3 (* "'" *) in
+  let contents = concat_string_wraps (open_, contents, close) in
+  let loc = (open_, close) in
+  (loc, (open_, contents, close))
 
 let shell_fragment (env : env) (xs : CST.shell_fragment) : tok =
   Common.map
@@ -409,17 +526,17 @@ let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
     | None -> None
   in
   let loc =
-    let start = str_loc name in
+    let start = DLoc.docker_string_loc name in
     let end_ = start in
     let end_ =
       match tag with
       | None -> end_
-      | Some (_colon, x) -> str_loc x
+      | Some (_colon, x) -> DLoc.docker_string_loc x
     in
     let end_ =
       match digest with
       | None -> end_
-      | Some (_at, x) -> str_loc x
+      | Some (_at, x) -> DLoc.docker_string_loc x
     in
     Tok_range.range start end_
   in
@@ -427,16 +544,39 @@ let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
 
 let array_element (env : env) (x : CST.array_element) : array_elt =
   match x with
-  | `Double_quoted_str x -> Arr_string (double_quoted_string env x)
+  | `Json_str (v1, v2, v3) ->
+      let open_ = token env v1 (* "\"" *) in
+      let contents =
+        Common.map
+          (fun x ->
+            match x with
+            | `Imm_tok_pat_3a2a380 tok -> str env tok (* literal characters *)
+            | `Json_esc_seq tok ->
+                (* TODO: produce also an unescaped version *)
+                str env tok (* JSON escape sequence *))
+          v2
+      in
+      let close = token env v3 (* "\"" *) in
+      let contents = concat_string_wraps (open_, contents, close) in
+      let loc = (open_, close) in
+      Arr_string (loc, (open_, contents, close))
   | `Semg_ellips tok -> Arr_ellipsis (token env tok)
   | `Semg_meta tok -> Arr_metavar (str env tok)
 
-let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) : str =
+let string (env : env) (x : CST.anon_choice_double_quoted_str_6156383) :
+    docker_string =
+  (* TODO: fix the tree-sitter-dockerfile grammar so that it accepts
+     multifragment strings such as a'b'$C"d$E" *)
   match x with
-  | `Double_quoted_str x -> double_quoted_string env x
+  | `Double_quoted_str x ->
+      let fragment = Double_quoted (double_quoted_string env x) in
+      (DLoc.docker_string_fragment_loc fragment, [ fragment ])
+  | `Single_quoted_str x ->
+      let fragment = Single_quoted (single_quoted_string env x) in
+      (DLoc.docker_string_fragment_loc fragment, [ fragment ])
   | `Unqu_str x -> unquoted_string env x
 
-let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
+let json_string_array (env : env) ((v1, v2, v3) : CST.json_string_array) :
     Tok_range.t * string_array =
   let open_ = token env v1 (* "[" *) in
   let argv =
@@ -458,29 +598,6 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
   let loc = (open_, close) in
   (loc, (open_, argv, close))
 
-(*
-   Create the empty token that sits right after a given token.
-
-   TODO: move this function to Parse_info?
-*)
-let empty_token_after tok : tok =
-  match Tok.loc_of_tok tok with
-  | Ok loc ->
-      let prev_len = String.length loc.str in
-      let loc =
-        {
-          Tok.str = "";
-          pos =
-            {
-              loc.pos with
-              charpos = loc.pos.charpos + prev_len;
-              column = loc.pos.column + prev_len;
-            };
-        }
-      in
-      Tok.tok_of_loc loc
-  | Error _ -> Tok.rewrap_str "" tok
-
 let env_pair (env : env) (x : CST.env_pair) : label_pair =
   match x with
   | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
@@ -494,12 +611,12 @@ let env_pair (env : env) (x : CST.env_pair) : label_pair =
         | None ->
             (* the empty token gives us the correct location which we need
                even if we returned an empty list of fragments. *)
-            let tok = empty_token_after eq in
+            let tok = Tok.empty_tok_after eq in
             let loc = (tok, tok) in
-            (loc, [ String_content (Tok.content_of_tok tok, tok) ])
+            (loc, [ Unquoted (Tok.content_of_tok tok, tok) ])
         | Some x -> string env x
       in
-      let loc = (var_or_metavar_tok k, str_loc v |> snd) in
+      let loc = (var_or_metavar_tok k, DLoc.docker_string_loc v |> snd) in
       Label_pair (loc, k, eq, v)
 
 let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) :
@@ -509,7 +626,7 @@ let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) :
   in
   let blank = token env v2 (* pattern \s+ *) in
   let v = string env v3 in
-  let loc = (var_or_metavar_tok k, str_loc v |> snd) in
+  let loc = (var_or_metavar_tok k, DLoc.docker_string_loc v |> snd) in
   Label_pair (loc, k, blank, v)
 
 let label_pair (env : env) (x : CST.label_pair) : label_pair =
@@ -525,54 +642,8 @@ let label_pair (env : env) (x : CST.label_pair) : label_pair =
       in
       let eq = token env v2 (* "=" *) in
       let value = string env v3 in
-      let loc = (var_or_metavar_tok key, str_loc value |> snd) in
+      let loc = (var_or_metavar_tok key, DLoc.docker_string_loc value |> snd) in
       Label_pair (loc, key, eq, value)
-
-(* hack to obtain correct locations when parsing a string extracted from
-   a larger file. *)
-let shift_locations (str, tok) =
-  let line (* 0-based *) = max 0 (Tok.line_of_tok tok - 1) (* 1-based *) in
-  let column (* 0-based *) = max 0 (Tok.col_of_tok tok) in
-  String.make line '\n' ^ String.make column ' ' ^ str
-
-(* A plain ellipsis such as '...' (not e.g. '...;') is identified so
-   that we can treat it as special dockerfile syntax rather than bash
-   syntax.
-
-   Alternatively, this can be done be extending the tree-sitter-dockerfile
-   grammar.
-*)
-let is_plain_ellipsis =
-  let rex = SPcre.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
-  fun s ->
-    match SPcre.pmatch ~rex s with
-    | Ok res -> res
-    | Error _err -> false
-
-type ellipsis_or_bash =
-  | Semgrep_ellipsis of tok
-  | Bash of AST_bash.blist option
-
-let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
-  let input_kind, _ = env.extra in
-  match input_kind with
-  | Pattern when is_plain_ellipsis (fst shell_cmd) ->
-      Semgrep_ellipsis (snd shell_cmd)
-  | _ ->
-      let ts_res =
-        H.wrap_parser
-          (fun () ->
-            let str = shift_locations shell_cmd in
-            Tree_sitter_bash.Parse.string str)
-          (fun cst ->
-            let bash_env : Parse_bash_tree_sitter.env =
-              { env with extra = input_kind }
-            in
-            Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
-      in
-      (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
-         module of ocaml-tree-sitter-core. *)
-      Bash ts_res.program
 
 (* This is for reconstructing a shell snippet and preserve line/column
    location.
@@ -632,16 +703,16 @@ let shell_command (env : env) (x : CST.shell_command) =
           match parse_bash env raw_shell_code with
           | Semgrep_ellipsis tok -> Command_semgrep_ellipsis tok
           | Bash (Some bash_program) ->
-              let loc = wrap_loc raw_shell_code in
+              let loc = DLoc.wrap_loc raw_shell_code in
               Sh_command (loc, bash_program)
           | Bash None -> Other_shell_command (Sh, raw_shell_code))
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
 
-let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
+let argv_or_shell (env : env) (x : CST.anon_choice_json_str_array_0106ace) =
   match x with
-  | `Str_array x ->
-      let loc, ar = string_array env x in
+  | `Json_str_array x ->
+      let loc, ar = json_string_array env x in
       Argv (loc, ar)
   | `Shell_cmd x -> shell_command env x
 
@@ -686,7 +757,7 @@ let runlike_instruction (env : env) name params cmd =
       params
   in
   let cmd = argv_or_shell env cmd in
-  let _, end_ = argv_or_shell_loc cmd in
+  let _, end_ = DLoc.argv_or_shell_loc cmd in
   let loc = (wrap_tok name, end_) in
   (loc, name, params, cmd)
 
@@ -708,17 +779,18 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             match v2 with
             | Some x ->
                 let param = param env x in
-                (Some param, Tok_range.range loc (param_loc param))
+                (Some param, Tok_range.range loc (DLoc.param_loc param))
             | None -> (None, loc)
           in
           let image_spec = image_spec env v3 in
-          let loc = Tok_range.range loc (image_spec_loc image_spec) in
+          let loc = Tok_range.range loc (DLoc.image_spec_loc image_spec) in
           let alias, loc =
             match v4 with
             | Some (v1, v2) ->
                 let as_ = token env v1 (* pattern [aA][sS] *) in
                 let alias = image_alias env v2 in
-                (Some (as_, alias), Tok_range.union loc (str_loc alias))
+                ( Some (as_, alias),
+                  Tok_range.union loc (DLoc.docker_string_loc alias) )
             | None -> (None, loc)
           in
           (env, From (loc, name, param, image_spec, alias))
@@ -735,7 +807,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
       | `Label_inst (v1, v2) ->
           let name = str env v1 (* pattern [lL][aA][bB][eE][lL] *) in
           let label_pairs = Common.map (label_pair env) v2 in
-          let loc = Tok_range.of_list label_pair_loc label_pairs in
+          let loc = Tok_range.of_list DLoc.label_pair_loc label_pairs in
           let loc = Tok_range.extend loc (snd name) in
           (env, Label (loc, name, label_pairs))
       | `Expose_inst (v1, v2) ->
@@ -748,7 +820,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                 | `Expa x -> Expose_fragment (expansion env x))
               v2
           in
-          let _, end_ = Tok_range.of_list expose_port_loc port_protos in
+          let _, end_ = Tok_range.of_list DLoc.expose_port_loc port_protos in
           let loc = (wrap_tok name, end_) in
           (env, Expose (loc, name, port_protos))
       | `Env_inst (v1, v2) ->
@@ -758,7 +830,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `Rep1_env_pair xs -> Common.map (env_pair env) xs
             | `Spaced_env_pair x -> [ spaced_env_pair env x ]
           in
-          let _, end_ = Tok_range.of_list label_pair_loc pairs in
+          let _, end_ = Tok_range.of_list DLoc.label_pair_loc pairs in
           let loc = (wrap_tok name, end_) in
           (env, Env (loc, name, pairs))
       | `Add_inst (v1, v2, v3, v4) ->
@@ -775,7 +847,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                    path_or_ellipsis env v1)
           in
           let dst = path env v4 in
-          let loc = (wrap_tok name, str_loc dst |> snd) in
+          let loc = (wrap_tok name, DLoc.docker_string_loc dst |> snd) in
           (env, Add (loc, name, param, src, dst))
       | `Copy_inst (v1, v2, v3, v4) ->
           (*
@@ -796,7 +868,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                    path_or_ellipsis env v1)
           in
           let dst = path env v4 in
-          let loc = (wrap_tok name, str_loc dst |> snd) in
+          let loc = (wrap_tok name, DLoc.docker_string_loc dst |> snd) in
           (env, Copy (loc, name, param, src, dst))
       | `Entr_inst (v1, v2) ->
           let loc, name, _params, cmd =
@@ -807,8 +879,8 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let name = str env v1 (* pattern [vV][oO][lL][uU][mM][eE] *) in
           let args =
             match v2 with
-            | `Str_array x ->
-                let loc, ar = string_array env x in
+            | `Json_str_array x ->
+                let loc, ar = json_string_array env x in
                 Array (loc, ar)
             | `Path_rep_non_nl_whit_path (v1, v2) ->
                 let path0 = path_or_ellipsis env v1 in
@@ -820,23 +892,23 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                     v2
                 in
                 let paths = path0 :: paths in
-                let loc = Tok_range.of_list str_or_ellipsis_loc paths in
+                let loc = Tok_range.of_list DLoc.str_or_ellipsis_loc paths in
                 Paths (loc, paths)
           in
           let loc =
-            Tok_range.extend (array_or_paths_loc args) (wrap_tok name)
+            Tok_range.extend (DLoc.array_or_paths_loc args) (wrap_tok name)
           in
           (env, Volume (loc, name, args))
       | `User_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [uU][sS][eE][rR] *) in
           let user = user_name_or_group env v2 in
-          let end_ = str_loc user |> snd in
+          let end_ = DLoc.docker_string_loc user |> snd in
           let opt_group, end_ =
             match v3 with
             | Some (v1, v2) ->
                 let colon = token env v1 (* ":" *) in
                 let group = immediate_user_name_or_group env v2 in
-                (Some (colon, group), str_loc group |> snd)
+                (Some (colon, group), DLoc.docker_string_loc group |> snd)
             | None -> (None, end_)
           in
           let loc = (wrap_tok name, end_) in
@@ -844,7 +916,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
       | `Work_inst (v1, v2) ->
           let name = str env v1 (* pattern [wW][oO][rR][kK][dD][iI][rR] *) in
           let dir = path env v2 in
-          let loc = (wrap_tok name, str_loc dir |> snd) in
+          let loc = (wrap_tok name, DLoc.docker_string_loc dir |> snd) in
           (env, Workdir (loc, name, dir))
       | `Arg_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [aA][rR][gG] *) in
@@ -862,14 +934,15 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | Some (v1, v2) ->
                 let eq = token env v1 (* "=" *) in
                 let value = string env v2 in
-                (Some (eq, value), Tok_range.extend loc (str_loc value |> snd))
+                ( Some (eq, value),
+                  Tok_range.extend loc (DLoc.docker_string_loc value |> snd) )
             | None -> (None, loc)
           in
           (env, Arg (loc, name, key, opt_value))
       | `Onbu_inst (v1, v2) ->
           let name = str env v1 (* pattern [oO][nN][bB][uU][iI][lL][dD] *) in
           let _env, instr = instruction env v2 in
-          let _, end_ = instruction_loc instr in
+          let _, end_ = DLoc.instruction_loc instr in
           let loc = (wrap_tok name, end_) in
           (env, Onbuild (loc, name, instr))
       | `Stop_inst (v1, v2) ->
@@ -878,7 +951,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             (* pattern [sS][tT][oO][pP][sS][iI][gG][nN][aA][lL] *)
           in
           let signal = stopsignal_value env v2 in
-          let loc = (wrap_tok name, str_loc signal |> snd) in
+          let loc = (wrap_tok name, DLoc.docker_string_loc signal |> snd) in
           (env, Stopsignal (loc, name, signal))
       | `Heal_inst (v1, v2) ->
           let name =
@@ -893,21 +966,23 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `NONE tok -> Healthcheck_none (token env tok (* "NONE" *))
             | `Rep_param_cmd_inst (v1, (name (* CMD *), args)) ->
                 let params = Common.map (param env) v1 in
-                let params_loc = Tok_range.of_list param_loc params in
+                let params_loc = Tok_range.of_list DLoc.param_loc params in
                 let cmd_loc, name, run_params, args =
                   runlike_instruction env name [] args
                 in
                 let loc = Tok_range.range params_loc cmd_loc in
                 Healthcheck_cmd (loc, params, (cmd_loc, name, run_params, args))
           in
-          let loc = Tok_range.extend (healthcheck_loc arg) (wrap_tok name) in
+          let loc =
+            Tok_range.extend (DLoc.healthcheck_loc arg) (wrap_tok name)
+          in
           (env, Healthcheck (loc, name, arg))
       | `Shell_inst (v1, v2) ->
           let ((_, start_tok) as name) =
             str env v1
             (* pattern [sS][hH][eE][lL][lL] *)
           in
-          let cmd_loc, cmd = string_array env v2 in
+          let cmd_loc, cmd = json_string_array env v2 in
           let env =
             match classify_shell cmd with
             | None -> env
@@ -962,7 +1037,7 @@ let source_file (env : env) (xs : CST.source_file) =
   List.rev instrs
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let parse file =
