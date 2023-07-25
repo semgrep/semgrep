@@ -458,7 +458,7 @@ class RuleValidation:
         "join",
         "secrets",
         "request",
-        "response"
+        "response",
     }
     INVALID_SENTINEL = " is not allowed for "
     INVALID_FOR_MODE_SENTINEL = "False schema does not allow"

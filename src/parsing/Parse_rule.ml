@@ -1646,7 +1646,7 @@ let parse_steps env key (value : G.expr) : R.step list =
 (*****************************************************************************)
 (* Parsers for secrets mode *)
 (*****************************************************************************) 
-let parse_secrets_fields env rule_dict : R.secrets_spec =
+let parse_secrets_fields env rule_dict : R.secrets =
   let secrets : R.formula list =
     take
       rule_dict

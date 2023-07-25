@@ -420,7 +420,7 @@ type paths = {
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract ] [@@deriving show]
-type secrets_mode = [ `Secrets of secrets_spec ] [@@deriving show]
+type secrets_mode = [ `Secrets of secrets ] [@@deriving show]
 
 (* Steps mode includes rules that use search_mode and taint_mode.
  * Later, if we keep it, we might want to make all rules have steps,
