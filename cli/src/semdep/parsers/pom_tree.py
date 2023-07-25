@@ -91,6 +91,8 @@ def get_children(deps: List[Any]) -> List[ParsedDependency]:
     stack: List[Any] = []
     results = []
     for line_number, dep in deps:
+        if dep is None:
+            continue
         dep["line_number"] = line_number
         if not stack:
             stack.append(dep)
