@@ -454,15 +454,6 @@ and severity = Error | Warning | Info | Inventory | Experiment
 type mode = [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
 [@@deriving show]
 
-(* If you know your function accepts only a certain kind of rule,
- * you can use those precise types below.
- *)
-type search_rule = search_mode rule_info [@@deriving show]
-type taint_rule = taint_mode rule_info [@@deriving show]
-type extract_rule = extract_mode rule_info [@@deriving show]
-type secrets_rule = secrets_mode rule_info [@@deriving show]
-type step_rule = steps_mode rule_info [@@deriving show]
-
 (* the general type *)
 type rule = mode rule_info [@@deriving show]
 
@@ -470,6 +461,15 @@ type rule = mode rule_info [@@deriving show]
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 type hrules = (Rule_ID.t, t) Hashtbl.t
+
+(* If you know your function accepts only a certain kind of rule,
+ * you can use those precise types below.
+ *)
+type search_rule = search_mode rule_info [@@deriving show]
+type taint_rule = taint_mode rule_info [@@deriving show]
+type extract_rule = extract_mode rule_info [@@deriving show]
+type secrets_rule = secrets_mode rule_info [@@deriving show]
+type steps_rule = steps_mode rule_info [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -479,7 +479,7 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list * secrets_rule list * step_rule list =
+    search_rule list * taint_rule list * extract_rule list * secrets_rule list * steps_rule list =
   let rec part_rules search taint extract secrets step = function
     | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev secrets, List.rev step)
     | r :: l -> (
