@@ -2918,16 +2918,31 @@ and m_parameter a b =
      don't behave like "singular" params.
   *)
   | ( G.Param
-        {
-          pname = Some (str, tok);
-          ptype = None;
-          pdefault = None;
-          pattrs = [];
-          pinfo = _;
-        },
-      (OtherParam _ | ParamPattern _ | ParamReceiver _) )
-    when Metavariable.is_metavar_name str ->
-      envf (str, tok) (MV.Params [ b ])
+        ({
+           pname = Some (str, tok);
+           ptype = None;
+           pdefault = None;
+           pattrs = [];
+           pinfo = _;
+         } as a1),
+      b )
+    when Metavariable.is_metavar_name str -> (
+      match b with
+      | OtherParam _
+      | ParamPattern _
+      | ParamReceiver _ ->
+          envf (str, tok) (MV.Params [ b ])
+      (* We want to first match in the same way `m_parameter_classic` would,
+         to maintain previous behavior.
+         If there are no matches, then we can just unconditionally match.
+      *)
+      | Param b1 ->
+          m_parameter_classic a1 b1 >!> fun () ->
+          envf (str, tok) (MV.Params [ b ])
+      | ParamRest _
+      | ParamHashSplat _
+      | ParamEllipsis _ ->
+          fail ())
   (* boilerplate *)
   | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->
