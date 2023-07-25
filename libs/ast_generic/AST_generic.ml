@@ -604,9 +604,9 @@ and id_info = {
      that skips a target file if some identifier in the pattern AST doesn't
      exist in the source of the target.
   *)
-  id_hidden : bool; [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
-  id_case_insensitive : bool;
-      [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
+  id_info_flags : Id_info_flags.packed;
+      [@equal AST_generic_equals.equal_id_info Id_info_flags.equal_packed]
+      [@opaque]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
@@ -2159,8 +2159,7 @@ let empty_id_info ?(hidden = false) ?(case_insensitive = false) () =
     id_resolved = ref None;
     id_type = ref None;
     id_svalue = ref None;
-    id_hidden = hidden;
-    id_case_insensitive = case_insensitive;
+    id_info_flags = Id_info_flags.pack { hidden; case_insensitive };
     id_info_id = id_info_id ();
   }
 
@@ -2169,10 +2168,14 @@ let basic_id_info ?(hidden = false) ?(case_insensitive = false) resolved =
     id_resolved = ref (Some resolved);
     id_type = ref None;
     id_svalue = ref None;
-    id_hidden = hidden;
-    id_case_insensitive = case_insensitive;
+    id_info_flags = Id_info_flags.pack { hidden; case_insensitive };
     id_info_id = id_info_id ();
   }
+
+let is_hidden { id_info_flags; _ } = Id_info_flags.is_hidden id_info_flags
+
+let is_case_insensitive { id_info_flags; _ } =
+  Id_info_flags.is_case_insensitive id_info_flags
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
