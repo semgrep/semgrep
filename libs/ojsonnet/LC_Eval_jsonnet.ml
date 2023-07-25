@@ -142,7 +142,84 @@ let rec substitute id sub expr =
   | If (tif, e1, e2, e3) ->
       If (tif, substitute id sub e1, substitute id sub e2, substitute id sub e3)
   | Error (tk, e) -> Error (tk, substitute id sub e)
-  | ExprTodo ((s, tk), _ast_expr) -> ExprTodo ((s, tk), _ast_expr)
+  | ExprTodo ((_s, _tk), _ast_expr) -> failwith "unimplemented"
+(*TODO*)
+
+let rec substitute_kw kw sub expr =
+  match expr with
+  | L v -> L v
+  | Array (l, xs, r) -> Array (l, Common.map (substitute_kw kw sub) xs, r)
+  | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
+      let new_params =
+        Common.map
+          (fun (P (id, tok, e)) -> P (id, tok, substitute_kw kw sub e))
+          params
+      in
+      let new_f_body = substitute_kw kw sub f_body in
+      Lambda
+        {
+          f_tok;
+          f_params = (lparams, new_params, rparams);
+          f_body = new_f_body;
+        }
+  | O (l, v, r) -> (
+      match v with
+      | Object (asserts, fields) ->
+          let new_fields =
+            Common.map
+              (fun { fld_name = FExpr (l, e, r); fld_hidden; fld_value } ->
+                {
+                  fld_name = FExpr (l, substitute_kw kw sub e, r);
+                  fld_hidden;
+                  fld_value;
+                })
+              fields
+          in
+          O (l, Object (asserts, new_fields), r)
+      | ObjectComp _ -> failwith "unimplemented" (* TODO *))
+  | Id (s, tk) -> Id (s, tk)
+  | IdSpecial (Super, tk) -> (
+      match kw with
+      | IdSpecial (Super, _) -> sub
+      | IdSpecial (Self, _) -> IdSpecial (Super, tk)
+      | _ -> failwith "not a keyword")
+  | IdSpecial (Self, tk) -> (
+      match kw with
+      | IdSpecial (Self, _) -> sub
+      | IdSpecial (Super, _) -> IdSpecial (Self, tk)
+      | _ -> failwith "not a keyword")
+  | Local (_tlocal, binds, _tsemi, e) ->
+      let new_binds =
+        Common.map
+          (fun (B (name, tk, expr)) -> B (name, tk, substitute_kw kw sub expr))
+          binds
+      in
+      Local (_tlocal, new_binds, _tsemi, substitute_kw kw sub e)
+  | ArrayAccess (v1, (l, v2, r)) ->
+      ArrayAccess (substitute_kw kw sub v1, (l, substitute_kw kw sub v2, r))
+  | Call (e0, (l, args, r)) ->
+      let new_func = substitute_kw kw sub e0 in
+      let new_args =
+        Common.map
+          (fun arg ->
+            match arg with
+            | Arg e -> Arg (substitute_kw kw sub e)
+            | NamedArg (ident, tk, e) ->
+                NamedArg (ident, tk, substitute_kw kw sub e))
+          args
+      in
+      Call (new_func, (l, new_args, r))
+  | UnaryOp ((op, tk), e) -> UnaryOp ((op, tk), substitute_kw kw sub e)
+  | BinaryOp (el, (op, tk), er) ->
+      BinaryOp (substitute_kw kw sub el, (op, tk), substitute_kw kw sub er)
+  | If (tif, e1, e2, e3) ->
+      If
+        ( tif,
+          substitute_kw kw sub e1,
+          substitute_kw kw sub e2,
+          substitute_kw kw sub e3 )
+  | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
+  | ExprTodo ((_s, _tk), _ast_expr) -> failwith "unimplemented"
 (*TODO*)
 
 let rec eval_expr expr =
@@ -238,7 +315,11 @@ let rec eval_expr expr =
                    *      {name: self.y, y : 42}[y]
                    *      42
                    *)
-                  let new_e = substitute "self" v1 e in
+                  let new_e =
+                    substitute_kw
+                      (IdSpecial (Self, Tok.unsafe_fake_tok "self"))
+                      v1 e
+                  in
                   (* TODO implement self/super substitution*)
                   eval_expr new_e))
       (* TODO? support ArrayAccess for Strings? *)
