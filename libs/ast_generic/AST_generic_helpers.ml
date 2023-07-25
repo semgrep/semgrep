@@ -498,14 +498,24 @@ class ['self] range_visitor =
     method! visit_Alias ranges id _e = self#visit_ident ranges id
   end
 
-let extract_ranges : AST_generic.any -> (Tok.location * Tok.location) option =
+let extract_ranges_with_anys :
+    AST_generic.any list -> (Tok.location * Tok.location) option =
   let v = new range_visitor in
   let ranges = ref None in
-  fun any ->
-    v#visit_any ranges any;
+  fun anys ->
+    List.iter (v#visit_any ranges) anys;
     let res = !ranges in
     ranges := None;
     res
+
+let extract_ranges any = extract_ranges_with_anys [ any ]
+
+let set_e_range_with_anys anys e =
+  match extract_ranges_with_anys anys with
+  | Some (l, r) -> e.e_range <- Some (l, r)
+  | None ->
+      logger#debug "set_e_range_with_anys failed: no locations found";
+      ()
 
 let range_of_tokens tokens =
   List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos

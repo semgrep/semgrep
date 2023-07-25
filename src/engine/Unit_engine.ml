@@ -283,7 +283,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix_pattern =
   in
   let rule =
     {
-      MR.id = Rule.ID.of_string "unit-testing";
+      MR.id = Rule_ID.of_string "unit-testing";
       pattern;
       inside = false;
       message = "";
@@ -348,7 +348,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                  ~hook:(fun { Pattern_match.range_loc; _ } ->
                    let start_loc, _end_loc = range_loc in
                    E.error
-                     (Rule.ID.of_string "test-pattern")
+                     (Rule_ID.of_string "test-pattern")
                      start_loc "" Out.SemgrepMatchFound)
                  ~file ~pattern ~fix_pattern
              in
@@ -390,6 +390,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (Lang.Bash, "bash", ".bash");
         (Lang.Dockerfile, "dockerfile", ".dockerfile");
         (Lang.Python, "python", ".py");
+        (Lang.Promql, "promql", ".promql");
         (Lang.Js, "js", ".js");
         (Lang.Ts, "ts", ".ts");
         (Lang.Json, "json", ".json");

@@ -7,7 +7,7 @@
 (*****************************************************************************)
 
 type error = {
-  rule_id : Rule.rule_id option;
+  rule_id : Rule_ID.t option;
   typ : Output_from_core_t.core_error_kind;
   loc : Tok.location;
   msg : string;
@@ -23,14 +23,14 @@ val g_errors : error list ref
 (*****************************************************************************)
 
 val mk_error :
-  ?rule_id:Rule.rule_id option ->
+  ?rule_id:Rule_ID.t option ->
   Tok.location ->
   string ->
   Output_from_core_t.core_error_kind ->
   error
 
 val error :
-  Rule.rule_id ->
+  Rule_ID.t ->
   Tok.location ->
   string ->
   Output_from_core_t.core_error_kind ->
@@ -38,7 +38,7 @@ val error :
 
 (* Convert a caught exception and its stack trace to a Semgrep error. *)
 val exn_to_error :
-  ?rule_id:Rule.rule_id option -> Common.filename -> Exception.t -> error
+  ?rule_id:Rule_ID.t option -> Common.filename -> Exception.t -> error
 
 (*****************************************************************************)
 (* Try with error *)

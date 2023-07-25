@@ -25,6 +25,7 @@
 type ('key, 'v) t =
   | Empty
   | Node of ('key, 'v) t * 'key * 'v * ('key, 'v) t * int
+[@@deriving show]
 
 let empty = Empty
 

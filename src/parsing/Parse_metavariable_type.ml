@@ -25,6 +25,7 @@ let wrap_type_expr lang str =
   | Lang.Ts -> Some (spf "x as %s" str)
   | Lang.Csharp -> Some (spf "x as %s" str)
   | Lang.Rust -> Some (spf "x as %s" str)
+  | Lang.Julia -> Some (spf "x :: %s" str)
   | _ -> None
 
 let unwrap_type_expr lang expr =
@@ -40,4 +41,5 @@ let unwrap_type_expr lang expr =
   | Lang.Ts, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Csharp, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Rust, G.E { e = G.Cast (t, _, _); _ } -> Some t
+  | Lang.Julia, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | _ -> None

@@ -165,7 +165,7 @@ let (mini_rule_of_pattern :
       MR.t) =
  fun xlang rule (pattern, inside, id, pstr) ->
   {
-    MR.id = Rule.ID.of_string (string_of_int id);
+    MR.id = Rule_ID.of_string (string_of_int id);
     pattern;
     inside;
     (* parts that are not really needed I think in this context, since

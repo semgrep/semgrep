@@ -202,7 +202,7 @@ val rules_from_rule_source :
 
 val targets_of_config :
   Runner_config.t ->
-  Rule.rule_id list ->
+  Rule_ID.t list ->
   Input_to_core_t.targets * Output_from_core_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed

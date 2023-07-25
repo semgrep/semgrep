@@ -126,7 +126,7 @@ let render_fix (env : env) (x : Out.core_match) : string option =
   match x with
   | { rule_id; location; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
-        try Hashtbl.find env.hrules (Rule.ID.of_string rule_id) with
+        try Hashtbl.find env.hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let path = location.path in
@@ -321,7 +321,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
      };
   } ->
       let rule =
-        try Hashtbl.find env.hrules (Rule.ID.of_string rule_id) with
+        try Hashtbl.find env.hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let path = location.path in
@@ -407,7 +407,7 @@ let cli_skipped_target_of_skipped_target (x : Out.skipped_target) :
 (* skipping the python intermediate FileTargetingLog for now *)
 let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
     Out.cli_skipped_target list option =
-  let* skipped_targets in
+  let* skipped_targets_list = skipped_targets in
 
   (* TODO: skipped targets are coming from the FileIgnoreLog which is
    * populated from many places in the code.
@@ -417,7 +417,7 @@ let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
    * core_failure_lines_by_file in target_manager.py
    *)
   let core_skipped =
-    skipped_targets |> Common.map cli_skipped_target_of_skipped_target
+    skipped_targets_list |> Common.map cli_skipped_target_of_skipped_target
   in
   (* TODO: need to sort *)
   Some core_skipped

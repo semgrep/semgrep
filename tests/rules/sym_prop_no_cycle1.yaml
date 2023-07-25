@@ -1,0 +1,18 @@
+rules:
+  - id: test
+    message: Test
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    mode: taint
+    options:
+      symbolic_propagation: true
+    pattern-sources:
+    - pattern: f(...)
+    pattern-sinks:
+      # Unclear why, but the stack overflow was only reproducible with the ending `...` !
+      - pattern: |
+          sink(...)
+          ...
+
