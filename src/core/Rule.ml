@@ -279,25 +279,46 @@ and extract_reduction = Separate | Concat [@@deriving show]
 (* secrets mode *)
 (*****************************************************************************)
 
-type request_spec = {
+(* This type encodes a basic HTTP request; mainly used for in the secrets
+ * post-processor; such that a basic http request like
+ * GET semgrep.dev
+ * Auth: ok
+ * Type: tau
+ * would be represented as
+ * {
+ *   url     = semgrep.dev/user;
+ *   meth    = `GET;
+ *   headers = [(Auth, ok); (Type, tau)]
+ * }
+ *)
+type request = {
   url : Uri.t;
   meth : [`GET | `POST];
   headers : (string * string) list
 }
 [@@deriving show]
 
-type response_sepc = {
+(* Used to match on the returned response of some request;
+ * right now: we only look at the return code number i.e
+ * 200, 404,...
+ * TODO: Extend matching on response
+ *)
+type response = {
   return_code : int;
 }
 [@@deriving show]
 
-type secrets_spec = {
-  (* postprocessor-patterns: *)
+
+type secrets = {
+  (* postprocessor-patterns:
+   * Each pattern in this list represents a piece of a "secret"; with any
+   * bindings made available in the request post matching.
+   *)
   secrets : formula list;
   (* request: *)
-  request : request_spec;
+  request : request;
   (* response: *)
-  response : response_sepc
+  response : response
 }
 [@@deriving show]
 (*****************************************************************************)
