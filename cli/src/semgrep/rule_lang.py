@@ -456,7 +456,7 @@ class RuleValidation:
         "pattern-sinks",
         "pattern-sources",
         "join",
-        "secrets",
+        "postprocessor-patterns",
         "request",
         "response",
     }
