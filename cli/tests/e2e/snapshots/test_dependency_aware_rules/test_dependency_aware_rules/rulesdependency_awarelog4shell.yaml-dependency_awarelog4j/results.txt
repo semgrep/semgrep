@@ -107,6 +107,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [],
               "ecosystem": "maven",
               "line_number": 3,
               "package": "org.apache.logging.log4j:log4j-core",
