@@ -20,7 +20,7 @@ async fn index(form: web::Form<MyForm>,
 }
 
 async fn index2() -> impl Responder {
-    let response: HttpResponseBuilder = get_resonse();
+    let response: HttpResponseBuilder = get_response();
     // ruleid: no-direct-response-write
     response.body(msg)
 }

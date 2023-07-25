@@ -1,4 +1,4 @@
-feat(naming): Adding support for naming propagation when the left-hand side (lhs) of a variable definition is an identifier pattern
+Added support for naming propagation when the left-hand side (lhs) of a variable definition is an identifier pattern
 
 In certain languages like Rust, the variable definition is parsed as a pattern assignment, for example:
 
