@@ -1,0 +1,15 @@
+rules:
+  - id: rust-macro-token-args
+    message: Semgrep found a match
+    languages:
+      - rust
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              source
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              sink(...)

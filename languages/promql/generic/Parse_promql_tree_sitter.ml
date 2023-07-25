@@ -24,7 +24,6 @@ module G = AST_generic
  * directly to AST_generic.ml
  *
  * TODO:
- * - binary operators should support ellipses
  * - binary operators groupings are ignored for now
  * - support offset and @ modifier for subqueries and selectors
  * - code cleanup; but this seems to work somewhat so good enough for now
@@ -50,6 +49,7 @@ let map_quoted_string (env : env) (x : CST.quoted_string) =
   match x with
   | `Single_quoted_str tok -> map_single_quoted_string env tok
   | `Double_quoted_str tok -> map_single_quoted_string env tok
+  | `Back_quoted_str tok -> map_single_quoted_string env tok
 
 let map_string_literal (env : env) (x : CST.string_literal) =
   match x with
@@ -126,7 +126,7 @@ let map_label_matcher (env : env) ((v1, v2, v3) : CST.label_matcher) =
   let n = G.N (H2.name_of_id v1) |> G.e in
   G.Container (G.Tuple, fb [ n; v2 |> G.e; v3 ]) |> G.e
 
-let map_series_matcher (env : env) ((v1, v2) : CST.series_matcher) =
+let map_series_matcher (env : env) (x : CST.series_matcher) =
   (*
       http_requests_total{a="b"} -> {(__name__, "=", http_requests_total), (a ,"=", b)})
   *)
@@ -162,13 +162,17 @@ let map_series_matcher (env : env) ((v1, v2) : CST.series_matcher) =
     G.Container (G.Tuple, fb [ l; eq; n ]) |> G.e
   in
 
-  let name_matcher = map_name_to_name_label_matcher env v1 in
-  let labels =
-    match v2 with
-    | Some x -> map_label_selectors_to_list env x
-    | None -> []
-  in
-  G.Container (G.Tuple, fb ([ name_matcher ] @ labels)) |> G.e
+  match x with
+  | `Metric_name v1 ->
+      let name_matcher = map_name_to_name_label_matcher env v1 in
+      G.Container (G.Tuple, fb [ name_matcher ]) |> G.e
+  | `Label_selecs v1 ->
+      let label_matchers = map_label_selectors_to_list env v1 in
+      G.Container (G.Tuple, fb label_matchers) |> G.e
+  | `Metric_name_label_selecs (v1, v2) ->
+      let name_matcher = map_name_to_name_label_matcher env v1 in
+      let label_matchers = map_label_selectors_to_list env v2 in
+      G.Container (G.Tuple, fb ([ name_matcher ] @ label_matchers)) |> G.e
 
 let map_instant_vector_selector (env : env)
     ((v1, _) : CST.instant_vector_selector) =
@@ -180,11 +184,9 @@ let map_range_vector_selector (env : env)
     ((v1, v2, _) : CST.range_vector_selector) =
   (* TODO: modifier and offset *)
   let v1 = map_series_matcher env v1 in
-  let t1, v2, t2 = v2 in
+  let _, v2, _ = v2 in
   let range = map_duration env v2 in
-  let _, t1 = str env t1 in
-  let _, t2 = str env t2 in
-  G.Container (G.Tuple, (t1, [ v1; range ], t2)) |> G.e
+  G.Container (G.Tuple, fb [ v1; range ]) |> G.e
 
 let map_selector_expression (env : env) (x : CST.selector_expression) =
   match x with
@@ -203,8 +205,8 @@ let map_function_grouping (env : env) ((v1, t1, v2, t2) : CST.grouping) =
   let _, t2 = str env t2 in
   let k =
     match v1 with
-    | `By tok -> str env tok
-    | `With tok -> str env tok
+    | `Pat_by tok -> str env tok
+    | `Pat_with tok -> str env tok
   in
   let v =
     match v2 with
@@ -219,20 +221,13 @@ let map_function_grouping (env : env) ((v1, t1, v2, t2) : CST.grouping) =
   [ G.ArgKwdOptional (k, v) ]
 
 let rec map_function_args (env : env) ((_, v1, _) : CST.function_args) =
-  let map_choice_semg_ellips env x =
-    match x with
-    | `Semg_ellips tok ->
-        let _, t = str env tok in
-        G.Ellipsis t |> G.e
-    | `Query x -> map_query env x
-  in
   match v1 with
   | Some (v1, v2, _) ->
-      let v1 = map_choice_semg_ellips env v1 in
+      let v1 = map_query env v1 in
       let v2 =
         List.map
           (fun (_, v1) ->
-            let v1 = map_choice_semg_ellips env v1 in
+            let v1 = map_query env v1 in
             G.Arg v1)
           v2
       in
@@ -279,7 +274,7 @@ and map_subquery_expression (env : env) ((v1, v2, _) : CST.subquery) =
 
 and map_operator_expression (env : env) (x : CST.operator_expression) =
   (*
-     TODO: groupings, ellipsis for left and right
+     TODO: groupings
   *)
   let v1, (op, tok), _, v4 =
     match x with
@@ -316,7 +311,7 @@ and map_operator_expression (env : env) (x : CST.operator_expression) =
               (G.Minus, tok)
         in
         (v1, (op, tok), v3, v4)
-    | `Query_choice_EQEQ_opt_bool_opt_bin_grou_query (v1, v2, _, v3, v4) ->
+    | `Query_choice_EQEQ_opt_pat_bool_opt_bin_grou_query (v1, v2, _, v3, v4) ->
         let op, tok =
           match v2 with
           | `BANGEQ tok ->
@@ -339,24 +334,24 @@ and map_operator_expression (env : env) (x : CST.operator_expression) =
               (G.LtE, tok)
         in
         (v1, (op, tok), v3, v4)
-    | `Query_choice_and_opt_bin_grou_query (v1, v2, v3, v4) ->
+    | `Query_choice_pat_and_opt_bin_grou_query (v1, v2, v3, v4) ->
         let op, tok =
           match v2 with
-          | `And tok ->
+          | `Pat_and tok ->
               let _, tok = str env tok in
               (G.And, tok)
-          | `Or tok ->
+          | `Pat_or tok ->
               let _, tok = str env tok in
               (G.Or, tok)
-          | `Unless tok ->
+          | `Pat_unless tok ->
               let _, tok = str env tok in
               (G.Xor, tok)
         in
         (v1, (op, tok), v3, v4)
-    | `Query_choice_atan2_opt_bin_grou_query (v1, v2, v3, v4) ->
+    | `Query_choice_pat_atan2_opt_bin_grou_query (v1, v2, v3, v4) ->
         let op, tok =
           match v2 with
-          | `Atan2 tok ->
+          | `Pat_atan2 tok ->
               (* This does not map cleanly to an operator but lets abuse a special one *)
               let _, tok = str env tok in
               (G.Elvis, tok)
@@ -369,11 +364,16 @@ and map_operator_expression (env : env) (x : CST.operator_expression) =
 
 and map_query_expression (env : env) (x : CST.query_expression) =
   match x with
-  | `Lit_exp x -> map_literal_expression env x
-  | `Call_exp x -> map_function_expression env x
-  | `Sele_exp x -> map_selector_expression env x
-  | `Subq_exp x -> map_subquery_expression env x
-  | `Op_exp x -> map_operator_expression env x
+  | `Semg_ellips tok ->
+      let _, t = str env tok in
+      G.Ellipsis t |> G.e
+  | `Choice_lit_exp x -> (
+      match x with
+      | `Lit_exp x -> map_literal_expression env x
+      | `Call_exp x -> map_function_expression env x
+      | `Sele_exp x -> map_selector_expression env x
+      | `Subq_exp x -> map_subquery_expression env x
+      | `Op_exp x -> map_operator_expression env x)
 
 and map_query (env : env) (x : CST.query) =
   match x with
