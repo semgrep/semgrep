@@ -345,14 +345,9 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
-  build-test-manylinux-x86:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-manylinux-x86.yaml
-    secrets: inherit
-
-  build-test-manylinux-aarch64:
+  build-test-manylinux:
     needs: [build-test-docker]
-    uses: ./.github/workflows/build-test-manylinux-aarch64.yaml
+    uses: ./.github/workflows/build-test-manylinux.yaml
     secrets: inherit
 
   build-test-osx-x86:

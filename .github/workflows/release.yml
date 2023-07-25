@@ -123,8 +123,7 @@ jobs:
     needs:
       [
         build-test-docker,
-        build-test-manylinux-x86,
-        build-test-manylinux-aarch64,
+        build-test-manylinux,
         build-test-osx-x86,
         build-test-osx-arm64,
       ]
