@@ -283,15 +283,19 @@ def parse_dependency_file(
                 str(file_to_parse.path),
                 file_to_parse.parser_name,
                 error_str,
-                line,
-                col,
+                line + 1,
+                col + 1,
                 offending_line,
             )
         else:
             reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
             console.print(f"Failed to parse {location} - {reason}")
             return DependencyParserError(
-                str(file_to_parse.path), file_to_parse.parser_name, reason, line, col
+                str(file_to_parse.path),
+                file_to_parse.parser_name,
+                reason,
+                line + 1,
+                col + 1,
             )
 
 
