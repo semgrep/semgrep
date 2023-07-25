@@ -127,9 +127,25 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 # Copy in scripts folder
 COPY scripts/ ./scripts/
 
-# Build the source distribution and binary wheel, validate that the wheel installs correctly
-# We're only checking the musllinux wheel because this is an Alpine container. It shouldnt be a problem because the content of the wheels are identical.
-RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
+# Build the source distribution and binary wheels, and then validate that the wheel installs correctly.
+#
+# We have to build the wheel twice because of how Python wheels handle binary compatiblity:
+# 1. build wheel for manylinux2014 (i.e. many linux distributions from 2014 onwards)
+# 2. build wheel for musllinux_1_1 (i.e. musl linux distributions from musl 1.0 onwards)
+#
+# However, we're not doing any actual compilation (we already build semgrep-core ahead of time),
+# so these wheels will be identical.
+#
+# Note: we're only able to validate the musllinux wheel because we're running in an Alpine container.
+# But again, the wheels are identical, so confirming the musllinux wheel works should be good enough.
+#
+# Make sure to override the WHEEL_ARCH build arg with the build architecture. Wheel validation will
+# fail if you don't!
+#
+ARG WHEEL_ARCH=x86_64
+RUN scripts/build-wheels.sh --plat manylinux2014_${WHEEL_ARCH} && \
+    scripts/build-wheels.sh --plat musllinux_1_0_${WHEEL_ARCH} && \
+    scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
 ###############################################################################
 # Step3: Build the final docker image with Python wrapper and semgrep-core bin

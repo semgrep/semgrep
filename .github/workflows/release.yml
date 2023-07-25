@@ -112,14 +112,9 @@ jobs:
     uses: ./.github/workflows/build-test-core-x86.yaml
     secrets: inherit
 
-  build-test-manylinux-x86:
-    needs: [build-test-core-x86]
-    uses: ./.github/workflows/build-test-manylinux-x86.yaml
-    secrets: inherit
-
-  build-test-manylinux-aarch64:
+  build-test-manylinux:
     needs: [build-test-docker]
-    uses: ./.github/workflows/build-test-manylinux-aarch64.yaml
+    uses: ./.github/workflows/build-test-manylinux.yaml
     secrets: inherit
 
   wait-for-build-test:
@@ -154,8 +149,8 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v3
         with:
-          name: manylinux-x86-wheel
-          path: manylinux-x86-wheel
+          name: manylinux-x86_64-wheel
+          path: manylinux-x86_64-wheel
       - name: Download aarch64 Artifact
         uses: actions/download-artifact@v3
         with:
@@ -173,15 +168,15 @@ jobs:
           path: osx-arm64-wheel
       - name: Unzip x86_64 Wheel
         run: |
-          unzip ./manylinux-x86-wheel/dist.zip
+          unzip ./manylinux-x86_64-wheel/dist.zip
       - name: Unzip aarch64 Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
+        # Don't unzip tar.gz because it already exists from ./manylinux-x86_64-wheel/dist.zip.
         run: unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
       - name: Unzip OSX x86 Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
+        # Don't unzip tar.gz because it already exists from ./manylinux-x86_64-wheel/dist.zip.
         run: unzip ./osx-x86-wheel/dist.zip "*.whl"
       - name: Unzip OSX ARM64 Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-x86-wheel/dist.zip.
+        # Don't unzip tar.gz because it already exists from ./manylinux-x86_64-wheel/dist.zip.
         run: unzip ./osx-arm64-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@master

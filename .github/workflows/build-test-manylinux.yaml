@@ -11,6 +11,11 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    strategy:
+      matrix:
+        architecture:
+          - x86_64
+          - aarch64
     steps:
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
@@ -20,15 +25,17 @@ jobs:
         uses: depot/build-push-action@v1.8.0
         with:
           project: fhmxj6w9z8
-          platforms: linux/arm64
+          platforms: linux/${{ matrix.architecture }}
           outputs: type=docker,dest=/tmp/image.tar
           target: semgrep-wheel
           buildx-fallback: true
+          build-args: |
+            WHEEL_ARCH=${{ matrix.architecture }}
       - name: Extract wheel from docker image
         run: |
           docker load --input /tmp/image.tar
           docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} cat cli/dist.zip > /tmp/dist.zip
       - uses: actions/upload-artifact@v3
         with:
-          name: manylinux-aarch64-wheel
+          name: manylinux-${{ matrix.architecture }}-wheel
           path: /tmp/dist.zip
