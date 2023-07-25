@@ -8,7 +8,7 @@
     cohttp-lwt-unix
 
     profiling
-    http
+    networking
     semgrep_core_cli ; for Version.version in Network_app.ml
     osemgrep_configuring
     osemgrep_jsonnet
