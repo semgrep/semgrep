@@ -192,7 +192,6 @@ let read_string_wrap e =
   | G.N (Id ((value, t), _)) -> Some (value, t)
   | _ -> None
 
-
 (*****************************************************************************)
 (* Dict helper methods *)
 (*****************************************************************************)
@@ -1648,20 +1647,13 @@ let parse_steps env key (value : G.expr) : R.step list =
 (*****************************************************************************) 
 let parse_secrets_fields env rule_dict : R.secrets =
   let secrets : R.formula list =
-    take
-      rule_dict
-      env
+    take rule_dict env
       (fun env key expr ->
-         parse_list
-           env
-           key
-           (fun env dict_pair ->
-               yaml_to_dict env key dict_pair
-            |> find_formula_old env
-            |> parse_pair_old env
-           )
-           expr
-      )
+        parse_list env key
+          (fun env dict_pair ->
+            yaml_to_dict env key dict_pair
+            |> find_formula_old env |> parse_pair_old env)
+          expr)
       "postprocessor-patterns"
   in
   let req = take rule_dict env yaml_to_dict "request" in
@@ -1669,26 +1661,15 @@ let parse_secrets_fields env rule_dict : R.secrets =
   let url = take req env uri "url" in
   let meth = take req env method_ "method" in
   let headers =
-    take req env yaml_to_dict "headers"
-    |> fun {h; _} ->
-    Hashtbl.fold 
-    (fun header value lst -> 
-      (header, parse_string env (fst value) (snd value))::lst
-    )
-    h
-    []
+    take req env yaml_to_dict "headers" |> fun { h; _ } ->
+    Hashtbl.fold
+      (fun header value lst ->
+        (header, parse_string env (fst value) (snd value)) :: lst)
+      h []
   in
-    let return_code = take res env parse_int "return_code" in
-  { secrets;
-    request = {
-      url;
-      meth;
-      headers
-    };
-    response = {
-      return_code
-    }
-  }
+  let return_code = take res env parse_int "return_code" in
+  { secrets; request = { url; meth; headers }; response = { return_code } }
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)

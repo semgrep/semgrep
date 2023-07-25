@@ -293,8 +293,8 @@ and extract_reduction = Separate | Concat [@@deriving show]
  *)
 type request = {
   url : Uri.t;
-  meth : [`GET | `POST];
-  headers : (string * string) list
+  meth : [ `GET | `POST ];
+  headers : (string * string) list;
 }
 [@@deriving show]
 
@@ -303,11 +303,7 @@ type request = {
  * 200, 404,...
  * TODO: Extend matching on response
  *)
-type response = {
-  return_code : int;
-}
-[@@deriving show]
-
+type response = { return_code : int } [@@deriving show]
 
 type secrets = {
   (* postprocessor-patterns:
@@ -318,9 +314,10 @@ type secrets = {
   (* request: *)
   request : request;
   (* response: *)
-  response : response
+  response : response;
 }
 [@@deriving show]
+
 (*****************************************************************************)
 (* Languages definition *)
 (*****************************************************************************)
@@ -472,7 +469,8 @@ and severity = Error | Warning | Info | Inventory | Experiment
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
 
-type mode = [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
+type mode =
+  [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
 [@@deriving show]
 
 (* the general type *)
@@ -500,21 +498,40 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list * secrets_rule list * steps_rule list =
+    search_rule list
+    * taint_rule list
+    * extract_rule list
+    * secrets_rule list
+    * steps_rule list =
   let rec part_rules search taint extract secrets step = function
-    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev secrets, List.rev step)
+    | [] ->
+        ( List.rev search,
+          List.rev taint,
+          List.rev extract,
+          List.rev secrets,
+          List.rev step )
     | r :: l -> (
         match r.mode with
         | `Search _ as s ->
-            part_rules ({ r with mode = s } :: search) taint extract secrets step l
+            part_rules
+              ({ r with mode = s } :: search)
+              taint extract secrets step l
         | `Taint _ as t ->
-            part_rules search ({ r with mode = t } :: taint) extract secrets step l
+            part_rules search
+              ({ r with mode = t } :: taint)
+              extract secrets step l
         | `Extract _ as e ->
-          part_rules search taint ({ r with mode = e } :: extract) secrets step l
+            part_rules search taint
+              ({ r with mode = e } :: extract)
+              secrets step l
         | `Secrets _ as s ->
-          part_rules search taint extract ({r with mode = s} :: secrets) step l
+            part_rules search taint extract
+              ({ r with mode = s } :: secrets)
+              step l
         | `Steps _ as j ->
-            part_rules search taint extract secrets ({ r with mode = j } :: step) l)
+            part_rules search taint extract secrets
+              ({ r with mode = j } :: step)
+              l)
   in
   part_rules [] [] [] [] [] rules
 
