@@ -346,13 +346,12 @@ class ScanHandler:
         if self._dependency_query:
             complete.dependencies = out.CiScanDependencies(lockfile_dependencies)
 
-        complete_json = complete.to_json()
         if self.dry_run:
             logger.info(
                 f"Would have sent findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
             )
             logger.info(
-                f"Would have sent complete blob: {json.dumps(complete_json, indent=4)}"
+                f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
             return (False, "")
         else:
@@ -360,7 +359,7 @@ class ScanHandler:
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
             )
             logger.debug(
-                f"Sending complete blob: {json.dumps(complete_json, indent=4)}"
+                f"Sending complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
 
         results_task = progress_bar.add_task("Uploading scan results")
@@ -396,7 +395,7 @@ class ScanHandler:
             response = state.app_session.post(
                 f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
                 timeout=state.env.upload_findings_timeout,
-                json=complete_json,
+                json=complete.to_json(),
             )
 
             try:
