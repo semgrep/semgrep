@@ -5,6 +5,7 @@ import pytest
 from tests.fixtures import RunSemgrep
 
 from ..conftest import TESTS_PATH
+from .test_paths_to_transitivity import paths_to_transitivity as paths
 from semdep.package_restrictions import is_in_range
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
@@ -293,3 +294,24 @@ def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
         ).as_snapshot(),
         "results.txt",
     )
+
+
+# These are file targets which are ecosystems that we can calculate the path to
+# transitivity for
+@pytest.mark.parametrize(
+    "target_supports_path_to_transitivity",
+    [
+        "targets/dependency_aware/log4j/maven_dep_tree.txt",
+    ],
+)
+def test_child_construction(
+    parse_lockfile_path_in_tmp, target_supports_path_to_transitivity
+):
+    dependencies, error = parse_lockfile_path_in_tmp(
+        Path(target_supports_path_to_transitivity)
+    )
+    desiredResult = paths[target_supports_path_to_transitivity]
+    assert len(error) == 0
+    for dependency in dependencies:
+        dependency_children = [child.to_json() for child in dependency.children]
+        assert dependency_children == desiredResult[dependency.package]
