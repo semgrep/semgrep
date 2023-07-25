@@ -1134,8 +1134,8 @@ and parse_formula env (value : G.expr) : R.formula =
          pattern. *)
       | _ when Hashtbl.length dict.h <> 1 ->
           error env.id dict.first_tok
-            "Expected exactly one key of `pattern`, `pattern-either`, \
-             `patterns`, or `pattern-regex`"
+            "Expected exactly one key of `pattern`, `all`, `any`, `regex`, \
+             `not`, or `inside`"
       (* Otherwise, use the where formula if it exists, to modify the formula we know must exist. *)
       | None -> parse_pair env (find_formula env dict)
       | Some (((_, t) as key), value) ->

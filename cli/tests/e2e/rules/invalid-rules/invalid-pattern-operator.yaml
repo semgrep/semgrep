@@ -1,0 +1,7 @@
+rules:
+- id: eqeq
+  match:
+    foo: bar
+  message: Useless comparison
+  languages: [py]
+  severity: WARNING

@@ -6,20 +6,20 @@ from semgrep.constants import OutputFormat
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
-    "rule,target",
+    "rule",
     [
-        ("rules/invalid-rules/invalid-metavariable-regex.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/invalid-pattern-child.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/invalid-missing-top-item.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/invalid-pattern.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/string-pattern.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/string-pattern-under-patterns.yaml", "basic/stupid.py"),
-        ("rules/invalid-rules/missing-hyphen.yaml", "basic/stupid.py"),
+        ("rules/invalid-rules/invalid-metavariable-regex.yaml"),
+        ("rules/invalid-rules/invalid-pattern-child.yaml"),
+        ("rules/invalid-rules/invalid-missing-top-item.yaml"),
+        ("rules/invalid-rules/invalid-pattern.yaml"),
+        ("rules/invalid-rules/invalid-pattern-operator.yaml"),
+        ("rules/invalid-rules/additional-invalid-pattern-operator.yaml"),
+        ("rules/invalid-rules/string-pattern.yaml"),
+        ("rules/invalid-rules/string-pattern-under-patterns.yaml"),
+        ("rules/invalid-rules/missing-hyphen.yaml"),
     ],
 )
-def test_validation_of_invalid_rules(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target
-):
+def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
     _, err = run_semgrep_in_tmp(
         rule,
         options=["--validate"],
