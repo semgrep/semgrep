@@ -266,6 +266,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
         (* TODO: get renamed_paths, depends on baseline_commit *)
         renamed_paths = [];
         rule_ids;
+        contributions = None;
       }
   in
   let findings_and_ignores =
