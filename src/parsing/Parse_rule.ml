@@ -305,14 +305,14 @@ let parse_string_wrap env (key : key) x =
 (* TODO: delete at some point, should use parse_string_wrap instead *)
 let parse_string env (key : key) x = parse_string_wrap env key x |> fst
 
-let parse_method env (key : key) x =
+let method_ env (key : key) x =
   let meth = parse_string env key x in
   match meth with
   | "GET" -> `GET
   | "POST" -> `POST
   | _ -> error_at_key env.id key ("unsupported http method: " ^ meth)
 
-let parse_uri env (key : key) x =
+let uri env (key : key) x =
   let uri = parse_string env key x in
   Uri.of_string uri
 
@@ -1666,8 +1666,8 @@ let parse_secrets_fields env rule_dict : R.secrets_spec =
   in
   let req = take rule_dict env yaml_to_dict "request" in
   let res = take rule_dict env yaml_to_dict "response" in
-  let url = take req env parse_uri "url" in
-  let meth = take req env parse_method "method" in
+  let url = take req env uri "url" in
+  let meth = take req env method_ "method" in
   let headers =
     take req env yaml_to_dict "headers"
     |> fun {h; _} ->
