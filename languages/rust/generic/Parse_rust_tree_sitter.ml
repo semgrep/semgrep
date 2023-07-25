@@ -99,10 +99,6 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
      arguments, so we produce a single `Any`, which is `Args`.
      Note that <expr> can also occur once with no commas, or zero times.
   *)
-  (* `change_expr` is needed for if we end up parsing a prefix operator like
-   * or &, and we need to modify the next expression. This doesn't associate
-   * properly to the expression itself, so we need to do a little parsing of our own.
-   *)
   let macro_item_to_expr = function
     | MacAny (G.E e) -> Some e
     | MacAny (G.I e) -> Some (G.N (G.Id (e, G.empty_id_info ())) |> G.e)
@@ -113,6 +109,12 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
     | MacTree _ ->
         None
   in
+  (* try_as_normal_exprs just tries to parse all of the arguments to a
+     macro as expressions. In anticipation of dealing with the case
+     where such an argument is either followed by a `.` or prefixed by
+     an operator like `&` and `*`, we carry an accumulator argument and
+     straightforwardly recurse upon the list.
+  *)
   let rec try_as_normal_exprs acc macros =
     match (acc, macros) with
     (* If we end with a comma, that's pretty weird and probably wrong. *)
