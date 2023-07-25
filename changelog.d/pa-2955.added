@@ -1,0 +1,3 @@
+Type inference: Semgrep is now able to infer the types of
+variables in the presence of annotations better, in languages
+which allow pattern matching. (for instance Rust, OCaml, Scala)
