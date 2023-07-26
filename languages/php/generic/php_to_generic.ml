@@ -56,9 +56,9 @@ let ident v = wrap string v
 let var v = wrap string v
 let qualified_ident v = list ident v
 
-let name_of_qualified_ident xs =
+let name_of_qualified_ident ?(case_insensitive = false) xs =
   let xs = qualified_ident xs in
-  H.name_of_ids xs
+  H.name_of_ids ~case_insensitive xs
 
 let name v = qualified_ident v
 let fixOp x = x
@@ -256,7 +256,7 @@ and expr e : G.expr =
       let v1 = wrap string v1 in
       G.L (G.String (fb v1)) |> G.e
   | Id v1 ->
-      let v1 = name_of_qualified_ident v1 in
+      let v1 = name_of_qualified_ident ~case_insensitive:true v1 in
       G.N v1 |> G.e
   | IdSpecial v1 -> special v1
   (* unify Id and Var, finally *)
@@ -539,7 +539,9 @@ and func_def
   in
   let attrs = list attribute f_attrs in
   let body = stmt f_body in
-  let ent = G.basic_entity id ~attrs:(modifiers @ attrs) in
+  let ent =
+    G.basic_entity id ~attrs:(modifiers @ attrs) ~case_insensitive:true
+  in
   let def =
     { G.fparams = fb params; frettype = fret; fbody = G.FBStmt body; fkind }
   in
@@ -646,7 +648,11 @@ and class_def
     @ (methods |> Common.map (fun (ent, var) -> (ent, G.FuncDef var)))
   in
 
-  let ent = G.basic_entity id ~attrs:(attrs @ modifiers @ class_attrs) in
+  let ent =
+    G.basic_entity id
+      ~attrs:(attrs @ modifiers @ class_attrs)
+      ~case_insensitive:true
+  in
   let def =
     {
       G.ckind = kind;

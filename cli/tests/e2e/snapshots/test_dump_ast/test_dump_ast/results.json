@@ -12,6 +12,7 @@
                   "()"
                 ],
                 {
+                  "id_case_insensitive": "false",
                   "id_hidden": "false",
                   "id_info_id": 7,
                   "id_resolved": {
@@ -70,6 +71,7 @@
                                                 "()"
                                               ],
                                               {
+                                                "id_case_insensitive": "false",
                                                 "id_hidden": "false",
                                                 "id_info_id": 3,
                                                 "id_resolved": {
@@ -95,6 +97,7 @@
                                                 "()"
                                               ],
                                               {
+                                                "id_case_insensitive": "false",
                                                 "id_hidden": "false",
                                                 "id_info_id": 4,
                                                 "id_resolved": {
@@ -136,6 +139,7 @@
                                                 "()"
                                               ],
                                               {
+                                                "id_case_insensitive": "false",
                                                 "id_hidden": "false",
                                                 "id_info_id": 5,
                                                 "id_resolved": {
@@ -161,6 +165,7 @@
                                                 "()"
                                               ],
                                               {
+                                                "id_case_insensitive": "false",
                                                 "id_hidden": "false",
                                                 "id_info_id": 6,
                                                 "id_resolved": {
@@ -201,6 +206,7 @@
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
+                    "id_case_insensitive": "false",
                     "id_hidden": "false",
                     "id_info_id": 1,
                     "id_resolved": {
@@ -232,6 +238,7 @@
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
+                    "id_case_insensitive": "false",
                     "id_hidden": "false",
                     "id_info_id": 2,
                     "id_resolved": {
@@ -276,6 +283,7 @@
                   "()"
                 ],
                 {
+                  "id_case_insensitive": "false",
                   "id_hidden": "false",
                   "id_info_id": 12,
                   "id_resolved": {
@@ -320,6 +328,7 @@
                                       "()"
                                     ],
                                     {
+                                      "id_case_insensitive": "false",
                                       "id_hidden": "false",
                                       "id_info_id": 10,
                                       "id_resolved": {
@@ -345,6 +354,7 @@
                                       "()"
                                     ],
                                     {
+                                      "id_case_insensitive": "false",
                                       "id_hidden": "false",
                                       "id_info_id": 11,
                                       "id_resolved": {
@@ -380,6 +390,7 @@
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
+                    "id_case_insensitive": "false",
                     "id_hidden": "false",
                     "id_info_id": 8,
                     "id_resolved": {
@@ -411,6 +422,7 @@
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
+                    "id_case_insensitive": "false",
                     "id_hidden": "false",
                     "id_info_id": 9,
                     "id_resolved": {
@@ -455,6 +467,7 @@
                     "()"
                   ],
                   {
+                    "id_case_insensitive": "false",
                     "id_hidden": "false",
                     "id_info_id": 13,
                     "id_resolved": {
@@ -492,6 +505,7 @@
                                 "()"
                               ],
                               {
+                                "id_case_insensitive": "false",
                                 "id_hidden": "false",
                                 "id_info_id": 14,
                                 "id_resolved": {
@@ -517,6 +531,7 @@
                                 "()"
                               ],
                               {
+                                "id_case_insensitive": "false",
                                 "id_hidden": "false",
                                 "id_info_id": 15,
                                 "id_resolved": {

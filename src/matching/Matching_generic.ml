@@ -237,23 +237,45 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
     match (a, b) with
-    (* if one of the two IDs is not resolved, then we allow
-     * a match, so a pattern like 'self.$FOO = $FOO' matches
-     * code like 'self.foo = foo'.
-     * Maybe we should not ... but let's try.
-     *
-     * At least we don't allow a resolved id with a precise sid to match
-     * another id with a different sid (same id but in different scope),
-     * which we rely on with our deep stmt matching hacks.
-     *
-     * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
-     * to match anything?
-     *)
-    | ( MV.Id ((s1, _), Some { G.id_resolved = { contents = None }; _ }),
-        MV.Id ((s2, _), _) )
-    | ( MV.Id ((s1, _), _),
-        MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
-        s1 = s2
+    | MV.Id ((s1, _), i1), MV.Id ((s2, _), i2) -> (
+        (match (i1, i2) with
+        (* Since this is a newer feature and we are not sure how much
+         * support for this is actually needed. Only allow matching in
+         * a case insensitive fashion if both ids are expected to be
+         * case insensitive. This covers all the use cases in the test
+         * suite so far.
+         *)
+        | Some i1, Some i2
+          when G.is_case_insensitive i1 && G.is_case_insensitive i2 ->
+            String.(lowercase_ascii s1 = lowercase_ascii s2)
+        | _, _ -> s1 = s2)
+        &&
+        match (i1, i2) with
+        (* if one of the two IDs is not resolved, then we allow
+         * a match, so a pattern like 'self.$FOO = $FOO' matches
+         * code like 'self.foo = foo'.
+         * Maybe we should not ... but let's try.
+         *
+         * At least we don't allow a resolved id with a precise sid to match
+         * another id with a different sid (same id but in different scope),
+         * which we rely on with our deep stmt matching hacks.
+         *
+         * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
+         * to match anything?
+         *)
+        | Some { id_resolved = { contents = None }; _ }, _
+        | _, Some { id_resolved = { contents = None }; _ }
+        (* We're adding this in as a hack, so that idents without id_infos can be allowed to
+           match to metavariables. Notably, this allows things like qualified identifiers
+           (within decorators) to match to metavariables.
+           This almost certainly should break something at some point in the future, but for
+           now we can allow it.
+        *)
+        | None, _ ->
+            true
+        | Some i1, Some i2 ->
+            AST_generic_equals.with_structural_equal G.equal_id_info i1 i2
+        | Some _, None -> false)
     (* In Ruby, they use atoms for metaprogramming to generate fields
      * (e.g., 'serialize :tags ... post.tags') in which case we want
      * a Text metavariable like :$INPUT to be compared with an Id
@@ -276,19 +298,11 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit
-    (* We're adding this in as a hack, so that idents without id_infos can be allowed to
-       match to metavariables. Notably, this allows things like qualified identifiers
-       (within decorators) to match to metavariables.
-       This almost certainly should break something at some point in the future, but for
-       now we can allow it.
-    *)
-    | MV.Id ((s1, _), None), MV.Id ((s2, _), Some _) -> s1 = s2
     (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
      * TODO? missing MV.Ss _, MV.Ss _ ??
      *)
-    | MV.Id _, MV.Id _
     | MV.N _, MV.N _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
@@ -338,7 +352,6 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         equal_ast_bound_code config (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
-
   if not res then
     logger#ldebug
       (lazy
