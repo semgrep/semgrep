@@ -529,7 +529,7 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules,_, _ = R.partition_rules rules in
+  let _, _, erules, _, _ = R.partition_rules rules in
   let erule_langs =
     erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
   in

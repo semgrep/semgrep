@@ -104,8 +104,8 @@ let group_rules xconf rules xtarget =
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
            | `Secrets _ ->
-             pr2 (Rule.show_rule r);
-             raise Postprocessor_rules_not_available
+               pr2 (Rule.show_rule r);
+               raise Postprocessor_rules_not_available
            | `Steps _ ->
                pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
