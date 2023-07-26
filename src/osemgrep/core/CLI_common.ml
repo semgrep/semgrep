@@ -18,7 +18,7 @@ open Cmdliner
  * behavior/limitations/errors or tokeep how things were done before (even
  * if they were bad, but just to remain backward compatible).
  *)
-type maturity = Develop | Experimental | Legacy [@@deriving show]
+type maturity = MDevelop | MExperimental | MLegacy [@@deriving show]
 
 type conf = {
   (* mix of --debug, --quiet, --verbose *)
@@ -157,9 +157,9 @@ let o_maturity : maturity option Term.t =
   let combine experimental legacy develop =
     match (experimental, legacy, develop) with
     | false, false, false -> None
-    | true, false, false -> Some Experimental
-    | false, true, false -> Some Legacy
-    | false, false, true -> Some Develop
+    | true, false, false -> Some MExperimental
+    | false, true, false -> Some MLegacy
+    | false, false, true -> Some MDevelop
     | _else_ ->
         Error.abort
           "mutually exclusive options --experimental/--legacy/--develop"

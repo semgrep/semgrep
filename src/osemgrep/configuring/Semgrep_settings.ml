@@ -78,7 +78,7 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 (* Entry points *)
 (*****************************************************************************)
 
-let load ?(legacy = false) () =
+let load ?(maturity = None) () =
   try
     if
       Sys.file_exists (Fpath.to_string settings)
@@ -101,10 +101,12 @@ let load ?(legacy = false) () =
               default_settings
           | Ok s -> s)
     else (
-      if not legacy then
-        Logs.warn (fun m ->
-            m "Settings file %a does not exist or is not a regular file"
-              Fpath.pp settings);
+      (match maturity with
+      | Some CLI_common.MDevelop ->
+          Logs.warn (fun m ->
+              m "Settings file %a does not exist or is not a regular file"
+                Fpath.pp settings)
+      | _else_ -> ());
       default_settings)
   with
   | Failure _ -> default_settings

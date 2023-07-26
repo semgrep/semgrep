@@ -88,7 +88,7 @@ let pp_skipped ppf
   Fmt.pf ppf "@.";
 
   (match maturity with
-  | Some CLI_common.Develop ->
+  | Some CLI_common.MDevelop ->
       Fmt.pf ppf " %a@.@."
         Fmt.(styled `Bold string)
         "Skipped for other reasons:";

@@ -694,9 +694,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* to remove at some point *)
     let registry_caching, ast_caching =
       match common.maturity with
-      | Some CLI_common.Develop -> (registry_caching, ast_caching)
+      | Some CLI_common.MDevelop -> (registry_caching, ast_caching)
       | None
-      | Some (CLI_common.Experimental | CLI_common.Legacy) ->
+      | Some (CLI_common.MExperimental | CLI_common.MLegacy) ->
           Logs.debug (fun m ->
               m "disabling registry and AST caching unless --develop");
           (false, false)
@@ -761,11 +761,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           Rules_source.Pattern (pat, Some xlang, fix)
       | _, (Some pat, None, fix) -> (
           match common.maturity with
-          | Some CLI_common.Legacy ->
+          (* osemgrep-only: better: can use -e without -l! *)
+          | Some CLI_common.MDevelop -> Rules_source.Pattern (pat, None, fix)
+          | None
+          | Some (CLI_common.MExperimental | CLI_common.MLegacy) ->
               (* alt: "language must be specified when a pattern is passed" *)
-              Error.abort "-e/--pattern and -l/--lang must both be specified"
-              (* osemgrep-only: better: can use -e without -l! *)
-          | _else_ -> Rules_source.Pattern (pat, None, fix))
+              Error.abort "-e/--pattern and -l/--lang must both be specified")
       | _, (None, Some _, _) ->
           (* stricter: error not detected in original semgrep *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"

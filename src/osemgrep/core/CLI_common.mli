@@ -5,7 +5,7 @@
    The o_ below stands for option (as in command-line argument option).
 *)
 
-type maturity = Develop | Experimental | Legacy [@@deriving show]
+type maturity = MDevelop | MExperimental | MLegacy [@@deriving show]
 
 type conf = {
   (* mix of --debug, --quiet, --verbose *)

@@ -73,7 +73,8 @@ let pp_summary ppf
         opt_msg ("files larger than " ^ mb ^ " MB") file_size_ignored;
         opt_msg "files matching .semgrepignore patterns" semgrep_ignored;
         (match maturity with
-        | Some CLI_common.Develop -> opt_msg "other files ignored" other_ignored
+        | Some CLI_common.MDevelop ->
+            opt_msg "other files ignored" other_ignored
         | _else_ -> None);
       ]
   in
