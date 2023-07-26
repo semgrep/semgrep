@@ -34,8 +34,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * to big perf problems. I think the only way to get warned about this is to write these
  * comparisons manually, no matter how painful it is, so the typechecker will force
  * you to revisit the comparison functions if the types change. It's safe to use
- * ppx_deriving when all the types are primitive, but if any is not then it can be
- * cause these problems.
+ * ppx_deriving when all the types are primitive, but if any is not then it can cause
+ * these problems.
  *
  * Besides, we now favor the use of pattern matching over record field access, e.g.
  * ```ocaml
@@ -95,16 +95,16 @@ let compare_metavar_env env1 env2 =
   else Stdlib.compare env1 env2
 
 let compare_matches pm1 pm2 =
-  let compare_rule_id =
+  match
     String.compare
       (Rule_ID.to_string pm1.PM.rule_id.id)
       (Rule_ID.to_string pm2.PM.rule_id.id)
-  in
-  if compare_rule_id <> 0 then compare_rule_id
-  else
-    let compare_range_loc = compare pm1.range_loc pm2.range_loc in
-    if compare_range_loc <> 0 then compare_range_loc
-    else compare_metavar_env pm1.env pm2.env
+  with
+  | 0 ->
+      let compare_range_loc = compare pm1.range_loc pm2.range_loc in
+      if compare_range_loc <> 0 then compare_range_loc
+      else compare_metavar_env pm1.env pm2.env
+  | other -> other
 
 let compare_sink { pm = pm1; rule_sink = sink1 } { pm = pm2; rule_sink = sink2 }
     =
