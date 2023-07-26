@@ -6,7 +6,7 @@
 #
 import os
 import shlex
-import sys
+from pathlib import Path
 from subprocess import PIPE
 from subprocess import Popen
 from typing import Dict
@@ -56,7 +56,9 @@ OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", ".", "--experimental"]
 # It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
 # ["/path/to/osemgrep"].
 SEMGREP_BASE_COMMAND: List[str] = (
-    [OSEMGREP_PATH] if USE_OSEMGREP else [sys.executable, "-m", "semgrep"]
+    [OSEMGREP_PATH]
+    if USE_OSEMGREP
+    else [str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())]
 )
 
 SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
