@@ -1,0 +1,7 @@
+Matching: Added the ability to use metavariables in parameters to match more
+sophisticated kinds of parameters.
+
+In particular, metavariables should now be able to match `self` parameters,
+such as in Rust.
+
+So `fn $F($X, ...) { ... }` should match `fn $F(self) { }`.

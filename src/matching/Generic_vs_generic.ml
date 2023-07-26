@@ -2910,6 +2910,39 @@ and m_parameter_list a b =
 
 and m_parameter a b =
   match (a, b) with
+  (* Only match a metavariable unconditionally if it has no other characteristics than
+     being a metavariable.
+     Otherwise, we might match and not check that things like types or default
+     instantiation are the same.
+     Decided not to match ParamRest and ParamHashSplat, and ParamEllipsis, which
+     don't behave like "singular" params.
+  *)
+  | ( G.Param
+        ({
+           pname = Some (str, tok);
+           ptype = None;
+           pdefault = None;
+           pattrs = [];
+           pinfo = _;
+         } as a1),
+      b )
+    when Metavariable.is_metavar_name str -> (
+      match b with
+      | OtherParam _
+      | ParamPattern _
+      | ParamReceiver _ ->
+          envf (str, tok) (MV.Params [ b ])
+      (* We want to first match in the same way `m_parameter_classic` would,
+         to maintain previous behavior.
+         If there are no matches, then we can just unconditionally match.
+      *)
+      | Param b1 ->
+          m_parameter_classic a1 b1 >!> fun () ->
+          envf (str, tok) (MV.Params [ b ])
+      | ParamRest _
+      | ParamHashSplat _
+      | ParamEllipsis _ ->
+          fail ())
   (* boilerplate *)
   | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->
