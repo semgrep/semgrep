@@ -68,7 +68,7 @@ def find_semgrep_core_path():
     if path is not None:
         return path
  
-    print(f"Failed to find semgrep-core (needed for --experimental) in PATH or in the semgrep package.",
+    print(f"Failed to find semgrep-core in PATH or in the semgrep package.",
           file=sys.stderr)
     # fatal error, see src/osemgrep/core/Exit_code.ml
     sys.exit(2)
