@@ -39,6 +39,7 @@ let test_tainting lang file options config def =
           let r = Range.range_of_token_locations tok1 tok2 in
           Range.content_at_range file r
       | Taint.Arg arg -> Taint._show_arg arg
+      | Taint.Control -> "<control>"
     in
     taint |> Taint.Taint_set.elements |> Common.map show_taint
     |> String.concat ", "
