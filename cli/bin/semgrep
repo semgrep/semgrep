@@ -44,7 +44,8 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # that calling pysemgrep from osemgrep would be difficult because
 # it would not be in the PATH (we would need to pass its path to osemgrep,
 # which seems more complicated).
-os.environ["PATH"] += os.pathsep + os.path.dirname(os.path.abspath(__file__))
+PATH = os.environ["PATH"]
+os.environ["PATH"] = PATH+os.pathsep + os.path.dirname(os.path.abspath(__file__))
            
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
 def find_semgrep_core_path():
