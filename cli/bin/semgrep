@@ -99,10 +99,21 @@ def call_osemgrep():
 # execution of this file).
 # Austin: the above explanation is my understanding, but tbh I think Python
 # is weirder under the hood with this stuff.
+# Pad: I don't understand why the use of --test triggers the code here;
+# if --test use semgrep.Foo, it should execute code in cli/src/semgrep/__init__.php
+# This file is not part of the Python 'semgrep' package; it's a script.
 if __name__ == "__main__":
+    # escape hatch for users to pysemgrep in case of problems (they
+    # can also call directly 'pysemgrep').
     if "--legacy" in sys.argv:
        sys.argv.remove("--legacy")
-       #TODO? or execvp("pysemgrep", sys.argv)?
+       #TODO: we should just do 'execvp("pysemgrep", sys.argv)'
+       # but this causes some regressions with --test (see PA-2963)
+       # and autocomplete (see #8359)
+       #TODO: we should get rid of autocomplete anyway (it's a Python Click
+       # thing not supported by osemgrep anyway),
+       #TODO: we should fix --test instead.
+       # The past investigation of Austin is available in #8360 PR comments
        import semgrep.__main__
        sys.exit(semgrep.__main__.main())
     elif "--experimental" in sys.argv:
