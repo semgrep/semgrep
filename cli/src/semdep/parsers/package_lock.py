@@ -14,12 +14,13 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import extract_npm_lockfile_hash
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
@@ -115,8 +116,8 @@ def parse_package_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, json_doc, ParserName.jsondoc),
-        DependencyFileToParse(manifest_path, json_doc, ParserName.jsondoc)
+        DependencyFileToParse(lockfile_path, json_doc, ScaParserName(Jsondoc())),
+        DependencyFileToParse(manifest_path, json_doc, ScaParserName(Jsondoc()))
         if manifest_path
         else None,
     )

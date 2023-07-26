@@ -19,13 +19,15 @@ from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PoetryLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PyprojectToml
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 # These use [until] instead of [upto] because [upto] only works on single characters
 # and [upto] works on arbitrary parsers (this makes it slower though)
@@ -156,13 +158,13 @@ def parse_poetry(
         DependencyFileToParse(
             lockfile_path,
             poetry,
-            ParserName.poetry_lock,
+            ScaParserName(PoetryLock()),
             preprocessors.CommentRemover(),
         ),
         DependencyFileToParse(
             manifest_path,
             manifest,
-            ParserName.pyproject_toml,
+            ScaParserName(PyprojectToml()),
             preprocessors.CommentRemover(),
         )
         if manifest_path

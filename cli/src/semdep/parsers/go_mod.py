@@ -17,12 +17,13 @@ from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import GoMod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
@@ -78,7 +79,7 @@ def parse_go_mod(
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
 
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, go_mod, ParserName.go_mod), None
+        DependencyFileToParse(lockfile_path, go_mod, ScaParserName(GoMod())), None
     )
     if not parsed_lockfile:
         return [], errors
