@@ -1,15 +1,24 @@
-open Core_jsonnet
+open Core_jsonnet_LC
 open Common
-module V = Value_jsonnet
+module V = Value_jsonnet_LC
 module A = AST_jsonnet
+module J = JSON
 
 exception Error of string * Tok.t
 
 type cmp = Inf | Eq | Sup
 
 let fk = Tok.unsafe_fake_tok ""
+let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
+let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
-let std_type _env (v : V.value_) : string =
+let freshvar =
+  let store = ref 0 in
+  fun () ->
+    incr store;
+    ("!tmp" ^ string_of_int !store, fk)
+
+let std_type (v : V.value_) : string =
   match v with
   | V.Primitive (Null _) -> "null"
   | V.Primitive (Bool _) -> "boolean"
@@ -42,12 +51,30 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
+let vfld_name_to_fld_name fld_name =
+  let thing_to_make_string_ = Tok.unsafe_fake_bracket fld_name in
+  let insideL : A.string_ = A.mk_string_ thing_to_make_string_ in
+  FExpr (Tok.unsafe_fake_bracket (L (Str insideL)))
+
+let vobj_to_obj l asserts fields r =
+  let new_fields =
+    fields
+    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
+           match fld_value with
+           | Val _ -> error (Tok.unsafe_fake_tok "eek") "shoulnd't be a value"
+           | Unevaluated e ->
+               {
+                 fld_name = vfld_name_to_fld_name fld_name;
+                 fld_hidden;
+                 fld_value = e;
+               })
+  in
+  O (l, Object (asserts, new_fields), r)
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let log_call (env : V.env) str tk =
-  logger#trace "calling %s> %s at %s"
-    (Common2.repeat "-" env.depth |> Common.join "")
-    str (Tok.stringpos_of_tok tk)
+let log_call str tk =
+  logger#trace "calling %s at %s" str (Tok.stringpos_of_tok tk)
 
 let int_to_cmp = function
   | -1 -> Inf
@@ -142,7 +169,9 @@ let rec substitute id sub expr =
   | If (tif, e1, e2, e3) ->
       If (tif, substitute id sub e1, substitute id sub e2, substitute id sub e3)
   | Error (tk, e) -> Error (tk, substitute id sub e)
-  | ExprTodo ((_s, _tk), _ast_expr) -> failwith "unimplemented"
+  | Substitute (f, e) -> substitute id sub (f e)
+  | ExprTodo ((_s, _tk), _ast_expr) ->
+      error (Tok.unsafe_fake_tok "oof") "unimplemented"
 (*TODO*)
 
 let rec substitute_kw kw sub expr =
@@ -176,18 +205,19 @@ let rec substitute_kw kw sub expr =
               fields
           in
           O (l, Object (asserts, new_fields), r)
-      | ObjectComp _ -> failwith "unimplemented" (* TODO *))
+      | ObjectComp _ ->
+          error (Tok.unsafe_fake_tok "oof") "unimplemented" (* TODO *))
   | Id (s, tk) -> Id (s, tk)
   | IdSpecial (Super, tk) -> (
       match kw with
       | IdSpecial (Super, _) -> sub
       | IdSpecial (Self, _) -> IdSpecial (Super, tk)
-      | _ -> failwith "not a keyword")
+      | _ -> error tk "not a keyword")
   | IdSpecial (Self, tk) -> (
       match kw with
       | IdSpecial (Self, _) -> sub
       | IdSpecial (Super, _) -> IdSpecial (Self, tk)
-      | _ -> failwith "not a keyword")
+      | _ -> error tk "not a keyword")
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
         Common.map
@@ -219,7 +249,9 @@ let rec substitute_kw kw sub expr =
           substitute_kw kw sub e2,
           substitute_kw kw sub e3 )
   | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
-  | ExprTodo ((_s, _tk), _ast_expr) -> failwith "unimplemented"
+  | Substitute (f, e) -> substitute_kw kw sub (f e)
+  | ExprTodo ((_s, _tk), _ast_expr) ->
+      error (Tok.unsafe_fake_tok "oof") "unimplemented"
 (*TODO*)
 
 let rec eval_expr expr =
@@ -238,16 +270,12 @@ let rec eval_expr expr =
       V.Primitive prim
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
-      let elts =
-        xs
-        |> Common.map (fun x -> { V.value = Unevaluated x; env = V.empty_env })
-        |> Array.of_list
-      in
+      let elts = xs |> Common.map (fun x -> V.Unevaluated x) |> Array.of_list in
       Array (l, elts, r)
   | Lambda v -> Lambda v
   | O v -> eval_obj_inside v
-  | Id _ -> failwith "shouldn't happen"
-  | IdSpecial _ -> failwith "shouldn't happen"
+  | Id (name, tk) -> error tk ("evaluating just an identifier: " ^ name)
+  | IdSpecial (_, tk) -> error tk "evaluating just a special identifier"
   | Call
       ( (ArrayAccess
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
@@ -290,7 +318,7 @@ let rec eval_expr expr =
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
-              match fld.fld_value.value with
+              match fld.fld_value with
               | V.Val v -> v
               | V.Unevaluated e ->
                   (* Late-bound self.
@@ -316,11 +344,13 @@ let rec eval_expr expr =
                    *      42
                    *)
                   let new_e =
-                    substitute_kw
-                      (IdSpecial (Self, Tok.unsafe_fake_tok "self"))
-                      v1 e
+                    e |> substitute_kw fake_self v1
+                    |> substitute_kw fake_super
+                         (O
+                            ( Tok.unsafe_fake_tok "{",
+                              Object ([], []),
+                              Tok.unsafe_fake_tok "}" ))
                   in
-                  (* TODO implement self/super substitution*)
                   eval_expr new_e))
       (* TODO? support ArrayAccess for Strings? *)
       | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
@@ -354,6 +384,7 @@ let rec eval_expr expr =
       match eval_expr e with
       | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
+  | Substitute (f, e) -> eval_expr (f e)
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
 and eval_binary_op el (op, tk) er =
@@ -370,6 +401,7 @@ and eval_binary_op el (op, tk) er =
       | v, Primitive (Str (s, tk)) -> Primitive (Str (tostring v ^ s, tk))
       | V.Object objl, V.Object objr ->
           let obj = eval_plus_object tk objl objr in
+
           V.Object obj
       | v1, v2 ->
           error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
@@ -499,7 +531,7 @@ and eval_call e0 (largs, args, _rargs) =
             spf "%s.%s" obj meth
         | _else_ -> "<unknown>"
       in
-      log_call V.empty_env fstr largs;
+      log_call fstr largs;
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
@@ -529,9 +561,9 @@ and eval_call e0 (largs, args, _rargs) =
 and eval_std_method e0 (method_str, tk) (l, args, r) =
   match (method_str, args) with
   | "type", [ Arg e ] ->
-      log_call V.empty_env ("std." ^ method_str) l;
+      log_call ("std." ^ method_str) l;
       let v = eval_expr e in
-      let s = std_type V.empty_env v in
+      let s = std_type v in
       Primitive (Str (s, l))
   (* this method is called in std.jsonnet equals()::, and calls to
    * this equals() are generated in Desugar_jsonnet when
@@ -542,7 +574,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
         (spf "Improper #arguments to std.type: expected 1, got %d"
            (List.length args))
   | "primitiveEquals", [ Arg e; Arg e' ] ->
-      log_call V.empty_env ("std." ^ method_str) l;
+      log_call ("std." ^ method_str) l;
       let v = eval_expr e in
       let v' = eval_expr e' in
       let b = std_primivite_equals v v' in
@@ -552,7 +584,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
         (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
            (List.length args))
   | "length", [ Arg e ] -> (
-      log_call V.empty_env ("std." ^ method_str) l;
+      log_call ("std." ^ method_str) l;
       match eval_expr e with
       | Primitive (Str (s, tk)) ->
           let i = String.length s in
@@ -569,7 +601,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
             (spf "length operates on strings, objects, and arrays, got %s"
                (sv v)))
   | "makeArray", [ Arg e; Arg e' ] -> (
-      log_call V.empty_env ("std." ^ method_str) l;
+      log_call ("std." ^ method_str) l;
       match (eval_expr e, eval_expr e') with
       | Primitive (Double (n, tk)), Lambda fdef ->
           if Float.is_integer n then
@@ -579,11 +611,7 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array
-              ( fk,
-                Array.init n (fun i ->
-                    { V.value = Unevaluated (e i); env = V.empty_env }),
-                fk )
+            Array (fk, Array.init n (fun i -> V.Unevaluated (e i)), fk)
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -651,8 +679,6 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call e0 (l, args, r)
 
-and tostring (_ : V.value_) : string = "unimplemented"
-
 and eval_std_filter_element (tk : tok) (f : function_definition)
     (ei : V.lazy_value) : V.value_ =
   match f with
@@ -660,15 +686,186 @@ and eval_std_filter_element (tk : tok) (f : function_definition)
       (* similar to eval_expr for Local *)
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
-      match ei.value with
-      | Val _ -> failwith "shouldn't happen"
+      match ei with
+      | Val _ ->
+          error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
       | Unevaluated e -> eval_call (Lambda f) (_l, [ Arg e ], _r))
   | _else_ -> error tk "filter function takes 1 parameter"
 
-and eval_obj_inside _o = failwith "unimplemented"
-and eval_plus_object _tk _el _er = failwith "unimplented"
+and eval_obj_inside (l, x, r) : V.value_ =
+  match x with
+  | Object (assertsTODO, fields) ->
+      let hdupes = Hashtbl.create 16 in
+      let fields =
+        fields
+        |> Common.map_filter
+             (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
+               match eval_expr ei with
+               | Primitive (Null _) -> None
+               | Primitive (Str ((str, _) as fld_name)) ->
+                   if Hashtbl.mem hdupes str then
+                     error tk (spf "duplicate field name: \"%s\"" str)
+                   else Hashtbl.add hdupes str true;
+                   Some
+                     {
+                       V.fld_name;
+                       fld_hidden;
+                       (* fields are evaluated lazily! Sometimes with an
+                        * env adjusted (see eval_plus_object()).
+                        * We do not bind Self here! This is done on field
+                        * access instead (late bound).
+                        *)
+                       fld_value = V.Unevaluated fld_value;
+                     }
+               | v -> error tk (spf "field name was not a string: %s" (sv v)))
+      in
+
+      V.Object (l, (assertsTODO, fields), r)
+  | ObjectComp _x -> error l "TODO: ObjectComp"
+
+and eval_plus_object _tk objl objr =
+  let l, (lassert, lflds), _r = objl in
+  let _, (rassert, rflds), r = objr in
+  let asserts = lassert @ rassert in
+  let hash_of_right_field_names =
+    rflds
+    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.hashset_of_list
+  in
+
+  let lflds_no_overlap =
+    lflds
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+           not (Hashtbl.mem hash_of_right_field_names s))
+  in
+  let super = freshvar () in
+  let self = freshvar () in
+
+  (*let param = ("e", Tok.unsafe_fake_tok "e") in
+    let function_body = Substitute ((substitute_kw fake_super (Id super)), (Substitute ((substitute_kw fake_self (Id self)), (Id param)))) in
+    let param_list = Tok.unsafe_fake_bracket [P (param, Tok.unsafe_fake_tok "=",Id param )] in
+    let sub_func = Lambda {f_tok = Tok.unsafe_fake_tok "function"; f_params = param_list; f_body = function_body} in *)
+  let new_rh_asserts =
+    lassert
+    |> Common.map (fun (tk, e) ->
+           (*let arg_list = Tok.unsafe_fake_bracket [Arg e] in
+             (tk, (Call (sub_func, arg_list)))*)
+           ( tk,
+             e
+             |> substitute_kw fake_super (Id super)
+             |> substitute_kw fake_self (Id self) ))
+  in
+  let new_rh_fields =
+    lflds
+    |> Common.map (fun { V.fld_name; fld_hidden; fld_value } ->
+           match fld_value with
+           | Val _ ->
+               error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
+           | Unevaluated e ->
+               let new_field_name = vfld_name_to_fld_name fld_name in
+               (*let arg_list = Tok.unsafe_fake_bracket [Arg e] in
+                 let new_fld_value = Call (sub_func, arg_list) in *)
+               let new_fld_value =
+                 e
+                 |> substitute_kw fake_super (Id super)
+                 |> substitute_kw fake_self (Id self)
+               in
+               {
+                 fld_name = new_field_name;
+                 fld_hidden;
+                 fld_value = new_fld_value;
+               })
+  in
+  let rh_obj =
+    O
+      ( Tok.unsafe_fake_tok "{",
+        Object (new_rh_asserts, new_rh_fields),
+        Tok.unsafe_fake_tok "}" )
+  in
+  let e_s = BinaryOp (fake_super, (Plus, Tok.unsafe_fake_tok "+"), rh_obj) in
+  let new_binds =
+    [
+      B (super, Tok.unsafe_fake_tok "=", fake_super);
+      B (self, Tok.unsafe_fake_tok "=", fake_self);
+    ]
+  in
+
+  let new_ers =
+    rflds
+    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
+           match fld_value with
+           | Val _ ->
+               error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
+           | Unevaluated e ->
+               let new_fld_value =
+                 Local
+                   ( Tok.unsafe_fake_tok "local",
+                     new_binds,
+                     Tok.unsafe_sc,
+                     substitute_kw fake_super e_s
+                       e (*Substitute ((substitute_kw fake_super e_s),e)*) )
+               in
+               {
+                 V.fld_name;
+                 fld_hidden;
+                 fld_value = V.Unevaluated new_fld_value;
+               })
+  in
+
+  let all_fields = new_ers @ lflds_no_overlap in
+  (l, (asserts, all_fields), r)
 
 and evaluate_lazy_value_ (v : V.lazy_value) =
-  match v.value with
+  match v with
   | Val v -> v
   | Unevaluated e -> eval_expr e
+
+and manifest_value (v : V.value_) : JSON.t =
+  match v with
+  | Primitive x -> (
+      match x with
+      | Null _t -> J.Null
+      | Bool (b, _tk) -> J.Bool b
+      | Double (f, _tk) -> J.Float f
+      | Str (s, _tk) -> J.String s)
+  | Lambda { f_tok = tk; _ } -> error tk (spf "Lambda value: %s" (sv v))
+  | Array (_, arr, _) ->
+      J.Array
+        (arr |> Array.to_list
+        |> Common.map (fun (entry : V.lazy_value) ->
+               manifest_value (evaluate_lazy_value_ entry)))
+  | V.Object (_l, (_assertsTODO, fields), _r) ->
+      (* TODO: evaluate asserts *)
+      let xs =
+        fields
+        |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value } ->
+               match fst fld_hidden with
+               | A.Hidden -> None
+               | A.Visible
+               | A.ForcedVisible ->
+                   (* similar to what we do in eval_expr on field access *)
+                   let _new_self = vobj_to_obj _l _assertsTODO fields _r in
+                   let v =
+                     match fld_value with
+                     | Val v -> v
+                     | Unevaluated e ->
+                         let new_e =
+                           e
+                           |> substitute_kw fake_self _new_self
+                           |> substitute_kw fake_super
+                                (O
+                                   ( Tok.unsafe_fake_tok "{",
+                                     Object ([], []),
+                                     Tok.unsafe_fake_tok "}" ))
+                         in
+                         eval_expr new_e
+                   in
+
+                   let j = manifest_value v in
+                   Some (fst fld_name, j))
+      in
+      J.Object xs
+
+and tostring (v : V.value_) : string =
+  let j = manifest_value v in
+  JSON.string_of_json j

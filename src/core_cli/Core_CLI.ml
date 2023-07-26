@@ -440,6 +440,9 @@ let all_actions () =
     ( "-dump_jsonnet_ast",
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_ast );
+    ( "-test_sub_kw",
+      " <file>",
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.test_sub_kw );
     ( "-dump_jsonnet_core",
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_core );
