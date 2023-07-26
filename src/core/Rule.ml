@@ -288,14 +288,17 @@ and extract_reduction = Separate | Concat [@@deriving show]
  * {
  *   url     = semgrep.dev/user;
  *   meth    = `GET;
- *   headers = [(Auth, ok); (Type, tau)]
+ *   headers =
+ *  [
+ *    { n = Auth, v = ok};
+ *    { n = Type, v = tau};
+ *  ]
  * }
  *)
-type request = {
-  url : Uri.t;
-  meth : [ `GET | `POST ];
-  headers : (string * string) list;
-}
+
+type header = { name : string; value : string } [@@deriving show]
+
+type request = { url : Uri.t; meth : [ `GET | `POST ]; headers : header list }
 [@@deriving show]
 
 (* Used to match on the returned response of some request;

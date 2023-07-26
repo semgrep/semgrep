@@ -1644,7 +1644,7 @@ let parse_steps env key (value : G.expr) : R.step list =
 
 (*****************************************************************************)
 (* Parsers for secrets mode *)
-(*****************************************************************************) 
+(*****************************************************************************)
 let parse_secrets_fields env rule_dict : R.secrets =
   let secrets : R.formula list =
     take rule_dict env
@@ -1660,11 +1660,11 @@ let parse_secrets_fields env rule_dict : R.secrets =
   let res = take rule_dict env yaml_to_dict "response" in
   let url = take req env uri "url" in
   let meth = take req env method_ "method" in
-  let headers =
+  let headers : Rule.header list =
     take req env yaml_to_dict "headers" |> fun { h; _ } ->
     Hashtbl.fold
-      (fun header value lst ->
-        (header, parse_string env (fst value) (snd value)) :: lst)
+      (fun name value lst ->
+        { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
       h []
   in
   let return_code = take res env parse_int "return_code" in
