@@ -15,7 +15,7 @@ open Cmdliner
 (* Maturity is used mostly to decide between pysemgrep and osemgrep.
  * It could be used for different things later.
  * Develop is used to specify whether to get rid of pysemgrep
- * behavior/limitations/errors or tokeep how things were done before (even
+ * behavior/limitations/errors or to keep how things were done before (even
  * if they were bad, but just to remain backward compatible).
  *)
 type maturity = MDevelop | MExperimental | MLegacy [@@deriving show]

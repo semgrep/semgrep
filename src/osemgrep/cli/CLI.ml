@@ -1,3 +1,5 @@
+open Common
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -165,8 +167,11 @@ let dispatch_subcommand argv =
       | "interactive" -> Interactive_subcommand.main subcmd_argv
       (* LATER: "dump", "test", "validate" *)
       | _else_ ->
-          if experimental (* should have defaulted to 'scan' above *) then
-            assert false
+          if experimental then
+            (* this should never happen because we default to 'scan',
+             * but better to be safe than sorry.
+             *)
+            Error.abort (spf "unknown semgrep command: %s" subcmd)
           else pysemgrep argv)
   [@@profiling]
 

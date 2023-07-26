@@ -1,0 +1,6 @@
+New --legacy flag to force the use of the old Python implementation of
+Semgrep (also known as 'pysemgrep'). Note that by default most semgrep
+commands are still using the Python implementation (except 'semgrep
+interactive'), so in practice you don't need to add this flag, but as
+we port more commands to OCaml, the new --legacy flag might be useful
+if you find some regressions.
