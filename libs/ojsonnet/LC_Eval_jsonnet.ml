@@ -9,6 +9,8 @@ exception Error of string * Tok.t
 type cmp = Inf | Eq | Sup
 
 let fk = Tok.unsafe_fake_tok ""
+
+(* indicators for keyword substitution *)
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
@@ -16,7 +18,7 @@ let freshvar =
   let store = ref 0 in
   fun () ->
     incr store;
-    ("!tmp" ^ string_of_int !store, fk)
+    ("?tmp" ^ string_of_int !store, fk)
 
 let std_type (v : V.value_) : string =
   match v with
@@ -51,11 +53,14 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
+(* Converts field names that have been evaluated into expressions *)
 let vfld_name_to_fld_name fld_name =
   let thing_to_make_string_ = Tok.unsafe_fake_bracket fld_name in
   let insideL : A.string_ = A.mk_string_ thing_to_make_string_ in
   FExpr (Tok.unsafe_fake_bracket (L (Str insideL)))
 
+(* Converts objects that have been evaluated back to expressions so that
+   we can call plus on them *)
 let vobj_to_obj l asserts fields r =
   let new_fields =
     fields
@@ -140,6 +145,26 @@ let rec substitute id sub expr =
       | ObjectComp _ -> O (l, v, r) (* TODO *))
   | Id (s, tk) -> if s =*= id then sub else Id (s, tk)
   | IdSpecial id -> IdSpecial id
+  | Call
+      ( ArrayAccess
+          ( Id ("std", std_tok),
+            (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+        (l, args, r) ) ->
+      let new_args =
+        Common.map
+          (fun arg ->
+            match arg with
+            | Arg e -> Arg (substitute id sub e)
+            | NamedArg (ident, tk, e) ->
+                NamedArg (ident, tk, substitute id sub e))
+          args
+      in
+
+      Call
+        ( ArrayAccess
+            ( Id ("std", std_tok),
+              (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+          (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       if bind_list_contains binds id then Local (_tlocal, binds, _tsemi, e)
       else
@@ -169,7 +194,6 @@ let rec substitute id sub expr =
   | If (tif, e1, e2, e3) ->
       If (tif, substitute id sub e1, substitute id sub e2, substitute id sub e3)
   | Error (tk, e) -> Error (tk, substitute id sub e)
-  | Substitute (f, e) -> substitute id sub (f e)
   | ExprTodo ((_s, _tk), _ast_expr) ->
       error (Tok.unsafe_fake_tok "oof") "unimplemented"
 (*TODO*)
@@ -218,6 +242,26 @@ let rec substitute_kw kw sub expr =
       | IdSpecial (Self, _) -> sub
       | IdSpecial (Super, _) -> IdSpecial (Self, tk)
       | _ -> error tk "not a keyword")
+  | Call
+      ( ArrayAccess
+          ( Id ("std", std_tok),
+            (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+        (l, args, r) ) ->
+      let new_args =
+        Common.map
+          (fun arg ->
+            match arg with
+            | Arg e -> Arg (substitute_kw kw sub e)
+            | NamedArg (ident, tk, e) ->
+                NamedArg (ident, tk, substitute_kw kw sub e))
+          args
+      in
+
+      Call
+        ( ArrayAccess
+            ( Id ("std", std_tok),
+              (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+          (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
         Common.map
@@ -249,7 +293,6 @@ let rec substitute_kw kw sub expr =
           substitute_kw kw sub e2,
           substitute_kw kw sub e3 )
   | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
-  | Substitute (f, e) -> substitute_kw kw sub (f e)
   | ExprTodo ((_s, _tk), _ast_expr) ->
       error (Tok.unsafe_fake_tok "oof") "unimplemented"
 (*TODO*)
@@ -274,8 +317,8 @@ let rec eval_expr expr =
       Array (l, elts, r)
   | Lambda v -> Lambda v
   | O v -> eval_obj_inside v
-  | Id (name, tk) -> error tk ("evaluating just an identifier: " ^ name)
-  | IdSpecial (_, tk) -> error tk "evaluating just a special identifier"
+  | Id (name, tk) -> error tk ("trying to evaluate just a variable: " ^ name)
+  | IdSpecial (_, tk) -> error tk "evaluating just a keyword"
   | Call
       ( (ArrayAccess
            (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
@@ -283,7 +326,6 @@ let rec eval_expr expr =
         (l, args, r) ) ->
       eval_std_method e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
-      (* NOT SURE IF CORRECT, NOT QUITE THE SAME AS SEMANTICS, BUT I THINK SEMANTICS ARE WRONG*)
       let new_e =
         List.fold_left
           (fun e_1 (B ((name, _), _, e')) ->
@@ -384,7 +426,6 @@ let rec eval_expr expr =
       match eval_expr e with
       | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
       | v -> error tk (spf "ERROR: %s" (tostring v)))
-  | Substitute (f, e) -> eval_expr (f e)
   | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
 
 and eval_binary_op el (op, tk) er =
@@ -651,6 +692,8 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
       error tk
         (spf "Improper number of arguments to std.filter: expected 2, got %d"
            (List.length args))
+  | "objectHas", [ Arg _; Arg _ ] ->
+      error fk "you are accessing an object and this is not implemented yet"
   | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
       match (eval_expr e, eval_expr e', eval_expr e'') with
       | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
@@ -741,15 +784,9 @@ and eval_plus_object _tk objl objr =
   let super = freshvar () in
   let self = freshvar () in
 
-  (*let param = ("e", Tok.unsafe_fake_tok "e") in
-    let function_body = Substitute ((substitute_kw fake_super (Id super)), (Substitute ((substitute_kw fake_self (Id self)), (Id param)))) in
-    let param_list = Tok.unsafe_fake_bracket [P (param, Tok.unsafe_fake_tok "=",Id param )] in
-    let sub_func = Lambda {f_tok = Tok.unsafe_fake_tok "function"; f_params = param_list; f_body = function_body} in *)
   let new_rh_asserts =
     lassert
     |> Common.map (fun (tk, e) ->
-           (*let arg_list = Tok.unsafe_fake_bracket [Arg e] in
-             (tk, (Call (sub_func, arg_list)))*)
            ( tk,
              e
              |> substitute_kw fake_super (Id super)
@@ -760,11 +797,10 @@ and eval_plus_object _tk objl objr =
     |> Common.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
            | Val _ ->
-               error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
+               error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
                let new_field_name = vfld_name_to_fld_name fld_name in
-               (*let arg_list = Tok.unsafe_fake_bracket [Arg e] in
-                 let new_fld_value = Call (sub_func, arg_list) in *)
+
                let new_fld_value =
                  e
                  |> substitute_kw fake_super (Id super)
@@ -795,15 +831,14 @@ and eval_plus_object _tk objl objr =
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
            | Val _ ->
-               error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
+               error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
                let new_fld_value =
                  Local
                    ( Tok.unsafe_fake_tok "local",
                      new_binds,
                      Tok.unsafe_sc,
-                     substitute_kw fake_super e_s
-                       e (*Substitute ((substitute_kw fake_super e_s),e)*) )
+                     substitute_kw fake_super e_s e )
                in
                {
                  V.fld_name;

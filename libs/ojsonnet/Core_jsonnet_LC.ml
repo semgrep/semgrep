@@ -78,8 +78,6 @@ type expr =
   (* builtins *)
   | Error of tok (* 'error' *) * expr
   | ExprTodo of todo_kind * AST_jsonnet.expr
-  | Substitute of (expr -> expr) * expr
-(* NOTE: This is not actually part of core, but used to lazify substitution *)
 
 (* ------------------------------------------------------------------------- *)
 (* Calls *)
