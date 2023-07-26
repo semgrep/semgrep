@@ -30,7 +30,6 @@ type unpacked = {
   hidden : bool;
   case_insensitive : bool;
 }
-[@@deriving show]
 
 type packed_field = int
 
@@ -52,6 +51,22 @@ let is_case_insensitive = get case_insensitive_field
 
 let unpack flags =
   { hidden = is_hidden flags; case_insensitive = is_case_insensitive flags }
+
+let snoc ls a = List.rev ls |> fun x -> a :: x |> List.rev
+
+let show_unpacked flags =
+  (* Written assuming this list is usually going to be small or empty. *)
+  let ls = [] in
+  (* Flag strings conditionally consed on to list in alphabetical order. *)
+  let ls = if flags.hidden then "hidden" :: ls else ls in
+  let ls = if flags.case_insensitive then "case_insensitive" :: ls else ls in
+  (* Reversing the list puts the list itself in alphabetical order. *)
+  let alphabetical_ls = List.rev ls in
+  (* Add seperators between exisiting elements. *)
+  let sep_ls = Base.List.intersperse ~sep:"; " alphabetical_ls in
+  (* Add curlies on the outside *)
+  let curlies_sep_ls = "{" :: snoc sep_ls "}" in
+  Base.String.concat curlies_sep_ls
 
 let show_packed flags = unpack flags |> show_unpacked
 let equal_packed : packed -> packed -> bool = equal
