@@ -71,7 +71,7 @@ let test_dfg_tainting rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules, _extract_rules, _join_rules =
+  let _search_rules, taint_rules, _extract_rules, _secrets_rules, _join_rules =
     Rule.partition_rules rules
   in
   let rule = Common.hd_exn "unexpected empty list" taint_rules in

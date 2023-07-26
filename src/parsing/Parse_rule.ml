@@ -304,6 +304,17 @@ let parse_string_wrap env (key : key) x =
 (* TODO: delete at some point, should use parse_string_wrap instead *)
 let parse_string env (key : key) x = parse_string_wrap env key x |> fst
 
+let method_ env (key : key) x =
+  let meth = parse_string env key x in
+  match meth with
+  | "GET" -> `GET
+  | "POST" -> `POST
+  | _ -> error_at_key env.id key ("unsupported http method: " ^ meth)
+
+let uri env (key : key) x =
+  let uri = parse_string env key x in
+  Uri.of_string uri
+
 let parse_list env (key : key) f x =
   match x.G.e with
   | G.Container (Array, (_, xs, _)) -> Common.map (f env) xs
@@ -1642,9 +1653,36 @@ let parse_steps env key (value : G.expr) : R.step list =
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 (*****************************************************************************)
+(* Parsers for secrets mode *)
+(*****************************************************************************)
+let parse_secrets_fields env rule_dict : R.secrets =
+  let secrets : R.formula list =
+    take rule_dict env
+      (fun env key expr ->
+        parse_list env key
+          (fun env dict_pair ->
+            yaml_to_dict env key dict_pair
+            |> find_formula_old env |> parse_pair_old env)
+          expr)
+      "postprocessor-patterns"
+  in
+  let req = take rule_dict env yaml_to_dict "request" in
+  let res = take rule_dict env yaml_to_dict "response" in
+  let url = take req env uri "url" in
+  let meth = take req env method_ "method" in
+  let headers : Rule.header list =
+    take req env yaml_to_dict "headers" |> fun { h; _ } ->
+    Hashtbl.fold
+      (fun name value lst ->
+        { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
+      h []
+  in
+  let return_code = take res env parse_int "return_code" in
+  { secrets; request = { url; meth; headers }; response = { return_code } }
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
@@ -1680,6 +1718,11 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       `Extract
         { formula; dst_lang; extract_rule_ids; extract; reduce; transform }
+  (* TODO: change this mode name to something more descriptive + not intentionally
+   * ambigous sometime later.
+   *)
+  | Some ("semgrep_internal_postprocessor", _), _ ->
+      `Secrets (parse_secrets_fields env rule_dict)
   (* TODO? should we use "mode: steps" instead? *)
   | Some ("step", _), _ ->
       let steps = take rule_dict env parse_steps "steps" in

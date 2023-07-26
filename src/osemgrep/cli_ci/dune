@@ -8,7 +8,6 @@
     cmdliner
     commons
     emile
-
     osemgrep_configuring
     osemgrep_core
     osemgrep_networking

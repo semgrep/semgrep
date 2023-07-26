@@ -36,7 +36,7 @@ exception File_timeout
 
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
-
+exception Postprocessor_rules_not_available
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -103,6 +103,9 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
+           | `Secrets _ ->
+               pr2 (Rule.show_rule r);
+               raise Postprocessor_rules_not_available
            | `Steps _ ->
                pr2 (Rule.show_rule r);
                raise Multistep_rules_not_available)
