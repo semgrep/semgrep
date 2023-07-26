@@ -1,14 +1,23 @@
-[ERROR] Command failed with exit code: 128
------
-Command failed with output:
-fatal: Not a valid object name 12345
-
-
-Failed to run 'git cat-file -e 12345'. Possible reasons:
-
-- the git binary is not available
-- the current working directory is not a git repository
-- the current working directory is not marked as safe
-    (fix with `git config --global --add safe.directory $(pwd)`)
-
-Try running the command yourself to debug the issue.
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 125, in <module>
+    call_osemgrep()
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 86, in call_osemgrep
+    path = find_semgrep_core_path()
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 56, in find_semgrep_core_path
+    with importlib.resources.path("semgrep.bin", "semgrep-core") as path:
+  File "/usr/lib/python3.10/importlib/resources.py", line 119, in path
+    reader = _common.get_resource_reader(_common.get_package(package))
+  File "/usr/lib/python3.10/importlib/_common.py", line 66, in get_package
+    resolved = resolve(package)
+  File "/usr/lib/python3.10/importlib/_common.py", line 57, in resolve
+    return cand if isinstance(cand, types.ModuleType) else importlib.import_module(cand)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 992, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1004, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'semgrep'
