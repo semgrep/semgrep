@@ -1,8 +1,10 @@
+open Common
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Semgrep command-line entry point.
+   (O)Semgrep command-line entry point.
 
    This module determines the subcommand invoked on the command line
    and has another module handle it as if it was an independent command.
@@ -115,6 +117,11 @@ let missing_subcommand () =
   Logs.err (fun m -> m "This semgrep subcommand is not implemented\n%!");
   Exit_code.not_implemented_in_osemgrep
 
+(* dispatch back to pysemgrep! *)
+let pysemgrep argv =
+  (* pysemgrep should be in the PATH, thx to the code in ../../../cli/bin/semgrep *)
+  Unix.execvp "pysemgrep" argv
+
 let dispatch_subcommand argv =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
@@ -135,24 +142,39 @@ let dispatch_subcommand argv =
       in
       let subcmd_argv =
         let subcmd_argv0 = argv0 ^ "-" ^ subcmd in
-        subcmd_argv0 :: subcmd_args |> Array.of_list
+        subcmd_argv0 :: subcmd_args
+        |> List.filter (fun arg -> arg <> "--experimental")
+        |> Array.of_list
       in
+      let experimental = Array.mem "--experimental" argv in
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with the main_help_msg if you add an entry below.
        *)
       match subcmd with
-      | "ci" -> Ci_subcommand.main subcmd_argv
-      | "install-semgrep-pro" -> missing_subcommand ()
-      | "login" -> Login_subcommand.main subcmd_argv
-      | "logout" -> Logout_subcommand.main subcmd_argv
-      | "lsp" -> Lsp_subcommand.main subcmd_argv
-      | "publish" -> missing_subcommand ()
-      | "scan" -> Scan_subcommand.main subcmd_argv
-      | "shouldafound" -> missing_subcommand ()
-      (* osemgrep-only *)
+      (* TODO: gradually remove those 'when experimental' guards as
+       * we progress in osemgrep port (or move the dispatch back
+       * to pysemgrep futher down, when we know we don't handle
+       * certain kind of arguments.
+       *)
+      | "ci" when experimental -> Ci_subcommand.main subcmd_argv
+      | "install-semgrep-pro" when experimental -> missing_subcommand ()
+      | "login" when experimental -> Login_subcommand.main subcmd_argv
+      | "logout" when experimental -> Logout_subcommand.main subcmd_argv
+      | "publish" when experimental -> missing_subcommand ()
+      | "scan" when experimental -> Scan_subcommand.main subcmd_argv
+      | "shouldafound" when experimental -> missing_subcommand ()
+      (* TODO: next target for not requiring the 'when experimental' guard! *)
+      | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
+      (* osemgrep-only: and by default! no need experimental! *)
       | "interactive" -> Interactive_subcommand.main subcmd_argv
       (* LATER: "dump", "test", "validate" *)
-      | _else_ -> (* should have defaulted to 'scan' above *) assert false)
+      | _else_ ->
+          if experimental then
+            (* this should never happen because we default to 'scan',
+             * but better to be safe than sorry.
+             *)
+            Error.abort (spf "unknown semgrep command: %s" subcmd)
+          else pysemgrep argv)
   [@@profiling]
 
 (*****************************************************************************)
@@ -210,7 +232,7 @@ let before_exit ~profile () : unit =
 (* Entry point *)
 (*****************************************************************************)
 
-(* called from ../main/Main.ml *)
+(* called from ../../main/Main.ml *)
 let main argv : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
@@ -277,9 +299,10 @@ let main argv : Exit_code.t =
   (*TOADAPT? adapt more of Common.boilerplate? *)
   let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
   Metrics_.add_exit_code exit_code;
-  (* TODO(dinosaure): currently, even if we record the [exit_code], we will never
-     send the final report **with** the exit code to the server. We send it before
-     this call. At some point, we should handle correctly the [exit_code] and
-     properly send the report with it. *)
+  (* TODO(dinosaure): currently, even if we record the [exit_code], we will
+   * never send the final report **with** the exit code to the server. We
+   * send it before this call. At some point, we should handle correctly
+   * the [exit_code] and properly send the report with it.
+   *)
   before_exit ~profile ();
   exit_code
