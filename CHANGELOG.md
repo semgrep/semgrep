@@ -6,6 +6,10 @@
 
 <!-- insertion point -->
 
+## [1.33.2](https://github.com/returntocorp/semgrep/releases/tag/v1.33.2) - 2023-07-21
+
+No significant changes.
+
 ## [1.33.1](https://github.com/returntocorp/semgrep/releases/tag/v1.33.1) - 2023-07-21
 
 ### Added

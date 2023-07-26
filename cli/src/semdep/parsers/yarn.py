@@ -28,14 +28,17 @@ from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import quoted
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Yarn1
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Yarn2
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -232,10 +235,12 @@ def parse_yarn(
         lockfile_text = f.read()
     yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2
     parser = yarn1 if yarn_version == 1 else yarn2
-    parser_name = ParserName.yarn_1 if yarn_version == 1 else ParserName.yarn_2
+    parser_name = (
+        ScaParserName(Yarn1()) if yarn_version == 1 else ScaParserName(Yarn2())
+    )
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(lockfile_path, parser, parser_name),
-        DependencyFileToParse(manifest_path, json_doc, ParserName.jsondoc)
+        DependencyFileToParse(manifest_path, json_doc, ScaParserName(Jsondoc()))
         if manifest_path
         else None,
     )

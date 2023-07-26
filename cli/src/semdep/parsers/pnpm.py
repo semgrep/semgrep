@@ -10,7 +10,6 @@ from typing import Tuple
 
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
-from semdep.parsers.util import ParserName
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.rule_lang import parse_yaml_preserve_spans
@@ -19,6 +18,8 @@ from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PnpmLock
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
 def get_key_values(yaml: YamlTree[YamlMap], field: str) -> List[str]:
@@ -49,7 +50,7 @@ def parse_pnpm(
             lambda text: parse_yaml_preserve_spans(
                 text, str(lockfile_path), allow_null=True
             ),
-            ParserName.pnpm_lock,
+            ScaParserName(PnpmLock()),
         ),
         None,
     )
