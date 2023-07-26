@@ -88,13 +88,13 @@ let pp_skipped ppf
   Fmt.pf ppf "@.";
 
   (match maturity with
-  | Some CLI_common.Legacy -> ()
-  | _else_ ->
+  | Some CLI_common.Develop ->
       Fmt.pf ppf " %a@.@."
         Fmt.(styled `Bold string)
         "Skipped for other reasons:";
       pp_list other_ignored;
-      Fmt.pf ppf "@.");
+      Fmt.pf ppf "@."
+  | _else_ -> ());
 
   Fmt.pf ppf " %a@.@."
     Fmt.(styled `Bold string)

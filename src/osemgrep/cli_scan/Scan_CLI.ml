@@ -691,13 +691,15 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     Logs_helpers.setup_logging ~force_color
       ~level:common.CLI_common.logging_level;
 
+    (* to remove at some point *)
     let registry_caching, ast_caching =
       match common.maturity with
-      | Some CLI_common.Legacy ->
+      | Some CLI_common.Develop -> (registry_caching, ast_caching)
+      | None
+      | Some (CLI_common.Experimental | CLI_common.Legacy) ->
           Logs.debug (fun m ->
-              m "disabling registry and AST caching in legacy mode");
+              m "disabling registry and AST caching unless --develop");
           (false, false)
-      | _else_ -> (registry_caching, ast_caching)
     in
     let include_ =
       match include_ with
