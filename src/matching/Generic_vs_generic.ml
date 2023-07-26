@@ -167,10 +167,11 @@ let should_match_call = function
   | G.IncrDecr _ ->
       false
 
-let m_id_string case_sensitive =
+let m_id_string case_insensitive =
   let open String in
-  if case_sensitive then m_string
-  else fun a b -> m_string (lowercase_ascii a) (lowercase_ascii b)
+  if case_insensitive then fun a b ->
+    m_string (lowercase_ascii a) (lowercase_ascii b)
+  else m_string
 
 (*****************************************************************************)
 (* Name *)
@@ -581,8 +582,10 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
       if re_match strb then return () else fail ()
   (* general case *)
   | _, _ ->
-      let case_insensitive = a2.id_case_insensitive && b2.id_case_insensitive in
-      let* () = m_wrap (m_id_string (not case_insensitive)) a1 b1 in
+      let case_insensitive =
+        G.is_case_insensitive a2 && B.is_case_insensitive b2
+      in
+      let* () = m_wrap (m_id_string case_insensitive) a1 b1 in
       m_id_info a2 b2
 
 and m_ident_and_empty_id_info a1 b1 =
@@ -595,43 +598,43 @@ and m_ident_and_empty_id_info a1 b1 =
  * whether two $X refers to the same code. In that case we are using
  * the id_resolved tag and sid!
  *)
-and m_id_info a b =
-  match (a, b) with
-  | ( {
-        G.id_resolved = _a1;
-        id_type = _a2;
-        id_svalue = _a3;
-        id_hidden = _a4;
-        id_case_insensitive = _;
-        id_info_id = _a5;
-      },
-      {
-        B.id_resolved = _b1;
-        id_type = _b2;
-        id_svalue = _b3;
-        id_hidden = _b4;
-        id_case_insensitive = _;
-        id_info_id = _b5;
-      } ) ->
-      (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
-       * but doing import flask in a source file means every reference
-       * to flask.xxx will be tagged with a ImportedEntity, but
-       * semgrep pattern will use flask.xxx directly, without the preceding
-       * import, without this tag, which would prevent
-       * matching. We need to correctly resolve names and always compare with
-       * the resolved_name instead of the name used in the code
-       * (which can be an alias)
-       *
-       * old: (m_ref (m_option m_type_)) a2 b2
-       * the same is true for types! Now we sometimes propagate type annotations
-       * in Naming_AST.ml, but we do that in the source file, not the pattern,
-       * which would prevent a match.
-       * More generally, id_info is something populated and used on the
-       * generic AST of the source, not on the pattern, hence we should
-       * not use it as a condition for matching here. Instead use
-       * the information in the caller.
-       *)
-      return ()
+and m_id_info _a _b = return ()
+(* match (a, b) with *)
+(* | ( { *)
+(*       G.id_resolved = _a1; *)
+(*       id_type = _a2; *)
+(*       id_svalue = _a3; *)
+(*       id_hidden = _a4; *)
+(*       id_case_insensitive = _; *)
+(*       id_info_id = _a5; *)
+(*     }, *)
+(*     { *)
+(*       B.id_resolved = _b1; *)
+(*       id_type = _b2; *)
+(*       id_svalue = _b3; *)
+(*       id_hidden = _b4; *)
+(*       id_case_insensitive = _; *)
+(*       id_info_id = _b5; *)
+(*     } ) -> *)
+(*     (\* old: (m_ref m_resolved_name) a3 b3  >>= (fun () -> *)
+(*      * but doing import flask in a source file means every reference *)
+(*      * to flask.xxx will be tagged with a ImportedEntity, but *)
+(*      * semgrep pattern will use flask.xxx directly, without the preceding *)
+(*      * import, without this tag, which would prevent *)
+(*      * matching. We need to correctly resolve names and always compare with *)
+(*      * the resolved_name instead of the name used in the code *)
+(*      * (which can be an alias) *)
+(*      * *)
+(*      * old: (m_ref (m_option m_type_)) a2 b2 *)
+(*      * the same is true for types! Now we sometimes propagate type annotations *)
+(*      * in Naming_AST.ml, but we do that in the source file, not the pattern, *)
+(*      * which would prevent a match. *)
+(*      * More generally, id_info is something populated and used on the *)
+(*      * generic AST of the source, not on the pattern, hence we should *)
+(*      * not use it as a condition for matching here. Instead use *)
+(*      * the information in the caller. *)
+(*      *\) *)
+(*     return () *)
 
 (*****************************************************************************)
 (* Expression *)

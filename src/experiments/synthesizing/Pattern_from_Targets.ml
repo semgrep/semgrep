@@ -124,18 +124,7 @@ let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
 let default_id str =
-  N
-    (Id
-       ( (str, fk),
-         {
-           id_resolved = ref None;
-           id_type = ref None;
-           id_svalue = ref None;
-           id_hidden = false;
-           id_case_insensitive = false;
-           id_info_id = IdInfoId.unsafe_default;
-         } ))
-  |> G.e
+  N (Id ((str, fk), mk_id_info ~id:IdInfoId.unsafe_default ())) |> G.e
 
 let count_to_id count =
   let make_id ch = Format.sprintf "$%c" ch in
