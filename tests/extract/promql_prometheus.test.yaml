@@ -1,14 +1,24 @@
 groups:
 - name: test
   rules:
-  - alert: ExtractMeFirst
+  - alert: ExtractMe1
     # ruleid: never-sum-then-rate
     expr: rate(sum by (job) (http_requests_total{job="node"})[5m:])
-  - alert: ExtractMeSecond
+  - alert: ExtractMe2
     expr: |
       # ruleid: never-sum-then-rate
       rate(sum by (job) (http_requests_total{job="node"})[5m:])
-  - alert: ExtractMeThird
+  - alert: ExtractMe3
     expr: |-
       # ruleid: never-sum-then-rate
       rate(sum by (job) (http_requests_total{job="node"})[5m:])
+  - alert: ExtractMe4
+    expr: |-
+      # ruleid: use-sum-over-time-for-xxx
+      xxx_triangulations_completed_total{geometry="kube"}> 10
+  - alert: ExtractMe5
+    # ruleid: use-sum-over-time-for-xxx
+    expr: sum(xxx_triangulations_completed_total{geometry="kube"}) > 10
+  - alert: ExtractMe6
+    # ruleid: use-sum-over-time-for-xxx
+    expr: avg_over_time(xxx_triangulations_completed_total[5m]) > 10
