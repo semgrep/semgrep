@@ -599,6 +599,7 @@ and m_ident_and_empty_id_info a1 b1 =
  * the id_resolved tag and sid!
  *)
 and m_id_info _a _b = return ()
+(* (* Old code was preserved to make the following comment understandable. *) *)
 (* match (a, b) with *)
 (* | ( { *)
 (*       G.id_resolved = _a1; *)
