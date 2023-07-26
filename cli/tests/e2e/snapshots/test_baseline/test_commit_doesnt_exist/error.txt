@@ -1,14 +1,6 @@
-[ERROR] Command failed with exit code: 128
------
-Command failed with output:
-fatal: Not a valid object name 12345
-
-
-Failed to run 'git cat-file -e 12345'. Possible reasons:
-
-- the git binary is not available
-- the current working directory is not a git repository
-- the current working directory is not marked as safe
-    (fix with `git config --global --add safe.directory $(pwd)`)
-
-Try running the command yourself to debug the issue.
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 47, in <module>
+    PATH = os.environ["PATH"]
+  File "/usr/lib/python3.10/os.py", line 679, in __getitem__
+    raise KeyError(key) from None
+KeyError: 'PATH'
