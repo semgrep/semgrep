@@ -294,6 +294,8 @@ and extract_reduction = Separate | Concat [@@deriving show]
  *    { n = Type, v = tau};
  *  ]
  * }
+ * NOTE: we don't reuse cohttp's abstract type Cohttp.Headers.t; we still need
+ * it to not be abstract for metavariable substitution.
  *)
 
 type header = { name : string; value : string } [@@deriving show]
@@ -314,9 +316,7 @@ type secrets = {
    * bindings made available in the request post matching.
    *)
   secrets : formula list;
-  (* request: *)
   request : request;
-  (* response: *)
   response : response;
 }
 [@@deriving show]
