@@ -385,8 +385,11 @@ let text_of_binding mvar mval =
    * TODO: handle also MV.Name, MV.E of DotAccess; maybe use
    * Pretty_print/Ugly_print to factorize work.
    *)
-  | MV.Id ((s, _tok), (None | Some { id_hidden = false; _ }))
-    when not (s =~ "^__builtin.*") ->
+  | MV.Id ((s, _tok), info_opt)
+    when (match info_opt with
+         | None -> true
+         | Some id_info -> not (G.is_hidden id_info))
+         && not (s =~ "^__builtin.*") ->
       Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in

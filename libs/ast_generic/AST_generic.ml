@@ -438,6 +438,7 @@ class virtual ['self] iter_parent =
      * visitor. Subclasses can always override these with their own behavior if
      * needed. *)
     method visit_location _env _ = ()
+    method visit_packed _ _ = ()
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
@@ -502,6 +503,7 @@ class virtual ['self] map_parent =
 
     (* Stubs *)
     method visit_location _env x = x
+    method visit_packed _env x = x
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
@@ -585,28 +587,8 @@ and id_info = {
    *)
   id_svalue : svalue option ref; [@equal fun _a _b -> true]
   (* THINK: Drop option? *)
-  (* id_hidden=true must be set for any artificial identifier that never
-     appears in source code but is introduced in the AST after parsing.
-
-     Don't use this for syntax desugaring or transpilation because the
-     resulting function name might exist in some source code. Consider the
-     following normalization:
-
-       !foo -> foo.contents
-                   ^^^^^^^^
-                 should not be marked as hidden because it could appear
-                 in target source code.
-
-     However, an artificial identifier like "!sh_quoted_expand!" should
-     be marked as hidden in bash.
-
-     This allows not breaking the -fast/-filter_irrelevant_rules optimization
-     that skips a target file if some identifier in the pattern AST doesn't
-     exist in the source of the target.
-  *)
   id_info_flags : Id_info_flags.packed;
       [@equal AST_generic_equals.equal_id_info Id_info_flags.equal_packed]
-      [@opaque]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
@@ -2154,23 +2136,21 @@ let p x = x
 let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None }
 
-let empty_id_info ?(hidden = false) ?(case_insensitive = false) () =
+let mk_id_info ?(resolved = None) ?(hidden = false) ?(case_insensitive = false)
+    ?(id = id_info_id ()) () =
   {
-    id_resolved = ref None;
+    id_resolved = ref resolved;
     id_type = ref None;
     id_svalue = ref None;
     id_info_flags = Id_info_flags.pack { hidden; case_insensitive };
-    id_info_id = id_info_id ();
+    id_info_id = id;
   }
 
+let empty_id_info ?(hidden = false) ?(case_insensitive = false) () =
+  mk_id_info ~hidden ~case_insensitive ()
+
 let basic_id_info ?(hidden = false) ?(case_insensitive = false) resolved =
-  {
-    id_resolved = ref (Some resolved);
-    id_type = ref None;
-    id_svalue = ref None;
-    id_info_flags = Id_info_flags.pack { hidden; case_insensitive };
-    id_info_id = id_info_id ();
-  }
+  mk_id_info ~resolved:(Some resolved) ~hidden ~case_insensitive ()
 
 let is_hidden { id_info_flags; _ } = Id_info_flags.is_hidden id_info_flags
 

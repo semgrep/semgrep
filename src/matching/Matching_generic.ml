@@ -245,8 +245,8 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
          * case insensitive. This covers all the use cases in the test
          * suite so far.
          *)
-        | ( Some { id_case_insensitive = true; _ },
-            Some { id_case_insensitive = true; _ } ) ->
+        | Some i1, Some i2
+          when G.is_case_insensitive i1 && G.is_case_insensitive i2 ->
             String.(lowercase_ascii s1 = lowercase_ascii s2)
         | _, _ -> s1 = s2)
         &&
