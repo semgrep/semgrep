@@ -33,7 +33,7 @@ class SemgrepCoreLSServer:
         self.polling: bool = True
 
     def start_ls(self) -> None:
-        cmd = ["osemgrep", "lsp"]
+        cmd = ["osemgrep", "lsp", "--experimental"]
         executable = str(self.config.engine_type.get_binary_path())
         self.core_process = subprocess.Popen(
             cmd,

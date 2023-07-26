@@ -142,7 +142,9 @@ let dispatch_subcommand argv =
       in
       let subcmd_argv =
         let subcmd_argv0 = argv0 ^ "-" ^ subcmd in
-        subcmd_argv0 :: subcmd_args |> Array.of_list
+        subcmd_argv0 :: subcmd_args
+        |> List.filter (fun arg -> arg <> "--experimental")
+        |> Array.of_list
       in
       let experimental = Array.mem "--experimental" argv in
       (* coupling: with known_subcommands if you add an entry below.
