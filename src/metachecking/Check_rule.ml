@@ -196,6 +196,7 @@ let check r =
   | `Search f
   | `Extract { formula = f; _ } ->
       check_formula { r; errors = ref [] } r.languages.target_analyzer f
+  | `Secrets _ -> (* TODO *) []
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
 

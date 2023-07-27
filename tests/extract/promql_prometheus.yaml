@@ -7,6 +7,7 @@ rules:
       expr: $PROMQL
     extract: $PROMQL
     dest-language: promql
+
   - id: never-sum-then-rate
     message: testing
     severity: ERROR
@@ -16,4 +17,18 @@ rules:
     - pattern-either:
       - pattern: rate(sum(...)[$DURATION:])
       - pattern: rate(sum(...)[$DURATION:$STEP])
+
+  - id: use-sum-over-time-for-xxx
+    message: testing
+    severity: ERROR
+    languages:
+      - promql
+    patterns:
+    - pattern-either:
+      - pattern: $F(..., $X{...}[$DURATION], ...)
+      - pattern: $X{...}
+    - pattern-not-inside: sum_over_time($X{...})
+    - metavariable-regex:
+        metavariable: $X
+        regex: xxx_.*
 

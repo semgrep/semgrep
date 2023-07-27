@@ -148,6 +148,7 @@ type taint_spec = {
 and taint_source = {
   source_formula : formula;
   source_by_side_effect : bool;
+  source_control : bool;
   label : string;
       (* The label to attach to the data.
        * Alt: We could have an optional label instead, allow taint that is not
@@ -276,6 +277,52 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
 and extract_reduction = Separate | Concat [@@deriving show]
 
 (*****************************************************************************)
+(* secrets mode *)
+(*****************************************************************************)
+
+(* This type encodes a basic HTTP request; mainly used for in the secrets
+ * post-processor; such that a basic http request like
+ * GET semgrep.dev
+ * Auth: ok
+ * Type: tau
+ * would be represented as
+ * {
+ *   url     = semgrep.dev/user;
+ *   meth    = `GET;
+ *   headers =
+ *  [
+ *    { n = Auth, v = ok};
+ *    { n = Type, v = tau};
+ *  ]
+ * }
+ * NOTE: we don't reuse cohttp's abstract type Cohttp.Headers.t; we still need
+ * it to not be abstract for metavariable substitution.
+ *)
+
+type header = { name : string; value : string } [@@deriving show]
+
+type request = { url : Uri.t; meth : [ `GET | `POST ]; headers : header list }
+[@@deriving show]
+
+(* Used to match on the returned response of some request;
+ * right now: we only look at the return code number i.e
+ * 200, 404,...
+ * TODO: Extend matching on response
+ *)
+type response = { return_code : int } [@@deriving show]
+
+type secrets = {
+  (* postprocessor-patterns:
+   * Each pattern in this list represents a piece of a "secret"; with any
+   * bindings made available in the request post matching.
+   *)
+  secrets : formula list;
+  request : request;
+  response : response;
+}
+[@@deriving show]
+
+(*****************************************************************************)
 (* Languages definition *)
 (*****************************************************************************)
 
@@ -374,6 +421,7 @@ type paths = {
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract ] [@@deriving show]
+type secrets_mode = [ `Secrets of secrets ] [@@deriving show]
 
 (* Steps mode includes rules that use search_mode and taint_mode.
  * Later, if we keep it, we might want to make all rules have steps,
@@ -421,7 +469,12 @@ type 'mode rule_info = {
 and severity = Error | Warning | Info | Inventory | Experiment
 [@@deriving show]
 
-type mode = [ search_mode | taint_mode | extract_mode | steps_mode ]
+(* Step mode includes rules that use search_mode and taint_mode *)
+(* Later, if we keep it, we might want to make all rules have steps,
+   but for the experiment this is easier to remove *)
+
+type mode =
+  [ search_mode | taint_mode | extract_mode | secrets_mode | steps_mode ]
 [@@deriving show]
 
 (* the general type *)
@@ -438,6 +491,7 @@ type hrules = (Rule_ID.t, t) Hashtbl.t
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
+type secrets_rule = secrets_mode rule_info [@@deriving show]
 type steps_rule = steps_mode rule_info [@@deriving show]
 
 (*****************************************************************************)
@@ -448,21 +502,42 @@ let hrules_of_rules (rules : t list) : hrules =
   rules |> Common.map (fun r -> (fst r.id, r)) |> Common.hash_of_list
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list * steps_rule list =
-  let rec part_rules search taint extract step = function
-    | [] -> (List.rev search, List.rev taint, List.rev extract, List.rev step)
+    search_rule list
+    * taint_rule list
+    * extract_rule list
+    * secrets_rule list
+    * steps_rule list =
+  let rec part_rules search taint extract secrets step = function
+    | [] ->
+        ( List.rev search,
+          List.rev taint,
+          List.rev extract,
+          List.rev secrets,
+          List.rev step )
     | r :: l -> (
         match r.mode with
         | `Search _ as s ->
-            part_rules ({ r with mode = s } :: search) taint extract step l
+            part_rules
+              ({ r with mode = s } :: search)
+              taint extract secrets step l
         | `Taint _ as t ->
-            part_rules search ({ r with mode = t } :: taint) extract step l
+            part_rules search
+              ({ r with mode = t } :: taint)
+              extract secrets step l
         | `Extract _ as e ->
-            part_rules search taint ({ r with mode = e } :: extract) step l
+            part_rules search taint
+              ({ r with mode = e } :: extract)
+              secrets step l
+        | `Secrets _ as s ->
+            part_rules search taint extract
+              ({ r with mode = s } :: secrets)
+              step l
         | `Steps _ as j ->
-            part_rules search taint extract ({ r with mode = j } :: step) l)
+            part_rules search taint extract secrets
+              ({ r with mode = j } :: step)
+              l)
   in
-  part_rules [] [] [] [] rules
+  part_rules [] [] [] [] [] rules
 
 (*****************************************************************************)
 (* Error Management *)

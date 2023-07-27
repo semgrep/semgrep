@@ -39,6 +39,7 @@ let test_tainting lang file options config def =
           let r = Range.range_of_token_locations tok1 tok2 in
           Range.content_at_range file r
       | Taint.Arg arg -> Taint._show_arg arg
+      | Taint.Control -> "<control>"
     in
     taint |> Taint.Taint_set.elements |> Common.map show_taint
     |> String.concat ", "
@@ -70,7 +71,7 @@ let test_dfg_tainting rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules, _extract_rules, _join_rules =
+  let _search_rules, taint_rules, _extract_rules, _secrets_rules, _join_rules =
     Rule.partition_rules rules
   in
   let rule = Common.hd_exn "unexpected empty list" taint_rules in
