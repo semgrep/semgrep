@@ -192,14 +192,12 @@ let m_ident a b =
   | (stra, _), (strb, _) when Pattern.is_regexp_string stra ->
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
+  (* Note: We should try to avoid allowing case insensitive
+   *  identifiers to get here because we have no way of
+   *  distinguishing them from case sensitive identifiers
+   *)
   (* general case *)
-  (* TODO: Should this respect case_sensitivity of ids? *)
-  | a, b ->
-      with_lang (fun lang ->
-          if lang =*= Lang.Php then
-            Printf.printf "%s %s\n%s\n\n" (fst a) (fst b)
-              Printexc.(get_callstack 100 |> raw_backtrace_to_string);
-          m_wrap m_string a b)
+  | a, b -> m_wrap m_string a b
 
 (* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
@@ -598,44 +596,41 @@ and m_ident_and_empty_id_info a1 b1 =
  * whether two $X refers to the same code. In that case we are using
  * the id_resolved tag and sid!
  *)
-and m_id_info _a _b = return ()
-(* (* Old code was preserved to make the following comment understandable. *) *)
-(* match (a, b) with *)
-(* | ( { *)
-(*       G.id_resolved = _a1; *)
-(*       id_type = _a2; *)
-(*       id_svalue = _a3; *)
-(*       id_hidden = _a4; *)
-(*       id_case_insensitive = _; *)
-(*       id_info_id = _a5; *)
-(*     }, *)
-(*     { *)
-(*       B.id_resolved = _b1; *)
-(*       id_type = _b2; *)
-(*       id_svalue = _b3; *)
-(*       id_hidden = _b4; *)
-(*       id_case_insensitive = _; *)
-(*       id_info_id = _b5; *)
-(*     } ) -> *)
-(*     (\* old: (m_ref m_resolved_name) a3 b3  >>= (fun () -> *)
-(*      * but doing import flask in a source file means every reference *)
-(*      * to flask.xxx will be tagged with a ImportedEntity, but *)
-(*      * semgrep pattern will use flask.xxx directly, without the preceding *)
-(*      * import, without this tag, which would prevent *)
-(*      * matching. We need to correctly resolve names and always compare with *)
-(*      * the resolved_name instead of the name used in the code *)
-(*      * (which can be an alias) *)
-(*      * *)
-(*      * old: (m_ref (m_option m_type_)) a2 b2 *)
-(*      * the same is true for types! Now we sometimes propagate type annotations *)
-(*      * in Naming_AST.ml, but we do that in the source file, not the pattern, *)
-(*      * which would prevent a match. *)
-(*      * More generally, id_info is something populated and used on the *)
-(*      * generic AST of the source, not on the pattern, hence we should *)
-(*      * not use it as a condition for matching here. Instead use *)
-(*      * the information in the caller. *)
-(*      *\) *)
-(*     return () *)
+and m_id_info a b =
+  match (a, b) with
+  | ( {
+        G.id_resolved = _a1;
+        id_type = _a2;
+        id_svalue = _a3;
+        id_info_flags = _a4;
+        id_info_id = _a5;
+      },
+      {
+        B.id_resolved = _b1;
+        id_type = _b2;
+        id_svalue = _b3;
+        id_info_flags = _b4;
+        id_info_id = _b5;
+      } ) ->
+      (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
+       * but doing import flask in a source file means every reference
+       * to flask.xxx will be tagged with a ImportedEntity, but
+       * semgrep pattern will use flask.xxx directly, without the preceding
+       * import, without this tag, which would prevent
+       * matching. We need to correctly resolve names and always compare with
+       * the resolved_name instead of the name used in the code
+       * (which can be an alias)
+       *
+       * old: (m_ref (m_option m_type_)) a2 b2
+       * the same is true for types! Now we sometimes propagate type annotations
+       * in Naming_AST.ml, but we do that in the source file, not the pattern,
+       * which would prevent a match.
+       * More generally, id_info is something populated and used on the
+       * generic AST of the source, not on the pattern, hence we should
+       * not use it as a condition for matching here. Instead use
+       * the information in the caller.
+       *)
+      return ()
 
 (*****************************************************************************)
 (* Expression *)
