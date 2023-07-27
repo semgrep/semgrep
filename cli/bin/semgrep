@@ -40,7 +40,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # Add the directory containing this script in the PATH, so the pysemgrep
 # script will also be in the PATH.
 # Some people don't have semgrep in their PATH and call it instead
-# explicitely as in /path/to/somewhere/bin/semgrep, but this means
+# explicitly as in /path/to/somewhere/bin/semgrep, but this means
 # that calling pysemgrep from osemgrep would be difficult because
 # it would not be in the PATH (we would need to pass its path to osemgrep,
 # which seems more complicated).
