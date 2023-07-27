@@ -1,1 +1,0 @@
-Fixed stack overflow caused by symbolic propagation.
