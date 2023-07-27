@@ -34,6 +34,7 @@ DEFAULT_CAPABILITIES = {
         "metrics": {
             "enabled": True,
         },
+        "doHover": True,
     },
     "capabilities": {},
 }
@@ -303,6 +304,17 @@ def send_semgrep_search(server, pattern, language=None):
     )
 
 
+def send_hover(server, path, position, line):
+
+    params = {
+        "textDocument": {"uri": f"file://{path}"},
+        "position": {"character": position, "line": line},
+        "workDoneToken": "foo",
+    }
+
+    send_msg(server, "textDocument/hover", params)
+
+
 def send_semgrep_show_ast(server, uri, named=False):
     params = {"uri": uri, "named": named}
     send_msg(
@@ -463,6 +475,17 @@ def test_ls_ext(
     response = next(responses)
     results = response["result"]
     assert len(results["locations"]) == 3
+
+    # hover is on by default
+    for file in files:
+        send_hover(server, file, position=1, line=0)
+        response = next(responses)
+        results = response["result"]
+        assert results is not None
+        # Make sure the contents field exists
+        # This test might break actually if there is no hover
+        # for the given test file
+        results["contents"]
 
     # showAst
     for file in files:
