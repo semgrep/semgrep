@@ -20,20 +20,32 @@ jobs:
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
       - uses: depot/setup-action@v1
-      - name: Build and test python wheel
+      - name: Build semgrep-core
+        id: build-semgrep-core
+        uses: depot/build-push-action@v1.8.0
+        with:
+          project: fhmxj6w9z8
+          platforms: linux/${{ matrix.architecture }}
+          outputs: type=docker,dest=/tmp/semgrep-core-container.tar
+          target: semgrep-core-container
+          buildx-fallback: true
+      - name: Load semgrep-core-container image
+        run: |
+          docker load --input /tmp/semgrep-core-container.tar
+      - name: Build semgrep-cli wheel
         id: build-semgrep-wheel
         uses: depot/build-push-action@v1.8.0
         with:
           project: fhmxj6w9z8
           platforms: linux/${{ matrix.architecture }}
-          outputs: type=docker,dest=/tmp/image.tar
-          target: semgrep-wheel
+          outputs: type=docker,dest=/tmp/semgrep-wheel.tar
           buildx-fallback: true
-          build-args: |
-            WHEEL_ARCH=${{ matrix.architecture }}
+          file: Dockerfile.wheels
+          build-contexts: |
+            semgrep-core-container=docker-image://${{ steps.build-semgrep-core.outputs.imageid }}
       - name: Extract wheel from docker image
         run: |
-          docker load --input /tmp/image.tar
+          docker load --input /tmp/semgrep-wheel.tar
           docker run --platform linux/${{ matrix.architecture }} --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} cat cli/dist.zip > /tmp/dist.zip
       - uses: actions/upload-artifact@v3
         with:

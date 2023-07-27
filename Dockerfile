@@ -107,48 +107,7 @@ RUN eval "$(opam env)" &&\
     /src/semgrep/_build/default/src/main/Main.exe -version
 
 ###############################################################################
-# Step2: Build the semgrep Python wheel
-###############################################################################
-# This is an intermediary stage used for building Python wheels. Semgrep users
-# don't need to use this.
-FROM python:3.11-alpine AS semgrep-wheel
-
-WORKDIR /semgrep
-
-# Install some deps (build-base because ruamel.yaml has native code)
-RUN apk add --no-cache build-base zip bash
-
-# Copy in the CLI
-COPY cli ./cli
-
-# Copy in semgrep-core executable
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
-
-# Copy in scripts folder
-COPY scripts/ ./scripts/
-
-# Build the source distribution and binary wheels, and then validate that the wheel installs correctly.
-#
-# We have to build the wheel twice because of how Python wheels handle binary compatiblity:
-# 1. build wheel for manylinux2014 (i.e. many linux distributions from 2014 onwards)
-# 2. build wheel for musllinux_1_1 (i.e. musl linux distributions from musl 1.0 onwards)
-#
-# However, we're not doing any actual compilation (we already build semgrep-core ahead of time),
-# so these wheels will be identical.
-#
-# Note: we're only able to validate the musllinux wheel because we're running in an Alpine container.
-# But again, the wheels are identical, so confirming the musllinux wheel works should be good enough.
-#
-# Make sure to override the WHEEL_ARCH build arg with the build architecture. Wheel validation will
-# fail if you don't!
-#
-ARG WHEEL_ARCH=x86_64
-RUN scripts/build-wheels.sh --plat manylinux2014_${WHEEL_ARCH} && \
-    scripts/build-wheels.sh --plat musllinux_1_0_${WHEEL_ARCH} && \
-    scripts/validate-wheel.sh cli/dist/*musllinux*.whl
-
-###############################################################################
-# Step3: Build the final docker image with Python wrapper and semgrep-core bin
+# Step2: Build the final docker image with Python wrapper and semgrep-core bin
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 

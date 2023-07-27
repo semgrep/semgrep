@@ -1,0 +1,37 @@
+FROM python:3.11-alpine AS semgrep-wheel
+
+WORKDIR /semgrep
+
+# Install some deps (build-base because ruamel.yaml has native code)
+RUN apk add --no-cache build-base zip bash
+
+# Copy in the CLI
+COPY cli ./cli
+
+# Copy in semgrep-core executable
+# hadolint ignore=DL3022
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
+
+# Copy in scripts folder
+COPY scripts/ ./scripts/
+
+# Build the source distribution and binary wheels, and then validate that the
+# wheel installs correctly.
+#
+# We have to build the wheel twice because of how Python wheels handle binary
+# compatiblity with libc:
+# 1. build wheel for manylinux2014 (i.e. glibc linux distributions from 2014
+#    onwards)
+# 2. build wheel for musllinux_1_1 (i.e. musl linux distributions from
+#    musl 1.0 onwards)
+#
+# However, we're not doing any actual compilation (we already statically built
+# semgrep-core ahead of time), so these wheels will be identical.
+#
+# Note: we're only able to validate the musllinux wheel because we're running
+# in an Alpine container. But again, the wheels are identical, so confirming
+# the musllinux wheel works should be good enough.
+#
+RUN scripts/build-wheels.sh --plat "manylinux2014_$(uname -m)" && \
+    scripts/build-wheels.sh --plat "musllinux_1_0_$(uname -m)" && \
+    scripts/validate-wheel.sh cli/dist/*musllinux*.whl
