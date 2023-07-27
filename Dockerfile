@@ -192,8 +192,6 @@ COPY cli ./
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
-     # running this pre-compiles some python files for faster startup times
-     semgrep --version &&\
      apk del .build-deps
 
 # Let the user know how their container was built
