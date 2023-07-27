@@ -133,7 +133,7 @@ type precondition =
   | PAnd of precondition list
   | POr of precondition list
   | PNot of precondition
-[@@deriving show]
+[@@deriving show, ord]
 
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
