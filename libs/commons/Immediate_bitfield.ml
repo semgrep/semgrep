@@ -13,6 +13,11 @@
  * LICENSE for more details.
  *)
 
+(* This library implements a bitfield that can be stored as an
+ * immediate in ocaml memory representation. Requiring no memory
+ * indirection. As such, it is an immutable type. It should allow 31-63
+ * boolean flags to be stored without indirection or allocation. *)
+
 open Base.Int
 
 type t = int
@@ -28,7 +33,7 @@ let get_bit t b =
   if min_bit > b || b > max_bit then raise (Index_exn b);
   let mask = shift_left 1 b in
   let masked = bit_and t mask in
-  shift_right masked b == 1
+  Common.(shift_right masked b =|= 1)
 
 let set_bit t b v =
   if min_bit > b || b > max_bit then raise (Index_exn b);

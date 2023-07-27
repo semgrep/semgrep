@@ -1,3 +1,25 @@
+(* Andre Kuhlenschmidt
+ *
+ * Copyright (C) 2023 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
+(* The following library implements a packed representation of a
+ * concrete set of flags. It is designed to use no more space than the
+ * ocaml int type so that it doesn't have to be allocated. This
+ * library essentially allows you to add somewhere between 31-63
+ * boolean flags to ids without affecting memory layout of the id_info
+ * type. *)
+
 open Immediate_bitfield
 
 type packed = t
