@@ -63,7 +63,7 @@ def find_semgrep_core_path():
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
     # or Docker (see ../../Dockerfile), we actually copy semgrep-core in
     # /usr/local/bin (or in a bin/ folder in the PATH). In those cases,
-    # there are no /.../site-packages/semgrep-xxx/bin/semgrep-core.
+    # there is no /.../site-packages/semgrep-xxx/bin/semgrep-core.
     # In those cases, we want to grab semgrep-core from the PATH instead.
     path = shutil.which("semgrep-core")
     if path is not None:
@@ -93,15 +93,15 @@ def exec_osemgrep():
 # When python imports a module, i.e. `import semgrep.FOO`, it runs the module's
 # top-level code, which is the code that is not inside any function or class.
 # This means that if we try and run a function from the semgrep package in a
-# subprocess, we would end up calling os.execvp below or main(), which causes
-# a bunch of errors. So we need to make sure that we only run the code below
-# when this file is run as an executable, hence the guard below.
+# subprocess, we would end up calling os.execvp() above or main() below, which
+# cause a bunch of errors. So we need to make sure that we only run the code
+# below when this file is run as an executable, hence the guard below.
 # This fix a crash when using semgrep --test (which apparently triggers
 # execution of this file).
-# Austin: the above explanation is my understanding, but tbh I think Python
+# Austin: the above explanation is my understanding, but I think Python
 # is weirder under the hood with this stuff.
-# Pad: I don't understand why the use of --test triggers the code here;
-# if --test use semgrep.Foo, it should execute code in cli/src/semgrep/__init__.php
+# Pad: I don't understand why the use of '--test' triggers the code here;
+# if '--test' use semgrep.Foo, it should execute code in cli/src/semgrep/__init__.php
 # This file is not part of the Python 'semgrep' package; it's a script.
 if __name__ == "__main__":
     # escape hatch for users to pysemgrep in case of problems (they
@@ -120,6 +120,6 @@ if __name__ == "__main__":
     elif "--experimental" in sys.argv:
        exec_osemgrep()
     else:
-       # we now default to osemgrep! but this will usually dispatch
+       # we now default to osemgrep! but this will usually exec
        # back to pysemgrep for most commands (for now)
        exec_osemgrep()
