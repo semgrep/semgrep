@@ -1,9 +1,0 @@
-Added support for naming propagation when the left-hand side (lhs) of a variable definition is an identifier pattern
-
-In certain languages like Rust, the variable definition is parsed as a pattern assignment, for example:
-
-```
-let x: SomeType = SomeFunction();
-```
-
-This commit ensures that the annotated type is propagated to the identifier pattern on the left-hand side (lhs) of the assignment, thus ensuring proper naming behavior.

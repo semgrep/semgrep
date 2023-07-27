@@ -1,1 +1,0 @@
-Exceptions raised during parsing of manifest files no longer interrupt general parser execution, which previously prevented lockfile parsing if a manifest failed to parse.

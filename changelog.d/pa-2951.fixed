@@ -1,2 +1,0 @@
-Rust: Macro calls which involve dereferencing and reference operators
-(such as `foo!(&x)` and `foo!(*x)`) now properly transmit taint

@@ -6,6 +6,79 @@
 
 <!-- insertion point -->
 
+## [1.34.0](https://github.com/returntocorp/semgrep/releases/tag/v1.34.0) - 2023-07-27
+
+### Added
+
+- Added support for naming propagation when the left-hand side (lhs) of a variable definition is an identifier pattern
+
+  In certain languages like Rust, the variable definition is parsed as a pattern assignment, for example:
+
+  ```
+  let x: SomeType = SomeFunction();
+  ```
+
+  This commit ensures that the annotated type is propagated to the identifier pattern on the left-hand side (lhs) of the assignment, thus ensuring proper naming behavior. (gh-8365)
+
+- feat(metavar type): Metavariable type support for Julia
+
+  Metavariable type is supported for Julia. (gh-8367)
+
+- New --legacy flag to force the use of the old Python implementation of
+  Semgrep (also known as 'pysemgrep'). Note that by default most semgrep
+  commands are still using the Python implementation (except 'semgrep
+  interactive'), so in practice you don't need to add this flag, but as
+  we port more commands to OCaml, the new --legacy flag might be useful
+  if you find some regressions. (legacy)
+- Matching: Added the ability to use metavariables in parameters to match more
+  sophisticated kinds of parameters.
+
+  In particular, metavariables should now be able to match `self` parameters,
+  such as in Rust.
+
+  So `fn $F($X, ...) { ... }` should match `fn $F(self) { }`. (pa-2937)
+
+- taint-mode: Added **experimental** `control: true` option to `pattern-sources`,
+  e.g.:
+
+  ```yaml
+  pattern-sources:
+    - control: true
+      pattern: source(...)
+  ```
+
+  Such sources taint the "control flow" (or the program counter) so that it is
+  possible to implement reachability queries that do not require the flow of any
+  data. Thus, Semgrep reports a finding in the code below, because after `source()`
+  the flow of control will reach `sink()`, even if no data is flowing between both:
+
+  ````python
+  def test():
+    source()
+    foo()
+    bar()
+    #ruleid: test
+    sink()
+  ``` (pa-2958)
+  ````
+
+- taint-mode: Taint sanitizers will be included in matching explanations. (pa-2975)
+
+### Changed
+
+- Started using ATD to define the schema for data sent to the /complete endpoint of semgrep app (app-4255)
+- Targets in a `.yarn/` directory are now ignored by the default .semgrepignore patterns. (dotyarn)
+
+### Fixed
+
+- Aliengrep mode: Fix whitespace bug preventing correct matching of parentheses. (gh-7990)
+- yaml: exclude style markers from matched token in block scalars (gh-8348)
+- Fixed stack overflow caused by symbolic propagation. (pa-2933)
+- Rust: Macro calls which involve dereferencing and reference operators
+  (such as `foo!(&x)` and `foo!(*x)`) now properly transmit taint (pa-2951)
+- Semgrep no longer crashes when running --test (pa-2963)
+- Exceptions raised during parsing of manifest files no longer interrupt general parser execution, which previously prevented lockfile parsing if a manifest failed to parse. (sc-exceptions)
+
 ## [1.33.2](https://github.com/returntocorp/semgrep/releases/tag/v1.33.2) - 2023-07-21
 
 No significant changes.
