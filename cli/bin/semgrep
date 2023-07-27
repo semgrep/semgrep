@@ -3,7 +3,7 @@
 # This file is the Semgrep CLI entry point of the Semgrep pip package,
 # the Semgrep HomeBrew package, and the Semgrep Docker container.
 #
-# In the futur we may have different entry points when packaging Semgrep
+# In the future we may have different entry points when packaging Semgrep
 # with Cargo, Npm, Opam, or even with Docker
 # (ideally the entry point would be src/main/Main.ml without
 #  any wrapper around once osemgrep is finished).
