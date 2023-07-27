@@ -15,7 +15,7 @@
 open Common
 open File.Operators
 open AST_jsonnet
-module C = Core_jsonnet_LC
+module C = Core_jsonnet_subst
 
 (*****************************************************************************)
 (* Prelude *)
@@ -494,9 +494,6 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
       import_callback;
     }
   in
-  (* TODO: skipped for now because std.jsonnet contains too many complicated
-   * things we don't handle, and it actually does not even parse right now.
-   *)
   let e =
     if use_std then
       let std = Std_jsonnet.get_std_jsonnet () in

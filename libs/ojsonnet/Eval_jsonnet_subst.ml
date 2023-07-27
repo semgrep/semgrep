@@ -1,6 +1,6 @@
-open Core_jsonnet_LC
+open Core_jsonnet_subst
 open Common
-module V = Value_jsonnet_LC
+module V = Value_jsonnet_subst
 module A = AST_jsonnet
 module J = JSON
 
@@ -9,10 +9,15 @@ exception Error of string * Tok.t
 type cmp = Inf | Eq | Sup
 
 let fk = Tok.unsafe_fake_tok ""
-
+let std = Std_jsonnet.get_std_jsonnet ()
 (* indicators for keyword substitution *)
+
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
+
+let is_imp_std s =
+  s =*= "type" || s =*= "primitiveEquals" || s =*= "length" || s =*= "makeArray"
+  || s =*= "filter" || s =*= "objectHasEx"
 
 let freshvar =
   let store = ref 0 in
@@ -148,7 +153,9 @@ let rec substitute id sub expr =
   | Call
       ( ArrayAccess
           ( Id ("std", std_tok),
-            (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+            ( l1,
+              L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+              r1 ) ),
         (l, args, r) ) ->
       let new_args =
         Common.map
@@ -159,11 +166,13 @@ let rec substitute id sub expr =
                 NamedArg (ident, tk, substitute id sub e))
           args
       in
-
+      let new_std = if is_imp_std meth_str then Id ("std", std_tok) else sub in
       Call
         ( ArrayAccess
-            ( Id ("std", std_tok),
-              (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+            ( new_std,
+              ( l1,
+                L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                r1 ) ),
           (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       if bind_list_contains binds id then Local (_tlocal, binds, _tsemi, e)
@@ -194,8 +203,8 @@ let rec substitute id sub expr =
   | If (tif, e1, e2, e3) ->
       If (tif, substitute id sub e1, substitute id sub e2, substitute id sub e3)
   | Error (tk, e) -> Error (tk, substitute id sub e)
-  | ExprTodo ((_s, _tk), _ast_expr) ->
-      error (Tok.unsafe_fake_tok "oof") "unimplemented"
+  | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
+
 (*TODO*)
 
 let rec substitute_kw kw sub expr =
@@ -229,8 +238,7 @@ let rec substitute_kw kw sub expr =
               fields
           in
           O (l, Object (asserts, new_fields), r)
-      | ObjectComp _ ->
-          error (Tok.unsafe_fake_tok "oof") "unimplemented" (* TODO *))
+      | ObjectComp _ -> O (l, v, r) (* TODO *))
   | Id (s, tk) -> Id (s, tk)
   | IdSpecial (Super, tk) -> (
       match kw with
@@ -293,8 +301,8 @@ let rec substitute_kw kw sub expr =
           substitute_kw kw sub e2,
           substitute_kw kw sub e3 )
   | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
-  | ExprTodo ((_s, _tk), _ast_expr) ->
-      error (Tok.unsafe_fake_tok "oof") "unimplemented"
+  | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
+
 (*TODO*)
 
 let rec eval_expr expr =
@@ -400,6 +408,7 @@ let rec eval_expr expr =
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
+          print_string "bang!";
           match eval_expr e with
           | Primitive (Bool (b, tk)) -> Primitive (Bool (not b, tk))
           | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
@@ -692,8 +701,6 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
       error tk
         (spf "Improper number of arguments to std.filter: expected 2, got %d"
            (List.length args))
-  | "objectHas", [ Arg _; Arg _ ] ->
-      error fk "you are accessing an object and this is not implemented yet"
   | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
       match (eval_expr e, eval_expr e', eval_expr e'') with
       | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->

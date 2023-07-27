@@ -38,7 +38,10 @@ type local_id = LSelf | LSuper | LId of string
    which also have lazy semantics themselves, and thus again need to be able
    to modify a specifc environment
 *)
-and val_or_unevaluated_ = Val of value_ | Unevaluated of Core_jsonnet_LC.expr
+and val_or_unevaluated_ =
+  | Val of value_
+  | Unevaluated of Core_jsonnet_subst.expr
+
 and lazy_value = val_or_unevaluated_
 
 (*****************************************************************************)
@@ -47,7 +50,7 @@ and lazy_value = val_or_unevaluated_
 and value_ =
   | Primitive of primitive
   | Object of object_ A.bracket
-  | Lambda of Core_jsonnet_LC.function_definition
+  | Lambda of Core_jsonnet_subst.function_definition
   | Array of lazy_value array A.bracket
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
@@ -71,7 +74,7 @@ and value_field = {
   fld_value : lazy_value;
 }
 
-and asserts = Core_jsonnet_LC.obj_assert [@@deriving show]
+and asserts = Core_jsonnet_subst.obj_assert [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)

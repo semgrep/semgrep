@@ -31,12 +31,12 @@ let test_maker dir pass_or_fail =
              in
 
              let ast = Parse_jsonnet.parse_program file in
-             let core = Desugar_jsonnet_LC.desugar_program file ast in
+             let core = Desugar_jsonnet_subst.desugar_program file ast in
              (* Currently slightly hacky, since we later may want to test for errors thrown *)
              try
-               let value_ = LC_Eval_jsonnet.eval_expr core in
+               let value_ = Eval_jsonnet_subst.eval_expr core in
                let json =
-                 JSON.to_yojson (LC_Eval_jsonnet.manifest_value value_)
+                 JSON.to_yojson (Eval_jsonnet_subst.manifest_value value_)
                in
                let fmt = format_of_string "expected %s \n but got %s" in
                let result =
@@ -45,7 +45,7 @@ let test_maker dir pass_or_fail =
 
                Alcotest.(check bool) result pass_or_fail (Y.equal json correct)
              with
-             | Eval_jsonnet.Error _ ->
+             | Eval_jsonnet_subst.Error _ ->
                  Alcotest.(check bool)
                    "this threw an error" (not pass_or_fail) true ))
 
