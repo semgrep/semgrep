@@ -203,7 +203,9 @@ let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
            Common.map (fun source -> source.R.source_formula) (snd spec.sources)
            @ Common.map
                (fun sanitizer -> sanitizer.R.sanitizer_formula)
-               spec.sanitizers
+               (match spec.sanitizers with
+               | None -> []
+               | Some (_, sanitizers) -> sanitizers)
            @ Common.map (fun sink -> sink.R.sink_formula) (snd spec.sinks)
            @ Common.map
                (fun propagator -> propagator.R.propagator_formula)
@@ -256,7 +258,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
   |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
-         let ranges, exps =
+         let ranges, expls =
            Formula_tbl.cached_find_opt formula_cache sanitizer.sanitizer_formula
              (fun () ->
                range_w_metas_of_formula xconf xtarget rule
@@ -265,7 +267,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
          ( ranges
            |> Common.map (fun x ->
                   (sanitizer.Rule.not_conflicting, x, sanitizer)),
-           exps ))
+           expls ))
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
@@ -465,8 +467,11 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
       )
   in
-  let sanitizers_ranges, _exps_sanitizersTODO =
-    find_sanitizers_matches formula_cache xconf xtarget rule spec.sanitizers
+  let sanitizers_ranges, expls_sanitizers =
+    match spec.sanitizers with
+    | None -> ([], [])
+    | Some (_, sanitizers_spec) ->
+        find_sanitizers_matches formula_cache xconf xtarget rule sanitizers_spec
   in
   let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
@@ -510,8 +515,26 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           children = expls_sinks;
           matches = ranges_to_pms sinks_ranges;
         }
-        (* TODO: sanitizer and propagators *);
+        (* TODO: propagators *);
       ]
+      @
+      match spec.sanitizers with
+      | None -> []
+      | Some (tok, _) ->
+          [
+            {
+              ME.op = Out.TaintSanitizer;
+              pos = tok;
+              children = expls_sanitizers;
+              (* 'sanitizer_ranges' will be affected by `not-conflicting: true`:
+               * if a sanitizer coincides exactly with a source/sink then it will
+               * be filtered out. So the sanitizer matches may not be the union of
+               * the matches of the individual sanitizers. Anyhow, not-conflicting
+               * has been deprecated for quite some time, and we will remove it at
+               * some point. *)
+              matches = ranges_to_pms sanitizers_ranges;
+            };
+          ]
     else []
   in
   let config = xconf.config in

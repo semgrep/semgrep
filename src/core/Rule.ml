@@ -140,7 +140,7 @@ type precondition =
  *)
 type taint_spec = {
   sources : tok * taint_source list;
-  sanitizers : taint_sanitizer list;
+  sanitizers : (tok * taint_sanitizer list) option;
   sinks : tok * taint_sink list;
   propagators : taint_propagator list;
 }
