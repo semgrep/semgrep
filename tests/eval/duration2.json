@@ -1,0 +1,7 @@
+{
+  "metavars": {
+    "$D": "1m1s2ms"
+  },
+  "language": "python",
+  "code": "parse_promql_duration(str($D)) == 61_002"
+}
