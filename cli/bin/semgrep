@@ -82,7 +82,7 @@ def find_semgrep_core_path():
 # by simply using a different program name. Morever, in case of big problems,
 # we can always tell users to run pysemgrep instead of semgrep and be sure
 # they'll get the old behavior.
-def call_osemgrep():
+def exec_osemgrep():
     path = find_semgrep_core_path()
     # If you call semgrep-core as osemgrep, then we get osemgrep behavior,
     # see src/main/Main.ml
@@ -118,8 +118,8 @@ if __name__ == "__main__":
        import semgrep.__main__
        sys.exit(semgrep.__main__.main())
     elif "--experimental" in sys.argv:
-       call_osemgrep()
+       exec_osemgrep()
     else:
        # we now default to osemgrep! but this will usually dispatch
        # back to pysemgrep for most commands (for now)
-       call_osemgrep()
+       exec_osemgrep()
