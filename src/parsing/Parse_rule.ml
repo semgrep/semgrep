@@ -1481,10 +1481,7 @@ let parse_taint_pattern env key (value : G.expr) =
         (match propagators_opt with
         | None -> []
         | Some (_, xs) -> xs);
-      sanitizers =
-        (match sanitizers_opt with
-        | None -> []
-        | Some (_, xs) -> xs);
+      sanitizers = sanitizers_opt;
       sinks;
     }
 
@@ -1595,10 +1592,7 @@ let parse_taint_fields env rule_dict =
             (match propagators_opt with
             | None -> []
             | Some (_, xs) -> xs);
-          sanitizers =
-            (match sanitizers_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
+          sanitizers = sanitizers_opt;
           sinks;
         }
 

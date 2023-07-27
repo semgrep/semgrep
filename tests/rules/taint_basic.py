@@ -11,9 +11,9 @@ def foo():
 def bar():
   a = source1()
   sanitize()
-  #ERROR:
+  #ruleid: tainting
   eval(a)
-  #ERROR:
+  #ruleid: tainting
   sink(a)
 
 # No security problem
