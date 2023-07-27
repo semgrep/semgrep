@@ -348,8 +348,20 @@ let parse (env : env) : G.expr list =
     | v, pos ->
         error "Expected a valid YAML element or end of sequence, got" v pos env
   and read_sequence acc : G.expr list * E.pos =
+    (* Capture the mutable `last_event` field prior to parsing, as the *)
+    (* `Sequence_end` event needs to make use of it. *)
+    let last_ev = env.last_event in
     match do_parse env with
-    | E.Sequence_end, pos -> (acc, pos)
+    | E.Sequence_end, pos ->
+        (* The `Sequence_end` event position is inaccurate: it specifies the *)
+        (* position immediately prior to the next token. This causes comments *)
+        (* and the leading whitespace of the next yaml element to be chomped on *)
+        (* autofix. *)
+        let pos' = Option.fold ~none:pos ~some:(fun (_, pos) -> pos) last_ev in
+        (* Important: we mess with the pos, we need to propagate it for consumers *)
+        (* of env.last_ev. *)
+        env.last_event <- Some (E.Sequence_end, pos');
+        (acc, pos')
     | v, pos ->
         let seq = fst (read_node ~node_val:(Some (v, pos)) ()) in
         let rest, end_pos = read_sequence acc in
@@ -365,6 +377,9 @@ let parse (env : env) : G.expr list =
         (* and the leading whitespace of the next yaml element to be chomped on *)
         (* autofix. *)
         let pos' = Option.fold ~none:pos ~some:(fun (_, pos) -> pos) last_ev in
+        (* Important: we mess with the pos, we need to propagate it for consumers *)
+        (* of env.last_ev. *)
+        env.last_event <- Some (E.Mapping_end, pos');
         (acc, pos')
     | v, pos ->
         let map = read_mapping (v, pos) in
