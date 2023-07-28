@@ -1,4 +1,4 @@
-open Common
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -8,8 +8,6 @@ open Common
 
    Translated from ci.py
 *)
-
-module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Types *)
@@ -352,11 +350,7 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.common.logging_level;
   Metrics_.configure conf.metrics;
-  let settings =
-    Semgrep_settings.load
-      ~legacy:(conf.common.maturity =*= Some CLI_common.Legacy)
-      ()
-  in
+  let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
   let deployment =
     match (settings.api_token, conf.rules_source) with
     | None, Rules_source.Configs [] ->

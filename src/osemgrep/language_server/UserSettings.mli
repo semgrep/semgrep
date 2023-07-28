@@ -9,6 +9,7 @@ type t = {
   timeout_threshold : int;
   only_git_dirty : bool;
   ci : bool;
+  do_hover : bool;
 }
 
 val default : t

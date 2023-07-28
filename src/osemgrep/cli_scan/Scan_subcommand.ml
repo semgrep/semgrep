@@ -224,7 +224,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
       match conf with
       | {
        output_format = Output_format.Text;
-       common = { maturity = Some CLI_common.Experimental; _ };
+       common = { maturity = Some CLI_common.MDevelop; _ };
        _;
       } ->
           ( Output_format.TextIncremental,
@@ -347,11 +347,7 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   Profiler.start profiler ~name:"total_time";
   let config () =
     Metrics_.configure conf.metrics;
-    let settings =
-      Semgrep_settings.load
-        ~legacy:(conf.common.maturity =*= Some CLI_common.Legacy)
-        ()
-    in
+    let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
     if Metrics_.is_enabled conf.metrics then
       Metrics_.add_project_url (Git_wrapper.get_project_url ());
     Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");

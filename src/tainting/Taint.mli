@@ -87,6 +87,7 @@ and orig =
   | Arg of arg
       (** Polymorphic taint variable: arbitrary taint coming through one of the
        * arguments in a function definition. *)
+  | Control
 [@@deriving show]
 
 and taint = { orig : orig; tokens : tainted_tokens } [@@deriving show]

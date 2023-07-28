@@ -44,7 +44,7 @@ type t = {
   (* TODO: use Fpath.t *)
   file : Common.filename;
 }
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]

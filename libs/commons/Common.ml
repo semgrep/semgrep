@@ -739,7 +739,7 @@ let null_string s = s = ""
 
 (* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
 type filename = string (* TODO could check that exist :) type sux *)
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s

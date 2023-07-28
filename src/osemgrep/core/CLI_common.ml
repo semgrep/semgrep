@@ -12,19 +12,20 @@ open Cmdliner
 (* Types *)
 (*************************************************************************)
 
-(* Used mostly to decide between pysemgrep and osemgrep for now (could be
- * used for different things later).
- * Legacy is also used to specify whether to keep pysemgrep
- * behavior/limitations/errors even when we stay in osemgrep land.
+(* Maturity is used mostly to decide between pysemgrep and osemgrep.
+ * It could be used for different things later.
+ * Develop is used to specify whether to get rid of pysemgrep
+ * behavior/limitations/errors or to keep how things were done before (even
+ * if they were bad, but just to remain backward compatible).
  *)
-type maturity = Experimental | Legacy [@@deriving show]
+type maturity = MDevelop | MExperimental | MLegacy [@@deriving show]
 
 type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   (* osemgrep-only: pad poor's man profiling info for now *)
   profile : bool;
-  (* osemgrep-only: mix of --experimental, --legacy *)
+  (* osemgrep-only: mix of --experimental, --legacy, --develop *)
   maturity : maturity option;
 }
 [@@deriving show]
@@ -123,14 +124,12 @@ let o_profile : bool Term.t =
 (* Maturity options *)
 (*************************************************************************)
 
-(* We could remove the flags below and handle them manually in
+(* We could remove some of the flags below and handle them manually in
  * cli/bin/semgrep or in ../cli/CLI.ml and remove them from Sys.argv
  * before going further in the individual cli_xxx/
  * (especially because they're mostly used for the pysemgrep/osemgrep
- * dispatch for now), but it's still useful to have them as explicit flags
+ * dispatch for now), but it's useful anyway to have them as explicit flags
  * so they show up in the man pages (e.g., in 'semgrep scan --help').
- * It's also nice to accept the --experimental flag for people explicitely
- * calling osemgrep directly.
  *)
 
 (* osemgrep-only:  *)
@@ -140,24 +139,32 @@ let o_experimental : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-(* osemgrep-only:  *)
+(* osemgrep-only: (well it is also supported by pysemgrep but
+ * by handling (and filtering it) in cli/bin/semgrep *)
 let o_legacy : bool Term.t =
+  let info = Arg.info [ "legacy" ] ~doc:{|Prefer old (legacy) behavior.|} in
+  Arg.value (Arg.flag info)
+
+(* osemgrep-only: *)
+let o_develop : bool Term.t =
   let info =
-    (* alt: Keep the pysemgrep behaviors/limitations/errors *)
-    Arg.info [ "legacy" ] ~doc:{|Prefer old (legacy) behavior.|}
+    (* alt: get rid  of the pysemgrep behaviors/limitations/errors *)
+    Arg.info [ "develop" ] ~doc:{|Living on the edge.|}
   in
   Arg.value (Arg.flag info)
 
 let o_maturity : maturity option Term.t =
-  let combine experimental legacy =
-    match (experimental, legacy) with
-    | false, false -> None
-    | true, false -> Some Experimental
-    | false, true -> Some Legacy
-    | true, true ->
-        Error.abort "mutually exclusive options --experimental/--legacy"
+  let combine experimental legacy develop =
+    match (experimental, legacy, develop) with
+    | false, false, false -> None
+    | true, false, false -> Some MExperimental
+    | false, true, false -> Some MLegacy
+    | false, false, true -> Some MDevelop
+    | _else_ ->
+        Error.abort
+          "mutually exclusive options --experimental/--legacy/--develop"
   in
-  Term.(const combine $ o_experimental $ o_legacy)
+  Term.(const combine $ o_experimental $ o_legacy $ o_develop)
 
 (*************************************************************************)
 (* Term for all common CLI flags *)
