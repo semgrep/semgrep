@@ -4,7 +4,6 @@ Based on the output of this maven plugin https://maven.apache.org/plugins/maven-
 """
 from pathlib import Path
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -75,17 +74,6 @@ pom_tree = (
     << string("\n").optional()
 )
 
-# Dictionaries are not hashable, so we need to convert them to objects which are
-# This will speed up the next iteration that takes place where we remove duplicates
-def dict_to_obj(d: Dict[str, Any]) -> ParsedDependency:
-    return ParsedDependency(
-        line_number=d["line_number"],
-        transitivity=d["transitivity"],
-        children=[child for child in d["children"]],
-        package=d["package"],
-        version=d["version"],
-    )
-
 
 def get_children(deps: List[Any]) -> List[ParsedDependency]:
     stack: List[Any] = []
@@ -98,7 +86,7 @@ def get_children(deps: List[Any]) -> List[ParsedDependency]:
             stack.append(dep)
             continue
         if dep["depth"] == stack[-1]["depth"]:
-            results.append(dict_to_obj(d=stack.pop()))
+            results.append(ParsedDependency.from_dict(stack.pop()))
             if stack:
                 child = DependencyChild(package=dep["package"], version=dep["version"])
                 stack[-1]["children"].append(child)
@@ -109,14 +97,14 @@ def get_children(deps: List[Any]) -> List[ParsedDependency]:
             stack.append(dep)
         else:
             while len(stack) > 0 and dep["depth"] <= stack[-1]["depth"]:
-                results.append(dict_to_obj(d=stack.pop()))
+                results.append(ParsedDependency.from_dict(stack.pop()))
             if stack:
                 child = DependencyChild(package=dep["package"], version=dep["version"])
                 stack[-1]["children"].append(child)
             stack.append(dep)
 
     while len(stack) > 0:
-        results.append(dict_to_obj(d=stack.pop()))
+        results.append(ParsedDependency.from_dict(stack.pop()))
     return results
 
 
@@ -142,13 +130,13 @@ def parse_pom_tree(
 
         output.append(
             FoundDependency(
-                package=match["package"],
-                version=match["version"],
+                package=match.package,
+                version=match.version,
                 ecosystem=Ecosystem(Maven()),
                 allowed_hashes={},
-                transitivity=match["transitivity"],
-                line_number=match["line_number"],
-                children=match["children"],
+                transitivity=match.transitivity,
+                line_number=match.line_number,
+                children=match.children,
             )
         )
     return output, errors
