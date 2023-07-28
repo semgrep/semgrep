@@ -9,8 +9,6 @@ exception Error of string * Tok.t
 type cmp = Inf | Eq | Sup
 
 let fk = Tok.unsafe_fake_tok ""
-(* indicators for keyword substitution *)
-
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
