@@ -14,6 +14,7 @@ from __future__ import annotations
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 from re import escape
 from typing import Any
@@ -319,16 +320,16 @@ def safe_parse_lockfile_and_manifest(
     return parsed_lockfile, parsed_manifest, errors
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False, unsafe_hash=True)
 class ParsedDependency:
     """
     A dependency parsed from a lockfile. Used for freezing dependency information after
     parsing and children addition.
     """
 
-    line_number: int
+    line_number: int = field(hash=False)
     transitivity: Transitivity
-    children: list[DependencyChild]
+    children: list[DependencyChild] = field(hash=False)
     package: str
     version: str
 
