@@ -74,22 +74,27 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
   }
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
-  let { Xtarget.file; lazy_content; _ } = xtarget in
-  let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
-  let is_relevant =
-    if xconf.filter_irrelevant_rules then (
-      match Analyze_rule.regexp_prefilter_of_rule r with
-      | None -> true
-      | Some (prefilter_formula, func) ->
-          let content = Lazy.force lazy_content in
-          let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
-          logger#trace "looking for %s in %s" s !!file;
-          func content)
-    else true
-  in
-  if not is_relevant then
-    logger#trace "skipping rule %s for %s" (fst r.R.id :> string) !!file;
-  is_relevant
+  match r.R.languages.target_analyzer with
+  | L (Lang.Promql, _) -> true
+  | _ ->
+      let { Xtarget.file; lazy_content; _ } = xtarget in
+      let xconf =
+        Match_env.adjust_xconfig_with_rule_options xconf r.R.options
+      in
+      let is_relevant =
+        if xconf.filter_irrelevant_rules then (
+          match Analyze_rule.regexp_prefilter_of_rule r with
+          | None -> true
+          | Some (prefilter_formula, func) ->
+              let content = Lazy.force lazy_content in
+              let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
+              logger#trace "looking for %s in %s" s !!file;
+              func content)
+        else true
+      in
+      if not is_relevant then
+        logger#trace "skipping rule %s for %s" (fst r.R.id :> string) !!file;
+      is_relevant
 
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
