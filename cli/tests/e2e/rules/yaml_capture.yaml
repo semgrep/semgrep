@@ -1,0 +1,9 @@
+rules:
+  - id: foo
+    languages:
+      - yaml
+    pattern: |
+      importantKey:
+        ...
+    message: example
+    severity: ERROR

@@ -1,0 +1,23 @@
+# NOTE: should match lines 3->4
+arbitraryKey:
+  importantKey:
+    prop1: true
+# (OK) this comment is not included in the match
+---
+# NOTE: should match lines 9->10, but matches 9->11
+arbitraryKey:
+  importantKey:
+    - idk: true
+# (BAD) this comment is still included in the match
+---
+# NOTE: should match lines 15->16
+arbitraryKey:
+  importantKey:
+    prop1: true
+  shouldNotInclude: true
+---
+# NOTE: should match lines 21->22, but matches 21->22 and partially 23
+arbitraryKey:
+  importantKey:
+    - idk: true
+  shouldNotInclude: true
