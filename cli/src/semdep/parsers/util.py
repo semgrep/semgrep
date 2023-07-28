@@ -14,7 +14,6 @@ from __future__ import annotations
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
-from dataclasses import field
 from pathlib import Path
 from re import escape
 from typing import Any
@@ -320,16 +319,16 @@ def safe_parse_lockfile_and_manifest(
     return parsed_lockfile, parsed_manifest, errors
 
 
-@dataclass(frozen=True, eq=False, unsafe_hash=True)
+@dataclass(eq=False)
 class ParsedDependency:
     """
     A dependency parsed from a lockfile. Used for freezing dependency information after
     parsing and children addition.
     """
 
-    line_number: int = field(hash=False)
+    line_number: int
     transitivity: Transitivity
-    children: list[DependencyChild] = field(hash=False)
+    children: list[DependencyChild]
     package: str
     version: str
 
@@ -342,6 +341,18 @@ class ParsedDependency:
             package=d["package"],
             version=d["version"],
         )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ParsedDependency):
+            return NotImplemented
+        return (
+            self.package == other.package
+            and self.version == other.version
+            and self.transitivity == other.transitivity
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.package, self.version, self.transitivity))
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
