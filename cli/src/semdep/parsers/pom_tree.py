@@ -80,7 +80,6 @@ pom_tree = (
 def dict_to_obj(d: Dict[str, Any]) -> ParsedDependency:
     return ParsedDependency(
         line_number=d["line_number"],
-        depth=d["depth"],
         transitivity=d["transitivity"],
         children=[child for child in d["children"]],
         package=d["package"],

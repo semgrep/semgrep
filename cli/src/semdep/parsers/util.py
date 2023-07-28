@@ -320,33 +320,18 @@ def safe_parse_lockfile_and_manifest(
     return parsed_lockfile, parsed_manifest, errors
 
 
+@dataclass(frozen=True, eq=False)
 class ParsedDependency:
     """
-    A dependency parsed from a lockfile
+    A dependency parsed from a lockfile. Used for freezing dependency information after
+    parsing and children addition.
     """
 
     line_number: int
-    depth: int
     transitivity: Transitivity
     children: List[DependencyChild]
     package: str
     version: str
-
-    def __init__(
-        self,
-        line_number: int,
-        depth: int,
-        transitivity: Transitivity,
-        children: List[DependencyChild],
-        package: str,
-        version: str,
-    ) -> None:
-        self.line_number = line_number
-        self.depth = depth
-        self.transitivity = transitivity
-        self.children = children
-        self.package = package
-        self.version = version
 
     def __getitem__(self, key: str) -> Any:
         return self.__dict__[key]
