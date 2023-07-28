@@ -6,6 +6,23 @@
 
 <!-- insertion point -->
 
+## [1.34.1](https://github.com/returntocorp/semgrep/releases/tag/v1.34.1) - 2023-07-28
+
+### Added
+
+- feat(eval): add "parse_promql_duration" function to convert a `promql` duration into milliseconds. This makes it possible to write comparisons like this:
+
+  ````
+  - metavariable-comparison:
+      metavariable: $RANGE
+      comparison: parse_promql_duration(str($RANGE)) > parse_promql_duration("1d")
+  ``` (gh-8381)
+  ````
+
+### Fixed
+
+- fix(yaml): fix captures for sequences that contain mappings (gh-8388)
+
 ## [1.34.0](https://github.com/returntocorp/semgrep/releases/tag/v1.34.0) - 2023-07-27
 
 ### Added
