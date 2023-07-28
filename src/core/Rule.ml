@@ -314,7 +314,8 @@ type request = {
 [@@deriving show]
 
 (* Used to match on the returned response of some request *)
-type response = { return_code : int; regex : string option } [@@deriving show]
+type response = { return_code : int; regex : Xpattern.regexp_string option }
+[@@deriving show]
 
 type secrets = {
   (* postprocessor-patterns:
