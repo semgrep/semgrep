@@ -15,8 +15,8 @@ rules:
       - promql
     patterns:
     - pattern-either:
-      - pattern: rate(sum(...)[$DURATION:])
-      - pattern: rate(sum(...)[$DURATION:$STEP])
+      - pattern: rate(sum(...)[$D:])
+      - pattern: rate(sum(...)[$D:$S])
 
   - id: use-sum-over-time-for-xxx
     message: testing
@@ -25,9 +25,9 @@ rules:
       - promql
     patterns:
     - pattern-either:
-      - pattern: $F(..., $X{...}[$DURATION], ...)
+      - pattern: $X{...}[$D]
       - pattern: $X{...}
-    - pattern-not-inside: sum_over_time($X{...})
+    - pattern-not-inside: sum_over_time({...}[$D])
     - metavariable-regex:
         metavariable: $X
         regex: xxx_.*
