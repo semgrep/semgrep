@@ -300,16 +300,21 @@ and extract_reduction = Separate | Concat [@@deriving show]
  *)
 
 type header = { name : string; value : string } [@@deriving show]
+type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
 
-type request = { url : Uri.t; meth : [ `GET | `POST ]; headers : header list }
+(* why is url : string? metavariables (i.e http://$X) are present at parsing; which
+ * if parsed with Uri.of_string translates it to http://%24x
+ *)
+type request = {
+  url : string;
+  meth : meth;
+  headers : header list;
+  body : string option;
+}
 [@@deriving show]
 
-(* Used to match on the returned response of some request;
- * right now: we only look at the return code number i.e
- * 200, 404,...
- * TODO: Extend matching on response
- *)
-type response = { return_code : int } [@@deriving show]
+(* Used to match on the returned response of some request *)
+type response = { return_code : int; regex : string } [@@deriving show]
 
 type secrets = {
   (* postprocessor-patterns:
