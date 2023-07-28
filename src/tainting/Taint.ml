@@ -388,22 +388,29 @@ module Taint_set = struct
    * we want to pick "the best". This is what this data structure is for, the
    * key functions are 'add' and 'pick_best_taint'.
    *)
-  module Taints = Set.Make (struct
-    type t = taint
+  module Taint_map = Map.Make (struct
+    type t = orig
 
-    let compare = compare_taint
+    let compare = compare_orig
   end)
+  (* TODO: Use a 'Set' instead, 'Map' is error prone, the same problem in 'map'
+   * may apply to 'union' as well. Not even clear that using a 'Map' here has any
+   * advantages. *)
 
-  type t = Taints.t
+  type t = taint Taint_map.t
 
-  let empty = Taints.empty
-  let is_empty set = Taints.is_empty set
-  let cardinal set = Taints.cardinal set
-  let equal set1 set2 = Taints.equal set1 set2
-  let to_seq set = set |> Taints.to_seq
+  let empty = Taint_map.empty
+  let is_empty set = Taint_map.is_empty set
+  let cardinal set = Taint_map.cardinal set
+
+  let equal set1 set2 =
+    let eq t1 t2 = compare_taint t1 t2 =|= 0 in
+    Taint_map.equal eq set1 set2
+
+  let to_seq set = set |> Taint_map.to_seq |> Seq.map snd
   let elements set = set |> to_seq |> List.of_seq
 
-  let rec add alt_taint set =
+  let rec add taint set =
     (* If two taints are "the same", we still want to pick "the best", e.g.
      * the one with the shortest trace.
      *
@@ -429,17 +436,18 @@ module Taint_set = struct
      *
      * coupling: If this changes, make sure to update docs for the `Taint.signature` type.
      *)
-    match Taints.find_opt alt_taint set with
-    | None -> Taints.add alt_taint set
-    | Some curr_taint ->
-        let best = pick_best_taint alt_taint curr_taint in
-        if Common.phys_equal best curr_taint then set
-        else set |> Taints.remove curr_taint |> Taints.add alt_taint
+    set
+    |> Taint_map.update taint.orig (function
+         | None -> Some taint
+         | Some taint' -> Some (pick_best_taint taint taint'))
 
-  and union set1 set2 = Taints.fold add set1 set2
+  and union set1 set2 =
+    Taint_map.union
+      (fun _k taint1 taint2 -> Some (pick_best_taint taint1 taint2))
+      set1 set2
 
   and of_list taints =
-    List.fold_left (fun set taint -> add taint set) Taints.empty taints
+    List.fold_left (fun set taint -> add taint set) Taint_map.empty taints
 
   and pick_best_taint taint1 taint2 =
     (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
@@ -494,7 +502,9 @@ module Taint_set = struct
         logger#error "Taint_set.pick_taint: Ooops, the impossible happened!";
         taint2
 
-  let diff set1 set2 = Taints.diff set1 set2
+  let diff set1 set2 =
+    set1 |> Taint_map.filter (fun k _ -> not (Taint_map.mem k set2))
+
   let singleton taint = add taint empty
 
   (* Because `Taint_set` is internally represented with a map, we cannot just
@@ -506,10 +516,27 @@ module Taint_set = struct
      `orig` of the domain and codomain should be the same. So it should be fine
      to simply map the codomain taint, and then take its `orig` as the key.
   *)
-  let map f set = set |> Taints.to_seq |> Seq.map f |> Taints.of_seq
-  let iter f set = Taints.iter f set
-  let fold f set acc = Taints.fold f set acc
-  let filter f set = Taints.filter f set
+  let map f set =
+    let bindings = Taint_map.bindings set in
+    bindings
+    (* Here, we assume the invariant that the orig must be
+       the same in the domain and codomain.
+    *)
+    |> Common.map (fun (_, t2) ->
+           let new_taint = f t2 in
+           (new_taint.orig, new_taint))
+    |> List.to_seq |> Taint_map.of_seq
+
+  let iter f set = Taint_map.iter (fun _k -> f) set
+  let fold f set acc = Taint_map.fold (fun _k -> f) set acc
+  let filter f set = Taint_map.filter (fun _k -> f) set
+
+  let concat_map f set =
+    let bindings = Taint_map.bindings set in
+    bindings
+    |> List.concat_map (fun (_, t2) ->
+           f t2 |> elements |> Common.map (fun t -> (t.orig, t)))
+    |> List.to_seq |> Taint_map.of_seq
 end
 
 type taints = Taint_set.t
