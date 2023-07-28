@@ -110,7 +110,6 @@ let eval_bracket ofa (v1, v2, v3) =
   let v2 = ofa v2 in
   (v1, v2, v3)
 
-(*TODOS: Object Comp *)
 (* This implements substitution for variables *)
 let rec substitute id sub expr =
   match expr with
@@ -170,6 +169,10 @@ let rec substitute id sub expr =
                 NamedArg (ident, tk, substitute id sub e))
           args
       in
+      (* Because the std library is split into two parts (explicitely part of the language
+         and std.jsonnet) we need to be careful about substitution here, only substituting
+         the "std" keyword when we actually want to go to std.jsonnet, we also only want
+         to do a substitution here if we are substituting for "std" *)
       let new_std =
         if is_imp_std meth_str || not (id = "std") then Id ("std", std_tok)
         else sub
