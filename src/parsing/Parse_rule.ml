@@ -307,13 +307,12 @@ let parse_string env (key : key) x = parse_string_wrap env key x |> fst
 let method_ env (key : key) x =
   let meth = parse_string env key x in
   match meth with
+  | "DELETE" -> `DELETE
   | "GET" -> `GET
+  | "HEAD" -> `HEAD
   | "POST" -> `POST
-  | _ -> error_at_key env.id key ("unsupported http method: " ^ meth)
-
-let uri env (key : key) x =
-  let uri = parse_string env key x in
-  Uri.of_string uri
+  | "PUT" -> `PUT
+  | _ -> error_at_key env.id key ("non-supported HTTP method: " ^ meth)
 
 let parse_list env (key : key) f x =
   match x.G.e with
@@ -1662,7 +1661,7 @@ let parse_secrets_fields env rule_dict : R.secrets =
   in
   let req = take rule_dict env yaml_to_dict "request" in
   let res = take rule_dict env yaml_to_dict "response" in
-  let url = take req env uri "url" in
+  let url = take req env parse_string "url" in
   let meth = take req env method_ "method" in
   let headers : Rule.header list =
     take req env yaml_to_dict "headers" |> fun { h; _ } ->
@@ -1671,8 +1670,14 @@ let parse_secrets_fields env rule_dict : R.secrets =
         { Rule.name; value = parse_string env (fst value) (snd value) } :: lst)
       h []
   in
+  let body = take_opt req env parse_string "body" in
   let return_code = take res env parse_int "return_code" in
-  { secrets; request = { url; meth; headers }; response = { return_code } }
+  let regex = take_opt res env parse_string "pattern-regex" in
+  {
+    secrets;
+    request = { url; meth; headers; body };
+    response = { return_code; regex };
+  }
 
 (*****************************************************************************)
 (* Main entry point *)
