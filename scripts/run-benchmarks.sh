@@ -8,7 +8,7 @@ set -e
 cd cli || return
 
 # Run timing benchmark
-pipenv install semgrep==1.32.0
+pipenv install semgrep==1.34.0
 pipenv run python -m semgrep --version
 export PATH=/github/home/.local/bin:$PATH
 
