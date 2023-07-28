@@ -65,6 +65,10 @@ def run_semgrep_ls(mocker):
                 assert (
                     try_counter < 100
                 ), "Timed out waiting for response from Semgrep LS"
+            call_args = server.std_writer.write.call_args_list[counter]
+            print(call_args)
+            print(call_args[0])
+            print(call_args[0][0])
             yield server.std_writer.write.call_args_list[counter][0][0]
             counter += 1
 
