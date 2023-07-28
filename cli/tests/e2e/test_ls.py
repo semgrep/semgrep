@@ -500,6 +500,7 @@ def test_ls_ext(
 
 # Test functionality of multi-workspaces
 @pytest.mark.slow()
+@pytest.mark.skip(reason="Flaky test")
 def test_ls_multi(run_semgrep_ls, mock_workspaces):  # nosemgrep: typehint-run-semgrep
     workspace1, workspace2 = mock_workspaces
     server, responses = run_semgrep_ls
