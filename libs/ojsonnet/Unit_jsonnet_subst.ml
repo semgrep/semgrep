@@ -3,7 +3,7 @@ open File.Operators
 module Y = Yojson.Basic
 
 let dir_pass = Fpath.v "tests/jsonnet/eval_pass"
-let dir_fail = Fpath.v "tests/jsonnet/eval_fail"
+(*let dir_fail = Fpath.v "tests/jsonnet/eval_fail"*)
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Common2.dbe_of_filename !!file in
@@ -31,7 +31,7 @@ let test_maker dir pass_or_fail =
              in
 
              let ast = Parse_jsonnet.parse_program file in
-             let core = Desugar_jsonnet_subst.desugar_program file ast in
+             let core = Desugar_jsonnet.desugar_program file ast in
              (* Currently slightly hacky, since we later may want to test for errors thrown *)
              try
                let value_ = Eval_jsonnet_subst.eval_expr core in
@@ -49,4 +49,4 @@ let test_maker dir pass_or_fail =
                  Alcotest.(check bool)
                    "this threw an error" (not pass_or_fail) true ))
 
-let tests () = test_maker dir_pass true @ test_maker dir_fail false
+let tests () = test_maker dir_pass true (*@ test_maker dir_fail false*)

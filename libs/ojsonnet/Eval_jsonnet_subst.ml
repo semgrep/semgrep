@@ -1,4 +1,4 @@
-open Core_jsonnet_subst
+open Core_jsonnet
 open Common
 module V = Value_jsonnet_subst
 module A = AST_jsonnet
@@ -9,15 +9,14 @@ exception Error of string * Tok.t
 type cmp = Inf | Eq | Sup
 
 let fk = Tok.unsafe_fake_tok ""
-let std = Std_jsonnet.get_std_jsonnet ()
 (* indicators for keyword substitution *)
 
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
 
 let is_imp_std s =
-  s =*= "type" || s =*= "primitiveEquals" || s =*= "length" || s =*= "makeArray"
-  || s =*= "filter" || s =*= "objectHasEx"
+  s = "type" || s = "primitiveEquals" || s = "length" || s = "makeArray"
+  || s = "filter" || s = "objectHasEx"
 
 let freshvar =
   let store = ref 0 in
@@ -71,7 +70,7 @@ let vobj_to_obj l asserts fields r =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
-           | Val _ -> error (Tok.unsafe_fake_tok "eek") "shoulnd't be a value"
+           | Val _ -> error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
            | Unevaluated e ->
                {
                  fld_name = vfld_name_to_fld_name fld_name;
@@ -95,25 +94,26 @@ let int_to_cmp = function
 
 let sv e =
   let s = V.show_value_ e in
-  if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
+  if String.length s > 900 then Str.first_chars s 900 ^ "..." else s
 
 let rec bind_list_contains binds id =
   match binds with
   | B ((name, _), _, _) :: t ->
-      if id =*= name then true else bind_list_contains t id
+      if id = name then true else bind_list_contains t id
   | [] -> false
 
 let rec parameter_list_contains parameters id =
   match parameters with
   | P ((name, _), _, _) :: t ->
-      if id =*= name then true else parameter_list_contains t id
+      if id = name then true else parameter_list_contains t id
   | [] -> false
 
 let eval_bracket ofa (v1, v2, v3) =
   let v2 = ofa v2 in
   (v1, v2, v3)
 
-(*TODOS: std library? Object Comp? *)
+(*TODOS: Object Comp *)
+(* This implements substitution for variables *)
 let rec substitute id sub expr =
   match expr with
   | L v -> L v
@@ -124,10 +124,16 @@ let rec substitute id sub expr =
       else
         let new_params =
           Common.map
-            (fun (P (name, tk, expr)) -> P (name, tk, substitute id sub expr))
+            (fun (P (name, tk, e)) -> P (name, tk, substitute id sub e))
             params
         in
-        Lambda { f_tok; f_params = (lparams, new_params, rparams); f_body }
+        let new_body = substitute id sub f_body in
+        Lambda
+          {
+            f_tok;
+            f_params = (lparams, new_params, rparams);
+            f_body = new_body;
+          }
   | O (l, v, r) -> (
       match v with
       | Object (asserts, fields) ->
@@ -148,7 +154,7 @@ let rec substitute id sub expr =
           in
           O (l, Object (new_asserts, new_fields), r)
       | ObjectComp _ -> O (l, v, r) (* TODO *))
-  | Id (s, tk) -> if s =*= id then sub else Id (s, tk)
+  | Id (s, tk) -> if s = id then sub else Id (s, tk)
   | IdSpecial id -> IdSpecial id
   | Call
       ( ArrayAccess
@@ -166,7 +172,11 @@ let rec substitute id sub expr =
                 NamedArg (ident, tk, substitute id sub e))
           args
       in
-      let new_std = if is_imp_std meth_str then Id ("std", std_tok) else sub in
+      let new_std =
+        if is_imp_std meth_str || not (id = "std") then Id ("std", std_tok)
+        else sub
+      in
+
       Call
         ( ArrayAccess
             ( new_std,
@@ -205,8 +215,7 @@ let rec substitute id sub expr =
   | Error (tk, e) -> Error (tk, substitute id sub e)
   | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
 
-(*TODO*)
-
+(* This implements substitution for keywords (self/super)*)
 let rec substitute_kw kw sub expr =
   match expr with
   | L v -> L v
@@ -253,7 +262,9 @@ let rec substitute_kw kw sub expr =
   | Call
       ( ArrayAccess
           ( Id ("std", std_tok),
-            (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+            ( l1,
+              L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+              r1 ) ),
         (l, args, r) ) ->
       let new_args =
         Common.map
@@ -264,11 +275,12 @@ let rec substitute_kw kw sub expr =
                 NamedArg (ident, tk, substitute_kw kw sub e))
           args
       in
-
       Call
         ( ArrayAccess
             ( Id ("std", std_tok),
-              (l1, L (Str (None, DoubleQuote, (l2, [ meth ], r2))), r1) ),
+              ( l1,
+                L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                r1 ) ),
           (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
@@ -353,7 +365,6 @@ let rec eval_expr expr =
                 error tkf (spf "negative value for array index: %s" (sv index))
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
-                (* TODO: Is this the right environment to evaluate in? *)
                 evaluate_lazy_value_ ei
             | _else_ ->
                 error tkf (spf "Out of bound for array index: %s" (sv index))
@@ -408,7 +419,6 @@ let rec eval_expr expr =
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
-          print_string "bang!";
           match eval_expr e with
           | Primitive (Bool (b, tk)) -> Primitive (Bool (not b, tk))
           | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
