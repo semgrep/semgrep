@@ -1,7 +1,0 @@
-feat(eval): add "parse_promql_duration" function to convert a `promql` duration into milliseconds. This makes it possible to write comparisons like this:
-
-```
-- metavariable-comparison:
-    metavariable: $RANGE
-    comparison: parse_promql_duration(str($RANGE)) > parse_promql_duration("1d")
-```
