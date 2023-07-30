@@ -1,0 +1,3 @@
+fix(promql): make aggregation labels not depend on order
+
+"sum by (..., b, a, c, ...) (X)" should match "sum by (a,b,c) (X)"
