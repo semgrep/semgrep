@@ -1,2 +1,0 @@
-Rust: Fixed an issue where implicit returns did not allow taint to flow,
-and various other small translation issues that would affect taint.

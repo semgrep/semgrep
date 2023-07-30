@@ -134,7 +134,7 @@ let partition_rules (filtered_rules : Rule.t list) =
       (fun r ->
         Common2.string_match_substring
           (Str.regexp "r2c-internal-cai")
-          (Rule.ID.to_string (fst r.Rule.id)))
+          (Rule_ID.to_string (fst r.Rule.id)))
       filtered_rules
   in
   let blocking_rules, non_blocking_rules =
@@ -215,7 +215,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
     ~(ignored_targets : Out.cli_skipped_target list option) ~commit_date
     ~engine_requested =
   let rule_ids =
-    Common.map (fun r -> Rule.ID.to_string (fst r.Rule.id)) rules
+    Common.map (fun r -> Rule_ID.to_string (fst r.Rule.id)) rules
   in
   (*
       we want date stamps assigned by the app to be assigned such that the
@@ -266,6 +266,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
         (* TODO: get renamed_paths, depends on baseline_commit *)
         renamed_paths = [];
         rule_ids;
+        contributions = None;
       }
   in
   let findings_and_ignores =
@@ -584,7 +585,7 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                         List.exists
                           (fun r ->
                             String.equal "r2c-internal-project-depends-on"
-                              (Rule.ID.to_string (fst r.Rule.id)))
+                              (Rule_ID.to_string (fst r.Rule.id)))
                           filtered_rules
                       then
                         Logs.app (fun m ->

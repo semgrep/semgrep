@@ -439,10 +439,6 @@ and eval_call env e0 (largs, args, _rargs) =
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
-(* This is a very naive implementation of plus for objects that
- * just merge the fields.
- * TODO: handle "inheritance" with complex super semantic with plus
- *)
 and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let l, (lassert, lflds), _r = objl in
   let _, (rassert, rflds), r = objr in
@@ -457,8 +453,28 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
     lflds
     |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
   in
-  (* TODO: should bind Super and adjust the env in all rflds *)
-  let rflds' = rflds in
+  (* Add Super to the environment of the right fields *)
+  let rflds' =
+    rflds
+    |> Common.map (fun ({ V.fld_value = { value; env }; _ } as fld) ->
+           (* TODO: here we bind super to objl, and this works for simple
+            * examples (e.g., basic_super1.jsonnet) but failed for
+            * more complex examples where the accessed field uses self, as in
+            *   { x: 1, w: 1, y: self.x } +
+            *   { x: 2, w: 2, y: super.y, z : super.w }
+            * which should return { x: 2, w: 2, y : 2, z : 1 }
+            * but currently return { x : 2, w : 2, y : 1, z : 1 }
+            * because super is bounded just to the left object
+            * ({ x: 1, w: 1, y: self.x), and in that context
+            * self.x is evaluated to 1 not 2
+            * (see also eval_fail/basic_super2.jsonnet)
+            *)
+           let locals =
+             env.locals
+             |> Map_.add V.LSuper { V.value = V.Val (V.Object objl); env }
+           in
+           { fld with fld_value = { value; env = { env with locals } } })
+  in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
 

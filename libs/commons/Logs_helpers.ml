@@ -88,12 +88,11 @@ let setup_logging ~force_color ~level =
   Logs.Src.list ()
   |> List.iter (fun src ->
          match Logs.Src.name src with
-         | "dns_client_lwt"
          | "ca-certs"
          | "bos"
-         | "happy-eyeballs.lwt"
-         | "http_lwt_client"
-         | "http_lwt_unix"
+         | "cohttp.lwt.client"
+         | "cohttp.lwt.io"
+         | "conduit_lwt_server"
          | "mirage-crypto-rng.lwt"
          | "mirage-crypto-rng-lwt"
          | "mirage-crypto-rng.unix"
@@ -102,14 +101,6 @@ let setup_logging ~force_color ~level =
          | "tls.tracing"
          | "x509" ->
              Logs.Src.set_level src None
-         (* let's keep the logs for those networking libraries to
-          * help debug networking issues (e.g., timeout).
-          *)
-         | "dns"
-         | "dns_cache"
-         | "dns_client"
-         | "happy-eyeballs"
          (* those are the one we are really interested in *)
-         | "application" ->
-             ()
+         | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))

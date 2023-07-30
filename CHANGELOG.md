@@ -6,6 +6,72 @@
 
 <!-- insertion point -->
 
+## [1.33.2](https://github.com/returntocorp/semgrep/releases/tag/v1.33.2) - 2023-07-21
+
+No significant changes.
+
+## [1.33.1](https://github.com/returntocorp/semgrep/releases/tag/v1.33.1) - 2023-07-21
+
+### Added
+
+- Rust: Added support for ellipsis patterns in attribute argument position. (e.g. `#[get(...)]`) (gh-8234)
+- Promql: Initial language support (gh-8281)
+- `.h` files will now run when C or C++ are selected as the language. (pa-123)
+- `.cjs` and `.mjs` files will now run when javascript is selected as the language. (pa-124)
+- Tainting: Parameters to functions in languages with pattern matching in function
+  arguments, such as Rust and OCaml, now transmit taint when they are sources.
+  This works with nested patterns too. For instance, in Rust:
+  ```
+  fn f ((x, (y, z)): t) {
+    let x = 2;
+  }
+  ```
+  tainting the sole argument to this function will result in all of the identifiers
+  `x`, `y`, and `z` now being tainted. (pa-2919)
+- Added rule option `interfile: true`, so this can be set under `options:` as it
+  is the norm for rule options. This rule option shall replace setting `interfile`
+  under `metadata`. Metadata is not mean to have any effect on how a rule is run. (pro-94)
+
+### Changed
+
+- Updated semgrep-interfaces, changed `api_scans_findings` to `ci_scan_results`, removed `gitlab_token` field and added `ignores` and `renamed_paths` field to `ci_scan_results`. (app-4252)
+
+### Fixed
+
+- Dockerfile language support: String matching is now done by contents, treating
+  the strings `foo`, `'foo'`, or `"foo"` as equal. (gh-8229)
+- Fixed error where we were not filtering the logging of a new third party library. (gh-8310)
+- Julia: Fixed a bug where try-catch patterns would not match properly.
+  Now, you can use an empty try-catch pattern, such as:
+
+  ```
+  try
+    ...
+  catch
+    ...
+  end
+  ```
+
+  to catch _only_ Julia code which does not specify an identifier for the `catch`.
+
+  Otherwise, if you want to match any kind of try-catch, you can specify an ellipsis
+  for the catch identifier instead:
+
+  ```
+  try
+    ...
+  catch ...
+    ...
+  end
+  ```
+
+  and this will match any try-catch, including those that do not specify an
+  identifier for the `catch`. It is strictly more general than the previous. (pa-2918)
+
+- Rust: Fixed an issue where implicit returns did not allow taint to flow,
+  and various other small translation issues that would affect taint. (pa-2936)
+- Fixed bug in gradle.lockfile parser where we would error on `empty=` with nothing after it (sc-987)
+
 ## [1.32.0](https://github.com/returntocorp/semgrep/releases/tag/v1.32.0) - 2023-07-13
 
 ### Added

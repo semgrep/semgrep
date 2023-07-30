@@ -492,7 +492,7 @@ let translate_formula iformula =
 
 let mk_fake_rule lang formula =
   {
-    Rule.id = (Rule.ID.of_string "-i", fk);
+    Rule.id = (Rule_ID.of_string "-i", fk);
     mode = `Search formula;
     (* alt: could put xpat.pstr for the message *)
     message = "";

@@ -1,0 +1,2 @@
+# MATCH:
+rate((sum(http_request_over_time) > 5)[10m:])

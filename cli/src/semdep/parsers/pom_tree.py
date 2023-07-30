@@ -5,17 +5,21 @@ Based on the output of this maven plugin https://maven.apache.org/plugins/maven-
 from pathlib import Path
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.parsers.util import consume_line
+from semdep.parsers.util import DependencyFileToParse
+from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
-from semdep.parsers.util import ParserName
-from semdep.parsers.util import safe_path_parse
+from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pomtree
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
@@ -63,13 +67,18 @@ pom_tree = (
 )
 
 
-def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
-    deps = safe_path_parse(tree_path, pom_tree, ParserName.pomtree)
-    if not deps:
-        return []
+def parse_pom_tree(
+    tree_path: Path, _: Optional[Path]
+) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+        DependencyFileToParse(tree_path, pom_tree, ScaParserName(Pomtree())),
+        None,
+    )
+    if not parsed_lockfile:
+        return [], errors
     output = []
     seen_matches = set()
-    for line_number, match in deps:
+    for line_number, match in parsed_lockfile:
         if match is None:
             continue
 
@@ -88,4 +97,4 @@ def parse_pom_tree(tree_path: Path, _: Optional[Path]) -> List[FoundDependency]:
                 line_number=line_number,
             )
         )
-    return output
+    return output, errors

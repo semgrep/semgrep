@@ -317,53 +317,50 @@ class ScanHandler:
 
         dependency_counts = {k: len(v) for k, v in lockfile_dependencies.items()}
 
-        complete = {
-            "exit_code": 1
+        complete = out.CiScanCompleteResponse(
+            exit_code=1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
             else 0,
-            "dependency_parser_errors": [e.to_json() for e in dependency_parser_errors],
-            "stats": {
-                "findings": len(
+            dependency_parser_errors=dependency_parser_errors,
+            stats=out.CiScanCompleteStats(
+                findings=len(
                     [match for match in new_matches if not match.from_transient_scan]
                 ),
-                "errors": [error.to_dict() for error in errors],
-                "total_time": total_time,
-                "unsupported_exts": dict(ignored_ext_freqs),
-                "lockfile_scan_info": dependency_counts,
-                "parse_rate": {
-                    lang: {
-                        "targets_parsed": data.num_targets - data.targets_with_errors,
-                        "num_targets": data.num_targets,
-                        "bytes_parsed": data.num_bytes - data.error_bytes,
-                        "num_bytes": data.num_bytes,
-                    }
+                errors=[error.to_CliError() for error in errors],
+                total_time=total_time,
+                unsupported_exts=dict(ignored_ext_freqs),
+                lockfile_scan_info=dependency_counts,
+                parse_rate={
+                    lang: out.ParsingStats(
+                        targets_parsed=data.num_targets - data.targets_with_errors,
+                        num_targets=data.num_targets,
+                        bytes_parsed=data.num_bytes - data.error_bytes,
+                        num_bytes=data.num_bytes,
+                    )
                     for (lang, data) in parse_rate.get_errors_by_lang().items()
                 },
-                "engine_requested": engine_requested.name,
-            },
-        }
+                engine_requested=engine_requested.name,
+            ),
+        )
 
         if self._dependency_query:
-            lockfile_dependencies_json = {}
-            for path, dependencies in lockfile_dependencies.items():
-                lockfile_dependencies_json[path] = [
-                    dependency.to_json() for dependency in dependencies
-                ]
-            complete["dependencies"] = lockfile_dependencies_json
+            complete.dependencies = out.CiScanDependencies(lockfile_dependencies)
 
         if self.dry_run:
             logger.info(
                 f"Would have sent findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
             )
             logger.info(
-                f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
+                f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
             return (False, "")
         else:
             logger.debug(
                 f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
             )
-            logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
+            logger.debug(
+                f"Sending complete blob: {json.dumps(complete.to_json(), indent=4)}"
+            )
 
         results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
@@ -382,7 +379,7 @@ class ScanHandler:
                 click.echo(f"Server returned following warning: {message}", err=True)
 
             if "task_id" in res:
-                complete["task_id"] = res["task_id"]
+                complete.task_id = res["task_id"]
 
             progress_bar.update(results_task, completed=100)
 
@@ -398,7 +395,7 @@ class ScanHandler:
             response = state.app_session.post(
                 f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
                 timeout=state.env.upload_findings_timeout,
-                json=complete,
+                json=complete.to_json(),
             )
 
             try:

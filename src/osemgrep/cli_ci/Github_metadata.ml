@@ -202,16 +202,14 @@ let _find_branchoff_point_from_github_api env =
   | Some gh_token, Some api_url, Some head_branch_hash -> (
       let headers = [ ("Authorization", Fmt.str "Bearer %s" gh_token) ] in
       let open Lwt.Infix in
-      Http_lwt_client.request ~meth:`GET ~headers
-        (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
-           Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash)
-        (fun _resp buf str ->
-          Buffer.add_string buf str;
-          Lwt.return buf)
-        (Buffer.create 0x100)
+      Http_helpers.get_async ~headers
+        (Uri.of_string
+           (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
+              Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp
+              head_branch_hash))
       >>= function
-      | Ok ({ Http_lwt_client.status = `OK; _ }, buf) ->
-          let body = Buffer.contents buf |> Yojson.Basic.from_string in
+      | Ok body ->
+          let body = body |> Yojson.Basic.from_string in
           let commit =
             Option.bind
               Glom.(

@@ -99,20 +99,28 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
      arguments, so we produce a single `Any`, which is `Args`.
      Note that <expr> can also occur once with no commas, or zero times.
   *)
-  let macro_item_to_arg = function
-    | MacAny (G.E e) -> Some (G.Arg e)
-    | MacAny (G.I e) -> Some (G.Arg (G.N (G.Id (e, G.empty_id_info ())) |> G.e))
-    | MacAny (G.Ar arg) -> Some arg
+  let macro_item_to_expr = function
+    | MacAny (G.E e) -> Some e
+    | MacAny (G.I e) -> Some (G.N (G.Id (e, G.empty_id_info ())) |> G.e)
+    (* probably unreachable *)
+    | MacAny (G.Ar (Arg e)) -> Some e
     | MacAny _
     | MacTreeBis _
     | MacTree _ ->
         None
   in
-  let rec try_as_normal_args = function
-    | [] -> Some []
-    | [ mac ] ->
-        let* arg = macro_item_to_arg mac in
-        Some [ arg ]
+  (* try_as_normal_exprs just tries to parse all of the arguments to a
+     macro as expressions. In anticipation of dealing with the case
+     where such an argument is either followed by a `.` or prefixed by
+     an operator like `&` and `*`, we carry an accumulator argument and
+     straightforwardly recurse upon the list.
+  *)
+  let rec try_as_normal_exprs acc macros =
+    match (acc, macros) with
+    (* If we end with a comma, that's pretty weird and probably wrong. *)
+    | _, [ MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) ] -> None
+    | Some e, [] -> Some [ e ]
+    | None, [] -> Some []
     (* For now, we just directly case on the token to see if its a comma.
        This is a fragile approach, because I'm a little suspicious and I
        don't fully trust pattern matching on the string inside of the token,
@@ -121,15 +129,57 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
        It's also a lot more work to bring this information over from
        when we first parse the token.
     *)
-    | mac :: MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
-        let* arg = macro_item_to_arg mac in
-        let* args = try_as_normal_args rest in
-        Some (arg :: args)
-    | _ -> None
+    | None, MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: _ -> None
+    | Some e, MacAny (G.Tk (Tok.OriginTok { str = ","; _ })) :: rest ->
+        let* args = try_as_normal_exprs None rest in
+        Some (e :: args)
+    (* For the dot case, we want to only handle this once we've already seen and
+       are currently parsing an entry. Hence, we case on the "Some".
+    *)
+    | ( Some e,
+        MacAny (G.Tk (Tok.OriginTok { str = "."; _ } as tk))
+        :: MacAny (G.I id)
+        :: rest ) ->
+        try_as_normal_exprs
+          (Some (G.DotAccess (e, tk, G.FN (Id (id, G.empty_id_info ()))) |> G.e))
+          rest
+    (* For the prefix case, however, we must only handle this if we haven't
+       seen an entry, because this should start off the prefix.
+    *)
+    | None, MacAny (G.Tk (Tok.OriginTok { str; _ } as tk)) :: rest -> (
+        (* NOTE: We only deal with the case where there is one on the front,
+           because as it turns out, the Rust tree-sitter parser will parse
+           something like
+
+           &*x
+           as
+           &* x
+
+           as in, with &* as a single token. So let's just not deal with
+           that for now.
+        *)
+        (* We need to do the rest of it first, so we can ensure that the
+           prefix operator happens last.
+        *)
+        let* args = try_as_normal_exprs None rest in
+        match args with
+        | [] -> None
+        | e :: es ->
+            let* e =
+              match str with
+              | "&" -> Some (Ref (tk, e) |> G.e)
+              | "*" -> Some (DeRef (tk, e) |> G.e)
+              | _ -> None
+            in
+            Some (e :: es))
+    | _, mac :: rest ->
+        let* expr = macro_item_to_expr mac in
+        let* args = try_as_normal_exprs (Some expr) rest in
+        Some args
   in
-  match try_as_normal_args xs with
+  match try_as_normal_exprs None xs with
   | None -> xs |> Common.map macro_item_to_any
-  | Some res -> [ G.Args res ]
+  | Some res -> [ G.Args (Common.map (fun e -> G.Arg e) res) ]
 
 and macro_item_to_any = function
   | MacAny x -> x
@@ -756,18 +806,36 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
   | `X__ tok ->
       (* ellided parameter *)
       G.ParamPattern (G.PatUnderscore (token env tok))
-  | `Type x ->
+  | `Type x -> (
       let ty = map_type_ env x in
-      let param =
-        {
-          G.pname = None;
-          G.ptype = Some ty;
-          G.pdefault = None;
-          G.pattrs = [];
-          G.pinfo = G.empty_id_info ();
-        }
-      in
-      G.Param param
+      match ty.t with
+      (* If this type is a singular identifier that is a metavariable,
+       * then the user probably meant to write a metavariable parameter.
+       * So let's translate it to one.
+       *)
+      | G.TyN (Id (((s, _) as id), _))
+        when AST_generic.is_metavar_name s && in_pattern env ->
+          let param =
+            {
+              G.pname = Some id;
+              G.ptype = None;
+              G.pdefault = None;
+              G.pattrs = [];
+              G.pinfo = G.empty_id_info ();
+            }
+          in
+          G.Param param
+      | _ ->
+          let param =
+            {
+              G.pname = None;
+              G.ptype = Some ty;
+              G.pdefault = None;
+              G.pattrs = [];
+              G.pinfo = G.empty_id_info ();
+            }
+          in
+          G.Param param)
 
 and map_closure_parameter (env : env) (x : CST.anon_choice_pat_4717dcc) :
     G.parameter =
