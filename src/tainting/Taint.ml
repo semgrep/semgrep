@@ -433,8 +433,9 @@ module Taint_set = struct
     | None -> Taints.add alt_taint set
     | Some curr_taint ->
         let best = pick_best_taint alt_taint curr_taint in
+        (* Optimization: Do not change the set if there is nothing to change. *)
         if Common.phys_equal best curr_taint then set
-        else set |> Taints.remove curr_taint |> Taints.add alt_taint
+        else set |> Taints.remove curr_taint |> Taints.add best
 
   and union set1 set2 = Taints.fold add set1 set2
 
@@ -473,8 +474,14 @@ module Taint_set = struct
                * [see note "Taint-tracking via ranges" in Match_tainting_mode],
                * and not having "Top_sources" [see note "Top sinks" in Dataflow_tainting].
                *)
-              let ts = union (of_list ts1) (of_list ts2) |> elements in
-              Some (ts, p1)
+              let ts1' = of_list ts1 in
+              let ts2' = of_list ts2 in
+              if Taints.equal ts1' ts2' then
+                (* Optimization: prefer sharing. *)
+                Some (ts1, p1)
+              else
+                let ts = union ts1' ts2' |> elements in
+                Some (ts, p1)
         in
         let taint1 = { taint1 with orig = Src { src1 with precondition } } in
         let taint2 = { taint2 with orig = Src { src2 with precondition } } in
