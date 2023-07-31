@@ -1,0 +1,78 @@
+{
+  "Daiquiri": {
+    "garnish": "Lime wedge",
+    "ingredients": [
+      {
+        "kind": "Banks 7 Rum",
+        "qty": 2
+      },
+      {
+        "kind": "Lime",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Deluxe Sour": {
+    "garnish": "Lemon Juice twist",
+    "ingredients": [
+      {
+        "kind": "Whiskey",
+        "qty": 2
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1
+      },
+      {
+        "kind": "Gomme Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Nor'Easter": {
+    "garnish": "Lime twist",
+    "ingredients": [
+      {
+        "kind": "Whiskey",
+        "qty": 2
+      },
+      {
+        "kind": "Lime",
+        "qty": 0.5
+      },
+      {
+        "kind": "Maple Syrup",
+        "qty": 0.5
+      },
+      {
+        "kind": "Ginger Beer",
+        "qty": 1
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Whiskey Sour": {
+    "garnish": "Lemon Juice twist",
+    "ingredients": [
+      {
+        "kind": "Whiskey",
+        "qty": 2
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 0.5
+      }
+    ],
+    "served": "Straight Up"
+  }
+}
