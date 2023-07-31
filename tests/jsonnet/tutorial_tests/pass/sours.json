@@ -1,0 +1,46 @@
+{
+  "Pisco Sour": {
+    "garnish": "Angostura bitters",
+    "ingredients": [
+      {
+        "kind": "Machu Pisco",
+        "qty": 2
+      },
+      {
+        "kind": "Egg white",
+        "qty": 1
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 1
+      }
+    ],
+    "served": "Straight Up"
+  },
+  "Whiskey Sour": {
+    "garnish": "Orange bitters",
+    "ingredients": [
+      {
+        "kind": "Bulleit Bourbon",
+        "qty": 2
+      },
+      {
+        "kind": "Egg white",
+        "qty": 1
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1
+      },
+      {
+        "kind": "Simple Syrup",
+        "qty": 1
+      }
+    ],
+    "served": "Straight Up"
+  }
+}
