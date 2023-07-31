@@ -3,6 +3,9 @@
 This folder is for running realistic benchmarks for semgrep, as
 opposed to more focused tests.
 
+The main results can be visualized over time here:
+https://metabase.corp.r2c.dev/question/560-semgrep-bench-all-history
+
 ## Requirements
 
 The `semgrep` command must be available, as well as generic development
@@ -45,6 +48,9 @@ The total duration of each benchmark is uploaded to the [semgrep
 dashboard](https://dashboard.semgrep.dev/metrics), for example as
 `semgrep.bench.njs.std.total-time`. Other
 metrics such as memory usage could be reported in the future.
+
+Then you can use some SQL queries on metabase to slice and dice
+and visualize those metrics (e.g., https://metabase.corp.r2c.dev/question/560-semgrep-bench-all-history )
 
 The number of parallel jobs is the maximum number of logical CPUs
 offered by the host as is the default for `semgrep`.
