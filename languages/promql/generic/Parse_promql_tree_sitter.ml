@@ -226,8 +226,8 @@ let map_function_grouping (env : env) ((v1, t1, v2, t2) : CST.grouping) =
         let t =
           List.map (fun (_, lbl) -> map_choice_semg_ellpis env lbl |> G.e) v2
         in
-        G.Container (G.Tuple, (t1, [ h ] @ t, t2)) |> G.e
-    | None -> G.Container (G.Tuple, (t1, [], t2)) |> G.e
+        G.Container (G.Set, (t1, [ h ] @ t, t2)) |> G.e
+    | None -> G.Container (G.Set, (t1, [], t2)) |> G.e
   in
   [ G.ArgKwdOptional (k, v) ]
 
