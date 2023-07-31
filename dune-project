@@ -434,6 +434,16 @@ For more information see https://semsgrep.dev
     bos
     (digestif (>= 1.0.0))
     notty
+    lwt.unix
+    grpc
+    grpc-async
+    ocaml-protoc-plugin
+    ocaml-protoc-plugin.google_types
+    async
+    core
+    core_unix.command_unix
+    h2-async
+    h2-lwt-unix
   )
 )
 

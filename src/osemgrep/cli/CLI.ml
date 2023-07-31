@@ -108,6 +108,7 @@ let known_subcommands =
     "shouldafound";
     (* osemgrep-only *)
     "interactive";
+    "runner";
   ]
 
 (* Exit with a code that a proper semgrep implementation would never return.
@@ -165,6 +166,7 @@ let dispatch_subcommand argv =
       | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
       (* osemgrep-only: and by default! no need experimental! *)
       | "interactive" -> Interactive_subcommand.main subcmd_argv
+      | "runner" -> Runner_subcommand.main subcmd_argv
       (* LATER: "dump", "test", "validate" *)
       | _else_ ->
           if experimental then
