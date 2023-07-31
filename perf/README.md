@@ -5,6 +5,7 @@ opposed to more focused tests.
 
 The main results can be visualized over time here:
 https://metabase.corp.r2c.dev/question/560-semgrep-bench-all-history
+(this is accessible only to Semgrep employees).
 
 ## Requirements
 
