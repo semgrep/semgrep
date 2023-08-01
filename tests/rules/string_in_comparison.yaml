@@ -1,0 +1,19 @@
+rules:
+- id: string-in-comparison
+  pattern-either:
+    - patterns:
+        - pattern: |
+            foo($A)
+        - metavariable-comparison:
+            metavariable: $A
+            comparison: str($A) in "abc"
+    - patterns:
+        - pattern: |
+            bar($B)
+        - metavariable-comparison:
+            metavariable: $B
+            comparison: str($B) not in "abc"
+  message: Test
+  languages:
+  - python
+  severity: WARNING

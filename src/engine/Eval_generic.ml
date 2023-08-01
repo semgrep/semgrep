@@ -334,12 +334,17 @@ and eval_op op values code =
   (* TODO? dangerous use of polymorphic <> ? *)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
-      match v2 with
-      | List xs -> Bool (List.mem v1 xs)
+      match (v1, v2) with
+      | _, List xs -> Bool (List.mem v1 xs)
+      | String v1, String v2 ->
+          Bool (Common2.string_match_substring (Str.regexp v1) v2)
       | _ -> Bool false)
   | G.NotIn, [ v1; v2 ] -> (
-      match v2 with
-      | List xs -> Bool (not (List.mem v1 xs))
+      match (v1, v2) with
+      | _, List _
+      | String _, String _ ->
+          (* Just negate the "in" *)
+          eval_op G.Not [ eval_op G.In values code ] code
       | _ -> Bool false)
   (* less: it would be better to show the actual values not handled,
    * rather than the code, because this may differ as the code does not
