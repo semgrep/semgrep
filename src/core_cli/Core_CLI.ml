@@ -415,6 +415,9 @@ let options actions =
     ( "-rules",
       Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
+    ( "-embedded-rules",
+      Arg.String (fun s -> rule_source := Some (Embedded_rules (Fpath.v s))),
+      " <file> obtain formula of patterns from inside code file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"

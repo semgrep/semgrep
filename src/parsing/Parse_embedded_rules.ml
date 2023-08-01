@@ -24,7 +24,6 @@ let parse_embedded_rules fpath =
           (next_loc + String.length start_string)
           (end_loc - (next_loc + String.length start_string))
       in
-      print_string rule_string;
       let temp_file = Filename.open_temp_file "temp_rule" ".yaml" in
       Out_channel.output_string (snd temp_file) rule_string;
       Out_channel.close (snd temp_file);

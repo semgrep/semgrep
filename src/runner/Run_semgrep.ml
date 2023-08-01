@@ -395,12 +395,15 @@ let rules_from_rule_source config =
          * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
          *)
         Some (Rule_file (replace_named_pipe_by_regular_file file))
+    | Some (Embedded_rules file) ->
+        Some (Embedded_rules (replace_named_pipe_by_regular_file file))
     | other -> other
   in
   match rule_source with
   | Some (Rule_file file) ->
       logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
       Parse_rule.parse_and_filter_invalid_rules file
+  | Some (Embedded_rules file) -> Parse_embedded_rules.parse_embedded_rules file
   | Some (Rules rules) -> (rules, [])
   | None ->
       (* TODO: ensure that this doesn't happen *)

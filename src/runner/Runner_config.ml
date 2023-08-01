@@ -10,7 +10,10 @@ type output_format = Text | Json of bool (* dots *) [@@deriving show]
    'Rules' is for osemgrep or when for some reason the rules had to be
     preparsed.
 *)
-type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
+type rule_source =
+  | Rule_file of Fpath.t
+  | Embedded_rules of Fpath.t
+  | Rules of Rule.t list
 [@@deriving show]
 
 (*
