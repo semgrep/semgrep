@@ -486,7 +486,14 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
                baseline_commit_is_mergebase=True,
             *)
             let profiler = Profiler.make () in
-            match Scan_subcommand.scan_files rules_and_origin profiler conf with
+            let targets_and_ignored =
+              Find_targets.get_targets conf.targeting_conf conf.target_roots
+            in
+            let res =
+              Scan_subcommand.scan_files conf profiler rules_and_origin
+                targets_and_ignored
+            in
+            match res with
             | Error e ->
                 (match (depl, scan_id) with
                 | Some (token, _), Some scan_id ->
