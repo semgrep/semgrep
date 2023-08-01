@@ -1,15 +1,15 @@
 
-# ERROR: match
+# ruleid: string-in-comparison
 foo(a)
-# ERROR: match
+# ruleid: string-in-comparison
 foo(b)
-# ERROR: match
+# ruleid: string-in-comparison
 foo(c)
-# ERROR: match
+# ruleid: string-in-comparison
 foo(ab)
-# ERROR: match
+# ruleid: string-in-comparison
 foo(bc)
-# ERROR: match
+# ruleid: string-in-comparison
 foo(abc)
 
 foo()
@@ -24,11 +24,11 @@ bar(ab)
 bar(bc)
 bar(abc)
 
-# ERROR: match
+# ruleid: string-in-comparison
 bar(ac)
-# ERROR: match
+# ruleid: string-in-comparison
 bar(abcd)
-# ERROR: match
+# ruleid: string-in-comparison
 bar(x)
-# ERROR: match
+# ruleid: string-in-comparison
 bar(xyz)
