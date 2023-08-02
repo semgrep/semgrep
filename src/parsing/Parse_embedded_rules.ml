@@ -49,8 +49,9 @@ let find content pattern loc =
 let has_embedded_rules fpath =
   let file_contents = File.read_file fpath in
   find file_contents start_string 0 > -1
+  [@@profiling]
 
-let parse_embedded_rules fpath =
+let extract_rules fpath =
   let file_contents = File.read_file fpath in
 
   let rec parse_embedded_rules_helper (acc_rule, acc_error) prev_loc str =

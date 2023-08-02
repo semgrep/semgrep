@@ -403,7 +403,7 @@ let rules_from_rule_source config =
   | Some (Rule_file file) ->
       logger#linfo (lazy (spf "Parsing %s:\n%s" !!file (File.read_file file)));
       Parse_rule.parse_and_filter_invalid_rules file
-  | Some (Embedded_rules file) -> Parse_embedded_rules.parse_embedded_rules file
+  | Some (Embedded_rules file) -> Parse_embedded_rules.extract_rules file
   | Some (Rules rules) -> (rules, [])
   | None ->
       (* TODO: ensure that this doesn't happen *)

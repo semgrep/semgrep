@@ -433,7 +433,20 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
          * which when it finds Embedded config_kind, it extract the rules,
          * but simpler and less invasite to do it here for now.
          *)
-        | Rules_source.Configs [ "embedded" ] -> failwith "TODO: embedded"
+        | Rules_source.Configs xs
+          when xs
+               |> Common.map Semgrep_dashdash_config.parse_config_string
+               |> List.mem Semgrep_dashdash_config.Embedded ->
+            let targets, _ = targets_and_ignored in
+            (targets
+            |> Common.map_filter (fun target ->
+                   if Parse_embedded_rules.has_embedded_rules target then
+                     let rules, errors =
+                       Parse_embedded_rules.extract_rules target
+                     in
+                     Some { Rule_fetching.origin = Some target; rules; errors }
+                   else None))
+            @ rules_and_origins
         | _else_ -> rules_and_origins
       in
       (* step3: let's go *)
