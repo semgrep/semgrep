@@ -91,7 +91,8 @@ type config = {
        * `sanitize(sink(tainted))` will not yield any finding.
        * *)
   unify_mvars : bool;
-  handle_findings : var option -> T.finding list -> Lval_env.t -> unit;
+  handle_findings :     Common.filename ->
+    Rule_ID.t -> var option -> T.finding list -> Lval_env.t -> unit;
 }
 
 type mapping = Lval_env.t D.mapping
@@ -322,7 +323,7 @@ let taints_of_matches env ~incoming sources =
 
 let report_findings env findings =
   if findings <> [] then
-    env.config.handle_findings env.fun_name findings env.lval_env
+    env.config.handle_findings env.config.filepath env.config.rule_id env.fun_name findings env.lval_env
 
 let top_level_sinks_in_nodes config flow =
   (* We traverse the CFG and we check whether the top-level expressions match
@@ -1917,5 +1918,5 @@ let (fixpoint :
   in
   let exit_env = end_mapping.(flow.exit).D.out_env in
   ( findings_from_arg_updates_at_exit enter_env exit_env |> fun findings ->
-    if findings <> [] then config.handle_findings opt_name findings exit_env );
+    if findings <> [] then config.handle_findings config.filepath config.rule_id opt_name findings exit_env );
   end_mapping

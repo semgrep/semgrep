@@ -77,7 +77,7 @@ let test_dfg_tainting rules_file file =
   let rule = Common.hd_exn "unexpected empty list" taint_rules in
   pr2 "Tainting";
   pr2 "========";
-  let handle_findings _ _ _ = () in
+  let handle_findings _ _ _ _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   (* this won't cache anything. but that's fine, we don't need it

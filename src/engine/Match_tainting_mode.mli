@@ -52,11 +52,15 @@ val taint_config_of_rule :
   Common.filename ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
-  (Dataflow_tainting.var option ->
+  (Common.filename ->
+  Rule_ID.t ->
+  Dataflow_tainting.var option ->
   Taint.finding list ->
   Taint_lval_env.t ->
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
+
+val pm_of_finding : Taint.finding -> Pattern_match.t option
 
 val check_fundef :
   Lang.t ->

@@ -571,6 +571,7 @@ let rec convert_taint_call_trace = function
           call_trace = convert_taint_call_trace ct;
         }
 
+(* TODO: Move to Taint module *)
 let pm_of_finding finding =
   match finding with
   | T.ToArg _
@@ -753,7 +754,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   (* TODO: 'debug_taint' should just be part of 'res'
      * (i.e., add a "debugging" field to 'Report.match_result'). *)
   let taint_config, _TODO_debug_taint, expls =
-    let handle_findings _ findings _env =
+    let handle_findings _filepath _ruleid _opt_name findings _env =
       findings
       |> List.iter (fun finding ->
              pm_of_finding finding
