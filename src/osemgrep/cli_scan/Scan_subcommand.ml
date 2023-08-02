@@ -186,7 +186,8 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Conduct the scan *)
 (*****************************************************************************)
 
-let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
+let scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
+    targets_and_ignored =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
@@ -198,16 +199,15 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
   in
   if Common.null rules then Error Exit_code.missing_config
   else
+    (* step1: last touch on rules *)
     let filtered_rules =
       Rule_filtering.filter_rules conf.rule_filtering_conf rules
     in
     Logs.info (fun m ->
         m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
-    (* step2: getting the targets *)
-    let targets, semgrepignored_targets =
-      Find_targets.get_targets conf.targeting_conf conf.target_roots
-    in
+    (* step2: printing the ignored targets *)
+    let targets, semgrepignored_targets = targets_and_ignored in
     Logs.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
           (conf.target_roots, semgrepignored_targets, targets));
@@ -219,7 +219,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
                     x.Output_from_core_t.reason)
                  x.Output_from_core_t.details));
 
-    (* step3: running the engine *)
+    (* step3: choose the right engine and right hooks *)
     let output_format, file_match_results_hook =
       match conf with
       | {
@@ -255,6 +255,7 @@ let scan_files rules_and_origins profiler (conf : Scan_CLI.conf) =
         targets
     in
     let exn_and_matches = Profiler.record profiler ~name:"core_time" core in
+    (* step3 bis: call the engine! *)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
     in
@@ -421,10 +422,18 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       in
       Metrics_.add_token settings.api_token;
 
-      match scan_files rules_and_origins profiler conf with
+      (* step2: getting the targets *)
+      let targets_and_ignored =
+        Find_targets.get_targets conf.targeting_conf conf.target_roots
+      in
+      (* step3: let's go *)
+      let res =
+        scan_files conf profiler rules_and_origins targets_and_ignored
+      in
+      match res with
       | Error ex -> ex
       | Ok (_, res, cli_output) ->
-          (* step5: exit with the right exit code *)
+          (* step4: exit with the right exit code *)
           (* final result for the shell *)
           if conf.error_on_findings && not (Common.null cli_output.results) then
             Exit_code.findings
