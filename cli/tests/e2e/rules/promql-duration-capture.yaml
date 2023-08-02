@@ -1,0 +1,20 @@
+rules:
+  - id: extract-alerting-rule-expression-to-promql
+    mode: extract
+    languages: [yaml]
+    pattern: |
+      expr: $PROMQL
+    extract: $PROMQL
+    dest-language: promql
+
+  - id: test-promql-duration-capture
+    languages: [promql]
+    severity: INFO
+    message: captured duration "$D"
+    pattern-either:
+    - pattern: |-
+        {...}[$D]
+    - pattern: |-
+        (...)[$D:]
+    - pattern: |-
+        (...)[$D:$R]
