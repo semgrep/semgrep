@@ -26,6 +26,7 @@
 (* Constants *)
 (*****************************************************************************)
 
+(* TODO: support <semgrep format="jsonnet"> *)
 let start_string = "<semgrep>"
 let end_string = "</semgrep>"
 
