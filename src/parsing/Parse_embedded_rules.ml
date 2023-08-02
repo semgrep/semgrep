@@ -26,12 +26,27 @@
 (* Constants *)
 (*****************************************************************************)
 
-(* TODO: support <semgrep format="jsonnet">
+(* TODO: support < semgrep format="jsonnet" >
  * Note that I use concatenation below to avoid having this string considered
  * as starting a semgrep rule :)
  *)
 let start_string = "<" ^ "semgrep" ^ ">"
 let end_string = "</semgrep>"
+
+(*****************************************************************************)
+(* Test! *)
+(*****************************************************************************)
+(*
+<semgrep>
+rules:
+  - id: test-embeded
+    languages: [ocaml]
+    message: found use of regexp_string
+    pattern: |
+      Str.regexp_string ...
+    severity: ERROR
+</semgrep>
+*)
 
 (*****************************************************************************)
 (* Helpers *)
