@@ -89,7 +89,7 @@ def publish(
     target: str, visibility: VisibilityState, registry_id: Optional[str]
 ) -> None:
     """
-    Upload rule to semgrep.dev
+    Upload rule to semgrep.dev registry
 
     Must be logged in to use; see `semgrep login`
     """

@@ -20,7 +20,7 @@ from rich.table import Table
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
-from semgrep.commands.install import run_install_semgrep_pro
+from semgrep.commands.install_pro import run_install_semgrep_pro
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors

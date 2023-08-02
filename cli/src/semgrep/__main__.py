@@ -5,7 +5,7 @@ from semgrep.cli import cli
 
 
 def main() -> int:
-    cli()
+    cli(prog_name='semgrep')
     return 0
 
 
