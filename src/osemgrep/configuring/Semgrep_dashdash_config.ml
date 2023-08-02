@@ -37,6 +37,7 @@ type config_kind =
   | URL of Uri.t
   | R of registry_config_kind
   | A of app_config_kind
+  | Embedded
 
 and registry_config_kind =
   (* r/... *)
@@ -61,6 +62,7 @@ and app_config_kind = Policy | SupplyChain [@@deriving show]
 (*****************************************************************************)
 let parse_config_string config_str =
   match config_str with
+  | "embedded" -> Embedded
   | "auto" -> R Auto
   | "r2c" -> R R2c
   | "policy" -> A Policy

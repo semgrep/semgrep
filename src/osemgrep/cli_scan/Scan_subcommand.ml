@@ -426,6 +426,16 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       let targets_and_ignored =
         Find_targets.get_targets conf.targeting_conf conf.target_roots
       in
+      (* embedded hack *)
+      let rules_and_origins =
+        match conf.rules_source with
+        (* alt: get first the targets, pass then to rules_from_rules_source
+         * which when it finds Embedded config_kind, it extract the rules,
+         * but simpler and less invasite to do it here for now.
+         *)
+        | Rules_source.Configs [ "embedded" ] -> failwith "TODO: embedded"
+        | _else_ -> rules_and_origins
+      in
       (* step3: let's go *)
       let res =
         scan_files conf profiler rules_and_origins targets_and_ignored

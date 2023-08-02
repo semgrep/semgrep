@@ -26,17 +26,20 @@
 (* Constants *)
 (*****************************************************************************)
 
-(* TODO: support <semgrep format="jsonnet"> *)
-let start_string = "<semgrep>"
+(* TODO: support <semgrep format="jsonnet">
+ * Note that I use concatenation below to avoid having this string considered
+ * as starting a semgrep rule :)
+ *)
+let start_string = "<" ^ "semgrep" ^ ">"
 let end_string = "</semgrep>"
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let find s1 s2 loc =
-  let re = Str.regexp_string s2 in
-  try Str.search_forward re s1 loc with
+let find content pattern loc =
+  let re = Str.regexp_string pattern in
+  try Str.search_forward re content loc with
   | Not_found -> -1
 
 (*****************************************************************************)
