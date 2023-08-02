@@ -39,7 +39,7 @@ let end_string = "</semgrep>"
 (*
 <semgrep>
 rules:
-  - id: test-embeded
+  - id: test-embedded
     languages: [ocaml]
     message: found use of regexp_string
     pattern: |
