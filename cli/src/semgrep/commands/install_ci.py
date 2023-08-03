@@ -1,5 +1,9 @@
 import click
+import os
 import subprocess
+
+from contextlib import contextmanager
+from pathlib import Path
 from textwrap import dedent
 
 from semgrep.commands.wrapper import handle_command_errors
@@ -9,6 +13,19 @@ from semgrep.verbose_logging import getLogger
 from semgrep.error import SemgrepError
 
 logger = getLogger(__name__)
+
+
+@contextmanager
+def working_dir(path: Path):
+    """
+    Sets the current working directory within the context
+    """
+    origin = Path().absolute()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(origin)
 
 # Check if `gh` command is installed
 # If not, install it.
@@ -108,17 +125,86 @@ def github_cli_login():
     logger.info(f"done logging in")
 
 
-@click.command()
-@handle_command_errors
-def install_semgrep_ci() -> None:
+def validate_github_repo(repo: str):
     """
-    Install Semgrep CI in Github Actions
+    Ensure the repo path is a valid github repo
+    """
+
+    command = ["git", "-C", repo, "remote", "-v"]
+    command_str = " ".join(command)
+    try:
+        sub_check_output(
+            command,
+            timeout=4,
+            encoding="utf-8",
+            stderr=subprocess.STDOUT,
+        ).rstrip()
+    except subprocess.CalledProcessError as e:
+        raise SemgrepError(dedent(
+            f"""
+            Command failed with exit code: {e.returncode}
+            -----
+            Command failed with output:
+            {e.stderr}
+
+            Failed to run '{command_str}'. Possible reasons:
+
+            - the directory does not exist
+            - the directory is not a git repository (or is not initialized)
+
+            Try running `git init` in the directory of interest.
+            """
+        ).strip())
+
+
+def write_workflow_file(repo_path: str):
+    """
+    Write the workflow file to the repo.
+    """
+    validate_github_repo(repo_path)
+    text = dedent("""
+            name: Semgrep
+            on:
+                workflow_dispatch: {}
+                pull_request: {}
+                push:
+                    branches:
+                        - main
+            jobs:
+                semgrep:
+                    name: semgrep/ci
+                    runs-on: ubuntu-latest
+                    if: (github.actor != 'dependabot[bot]')  
+                    env:
+                        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+                    container:
+                        image: returntocorp/semgrep
+                    steps:
+                        - uses: actions/checkout@v3
+                        - run: semgrep ci
+            """
+    ).strip()
+
+    with working_dir(os.path.expanduser(repo_path)):
+        if os.path.exists(".github/workflows/semgrep.yml"):
+            logger.info("Semgrep CI already installed")
+            return
+        os.makedirs(".github/workflows", exist_ok=True)
+        with open(".github/workflows/semgrep.yml", "w") as f:
+            f.write(text)
+
+@click.command()
+@click.argument("repo_path", nargs=1, type=click.Path(allow_dash=True))
+@handle_command_errors
+def install_semgrep_ci(repo_path: str) -> None:
+    """
+    Install Semgrep CI in Github Actions for a specific local repository.
 
     Must be logged in to use; see `semgrep login`
 
-    Visit https://semgrep.dev/deep-semgrep-beta for more information
+    Visit https://semgrep.dev/install_semgrep_ci for more information
     """
     logger.info("Installing Semgrep CI...")
     install_github_cli()    
     github_cli_login()
-
+    write_workflow_file(repo_path)
