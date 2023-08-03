@@ -241,7 +241,7 @@ def parse_dependency_file(
     if not file_to_parse:
         return None
 
-    text = file_to_parse.path.read_text()
+    text = file_to_parse.path.read_text(errors="replace")
     text = file_to_parse.preprocessor(text)
 
     try:
