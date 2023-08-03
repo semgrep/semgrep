@@ -346,6 +346,9 @@ let all_actions () =
     ( "-generate_patterns",
       " <l:c-l:c>+ <file>",
       Arg_helpers.mk_action_n_arg Test_synthesizing.generate_pattern_choices );
+    ( "-generate_rule",
+      " <json_file>",
+      Arg_helpers.mk_action_1_arg Rule_from_skeleton.generate_rule );
     ( "-locate_patched_functions",
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v
