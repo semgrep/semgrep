@@ -100,8 +100,7 @@ type matching_operation_limited
 type rule_skeleton <ocaml attr="deriving show"> = {
     op: matching_operation_limited;
     ?children: rule_skeleton list option;
-    (* result match strings at this node *)
-    matches: string list;
+    ?matches: string list option;
 }
 
 type rule_skeletons <ocaml attr="deriving show"> = rule_skeleton list

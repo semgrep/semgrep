@@ -47,6 +47,7 @@ let pattern_of_matches matches =
 let rec skeleton_to_formula (skeleton : In.rule_skeleton) : formula_json =
   let { In.op; children; matches } = skeleton in
   let children = Option.fold ~none:[] ~some:(fun x -> x) children in
+  let matches = Option.fold ~none:[] ~some:(fun x -> x) matches in
   match op with
   | In.And -> And (List.map skeleton_to_formula children)
   | In.Or -> Or (List.map skeleton_to_formula children)
