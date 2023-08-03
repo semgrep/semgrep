@@ -214,6 +214,8 @@ def get_default_branch():
             stderr=subprocess.STDOUT,
         ).rstrip()
     except subprocess.CalledProcessError as e:
+        # NOTE: this can happen if the default branch for origin is not set
+        # can be fixed with `git remote set-head origin --auto`
         logger.debug(dedent(
             f"""
             Command failed with exit code: {e.returncode}
