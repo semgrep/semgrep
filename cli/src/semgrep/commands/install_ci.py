@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
 
+from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.util import abort
 from semgrep.util import sub_check_output
@@ -193,6 +194,33 @@ def write_workflow_file(repo_path: str):
         with open(".github/workflows/semgrep.yml", "w") as f:
             f.write(text)
 
+def set_workflow_secret(repo_path: str, login_token: str):
+    """
+    Set the workflow secret in the repo.
+    """
+    list_command = ["gh", "secret", "list", "-a", "actions"]
+    with working_dir(os.path.expanduser(repo_path)):
+        out = sub_check_output(
+                list_command,
+                timeout=4,
+                encoding="utf-8",
+                stderr=subprocess.STDOUT,
+            ).rstrip()
+        logger.info(f"list out: {out}")
+
+        if "SEMGREP_APP_TOKEN" in out:
+            logger.info("Semgrep CI secret already set")
+            return
+
+        set_command = ["gh", "secret", "set", "SEMGREP_APP_TOKEN", "-a", "actions", "--body", login_token]
+        out = sub_check_output(
+                set_command,
+                timeout=4,
+                encoding="utf-8",
+                stderr=subprocess.STDOUT,
+        ).rstrip()
+        logger.info(f"set out: {out}")
+
 @click.command()
 @click.argument("repo_path", nargs=1, type=click.Path(allow_dash=True))
 @handle_command_errors
@@ -204,7 +232,13 @@ def install_semgrep_ci(repo_path: str) -> None:
 
     Visit https://semgrep.dev/install_semgrep_ci for more information
     """
+    login_token = auth._read_token_from_settings_file()
+    if not login_token:
+        abort(
+            "You must be logged in to install Semgrep CI. Please run `semgrep login` first."
+        )
     logger.info("Installing Semgrep CI...")
     install_github_cli()    
     github_cli_login()
     write_workflow_file(repo_path)
+    set_workflow_secret(repo_path, login_token)
