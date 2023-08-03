@@ -866,6 +866,7 @@ and eval_plus_object _tk objl objr =
                      substitute_kw fake_super e_s e )
                in
                let name, _ = fld_name in
+               (* implements hidden inheritance as defined in spec *)
                let hidden, _ = fld_hidden in
                let new_hidden =
                  if Hashtbl.mem lflds_overlap_hidden name then
