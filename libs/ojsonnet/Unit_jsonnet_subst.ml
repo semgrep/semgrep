@@ -3,6 +3,7 @@ open File.Operators
 module Y = Yojson.Basic
 
 let dir_pass = Fpath.v "tests/jsonnet/eval_pass"
+let dir_pass_tutorial = Fpath.v "tests/jsonnet/tutorial_tests/pass"
 (*let dir_fail = Fpath.v "tests/jsonnet/eval_fail"*)
 
 let related_file_of_target ~ext ~file =
@@ -49,4 +50,6 @@ let test_maker dir pass_or_fail =
                  Alcotest.(check bool)
                    "this threw an error" (not pass_or_fail) true ))
 
-let tests () = test_maker dir_pass true (*@ test_maker dir_fail false*)
+let tests () =
+  test_maker dir_pass true
+  @ test_maker dir_pass_tutorial true (*@ test_maker dir_fail false*)
