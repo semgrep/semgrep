@@ -1,5 +1,6 @@
 import click
 import os
+import re
 import subprocess
 
 from contextlib import contextmanager
@@ -157,27 +158,104 @@ def validate_github_repo(repo: str):
             """
         ).strip())
 
+def get_default_branch_slow():
+    fallback = "main"
+    remote_name = "origin"
+    command = ["git", "remote", "show", remote_name]
+    command_str = " ".join(command)
+    try:
+        out = sub_check_output(
+            command,
+            timeout=60,  # NOTE: this can be very slow for large repos
+            encoding="utf-8",
+            stderr=subprocess.STDOUT,
+        ).rstrip()
+    except subprocess.CalledProcessError as e:
+        logger.debug(dedent(
+            f"""
+            Command failed with exit code: {e.returncode}
+            -----
+            Command failed with output:
+            {e.stdout}
+
+            Failed to run '{command_str}'. Possible reasons:
+
+            - no remote named {remote_name} exists
+
+            Try running `git remote add origin URL` with the URL of upstream repo.
+
+            Falling back to '{fallback}' as the default branch.
+            """
+        ).strip())
+        return fallback
+    target_line = re.search("HEAD branch: (.*)", out, re.MULTILINE)
+    if target_line:
+        return target_line.group(1)
+    logger.warning("Failed to parse default branch from git remote show output. Falling back to 'main'.")
+    return fallback
+
+def get_default_branch():
+    """
+    Get the default branch of the repo based on the remote ref.
+    NOTE: We assume "origin" is the main remote name.
+    """
+    remote_name = "origin"
+    prefix = f"refs/remotes/{remote_name}"
+
+    command = ["git", "symbolic-ref", f"{prefix}/HEAD"]
+    command_str = " ".join(command)
+
+    out = "refs/remotes/origin/develop"  # ex. non-standard default branch
+    try:
+        out = sub_check_output(
+            command,
+            timeout=4,
+            encoding="utf-8",
+            stderr=subprocess.STDOUT,
+        ).rstrip()
+    except subprocess.CalledProcessError as e:
+        logger.debug(dedent(
+            f"""
+            Command failed with exit code: {e.returncode}
+            -----
+            Command failed with output:
+            {e.stdout}
+
+            Failed to run '{command_str}'.
+
+            Falling back to slow lookup method.
+            """
+        ).strip())
+        return get_default_branch_slow()
+    branch = out[len(prefix) + 1 :]
+    return branch
 
 def write_workflow_file(repo_path: str):
     """
     Write the workflow file to the repo.
     """
     validate_github_repo(repo_path)
-    text = dedent("""
+
+    with working_dir(os.path.expanduser(repo_path)):
+        branch = get_default_branch()
+
+    logger.info(f"Using default branch: '{branch}'")
+
+    text = dedent(f"""
             name: Semgrep
             on:
-                workflow_dispatch: {}
-                pull_request: {}
+                workflow_dispatch: {{}}
+                pull_request: {{}}
                 push:
                     branches:
-                        - main
+                        - {branch}
             jobs:
                 semgrep:
                     name: semgrep/ci
                     runs-on: ubuntu-latest
                     if: (github.actor != 'dependabot[bot]')  
                     env:
-                        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+                        SEMGREP_APP_TOKEN: ${{{{ secrets.SEMGREP_APP_TOKEN }}}}
                     container:
                         image: returntocorp/semgrep
                     steps:
