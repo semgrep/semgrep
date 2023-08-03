@@ -158,9 +158,8 @@ def validate_github_repo(repo: str):
             """
         ).strip())
 
-def get_default_branch_slow():
+def get_default_branch_slow(remote_name: str = "origin"):
     fallback = "main"
-    remote_name = "origin"
     command = ["git", "remote", "show", remote_name]
     command_str = " ".join(command)
     try:
@@ -180,7 +179,7 @@ def get_default_branch_slow():
 
             Failed to run '{command_str}'. Possible reasons:
 
-            - no remote named {remote_name} exists
+            - no remote named '{remote_name}' exists
 
             Try running `git remote add origin URL` with the URL of upstream repo.
 
@@ -198,6 +197,8 @@ def get_default_branch():
     """
     Get the default branch of the repo based on the remote ref.
     NOTE: We assume "origin" is the main remote name.
+    We could make this configurable in the future if needed (or attempt to infer it based
+    on the output of `git remote show`)
     """
     remote_name = "origin"
     prefix = f"refs/remotes/{remote_name}"
@@ -228,7 +229,7 @@ def get_default_branch():
             Falling back to slow lookup method.
             """
         ).strip())
-        return get_default_branch_slow()
+        return get_default_branch_slow(remote_name)
     branch = out[len(prefix) + 1 :]
     return branch
 
