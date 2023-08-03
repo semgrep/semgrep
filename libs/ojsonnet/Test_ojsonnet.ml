@@ -15,7 +15,7 @@ let dump_jsonnet_value file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program ~use_std:true file ast in
   let value_ = Eval_jsonnet_subst.eval_expr core in
-  pr2 (Value_jsonnet_subst.show_value_ value_)
+  pr2 (Value_jsonnet.show_value_ value_)
 
 let dump_jsonnet_json file =
   let ast = Parse_jsonnet.parse_program file in

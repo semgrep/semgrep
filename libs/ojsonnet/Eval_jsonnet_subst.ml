@@ -1,6 +1,6 @@
 open Core_jsonnet
 open Common
-module V = Value_jsonnet_subst
+module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
 
@@ -68,8 +68,9 @@ let vobj_to_obj l asserts fields r =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
-           | Val _ -> error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
-           | Unevaluated e ->
+           | { value = Val _; _ } ->
+               error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
+           | { value = Unevaluated e; _ } ->
                {
                  fld_name = vfld_name_to_fld_name fld_name;
                  fld_hidden;
@@ -334,7 +335,12 @@ let rec eval_expr expr =
       V.Primitive prim
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
-      let elts = xs |> Common.map (fun x -> V.Unevaluated x) |> Array.of_list in
+      let elts =
+        xs
+        |> Common.map (fun x ->
+               { V.value = V.Unevaluated x; env = V.empty_env })
+        |> Array.of_list
+      in
       Array (l, elts, r)
   | Lambda v -> Lambda v
   | O v -> eval_obj_inside v
@@ -380,7 +386,7 @@ let rec eval_expr expr =
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
-              match fld.fld_value with
+              match fld.fld_value.value with
               | V.Val v -> v
               | V.Unevaluated e ->
                   (* Late-bound self.
@@ -672,7 +678,11 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array (fk, Array.init n (fun i -> V.Unevaluated (e i)), fk)
+            Array
+              ( fk,
+                Array.init n (fun i ->
+                    { V.value = V.Unevaluated (e i); env = V.empty_env }),
+                fk )
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -747,7 +757,7 @@ and eval_std_filter_element (tk : tok) (f : function_definition)
       (* similar to eval_expr for Local *)
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
-      match ei with
+      match ei.value with
       | Val _ ->
           error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
       | Unevaluated e -> eval_call (Lambda f) (_l, [ Arg e ], _r))
@@ -776,12 +786,18 @@ and eval_obj_inside (l, x, r) : V.value_ =
                         * We do not bind Self here! This is done on field
                         * access instead (late bound).
                         *)
-                       fld_value = V.Unevaluated fld_value;
+                       fld_value =
+                         {
+                           V.value = V.Unevaluated fld_value;
+                           env = V.empty_env;
+                         };
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
-
-      V.Object (l, (assertsTODO, fields), r)
+      let new_assertsTODO =
+        assertsTODO |> List.map (fun ass -> (ass, V.empty_env))
+      in
+      V.Object (l, (new_assertsTODO, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
 
 and eval_plus_object _tk objl objr =
@@ -804,7 +820,7 @@ and eval_plus_object _tk objl objr =
 
   let new_rh_asserts =
     lassert
-    |> Common.map (fun (tk, e) ->
+    |> Common.map (fun ((tk, e), _) ->
            ( tk,
              e
              |> substitute_kw fake_super (Id super)
@@ -813,7 +829,7 @@ and eval_plus_object _tk objl objr =
   let new_rh_fields =
     lflds
     |> Common.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.value with
            | Val _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
@@ -830,6 +846,7 @@ and eval_plus_object _tk objl objr =
                  fld_value = new_fld_value;
                })
   in
+
   let rh_obj =
     O
       ( Tok.unsafe_fake_tok "{",
@@ -847,7 +864,7 @@ and eval_plus_object _tk objl objr =
   let new_ers =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.value with
            | Val _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
@@ -861,7 +878,8 @@ and eval_plus_object _tk objl objr =
                {
                  V.fld_name;
                  fld_hidden;
-                 fld_value = V.Unevaluated new_fld_value;
+                 fld_value =
+                   { V.value = V.Unevaluated new_fld_value; env = V.empty_env };
                })
   in
 
@@ -869,7 +887,7 @@ and eval_plus_object _tk objl objr =
   (l, (asserts, all_fields), r)
 
 and evaluate_lazy_value_ (v : V.lazy_value) =
-  match v with
+  match v.value with
   | Val v -> v
   | Unevaluated e -> eval_expr e
 
@@ -897,9 +915,13 @@ and manifest_value (v : V.value_) : JSON.t =
                | A.Visible
                | A.ForcedVisible ->
                    (* similar to what we do in eval_expr on field access *)
-                   let _new_self = vobj_to_obj _l _assertsTODO fields _r in
+                   let _new_assertsTODO =
+                     _assertsTODO
+                     |> List.map (fun ((tk, prog), _) -> (tk, prog))
+                   in
+                   let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =
-                     match fld_value with
+                     match fld_value.value with
                      | Val v -> v
                      | Unevaluated e ->
                          let new_e =
