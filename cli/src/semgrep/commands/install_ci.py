@@ -123,9 +123,6 @@ def github_cli_login():
 
     for line in process.stdout:
         logger.info(f"{line}")
-    
-    logger.info(f"done logging in")
-
 
 def validate_github_repo(repo: str):
     """
@@ -242,7 +239,8 @@ def write_workflow_file(repo_path: str):
     with working_dir(os.path.expanduser(repo_path)):
         branch = get_default_branch()
 
-    logger.info(f"Using default branch: '{branch}'")
+    notice = "non-standard " if branch not in ("main", "master") else ""
+    logger.info(f"Using {notice}branch '{branch}' as the main branch.")
 
     text = dedent(f"""
             name: Semgrep
@@ -287,11 +285,9 @@ def set_workflow_secret(repo_path: str, login_token: str):
                 encoding="utf-8",
                 stderr=subprocess.STDOUT,
             ).rstrip()
-        logger.info(f"secret list out: {out}")
 
         if "SEMGREP_APP_TOKEN" in out:
-            logger.info("Semgrep CI secret already set")
-            return
+            return False
 
         set_command = ["gh", "secret", "set", "SEMGREP_APP_TOKEN", "-a", "actions", "--body", login_token]
         out = sub_check_output(
@@ -300,11 +296,9 @@ def set_workflow_secret(repo_path: str, login_token: str):
                 encoding="utf-8",
                 stderr=subprocess.STDOUT,
         ).rstrip()
-        logger.info(f"secret set out: {out}")
 
-def instruct_git_push():
-    logger.info(f"Within the repo, run `git add . && git commit -m 'add semgrep' && git push` to push the workflow file to Github.")
-
+    return True
+    
 def verify_workflow_added(repo_path: str):
     """
     Verify the workflow was added to the repo.
@@ -317,7 +311,6 @@ def verify_workflow_added(repo_path: str):
                 encoding="utf-8",
                 stderr=subprocess.STDOUT,
             ).rstrip()
-        # logger.info(f"secret list out: {out}")
         # TODO: check for active vs inactive workflows
         if "Semgrep" in out:
             return True
@@ -339,15 +332,29 @@ def install_semgrep_ci(repo_path: str) -> None:
         abort(
             "You must be logged in to install Semgrep CI. Please run `semgrep login` first."
         )
-    logger.info("Installing Semgrep CI...")
+    logger.info("Installing Semgrep CI for Github...")
+    logger.info("Verifying Github CLI is installed...")
     install_github_cli()    
+    logger.info("Verifying Github CLI is authenticated...")
     github_cli_login()
+    logger.info("Checking if Semgrep CI workflow already added...")
     workflow_added = verify_workflow_added(repo_path)
     if workflow_added:
-        logger.info("Semgrep CI workflow already added")
+        logger.info("Semgrep CI workflow already added!")
         return
+    logger.info("Composing Github workflow file...")
     write_workflow_file(repo_path)
-    set_workflow_secret(repo_path, login_token)
-    instruct_git_push()
-    # NOTE: `gh workflow list -a` should now show the `Semgrep` workflow
-    logger.info("Done installing Semgrep CI.")
+    secret_did_set = set_workflow_secret(repo_path, login_token)
+    if not secret_did_set:
+        logger.info("SEMGREP_APP_TOKEN already present, skipping secret set.")
+    else:
+        logger.info("Added SEMGREP_APP_TOKEN to Github Actions secrets.")
+    logger.info(dedent(f"""
+        To complete the setup run
+        `cd ${repo_path}; git add . && git commit -m 'add semgrep' && git push`
+        this will commit and push the workflow file to Github.
+        """
+    ).strip())
+
+
+
