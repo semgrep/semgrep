@@ -595,17 +595,12 @@ and func_def env (entity, (def : function_definition)) =
   | _ -> todo (S (DefStmt (entity, FuncDef def) |> G.s))
 
 and class_body env (_t1, body, _t2) =
-  show_body_list
-    (fun (F s) ->
-      pr2 (show_stmt s);
-      stmt env s)
-    body
+  show_body_list (fun (F s) -> stmt env s) body
 
 and class_def env (entity, (def : class_definition)) =
   match env.lang with
   | Lang.Python ->
       let env' = { env with level = env.level + 1 } in
-      pr2 (show_class_definition def);
       F.sprintf "class %s:\n%s"
         (entity_name env entity.name)
         (class_body env' def.cbody)

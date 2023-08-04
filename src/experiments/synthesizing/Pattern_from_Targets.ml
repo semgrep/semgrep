@@ -215,9 +215,7 @@ let pattern_from_args env args : pattern_instrs =
     | Args (Arg { e = Ellipsis el; _ } :: Arg arg :: xs) -> (
         match f (E arg) with
         | E x -> Args (Arg (Ellipsis el |> G.e) :: Arg x :: xs)
-        | x ->
-            pr2 (show_any x);
-            raise (InvalidSubstitution "args1"))
+        | _ -> raise (InvalidSubstitution "args1"))
     | Args (_ :: _) -> args
     | _ -> raise (InvalidSubstitution "argsn")
   in
