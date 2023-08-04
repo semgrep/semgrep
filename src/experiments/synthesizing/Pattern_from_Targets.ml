@@ -17,7 +17,7 @@ module Set = Set_
 open AST_generic
 module G = AST_generic
 
-exception InvalidSubstitution
+exception InvalidSubstitution of string
 exception UnsupportedTargetType
 
 (*****************************************************************************)
@@ -119,7 +119,8 @@ let lookup env e =
   look mapping
 
 let fk = Tok.unsafe_fake_tok "fake"
-let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
+let fk_ellipsis = Tok.unsafe_fake_tok "..."
+let fk_stmt = ExprStmt (Ellipsis fk_ellipsis |> G.e, fk_ellipsis) |> G.s
 let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
@@ -216,27 +217,27 @@ let pattern_from_args env args : pattern_instrs =
         | E x -> Args (Arg (Ellipsis el |> G.e) :: Arg x :: xs)
         | x ->
             pr2 (show_any x);
-            raise InvalidSubstitution)
+            raise (InvalidSubstitution "args1"))
     | Args (_ :: _) -> args
-    | _ -> raise InvalidSubstitution
+    | _ -> raise (InvalidSubstitution "argsn")
   in
   let remove_ellipsis _f args =
     match args with
     | Args (Arg { e = Ellipsis _; _ } :: x :: xs) -> Args (x :: xs)
     | Args (_ :: _) -> args
-    | _ -> raise InvalidSubstitution
+    | _ -> raise (InvalidSubstitution "ellipsis")
   in
   let replace_rest f args =
     match args with
     | Args (Arg { e = Ellipsis el; _ } :: Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg (Ellipsis el |> G.e) :: Arg e :: args')
-        | _ -> raise InvalidSubstitution)
+        | _ -> raise (InvalidSubstitution "replace rest 1"))
     | Args (Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg e :: args')
-        | _ -> raise InvalidSubstitution)
-    | _ -> raise InvalidSubstitution
+        | _ -> raise (InvalidSubstitution "replace rest 2"))
+    | _ -> raise (InvalidSubstitution "replace rest 3")
   in
   let remove_end_ellipsis _f args =
     let rec remove_end = function
@@ -246,7 +247,7 @@ let pattern_from_args env args : pattern_instrs =
     in
     match args with
     | Args args' -> Args (remove_end args')
-    | _ -> raise InvalidSubstitution
+    | _ -> raise (InvalidSubstitution "remove end ellipsis")
   in
   let max = List.length args in
   let rec make_arg_subs args count =
@@ -256,7 +257,7 @@ let pattern_from_args env args : pattern_instrs =
         if count =|= max then
           [
             (ANY (Args rest), replace_rest);
-            (ANY (E (Ellipsis fk |> G.e)), remove_end_ellipsis);
+            (ANY (E (Ellipsis fk_ellipsis |> G.e)), remove_end_ellipsis);
           ]
         else []
       in
@@ -264,7 +265,7 @@ let pattern_from_args env args : pattern_instrs =
       let funs = (ANY (Args rest), replace_rest) :: funs in
       (* If it's the first one, try deleting the ellipses at the start *)
       if count =|= 1 then
-        (ANY (E (Ellipsis fk |> G.e)), remove_ellipsis) :: funs
+        (ANY (E (Ellipsis fk_ellipsis |> G.e)), remove_ellipsis) :: funs
       else funs
     in
     match args with
@@ -272,7 +273,12 @@ let pattern_from_args env args : pattern_instrs =
     | Arg arg :: rest ->
         (let env', id = metavar_pattern env arg in
          ( env',
-           Args [ Arg (Ellipsis fk |> G.e); Arg id; Arg (Ellipsis fk |> G.e) ],
+           Args
+             [
+               Arg (Ellipsis fk_ellipsis |> G.e);
+               Arg id;
+               Arg (Ellipsis fk_ellipsis |> G.e);
+             ],
            (ANY (E arg), replace_first_arg) :: substitute_next rest ))
         :: make_arg_subs rest (count + 1)
     | _ -> []
@@ -285,21 +291,21 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
     | E { e = Call (e, (lp, args, rp)); _ } -> (
         match f (E e) with
         | E x -> E (Call (x, (lp, args, rp)) |> G.e)
-        | _ -> raise InvalidSubstitution)
-    | _ -> raise InvalidSubstitution
+        | _ -> raise (InvalidSubstitution "from call e"))
+    | _ -> raise (InvalidSubstitution "from call other")
   in
   let replace_args f e =
     match e with
     | E { e = Call (e, (lp, args, rp)); _ } -> (
         match f (Args args) with
         | Args x -> E (Call (e, (lp, x, rp)) |> G.e)
-        | _ -> raise InvalidSubstitution)
-    | _ -> raise InvalidSubstitution
+        | _ -> raise (InvalidSubstitution "replace args 1"))
+    | _ -> raise (InvalidSubstitution "replace args 2")
   in
   [
     (let env', id = metavar_pattern env e' in
      ( env',
-       E (Call (id, (lp, [ Arg (Ellipsis fk |> G.e) ], rp)) |> G.e),
+       E (Call (id, (lp, [ Arg (Ellipsis fk_ellipsis |> G.e) ], rp)) |> G.e),
        [ (ANY (E e'), replace_name); (ANY (Args args), replace_args) ] ));
   ]
 
@@ -321,12 +327,12 @@ let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
     | E { e = Assign (e1, tok, e2); _ }, Left -> (
         match f (E e1) with
         | E x -> E (Assign (x, tok, e2) |> G.e)
-        | _ -> raise InvalidSubstitution)
+        | _ -> raise (InvalidSubstitution "from assign left"))
     | E { e = Assign (e1, tok, e2); _ }, Right -> (
         match f (E e2) with
         | E x -> E (Assign (e1, tok, x) |> G.e)
-        | _ -> raise InvalidSubstitution)
-    | _ -> raise InvalidSubstitution
+        | _ -> raise (InvalidSubstitution "from assign right"))
+    | _ -> raise (InvalidSubstitution "from assign not expression")
   in
   [
     (let env, id1 = metavar_pattern env e1 in
@@ -353,6 +359,75 @@ let pattern_from_expr env e : pattern_instrs =
          (env', E id, [ (DONE, fun f any -> f any) ]));
       ]
 
+let replace_entity_name f s =
+  match s with
+  | S ({ s = DefStmt (entity, def); _ } as s_contents) ->
+      let ename =
+        match entity.name with
+        | EN name -> (
+            match f (E (N name |> G.e)) with
+            | E { e = N name; _ } -> EN name
+            | E e -> EDynamic e
+            | _ ->
+                raise (InvalidSubstitution "Replacing name with non expression")
+            )
+        | EDynamic e -> (
+            let non_e = f (E e) in
+            match non_e with
+            | E { e = N name; _ } -> EN name
+            | E e -> EDynamic e
+            | _ ->
+                raise
+                  (InvalidSubstitution "Replacing name with non expression 2"))
+        | ename -> (* TODO *) ename
+      in
+      S { s_contents with s = DefStmt ({ entity with name = ename }, def) }
+  | _ -> raise (InvalidSubstitution "Expected defstmt")
+
+let get_generic_entity env entity =
+  match entity.name with
+  | EN name ->
+      let env', id = metavar_pattern env (N name |> G.e) in
+      (env', N name |> G.e, { entity with name = EDynamic id })
+  | EDynamic expr ->
+      let env', id = metavar_pattern env expr in
+      (env', expr, { entity with name = EDynamic id })
+  | EPattern _pat -> (env, Ellipsis fk_ellipsis |> G.e, entity)
+  | OtherEntity (todo_kind, anys) ->
+      (env, OtherExpr (todo_kind, anys) |> G.e, entity)
+
+let pattern_from_func_def env (entity, fdef) : pattern_instrs =
+  let lp, _params, rp = fdef.fparams in
+  let generic_fdef =
+    {
+      fdef with
+      fparams = (lp, [ ParamEllipsis fk_ellipsis ], rp);
+      fbody = FBExpr (Ellipsis fk_ellipsis |> G.e);
+    }
+  in
+  let env', name_replacement, generic_entity = get_generic_entity env entity in
+  [
+    ( env',
+      S (DefStmt (generic_entity, FuncDef generic_fdef) |> G.s),
+      [ (ANY (E name_replacement), replace_entity_name) ] );
+  ]
+
+let pattern_from_class_def env (entity, cdef) : pattern_instrs =
+  let lp, _params, rp = cdef.cparams in
+  let generic_cdef =
+    {
+      cdef with
+      cparams = (lp, [ ParamEllipsis fk_ellipsis ], rp);
+      cbody = (fk, [ F fk_stmt ], fk);
+    }
+  in
+  let env', name_replacement, generic_entity = get_generic_entity env entity in
+  [
+    ( env',
+      S (DefStmt (generic_entity, ClassDef generic_cdef) |> G.s),
+      [ (ANY (E name_replacement), replace_entity_name) ] );
+  ]
+
 let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
   match s with
   | ExprStmt (e, sc) ->
@@ -361,19 +436,19 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
         | S ({ s = ExprStmt (e', _); _ } as stmt) -> (
             match f (E e') with
             | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
-            | _ -> raise InvalidSubstitution)
-        | _ ->
-            pr2 "h1";
-            raise InvalidSubstitution
+            | _ -> raise (InvalidSubstitution "from stmt E"))
+        | _ -> raise (InvalidSubstitution "from stmt not stmt")
       in
       let _, pattern =
         get_one_step_replacements
           ( env,
-            fill_exprstmt (fun _ -> E (Ellipsis fk |> G.e)) (S stmt),
+            fill_exprstmt (fun _ -> E (Ellipsis fk_ellipsis |> G.e)) (S stmt),
             [ (ANY (E e), fill_exprstmt) ] )
       in
       pattern
-  | _ -> []
+  | DefStmt (entity, FuncDef fdef) -> pattern_from_func_def env (entity, fdef)
+  | DefStmt (entity, ClassDef cdef) -> pattern_from_class_def env (entity, cdef)
+  | _stmt -> [ (env, S stmt, [ (DONE, fun f any -> f any) ]) ]
 
 and pattern_from_any env stage : pattern_instrs =
   match stage with
@@ -475,20 +550,29 @@ let generate_starting_patterns config (targets : AST_generic.any list list) :
     match any with
     | E _ ->
         let env =
-          { config; prev = E (Ellipsis fk |> G.e); count = 1; mapping = [] }
-        in
-        [ (env, E (Ellipsis fk |> G.e), [ (ANY any, fun f a -> f a) ]) ]
-    | S _ ->
-        let env =
           {
             config;
-            prev = S (exprstmt (Ellipsis fk |> G.e));
+            prev = E (Ellipsis fk_ellipsis |> G.e);
             count = 1;
             mapping = [];
           }
         in
         [
-          (env, S (exprstmt (Ellipsis fk |> G.e)), [ (ANY any, fun f a -> f a) ]);
+          (env, E (Ellipsis fk_ellipsis |> G.e), [ (ANY any, fun f a -> f a) ]);
+        ]
+    | S _ ->
+        let env =
+          {
+            config;
+            prev = S (exprstmt (Ellipsis fk_ellipsis |> G.e));
+            count = 1;
+            mapping = [];
+          }
+        in
+        [
+          ( env,
+            S (exprstmt (Ellipsis fk_ellipsis |> G.e)),
+            [ (ANY any, fun f a -> f a) ] );
         ]
     | _ -> raise UnsupportedTargetType
   in

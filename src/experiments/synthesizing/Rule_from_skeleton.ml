@@ -29,7 +29,7 @@ let rec formula_to_json formula : Yojson.Safe.t =
 
 let pattern_of_matches matches =
   match matches with
-  | [] -> "..."
+  | [] -> "empty"
   | xs -> (
       let config = Rule_options.default_config in
       let anys =
@@ -41,8 +41,10 @@ let pattern_of_matches matches =
       in
       let pattern = Pattern_from_Targets.generate_patterns config anys lang in
       match pattern with
-      | None -> "..."
-      | Some p -> Pretty_print_pattern.pattern_to_string lang p)
+      | None -> "none, crazy"
+      | Some p ->
+          pr2 (AST_generic.show_any p);
+          Pretty_print_pattern.pattern_to_string lang p)
 
 let rec skeleton_to_formula (skeleton : In.rule_skeleton) : formula_json =
   let { In.op; children; matches } = skeleton in

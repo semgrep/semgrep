@@ -88,6 +88,16 @@ let token ?(d = "TODO") tok =
    *)
   | Tok.NoTokenLocation _ -> d
 
+let rec show_list f = function
+  | [] -> ""
+  | [ x ] -> f x
+  | x :: xs -> f x ^ ", " ^ show_list f xs
+
+let rec show_body_list f = function
+  | [] -> ""
+  | [ x ] -> f x
+  | x :: xs -> f x ^ "\n" ^ show_body_list f xs
+
 type lang_kind = CLikeSemiColon | Other
 
 let _lang_kind = function
@@ -128,6 +138,8 @@ let arithop _env (op, tok) =
 
 let rec stmt env st =
   match st.s with
+  | ExprStmt (e, _tok) when Stdlib.compare env.lang Lang.Python =|= 0 ->
+      F.sprintf "%s%s" (indent env.level) (expr env e)
   | ExprStmt (e, tok) ->
       (* note that it is frequent for tok above to be a fake token.
        * Indeed, many languages do not use semicolons (e.g., Python),
@@ -155,6 +167,7 @@ let rec stmt env st =
       let lbl_str = label_ident env lbl in
       F.sprintf "%s%s%s" (token ~d:"continue" tok) lbl_str (token ~d:"" sc)
   | DefStmt def -> def_stmt env def
+  | OtherStmt (OS_Pass, [ _tok ]) -> "pass"
   | Switch (_, _, _)
   | Label (_, _)
   | Goto (_, _, _)
@@ -189,6 +202,7 @@ and block env (t1, ss, t2) =
     | "" -> ""
     | "{" -> "\n" ^ indent (env.level - 1) ^ "{\n"
     | "}" -> "\n" ^ indent (env.level - 1) ^ "}\n"
+    | _ when Stdlib.compare env.lang Lang.Python =|= 0 -> ""
     | _ -> t_str
   in
   if env.level > 0 then
@@ -272,7 +286,7 @@ and if_stmt env (tok, e, s, sopt) =
 and condition env x =
   match x with
   | Cond e -> expr env e
-  | OtherCond _ -> raise Todo
+  | OtherCond (op, xs) -> todo (E (OtherExpr (op, xs) |> G.e))
 
 and while_stmt env (tok, e, s) =
   let ocaml_while = F.sprintf "%s %s do\n%s\ndone" in
@@ -431,14 +445,9 @@ and for_stmt env (for_tok, hdr, s) =
     | ForInitVar (ent, var_def) ->
         F.sprintf "%s%s%s"
           (opt (fun x -> type_ x ^ " ") var_def.vtype)
-          (ident_or_dynamic ent.name)
+          (ident_or_dynamic env ent.name)
           (opt (fun x -> " = " ^ expr env x) var_def.vinit)
     | ForInitExpr e_init -> expr env e_init
-  in
-  let rec show_init_list = function
-    | [] -> ""
-    | [ x ] -> show_init x
-    | x :: xs -> show_init x ^ ", " ^ show_init_list xs
   in
   let opt_expr = opt (fun x -> expr env x) in
   let hdr_str =
@@ -452,13 +461,13 @@ and for_stmt env (for_tok, hdr, s) =
     in
     match hdr with
     | ForClassic (init, cond, next) ->
-        F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond)
+        F.sprintf "%s; %s; %s" (show_list show_init init) (opt_expr cond)
           (opt_expr next)
     | ForEach (pat, tok, e) -> for_each (pat, tok, e)
     | MultiForEach fors -> String.concat ";" (Common.map multi_for_each fors)
     | ForEllipsis tok -> token ~d:"..." tok
     | ForIn (init, exprs) ->
-        F.sprintf "%s %s %s" (show_init_list init) "in"
+        F.sprintf "%s %s %s" (show_list show_init init) "in"
           (String.concat "," (Common.map (fun e -> expr env e) exprs))
   in
   let body_str = stmt { env with level = env.level + 1 } s in
@@ -477,89 +486,145 @@ and type_ t =
 (* Definitions *)
 (*****************************************************************************)
 
-and def_stmt env (entity, def_kind) =
-  let var_def (ent, def) =
-    let no_val, with_val =
-      match env.lang with
-      | Lang.Cairo
-      | Lang.Xml
-      | Lang.Dart
-      | Lang.Clojure
-      | Lang.Lisp
-      | Lang.Scheme
-      | Lang.Julia
-      | Lang.Elixir
-      | Lang.Bash
-      | Lang.Php
-      | Lang.Promql
-      | Lang.Protobuf
-      | Lang.Dockerfile
-      | Lang.Hack
-      | Lang.Lua
-      | Lang.Yaml
-      | Lang.Scala
-      | Lang.Solidity
-      | Lang.Swift
-      | Lang.Html
-      | Lang.Terraform ->
-          raise Todo
-      | Lang.Apex
-      | Lang.Java
-      | Lang.C
-      | Lang.Cpp
-      | Lang.Csharp
-      | Lang.Kotlin ->
-          ( (fun typ id _e -> F.sprintf "%s %s;" typ id),
-            fun typ id e -> F.sprintf "%s %s = %s;" typ id e )
-      | Lang.Js
-      | Lang.Ts
-      | Lang.Vue ->
-          ( (fun _typ id _e -> F.sprintf "var %s;" id),
-            fun _typ id e -> F.sprintf "var %s = %s;" id e )
-      | Lang.Go ->
-          ( (fun typ id _e -> F.sprintf "var %s %s" id typ),
-            fun typ id e -> F.sprintf "var %s %s = %s" id typ e )
-          (* will have extra space if no type *)
-      | Lang.Python
-      | Lang.Python2
-      | Lang.Python3
-      | Lang.Ruby ->
-          ( (fun _typ id _e -> F.sprintf "%s" id),
-            fun _typ id e -> F.sprintf "%s = %s" id e )
-      | Lang.Rust ->
-          ( (fun typ id _e -> F.sprintf "let %s: %s" id typ),
-            fun typ id e -> F.sprintf "let %s: %s = %s" id typ e )
-          (* will have extra space if no type *)
-      | Lang.R ->
-          ( (fun _typ id _e -> F.sprintf "%s" id),
-            fun _typ id e -> F.sprintf "%s <- %s" id e )
-      | Lang.Json
-      | Lang.Jsonnet
-      | Lang.Ocaml ->
-          failwith "I think JSON/OCaml have no variable definitions"
-    in
-    let typ, id =
-      match ent.name with
-      | EN (Id (_, { id_type = { contents = Some t }; _ })) ->
-          (type_ t, ident_or_dynamic ent.name)
-      | _ -> ("", ident_or_dynamic ent.name)
-    in
-    match def.vinit with
-    | None -> no_val typ id ""
-    | Some e -> with_val typ id (expr env e)
+and var_def env (ent, def) =
+  let no_val, with_val =
+    match env.lang with
+    | Lang.Cairo
+    | Lang.Xml
+    | Lang.Dart
+    | Lang.Clojure
+    | Lang.Lisp
+    | Lang.Scheme
+    | Lang.Julia
+    | Lang.Elixir
+    | Lang.Bash
+    | Lang.Php
+    | Lang.Promql
+    | Lang.Protobuf
+    | Lang.Dockerfile
+    | Lang.Hack
+    | Lang.Lua
+    | Lang.Yaml
+    | Lang.Scala
+    | Lang.Solidity
+    | Lang.Swift
+    | Lang.Html
+    | Lang.Terraform ->
+        raise Todo
+    | Lang.Apex
+    | Lang.Java
+    | Lang.C
+    | Lang.Cpp
+    | Lang.Csharp
+    | Lang.Kotlin ->
+        ( (fun typ id _e -> F.sprintf "%s %s;" typ id),
+          fun typ id e -> F.sprintf "%s %s = %s;" typ id e )
+    | Lang.Js
+    | Lang.Ts
+    | Lang.Vue ->
+        ( (fun _typ id _e -> F.sprintf "var %s;" id),
+          fun _typ id e -> F.sprintf "var %s = %s;" id e )
+    | Lang.Go ->
+        ( (fun typ id _e -> F.sprintf "var %s %s" id typ),
+          fun typ id e -> F.sprintf "var %s %s = %s" id typ e )
+        (* will have extra space if no type *)
+    | Lang.Python
+    | Lang.Python2
+    | Lang.Python3
+    | Lang.Ruby ->
+        ( (fun _typ id _e -> F.sprintf "%s" id),
+          fun _typ id e -> F.sprintf "%s = %s" id e )
+    | Lang.Rust ->
+        ( (fun typ id _e -> F.sprintf "let %s: %s" id typ),
+          fun typ id e -> F.sprintf "let %s: %s = %s" id typ e )
+        (* will have extra space if no type *)
+    | Lang.R ->
+        ( (fun _typ id _e -> F.sprintf "%s" id),
+          fun _typ id e -> F.sprintf "%s <- %s" id e )
+    | Lang.Json
+    | Lang.Jsonnet
+    | Lang.Ocaml ->
+        failwith "I think JSON/OCaml have no variable definitions"
   in
+  let typ, id =
+    match ent.name with
+    | EN (Id (_, { id_type = { contents = Some t }; _ })) ->
+        (type_ t, ident_or_dynamic env ent.name)
+    | _ -> ("", ident_or_dynamic env ent.name)
+  in
+  match def.vinit with
+  | None -> no_val typ id ""
+  | Some e -> with_val typ id (expr env e)
+
+and entity_name env name =
+  match name with
+  | EN name -> expr env (N name |> G.e)
+  | EDynamic e -> expr env e
+  | EPattern pat -> pattern env pat
+  | OtherEntity (todo_kind, _) -> todo (TodoK todo_kind)
+
+and func_body env body =
+  match body with
+  | FBStmt s -> stmt env s
+  | FBExpr e -> F.sprintf "%s%s" (indent env.level) (expr env e)
+  | FBDecl sc -> token sc
+  | FBNothing -> ""
+
+and func_params env (t1, params, t2) =
+  let show_param param =
+    match param with
+    | Param { pname; _ }
+    | ParamReceiver { pname; _ } ->
+        Option.fold ~none:"<no param>" ~some:(fun n -> ident n) pname
+    | ParamPattern pat -> pattern env pat
+    | ParamRest (tok, _) -> token tok
+    | ParamHashSplat (tok, _) -> token tok
+    | ParamEllipsis _tok -> "..."
+    | OtherParam (todo_kind, _) -> todo (TodoK todo_kind)
+  in
+  F.sprintf "%s%s%s" (token t1) (show_list show_param params) (token t2)
+
+and func_def env (entity, (def : function_definition)) =
+  match env.lang with
+  | Lang.Python ->
+      let env' = { env with level = env.level + 1 } in
+      F.sprintf "def %s%s:\n%s"
+        (entity_name env entity.name)
+        (func_params env def.fparams)
+        (func_body env' def.fbody)
+  | _ -> todo (S (DefStmt (entity, FuncDef def) |> G.s))
+
+and class_body env (_t1, body, _t2) =
+  show_body_list
+    (fun (F s) ->
+      pr2 (show_stmt s);
+      stmt env s)
+    body
+
+and class_def env (entity, (def : class_definition)) =
+  match env.lang with
+  | Lang.Python ->
+      let env' = { env with level = env.level + 1 } in
+      pr2 (show_class_definition def);
+      F.sprintf "class %s:\n%s"
+        (entity_name env entity.name)
+        (class_body env' def.cbody)
+  | _ -> todo (S (DefStmt (entity, ClassDef def) |> G.s))
+
+and def_stmt env (entity, def_kind) =
   match def_kind with
-  | VarDef def -> var_def (entity, def)
+  | VarDef def -> var_def env (entity, def)
+  | FuncDef def -> func_def env (entity, def)
+  | ClassDef def -> class_def env (entity, def)
   | _ -> todo (S (DefStmt (entity, def_kind) |> G.s))
 
 (* TODO? maybe we should check id_info.id_hidden *)
-and ident_or_dynamic = function
+and ident_or_dynamic env = function
   | EN (Id (x, _idinfo)) -> ident x
-  | EN _
-  | EDynamic _
-  | EPattern _
-  | OtherEntity _ ->
-      raise Todo
+  | EN name -> expr env (N name |> G.e)
+  | EDynamic e -> expr env e
+  | EPattern pat -> pattern env pat
+  | OtherEntity (op, anys) -> todo (E (OtherExpr (op, anys) |> G.e))
 
 (*****************************************************************************)
 (* Expressions *)
@@ -657,7 +722,7 @@ and literal _env l =
    * we will be able to print correctly whether '' or "" was used
    * to contain the string
    *)
-  | String (_l, (s, _), _r) -> "\"" ^ s ^ "\""
+  | String (_l, (s, _), _r) -> "'" ^ s ^ "'"
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/"
       ^
