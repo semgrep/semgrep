@@ -228,39 +228,80 @@ let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
 (* Helpers *)
 (*****************************************************************************)
 
-module IntMap = Map.Make (Int)
+(* module IntMap = Map.Make (Int)
 
-type 'a ranges = 'a list IntMap.t IntMap.t
+   type 'a ranges = 'a list IntMap.t IntMap.t
 
-let empty_ranges : _ ranges = IntMap.empty
+   let empty_ranges : _ ranges = IntMap.empty
 
-let add_to_ranges map1 Range.{ start; end_ } x =
-  map1
-  |> IntMap.update start (function
-       | None -> Some (IntMap.singleton end_ [ x ])
-       | Some map2 ->
-           Some
-             (map2
-             |> IntMap.update end_ (function
-                  | None -> Some [ x ]
-                  | Some xs -> Some (x :: xs))))
+   let add_to_ranges map1 Range.{ start; end_ } x =
+     map1
+     |> IntMap.update start (function
+          | None -> Some (IntMap.singleton end_ [ x ])
+          | Some map2 ->
+              Some
+                (map2
+                |> IntMap.update end_ (function
+                     | None -> Some [ x ]
+                     | Some xs -> Some (x :: xs))))
 
-let ranges_of_list es =
-  List.fold_left
-    (fun acc (rm, x) -> add_to_ranges acc rm.RM.r (rm, x))
-    empty_ranges es
+   let ranges_of_list es =
+     List.fold_left
+       (fun acc (rm, x) -> add_to_ranges acc rm.RM.r (rm, x))
+       empty_ranges es
 
-let find_in_ranges map1 Range.{ start; end_ } =
-  let res = ref [] in
-  let check_map2 map2 =
-    let _, opt_e2, r2 = IntMap.split end_ map2 in
-    opt_e2
-    |> Option.iter (fun e2 -> e2 |> List.iter (fun x -> Common.push x res));
-    r2 |> IntMap.iter (fun _ xs -> xs |> List.iter (fun x -> Common.push x res))
+   let find_in_ranges map1 Range.{ start; end_ } =
+     let res = ref [] in
+     let check_map2 map2 =
+       let _, opt_e2, r2 = IntMap.split end_ map2 in
+       opt_e2
+       |> Option.iter (fun e2 -> e2 |> List.iter (fun x -> Common.push x res));
+       r2 |> IntMap.iter (fun _ xs -> xs |> List.iter (fun x -> Common.push x res))
+     in
+     let l1, opt_e1, _ = IntMap.split start map1 in
+     opt_e1 |> Option.iter (fun e1 -> check_map2 e1);
+     l1 |> IntMap.iter (fun _ map2 -> check_map2 map2);
+     !res *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+type 'a ranges2 = (int * (int * 'a) array) array
+
+let ranges2_of_list es : _ ranges2 =
+  (* let es_sorted = List.fast_sort (fun (rwm1, _) (rwm2, _) -> Int.compare rwm1.RM.r.Range.start rwm2.RM.r.Range.end_) es in *)
+  let es_grouped = Common.group_by (fun (rwm, _) -> rwm.RM.r.Range.start) es in
+  let es_arrays =
+    es_grouped
+    |> Common.map (fun (i, es1) ->
+           let arr =
+             es1
+             |> Common.map (fun (rwm, x) -> (rwm.RM.r.Range.end_, (rwm, x)))
+             |> Array.of_list
+           in
+           Array.fast_sort (fun (j1, _) (j2, _) -> -1 * Int.compare j1 j2) arr;
+           (i, arr))
   in
-  let l1, opt_e1, _ = IntMap.split start map1 in
-  opt_e1 |> Option.iter (fun e1 -> check_map2 e1);
-  l1 |> IntMap.iter (fun _ map2 -> check_map2 map2);
+  let arr1 = Array.of_list es_arrays in
+  Array.fast_sort (fun (i1, _) (i2, _) -> Int.compare i1 i2) arr1;
+  arr1
+
+let find_in_ranges2 (arr1 : _ ranges2) Range.{ start; end_ } =
+  let res = ref [] in
+  (try
+     arr1
+     |> Array.iter (fun (i, arr2) ->
+            if i > start then raise_notrace Exit;
+            try
+              arr2
+              |> Array.iter (fun (j, x) ->
+                     if j < end_ then raise_notrace Exit;
+                     Common.push x res)
+            with
+            | Exit -> ())
+   with
+  | Exit -> ());
   !res
 
 (*****************************************************************************)
@@ -418,7 +459,7 @@ let is_exact_match ~match_range r =
 let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
-  find_in_ranges matches r
+  find_in_ranges2 matches r
   |> Common.map (fun (rwm, ts) ->
          let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
          let overlap = overlap_with ~match_range:rwm.RM.r r in
@@ -449,7 +490,7 @@ let any_is_in_propagators_matches rule any matches :
 let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
-  find_in_ranges matches r
+  find_in_ranges2 matches r
   |> Common.map (fun (rwm, spec) ->
          let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
          let overlap = overlap_with ~match_range:rwm.RM.r r in
@@ -458,7 +499,7 @@ let any_is_in_sanitizers_matches rule any matches =
 let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
-  find_in_ranges matches r
+  find_in_ranges2 matches r
   |> Common.map (fun (rwm, spec) ->
          let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
          let overlap = overlap_with ~match_range:rwm.RM.r r in
@@ -567,9 +608,9 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           ]
     else []
   in
-  let sources_ranges_map = ranges_of_list sources_ranges in
-  let sanitizers_ranges_map = ranges_of_list sanitizers_ranges in
-  let sinks_ranges_map = ranges_of_list sinks_ranges in
+  let sources_ranges_map : _ ranges2 = ranges2_of_list sources_ranges in
+  let sanitizers_ranges_map = ranges2_of_list sanitizers_ranges in
+  let sinks_ranges_map = ranges2_of_list sinks_ranges in
   let config = xconf.config in
   ( {
       Dataflow_tainting.filepath = !!file;
