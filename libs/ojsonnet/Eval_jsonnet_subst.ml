@@ -8,6 +8,17 @@ exception Error of string * Tok.t
 
 type cmp = Inf | Eq | Sup
 
+(*Creates std so that we can add it to the environment when we switch back to
+  * environment model for handling standard library functions
+*)
+let pre_std = Std_jsonnet.get_std_jsonnet ()
+
+let path =
+  match Fpath.of_string "../" with
+  | Ok p -> p
+  | Error _ -> failwith ""
+
+let std = Desugar_jsonnet.desugar_program path pre_std
 let fk = Tok.unsafe_fake_tok ""
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
@@ -161,31 +172,46 @@ let rec substitute id sub expr =
               L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
               r1 ) ),
         (l, args, r) ) ->
-      let new_args =
-        Common.map
-          (fun arg ->
-            match arg with
-            | Arg e -> Arg (substitute id sub e)
-            | NamedArg (ident, tk, e) ->
-                NamedArg (ident, tk, substitute id sub e))
-          args
-      in
-      (* Because the std library is split into two parts (explicitely part of the language
-         and std.jsonnet) we need to be careful about substitution here, only substituting
-         the "std" keyword when we actually want to go to std.jsonnet, we also only want
-         to do a substitution here if we are substituting for "std" *)
-      let new_std =
-        if is_imp_std meth_str || not (id = "std") then Id ("std", std_tok)
-        else sub
-      in
+      (*Call ( ArrayAccess
+          ( Id ("std", std_tok),
+            ( l1,
+              L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+              r1 ) ),
+        (l, args, r) )*)
+      if id = "std" then
+        Call
+          ( ArrayAccess
+              ( Id ("std", std_tok),
+                ( l1,
+                  L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                  r1 ) ),
+            (l, args, r) )
+      else
+        let new_args =
+          Common.map
+            (fun arg ->
+              match arg with
+              | Arg e -> Arg (substitute id sub e)
+              | NamedArg (ident, tk, e) ->
+                  NamedArg (ident, tk, substitute id sub e))
+            args
+        in
+        (* Because the std library is split into two parts (explicitely part of the language
+           and std.jsonnet) we need to be careful about substitution here, only substituting
+           the "std" keyword when we actually want to go to std.jsonnet, we also only want
+           to do a substitution here if we are substituting for "std" *)
+        let new_std =
+          if is_imp_std meth_str || not (id = "std") then Id ("std", std_tok)
+          else sub
+        in
 
-      Call
-        ( ArrayAccess
-            ( new_std,
-              ( l1,
-                L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
-                r1 ) ),
-          (l, new_args, r) )
+        Call
+          ( ArrayAccess
+              ( new_std,
+                ( l1,
+                  L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                  r1 ) ),
+            (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       if bind_list_contains binds id then Local (_tlocal, binds, _tsemi, e)
       else
@@ -268,22 +294,29 @@ let rec substitute_kw kw sub expr =
               L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
               r1 ) ),
         (l, args, r) ) ->
-      let new_args =
-        Common.map
-          (fun arg ->
-            match arg with
-            | Arg e -> Arg (substitute_kw kw sub e)
-            | NamedArg (ident, tk, e) ->
-                NamedArg (ident, tk, substitute_kw kw sub e))
-          args
-      in
+      (*let new_args =
+          Common.map
+            (fun arg ->
+              match arg with
+              | Arg e -> Arg (substitute_kw kw sub e)
+              | NamedArg (ident, tk, e) ->
+                  NamedArg (ident, tk, substitute_kw kw sub e))
+            args
+        in
+        Call
+          ( ArrayAccess
+              ( Id ("std", std_tok),
+                ( l1,
+                  L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                  r1 ) ),
+            (l, new_args, r) )*)
       Call
         ( ArrayAccess
             ( Id ("std", std_tok),
               ( l1,
                 L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
                 r1 ) ),
-          (l, new_args, r) )
+          (l, args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
         Common.map
@@ -587,7 +620,18 @@ and eval_std_cmp tk (el : expr) (er : expr) : cmp =
   eval_std_cmp_value_ (eval_expr el) (eval_expr er)
 
 and eval_call e0 (largs, args, _rargs) =
-  match eval_expr e0 with
+  (* Check if this is a standard library call. If it is, call the environment
+     *   model evaluation to get more efficiency *)
+  let eval_func =
+    match e0 with
+    | ArrayAccess
+        (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
+        let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
+        print_string "going into eval_jsonnet";
+        Eval_jsonnet.eval_program local_wrap
+    | _ -> eval_expr e0
+  in
+  match eval_func with
   | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
       let fstr =
         match e0 with
