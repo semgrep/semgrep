@@ -448,6 +448,12 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
       pattern
   | DefStmt (entity, FuncDef fdef) -> pattern_from_func_def env (entity, fdef)
   | DefStmt (entity, ClassDef cdef) -> pattern_from_class_def env (entity, cdef)
+  | Return (t, _e, sc) ->
+      [
+        ( env,
+          S (Return (t, Some (Ellipsis fk_ellipsis |> G.e), sc) |> G.s),
+          [ (DONE, fun f any -> f any) ] );
+      ]
   | _stmt -> [ (env, S stmt, [ (DONE, fun f any -> f any) ]) ]
 
 and pattern_from_any env stage : pattern_instrs =
