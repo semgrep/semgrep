@@ -316,6 +316,20 @@ def verify_workflow_added(repo_path: str):
             return True
     return False
 
+def get_actions_view_url(repo_path: str):
+    """
+    Return the URL to the actions view for the repo.
+    """
+    show_command = ["gh", "repo", "view", "--json", "url", "-q", ".url"]
+    with working_dir(os.path.expanduser(repo_path)):
+        out = sub_check_output(
+                show_command,
+                timeout=4,
+                encoding="utf-8",
+                stderr=subprocess.STDOUT,
+            ).rstrip()
+        return f"{out}/actions"
+
 @click.command(name="install-ci")
 @click.argument("repo_path", nargs=1, type=click.Path(allow_dash=True))
 @handle_command_errors
@@ -349,10 +363,12 @@ def install_semgrep_ci(repo_path: str) -> None:
         logger.info("SEMGREP_APP_TOKEN already present, skipping secret set.")
     else:
         logger.info("Added SEMGREP_APP_TOKEN to Github Actions secrets.")
+    view_url = get_actions_view_url(repo_path)
     logger.info(dedent(f"""
         To complete the setup run
-        `cd ${repo_path}; git add . && git commit -m 'add semgrep' && git push`
-        this will commit and push the workflow file to Github.
+        `cd {repo_path}; git add . && git commit -m 'add semgrep' && git push`
+        This command will commit and push the workflow file to Github.
+        Then visit {view_url} to see the workflow in action.
         """
     ).strip())
 
