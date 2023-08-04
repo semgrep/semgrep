@@ -323,7 +323,7 @@ def verify_workflow_added(repo_path: str):
             return True
     return False
 
-@click.command()
+@click.command(name="install-ci")
 @click.argument("repo_path", nargs=1, type=click.Path(allow_dash=True))
 @handle_command_errors
 def install_semgrep_ci(repo_path: str) -> None:
