@@ -225,6 +225,45 @@ let mk_specialized_formula_cache (rules : Rule.taint_rule list) =
   count_tbl
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+module IntMap = Map.Make (Int)
+
+type 'a ranges = 'a list IntMap.t IntMap.t
+
+let empty_ranges : _ ranges = IntMap.empty
+
+let add_to_ranges map1 Range.{ start; end_ } x =
+  map1
+  |> IntMap.update start (function
+       | None -> Some (IntMap.singleton end_ [ x ])
+       | Some map2 ->
+           Some
+             (map2
+             |> IntMap.update end_ (function
+                  | None -> Some [ x ]
+                  | Some xs -> Some (x :: xs))))
+
+let ranges_of_list es =
+  List.fold_left
+    (fun acc (rm, x) -> add_to_ranges acc rm.RM.r (rm, x))
+    empty_ranges es
+
+let find_in_ranges map1 Range.{ start; end_ } =
+  let res = ref [] in
+  let check_map2 map2 =
+    let _, opt_e2, r2 = IntMap.split end_ map2 in
+    opt_e2
+    |> Option.iter (fun e2 -> e2 |> List.iter (fun x -> Common.push x res));
+    r2 |> IntMap.iter (fun _ xs -> xs |> List.iter (fun x -> Common.push x res))
+  in
+  let l1, opt_e1, _ = IntMap.split start map1 in
+  opt_e1 |> Option.iter (fun e1 -> check_map2 e1);
+  l1 |> IntMap.iter (fun _ map2 -> check_map2 map2);
+  !res
+
+(*****************************************************************************)
 (* Finding matches for taint specs *)
 (*****************************************************************************)
 
@@ -379,14 +418,11 @@ let is_exact_match ~match_range r =
 let any_is_in_sources_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
-  matches
-  |> Common.map_filter (fun (rwm, ts) ->
-         if Range.( $<=$ ) r rwm.RM.r then
-           Some
-             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
-              let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec = ts; spec_pm; range = r; overlap })
-         else None)
+  find_in_ranges matches r
+  |> Common.map (fun (rwm, ts) ->
+         let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
+         let overlap = overlap_with ~match_range:rwm.RM.r r in
+         { D.spec = ts; spec_pm; range = r; overlap })
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
@@ -413,26 +449,20 @@ let any_is_in_propagators_matches rule any matches :
 let any_is_in_sanitizers_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
-  matches
-  |> Common.map_filter (fun (rwm, spec) ->
-         if Range.( $<=$ ) r rwm.RM.r then
-           Some
-             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
-              let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; spec_pm; range = r; overlap })
-         else None)
+  find_in_ranges matches r
+  |> Common.map (fun (rwm, spec) ->
+         let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
+         let overlap = overlap_with ~match_range:rwm.RM.r r in
+         { D.spec; spec_pm; range = r; overlap })
 
 let any_is_in_sinks_matches rule any matches =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
-  matches
-  |> Common.map_filter (fun (rwm, spec) ->
-         if Range.( $<=$ ) r rwm.RM.r then
-           Some
-             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
-              let overlap = overlap_with ~match_range:rwm.RM.r r in
-              { D.spec; spec_pm; range = r; overlap })
-         else None)
+  find_in_ranges matches r
+  |> Common.map (fun (rwm, spec) ->
+         let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
+         let overlap = overlap_with ~match_range:rwm.RM.r r in
+         { D.spec; spec_pm; range = r; overlap })
 
 let lazy_force x = Lazy.force x [@@profiling]
 
@@ -537,16 +567,19 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           ]
     else []
   in
+  let sources_ranges_map = ranges_of_list sources_ranges in
+  let sanitizers_ranges_map = ranges_of_list sanitizers_ranges in
+  let sinks_ranges_map = ranges_of_list sinks_ranges in
   let config = xconf.config in
   ( {
       Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
-      is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
+      is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges_map);
       is_propagator =
         (fun x -> any_is_in_propagators_matches rule x propagators_ranges);
       is_sanitizer =
-        (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
-      is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
+        (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges_map);
+      is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges_map);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;
     },
