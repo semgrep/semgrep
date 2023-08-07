@@ -87,8 +87,6 @@ let freshvar =
     incr store;
     ("!tmp" ^ string_of_int !store, fk)
 
-(*let todo _env _v = failwith "TODO"*)
-
 (*****************************************************************************)
 (* Builtins *)
 (*****************************************************************************)
@@ -511,9 +509,6 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
       import_callback;
     }
   in
-  (* TODO: skipped for now because std.jsonnet contains too many complicated
-   * things we don't handle, and it actually does not even parse right now.
-   *)
   let e =
     if use_std then
       let std = Std_jsonnet.get_std_jsonnet () in
