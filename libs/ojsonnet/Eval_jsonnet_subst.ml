@@ -833,6 +833,13 @@ and eval_plus_object _tk objl objr =
     |> List.filter (fun { V.fld_name = s, _; _ } ->
            not (Hashtbl.mem hash_of_right_field_names s))
   in
+
+  let lflds_overlap_hidden =
+    lflds
+    |> List.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
+    |> List.to_seq |> Hashtbl.of_seq
+  in
+
   let super = freshvar () in
   let self = freshvar () in
 
@@ -893,9 +900,20 @@ and eval_plus_object _tk objl objr =
                      Tok.unsafe_sc,
                      substitute_kw fake_super e_s e )
                in
+               let name, _ = fld_name in
+               (* implements hidden inheritance as defined in spec *)
+               let hidden, _ = fld_hidden in
+               let new_hidden =
+                 if Hashtbl.mem lflds_overlap_hidden name then
+                   match hidden with
+                   | Visible -> Hashtbl.find lflds_overlap_hidden name
+                   | _ -> fld_hidden
+                 else fld_hidden
+               in
+
                {
                  V.fld_name;
-                 fld_hidden;
+                 fld_hidden = new_hidden;
                  fld_value =
                    { V.value = V.Unevaluated new_fld_value; env = V.empty_env };
                })
