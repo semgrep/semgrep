@@ -1,0 +1,1 @@
+Maven Dep Tree parsing now surfaces children dependencies per package
