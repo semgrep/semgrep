@@ -594,8 +594,11 @@ and eval_std_cmp tk (el : expr) (er : expr) : cmp =
   eval_std_cmp_value_ (eval_expr el) (eval_expr er)
 
 and eval_call e0 (largs, args, _rargs) =
-  (* Check if this is a standard library call. If it is, call the environment
-     *   model evaluation to get more efficiency *)
+  (*
+   * Check if this is a standard library call. If it is, call the environment
+   * model evaluation to get more efficiency (for example, on array_comprehensions2.jsonnet,
+   * this optimization creates an approx 100x speedup (11 seconds down to 0.1)
+   *)
   let eval_func =
     match e0 with
     | ArrayAccess
