@@ -13,6 +13,7 @@ type cmp = Inf | Eq | Sup
 *)
 let pre_std = Std_jsonnet.get_std_jsonnet ()
 
+(* This is an arbitrary path, used as a placeholder, since we aren't desugaring from a file *)
 let path =
   match Fpath.of_string "../" with
   | Ok p -> p
@@ -601,7 +602,6 @@ and eval_call e0 (largs, args, _rargs) =
         (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
         (* set locals so that "std" shows up in the environment when evaluating *)
         let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
-        print_string "going into eval_jsonnet";
         Eval_jsonnet.eval_program local_wrap
     | _ -> eval_expr e0
   in
