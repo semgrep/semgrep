@@ -438,6 +438,7 @@ class virtual ['self] iter_parent =
      * visitor. Subclasses can always override these with their own behavior if
      * needed. *)
     method visit_location _env _ = ()
+    method visit_id_flags_t _env _ = ()
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
@@ -502,6 +503,7 @@ class virtual ['self] map_parent =
 
     (* Stubs *)
     method visit_location _env x = x
+    method visit_id_flags_t _env x = x
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
@@ -585,32 +587,16 @@ and id_info = {
    *)
   id_svalue : svalue option ref; [@equal fun _a _b -> true]
   (* THINK: Drop option? *)
-  (* id_hidden=true must be set for any artificial identifier that never
-     appears in source code but is introduced in the AST after parsing.
-
-     Don't use this for syntax desugaring or transpilation because the
-     resulting function name might exist in some source code. Consider the
-     following normalization:
-
-       !foo -> foo.contents
-                   ^^^^^^^^
-                 should not be marked as hidden because it could appear
-                 in target source code.
-
-     However, an artificial identifier like "!sh_quoted_expand!" should
-     be marked as hidden in bash.
-
-     This allows not breaking the -fast/-filter_irrelevant_rules optimization
-     that skips a target file if some identifier in the pattern AST doesn't
-     exist in the source of the target.
-  *)
-  id_hidden : bool; [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
+  (* See module 'IdFlags'. *)
+  id_flags : id_flags ref;
+      [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
 (* See explanation for @name where the visitors are generated at the end of
  * this long recursive type. *)
+and id_flags = (IdFlags.t[@name "id_flags_t"])
 and id_info_id = (IdInfoId.t[@name "id_info_id_t"])
 
 (*****************************************************************************)
@@ -2157,18 +2143,15 @@ let empty_id_info ?(hidden = false) () =
     id_resolved = ref None;
     id_type = ref None;
     id_svalue = ref None;
-    id_hidden = hidden;
+    id_flags =
+      ref (if hidden then IdFlags.set_hidden IdFlags.empty else IdFlags.empty);
     id_info_id = id_info_id ();
   }
 
 let basic_id_info ?(hidden = false) resolved =
-  {
-    id_resolved = ref (Some resolved);
-    id_type = ref None;
-    id_svalue = ref None;
-    id_hidden = hidden;
-    id_info_id = id_info_id ();
-  }
+  let id_info = empty_id_info ~hidden () in
+  id_info.id_resolved := Some resolved;
+  id_info
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 

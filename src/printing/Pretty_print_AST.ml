@@ -552,7 +552,7 @@ and def_stmt env (entity, def_kind) =
   | VarDef def -> var_def (entity, def)
   | _ -> todo (S (DefStmt (entity, def_kind) |> G.s))
 
-(* TODO? maybe we should check id_info.id_hidden *)
+(* TODO? maybe we should check IdFlags.is_hidden !(id_info.id_flags) *)
 and ident_or_dynamic = function
   | EN (Id (x, _idinfo)) -> ident x
   | EN _
