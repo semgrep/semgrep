@@ -35,6 +35,9 @@ let svalue_prop_MAX_VISIT_SYM_IN_CYCLE_CHECK = 1000
  * Note that 'Time_limit.set_timeout' cannot be nested. *)
 let taint_FIXPOINT_TIMEOUT = 0.1
 
+(* Timeout on the amount of time we spend tracking taint through an SCC *)
+let taint_SCC_TIMEOUT = 30.0
+
 (** Bounds the number of l-values we can track. *)
 let taint_MAX_TAINTED_LVALS = 100
 
