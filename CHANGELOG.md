@@ -6,6 +6,18 @@
 
 <!-- insertion point -->
 
+## [1.35.0](https://github.com/returntocorp/semgrep/releases/tag/v1.35.0) - 2023-08-09
+
+### Added
+
+- Maven Dep Tree parsing now surfaces children dependencies per package (sc-996)
+
+### Fixed
+
+- fix(promql): make aggregation labels not depend on order
+
+  "sum by (..., b, a, c, ...) (X)" should match "sum by (a,b,c) (X)" (gh-8399)
+
 ## [1.34.1](https://github.com/returntocorp/semgrep/releases/tag/v1.34.1) - 2023-07-28
 
 ### Added
