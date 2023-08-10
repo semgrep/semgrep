@@ -234,7 +234,7 @@ class StreamingSemgrepCore:
         # Start out reading two bytes at a time (".\n")
         get_input: Callable[
             [asyncio.StreamReader], Coroutine[Any, Any, bytes]
-        ] = lambda s: s.readexactly(2)
+        ] = lambda s: s.readline()
         reading_json = False
         # Read ".\n" repeatedly until we reach the JSON output.
         # TODO: read progress from one channel and JSON data from another.
@@ -281,6 +281,7 @@ class StreamingSemgrepCore:
                        Error: semgrep-core exited with unexpected output
                     """
                 )
+            print(line_bytes.decode("utf-8", "replace"))
 
             if (
                 not has_started

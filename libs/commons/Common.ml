@@ -115,6 +115,10 @@ let pr_time name f =
       let t2 = Unix.gettimeofday () in
       pr (spf "%s: %.6f s" name (t2 -. t1)))
 
+let report_event str =
+  let t = Unix.time () |> Unix.localtime in
+  pr (Printf.sprintf "[%d:%d:%d]: %s" t.tm_hour t.tm_min t.tm_sec str)
+
 let pr2_time name f =
   let t1 = Unix.gettimeofday () in
   Fun.protect f ~finally:(fun () ->

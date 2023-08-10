@@ -449,6 +449,11 @@ val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 val with_time : (unit -> 'a) -> 'a * float
 
 (*
+   Output a string with the time
+*)
+val report_event : string -> unit
+
+(*
    Run a function and print how long it took to return or to raise an
    exception. pr_time prints to stdout, pr2_time prints to stderr.
 *)
