@@ -168,12 +168,6 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
  fun m1 m2 tin ->
-  (* CHOICE
-        let xs = m1 tin in
-        if null xs
-        then m2 tin
-        else xs
-  *)
   (* opti? use set instead of list *)
   m1 tin @ m2 tin
 
