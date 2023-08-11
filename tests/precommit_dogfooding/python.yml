@@ -7050,7 +7050,7 @@ rules:
     - A02:2017 - Broken Authentication
     - A04:2021 - Insecure Design
     references:
-    - https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+    - https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     category: security
     technology:
     - jwt
@@ -9302,7 +9302,7 @@ rules:
     owasp:
     - A03:2017 - Sensitive Data Exposure
     - A02:2021 - Cryptographic Failures
-    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+    source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     category: security
     technology:
     - jwt

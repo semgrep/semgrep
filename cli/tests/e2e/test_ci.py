@@ -27,7 +27,7 @@ pytestmark = pytest.mark.kinda_slow
 
 REPO_ORG_NAME = "org_name"
 REPO_DIR_NAME = "project_name"
-AUTHOR_EMAIL = "test_environment@test.r2c.dev"
+AUTHOR_EMAIL = "test_environment@test.semgrep.com"
 AUTHOR_NAME = "Environment Test"
 BRANCH_NAME = "some/branch-name"
 MAIN_BRANCH_NAME = "main"

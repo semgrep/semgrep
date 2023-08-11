@@ -28,7 +28,7 @@
   <a href="https://pypi.org/project/semgrep/">
     <img alt="PyPI" src="https://img.shields.io/pypi/v/semgrep?style=flat-square&color=blue">
   </a>
-  <a href="https://r2c.dev/slack">
+  <a href="https://semgrep.com/slack">
     <img src="https://img.shields.io/badge/slack-join-green?style=flat-square" alt="Issues welcome!" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
@@ -57,7 +57,7 @@ Semgrep supports:
 | --- | ---- | ---------- | ---- | ------ | ----------- | ---------- | --------- | ------------- |
 
 
-Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [r2c.dev](https://r2c.dev/).
+Semgrep is proudly supported by r2c. Learn more about a hosted version of Semgrep with an enterprise feature set at [semgrep.com](https://semgrep.com/).
 
 ## Getting Started
 
@@ -154,7 +154,7 @@ Learn more:
 Get in touch:
 
 - Submit a [bug report](https://github.com/returntocorp/semgrep/issues)
-- Join the [Semgrep Slack](https://r2c.dev/slack) to say "hi" or ask questions
+- Join the [Semgrep Slack](https://semgrep.com/slack) to say "hi" or ask questions
 
 ## Usage
 
@@ -196,14 +196,14 @@ Then check out a few ways you can get involved:
 - Fix a bug — pick from the [good first issues](https://github.com/returntocorp/semgrep/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or work on any of the [currently open bugs](https://github.com/returntocorp/semgrep/issues?q=is%3Aopen+is%3Aissue+label%3Abug)
 - Add a feature — see the [enhancement issues](https://github.com/returntocorp/semgrep/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) for inspiration
 - Update the [docs](https://github.com/returntocorp/semgrep/tree/develop/docs)
-- Help each other in the [community Slack](https://r2c.dev/slack)
+- Help each other in the [community Slack](https://semgrep.com/slack)
 
 Please see the [contribution guidelines](https://github.com/returntocorp/semgrep/blob/develop/doc/README.md) for info about the development workflow, testing, and making PRs.
 
 ## Commercial Support
 
-Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://r2c.dev). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
+Semgrep is a frontend to a larger program analysis library named [`pfff`](https://github.com/returntocorp/pfff/). `pfff` began and was open-sourced at [Facebook](https://github.com/facebookarchive/pfff) but is now archived. The primary maintainer now works at [r2c](https://semgrep.com). Semgrep was originally named `sgrep` and was renamed to avoid collisons with existing projects.
 
-Semgrep is supported by [r2c](https://r2c.dev). We're hiring!
+Semgrep is supported by [r2c](https://semgrep.com). We're hiring!
 
 Interested in a fully-supported, hosted version of Semgrep? [Drop your email](https://forms.gle/dpUUvSo1WtELL8DW6) and we'll be in touch!

@@ -7,7 +7,7 @@
 #   (and not just in Github Actions).
 # - have a cron that update our parsing statistics as well as some benchmarks,
 #   which are then accessible at https://dashboard.semgrep.dev/metrics
-#   and also at https://metabase.corp.r2c.dev/collection/59-semgrep
+#   and also at https://metabase.corp.semgrep.com/collection/59-semgrep
 
 version: 2.1
 
