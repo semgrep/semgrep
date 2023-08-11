@@ -34,3 +34,23 @@ let scan_fail = 14
 
 (* Temporary until either osemgrep dies or replaces semgrep. *)
 let not_implemented_in_osemgrep = 99
+
+let to_message code =
+  match code with
+  | 0 -> "OK"
+  | 1 -> "some findings"
+  | 2 -> "fatal error"
+  | 3 -> "invalid target code"
+  | 4 -> "invalid pattern"
+  | 5 -> "unparseable YAML"
+  | 6 -> "need arbitrary code execution"
+  | 7 -> "missing configuration"
+  | 8 -> "invalid language"
+  | 9 -> "match timeout"
+  | 10 -> "match memory limit exceeded"
+  | 11 -> "lexical error"
+  | 12 -> "too many matches"
+  | 13 -> "invalid API key"
+  | 14 -> "scan failure"
+  | 99 -> "not implemented in osemgrep"
+  | n -> Printf.sprintf "<unknown exit code %i>" n
