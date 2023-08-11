@@ -62,7 +62,8 @@ def login() -> NoReturn:
     click.echo(
         "Login enables additional proprietary Semgrep Registry rules and running custom policies from Semgrep Cloud Platform."
     )
-    click.echo(f"Login at: {url}")
+    click.echo(f"Opening login at: {url}")
+    click.launch(url)
     click.echo(
         "\nOnce you've logged in, return here and you'll be ready to start using new Semgrep rules."
     )
