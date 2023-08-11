@@ -88,12 +88,12 @@ let error rule_id loc msg err =
 
    TODO: why not capture AST_generic.error here? So we could get rid
    of Run_semgrep.exn_to_error wrapper.
-
-   TODO: register exception printers in their modules of origin
-   (using Printexc.register_printer).
- *)
+*)
 let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   match Exception.get_exn e with
+  (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
+     module so that we can use it for the exception printers that are
+     registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.LexicalError)
   | Parsing_error.Syntax_error tok ->

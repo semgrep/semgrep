@@ -109,5 +109,6 @@ let string_of_exn e =
       Some (spf "Parsing_error.Other_error (%s, %s)" msg (p tok))
   | _ -> None
 
-(* val register_exception_printer : unit -> unit *)
-let register_exception_printer () = Printexc.register_printer string_of_exn
+(* It's appropriate to register the exception printers here because they
+   were freshly defined and nobody expects other printers to be active. *)
+let () = Printexc.register_printer string_of_exn
