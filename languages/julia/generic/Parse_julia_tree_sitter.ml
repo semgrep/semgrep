@@ -1853,7 +1853,14 @@ and map_quotable (env : env) (x : CST.quotable) : expr =
             v2)
           v3
       in
-      let base = Seq (v2 :: v3) |> G.e in
+      let base =
+        match v3 with
+        (* This means we would produce a singleton Seq. Let's not do that, and just
+           take the expression itself.
+        *)
+        | [] -> v2
+        | _ -> Seq (v2 :: v3) |> G.e
+      in
       let _v5 =
         match v5 with
         | Some tok -> (* ";" *) Some (token env tok)
