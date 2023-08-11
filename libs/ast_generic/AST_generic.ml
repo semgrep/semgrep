@@ -173,7 +173,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.32.0"
+let version = "1.35.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -589,7 +589,8 @@ and id_info = {
   (* THINK: Drop option? *)
   (* See module 'IdFlags'. *)
   id_flags : id_flags ref;
-      [@equal AST_generic_equals.equal_id_info (fun a b -> a = b)]
+      [@equal
+        AST_generic_equals.equal_id_info (fun f1 f2 -> IdFlags.equal !f1 !f2)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
