@@ -43,6 +43,7 @@ depends: [
   "parmap"
   "uri"
   "uuidm"
+  "tls-lwt"
   "cohttp-lwt-unix"
   "terminal_size"
   "lwt"
