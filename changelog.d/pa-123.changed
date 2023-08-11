@@ -1,0 +1,10 @@
+Reverted a feature in tainting which allowed us to taint nested identifiers
+in patterns (#8216). For example, it allowed this pattern:
+
+```
+fn f ($X: $T1, $Y : $T2) {
+   ...
+}
+```
+
+This was reverted for performance reasons.
