@@ -4,7 +4,7 @@ This folder is for running realistic benchmarks for semgrep, as
 opposed to more focused tests.
 
 The main results can be visualized over time here:
-https://metabase.corp.r2c.dev/question/560-semgrep-bench-all-history
+https://metabase.corp.semgrep.com/question/560-semgrep-bench-all-history
 (this is accessible only to Semgrep employees).
 
 ## Requirements
@@ -51,7 +51,7 @@ dashboard](https://dashboard.semgrep.dev/metrics), for example as
 metrics such as memory usage could be reported in the future.
 
 Then you can use some SQL queries on metabase to slice and dice
-and visualize those metrics (e.g., https://metabase.corp.r2c.dev/question/560-semgrep-bench-all-history )
+and visualize those metrics (e.g., https://metabase.corp.semgrep.com/question/560-semgrep-bench-all-history )
 
 The number of parallel jobs is the maximum number of logical CPUs
 offered by the host as is the default for `semgrep`.

@@ -212,7 +212,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#django.db.models.Func.as_sql
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     pattern: $EXPRESSION.as_sql(...)
     severity: WARNING
   - id: python.django.security.audit.extends-custom-expression.extends-custom-expression
@@ -230,7 +230,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#avoiding-sql-injection
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     patterns:
       - pattern-either:
           - pattern: |
@@ -364,7 +364,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/querysets/#django.db.models.query.QuerySet.extra
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     languages:
       - python
     severity: ERROR
@@ -383,7 +383,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#raw-sql-expressions
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     languages:
       - python
     severity: ERROR
@@ -426,7 +426,7 @@ rules:
       owasp: "A3: Sensitive Data Exposure"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/request-response/#django.http.HttpResponse.set_cookie
-        - https://blog.r2c.dev/2020/bento-check-keeping-cookies-safe-in-flask/
+        - https://blog.semgrep.com/2020/bento-check-keeping-cookies-safe-in-flask/
         - https://bento.dev/checks/flask/secure-set-cookie/
     languages:
       - python

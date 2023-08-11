@@ -82,14 +82,14 @@ def login() -> NoReturn:
                 sys.exit(FATAL_EXIT_CODE)
         elif r.status_code != 404:
             click.echo(
-                f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@semgrep.com if this persists",
                 err=True,
             )
 
         time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
 
     click.echo(
-        f"Failed to login: please check your internet connection or contact support@r2c.dev",
+        f"Failed to login: please check your internet connection or contact support@semgrep.com",
         err=True,
     )
     sys.exit(FATAL_EXIT_CODE)
