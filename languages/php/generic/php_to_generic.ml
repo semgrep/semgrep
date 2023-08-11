@@ -56,7 +56,9 @@ let ident v = wrap string v
 let var v = wrap string v
 let qualified_ident v = list ident v
 
-let name_of_qualified_ident ?(case_insensitive = false) xs =
+(* Note, Funtions and Classes are case insensitive, variables are case
+ * sensitive. *)
+let name_of_qualified_ident ~case_insensitive xs =
   let xs = qualified_ident xs in
   H.name_of_ids ~case_insensitive xs
 
@@ -189,7 +191,7 @@ let rec stmt_aux = function
       |> list (fun (v1, v2) ->
              let v1 = var v1 and v2 = option expr v2 in
              let attrs = [ G.KeywordAttr (G.Static, t) ] in
-             let ent = G.basic_entity v1 ~attrs in
+             let ent = G.basic_entity v1 ~case_insensitive:false ~attrs in
              let def = { G.vinit = v2; vtype = None } in
              G.DefStmt (ent, G.VarDef def) |> G.s)
   | Global (t, v1) ->
@@ -197,7 +199,7 @@ let rec stmt_aux = function
       |> Common.map (fun e ->
              match e with
              | Id [ id ] ->
-                 let ent = G.basic_entity id in
+                 let ent = G.basic_entity ~case_insensitive:false id in
                  G.DefStmt (ent, G.UseOuterDecl t) |> G.s
              | _ ->
                  let e = expr e in
@@ -484,7 +486,7 @@ and array_value v = expr v
 and hint_type = function
   | Hint v1 ->
       let v1 = name v1 in
-      G.TyN (name_of_qualified_ident v1) |> G.t
+      G.TyN (name_of_qualified_ident ~case_insensitive:true v1) |> G.t
   | HintArray t -> G.ty_builtin ("array", t)
   | HintQuestion (t, v1) ->
       let v1 = hint_type v1 in
@@ -584,13 +586,15 @@ and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
 
 and modifier v = wrap modifierbis v
 
+(* TODO: attributes are probably case-insensitive because they refer
+   to class names. This need to be verified. *)
 and attribute v =
   match v with
   | Id xs ->
-      let name = name_of_qualified_ident xs in
+      let name = name_of_qualified_ident ~case_insensitive:true xs in
       G.NamedAttr (fake "@", name, fb [])
   | Call (Id xs, args) ->
-      let name = name_of_qualified_ident xs in
+      let name = name_of_qualified_ident ~case_insensitive:true xs in
       let args = bracket (list argument) args in
       G.NamedAttr (fake "@", name, args)
   | _ -> raise Impossible
@@ -600,7 +604,7 @@ and constant_def { cst_name; cst_body; cst_tok = tok } =
   let id = ident cst_name in
   let body = expr cst_body in
   let attr = [ G.KeywordAttr (G.Const, tok) ] in
-  let ent = G.basic_entity id ~attrs:attr in
+  let ent = G.basic_entity id ~case_insensitive:false ~attrs:attr in
   (ent, { G.vinit = Some body; vtype = None })
 
 and enum_type _tok { e_base; e_constraint } =
@@ -689,7 +693,7 @@ and class_var
   let modifiers =
     list modifier cmodifiers |> Common.map (fun m -> G.KeywordAttr m)
   in
-  let ent = G.basic_entity id ~attrs:modifiers in
+  let ent = G.basic_entity id ~case_insensitive:false ~attrs:modifiers in
   let def = { G.vtype = typ; vinit = value } in
   (ent, def)
 
@@ -698,7 +702,7 @@ and method_def v = func_def v
 and type_def { t_name; t_kind } =
   let id = ident t_name in
   let kind = type_def_kind (snd t_name) t_kind in
-  let ent = G.basic_entity id in
+  let ent = G.basic_entity ~case_insensitive:true id in
   (ent, { G.tbody = kind })
 
 and type_def_kind _tok = function

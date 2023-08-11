@@ -13,6 +13,11 @@
  * LICENSE for more details.
  *)
 
+(* This library implements a bitfield that can be stored as an
+ * immediate in ocaml memory representation. Requiring no memory
+ * indirection. As such, it is an immutable type. It should allow 31-63
+ * boolean flags to be stored without indirection or allocation. *)
+
 type t
 
 val empty : t

@@ -168,9 +168,8 @@ let should_match_call = function
       false
 
 let m_id_string case_insensitive =
-  let open String in
   if case_insensitive then fun a b ->
-    m_string (lowercase_ascii a) (lowercase_ascii b)
+    m_string (String.lowercase_ascii a) (String.lowercase_ascii b)
   else m_string
 
 (*****************************************************************************)
