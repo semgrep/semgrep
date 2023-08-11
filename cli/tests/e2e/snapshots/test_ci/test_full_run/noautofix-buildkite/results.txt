@@ -1,5 +1,5 @@
 === command
-BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" BUILDKITE_BRANCH="some/branch-name" BUILDKITE_BUILD_URL="https://buildkite.build.url/something" BUILDKITE_JOB_ID="42" BUILDKITE_PULL_REQUEST="35" BUILDKITE_BUILD_AUTHOR="Environment Test" BUILDKITE_BUILD_AUTHOR_EMAIL="test_environment@test.r2c.dev" BUILDKITE_MESSAGE="some: commit message! foo" BUILDKITE_COMMIT="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --no-suppress-errors
+BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" BUILDKITE_BRANCH="some/branch-name" BUILDKITE_BUILD_URL="https://buildkite.build.url/something" BUILDKITE_JOB_ID="42" BUILDKITE_PULL_REQUEST="35" BUILDKITE_BUILD_AUTHOR="Environment Test" BUILDKITE_BUILD_AUTHOR_EMAIL="test_environment@test.semgrep.com" BUILDKITE_MESSAGE="some: commit message! foo" BUILDKITE_COMMIT="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --no-suppress-errors
 === end of command
 
 === exit code

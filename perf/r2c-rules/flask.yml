@@ -72,7 +72,7 @@ rules:
       source-rule-url: https://pypi.org/project/flake8-flask/
       references:
         - https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
-        - https://blog.r2c.dev/2020/bento-check-unescaped-template-extensions-in-flask/
+        - https://blog.semgrep.com/2020/bento-check-unescaped-template-extensions-in-flask/
         - https://bento.dev/checks/flask/unescaped-file-extension/
     patterns:
       - pattern-not: flask.render_template("=~/.+\.html$/", ...)
@@ -641,7 +641,7 @@ rules:
       cwe: "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute"
       owasp: "A3: Sensitive Data Exposure"
       references:
-        - https://blog.r2c.dev/2020/bento-check-keeping-cookies-safe-in-flask/
+        - https://blog.semgrep.com/2020/bento-check-keeping-cookies-safe-in-flask/
         - https://bento.dev/checks/flask/secure-set-cookie/
         - https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
     languages:

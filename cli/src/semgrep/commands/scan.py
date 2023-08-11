@@ -518,21 +518,21 @@ _scan_options: List[Callable] = [
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTERFILE,
-        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        help="Inter-file analysis and Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
     ),
     optgroup.option(
         "--pro-intrafile",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_INTRAFILE,
-        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        help="Intra-file inter-procedural taint analysis. Implies --pro-languages. Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
     ),
     optgroup.option(
         "--pro-languages",
         "requested_engine",
         type=EngineType,
         flag_value=EngineType.PRO_LANG,
-        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@r2c.dev for more information on this.",
+        help="Enable Pro languages (currently just Apex). Requires Semgrep Pro Engine, contact support@semgrep.com for more information on this.",
     ),
     optgroup.option(
         "--oss-only",
@@ -663,7 +663,7 @@ def scan_options(func: Callable) -> Callable:
     "--dump-engine-path",
     is_flag=True,
     hidden=True
-    # help="contact support@r2c.dev for more information on this"
+    # help="contact support@semgrep.com for more information on this"
 )
 @scan_options
 @handle_command_errors

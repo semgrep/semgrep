@@ -2706,7 +2706,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
       references:
         - https://cwe.mitre.org/data/definitions/522.html
     message: |
@@ -2931,7 +2931,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     patterns:
       - pattern-either:
           - pattern: |
@@ -3085,7 +3085,7 @@ rules:
     metadata:
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     languages:
       - javascript
     severity: ERROR
@@ -3115,7 +3115,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
       references:
         - https://cwe.mitre.org/data/definitions/522.html
     message: |
@@ -3360,7 +3360,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     patterns:
       - pattern-either:
           - pattern: |
@@ -3416,7 +3416,7 @@ rules:
     metadata:
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     languages:
       - javascript
     severity: ERROR
@@ -4009,7 +4009,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#django.db.models.Func.as_sql
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     pattern: $EXPRESSION.as_sql(...)
     severity: WARNING
   - id: python.django.security.audit.extends-custom-expression.extends-custom-expression
@@ -4027,7 +4027,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#avoiding-sql-injection
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     patterns:
       - pattern-either:
           - pattern: |
@@ -4161,7 +4161,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/querysets/#django.db.models.query.QuerySet.extra
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     languages:
       - python
     severity: ERROR
@@ -4180,7 +4180,7 @@ rules:
       owasp: "A1: Injection"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#raw-sql-expressions
-        - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+        - https://blog.semgrep.com/2020/preventing-sql-injection-a-django-authors-perspective/
     languages:
       - python
     severity: ERROR
@@ -4223,7 +4223,7 @@ rules:
       owasp: "A3: Sensitive Data Exposure"
       references:
         - https://docs.djangoproject.com/en/3.0/ref/request-response/#django.http.HttpResponse.set_cookie
-        - https://blog.r2c.dev/2020/bento-check-keeping-cookies-safe-in-flask/
+        - https://blog.semgrep.com/2020/bento-check-keeping-cookies-safe-in-flask/
         - https://bento.dev/checks/flask/secure-set-cookie/
     languages:
       - python
@@ -5812,7 +5812,7 @@ rules:
       cwe: "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute"
       owasp: "A3: Sensitive Data Exposure"
       references:
-        - https://blog.r2c.dev/2020/bento-check-keeping-cookies-safe-in-flask/
+        - https://blog.semgrep.com/2020/bento-check-keeping-cookies-safe-in-flask/
         - https://bento.dev/checks/flask/secure-set-cookie/
         - https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
     languages:
@@ -6112,7 +6112,7 @@ rules:
       source-rule-url: https://pypi.org/project/flake8-flask/
       references:
         - https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
-        - https://blog.r2c.dev/2020/bento-check-unescaped-template-extensions-in-flask/
+        - https://blog.semgrep.com/2020/bento-check-unescaped-template-extensions-in-flask/
         - https://bento.dev/checks/flask/unescaped-file-extension/
     patterns:
       - pattern-not: flask.render_template("=~/.+\.html$/", ...)
@@ -7126,7 +7126,7 @@ rules:
       owasp: "A2: Broken Authentication"
       source-rule-url: https://pypi.org/project/flake8-flask/
       references:
-        - https://blog.r2c.dev/2020/bento-check-no-auth-over-http/
+        - https://blog.semgrep.com/2020/bento-check-no-auth-over-http/
         - https://bento.dev/checks/requests/no-auth-over-http/
     languages:
       - python

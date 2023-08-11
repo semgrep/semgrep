@@ -8,7 +8,7 @@
   metadata: {
     cwe: 'CWE-522: Insufficiently Protected Credentials',
     owasp: 'A2: Broken Authentication',
-    "source-rule-url": 'https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/',
+    "source-rule-url": 'https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/',
   },
   match: {
    and: [

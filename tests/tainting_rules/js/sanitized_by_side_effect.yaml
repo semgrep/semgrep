@@ -16,7 +16,7 @@ rules:
       category: security
       cwe: "CWE-345: Insufficient Verification of Data Authenticity"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
       technology:
         - jwt
     mode: taint
