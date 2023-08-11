@@ -40,6 +40,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
+  skip_postprocessor_rules : bool;
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;

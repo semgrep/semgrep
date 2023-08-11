@@ -64,6 +64,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
+  skip_postprocessor_rules : bool;
   dump : Dump_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
@@ -141,6 +142,7 @@ let default : conf =
     (* ugly: should be separate subcommands *)
     version = false;
     show_supported_languages = false;
+    skip_postprocessor_rules = false;
     dump = None;
     validate = None;
     test = None;
@@ -568,6 +570,12 @@ let o_show_supported_languages : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_skip_postprocessor_rules : bool Term.t =
+  let info =
+    Arg.info [ "show-supported-languages" ] ~doc:{|Skip post processor rules.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ugly: this should be a separate subcommand, not a flag of semgrep scan *)
 let o_validate : bool Term.t =
   let info =
@@ -684,8 +692,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       max_target_bytes metrics num_jobs nosem optimizations oss pattern pro
       project_root pro_intrafile pro_lang registry_caching replacement
       respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo
-      time_flag timeout timeout_threshold validate version version_check vim =
+      show_supported_languages skip_postprocessor_rules strict target_roots test
+      test_ignore_todo time_flag timeout timeout_threshold validate version
+      version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -941,6 +950,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       (* ugly: *)
       version;
       show_supported_languages;
+      skip_postprocessor_rules;
       dump;
       validate;
       test;
@@ -960,9 +970,9 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
     $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
-    $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
-    $ o_vim)
+    $ o_skip_postprocessor_rules $ o_strict $ o_target_roots $ o_test
+    $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate
+    $ o_version $ o_version_check $ o_vim)
 
 let doc = "run semgrep rules on files"
 

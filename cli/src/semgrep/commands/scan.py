@@ -618,6 +618,11 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     help=("Print a list of languages that are currently supported by Semgrep."),
 )
+@click.option(
+    "--skip-postprocessor-rules",
+    is_flag=True,
+    help=("Skip rules that use the postprocessor"),
+)
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 @optgroup.option(
     "--validate",
@@ -705,6 +710,7 @@ def scan(
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
+    skip_postprocessor_rules: bool,
     strict: bool,
     targets: Sequence[str],
     test: bool,
