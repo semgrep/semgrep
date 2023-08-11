@@ -1,0 +1,1 @@
+Fixed multiprocess testing crash due to new osemgrep entrypoint
