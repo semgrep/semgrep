@@ -1016,7 +1016,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
       references:
         - https://cwe.mitre.org/data/definitions/522.html
     message: |
@@ -1241,7 +1241,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     patterns:
       - pattern-either:
           - pattern: |
@@ -1395,7 +1395,7 @@ rules:
     metadata:
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     languages:
       - javascript
     severity: ERROR
@@ -1425,7 +1425,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
       references:
         - https://cwe.mitre.org/data/definitions/522.html
     message: |
@@ -1670,7 +1670,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     patterns:
       - pattern-either:
           - pattern: |
@@ -1726,7 +1726,7 @@ rules:
     metadata:
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     languages:
       - javascript
     severity: ERROR
@@ -4500,7 +4500,7 @@ rules:
       owasp: "A2: Broken Authentication"
       source-rule-url: https://pypi.org/project/flake8-flask/
       references:
-        - https://blog.r2c.dev/2020/bento-check-no-auth-over-http/
+        - https://blog.semgrep.com/2020/bento-check-no-auth-over-http/
         - https://bento.dev/checks/requests/no-auth-over-http/
     languages:
       - python
@@ -4548,7 +4548,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
       references:
         - https://cwe.mitre.org/data/definitions/522.html
     message: |
@@ -4573,7 +4573,7 @@ rules:
     metadata:
       cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     languages:
       - ruby
     severity: ERROR
@@ -4591,7 +4591,7 @@ rules:
     metadata:
       cwe: "CWE-522: Insufficiently Protected Credentials"
       owasp: "A2: Broken Authentication"
-      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      source-rule-url: https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
     patterns:
       - pattern-inside: |
           require 'jwt'

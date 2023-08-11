@@ -42,7 +42,7 @@ jobs:
       # currently released version of Semgrep Pro Engine.
       - name: Download Semgrep Pro `develop` binary
         run: |
-          aws s3 cp s3://web-assets.r2c.dev/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
+          aws s3 cp s3://web-assets.semgrep.com/assets/semgrep-core-proprietary-manylinux-develop ./semgrep-core-proprietary
       - name: Run Semgrep Pro Engine!
         run: |
           docker run --rm -v "$(pwd):/root" -e SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }} --entrypoint=bash "returntocorp/semgrep:develop" /root/scripts/test-pro.sh

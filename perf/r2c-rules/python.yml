@@ -135,7 +135,7 @@ rules:
       owasp: "A2: Broken Authentication"
       source-rule-url: https://pypi.org/project/flake8-flask/
       references:
-        - https://blog.r2c.dev/2020/bento-check-no-auth-over-http/
+        - https://blog.semgrep.com/2020/bento-check-no-auth-over-http/
         - https://bento.dev/checks/requests/no-auth-over-http/
     languages:
       - python
