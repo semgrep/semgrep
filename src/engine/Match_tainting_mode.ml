@@ -711,7 +711,7 @@ let check_fundef lang options taint_config opt_ent ctx java_props_cache fdef =
            (one customer saw 2 hour scans become over 6 hour long scans).
            We reverted until we understand why the regression happens and
            how to prevent it.
-           See github.com/returntocorp/semgrep-proprietary/pull/900/ *)
+           See https://github.com/returntocorp/semgrep/pull/8442 *)
         | G.ParamPattern _
         | G.ParamRest (_, _)
         | G.ParamHashSplat (_, _)
