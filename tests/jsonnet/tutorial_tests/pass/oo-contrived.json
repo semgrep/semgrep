@@ -1,0 +1,14 @@
+{
+  "Derived": {
+    "f": 5,
+    "g": 105,
+    "old_f": 2,
+    "old_g": 105
+  },
+  "WrapperDerived": {
+    "Base": {
+      "f": 5,
+      "g": 105
+    }
+  }
+}

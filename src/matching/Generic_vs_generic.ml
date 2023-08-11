@@ -22,8 +22,7 @@ open Common
  * but it's easy to be confused on what is a pattern and what is the target,
  * so at least using different G and B helps a bit.
  *
- * subtle: use 'b' to report errors, because 'a' is the sgrep pattern and it
- * has no file information usually.
+ * subtle: use 'b' to report errors, because 'a' is the pattern.
  *)
 module B = AST_generic
 module G = AST_generic
@@ -76,7 +75,7 @@ let hook_find_possible_parents = ref None
 (*****************************************************************************)
 
 let env_add_matched_stmt rightmost_stmt (tin : tin) =
-  [ extend_stmts_match_span rightmost_stmt tin ]
+  [ extend_stmts_matched rightmost_stmt tin ]
 
 (* equivalence: on different indentation
  * todo? work? was copy-pasted from XHP sgrep matcher
@@ -590,14 +589,14 @@ and m_id_info a b =
         G.id_resolved = _a1;
         id_type = _a2;
         id_svalue = _a3;
-        id_hidden = _a4;
+        id_flags = _a4;
         id_info_id = _a5;
       },
       {
         B.id_resolved = _b1;
         id_type = _b2;
         id_svalue = _b3;
-        id_hidden = _b4;
+        id_flags = _b4;
         id_info_id = _b5;
       } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
@@ -2911,6 +2910,39 @@ and m_parameter_list a b =
 
 and m_parameter a b =
   match (a, b) with
+  (* Only match a metavariable unconditionally if it has no other characteristics than
+     being a metavariable.
+     Otherwise, we might match and not check that things like types or default
+     instantiation are the same.
+     Decided not to match ParamRest and ParamHashSplat, and ParamEllipsis, which
+     don't behave like "singular" params.
+  *)
+  | ( G.Param
+        ({
+           pname = Some (str, tok);
+           ptype = None;
+           pdefault = None;
+           pattrs = [];
+           pinfo = _;
+         } as a1),
+      b )
+    when Metavariable.is_metavar_name str -> (
+      match b with
+      | OtherParam _
+      | ParamPattern _
+      | ParamReceiver _ ->
+          envf (str, tok) (MV.Params [ b ])
+      (* We want to first match in the same way `m_parameter_classic` would,
+         to maintain previous behavior.
+         If there are no matches, then we can just unconditionally match.
+      *)
+      | Param b1 ->
+          m_parameter_classic a1 b1 >!> fun () ->
+          envf (str, tok) (MV.Params [ b ])
+      | ParamRest _
+      | ParamHashSplat _
+      | ParamEllipsis _ ->
+          fail ())
   (* boilerplate *)
   | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->

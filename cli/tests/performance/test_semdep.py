@@ -35,6 +35,6 @@ def test_dependency_aware_timing(
         Path(f"targets/dependency_aware/perf/{file_size}/{target}")
     )
     end = time()
-    assert error is None
+    assert len(error) == 0
     exec_time = end - start
     assert exec_time < max_time

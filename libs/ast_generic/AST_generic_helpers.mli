@@ -123,6 +123,11 @@ val first_info_of_any : AST_generic.any -> Tok.t
 val range_of_tokens : Tok.t list -> Tok_range.t
 val range_of_any_opt : AST_generic.any -> (Tok.location * Tok.location) option
 
+val nearest_any_of_pos :
+  AST_generic.program ->
+  int ->
+  (AST_generic.any * (Tok.location * Tok.location)) option
+
 val fix_token_locations_any :
   (Tok.location -> Tok.location) -> AST_generic.any -> AST_generic.any
 

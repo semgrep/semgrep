@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,6 +13,8 @@
  * LICENSE for more details.
  *)
 open Common
+
+(* See the comment in Generic_vs_generic for the choice of B below *)
 module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
@@ -70,12 +72,45 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *   type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
  *)
 
-(* tin is for 'type in' and tout for 'type out' *)
+(* tin is for 'type in' and tout further below for 'type out' *)
 (* incoming environment *)
 type tin = {
+  (* the metavariables already matched in the caller *)
   mv : Metavariable.bindings;
-  stmts_match_span : Stmts_match_span.t;
-  (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  (* This field is for storing the subset of statements that are actually
+   * matched in Match_patterns.match_sts_sts.
+
+   * This hack is needed because when we have stmts patterns (Ss) like
+   *      foo();
+   *      ...
+   *      bar();
+   * there is really an implicit '...' at the end after the 'bar();'. However,
+   * when we match this pattern against a long sequence of statements,
+   * we don't want to return the whole sequence as a match; just the statements
+   * until we find the bar(). Hence this hack.
+   * Note that in Match_patterns.ml we use visit_stmts which visit
+   * sequence of statements repeatidely, because we try the pattern above
+   * on every suffix of the stmts (to emulate an implicit '...' before 'foo();').
+   * Once we find the suffix with 'foo()' as its beginning, we call
+   * match_sts_sts which will be repeatidely called until it finds
+   * a 'bar();' in which case we want to drop the rest of the stmts,
+   * hance this hack.
+   *
+   * alt: we could instead abuse the mv field and store those
+   * statements in a magical "!STMTS!" metavar, but using a
+   * separate field seems cleaner.
+   *
+   * Note that the stmts are stored in reverse order (in the example above,
+   * the stmt with 'bar();' will be at the head of the list).
+   *)
+  stmts_matched : AST_generic.stmt list;
+  (* TODO: this does not have to be in 'tout', because those fields are not
+   * modified, so maybe we should split tin in two and have tout use only one
+   * part of this new tin?
+   * alt: use globals or have an another 'env' parameter in the matcher in
+   * additionto tin instead of passing them through tin (but that's maybe a big
+   * refactoring of Generic_vs_generic).
+   *)
   lang : Lang.t;
   config : Rule_options.t;
   deref_sym_vals : int;
@@ -90,21 +125,14 @@ and tout = tin list
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
+type ('a, 'b) general_matcher = 'a -> 'b -> tin -> tout
+
 (* currently A and B are usually the same type as we use the
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
-type ('a, 'b) general_matcher = 'a -> 'b -> tin -> tout
 type 'a comb_result = tin -> ('a * tout) list
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
-
-(*****************************************************************************)
-(* Globals *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Debugging *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Monadic operators *)
@@ -198,11 +226,9 @@ let ( let* ) o f = o >>= f
 let add_mv_capture key value (env : tin) =
   { env with mv = (key, value) :: env.mv }
 
-let extend_stmts_match_span rightmost_stmt (env : tin) =
-  let stmts_match_span =
-    Stmts_match_span.extend rightmost_stmt env.stmts_match_span
-  in
-  { env with stmts_match_span }
+let extend_stmts_matched rightmost_stmt (env : tin) =
+  let stmts_matched = rightmost_stmt :: env.stmts_matched in
+  { env with stmts_matched }
 
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
@@ -331,10 +357,6 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
         (* valu remains the metavar witness *)
       else None
   | None ->
-      (* 'backrefs' is the set of metavariables that may be referenced later
-         in the pattern. It's inherited from the last stmt pattern,
-         so it might contain a few extra members.
-      *)
       (* first time the metavar is bound, just add it to the environment *)
       Some (add_mv_capture mvar valu tin)
 
@@ -355,7 +377,7 @@ let empty_environment ?(mvar_context = None) lang config =
     | None -> []
     | Some bindings -> bindings
   in
-  { mv; stmts_match_span = Empty; lang; config; deref_sym_vals = 0 }
+  { mv; stmts_matched = []; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)

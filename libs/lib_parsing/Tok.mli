@@ -21,7 +21,7 @@ type location = {
   str : string; (* the content of the token starting at pos *)
   pos : Pos.t;
 }
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 type t =
   (* Token found in the original file *)
@@ -57,7 +57,7 @@ type t =
    * An alternative is to use the t_always_equal special type below.
    *)
   | Ab
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 (* To customize show() dynamically. If you set this to true, AST
  * dumper will display the full token information instead of just a '()'
@@ -68,7 +68,7 @@ val pp_full_token_info : bool ref
  * are actually not automatically derived; Tok.ml provides customized
  * behavior where we assume all tokens are equal.
  * This is used by Semgrep in AST_generic and Raw_tree to be able to
-q * check for equality of big AST constructs (e.g., complex expressions) by not
+ * check for equality of big AST constructs (e.g., complex expressions) by not
  * caring about differences in token positions.
  *)
 type t_always_equal = t [@@deriving show, eq, hash]

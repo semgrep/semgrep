@@ -22,6 +22,50 @@
 
    * Do not pass exceptions around without an accompanying trace.
    * Do not re-raise exceptions using 'raise'.
+
+   When to register exception printers?
+   ====================================
+
+   Custom exception printers are desirable for printing structured exceptions
+   because the default exception printers don't go very deep.
+   This is done with 'Printexc.register_printer'. Two cases should be
+   distinguished:
+
+   1. A freshly defined exception. In this case, we register its exception
+      printer right away i.e. at module initialization time:
+
+        exception Foo of bar
+        let () = Printexc.register_printer (function
+          | Foo x -> Some (...)
+          | _ -> None
+        )
+
+   2. An exception from an external library. In this case, we don't want to
+      override the exception printer silently because other applications
+      using our library may not like it and prefer the original exception
+      printer. For this, we provide a registration function that must be
+      called explicitly so that the user can control which exception printer
+      is active:
+
+        (* Module System_util *)
+
+        let register_exception_printers () =
+          Printexc.register_printer (function
+          | Unix.Unix_error x -> Some (...)
+          | _ -> None
+        )
+
+      Some other module such as the application's entrypoint must call
+      the registration functions:
+
+        (* Module Main *)
+
+        let main () =
+          System_util.register_exception_printers ();
+          ...
+
+        (* Application's entry point *)
+        let () = main ()
 *)
 
 (*

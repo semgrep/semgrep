@@ -129,6 +129,10 @@ a few other projects developed at r2c.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name networking)
+  (synopsis "XXX")
+  (description "XXX")
+)
 
 (package
   (name lib_parsing)
@@ -247,6 +251,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (description "XXX")
 )
 (package (name parser_php)
+  (synopsis "XXX")
+  (description "XXX")
+)
+(package (name parser_promql)
   (synopsis "XXX")
   (description "XXX")
 )
@@ -382,7 +390,13 @@ For more information see https://semsgrep.dev
     stdcompat
     (menhir (= 20211128)) ; Newer versions cause massive build slowdowns
     grain_dypgen
-    base
+
+    ; We don't use Base directly. If it's being used indirectly
+    ; (is it, though?), we need a version that doesn't register
+    ; rogue exception printers.
+    ; See https://github.com/janestreet/base/issues/146
+    (base (>= v0.15.1))
+
     fpath
     alcotest
     ANSITerminal

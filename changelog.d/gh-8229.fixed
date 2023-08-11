@@ -1,2 +1,0 @@
-Dockerfile language support: String matching is now done by contents, treating
-the strings `foo`, `'foo'`, or `"foo"` as equal.

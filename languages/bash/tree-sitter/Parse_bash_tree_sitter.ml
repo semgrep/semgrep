@@ -3,9 +3,6 @@
    to another type of tree.
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27-32"]
-
 open Common
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
@@ -25,7 +22,7 @@ let str = H.str
 
 (* This is used where we incorrectly support an ellipsis instead of
    just a metavariable. *)
-let fresh_metavariable_name =
+let _fresh_metavariable_name =
   let counter = ref 0 in
   let get () =
     let n =
@@ -40,7 +37,7 @@ let fresh_metavariable_name =
    Replace the last element of a list.
    This is usually a sign that something wasn't done right.
 *)
-let map_last l f =
+let _map_last l f =
   match List.rev l with
   | [] -> []
   | last :: other -> List.rev (f last :: other)
@@ -54,8 +51,9 @@ type tmp_stmt =
   | Tmp_pipeline of pipeline
   | Tmp_command of (cmd_redir * unary_control_operator wrap option)
 
+(* TODO? move in AST_bash_builder.ml? *)
 let blist_of_pipeline (pip : pipeline) =
-  let loc = pipeline_loc pip in
+  let loc = AST_bash_loc.pipeline_loc pip in
   Pipelines (loc, [ pip ])
 
 let rec is_empty_blist (blist : blist) =
@@ -77,14 +75,16 @@ let replace_last l replace =
 (* Add a terminator e.g. '&' to the last pipeline of the blist. *)
 let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
     =
-  let term_loc = wrap_loc term in
+  let term_loc = AST_bash_loc.wrap_loc term in
   let rec add_to blist : blist =
     match blist with
-    | Seq (loc, a, b) -> if is_empty_blist b then add_to a else blist
+    | Seq (_loc, a, b) -> if is_empty_blist b then add_to a else blist
     | Pipelines (loc, pipelines) ->
         let pipelines =
           replace_last pipelines (fun pip ->
-              let loc = Tok_range.range (pipeline_loc pip) term_loc in
+              let loc =
+                Tok_range.range (AST_bash_loc.pipeline_loc pip) term_loc
+              in
               [ Control_operator (loc, pip, term) ])
         in
         let loc = Tok_range.range loc term_loc in
@@ -134,11 +134,11 @@ let unary_test_operator (env : env) (tok : ts_tok) : unary_test_operator wrap =
     | "-N" -> Was_modified_since_last_read
     | "-O" -> Is_owned_by_effective_user_id
     | "-S" -> Is_socket
-    | other -> Other_unary_test_operator
+    | _other -> Other_unary_test_operator
   in
   (op, tok)
 
-let binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
+let _binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
   let s, tok = str env tok in
   let op =
     match s with
@@ -156,22 +156,22 @@ let binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
     | "-le" -> Int_lesser_equal
     | "-gt" -> Int_greater_than
     | "-ge" -> Int_greater_equal
-    | other -> Other_binary_test_operator
+    | _other -> Other_binary_test_operator
   in
   (op, tok)
 
-let string_content (env : env) (tok : CST.string_content) : string wrap =
+let _string_content (env : env) (tok : CST.string_content) : string wrap =
   str env tok
 
-let simple_heredoc_body (env : env) (tok : CST.simple_heredoc_body) :
+let _simple_heredoc_body (env : env) (tok : CST.simple_heredoc_body) :
     string wrap =
   str env tok
 
-let ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
+let _ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
   (* pattern "\\$'([^']|\\\\')*'" *)
   str env tok
 
-let variable_name (env : env) (tok : CST.variable_name) : string wrap =
+let _variable_name (env : env) (tok : CST.variable_name) : string wrap =
   str env tok
 
 let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
@@ -181,15 +181,15 @@ let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
   | `LF tok -> (Foreground Fg_newline, token env tok (* "\n" *))
   | `AMP tok -> (Background, token env tok (* "&" *))
 
-let empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
-let file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
+let _empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
+let _file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
 
 (* file_descriptor *)
 
-let concat (_env : env) (_tok : CST.concat) : unit = ()
+let _concat (_env : env) (_tok : CST.concat) : unit = ()
 
 (* -e, -z, etc. *)
-let test_operator (env : env) (tok : CST.test_operator) : string wrap =
+let _test_operator (env : env) (tok : CST.test_operator) : string wrap =
   str env tok
 
 let simple_variable_name (env : env) (x : CST.simple_variable_name) :
@@ -211,7 +211,7 @@ let special_variable_name (env : env) (x : CST.special_variable_name) :
     | `X_0 tok -> str env tok (* "0" *)
     | `X__ tok -> (* "_" *) str env tok)
 
-let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
+let _heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
   token env tok
 
 let word (env : env) (tok : CST.word) : expression =
@@ -226,19 +226,19 @@ let extended_word (env : env) (x : CST.extended_word) =
   | `Semg_meta tok -> Var_semgrep_metavar (str env tok)
   | `Word tok -> Simple_variable_name (str env tok)
 
-let heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
+let _heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
 
-let raw_string (env : env) (tok : CST.raw_string) : string wrap =
+let _raw_string (env : env) (tok : CST.raw_string) : string wrap =
   (* pattern "'[^']*'" *)
   str env tok
 
-let regex (env : env) (tok : CST.regex) = token env tok
-let heredoc_body_end (env : env) (tok : CST.heredoc_body_end) = token env tok
+let _regex (env : env) (tok : CST.regex) = token env tok
+let _heredoc_body_end (env : env) (tok : CST.heredoc_body_end) = token env tok
 
-let heredoc_body_middle (env : env) (tok : CST.heredoc_body_middle) =
+let _heredoc_body_middle (env : env) (tok : CST.heredoc_body_middle) =
   token env tok
 
-let special_character (env : env) (tok : CST.special_character) : string wrap =
+let _special_character (env : env) (tok : CST.special_character) : string wrap =
   str env tok
 
 let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
@@ -264,7 +264,7 @@ let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
         | `BANG tok -> Special_variable_name (str env tok (* "!" *))
         | `HASH tok -> Special_variable_name (str env tok (* "#" *))
       in
-      let name_s, name_tok = variable_name_wrap var_name in
+      let _name_s, name_tok = variable_name_wrap var_name in
       let loc = (dollar_tok, name_tok) in
       match env.extra with
       | Pattern -> (
@@ -321,7 +321,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
   match x with
   | `Exp_choice_EQ_exp (v1, v2, v3) ->
       let left = expression env v1 in
-      let op =
+      let _opTODO =
         match v2 with
         | `EQ tok -> token env tok (* "=" *)
         | `EQEQ tok -> token env tok (* "==" *)
@@ -341,7 +341,9 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
       in
       let right = expression env v3 in
       T_todo
-        (Tok_range.range (test_expression_loc left) (test_expression_loc right))
+        (Tok_range.range
+           (AST_bash_loc.test_expression_loc left)
+           (AST_bash_loc.test_expression_loc right))
   | `Exp_choice_EQEQ_regex (v1, v2, v3) ->
       let left = expression env v1 in
       let _op =
@@ -351,7 +353,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
       in
 
       let right = token env v3 (* regex *) in
-      T_todo (fst (test_expression_loc left), right)
+      T_todo (fst (AST_bash_loc.test_expression_loc left), right)
 
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
   let first_pattern = literal env v1 in
@@ -380,7 +382,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
             let tok = token env tok (* ";;&" *) in
             (Try_next tok, tok))
   in
-  let loc = (fst (expression_loc first_pattern), end_tok) in
+  let loc = (fst (AST_bash_loc.expression_loc first_pattern), end_tok) in
   (loc, patterns, paren, case_body, Some terminator)
 
 and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
@@ -410,19 +412,21 @@ and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
               match v2 with
               | `Choice_conc x ->
                   let e = literal env x in
-                  Literal (expression_loc e, e)
+                  Literal (AST_bash_loc.expression_loc e, e)
               | `Regex tok -> (* regex *) Regexp (str env tok)
             in
             let loc =
-              Tok_range.range (eq_op_loc eq) (right_eq_operand_loc right)
+              Tok_range.range
+                (AST_bash_loc.eq_op_loc eq)
+                (AST_bash_loc.right_eq_operand_loc right)
             in
             Equality_test (loc, eq, right))
       v3
   in
   let arguments = name :: args in
   let loc =
-    let loc1 = Tok_range.of_list assignment_loc assignments in
-    let loc2 = Tok_range.of_list expression_loc arguments in
+    let loc1 = Tok_range.of_list AST_bash_loc.assignment_loc assignments in
+    let loc2 = Tok_range.of_list AST_bash_loc.expression_loc arguments in
     Tok_range.of_locs [ loc1; loc2 ]
   in
   let command = Simple_command { loc; assignments; arguments } in
@@ -432,12 +436,12 @@ and command_name (env : env) (x : CST.command_name) : expression =
   match x with
   | `Conc x ->
       let el = concatenation env x in
-      let loc = Tok_range.of_list expression_loc el in
+      let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       Concatenation (loc, el)
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
       let el = Common.map (fun tok -> Special_character (str env tok)) xs in
-      let loc = Tok_range.of_list expression_loc el in
+      let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       Concatenation (loc, el)
 
 and command_substitution (env : env) (x : CST.command_substitution) :
@@ -510,7 +514,7 @@ and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
     | Some x -> statements2 env x
     | None -> Empty (then_, then_)
   in
-  let loc = (elif, snd (blist_loc body)) in
+  let loc = (elif, snd (AST_bash_loc.blist_loc body)) in
   (loc, elif, cond, then_, body)
 
 and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
@@ -520,7 +524,7 @@ and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
     | Some x -> statements2 env x
     | None -> Empty (else_, else_)
   in
-  let loc = (else_, snd (blist_loc body)) in
+  let loc = (else_, snd (AST_bash_loc.blist_loc body)) in
   (loc, else_, body)
 
 and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
@@ -591,7 +595,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
   let complex_expansion =
     match opt_variable with
     | Some var ->
-        let loc = variable_name_loc var in
+        let loc = AST_bash_loc.variable_name_loc var in
         Variable (loc, var)
     | None ->
         let loc = (open_, close) in
@@ -610,10 +614,10 @@ and expression (env : env) (x : CST.expression) : test_expression =
   match x with
   | `Choice_conc x ->
       let e = literal env x in
-      T_expr (expression_loc e, e)
+      T_expr (AST_bash_loc.expression_loc e, e)
   | `Un_exp (v1, v2) -> (
       let e = expression env v2 in
-      let e_loc = test_expression_loc e in
+      let e_loc = AST_bash_loc.test_expression_loc e in
       match v1 with
       | `BANG tok ->
           let bang = token env tok in
@@ -633,11 +637,11 @@ and expression (env : env) (x : CST.expression) : test_expression =
       (* This is a construct valid in arithmetic mode only. *)
       let cond = expression env v1 in
       let _v2 = token env v2 (* "?" *) in
-      let branch1 = expression env v3 in
+      let _branch1TODO = expression env v3 in
       let _v4 = token env v4 (* ":" *) in
       let branch2 = expression env v5 in
-      let start, _ = test_expression_loc cond in
-      let _, end_ = test_expression_loc branch2 in
+      let start, _ = AST_bash_loc.test_expression_loc cond in
+      let _, end_ = AST_bash_loc.test_expression_loc branch2 in
       let loc = (start, end_) in
       T_todo loc
   | `Bin_exp x -> binary_expression env x
@@ -649,7 +653,7 @@ and expression (env : env) (x : CST.expression) : test_expression =
         | `PLUSPLUS tok -> (* "++" *) token env tok
         | `DASHDASH tok -> (* "--" *) token env tok
       in
-      let start, _ = test_expression_loc e in
+      let start, _ = AST_bash_loc.test_expression_loc e in
       let loc = (start, op_tok) in
       T_todo loc
   | `Paren_exp (v1, v2, v3) ->
@@ -671,7 +675,7 @@ and file_redir_target (x : expression) : file_redir_target =
 and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
   let target_e = literal env v3 in
   let target = target_e |> file_redir_target in
-  let loc = ref (expression_loc target_e) in
+  let loc = ref (AST_bash_loc.expression_loc target_e) in
   let update_loc tok = loc := Tok_range.extend !loc tok in
   let opt_src_fd : write_redir_src option =
     match v1 with
@@ -734,7 +738,7 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
         let tok = token2 env tok (* ">|" *) in
         Write (src_fd1 tok, (Write_force_truncate, tok), target)
   in
-  let loc = Tok_range.union !loc (expression_loc target_e) in
+  let loc = Tok_range.union !loc (AST_bash_loc.expression_loc target_e) in
   File_redirect (loc, file_redir)
 
 and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
@@ -762,7 +766,7 @@ and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
 and herestring_redirect (env : env) ((v1, v2) : CST.herestring_redirect) =
   let op = token env v1 (* "<<<" *) in
   let e = literal env v2 in
-  let loc = (op, snd (expression_loc e)) in
+  let loc = (op, snd (AST_bash_loc.expression_loc e)) in
   TODO loc
 
 (* This is the same as case_item except for the optional terminator. *)
@@ -784,23 +788,23 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
     | Some tok ->
         let tok = token env tok (* ";;" *) in
         (Some (Break tok), tok)
-    | None -> (None, snd (blist_loc case_body))
+    | None -> (None, snd (AST_bash_loc.blist_loc case_body))
   in
-  let loc = (fst (expression_loc first_pattern), end_tok) in
+  let loc = (fst (AST_bash_loc.expression_loc first_pattern), end_tok) in
   (loc, patterns, paren, case_body, opt_terminator)
 
 and literal (env : env) (x : CST.literal) : expression =
   match x with
   | `Conc x -> (
       let el = concatenation env x in
-      let loc = Tok_range.of_list expression_loc el in
+      let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
       let el = Common.map (fun tok -> Special_character (str env tok)) xs in
-      let loc = Tok_range.of_list expression_loc el in
+      let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
@@ -822,14 +826,14 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
           Ansii_c_string (str env tok (* pattern "\\$'([^']|\\\\')*'" *))
       | `Expa x ->
           let e = expansion env x in
-          let loc = bracket_loc e in
+          let loc = AST_bash_loc.bracket_loc e in
           String_fragment (loc, Expansion (loc, Complex_expansion e))
       | `Simple_expa x ->
           let frag = simple_expansion env x in
-          let loc = string_fragment_loc frag in
+          let loc = AST_bash_loc.string_fragment_loc frag in
           String_fragment (loc, frag)
       | `Str_expa (v1, v2) ->
-          let dollar = token env v1 (* "$" *) in
+          let _dollarTODO = token env v1 (* "$" *) in
           let e =
             match v2 with
             | `Str x ->
@@ -844,7 +848,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
           e
       | `Cmd_subs x ->
           let frag = Command_substitution (command_substitution env x) in
-          let loc = string_fragment_loc frag in
+          let loc = AST_bash_loc.string_fragment_loc frag in
           String_fragment (loc, frag)
       | `Proc_subs (v1, v2, v3) ->
           let open_ =
@@ -869,14 +873,14 @@ and program (env : env) ~tok (opt : CST.program) : blist =
 *)
 and blist_statement (env : env) (x : CST.statement) : blist =
   match statement env x with
-  | Tmp_pipeline x -> Pipelines (pipeline_loc x, [ x ])
+  | Tmp_pipeline x -> Pipelines (AST_bash_loc.pipeline_loc x, [ x ])
   | Tmp_command (cmd_r, control_op) -> (
-      let loc = cmd_redir_loc cmd_r in
+      let loc = AST_bash_loc.cmd_redir_loc cmd_r in
       let cmd = Command cmd_r in
       match control_op with
       | None -> Pipelines (loc, [ cmd ])
       | Some op ->
-          let _, end_ = wrap_loc op in
+          let _, end_ = AST_bash_loc.wrap_loc op in
           let loc2 = (fst loc, end_) in
           Pipelines (loc2, [ Control_operator (loc2, cmd, op) ]))
 
@@ -888,13 +892,14 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
   match statement env x with
   | Tmp_pipeline x -> x
   | Tmp_command (cmd_r, control_op) -> (
-      let loc = cmd_redir_loc cmd_r in
+      let loc = AST_bash_loc.cmd_redir_loc cmd_r in
       let cmd = Command cmd_r in
       match control_op with
       | None -> cmd
       | Some op ->
-          let _, end_ = wrap_loc op in
-          let loc2 = (fst loc, end_) in
+          let _, end_ = AST_bash_loc.wrap_loc op in
+          (* TODO? should use loc2 below? martin? *)
+          let _loc2 = (fst loc, end_) in
           Control_operator (loc, cmd, op))
 
 (*
@@ -937,12 +942,15 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
                 None)
           v2
       in
-      let pip = add_redirects_to_last_command_of_pipeline pip redirects in
+      let pip =
+        AST_bash_builder.add_redirects_to_last_command_of_pipeline pip redirects
+      in
       Tmp_pipeline pip
   | `Var_assign x ->
       let a = variable_assignment env x in
       let command = Assignment a in
-      Tmp_command ({ loc = assignment_loc a; command; redirects = [] }, None)
+      Tmp_command
+        ({ loc = AST_bash_loc.assignment_loc a; command; redirects = [] }, None)
   | `Cmd x -> Tmp_command (command env x, None)
   | `Decl_cmd (v1, v2) ->
       let (attrs1 : declaration_attribute wrap list), tok =
@@ -984,16 +992,16 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
                      last_tok := tok
                  | e ->
                      Common.push e unknowns;
-                     last_tok := snd (expression_loc e))
+                     last_tok := snd (AST_bash_loc.expression_loc e))
              | `Choice_semg_meta x ->
                  (* x, $X *)
                  let var = simple_variable_name env x in
-                 last_tok := variable_name_loc var |> snd;
+                 last_tok := AST_bash_loc.variable_name_loc var |> snd;
                  Common.push var decls
              | `Var_assign x ->
                  (* x=42, $X=42 *)
                  let assign = variable_assignment env x in
-                 last_tok := assignment_loc assign |> snd;
+                 last_tok := AST_bash_loc.assignment_loc assign |> snd;
                  Common.push assign assigns);
       let decls = List.rev !decls in
       let assigns = List.rev !assigns in
@@ -1030,7 +1038,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
              | `Choice_conc x ->
                  let e = literal env x in
                  Common.push e unknowns;
-                 last_tok := expression_loc e |> snd
+                 last_tok := AST_bash_loc.expression_loc e |> snd
              | `Choice_semg_meta tok ->
                  let var = simple_variable_name env tok in
                  Common.push var decls;
@@ -1049,7 +1057,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Test_cmd x ->
       let command = test_command env x in
-      let loc = command_loc command in
+      let loc = AST_bash_loc.command_loc command in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Nega_cmd (v1, v2) ->
       let excl = token env v1 (* "!" *) in
@@ -1060,11 +1068,11 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             (loc, command, redirects)
         | `Test_cmd x ->
             let command = test_command env x in
-            let loc = command_loc command in
+            let loc = AST_bash_loc.command_loc command in
             (loc, command, [])
         | `Subs x ->
             let sub = subshell env x in
-            let loc = bracket_loc sub in
+            let loc = AST_bash_loc.bracket_loc sub in
             (loc, Subshell (loc, sub), [])
       in
       let loc = Tok_range.extend loc excl in
@@ -1098,7 +1106,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let for_ = token env v1 (* "for" *) in
-      let header_open_ = token env v2 (* "((" *) in
+      let _header_open_ = token env v2 (* "((" *) in
       let _x () =
         match v3 with
         | Some x -> expression env x
@@ -1116,13 +1124,13 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> expression env x
         | None -> todo env ()
       in
-      let header_close = token env v8 (* "))" *) in
+      let _header_close = token env v8 (* "))" *) in
       let _x () =
         match v9 with
         | Some tok -> token env tok (* ";" *)
         | None -> todo env ()
       in
-      let body_open, body, body_close =
+      let _body_open, body, body_close =
         match v10 with
         | `Do_group x -> do_group env x
         | `Comp_stmt x -> compound_statement env x
@@ -1195,7 +1203,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | `BARAMP tok -> (Bar_ampersand, token env tok (* "|&" *))
       in
       let extra_cmd, control_op = command_statement env v3 in
-      let start, _ = pipeline_loc left_pipeline in
+      let start, _ = AST_bash_loc.pipeline_loc left_pipeline in
       let _, end_ = extra_cmd.loc in
       let loc = (start, end_) in
       let pipeline = Pipeline (loc, left_pipeline, bar, extra_cmd) in
@@ -1210,7 +1218,11 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
   | `List (v1, v2, v3) ->
       let left = pipeline_statement env v1 in
       let right = pipeline_statement env v3 in
-      let loc = Tok_range.range (pipeline_loc left) (pipeline_loc right) in
+      let loc =
+        Tok_range.range
+          (AST_bash_loc.pipeline_loc left)
+          (AST_bash_loc.pipeline_loc right)
+      in
       let command =
         match v2 with
         | `AMPAMP tok -> And (loc, left, token env tok, right)
@@ -1219,12 +1231,12 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Subs x ->
       let sub = subshell env x in
-      let loc = bracket_loc sub in
+      let loc = AST_bash_loc.bracket_loc sub in
       let command = Subshell (loc, sub) in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Comp_stmt x ->
       let res = compound_statement env x in
-      let loc = bracket_loc res in
+      let loc = AST_bash_loc.bracket_loc res in
       let command = Command_group (loc, res) in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Func_defi (v1, v2) ->
@@ -1252,18 +1264,20 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         match v2 with
         | `Comp_stmt x ->
             let br = compound_statement env x in
-            Command_group (bracket_loc br, br)
+            Command_group (AST_bash_loc.bracket_loc br, br)
         | `Subs x ->
             let br = subshell env x in
-            Subshell (bracket_loc br, br)
+            Subshell (AST_bash_loc.bracket_loc br, br)
         | `Test_cmd x -> test_command env x
       in
-      let loc = Tok_range.extend (command_loc body) start in
+      let loc = Tok_range.extend (AST_bash_loc.command_loc body) start in
       let command = Function_definition (loc, { loc; function_; name; body }) in
       Tmp_command ({ loc; command; redirects = [] }, None)
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
-  let blist = Common.map (stmt_with_opt_heredoc env) v1 |> concat_blists in
+  let blist =
+    Common.map (stmt_with_opt_heredoc env) v1 |> AST_bash_builder.concat_blists
+  in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
   let last_blist = blist_statement env v2 in
@@ -1286,11 +1300,15 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
     | None -> last_blist
     | Some term -> add_terminator_to_blist last_blist term
   in
-  let loc = Tok_range.range (blist_loc blist) (blist_loc last_blist) in
+  let loc =
+    Tok_range.range
+      (AST_bash_loc.blist_loc blist)
+      (AST_bash_loc.blist_loc last_blist)
+  in
   Seq (loc, blist, last_blist)
 
 and statements2 (env : env) (xs : CST.statements2) : blist =
-  Common.map (stmt_with_opt_heredoc env) xs |> concat_blists
+  Common.map (stmt_with_opt_heredoc env) xs |> AST_bash_builder.concat_blists
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     string_fragment list bracket =
@@ -1312,7 +1330,7 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
               dollar @ content
           | `Expa x ->
               let e = expansion env x in
-              let loc = bracket_loc e in
+              let loc = AST_bash_loc.bracket_loc e in
               [ Expansion (loc, Complex_expansion e) ]
           | `Simple_expa x ->
               let frag = simple_expansion env x in
@@ -1363,7 +1381,7 @@ and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) :
     pipeline =
   let pip = pipeline_statement env v1 in
   let op = terminator env v2 in
-  Control_operator (pipeline_loc pip, pip, op)
+  Control_operator (AST_bash_loc.pipeline_loc pip, pip, op)
 
 and test_command (env : env) (v1 : CST.test_command) : command =
   match v1 with
@@ -1381,7 +1399,7 @@ and test_command (env : env) (v1 : CST.test_command) : command =
       Bash_test (loc, (open_, e, close))
   | `LPARLPAR_exp_RPARRPAR (v1, v2, v3) ->
       let open_ = token env v1 (* "((" *) in
-      let e = expression env v2 in
+      let _eTODO = expression env v2 in
       let close = token env v3 (* "))" *) in
       let loc = (open_, close) in
       Arithmetic_expression (loc, (open_, TODO loc, close))
@@ -1434,7 +1452,7 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
         (var, assign_op, v3)
   in
   let rhs = right_hand_side env rhs in
-  let loc = (snd lhs, snd (expression_loc rhs)) in
+  let loc = (snd lhs, snd (AST_bash_loc.expression_loc rhs)) in
   { loc; lhs; assign_op; rhs }
 
 and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
@@ -1447,7 +1465,7 @@ and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
       Empty_expression loc
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
 let parse file =

@@ -1,0 +1,64 @@
+{
+  "Happy Hour Bloody Mary": {
+    "garnish": "Celery salt & pepper",
+    "ingredients": [
+      {
+        "kind": "Vodka",
+        "qty": 1.5
+      },
+      {
+        "kind": "Tomato Juice",
+        "qty": 3
+      },
+      {
+        "kind": "Lemon Juice",
+        "qty": 1.5
+      },
+      {
+        "kind": "Worcestershire",
+        "qty": 0.25
+      },
+      {
+        "kind": "Tobasco Sauce",
+        "qty": 0.15
+      }
+    ],
+    "served": "Tall"
+  },
+  "Happy Hour Mimosa": {
+    "garnish": "Orange Slice",
+    "ingredients": [
+      {
+        "kind": "Cheap Sparkling Wine",
+        "qty": 3
+      },
+      {
+        "kind": "Orange Juice",
+        "qty": 3
+      }
+    ],
+    "served": "Champagne Flute"
+  },
+  "Happy Hour Pina Colada": {
+    "garnish": "Pineapple slice",
+    "ingredients": [
+      {
+        "kind": "Rum",
+        "qty": 3
+      },
+      {
+        "kind": "Pineapple Juice",
+        "qty": 6
+      },
+      {
+        "kind": "Coconut Cream",
+        "qty": 2
+      },
+      {
+        "kind": "Ice",
+        "qty": 12
+      }
+    ],
+    "served": "Frozen"
+  }
+}

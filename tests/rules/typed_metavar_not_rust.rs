@@ -18,3 +18,9 @@ async fn index(form: web::Form<MyForm>,
         response.body("default string".to_string()),
     }
 }
+
+async fn index2() -> impl Responder {
+    let response: HttpResponseBuilder = get_response();
+    // ruleid: no-direct-response-write
+    response.body(msg)
+}

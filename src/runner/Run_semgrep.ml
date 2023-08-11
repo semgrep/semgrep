@@ -290,7 +290,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> Common.map (fun (((rule_id : Rule.rule_id), _pat), n) ->
+             |> Common.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
                     let details =
                       spf
                         "found %i matches for rule %s, which exceeds the \
@@ -382,7 +382,7 @@ let parse_pattern lang_pattern str =
            (R.InvalidRule
               ( R.InvalidPattern
                   (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-                Rule.ID.of_string "no-id",
+                Rule_ID.of_string "no-id",
                 Tok.unsafe_fake_tok "no loc" )))
   [@@profiling]
 
@@ -541,7 +541,7 @@ let mk_rule_table (rules : Rule.t list) (list_of_rule_ids : string list) :
   in
   let id_pairs =
     list_of_rule_ids
-    |> Common.mapi (fun i x -> (i, Rule.ID.of_string x))
+    |> Common.mapi (fun i x -> (i, Rule_ID.of_string x))
     (* We filter out rules here if they don't exist, because we might have a
      * rule_id for an extract mode rule, but extract mode rules won't appear in
      * rule pairs, because they won't be in the table we make for search
@@ -592,7 +592,7 @@ let xtarget_of_file (config : Runner_config.t) (xlang : Xlang.t)
  * by using the include/exclude fields.).
  *)
 let targets_of_config (config : Runner_config.t)
-    (all_rule_ids_when_no_target_file : Rule.rule_id list) :
+    (all_rule_ids_when_no_target_file : Rule_ID.t list) :
     In.targets * Out.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
@@ -669,7 +669,8 @@ let extracted_targets_of_config (config : Runner_config.t)
         | `Extract _ as e -> Some ({ r with mode = e } : Rule.extract_rule)
         | `Search _
         | `Taint _
-        | `Step _ ->
+        | `Steps _
+        | `Secrets _ ->
             None)
       all_rules
   in
@@ -766,14 +767,16 @@ let semgrep_with_rules ?match_hook config
              target.In.rule_nums
              |> Common.map_filter (fun r_num ->
                     Hashtbl.find_opt rule_table r_num)
-             (* Don't run the extract rules
+             (* Don't run the extract and secrets rules
                 Note: we can't filter this out earlier because the rule indexes need to be stable *)
              |> List.filter (fun r ->
                     match r.R.mode with
-                    | `Extract _ -> false
+                    | `Extract _
+                    | `Secrets _ ->
+                        false
                     | `Search _
                     | `Taint _
-                    | `Step _ ->
+                    | `Steps _ ->
                         true)
              |> List.filter (fun r ->
                     (* TODO: some of this is already done in pysemgrep, so maybe
@@ -947,7 +950,7 @@ let semgrep_with_rules_and_formatted_output config =
 
 let minirule_of_pattern lang pattern_string pattern =
   {
-    MR.id = Rule.ID.of_string "anon-pattern";
+    MR.id = Rule_ID.of_string "anon-pattern";
     pattern_string;
     pattern;
     inside = false;

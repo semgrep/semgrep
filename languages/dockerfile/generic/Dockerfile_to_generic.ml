@@ -4,6 +4,11 @@
 
 module G = AST_generic
 open AST_dockerfile
+module DLoc = AST_dockerfile_loc
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 type env = AST_bash.input_kind
 
@@ -32,6 +37,10 @@ let make_hidden_function loc name : G.expr =
   let id = "!dockerfile_" ^ name ^ "!" in
   let id_info = G.empty_id_info ~hidden:true () in
   G.N (G.Id ((id, fst loc), id_info)) |> G.e
+
+(*****************************************************************************)
+(* Converters *)
+(*****************************************************************************)
 
 let call_shell loc (shell_compat : shell_compatibility) args =
   let shell_name =
@@ -160,11 +169,12 @@ let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
   | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
+      (* !!! Calling Bash_to_generic !!! *)
       let args = Bash_to_generic.program_with_env env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
   | Other_shell_command (shell_compat, code) ->
       let args = [ unquoted_string_expr code ] in
-      let loc = wrap_loc code in
+      let loc = DLoc.wrap_loc code in
       [ call_shell loc shell_compat args ]
 
 let param_arg (x : param) : G.argument =
@@ -369,10 +379,14 @@ let instruction env (x : instruction) : G.stmt =
   let expr = instruction_expr env x in
   match expr.e with
   | StmtExpr stmt -> stmt
-  | _ -> stmt_of_expr (instruction_loc x) expr
+  | _ -> stmt_of_expr (DLoc.instruction_loc x) expr
 
 let program_with_env (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let any (x : program) : G.any = G.Ss (program_with_env AST_bash.Pattern x)
 let program (x : program) : G.program = program_with_env AST_bash.Program x

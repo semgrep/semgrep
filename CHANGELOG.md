@@ -6,6 +6,162 @@
 
 <!-- insertion point -->
 
+## [1.34.1](https://github.com/returntocorp/semgrep/releases/tag/v1.34.1) - 2023-07-28
+
+### Added
+
+- feat(eval): add "parse_promql_duration" function to convert a `promql` duration into milliseconds. This makes it possible to write comparisons like this:
+
+  ````
+  - metavariable-comparison:
+      metavariable: $RANGE
+      comparison: parse_promql_duration(str($RANGE)) > parse_promql_duration("1d")
+  ``` (gh-8381)
+  ````
+
+### Fixed
+
+- fix(yaml): fix captures for sequences that contain mappings (gh-8388)
+
+## [1.34.0](https://github.com/returntocorp/semgrep/releases/tag/v1.34.0) - 2023-07-27
+
+### Added
+
+- Added support for naming propagation when the left-hand side (lhs) of a variable definition is an identifier pattern
+
+  In certain languages like Rust, the variable definition is parsed as a pattern assignment, for example:
+
+  ```
+  let x: SomeType = SomeFunction();
+  ```
+
+  This commit ensures that the annotated type is propagated to the identifier pattern on the left-hand side (lhs) of the assignment, thus ensuring proper naming behavior. (gh-8365)
+
+- feat(metavar type): Metavariable type support for Julia
+
+  Metavariable type is supported for Julia. (gh-8367)
+
+- New --legacy flag to force the use of the old Python implementation of
+  Semgrep (also known as 'pysemgrep'). Note that by default most semgrep
+  commands are still using the Python implementation (except 'semgrep
+  interactive'), so in practice you don't need to add this flag, but as
+  we port more commands to OCaml, the new --legacy flag might be useful
+  if you find some regressions. (legacy)
+- Matching: Added the ability to use metavariables in parameters to match more
+  sophisticated kinds of parameters.
+
+  In particular, metavariables should now be able to match `self` parameters,
+  such as in Rust.
+
+  So `fn $F($X, ...) { ... }` should match `fn $F(self) { }`. (pa-2937)
+
+- taint-mode: Added **experimental** `control: true` option to `pattern-sources`,
+  e.g.:
+
+  ```yaml
+  pattern-sources:
+    - control: true
+      pattern: source(...)
+  ```
+
+  Such sources taint the "control flow" (or the program counter) so that it is
+  possible to implement reachability queries that do not require the flow of any
+  data. Thus, Semgrep reports a finding in the code below, because after `source()`
+  the flow of control will reach `sink()`, even if no data is flowing between both:
+
+  ````python
+  def test():
+    source()
+    foo()
+    bar()
+    #ruleid: test
+    sink()
+  ``` (pa-2958)
+  ````
+
+- taint-mode: Taint sanitizers will be included in matching explanations. (pa-2975)
+
+### Changed
+
+- Started using ATD to define the schema for data sent to the /complete endpoint of semgrep app (app-4255)
+- Targets in a `.yarn/` directory are now ignored by the default .semgrepignore patterns. (dotyarn)
+
+### Fixed
+
+- Aliengrep mode: Fix whitespace bug preventing correct matching of parentheses. (gh-7990)
+- yaml: exclude style markers from matched token in block scalars (gh-8348)
+- Fixed stack overflow caused by symbolic propagation. (pa-2933)
+- Rust: Macro calls which involve dereferencing and reference operators
+  (such as `foo!(&x)` and `foo!(*x)`) now properly transmit taint (pa-2951)
+- Semgrep no longer crashes when running --test (pa-2963)
+- Exceptions raised during parsing of manifest files no longer interrupt general parser execution, which previously prevented lockfile parsing if a manifest failed to parse. (sc-exceptions)
+
+## [1.33.2](https://github.com/returntocorp/semgrep/releases/tag/v1.33.2) - 2023-07-21
+
+No significant changes.
+
+## [1.33.1](https://github.com/returntocorp/semgrep/releases/tag/v1.33.1) - 2023-07-21
+
+### Added
+
+- Rust: Added support for ellipsis patterns in attribute argument position. (e.g. `#[get(...)]`) (gh-8234)
+- Promql: Initial language support (gh-8281)
+- `.h` files will now run when C or C++ are selected as the language. (pa-123)
+- `.cjs` and `.mjs` files will now run when javascript is selected as the language. (pa-124)
+- Tainting: Parameters to functions in languages with pattern matching in function
+  arguments, such as Rust and OCaml, now transmit taint when they are sources.
+  This works with nested patterns too. For instance, in Rust:
+  ```
+  fn f ((x, (y, z)): t) {
+    let x = 2;
+  }
+  ```
+  tainting the sole argument to this function will result in all of the identifiers
+  `x`, `y`, and `z` now being tainted. (pa-2919)
+- Added rule option `interfile: true`, so this can be set under `options:` as it
+  is the norm for rule options. This rule option shall replace setting `interfile`
+  under `metadata`. Metadata is not mean to have any effect on how a rule is run. (pro-94)
+
+### Changed
+
+- Updated semgrep-interfaces, changed `api_scans_findings` to `ci_scan_results`, removed `gitlab_token` field and added `ignores` and `renamed_paths` field to `ci_scan_results`. (app-4252)
+
+### Fixed
+
+- Dockerfile language support: String matching is now done by contents, treating
+  the strings `foo`, `'foo'`, or `"foo"` as equal. (gh-8229)
+- Fixed error where we were not filtering the logging of a new third party library. (gh-8310)
+- Julia: Fixed a bug where try-catch patterns would not match properly.
+  Now, you can use an empty try-catch pattern, such as:
+
+  ```
+  try
+    ...
+  catch
+    ...
+  end
+  ```
+
+  to catch _only_ Julia code which does not specify an identifier for the `catch`.
+
+  Otherwise, if you want to match any kind of try-catch, you can specify an ellipsis
+  for the catch identifier instead:
+
+  ```
+  try
+    ...
+  catch ...
+    ...
+  end
+  ```
+
+  and this will match any try-catch, including those that do not specify an
+  identifier for the `catch`. It is strictly more general than the previous. (pa-2918)
+
+- Rust: Fixed an issue where implicit returns did not allow taint to flow,
+  and various other small translation issues that would affect taint. (pa-2936)
+- Fixed bug in gradle.lockfile parser where we would error on `empty=` with nothing after it (sc-987)
+
 ## [1.32.0](https://github.com/returntocorp/semgrep/releases/tag/v1.32.0) - 2023-07-13
 
 ### Added

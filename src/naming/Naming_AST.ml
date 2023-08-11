@@ -590,6 +590,10 @@ let resolve lang prog =
                     (* TODO handle nested destructuring? *)
                 | _ -> ())
               fields
+        (* In Rust, the left-hand side (lhs) of the let variable definition is
+         * parsed as a pattern.
+         * TODO handle more cases than just the simple identifier pattern. *)
+        | { name = EPattern (PatId (id, id_info)); _ }, VarDef { vinit; vtype }
         | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
         (* note that some languages such as Python do not have VarDef
          * construct

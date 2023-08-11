@@ -11,15 +11,15 @@ open Cmdliner
 (* Types and constants *)
 (*****************************************************************************)
 
-type conf = { logging_level : Logs.level option } [@@deriving show]
+type conf = { common : CLI_common.conf } [@@deriving show]
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine logging_level = { logging_level } in
-  Term.(const combine $ CLI_common.o_logging)
+  let combine common = { common } in
+  Term.(const combine $ CLI_common.o_common)
 
 let doc = "Language server mode!!"
 
@@ -32,6 +32,9 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep lsp" ~doc ~man
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+(* At some point we should support --stdio, --socket etc.
+   https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#implementationConsiderations *)
 
 let parse_argv (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in

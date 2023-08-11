@@ -111,33 +111,32 @@ RUN eval "$(opam env)" &&\
 ###############################################################################
 # This is an intermediary stage used for building Python wheels. Semgrep users
 # don't need to use this.
-FROM python:3.7-alpine AS semgrep-wheel
+FROM python:3.11-alpine AS semgrep-wheel
 
 WORKDIR /semgrep
 
-# Install some deps (build-base because ruamel.yaml has native code, zip because we need zip)
-RUN apk add --no-cache build-base zip
+# Install some deps (build-base because ruamel.yaml has native code)
+RUN apk add --no-cache build-base zip bash
 
 # Copy in the CLI
-COPY cli ./
+COPY cli ./cli
 
 # Copy in semgrep-core executable
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe src/semgrep/bin/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
 
-# Build the source distribution and binary wheel
-# TODO: do we actually need the sdist?
-RUN python setup.py sdist bdist_wheel
+# Copy in scripts folder
+COPY scripts/ ./scripts/
 
-# Copy and run scripts/validate-wheel.sh to ensure that the generated wheel works properly
-COPY scripts/validate-wheel.sh ./scripts/validate-wheel.sh
-RUN ./scripts/validate-wheel.sh dist/*.whl
+# Build the source distribution and binary wheel, validate that the wheel installs correctly
+# We're only checking the musllinux wheel because this is an Alpine container. It shouldnt be a problem because the content of the wheels are identical.
+RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
 ###############################################################################
 # Step3: Build the final docker image with Python wrapper and semgrep-core bin
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-FROM python:3.11.3-alpine AS semgrep-cli
+FROM python:3.11.4-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 
@@ -193,8 +192,6 @@ COPY cli ./
 RUN apk add --no-cache --virtual=.build-deps build-base make g++ &&\
      pip install jsonnet &&\
      pip install /semgrep &&\
-     # running this pre-compiles some python files for faster startup times
-     semgrep --version &&\
      apk del .build-deps
 
 # Let the user know how their container was built

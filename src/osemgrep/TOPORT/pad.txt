@@ -1,4 +1,0 @@
-The TOPORT/ directory was created Oct 11 2022, as a copy of cli/src/semgrep/.
-As pad ported pysemgrep code to osemgrep, he removed the ported code from TOPORT.
-Then code that was added to cli/src/semgrep/ after TOPORT/ was created is in:
- - oct_11_2022_apr_13_2023.diff (new code between apr 13 2023 and oct 11 2022)

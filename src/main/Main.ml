@@ -36,39 +36,29 @@
  *)
 
 (*****************************************************************************)
-(* Semgrep-core *)
-(*****************************************************************************)
-
-let semgrep_core () = Core_CLI.main Sys.argv
-
-(*****************************************************************************)
-(* Osemgrep *)
-(*****************************************************************************)
-(* Translated from __main__.py *)
-
-let register_stdlib_exception_printers () =
-  (* Needs to take place after JaneStreet Base does its own registration.
-     https://github.com/janestreet/base/issues/146 *)
-  Printexc.register_printer (function
-    | Failure msg ->
-        (* Avoid unnecessary quoting of the error message *)
-        Some ("Failure: " ^ msg)
-    | _else_ -> None)
-
-let osemgrep () =
-  register_stdlib_exception_printers ();
-  let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
-  (* TODO: remove or make debug-only *)
-  if exit_code <> 0 then
-    Printf.eprintf "exiting with error status %i: %s\n%!" exit_code
-      (String.concat " " (Array.to_list Sys.argv));
-  exit exit_code
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
+(* We currently use a single binary for semgrep-core and osemgrep. This
+ * binary is called 'semgrep-core' and is accompanied by a symlink
+ * to semgrep-core called 'osemgrep' (see 'make core').
+ * We use the argv[0] trick below to decide whether the user wants the
+ * semgrep-core or osemgrep behavior.
+ * alt: we could have provided a separate binary for osemgrep, which
+ * would be cleaner, but that would double the size of our Docker image.
+ * LATER: when osemgrep is fully done we can just get rid of semgrep-core
+ * and rename this binary to simply 'semgrep'.
+ *)
 let () =
   match Filename.basename Sys.argv.(0) with
-  | "osemgrep" -> osemgrep ()
-  | _else_ -> semgrep_core ()
+  (* osemgrep!! *)
+  | "osemgrep" ->
+      Core_CLI.register_exception_printers ();
+      let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
+      (* TODO: remove or make debug-only *)
+      if exit_code <> 0 then
+        Printf.eprintf "exiting with error status %i: %s\n%!" exit_code
+          (String.concat " " (Array.to_list Sys.argv));
+      exit exit_code
+  (* legacy semgrep-core *)
+  | _else_ -> Core_CLI.main Sys.argv

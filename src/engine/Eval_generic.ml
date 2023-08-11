@@ -156,6 +156,48 @@ let string_to_date s code =
       | _ -> raise (NotHandled code))
   | _ -> raise (NotHandled code)
 
+(*
+   Helper function to convert string duration into milliseconds for comparison.
+   See https://prometheus.io/docs/prometheus/latest/querying/basics/#time-durations
+   We do accept more duration strings here then prometheus which is okay.
+*)
+let string_duration_to_milliseconds s code =
+  let int_of_string s =
+    if s = "" then raise (NotHandled code) else int_of_string s
+  in
+  let l = String.length s in
+  let rec loop (x, v) i =
+    if i >= l then if x = "" then v else raise (NotHandled code)
+    else
+      let c = String.get s i in
+      match c with
+      | '0' .. '9' -> loop (x ^ (String.get s i |> String.make 1), v) (i + 1)
+      | 's' ->
+          let d = int_of_string x in
+          loop ("", v + (d * 1000)) (i + 1)
+      | 'm' ->
+          let d = int_of_string x in
+          if i < l - 1 then
+            match String.get s (i + 1) with
+            | 's' -> loop ("", v + d) (i + 2)
+            | _ -> loop ("", v + (d * 60 * 1000)) (i + 1)
+          else loop ("", v + (d * 60 * 1000)) (i + 1)
+      | 'h' ->
+          let d = int_of_string x in
+          loop ("", v + (d * 60 * 60 * 1000)) (i + 1)
+      | 'd' ->
+          let d = int_of_string x in
+          loop ("", v + (d * 24 * 60 * 60 * 1000)) (i + 1)
+      | 'w' ->
+          let d = int_of_string x in
+          loop ("", v + (d * 7 * 24 * 60 * 60 * 1000)) (i + 1)
+      | 'y' ->
+          let d = int_of_string x in
+          loop ("", v + (d * 365 * 24 * 60 * 60 * 1000)) (i + 1)
+      | _ -> raise (NotHandled code)
+  in
+  if s = "" then raise (NotHandled code) else Int (loop ("", 0) 0)
+
 let value_of_lit ~code x =
   match x with
   | G.Bool (b, _t) -> Bool b
@@ -236,6 +278,14 @@ let rec eval env code =
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.N (G.Id (("today", _), _)); _ }, (_, _, _)) ->
       Float (Unix.time ())
+  (* Convert prometheus duration strings to integer milliseconds*)
+  | G.Call
+      ( { e = G.N (G.Id (("parse_promql_duration", _), _)); _ },
+        (_, [ Arg e ], _) ) -> (
+      let v = eval env e in
+      match v with
+      | String s -> string_duration_to_milliseconds s code
+      | __else__ -> raise (NotHandled code))
   (* Emulate Python re.match just enough *)
   | G.Call
       ( {
@@ -376,7 +426,7 @@ let text_of_binding mvar mval =
    * In that case, it's better to pretty print the code rather than using
    * Visitor_AST.range_of_any_opt and Range.contents_at_range below.
    *
-   * The 'id_hidden = false' guard is to avoid to pretty print
+   * The 'not is_hidden' guard is to avoid to pretty print
    * artificial identifiers such as "builtin__include" in PHP that
    * we generate during parsing.
    * TODO: get rid of the ugly __builtin__ once we've fixed
@@ -385,9 +435,10 @@ let text_of_binding mvar mval =
    * TODO: handle also MV.Name, MV.E of DotAccess; maybe use
    * Pretty_print/Ugly_print to factorize work.
    *)
-  | MV.Id ((s, _tok), (None | Some { id_hidden = false; _ }))
-    when not (s =~ "^__builtin.*") ->
+  | MV.Id ((s, _tok), Some { id_flags; _ })
+    when (not (s =~ "^__builtin.*")) && not (IdFlags.is_hidden !id_flags) ->
       Some s
+  | MV.Id ((s, _tok), None) when not (s =~ "^__builtin.*") -> Some s
   | _ -> (
       let any = MV.mvalue_to_any mval in
       match AST_generic_helpers.range_of_any_opt any with

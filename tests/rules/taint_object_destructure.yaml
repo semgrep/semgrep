@@ -1,0 +1,16 @@
+rules:
+  - id: taint-object-destructure
+    mode: taint
+    languages:
+      - javascript
+    message: |
+      We can taint destructured objects as function args!
+    pattern-sources:
+      - patterns:
+        - pattern: |
+            ({ $X }, $A) => $Z
+        - focus-metavariable:
+            - $X
+    pattern-sinks:
+      - pattern: sink(...)
+    severity: ERROR

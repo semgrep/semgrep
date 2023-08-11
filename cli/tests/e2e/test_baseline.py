@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tempfile
 from collections import defaultdict
@@ -94,6 +95,7 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     unique_settings_file = tempfile.NamedTemporaryFile().name
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+    env["PATH"] = os.environ.get("PATH", "")
 
     cmd = SEMGREP_BASE_COMMAND + [
         "--disable-version-check",
