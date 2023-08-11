@@ -6,7 +6,7 @@
     "branch": "some/branch-name",
     "ci_job_url": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
     "commit": "sanitized semgrep commit",
-    "commit_author_email": "test_environment@test.r2c.dev",
+    "commit_author_email": "test_environment@test.semgrep.com",
     "commit_author_name": "Environment Test",
     "commit_author_username": null,
     "commit_author_image_url": null,

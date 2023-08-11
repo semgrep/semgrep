@@ -40,7 +40,7 @@
           "semgrep.url": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "shortlink": "https://sg.run/4xN9",
           "source": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
-          "source-rule-url": "https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/",
+          "source-rule-url": "https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/",
           "technology": [
             "jwt"
           ]
@@ -102,7 +102,7 @@
           "semgrep.url": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "shortlink": "https://sg.run/4xN9",
           "source": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
-          "source-rule-url": "https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/",
+          "source-rule-url": "https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/",
           "technology": [
             "jwt"
           ]
@@ -164,7 +164,7 @@
           "semgrep.url": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "shortlink": "https://sg.run/4xN9",
           "source": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
-          "source-rule-url": "https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/",
+          "source-rule-url": "https://semgrep.com/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/",
           "technology": [
             "jwt"
           ]
