@@ -1,0 +1,1 @@
+Semgrep LSP now compiled with tls, should no longer crash with not compiled with tls error
