@@ -418,8 +418,8 @@ For more information see https://semsgrep.dev
     parmap
     uri
     uuidm
-    http-lwt-client ; this brings lots of dependencies. This is for osemgrep.
-    (happy-eyeballs-lwt (>= 0.6.0)) ; there's a bug with GitHub action & pre-commit before 0.6.0
+    cohttp-lwt-unix
+    tls-lwt ; needed for TLS support in the cohttp HTTP client
     terminal_size
     lwt
     lwt_ppx
