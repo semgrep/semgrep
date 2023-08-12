@@ -139,7 +139,7 @@ def run_install_semgrep_pro() -> None:
         if semgrep_pro_path_tmp.exists():
             semgrep_pro_path_tmp.unlink()
         abort(
-            "Downloaded binary failed version check, try again or contact support@r2c.dev"
+            "Downloaded binary failed version check, try again or contact support@semgrep.com"
         )
 
     # Version check worked so we now install the binary
