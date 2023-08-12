@@ -49,7 +49,9 @@ let _ =
              | Lang.Yaml ->
                  {
                    ast = Yaml_to_generic.program filename;
+                   errors = [];
                    skipped_tokens = [];
+                   inserted_tokens = [];
                    stat = Parsing_stat.default_stat filename;
                  }
              | _ ->
