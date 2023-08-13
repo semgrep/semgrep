@@ -593,6 +593,11 @@ def scan_options(func: Callable) -> Callable:
     shell_complete=__get_language_options,
 )
 @click.option(
+    "--disallow-postprocessor-rules",
+    is_flag=True,
+    help=("disallow rules that use the postprocessor"),
+)
+@click.option(
     "--dryrun/--no-dryrun",
     is_flag=True,
     default=False,
@@ -617,11 +622,6 @@ def scan_options(func: Callable) -> Callable:
     "--show-supported-languages",
     is_flag=True,
     help=("Print a list of languages that are currently supported by Semgrep."),
-)
-@click.option(
-    "--skip-postprocessor-rules",
-    is_flag=True,
-    help=("Skip rules that use the postprocessor"),
 )
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 @optgroup.option(
