@@ -117,6 +117,7 @@ let default : conf =
         ast_caching = false;
       };
     autofix = false;
+    disallow_postprocessor_rules = false;
     dryrun = false;
     error_on_findings = false;
     strict = false;
@@ -142,7 +143,6 @@ let default : conf =
     (* ugly: should be separate subcommands *)
     version = false;
     show_supported_languages = false;
-    skip_postprocessor_rules = false;
     dump = None;
     validate = None;
     test = None;
