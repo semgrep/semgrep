@@ -173,7 +173,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.33.1"
+let version = "1.35.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -438,7 +438,7 @@ class virtual ['self] iter_parent =
      * visitor. Subclasses can always override these with their own behavior if
      * needed. *)
     method visit_location _env _ = ()
-    method visit_packed _ _ = ()
+    method visit_id_flags_t _env _ = ()
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
@@ -503,7 +503,7 @@ class virtual ['self] map_parent =
 
     (* Stubs *)
     method visit_location _env x = x
-    method visit_packed _env x = x
+    method visit_id_flags_t _env x = x
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
@@ -587,14 +587,17 @@ and id_info = {
    *)
   id_svalue : svalue option ref; [@equal fun _a _b -> true]
   (* THINK: Drop option? *)
-  id_info_flags : Id_info_flags.packed;
-      [@equal AST_generic_equals.equal_id_info Id_info_flags.equal_packed]
+  (* See module 'IdFlags'. *)
+  id_flags : id_flags ref;
+      [@equal
+        AST_generic_equals.equal_id_info (fun f1 f2 -> IdFlags.equal !f1 !f2)]
   (* this is used by Naming_X in deep-semgrep *)
   id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
 (* See explanation for @name where the visitors are generated at the end of
  * this long recursive type. *)
+and id_flags = (IdFlags.t[@name "id_flags_t"])
 and id_info_id = (IdInfoId.t[@name "id_info_id_t"])
 
 (*****************************************************************************)
@@ -2136,26 +2139,22 @@ let p x = x
 let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None }
 
-let mk_id_info ?(resolved = None) ?(hidden = false) ?(case_insensitive = false)
+let empty_id_info ?(hidden = false) ?(case_insensitive = false)
     ?(id = id_info_id ()) () =
   {
-    id_resolved = ref resolved;
+    id_resolved = ref None;
     id_type = ref None;
     id_svalue = ref None;
-    id_info_flags = Id_info_flags.pack { hidden; case_insensitive };
+    id_flags = ref (IdFlags.make ~hidden ~case_insensitive);
     id_info_id = id;
   }
 
-let empty_id_info ?(hidden = false) ?(case_insensitive = false) () =
-  mk_id_info ~hidden ~case_insensitive ()
+let basic_id_info ?(hidden = false) resolved =
+  let id_info = empty_id_info ~hidden () in
+  id_info.id_resolved := Some resolved;
+  id_info
 
-let basic_id_info ?(hidden = false) ?(case_insensitive = false) resolved =
-  mk_id_info ~resolved:(Some resolved) ~hidden ~case_insensitive ()
-
-let is_hidden { id_info_flags; _ } = Id_info_flags.is_hidden id_info_flags
-
-let is_case_insensitive { id_info_flags; _ } =
-  Id_info_flags.is_case_insensitive id_info_flags
+let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 

@@ -601,14 +601,14 @@ and m_id_info a b =
         G.id_resolved = _a1;
         id_type = _a2;
         id_svalue = _a3;
-        id_info_flags = _a4;
+        id_flags = _a4;
         id_info_id = _a5;
       },
       {
         B.id_resolved = _b1;
         id_type = _b2;
         id_svalue = _b3;
-        id_info_flags = _b4;
+        id_flags = _b4;
         id_info_id = _b5;
       } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->

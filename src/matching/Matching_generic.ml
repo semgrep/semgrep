@@ -313,6 +313,17 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     | MV.Params _, MV.Params _
     | MV.Args _, MV.Args _
     | MV.Xmls _, MV.Xmls _ ->
+        (* TODO: Case insensitive identifiers can still be embedded in
+           expressions and other complext ASTs being compared
+           structurally right now in this case, and the derived equality
+           being used in this case does not currently respect case
+           insensitivity. I think the quickest fix would be to override
+           the derived structural equality to respect this, but that
+           task isn't quite as easy as it sounds do to limitations of
+           deriving eq. I think the ideal situation would be for this
+           code and the matching code to be the same, but we also seem
+           to be a ways from that. *)
+
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
          * sgrep command line argument), we can not just use the

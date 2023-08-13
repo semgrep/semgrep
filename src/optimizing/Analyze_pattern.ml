@@ -55,7 +55,7 @@ let extract_strings_and_mvars ?lang any =
 
       method! visit_name env x =
         match x with
-        | Id (_id, id_info) when is_hidden id_info ->
+        | Id (_id, { id_flags; _ }) when IdFlags.is_hidden !id_flags ->
             (* This identifier is not present in the pattern source.
                 We assume a match is possible without the identifier
                 being present in the target source, so we ignore it. *)
