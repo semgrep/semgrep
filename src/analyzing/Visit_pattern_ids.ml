@@ -68,8 +68,8 @@ class ['self] pat_id_visitor =
 
 let visit : AST_generic.any -> (G.ident * G.id_info) list =
   let v = new pat_id_visitor in
-  let ids = ref [] in
   fun any ->
+    let ids = ref [] in
     v#visit_any ids any;
     !ids
   [@@profiling]
