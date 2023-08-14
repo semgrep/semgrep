@@ -2139,20 +2139,22 @@ let p x = x
 let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None }
 
-let empty_id_info ?(hidden = false) () =
+let empty_id_info ?(hidden = false) ?(case_insensitive = false)
+    ?(id = id_info_id ()) () =
   {
     id_resolved = ref None;
     id_type = ref None;
     id_svalue = ref None;
-    id_flags =
-      ref (if hidden then IdFlags.set_hidden IdFlags.empty else IdFlags.empty);
-    id_info_id = id_info_id ();
+    id_flags = ref (IdFlags.make ~hidden ~case_insensitive);
+    id_info_id = id;
   }
 
 let basic_id_info ?(hidden = false) resolved =
   let id_info = empty_id_info ~hidden () in
   id_info.id_resolved := Some resolved;
   id_info
+
+let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
@@ -2164,8 +2166,8 @@ let canonical_to_dotted tid xs = xs |> Common.map (fun s -> (s, tid))
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?hidden ?(attrs = []) ?(tparams = []) id =
-  let idinfo = empty_id_info ?hidden () in
+let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?(tparams = []) id =
+  let idinfo = empty_id_info ?hidden ?case_insensitive () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)

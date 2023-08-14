@@ -4,6 +4,8 @@ type t [@@deriving show, eq, ord, hash]
 val empty : t
 (** No flags set *)
 
+val make : hidden:bool -> case_insensitive:bool -> t
+
 val is_hidden : t -> bool
 (**
      Flag 'hidden' must be set for any artificial identifier that never
@@ -27,4 +29,14 @@ val is_hidden : t -> bool
  *)
 
 val set_hidden : t -> t
+
+val is_case_insensitive : t -> bool
+(**
+   The case_insensitive flag is indicates that equality of ASTs
+   should not care about the case of the characters being used to
+   determine if two idents are equal.  This is useful for languages
+   like php and apex.
+*)
+
+val set_case_insensitive : t -> t
 val to_int : t -> int
