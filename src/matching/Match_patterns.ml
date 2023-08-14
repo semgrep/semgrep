@@ -37,6 +37,15 @@ let profile_mini_rules = ref false
 (* Types *)
 (*****************************************************************************)
 
+(* Extra context to pass to the environment in the visitor to support implicit return.
+ * More details in Matching_generic.tin.
+ *)
+type imp_ret_ctx = {
+  inside_function : bool;
+  parent_is_last_stmt_trans : bool;
+  self_is_last_stmt : bool;
+}
+
 (*****************************************************************************)
 (* Debugging *)
 (*****************************************************************************)
@@ -67,11 +76,22 @@ let match_e_e rule a b env =
   set_last_matched_rule rule (fun () -> GG.m_expr_root a b env)
   [@@profiling]
 
-let match_st_st rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_stmt a b env)
+let match_st_st ?(inside_function = false) ?(parent_is_last_stmt_trans = false)
+    ?(self_is_last_stmt = false) rule a b (env : Matching_generic.tin) =
+  set_last_matched_rule rule (fun () ->
+      let env =
+        {
+          env with
+          inside_function;
+          parent_is_last_stmt_trans;
+          self_is_last_stmt;
+        }
+      in
+      GG.m_stmt a b env)
   [@@profiling]
 
-let match_sts_sts rule a b env =
+let match_sts_sts ?(inside_function = false)
+    ?(parent_is_last_stmt_trans = false) rule a b env =
   set_last_matched_rule rule (fun () ->
       (* When matching statements, we need not only to report whether
        * there is match, but also the actual statements that were matched.
@@ -84,6 +104,14 @@ let match_sts_sts rule a b env =
         match b with
         | [] -> env
         | stmt :: _ -> MG.extend_stmts_matched stmt env
+      in
+      let env =
+        {
+          env with
+          inside_function;
+          parent_is_last_stmt_trans;
+          self_is_last_stmt = true;
+        }
       in
       GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
   [@@profiling]
@@ -187,6 +215,12 @@ let location_stmts stmts =
 
 let list_original_tokens_stmts stmts =
   AST_generic_helpers.ii_of_any (Ss stmts) |> List.filter Tok.is_origintok
+
+(* Override an environment with some new values in the context. *)
+let with_imp_ret_ctx ~parent_is_last_stmt_trans ?(self_is_last_stmt = true)
+    (env : imp_ret_ctx Matching_visitor.visitor_env) =
+  let ctx = { env.extra with parent_is_last_stmt_trans; self_is_last_stmt } in
+  { env with extra = ctx }
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -365,9 +399,17 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
            * TODO: bloom filter was removed, undo this inlining?
            *)
           let visit_stmt () =
+            let inside_function = env.extra.inside_function in
+            let parent_is_last_stmt_trans =
+              env.extra.parent_is_last_stmt_trans
+            in
+            let self_is_last_stmt = env.extra.self_is_last_stmt in
             !stmt_rules
             |> List.iter (fun (pattern, rule) ->
-                   let matches_with_env = match_st_st rule pattern x m_env in
+                   let matches_with_env =
+                     match_st_st ~inside_function ~parent_is_last_stmt_trans
+                       ~self_is_last_stmt rule pattern x m_env
+                   in
                    if matches_with_env <> [] then
                      (* Found a match *)
                      matches_with_env
@@ -402,11 +444,29 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                 in
                                 Common.push pm matches;
                                 hook pm));
-            super#visit_stmt env x
+            let parent_is_last_stmt_trans =
+              parent_is_last_stmt_trans && self_is_last_stmt
+            in
+            super#visit_stmt
+              (env |> with_imp_ret_ctx ~parent_is_last_stmt_trans)
+              x
           in
-          visit_stmt ()
+          (* Cases like ExprStmt(StmtExpr s) may cause duplicate matches because
+           * it's possible that
+           *   ExprStmt(StmtExpr s)
+           * will match once, and
+           *   s
+           * will also match again. Ideally, the generic ASTs would not include
+           * these cases, but it seems to be the case for at least Julia.
+           *)
+          match x with
+          | { s = ExprStmt ({ e = StmtExpr _; _ }, _); _ } ->
+              super#visit_stmt env x
+          | _ -> visit_stmt ()
 
         method! v_stmts env x =
+          let inside_function = env.extra.inside_function in
+          let parent_is_last_stmt_trans = env.extra.parent_is_last_stmt_trans in
           (* this is potentially slower than what we did in Coccinelle with
            * CTL. We try every sequences. Hopefully the first statement in
            * the pattern will filter lots of sequences so we need to do
@@ -420,7 +480,8 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
           |> List.iter (fun (pattern, rule) ->
                  Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
                      let matches_with_env =
-                       match_sts_sts rule pattern x m_env
+                       match_sts_sts ~inside_function ~parent_is_last_stmt_trans
+                         rule pattern x m_env
                      in
                      if matches_with_env <> [] then
                        (* Found a match *)
@@ -449,7 +510,18 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   in
                                   Common.push pm matches;
                                   hook pm)));
-          super#v_stmts env x
+          (* Visit the rest of the statements in the block with the
+           * same parent
+           *)
+          let self_is_last_stmt =
+            match x with
+            | [ _ ] -> true
+            | _ -> false
+          in
+          super#v_stmts
+            (env
+            |> with_imp_ret_ctx ~parent_is_last_stmt_trans ~self_is_last_stmt)
+            x
 
         method! visit_type_ env x =
           match_rules_and_recurse m_env (file, hook, matches) !type_rules
@@ -565,13 +637,55 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
             match_raw_raw (super#visit_raw_tree env)
             (fun x -> Raw x)
             x
+
+        method! visit_function_definition env x =
+          let ctx =
+            {
+              inside_function = true;
+              parent_is_last_stmt_trans = true;
+              self_is_last_stmt = true;
+            }
+          in
+          let env = { env with extra = ctx } in
+          super#visit_function_definition env x
+
+        method! visit_Try env v1 v2 v3 v4 =
+          let parent_is_last_stmt_trans =
+            env.extra.parent_is_last_stmt_trans && env.extra.self_is_last_stmt
+          in
+
+          (* The try and catch blocks can only be considered the last blocks if there's no finally clause. *)
+          let try_catch_env =
+            let parent_is_last_stmt_trans =
+              match v4 with
+              | Some _ -> false
+              | __else__ -> parent_is_last_stmt_trans
+            in
+            env |> with_imp_ret_ctx ~parent_is_last_stmt_trans
+          in
+          super#visit_tok try_catch_env v1;
+          super#visit_stmt try_catch_env v2;
+          super#visit_list super#visit_catch try_catch_env v3;
+
+          (* When present, the finally block may indeed include the last statement *)
+          let finally_env =
+            env |> with_imp_ret_ctx ~parent_is_last_stmt_trans
+          in
+          super#visit_option super#visit_finally finally_env v4
       end
     in
     let visitor_env =
       let vardef_assign = config.Options.vardef_assign in
       let flddef_assign = config.Options.flddef_assign in
       let attr_expr = config.Options.attr_expr in
-      Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ()
+      let ctx =
+        {
+          inside_function = false;
+          parent_is_last_stmt_trans = false;
+          self_is_last_stmt = false;
+        }
+      in
+      Matching_visitor.mk_env ~vardef_assign ~flddef_assign ~attr_expr ctx
     in
     (* later: opti: dont analyze certain ASTs if they do not contain
      * certain constants that interect with the pattern?

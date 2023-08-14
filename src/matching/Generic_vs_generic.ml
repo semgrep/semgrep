@@ -74,6 +74,39 @@ let hook_find_possible_parents = ref None
 (* Extra Helpers *)
 (*****************************************************************************)
 
+(* Helper functions below that are prefixed with imp_ret modify the environment to support implicit return. *)
+let imp_ret_env_enter_function_body (tin : tin) =
+  [
+    {
+      tin with
+      inside_function = true;
+      parent_is_last_stmt_trans = true;
+      self_is_last_stmt = true;
+    };
+  ]
+
+let imp_ret_env_enter_substmt (tin : tin) =
+  let parent_is_last_stmt_trans =
+    tin.parent_is_last_stmt_trans && tin.self_is_last_stmt
+  in
+  [ { tin with parent_is_last_stmt_trans; self_is_last_stmt = true } ]
+
+let imp_ret_env_enter_try_catch ~has_finally_clause tin =
+  let parent_is_last_stmt_trans =
+    if has_finally_clause then false
+    else tin.parent_is_last_stmt_trans && tin.self_is_last_stmt
+  in
+  [ { tin with parent_is_last_stmt_trans; self_is_last_stmt = true } ]
+
+let imp_ret_env_enter_finally ~parent_tin tin =
+  let parent_is_last_stmt_trans =
+    parent_tin.parent_is_last_stmt_trans && parent_tin.self_is_last_stmt
+  in
+  [ { tin with parent_is_last_stmt_trans; self_is_last_stmt = true } ]
+
+let imp_ret_env_enter_stmt_in_block ~is_last tin =
+  [ { tin with self_is_last_stmt = is_last } ]
+
 let env_add_matched_stmt rightmost_stmt (tin : tin) =
   [ extend_stmts_matched rightmost_stmt tin ]
 
@@ -994,6 +1027,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
+  (* implicit return *)
+  | G.StmtExpr { G.s = G.Return (_, Some a, _); _ }, _ -> m_implicit_return a b
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
@@ -2264,8 +2299,13 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
       m_list__m_stmt xsa xsb
+  (* last element *)
+  | [ xa ], [ xb ] ->
+      imp_ret_env_enter_stmt_in_block ~is_last:true >>= fun () ->
+      m_stmt xa xb >>= fun () -> env_add_matched_stmt xb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
+      imp_ret_env_enter_stmt_in_block ~is_last:false >>= fun () ->
       m_stmt xa xb >>= fun () ->
       env_add_matched_stmt xb >>= fun () ->
       m_stmts_deep ~inside ~less_is_ok aas bbs
@@ -2400,6 +2440,7 @@ and m_stmt a b =
   (* the general case *)
   (* ... will now allow a subset of stmts (less_is_ok = false here) *)
   | G.Block a1, B.Block b1 ->
+      imp_ret_env_enter_substmt >>= fun () ->
       m_bracket (m_stmts_deep ~inside:false ~less_is_ok:false) a1 b1
   (* equivalence: vardef ==> assign, and go deep.
    * coupling: with Visitor_AST.v_vardef_as_assign_expr which also deals with
@@ -2428,8 +2469,16 @@ and m_stmt a b =
         ~else_:(fail ())
   (* equivalence: *)
   | G.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1
+  (* implicit return *)
+  | ( G.Return (_, Some a1, _),
+      B.ExprStmt ({ e = B.Lambda { fbody = FBExpr b1; _ }; _ }, _) )
+  | G.Return (_, Some a1, _), B.DefStmt (_, FuncDef { fbody = FBExpr b1; _ }) ->
+      let* () = imp_ret_env_enter_function_body in
+      m_implicit_return a1 b1
+  | G.Return (_, Some a1, _), B.ExprStmt (b1, _) -> m_implicit_return a1 b1
   (* boilerplate *)
   | G.If (a0, a1, a2, a3), B.If (b0, b1, b2, b3) ->
+      imp_ret_env_enter_substmt >>= fun () ->
       m_tok a0 b0 >>= fun () ->
       (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
       m_condition a1 b1 >>= fun () ->
@@ -2470,10 +2519,7 @@ and m_stmt a b =
       let* () = m_expr a1 b1 in
       m_tok asc bsc
   | G.Try (a0, a1, a2, a3), B.Try (b0, b1, b2, b3) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_stmt a1 b1 in
-      let* () = (m_list m_catch) a2 b2 in
-      (m_option m_finally) a3 b3
+      m_try_catch_finally (a0, a1, a2, a3) (b0, b1, b2, b3)
   | G.Assert (a0, aargs, asc), B.Assert (b0, bargs, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_arguments aargs bargs in
@@ -2594,6 +2640,20 @@ and m_label a b =
   match (a, b) with
   | a, b -> m_ident a b
 
+and m_try_catch_finally (a0, a1, a2, a3) (b0, b1, b2, b3) tin =
+  (let has_finally_clause =
+     match (a3, b3) with
+     | Some _, Some _ -> true
+     | _, _ -> false
+   in
+   let* () = imp_ret_env_enter_try_catch ~has_finally_clause in
+   let* () = m_tok a0 b0 in
+   let* () = m_stmt a1 b1 in
+   let* () = (m_list m_catch) a2 b2 in
+   let* () = imp_ret_env_enter_finally ~parent_tin:tin in
+   (m_option m_finally) a3 b3)
+    tin
+
 and m_catch a b =
   match (a, b) with
   | (at, a1, a2), (bt, b1, b2) ->
@@ -2605,7 +2665,7 @@ and m_catch_exn a b =
   (* dots: *)
   | G.CatchPattern (G.PatEllipsis _), _ -> return ()
   (* boilerplate *)
-  | G.CatchPattern a, CatchPattern b -> m_pattern a b
+  | G.CatchPattern a, B.CatchPattern b -> m_pattern a b
   | G.CatchParam a, B.CatchParam b -> m_parameter_classic a b
   | G.OtherCatch (a0, a1), B.OtherCatch (b0, b1) ->
       let* () = m_todo_kind a0 b0 in
@@ -2660,6 +2720,20 @@ and m_other_stmt_with_stmt_operator a b =
   | G.OSWS_Iterator, _
   | G.OSWS_Todo, _ ->
       fail ()
+
+and m_implicit_return a b tin =
+  let has_lang_support =
+    match tin.lang with
+    | Lang.Ruby
+    | Lang.Julia ->
+        true
+    | __else__ -> false
+  in
+  if
+    tin.config.implicit_return && has_lang_support && tin.inside_function
+    && tin.parent_is_last_stmt_trans && tin.self_is_last_stmt
+  then m_expr_root a b tin
+  else fail () tin
 
 (*****************************************************************************)
 (* Pattern *)
@@ -2884,6 +2958,7 @@ and m_function_definition a b =
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
       m_parameters a1 b1 >>= fun () ->
       (m_option_none_can_match_some m_type_) a2 b2 >>= fun () ->
+      imp_ret_env_enter_function_body >>= fun () ->
       m_function_body a3 b3 >>= fun () -> m_wrap m_function_kind a4 b4
 
 and m_function_body a b =

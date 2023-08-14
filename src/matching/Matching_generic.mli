@@ -9,7 +9,10 @@ type tin = {
   config : Rule_options.t;
   deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
-    * values. This is bound to prevent potential infinite loops. *)
+       * values. This is bound to prevent potential infinite loops. *)
+  inside_function : bool;
+  parent_is_last_stmt_trans : bool;
+  self_is_last_stmt : bool;
 }
 
 (* list of possible outcoming matching environments *)

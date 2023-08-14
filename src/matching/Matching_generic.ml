@@ -114,6 +114,30 @@ type tin = {
   lang : Lang.t;
   config : Rule_options.t;
   deref_sym_vals : int;
+  (* The fields `inside_function`, `parent_is_last_stmt_trans`, and
+   * `self_is_last_stmt` are used to support implicit returns.
+   *
+   * For languages that support implicit return, the last
+   * expression evaluated is returned from the function,
+   * so the pattern
+   *   return e
+   * should match the target
+   *   e
+   * when e is the last expression inside a function.
+   *
+   * `inside_function` is true when the statement is inside a function.
+   *
+   * `parent_is_last_stmt_trans` is true when the parent of the statement is
+   * transitively the last statement of its parents.
+   *
+   * `self_is_last_stmt` is true when the statement is the last statement inside
+   * its parent..
+   *
+   * All fields must be true in order to try matching implicit return statements.
+   *)
+  inside_function : bool;
+  parent_is_last_stmt_trans : bool;
+  self_is_last_stmt : bool;
 }
 
 (* list of possible outcoming matching environments *)
@@ -390,7 +414,16 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
       return new_binding
 
 let empty_environment lang config =
-  { mv = []; stmts_matched = []; lang; config; deref_sym_vals = 0 }
+  {
+    mv = [];
+    stmts_matched = [];
+    lang;
+    config;
+    deref_sym_vals = 0;
+    inside_function = false;
+    parent_is_last_stmt_trans = false;
+    self_is_last_stmt = false;
+  }
 
 (*****************************************************************************)
 (* Helpers *)

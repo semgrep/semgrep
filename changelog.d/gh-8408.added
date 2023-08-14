@@ -1,0 +1,15 @@
+Added support in Ruby and Julia to match implicit return statement inside functions.
+
+For example:
+
+```julia
+return 0
+```
+
+can now match 0 in
+
+```julia
+function f()
+  0
+end
+```
