@@ -1,0 +1,3 @@
+Pro: JS/TS: taint-mode: Fix bug introduced in 1.33.1 that had the side-effect of
+hurting performance of taint rules on JS/TS repos that used destructuring in
+functions formal parameters.
