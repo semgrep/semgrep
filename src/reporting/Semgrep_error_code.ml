@@ -126,7 +126,7 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
               details = None;
             }
       | R.InvalidRule (kind, rule_id, pos) ->
-          let str = Rule.string_of_invalid_rule_error_kind kind in
+          let str = Rule.string_of_invalid_rule_error (kind, rule_id, pos) in
           Some (mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError)
       | R.InvalidYaml (msg, pos) ->
           Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)

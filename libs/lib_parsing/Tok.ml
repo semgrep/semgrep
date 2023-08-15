@@ -207,10 +207,10 @@ let stringpos_of_tok (x : t) : string =
   | Ok loc ->
       let trace_string =
         List.fold_left
-          (fun str tok -> str ^ string_pos_of_tok_no_trace tok)
+          (fun str tok -> str ^ string_pos_of_tok_no_trace tok ^ " ")
           "" loc.trace
       in
-      trace_string ^ Pos.string_of_pos loc.pos
+      "the trace of this error is: " ^ trace_string ^ Pos.string_of_pos loc.pos
   | Error msg -> spf "unknown location (%s)" msg
 
 let unsafe_loc_of_tok ii =
