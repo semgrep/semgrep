@@ -37,6 +37,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
   {
     Tok.str = err.substring;
+    trace = [];
     pos =
       {
         charpos = 0;

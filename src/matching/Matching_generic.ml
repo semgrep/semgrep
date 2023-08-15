@@ -739,6 +739,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         let loc =
           {
             Tok.str = s;
+            trace = [];
             pos =
               {
                 loc.pos with

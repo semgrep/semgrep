@@ -19,11 +19,12 @@
 
 type location = {
   str : string; (* the content of the token starting at pos *)
+  trace : t list;
   pos : Pos.t;
 }
 [@@deriving show, eq, ord]
 
-type t =
+and t =
   (* Token found in the original file *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used

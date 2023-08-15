@@ -15,7 +15,7 @@
 
 module G = AST_generic
 module A = AST_jsonnet
-module E = Eval_jsonnet
+module E = Eval_jsonnet_subst
 module V = Value_jsonnet
 
 (*****************************************************************************)
@@ -34,30 +34,40 @@ let fb = Tok.unsafe_fake_bracket
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+let add_trace_to_tok tok trace : Tok.t =
+  match tok with
+  | Tok.OriginTok loc -> Tok.OriginTok { loc with trace }
+  | FakeTokStr (str, opt) -> (
+      match opt with
+      | None -> FakeTokStr (str, opt)
+      | Some (loc, int) -> FakeTokStr (str, Some ({ loc with trace }, int)))
+  | ExpandedTok (loc, (loc2, int)) ->
+      ExpandedTok ({ loc with trace }, (loc2, int))
+  | Ab -> Ab
 
 let rec value_to_expr (v : V.value_) : G.expr =
   match v with
-  | V.Primitive x ->
+  | V.Primitive (x, trace) ->
       let literal =
         match x with
-        | Null tk -> G.Null tk
-        | Bool (b, tk) -> G.Bool (b, tk)
-        | Double (f, tk) -> G.Float (Some f, tk)
-        | Str (s, tk) -> G.String (fb (s, tk))
+        | Null tk -> G.Null (add_trace_to_tok tk trace)
+        | Bool (b, tk) -> G.Bool (b, add_trace_to_tok tk trace)
+        | Double (f, tk) -> G.Float (Some f, add_trace_to_tok tk trace)
+        | Str (s, tk) -> G.String (fb (s, add_trace_to_tok tk trace))
       in
       G.L literal |> G.e
-  | Lambda { f_tok = tk; _ } -> error tk "Lambda value"
-  | Array (l, arr, r) ->
+  | Lambda ({ f_tok = tk; _ }, _) -> error tk "Lambda value"
+  | Array ((l, arr, r), _) ->
       let xs =
         arr |> Array.to_list
         |> Common.map (fun (entry : V.lazy_value) ->
                value_to_expr
                  (match entry.value with
                  | Val v -> v
-                 | Unevaluated e -> E.eval_program_with_env entry.env e))
+                 | Unevaluated e -> E.eval_expr e))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
-  | Object (l, (_assertsTODO, fields), r) ->
+  | Object ((l, (_assertsTODO, fields), r), _) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
@@ -70,10 +80,14 @@ let rec value_to_expr (v : V.value_) : G.expr =
                    let v =
                      match fld_value.value with
                      | Val v -> v
-                     | Unevaluated e -> E.eval_program_with_env fld_value.env e
+                     | Unevaluated e -> E.eval_expr e
                    in
                    let e = value_to_expr v in
-                   let k = G.L (G.String (fb fld_name)) |> G.e in
+                   let fld_name_inserted_trace =
+                     ( fst (fst fld_name),
+                       add_trace_to_tok (snd fld_name) (snd (fst fld_name)) )
+                   in
+                   let k = G.L (G.String (fb fld_name_inserted_trace)) |> G.e in
                    Some (G.keyval k (snd fld_name) e))
       in
       G.Container (G.Dict, (l, xs, r)) |> G.e

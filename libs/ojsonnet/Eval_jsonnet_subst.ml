@@ -4,7 +4,7 @@ module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
 
-exception Error of string * Tok.t
+exception Error of string * Tok.t * Tok.t list
 
 type cmp = Inf | Eq | Sup
 
@@ -36,17 +36,17 @@ let freshvar =
 
 let std_type (v : V.value_) : string =
   match v with
-  | V.Primitive (Null _) -> "null"
-  | V.Primitive (Bool _) -> "boolean"
-  | V.Primitive (Double _) -> "number"
-  | V.Primitive (Str _) -> "string"
+  | V.Primitive (Null _, _) -> "null"
+  | V.Primitive (Bool _, _) -> "boolean"
+  | V.Primitive (Double _, _) -> "number"
+  | V.Primitive (Str _, _) -> "string"
   | V.Object _ -> "object"
   | V.Array _ -> "array"
   | V.Lambda _ -> "function"
 
 let std_primivite_equals (v : V.value_) (v' : V.value_) : bool =
   match (v, v') with
-  | Primitive p, Primitive p' -> (
+  | Primitive (p, _), Primitive (p', _) -> (
       match (p, p') with
       (* alt: use deriving and Primitive.eq *)
       | Null _, Null _ -> true
@@ -63,15 +63,17 @@ let std_primivite_equals (v : V.value_) (v' : V.value_) : bool =
    *)
   | _else_ -> false
 
-let error tk s =
+let error tk trace s =
   (* TODO? if Parse_info.is_fake tk ... *)
-  raise (Error (s, tk))
+  raise (Error (s, tk, trace))
 
 (* Converts field names that have been evaluated into expressions *)
 let vfld_name_to_fld_name fld_name =
-  let thing_to_make_string_ = Tok.unsafe_fake_bracket fld_name in
+  let thing_to_make_string_ =
+    Tok.unsafe_fake_bracket (fst (fst fld_name), snd fld_name)
+  in
   let insideL : A.string_ = A.mk_string_ thing_to_make_string_ in
-  FExpr (Tok.unsafe_fake_bracket (L (Str insideL)))
+  FExpr (Tok.unsafe_fake_bracket (L (Str insideL), snd (fst fld_name)))
 
 (* Converts objects that have been evaluated back to expressions so that
    we can call plus on them *)
@@ -80,8 +82,7 @@ let vobj_to_obj l asserts fields r =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
-           | { value = Val _; _ } ->
-               error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
+           | { value = Val _; _ } -> error fk [] "shoulnd't be a value"
            | { value = Unevaluated e; _ } ->
                {
                  fld_name = vfld_name_to_fld_name fld_name;
@@ -127,28 +128,32 @@ let eval_bracket ofa (v1, v2, v3) =
 let rec substitute id sub expr =
   match expr with
   | L v -> L v
-  | Array (l, xs, r) -> Array (l, Common.map (substitute id sub) xs, r)
+  | Array (l, xs, r) ->
+      Array (l, Common.map (fun x -> (substitute id sub (fst x), snd x)) xs, r)
   | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
       if parameter_list_contains params id then
         Lambda { f_tok; f_params = (lparams, params, rparams); f_body }
       else
         let new_params =
           Common.map
-            (fun (P (name, tk, e)) -> P (name, tk, substitute id sub e))
+            (fun (P (name, tk, e)) ->
+              P (name, tk, (substitute id sub (fst e), snd e)))
             params
         in
-        let new_body = substitute id sub f_body in
+        let new_body = substitute id sub (fst f_body) in
         Lambda
           {
             f_tok;
             f_params = (lparams, new_params, rparams);
-            f_body = new_body;
+            f_body = (new_body, snd f_body);
           }
   | O (l, v, r) -> (
       match v with
       | Object (asserts, fields) ->
           let new_asserts =
-            Common.map (fun (tk, expr) -> (tk, substitute id sub expr)) asserts
+            Common.map
+              (fun (tk, expr) -> (tk, (substitute id sub (fst expr), snd expr)))
+              asserts
           in
           let new_fields =
             Common.map
@@ -156,9 +161,11 @@ let rec substitute id sub expr =
                 match fld_name with
                 | FExpr (l, name, r) ->
                     {
-                      fld_name = FExpr (l, substitute id sub name, r);
+                      fld_name =
+                        FExpr (l, (substitute id sub (fst name), snd name), r);
                       fld_hidden;
-                      fld_value = substitute id sub fld_value;
+                      fld_value =
+                        (substitute id sub (fst fld_value), snd fld_value);
                     })
               fields
           in
@@ -167,11 +174,13 @@ let rec substitute id sub expr =
   | Id (s, tk) -> if s = id then sub else Id (s, tk)
   | IdSpecial id -> IdSpecial id
   | Call
-      ( ArrayAccess
-          ( Id ("std", std_tok),
-            ( l1,
-              L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
-              r1 ) ),
+      ( ( ArrayAccess
+            ( (Id ("std", std_tok), id_trace),
+              ( l1,
+                ( L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                  l_trace ),
+                r1 ) ),
+          arr_trace ),
         (l, args, r) ) ->
       (* Because we use environment model substitution for std library,
          we don't do any substitutions for "std". *)
@@ -181,66 +190,83 @@ let rec substitute id sub expr =
           Common.map
             (fun arg ->
               match arg with
-              | Arg e -> Arg (substitute id sub e)
+              | Arg e -> Arg (substitute id sub (fst e), snd e)
               | NamedArg (ident, tk, e) ->
-                  NamedArg (ident, tk, substitute id sub e))
+                  NamedArg (ident, tk, (substitute id sub (fst e), snd e)))
             args
       in
       Call
-        ( ArrayAccess
-            ( Id ("std", std_tok),
-              ( l1,
-                L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
-                r1 ) ),
+        ( ( ArrayAccess
+              ( (Id ("std", std_tok), id_trace),
+                ( l1,
+                  ( L
+                      (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                    l_trace ),
+                  r1 ) ),
+            arr_trace ),
           (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       if bind_list_contains binds id then Local (_tlocal, binds, _tsemi, e)
       else
         let new_binds =
           Common.map
-            (fun (B (name, tk, expr)) -> B (name, tk, substitute id sub expr))
+            (fun (B (name, tk, expr)) ->
+              B (name, tk, (substitute id sub (fst expr), snd expr)))
             binds
         in
-        Local (_tlocal, new_binds, _tsemi, substitute id sub e)
+        Local (_tlocal, new_binds, _tsemi, (substitute id sub (fst e), snd e))
   | ArrayAccess (v1, (l, v2, r)) ->
-      ArrayAccess (substitute id sub v1, (l, substitute id sub v2, r))
+      ArrayAccess
+        ( (substitute id sub (fst v1), snd v1),
+          (l, (substitute id sub (fst v2), snd v2), r) )
   | Call (e0, (l, args, r)) ->
-      let new_func = substitute id sub e0 in
+      let new_func = substitute id sub (fst e0) in
       let new_args =
         Common.map
           (fun arg ->
             match arg with
-            | Arg e -> Arg (substitute id sub e)
+            | Arg e -> Arg (substitute id sub (fst e), snd e)
             | NamedArg (ident, tk, e) ->
-                NamedArg (ident, tk, substitute id sub e))
+                NamedArg (ident, tk, (substitute id sub (fst e), snd e)))
           args
       in
-      Call (new_func, (l, new_args, r))
-  | UnaryOp ((op, tk), e) -> UnaryOp ((op, tk), substitute id sub e)
+      Call ((new_func, snd e0), (l, new_args, r))
+  | UnaryOp ((op, tk), e) ->
+      UnaryOp ((op, tk), (substitute id sub (fst e), snd e))
   | BinaryOp (el, (op, tk), er) ->
-      BinaryOp (substitute id sub el, (op, tk), substitute id sub er)
+      BinaryOp
+        ( (substitute id sub (fst el), snd el),
+          (op, tk),
+          (substitute id sub (fst er), snd er) )
   | If (tif, e1, e2, e3) ->
-      If (tif, substitute id sub e1, substitute id sub e2, substitute id sub e3)
-  | Error (tk, e) -> Error (tk, substitute id sub e)
+      If
+        ( tif,
+          (substitute id sub (fst e1), snd e1),
+          (substitute id sub (fst e2), snd e2),
+          (substitute id sub (fst e3), snd e3) )
+  | Error (tk, e) -> Error (tk, (substitute id sub (fst e), snd e))
   | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
 
 (* This implements substitution for keywords (self/super)*)
 let rec substitute_kw kw sub expr =
   match expr with
   | L v -> L v
-  | Array (l, xs, r) -> Array (l, Common.map (substitute_kw kw sub) xs, r)
+  | Array (l, xs, r) ->
+      Array
+        (l, Common.map (fun x -> (substitute_kw kw sub (fst x), snd x)) xs, r)
   | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
       let new_params =
         Common.map
-          (fun (P (id, tok, e)) -> P (id, tok, substitute_kw kw sub e))
+          (fun (P (id, tok, e)) ->
+            P (id, tok, (substitute_kw kw sub (fst e), snd e)))
           params
       in
-      let new_f_body = substitute_kw kw sub f_body in
+      let new_f_body = substitute_kw kw sub (fst f_body) in
       Lambda
         {
           f_tok;
           f_params = (lparams, new_params, rparams);
-          f_body = new_f_body;
+          f_body = (new_f_body, snd f_body);
         }
   | O (l, v, r) -> (
       match v with
@@ -249,7 +275,7 @@ let rec substitute_kw kw sub expr =
             Common.map
               (fun { fld_name = FExpr (l, e, r); fld_hidden; fld_value } ->
                 {
-                  fld_name = FExpr (l, substitute_kw kw sub e, r);
+                  fld_name = FExpr (l, (substitute_kw kw sub (fst e), snd e), r);
                   fld_hidden;
                   fld_value;
                 })
@@ -262,71 +288,83 @@ let rec substitute_kw kw sub expr =
       match kw with
       | IdSpecial (Super, _) -> sub
       | IdSpecial (Self, _) -> IdSpecial (Super, tk)
-      | _ -> error tk "not a keyword")
+      | _ -> error tk [] "not a keyword")
   | IdSpecial (Self, tk) -> (
       match kw with
       | IdSpecial (Self, _) -> sub
       | IdSpecial (Super, _) -> IdSpecial (Self, tk)
-      | _ -> error tk "not a keyword")
+      | _ -> error tk [] "not a keyword")
   | Call
-      ( ArrayAccess
-          ( Id ("std", std_tok),
-            ( l1,
-              L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
-              r1 ) ),
+      ( ( ArrayAccess
+            ( (Id ("std", std_tok), id_trace),
+              ( l1,
+                ( L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                  l_trace ),
+                r1 ) ),
+          arr_trace ),
         (l, args, r) ) ->
       let new_args =
         Common.map
           (fun arg ->
             match arg with
-            | Arg e -> Arg (substitute_kw kw sub e)
+            | Arg e -> Arg (substitute_kw kw sub (fst e), snd e)
             | NamedArg (ident, tk, e) ->
-                NamedArg (ident, tk, substitute_kw kw sub e))
+                NamedArg (ident, tk, (substitute_kw kw sub (fst e), snd e)))
           args
       in
       Call
-        ( ArrayAccess
-            ( Id ("std", std_tok),
-              ( l1,
-                L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
-                r1 ) ),
+        ( ( ArrayAccess
+              ( (Id ("std", std_tok), id_trace),
+                ( l1,
+                  ( L
+                      (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
+                    l_trace ),
+                  r1 ) ),
+            arr_trace ),
           (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
         Common.map
-          (fun (B (name, tk, expr)) -> B (name, tk, substitute_kw kw sub expr))
+          (fun (B (name, tk, expr)) ->
+            B (name, tk, (substitute_kw kw sub (fst expr), snd expr)))
           binds
       in
-      Local (_tlocal, new_binds, _tsemi, substitute_kw kw sub e)
+      Local (_tlocal, new_binds, _tsemi, (substitute_kw kw sub (fst e), snd e))
   | ArrayAccess (v1, (l, v2, r)) ->
-      ArrayAccess (substitute_kw kw sub v1, (l, substitute_kw kw sub v2, r))
+      ArrayAccess
+        ( (substitute_kw kw sub (fst v1), snd v1),
+          (l, (substitute_kw kw sub (fst v2), snd v2), r) )
   | Call (e0, (l, args, r)) ->
-      let new_func = substitute_kw kw sub e0 in
+      let new_func = substitute_kw kw sub (fst e0) in
       let new_args =
         Common.map
           (fun arg ->
             match arg with
-            | Arg e -> Arg (substitute_kw kw sub e)
+            | Arg e -> Arg (substitute_kw kw sub (fst e), snd e)
             | NamedArg (ident, tk, e) ->
-                NamedArg (ident, tk, substitute_kw kw sub e))
+                NamedArg (ident, tk, (substitute_kw kw sub (fst e), snd e)))
           args
       in
-      Call (new_func, (l, new_args, r))
-  | UnaryOp ((op, tk), e) -> UnaryOp ((op, tk), substitute_kw kw sub e)
+      Call ((new_func, snd e0), (l, new_args, r))
+  | UnaryOp ((op, tk), e) ->
+      UnaryOp ((op, tk), (substitute_kw kw sub (fst e), snd e))
   | BinaryOp (el, (op, tk), er) ->
-      BinaryOp (substitute_kw kw sub el, (op, tk), substitute_kw kw sub er)
+      BinaryOp
+        ( (substitute_kw kw sub (fst el), snd el),
+          (op, tk),
+          (substitute_kw kw sub (fst er), snd er) )
   | If (tif, e1, e2, e3) ->
       If
         ( tif,
-          substitute_kw kw sub e1,
-          substitute_kw kw sub e2,
-          substitute_kw kw sub e3 )
-  | Error (tk, e) -> Error (tk, substitute_kw kw sub e)
+          (substitute_kw kw sub (fst e1), snd e1),
+          (substitute_kw kw sub (fst e2), snd e2),
+          (substitute_kw kw sub (fst e3), snd e3) )
+  | Error (tk, e) -> Error (tk, (substitute_kw kw sub (fst e), snd e))
   | ExprTodo ((_s, _tk), _ast_expr) -> ExprTodo ((_s, _tk), _ast_expr)
 
 (*TODO*)
 
-let rec eval_expr expr =
+let rec eval_expr (expr, trace) =
   match expr with
   | L v ->
       let prim =
@@ -339,7 +377,7 @@ let rec eval_expr expr =
             let f = float_of_string s in
             V.Double (f, tk)
       in
-      V.Primitive prim
+      V.Primitive (prim, trace)
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
       let elts =
@@ -348,50 +386,57 @@ let rec eval_expr expr =
                { V.value = V.Unevaluated x; env = V.empty_env })
         |> Array.of_list
       in
-      Array (l, elts, r)
-  | Lambda v -> Lambda v
-  | O v -> eval_obj_inside v
-  | Id (name, tk) -> error tk ("trying to evaluate just a variable: " ^ name)
-  | IdSpecial (_, tk) -> error tk "evaluating just a keyword"
+      Array ((l, elts, r), trace)
+  | Lambda v -> Lambda (v, trace)
+  | O v -> eval_obj_inside trace v
+  | Id (name, tk) ->
+      error tk trace ("trying to evaluate just a variable: " ^ name)
+  | IdSpecial (_, tk) -> error tk trace "evaluating just a keyword"
   | Call
-      ( (ArrayAccess
-           (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
-        as e0),
+      ( (( ArrayAccess
+             ( (Id ("std", _), _),
+               ( _,
+                 (L (Str (None, DoubleQuote, (_, [ meth ], _))), method_trace),
+                 _ ) ),
+           _ ) as e0),
         (l, args, r) ) ->
-      eval_std_method e0 meth (l, args, r)
+      eval_std_method e0 (meth, method_trace) (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_e =
         List.fold_left
           (fun e_1 (B ((name, _), _, e')) ->
             substitute name (Local (_tlocal, binds, _tsemi, e')) e_1)
-          e binds
+          (fst e) binds
       in
-      eval_expr new_e
+      eval_expr (new_e, trace)
   | ArrayAccess (v1, v2) -> (
-      let e = eval_expr v1 in
+      let e = eval_expr (fst v1, trace) in
       let l, index, _r = (eval_bracket eval_expr) v2 in
       match (e, index) with
-      | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
+      | Array ((_l, arr, _r), _), Primitive (Double (f, tkf), _) ->
           if Float.is_integer f then
             let i = int_of_float f in
             match i with
             | _ when i < 0 ->
-                error tkf (spf "negative value for array index: %s" (sv index))
+                error tkf trace
+                  (spf "negative value for array index: %s" (sv index))
             | _ when i >= 0 && i < Array.length arr ->
                 let ei = arr.(i) in
                 evaluate_lazy_value_ ei
             | _else_ ->
-                error tkf (spf "Out of bound for array index: %s" (sv index))
-          else error tkf (spf "Not an integer: %s" (sv index))
+                error tkf trace
+                  (spf "Out of bound for array index: %s" (sv index))
+          else error tkf trace (spf "Not an integer: %s" (sv index))
       (* Field access! A tricky operation. *)
-      | V.Object (_l, (_assertsTODO, fields), _r), Primitive (Str (fld, tk))
-        -> (
+      | ( V.Object ((_l, (_assertsTODO, fields), _r), _),
+          Primitive (Str (fld, tk), _) ) -> (
           match
             fields
             |> List.find_opt (fun (field : V.value_field) ->
-                   fst field.fld_name = fld)
+                   fst (fst field.fld_name) = fld)
           with
-          | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
+          | None ->
+              error tk trace (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
               match fld.fld_value.value with
               | V.Val v -> v
@@ -419,74 +464,81 @@ let rec eval_expr expr =
                    *      42
                    *)
                   let new_e =
-                    e |> substitute_kw fake_self v1
+                    fst e
+                    |> substitute_kw fake_self (fst v1)
                     |> substitute_kw fake_super
                          (O
                             ( Tok.unsafe_fake_tok "{",
                               Object ([], []),
                               Tok.unsafe_fake_tok "}" ))
                   in
-                  eval_expr new_e))
+                  eval_expr (new_e, trace)))
       (* TODO? support ArrayAccess for Strings? *)
-      | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
+      | _else_ ->
+          error l trace (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index)))
   | Call (e0, args) -> eval_call e0 args
   | UnaryOp ((op, tk), e) -> (
       match op with
       | UBang -> (
           match eval_expr e with
-          | Primitive (Bool (b, tk)) -> Primitive (Bool (not b, tk))
-          | v -> error tk (spf "Not a boolean for unary !: %s" (sv v)))
+          | Primitive (Bool (b, tk), trace_b) ->
+              Primitive (Bool (not b, tk), trace_b)
+          | v -> error tk trace (spf "Not a boolean for unary !: %s" (sv v)))
       | UPlus -> (
           match eval_expr e with
-          | Primitive (Double (f, tk)) -> Primitive (Double (f, tk))
-          | v -> error tk (spf "Not a number for unary +: %s" (sv v)))
+          | Primitive (Double (f, tk), trace_d) ->
+              Primitive (Double (f, tk), trace_d)
+          | v -> error tk trace (spf "Not a number for unary +: %s" (sv v)))
       | UMinus -> (
           match eval_expr e with
-          | Primitive (Double (f, tk)) -> Primitive (Double (-.f, tk))
-          | v -> error tk (spf "Not a number for unary -: %s" (sv v)))
+          | Primitive (Double (f, tk), trace_d) ->
+              Primitive (Double (-.f, tk), trace_d)
+          | v -> error tk trace (spf "Not a number for unary -: %s" (sv v)))
       | UTilde -> (
           match eval_expr e with
-          | Primitive (Double (f, tk)) ->
+          | Primitive (Double (f, tk), trace_d) ->
               let f = f |> Int64.of_float |> Int64.lognot |> Int64.to_float in
-              Primitive (Double (f, tk))
-          | v -> error tk (spf "Not a number for unary -: %s" (sv v))))
+              Primitive (Double (f, tk), trace_d)
+          | v -> error tk trace (spf "Not a number for unary -: %s" (sv v))))
   | BinaryOp (el, (op, tk), er) -> eval_binary_op el (op, tk) er
   | If (tif, e1, e2, e3) -> (
       match eval_expr e1 with
-      | Primitive (Bool (b, _)) -> if b then eval_expr e2 else eval_expr e3
-      | v -> error tif (spf "not a boolean for if: %s" (sv v)))
+      | Primitive (Bool (b, _), _) -> if b then eval_expr e2 else eval_expr e3
+      | v -> error tif trace (spf "not a boolean for if: %s" (sv v)))
   | Error (tk, e) -> (
       match eval_expr e with
-      | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
-      | v -> error tk (spf "ERROR: %s" (tostring v)))
-  | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
+      | Primitive (Str (s, tk), trace_e) -> error tk trace_e (spf "ERROR: %s" s)
+      | v -> error tk trace (spf "ERROR: %s" (tostring v)))
+  | ExprTodo ((s, tk), _ast_expr) ->
+      error tk trace (spf "ERROR: ExprTODO: %s" s)
 
 and eval_binary_op el (op, tk) er =
   match op with
   | Plus -> (
       match (eval_expr el, eval_expr er) with
-      | Array (l1, arr1, _r1), Array (_l2, arr2, r2) ->
-          Array (l1, Array.append arr1 arr2, r2)
-      | Primitive (Double (f1, tk)), Primitive (Double (f2, _)) ->
-          Primitive (Double (f1 +. f2, tk))
-      | Primitive (Str (s1, tk1)), Primitive (Str (s2, _tk2)) ->
-          Primitive (Str (s1 ^ s2, tk1))
-      | Primitive (Str (s, tk)), v -> Primitive (Str (s ^ tostring v, tk))
-      | v, Primitive (Str (s, tk)) -> Primitive (Str (tostring v ^ s, tk))
-      | V.Object objl, V.Object objr ->
+      | Array ((l1, arr1, _r1), _), Array ((_l2, arr2, r2), _) ->
+          Array ((l1, Array.append arr1 arr2, r2), [])
+      | Primitive (Double (f1, tk), _), Primitive (Double (f2, _), _) ->
+          Primitive (Double (f1 +. f2, tk), [])
+      | Primitive (Str (s1, tk1), _), Primitive (Str (s2, _tk2), _) ->
+          Primitive (Str (s1 ^ s2, tk1), [])
+      | Primitive (Str (s, tk), _), v -> Primitive (Str (s ^ tostring v, tk), [])
+      | v, Primitive (Str (s, tk), _) -> Primitive (Str (tostring v ^ s, tk), [])
+      | V.Object (objl, _), V.Object (objr, _) ->
           let obj = eval_plus_object tk objl objr in
 
-          V.Object obj
+          V.Object (obj, [])
       | v1, v2 ->
-          error tk (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
+          error tk []
+            (spf "TODO: Plus (%s, %s) not yet handled" (sv v1) (sv v2)))
   | And -> (
       match eval_expr el with
-      | Primitive (Bool (b, _)) as v -> if b then eval_expr er else v
-      | v -> error tk (spf "Not a boolean for &&: %s" (sv v)))
+      | Primitive (Bool (b, _), _) as v -> if b then eval_expr er else v
+      | v -> error tk (snd el) (spf "Not a boolean for &&: %s" (sv v)))
   | Or -> (
       match eval_expr el with
-      | Primitive (Bool (b, _)) as v -> if b then v else eval_expr er
-      | v -> error tk (spf "Not a boolean for ||: %s" (sv v)))
+      | Primitive (Bool (b, _), _) as v -> if b then v else eval_expr er
+      | v -> error tk (snd el) (spf "Not a boolean for ||: %s" (sv v)))
   | Lt
   | LtE
   | Gt
@@ -507,12 +559,12 @@ and eval_binary_op el (op, tk) er =
             _ ) ->
             assert false
       in
-      Primitive (Bool (bool, tk))
+      Primitive (Bool (bool, tk), [])
   | Minus
   | Mult
   | Div -> (
       match (eval_expr el, eval_expr er) with
-      | Primitive (Double (f1, itk)), Primitive (Double (f2, _)) ->
+      | Primitive (Double (f1, itk), _), Primitive (Double (f2, _), _) ->
           let op =
             match op with
             | Minus -> ( -. )
@@ -520,11 +572,12 @@ and eval_binary_op el (op, tk) er =
             | Div -> ( /. )
             | _else_ -> assert false
           in
-          Primitive (Double (op f1 f2, itk))
+          Primitive (Double (op f1 f2, itk), [])
       | v1, v2 ->
-          error tk
+          error tk []
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
-               (Tok.content_of_tok tk) (sv v2)))
+               (Tok.content_of_tok tk) (sv v2))
+          (* TODO add traces for operators too *))
   | LSL
   | LSR
   | BitAnd
@@ -533,7 +586,7 @@ and eval_binary_op el (op, tk) er =
       let v1 = eval_expr el in
       let v2 = eval_expr er in
       match (v1, v2) with
-      | Primitive (Double (f1, tk1)), Primitive (Double (f2, tk2)) ->
+      | Primitive (Double (f1, tk1), _), Primitive (Double (f2, tk2), _) ->
           let i1 = Int64.of_float f1 in
           let i2 = Int64.of_float f2 in
           let i64 =
@@ -541,31 +594,32 @@ and eval_binary_op el (op, tk) er =
             | LSL ->
                 let i2 = Int64.to_int i2 in
                 if i2 < 0 then
-                  error tk2 (spf "negative number for LSL: %s" (sv v2))
+                  error tk2 (snd er) (spf "negative number for LSL: %s" (sv v2))
                 else Int64.shift_left i1 i2
             | LSR ->
                 let i2 = Int64.to_int i2 in
                 if i2 < 0 then
-                  error tk2 (spf "negative number for LSR: %s" (sv v2))
+                  error tk2 (snd er) (spf "negative number for LSR: %s" (sv v2))
                 else Int64.shift_right i1 i2
             | BitAnd -> Int64.logand i1 i2
             | BitOr -> Int64.logor i1 i2
             | BitXor -> Int64.logxor i1 i2
             | _else_ -> assert false
           in
-          Primitive (Double (Int64.to_float i64, tk1))
+          Primitive (Double (Int64.to_float i64, tk1), [])
       | v1, v2 ->
-          error tk
+          error tk []
             (spf "binary operator wrong operands: %s %s %s" (sv v1)
                (Tok.content_of_tok tk) (sv v2)))
+(*TODO: add traces for operators too *)
 
-and eval_std_cmp tk (el : expr) (er : expr) : cmp =
+and eval_std_cmp tk (el : program) (er : program) : cmp =
   let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
     match (v_el, v_er) with
-    | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq
-    | V.Array (_, [||], _), V.Array (_, _, _) -> Inf
-    | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
-    | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
+    | V.Array ((_, [||], _), _), V.Array ((_, [||], _), _) -> Eq
+    | V.Array ((_, [||], _), _), V.Array ((_, _, _), _) -> Inf
+    | V.Array ((_, _, _), _), V.Array ((_, [||], _), _) -> Sup
+    | V.Array ((al, ax, ar), _), V.Array ((bl, bx, br), _) -> (
         let a0 = evaluate_lazy_value_ ax.(0) in
 
         let b0 = evaluate_lazy_value_ bx.(0) in
@@ -574,22 +628,23 @@ and eval_std_cmp tk (el : expr) (er : expr) : cmp =
         | (Inf | Sup) as r -> r
         | Eq ->
             let a_sub =
-              V.Array (al, Array.sub ax 1 (Array.length ax - 1), ar)
+              V.Array ((al, Array.sub ax 1 (Array.length ax - 1), ar), [])
             in
             let b_sub =
-              V.Array (bl, Array.sub bx 1 (Array.length bx - 1), br)
+              V.Array ((bl, Array.sub bx 1 (Array.length bx - 1), br), [])
             in
             eval_std_cmp_value_ a_sub b_sub)
-    | Primitive (Double (fl, _)), Primitive (Double (fr, _)) ->
+    | Primitive (Double (fl, _), _), Primitive (Double (fr, _), _) ->
         Float.compare fl fr |> int_to_cmp
-    | Primitive (Str (strl, _)), Primitive (Str (strr, _)) ->
+    | Primitive (Str (strl, _), _), Primitive (Str (strr, _), _) ->
         (* TODO? or use unicode? *)
         String.compare strl strr |> int_to_cmp
         (* note that it does not make sense to compare (<, <=, >=, >) 2 booleans
          * or 2 nulls. They are not ordonnable
          *)
     | _else_ ->
-        error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
+        error tk [] (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
+    (* TODO: add traces for operators too *)
   in
   eval_std_cmp_value_ (eval_expr el) (eval_expr er)
 
@@ -601,21 +656,28 @@ and eval_call e0 (largs, args, _rargs) =
    *)
   let eval_func =
     match e0 with
-    | ArrayAccess
-        (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
+    | ( ArrayAccess
+          ( (Id ("std", _), _),
+            (_, (L (Str (None, DoubleQuote, (_, [ _ ], _))), _), _) ),
+        _ ) ->
         (* set locals so that "std" shows up in the environment when evaluating *)
-        let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
+        let local_wrap =
+          (Local (fk, [ B (("std", fk), fk, std) ], fk, e0), snd e0)
+          (* TODO: DO WE WANT EMPTY TRACE HERE?*)
+        in
         Eval_jsonnet.eval_program local_wrap
     | _ -> eval_expr e0
   in
   match eval_func with
-  | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
+  | Lambda ({ f_tok = _; f_params = lparams, params, rparams; f_body = eb }, _)
+    ->
       let fstr =
-        match e0 with
+        match fst e0 with
         | Id (s, _) -> s
         | ArrayAccess
-            ( Id (obj, _),
-              (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _) ) ->
+            ( (Id (obj, _), _),
+              (_, (L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _), _) )
+          ->
             spf "%s.%s" obj meth
         | _else_ -> "<unknown>"
       in
@@ -643,22 +705,22 @@ and eval_call e0 (largs, args, _rargs) =
                in
                B (id, teq, ei''))
       in
-      eval_expr (Local (lparams, binds, rparams, eb))
-  | v -> error largs (spf "not a function: %s" (sv v))
+      eval_expr (Local (lparams, binds, rparams, eb), snd eb)
+  | v -> error largs (snd e0) (spf "not a function: %s" (sv v))
 
-and eval_std_method e0 (method_str, tk) (l, args, r) =
+and eval_std_method e0 ((method_str, tk), method_trace) (l, args, r) =
   match (method_str, args) with
   | "type", [ Arg e ] ->
       log_call ("std." ^ method_str) l;
       let v = eval_expr e in
       let s = std_type v in
-      Primitive (Str (s, l))
+      Primitive (Str (s, l), snd e)
   (* this method is called in std.jsonnet equals()::, and calls to
    * this equals() are generated in Desugar_jsonnet when
    * desugaring the == operator.
    *)
   | "type", _else_ ->
-      error tk
+      error tk method_trace
         (spf "Improper #arguments to std.type: expected 1, got %d"
            (List.length args))
   | "primitiveEquals", [ Arg e; Arg e' ] ->
@@ -666,54 +728,61 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
       let v = eval_expr e in
       let v' = eval_expr e' in
       let b = std_primivite_equals v v' in
-      Primitive (Bool (b, l))
+      Primitive (Bool (b, l), method_trace)
   | "primitiveEquals", _else_ ->
-      error tk
+      error tk method_trace
         (spf "Improper #arguments to std.primitiveEquals: expected 2, got %d"
            (List.length args))
   | "length", [ Arg e ] -> (
       log_call ("std." ^ method_str) l;
       match eval_expr e with
-      | Primitive (Str (s, tk)) ->
+      | Primitive (Str (s, tk), trace) ->
           let i = String.length s in
-          Primitive (Double (float_of_int i, tk))
-      | Array (_, arr, _) ->
+          Primitive (Double (float_of_int i, tk), trace)
+      | Array ((_, arr, _), trace) ->
           let i = Array.length arr in
-          Primitive (Double (float_of_int i, tk))
-      | V.Object (_, (_asserts, flds), _) ->
+          Primitive (Double (float_of_int i, tk), trace)
+      | V.Object ((_, (_asserts, flds), _), trace) ->
           let i = List.length flds in
           (* TODO: in the spec they use std.objectFieldsEx *)
-          Primitive (Double (float_of_int i, tk))
+          Primitive (Double (float_of_int i, tk), trace)
       | v ->
-          error l
+          error l method_trace
             (spf "length operates on strings, objects, and arrays, got %s"
                (sv v)))
   | "makeArray", [ Arg e; Arg e' ] -> (
       log_call ("std." ^ method_str) l;
       match (eval_expr e, eval_expr e') with
-      | Primitive (Double (n, tk)), Lambda fdef ->
+      | Primitive (Double (n, tk), _), Lambda (fdef, _) ->
           if Float.is_integer n then
             let n = Float.to_int n in
             let e i =
               Call
-                ( Lambda fdef,
-                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
+                ( (Lambda fdef, snd e0),
+                  (fk, [ Arg (L (Number (string_of_int i, fk)), snd e0) ], fk)
+                )
             in
             Array
-              ( fk,
-                Array.init n (fun i ->
-                    { V.value = V.Unevaluated (e i); env = V.empty_env }),
-                fk )
-          else error tk (spf "Got non-integer %f in std.makeArray" n)
+              ( ( fk,
+                  Array.init n (fun i ->
+                      {
+                        V.value = V.Unevaluated (e i, snd e0);
+                        env = V.empty_env;
+                      }),
+                  fk ),
+                method_trace )
+          else
+            error tk method_trace (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
-          error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
+          error tk method_trace
+            (spf "Improper arguments to std.makeArray: %s" (sv v)))
   | "makeArray", _else_ ->
-      error tk
+      error tk method_trace
         (spf "Improper number of arguments to std.makeArray: expected 2, got %d"
            (List.length args))
   | "filter", [ Arg e; Arg e' ] -> (
       match (eval_expr e, eval_expr e') with
-      | Lambda f, Array (l, eis, r) ->
+      | Lambda (f, _), Array ((l, eis, r), trace) ->
           (* note that we do things lazily even here, so we still
            * return an Array with the same lazy value elements in it,
            * but just filtered
@@ -722,33 +791,36 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
             (* TODO? use Array.to_seqi instead? *)
             eis |> Array.to_list |> Common.index_list
             |> List.filter_map (fun (ei, ji) ->
-                   match eval_std_filter_element tk f ei with
-                   | Primitive (Bool (false, _)) -> None
-                   | Primitive (Bool (true, _)) -> Some ji
+                   match eval_std_filter_element (tk, method_trace) f ei with
+                   | Primitive (Bool (false, _), _) -> None
+                   | Primitive (Bool (true, _), _) -> Some ji
                    | v ->
-                       error tk
+                       error tk method_trace
                          (spf "filter function must return boolean, got: %s"
                             (sv v)))
             |> Array.of_list
             |> Array.map (fun idx -> eis.(idx))
           in
-          Array (l, elts', r)
+          Array ((l, elts', r), trace)
       | v1, v2 ->
-          error tk
+          error tk method_trace
             (spf
                "Builtin function filter expected (function, array) but got \
                 (%s, %s)"
                (sv v1) (sv v2)))
   | "filter", _else_ ->
-      error tk
+      error tk method_trace
         (spf "Improper number of arguments to std.filter: expected 2, got %d"
            (List.length args))
   | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
       match (eval_expr e, eval_expr e', eval_expr e'') with
-      | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
+      | ( V.Object (o, obj_trace),
+          Primitive (Str (s, _), _),
+          Primitive (Bool (b, _), _) ) ->
           let _, (_asserts, flds), _ = o in
           let eltopt =
-            flds |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
+            flds
+            |> List.find_opt (fun { V.fld_name; _ } -> fst (fst fld_name) = s)
           in
           let b =
             match eltopt with
@@ -756,23 +828,23 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
             | Some { fld_hidden = visibility, _; _ } ->
                 visibility <> A.Hidden || b
           in
-          Primitive (Bool (b, tk))
+          Primitive (Bool (b, tk), obj_trace)
       | v1, v2, v3 ->
-          error tk
+          error tk method_trace
             (spf
                "Builtin function objectHasEx expected (object, string, \
                 boolean), got (%s, %s, %s)"
                (sv v1) (sv v2) (sv v3)))
   | "objectHasEx", _else_ ->
-      error tk
+      error tk method_trace
         (spf
            "Improper number of arguments to std.objectHasEx: expected 3, got %d"
            (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
   | _else_ -> eval_call e0 (l, args, r)
 
-and eval_std_filter_element (tk : tok) (f : function_definition)
-    (ei : V.lazy_value) : V.value_ =
+and eval_std_filter_element ((tk, method_trace) : tok * tok list)
+    (f : function_definition) (ei : V.lazy_value) : V.value_ =
   match f with
   | { f_params = _l, [ P (_id, _eq, _default) ], _r; f_body = _; _ } -> (
       (* similar to eval_expr for Local *)
@@ -780,11 +852,11 @@ and eval_std_filter_element (tk : tok) (f : function_definition)
       (*TODO: Is the environment correct? *)
       match ei.value with
       | Val _ ->
-          error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
-      | Unevaluated e -> eval_call (Lambda f) (_l, [ Arg e ], _r))
-  | _else_ -> error tk "filter function takes 1 parameter"
+          error (Tok.unsafe_fake_tok "oof") [] "shouldn't have been evaluated"
+      | Unevaluated e -> eval_call (Lambda f, snd e) (_l, [ Arg e ], _r))
+  | _else_ -> error tk method_trace "filter function takes 1 parameter"
 
-and eval_obj_inside (l, x, r) : V.value_ =
+and eval_obj_inside trace (l, x, r) : V.value_ =
   match x with
   | Object (assertsTODO, fields) ->
       let hdupes = Hashtbl.create 16 in
@@ -793,14 +865,14 @@ and eval_obj_inside (l, x, r) : V.value_ =
         |> Common.map_filter
              (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
                match eval_expr ei with
-               | Primitive (Null _) -> None
-               | Primitive (Str ((str, _) as fld_name)) ->
+               | Primitive (Null _, _) -> None
+               | Primitive (Str ((str, _) as fld_name), _) ->
                    if Hashtbl.mem hdupes str then
-                     error tk (spf "duplicate field name: \"%s\"" str)
+                     error tk (snd ei) (spf "duplicate field name: \"%s\"" str)
                    else Hashtbl.add hdupes str true;
                    Some
                      {
-                       V.fld_name;
+                       V.fld_name = ((fst fld_name, snd ei), snd fld_name);
                        fld_hidden;
                        (* fields are evaluated lazily! Sometimes with an
                         * env adjusted (see eval_plus_object()).
@@ -813,13 +885,15 @@ and eval_obj_inside (l, x, r) : V.value_ =
                            env = V.empty_env;
                          };
                      }
-               | v -> error tk (spf "field name was not a string: %s" (sv v)))
+               | v ->
+                   error tk (snd ei)
+                     (spf "field name was not a string: %s" (sv v)))
       in
       let new_assertsTODO =
         assertsTODO |> List.map (fun ass -> (ass, V.empty_env))
       in
-      V.Object (l, (new_assertsTODO, fields), r)
-  | ObjectComp _x -> error l "TODO: ObjectComp"
+      V.Object ((l, (new_assertsTODO, fields), r), trace)
+  | ObjectComp _x -> error l [] "TODO: ObjectComp"
 
 and eval_plus_object _tk objl objr =
   let l, (lassert, lflds), _r = objl in
@@ -827,19 +901,20 @@ and eval_plus_object _tk objl objr =
   let asserts = lassert @ rassert in
   let hash_of_right_field_names =
     rflds
-    |> Common.map (fun { V.fld_name = s, _; _ } -> s)
+    |> Common.map (fun { V.fld_name = (s, _), _; _ } -> s)
     |> Common.hashset_of_list
   in
 
   let lflds_no_overlap =
     lflds
-    |> List.filter (fun { V.fld_name = s, _; _ } ->
+    |> List.filter (fun { V.fld_name = (s, _), _; _ } ->
            not (Hashtbl.mem hash_of_right_field_names s))
   in
 
   let lflds_overlap_hidden =
     lflds
-    |> List.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
+    |> List.map (fun { V.fld_name = (s, _), _; fld_hidden; _ } ->
+           (s, fld_hidden))
     |> List.to_seq |> Hashtbl.of_seq
   in
 
@@ -848,30 +923,33 @@ and eval_plus_object _tk objl objr =
 
   let new_rh_asserts =
     lassert
-    |> Common.map (fun ((tk, e), _) ->
-           ( tk,
-             e
-             |> substitute_kw fake_super (Id super)
-             |> substitute_kw fake_self (Id self) ))
+    |> Common.map (fun ((tk, (e, trace)), _) ->
+           let temp =
+             ( tk,
+               e
+               |> substitute_kw fake_super (Id super)
+               |> substitute_kw fake_self (Id self) )
+           in
+           (fst temp, (snd temp, trace)))
   in
   let new_rh_fields =
     lflds
     |> Common.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.value with
            | Val _ ->
-               error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
+               error (Tok.unsafe_fake_tok "") [] "shouldn't have been evaluated"
            | Unevaluated e ->
                let new_field_name = vfld_name_to_fld_name fld_name in
 
                let new_fld_value =
-                 e
+                 fst e
                  |> substitute_kw fake_super (Id super)
                  |> substitute_kw fake_self (Id self)
                in
                {
                  fld_name = new_field_name;
                  fld_hidden;
-                 fld_value = new_fld_value;
+                 fld_value = (new_fld_value, snd e);
                })
   in
 
@@ -881,11 +959,13 @@ and eval_plus_object _tk objl objr =
         Object (new_rh_asserts, new_rh_fields),
         Tok.unsafe_fake_tok "}" )
   in
-  let e_s = BinaryOp (fake_super, (Plus, Tok.unsafe_fake_tok "+"), rh_obj) in
+  let e_s =
+    BinaryOp ((fake_super, []), (Plus, Tok.unsafe_fake_tok "+"), (rh_obj, []))
+  in
   let new_binds =
     [
-      B (super, Tok.unsafe_fake_tok "=", fake_super);
-      B (self, Tok.unsafe_fake_tok "=", fake_self);
+      B (super, Tok.unsafe_fake_tok "=", (fake_super, []));
+      B (self, Tok.unsafe_fake_tok "=", (fake_self, []));
     ]
   in
 
@@ -893,23 +973,22 @@ and eval_plus_object _tk objl objr =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.value with
-           | Val _ ->
-               error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
+           | Val _ -> error fk [] "shouldn't have been evaluated"
            | Unevaluated e ->
                let new_fld_value =
                  Local
                    ( Tok.unsafe_fake_tok "local",
                      new_binds,
                      Tok.unsafe_sc,
-                     substitute_kw fake_super e_s e )
+                     (substitute_kw fake_super e_s (fst e), snd e) )
                in
                let name, _ = fld_name in
                (* implements hidden inheritance as defined in spec *)
                let hidden, _ = fld_hidden in
                let new_hidden =
-                 if Hashtbl.mem lflds_overlap_hidden name then
+                 if Hashtbl.mem lflds_overlap_hidden (fst name) then
                    match hidden with
-                   | Visible -> Hashtbl.find lflds_overlap_hidden name
+                   | Visible -> Hashtbl.find lflds_overlap_hidden (fst name)
                    | _ -> fld_hidden
                  else fld_hidden
                in
@@ -918,7 +997,10 @@ and eval_plus_object _tk objl objr =
                  V.fld_name;
                  fld_hidden = new_hidden;
                  fld_value =
-                   { V.value = V.Unevaluated new_fld_value; env = V.empty_env };
+                   {
+                     V.value = V.Unevaluated (new_fld_value, snd e);
+                     env = V.empty_env;
+                   };
                })
   in
 
@@ -932,19 +1014,21 @@ and evaluate_lazy_value_ (v : V.lazy_value) =
 
 and manifest_value (v : V.value_) : JSON.t =
   match v with
-  | Primitive x -> (
+  | Primitive (x, _) -> (
       match x with
       | Null _t -> J.Null
       | Bool (b, _tk) -> J.Bool b
       | Double (f, _tk) -> J.Float f
       | Str (s, _tk) -> J.String s)
-  | Lambda { f_tok = tk; _ } -> error tk (spf "Lambda value: %s" (sv v))
-  | Array (_, arr, _) ->
+  | Lambda ({ f_tok = tk; _ }, trace) ->
+      error tk trace (spf "Lambda value: %s" (sv v))
+      (* TODO value should also have trace*)
+  | Array ((_, arr, _), _) ->
       J.Array
         (arr |> Array.to_list
         |> Common.map (fun (entry : V.lazy_value) ->
                manifest_value (evaluate_lazy_value_ entry)))
-  | V.Object (_l, (_assertsTODO, fields), _r) ->
+  | V.Object ((_l, (_assertsTODO, fields), _r), _) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
@@ -964,7 +1048,7 @@ and manifest_value (v : V.value_) : JSON.t =
                      | Val v -> v
                      | Unevaluated e ->
                          let new_e =
-                           e
+                           fst e
                            |> substitute_kw fake_self _new_self
                            |> substitute_kw fake_super
                                 (O
@@ -972,13 +1056,13 @@ and manifest_value (v : V.value_) : JSON.t =
                                      Object ([], []),
                                      Tok.unsafe_fake_tok "}" ))
                          in
-                         eval_expr new_e
+                         eval_expr (new_e, snd e)
                    in
 
                    let j = manifest_value v in
                    Some (fst fld_name, j))
       in
-      J.Object xs
+      J.Object (Common.map (fun x -> (fst (fst x), snd x)) xs)
 
 and tostring (v : V.value_) : string =
   let j = manifest_value v in

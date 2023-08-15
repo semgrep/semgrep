@@ -1850,8 +1850,9 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     |> Common.mapi (fun i rule ->
            if error_recovery then (
              try Left (parse_one_rule t i rule) with
-             | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
-                 let s = Rule.string_of_invalid_rule_error_kind kind in
+             | R.Err (R.InvalidRule ((_, ruleid, _) as err)) ->
+                 logger#warning "I AM DOING SOMETHING HERE";
+                 let s = Rule.string_of_invalid_rule_error err in
                  logger#warning "skipping rule %s, error = %s"
                    (ruleid :> string)
                    s;
@@ -1911,7 +1912,7 @@ let parse_file ?error_recovery file =
            * Use osemgrep --dump-config instead.
            *)
           let core = Desugar_jsonnet.desugar_program file ast in
-          let value_ = Eval_jsonnet.eval_program core in
+          let value_ = Eval_jsonnet_subst.eval_expr core in
           Manifest_jsonnet_to_AST_generic.manifest_value value_
         else
           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
