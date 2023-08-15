@@ -88,7 +88,7 @@ and object_ = asserts list * value_field list
 (* opti? make it a hashtbl of string -> field for faster lookup? *)
 and value_field = {
   (* like Str, strictly evaluated! *)
-  fld_name : string A.wrap;
+  fld_name : (string * Tok.t list) A.wrap;
   fld_hidden : A.hidden A.wrap;
   fld_value : lazy_value;
 }

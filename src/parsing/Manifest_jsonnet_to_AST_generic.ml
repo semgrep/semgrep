@@ -73,7 +73,8 @@ let rec value_to_expr (v : V.value_) : G.expr =
                      | Unevaluated e -> E.eval_program_with_env fld_value.env e
                    in
                    let e = value_to_expr v in
-                   let k = G.L (G.String (fb fld_name)) |> G.e in
+                   let fld_name_no_trace = (fst (fst fld_name), snd fld_name) in
+                   let k = G.L (G.String (fb fld_name_no_trace)) |> G.e in
                    Some (G.keyval k (snd fld_name) e))
       in
       G.Container (G.Dict, (l, xs, r)) |> G.e

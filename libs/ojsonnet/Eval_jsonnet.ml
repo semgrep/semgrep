@@ -192,7 +192,7 @@ and eval_expr (env : V.env) ((v, _) : expr_with_trace) : V.value_ =
           match
             fields
             |> List.find_opt (fun (field : V.value_field) ->
-                   fst field.fld_name = fld)
+                   fst (fst field.fld_name) = fld)
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
@@ -361,7 +361,8 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
       | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
           let _, (_asserts, flds), _ = o in
           let eltopt =
-            flds |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
+            flds
+            |> List.find_opt (fun { V.fld_name; _ } -> fst (fst fld_name) = s)
           in
           let b =
             match eltopt with
@@ -640,7 +641,7 @@ and eval_obj_inside env (l, x, r) : V.value_ =
                    else Hashtbl.add hdupes str true;
                    Some
                      {
-                       V.fld_name;
+                       V.fld_name = ((fst fld_name, []), snd fld_name);
                        fld_hidden;
                        (* fields are evaluated lazily! Sometimes with an
                         * env adjusted (see eval_plus_object()).
@@ -731,7 +732,7 @@ and manifest_value (v : V.value_) : JSON.t =
                    let j = manifest_value v in
                    Some (fst fld_name, j))
       in
-      J.Object xs
+      J.Object (Common.map (fun x -> (fst (fst x), snd x)) xs)
 
 (*****************************************************************************)
 (* Helpers *)
