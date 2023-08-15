@@ -1850,8 +1850,8 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     |> Common.mapi (fun i rule ->
            if error_recovery then (
              try Left (parse_one_rule t i rule) with
-             | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
-                 let s = Rule.string_of_invalid_rule_error_kind kind in
+             | R.Err (R.InvalidRule ((_, ruleid, _) as err)) ->
+                 let s = Rule.string_of_invalid_rule_error err in
                  logger#warning "skipping rule %s, error = %s"
                    (ruleid :> string)
                    s;
