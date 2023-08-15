@@ -57,26 +57,28 @@ type ident = string wrap [@@deriving show]
  * no Import (expanded during desugaring).
  * TODO? add Import that resolves lazily during Eval?
  *)
-type expr =
+type expr_with_trace = expr * Tok.t list
+
+and expr =
   | L of AST_jsonnet.literal
   | O of obj_inside bracket
   (* no complex arr_inside, no ArrayComp *)
-  | Array of expr list bracket
+  | Array of expr_with_trace list bracket
   (* entities *)
   | Id of string wrap
   | IdSpecial of special wrap
-  | Local of tok (* 'local' *) * bind list * tok (* ; *) * expr
+  | Local of tok (* 'local' *) * bind list * tok (* ; *) * expr_with_trace
   (* access (generalize DotAccess) *)
-  | ArrayAccess of expr * expr bracket
+  | ArrayAccess of expr_with_trace * expr_with_trace bracket
   (* control flow *)
-  | Call of expr * argument list bracket
-  | UnaryOp of unary_op wrap * expr
-  | BinaryOp of expr * binary_op wrap * expr
+  | Call of expr_with_trace * argument list bracket
+  | UnaryOp of unary_op wrap * expr_with_trace
+  | BinaryOp of expr_with_trace * binary_op wrap * expr_with_trace
   (* always with an else now (Null if there was no else) *)
-  | If of tok * expr * expr * expr
+  | If of tok * expr_with_trace * expr_with_trace * expr_with_trace
   | Lambda of function_definition
   (* builtins *)
-  | Error of tok (* 'error' *) * expr
+  | Error of tok (* 'error' *) * expr_with_trace
   | ExprTodo of todo_kind * AST_jsonnet.expr
 
 (* ------------------------------------------------------------------------- *)
@@ -87,7 +89,10 @@ type expr =
 and special = Self | Super
 
 (* the NamedArg are supposed to be the last arguments *)
-and argument = Arg of expr | NamedArg of ident * tok (* = *) * expr
+and argument =
+  | Arg of expr_with_trace
+  | NamedArg of ident * tok (* = *) * expr_with_trace
+
 and unary_op = AST_jsonnet.unary_op
 
 (* no '!=', '==', '%', 'in' *)
@@ -115,7 +120,8 @@ and binary_op =
 (* ------------------------------------------------------------------------- *)
 (* Local binding *)
 (* ------------------------------------------------------------------------- *)
-and bind = B of ident * tok (* '=' *) * expr (* can be a Function *)
+and bind =
+  | B of ident * tok (* '=' *) * expr_with_trace (* can be a Function *)
 
 (* ------------------------------------------------------------------------- *)
 (* Functions  *)
@@ -123,11 +129,11 @@ and bind = B of ident * tok (* '=' *) * expr (* can be a Function *)
 and function_definition = {
   f_tok : tok;
   f_params : parameter list bracket;
-  f_body : expr;
+  f_body : expr_with_trace;
 }
 
 (* always with a default value now (Error if there was no default value) *)
-and parameter = P of ident * tok (* '=' *) * expr
+and parameter = P of ident * tok (* '=' *) * expr_with_trace
 
 (* ------------------------------------------------------------------------- *)
 (* Objects  *)
@@ -138,26 +144,26 @@ and obj_inside =
   (* used also for Array comprehension *)
   | ObjectComp of obj_comprehension
 
-and obj_assert = tok (* assert *) * expr
+and obj_assert = tok (* assert *) * expr_with_trace
 
 and field = {
   fld_name : field_name;
   (* no more PlusField *)
   fld_hidden : hidden wrap;
   (* can be a Lambda for methods *)
-  fld_value : expr;
+  fld_value : expr_with_trace;
 }
 
 (* no FId, FStr, and FDynamic -> FExpr *)
-and field_name = FExpr of expr bracket
+and field_name = FExpr of expr_with_trace bracket
 
 (* =~ visibility *)
 and hidden = AST_jsonnet.hidden
 
 (* no more locals1 and locals2, no CompIf *)
-and obj_comprehension = field_name * tok (* : *) * expr * for_comp
+and obj_comprehension = field_name * tok (* : *) * expr_with_trace * for_comp
 
-and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr
+and for_comp = tok (* 'for' *) * ident * tok (* 'in' *) * expr_with_trace
 [@@deriving show { with_path = false }]
 
-type program = expr [@@deriving show]
+type program = expr_with_trace [@@deriving show]

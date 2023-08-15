@@ -121,7 +121,7 @@ let rec lookup (env : V.env) tk local_id =
 (* eval_expr *)
 (*****************************************************************************)
 
-and eval_expr (env : V.env) (v : expr) : V.value_ =
+and eval_expr (env : V.env) ((v, _) : expr_with_trace) : V.value_ =
   match v with
   | L v ->
       let prim =
@@ -152,9 +152,11 @@ and eval_expr (env : V.env) (v : expr) : V.value_ =
    *)
   | IdSpecial (Super, tk) -> lookup env tk V.LSuper
   | Call
-      ( (ArrayAccess
-           (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ meth ], _))), _))
-        as e0),
+      ( ( (ArrayAccess
+             ( (Id ("std", _), _),
+               (_, (L (Str (None, DoubleQuote, (_, [ meth ], _))), _), _) ) as
+          e0),
+          _ ),
         (l, args, r) ) ->
       eval_std_method env e0 meth (l, args, r)
   | Local (_tlocal, binds, _tsemi, e) ->
@@ -308,12 +310,12 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
             let n = Float.to_int n in
             let e i =
               Call
-                ( Lambda fdef,
-                  (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
+                ( (Lambda fdef, []),
+                  (fk, [ Arg (L (Number (string_of_int i, fk)), []) ], fk) )
             in
             Array
               ( fk,
-                Array.init n (fun i -> { V.value = Unevaluated (e i); env }),
+                Array.init n (fun i -> { V.value = Unevaluated (e i, []); env }),
                 fk )
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
@@ -380,7 +382,7 @@ and eval_std_method env e0 (method_str, tk) (l, args, r) =
            "Improper number of arguments to std.objectHasEx: expected 3, got %d"
            (List.length args))
   (* default to regular call, handled by std.jsonnet code hopefully *)
-  | _else_ -> eval_call env e0 (l, args, r)
+  | _else_ -> eval_call env (e0, []) (l, args, r)
 
 (* In theory, we should just recursively evaluate f(ei), but
  * ei is actually not an expression but a lazy_value coming from
@@ -402,11 +404,12 @@ and eval_call env e0 (largs, args, _rargs) =
   match eval_expr env e0 with
   | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
       let fstr =
-        match e0 with
+        match fst e0 with
         | Id (s, _) -> s
         | ArrayAccess
-            ( Id (obj, _),
-              (_, L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _) ) ->
+            ( (Id (obj, _), _),
+              (_, (L (Str (None, DoubleQuote, (_, [ (meth, _) ], _))), _), _) )
+          ->
             spf "%s.%s" obj meth
         | _else_ -> "<unknown>"
       in
@@ -436,7 +439,7 @@ and eval_call env e0 (largs, args, _rargs) =
       in
       eval_expr
         { env with depth = env.depth + 1 }
-        (Local (lparams, binds, rparams, eb))
+        (Local (lparams, binds, rparams, eb), [])
   | v -> error largs (spf "not a function: %s" (sv v))
 
 and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
@@ -583,7 +586,7 @@ and eval_binary_op env el (op, tk) er =
  * so we dont need to produce a value_ that other code can use; we can
  * return a cmp.
  *)
-and eval_std_cmp env tk (el : expr) (er : expr) : cmp =
+and eval_std_cmp env tk (el : expr_with_trace) (er : expr_with_trace) : cmp =
   let rec eval_std_cmp_value_ (v_el : V.value_) (v_er : V.value_) : cmp =
     match (v_el, v_er) with
     | V.Array (_, [||], _), V.Array (_, [||], _) -> Eq

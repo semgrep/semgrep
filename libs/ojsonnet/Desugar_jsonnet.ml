@@ -116,107 +116,111 @@ let desugar_bracket ofa env (v1, v2, v3) =
 
 let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 
-let rec desugar_expr env v : C.expr =
-  try desugar_expr_aux env v with
+let rec desugar_expr trace env v : C.program =
+  try desugar_expr_aux trace env v with
   | Failure "TODO" ->
       pr2 (spf "TODO: construct not handled:\n %s" (show_expr v));
       failwith "TODO:desugar"
 
-and desugar_expr_aux env v =
+and desugar_expr_aux trace env v : C.program =
   match v with
-  | L v -> C.L v
+  | L v -> (C.L v, trace)
   | O v ->
-      let v = desugar_obj_inside env v in
-      v
+      let v = desugar_obj_inside trace env v in
+      (v, trace)
   | A v ->
-      let v = desugar_arr_inside env v in
+      let v = desugar_arr_inside trace env v in
       v
   | Id v ->
       let v = (desugar_wrap desugar_string) env v in
-      C.Id v
-  | IdSpecial (Dollar, tdollar) -> C.Id ("$", tdollar)
+      (C.Id v, trace)
+  | IdSpecial (Dollar, tdollar) -> (C.Id ("$", tdollar), trace)
   | IdSpecial v ->
       let v = (desugar_wrap desugar_special) env v in
-      C.IdSpecial v
+      (C.IdSpecial v, trace)
   | Local (v1, v2, v3, v4) ->
       let tlocal = desugar_tok env v1 in
-      let binds = (desugar_list desugar_bind) env v2 in
+      let binds = (desugar_list (desugar_bind trace)) env v2 in
       let tsemi = desugar_tok env v3 in
-      let e = desugar_expr env v4 in
-      C.Local (tlocal, binds, tsemi, e)
+      let e = desugar_expr trace env v4 in
+      (C.Local (tlocal, binds, tsemi, e), trace)
   (* no need to handle specially super.id, handled by desugar_special *)
   | DotAccess (v1, v2, v3) ->
-      let e = desugar_expr env v1 in
+      let e = desugar_expr trace env v1 in
       let tdot = desugar_tok env v2 in
       let id = desugar_ident env v3 in
-      C.ArrayAccess (e, (tdot, C.L (mk_str_literal id), tdot))
+      (C.ArrayAccess (e, (tdot, (C.L (mk_str_literal id), []), tdot)), trace)
   | ArrayAccess (v1, v2) ->
-      let v1 = desugar_expr env v1 in
-      let v2 = (desugar_bracket desugar_expr) env v2 in
-      C.ArrayAccess (v1, v2)
+      let v1 = desugar_expr trace env v1 in
+      let v2 = (desugar_bracket (desugar_expr trace)) env v2 in
+      (C.ArrayAccess (v1, v2), trace)
   | SliceAccess (e, (l, (e1opt, e2opt, e3opt), r)) ->
       let e' = expr_or_null e1opt in
       let e'' = expr_or_null e2opt in
       let e''' = expr_or_null e3opt in
       let std_slice = mk_DotAccess_std ("slice", l) in
-      desugar_expr env
+      desugar_expr trace env
         (Call (std_slice, (l, [ Arg e; Arg e'; Arg e''; Arg e''' ], r)))
   | Call (v1, v2) ->
-      let v1 = desugar_expr env v1 in
-      let v2 = (desugar_bracket (desugar_list desugar_argument)) env v2 in
-      C.Call (v1, v2)
+      let v1 = desugar_expr trace env v1 in
+      let v2 =
+        (desugar_bracket (desugar_list (desugar_argument trace))) env v2
+      in
+      (C.Call (v1, v2), trace)
   | UnaryOp (v1, v2) ->
       let v1 = (desugar_wrap desugar_unary_op) env v1 in
-      let v2 = desugar_expr env v2 in
-      C.UnaryOp (v1, v2)
+      let v2 = desugar_expr trace env v2 in
+      (C.UnaryOp (v1, v2), trace)
   | BinaryOp (v1, (NotEq, t), v3) ->
-      desugar_expr env (UnaryOp ((UBang, t), BinaryOp (v1, (Eq, t), v3)))
+      desugar_expr trace env (UnaryOp ((UBang, t), BinaryOp (v1, (Eq, t), v3)))
   | BinaryOp (v1, (Eq, t), v3) ->
       let std_equals = mk_DotAccess_std ("equals", t) in
-      desugar_expr env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
+      desugar_expr trace env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
   | BinaryOp (v1, (Mod, t), v3) ->
       let std_equals = mk_DotAccess_std ("mod", t) in
-      desugar_expr env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
+      desugar_expr trace env (Call (std_equals, (fk, [ Arg v1; Arg v3 ], fk)))
   (* no need to handle specially e in super, handled by desugar_special *)
   | BinaryOp (e, (In, t), e') ->
       let std_objectHasEx = mk_DotAccess_std ("objectHasEx", t) in
       let true_ = L (Bool (true, fk)) in
-      desugar_expr
+      desugar_expr trace
         { env with within_an_object = true }
         (Call (std_objectHasEx, (fk, [ Arg e'; Arg e; Arg true_ ], fk)))
   (* general case *)
   | BinaryOp (v1, v2, v3) ->
-      let v1 = desugar_expr env v1 in
+      let v1 = desugar_expr trace env v1 in
       let v2 = (desugar_wrap desugar_binary_op) env v2 in
-      let v3 = desugar_expr env v3 in
-      C.BinaryOp (v1, v2, v3)
-  | AdjustObj (v1, v2) -> desugar_expr env (BinaryOp (v1, (Plus, fk), O v2))
+      let v3 = desugar_expr trace env v3 in
+      (C.BinaryOp (v1, v2, v3), trace)
+  | AdjustObj (v1, v2) ->
+      desugar_expr trace env (BinaryOp (v1, (Plus, fk), O v2))
   | If (tif, e, e', else_opt) ->
       let tif = desugar_tok env tif in
-      let e = desugar_expr env e in
-      let e' = desugar_expr env e' in
+      let e = desugar_expr trace env e in
+      let e' = desugar_expr trace env e' in
       let e'' =
         match else_opt with
-        | Some (_telse, e'') -> desugar_expr env e''
-        | None -> C.L (Null fk)
+        | Some (_telse, e'') -> desugar_expr trace env e''
+        | None -> (C.L (Null fk), trace)
       in
-      C.If (tif, e, e', e'')
+      (C.If (tif, e, e', e''), trace)
   | Lambda v ->
-      let v = desugar_function_definition env v in
-      C.Lambda v
-  | I v -> desugar_import env v
+      let v = desugar_function_definition trace env v in
+      (C.Lambda v, trace)
+  | I v -> desugar_import trace env v
   | Assert ((tassert, e, None), tsemi, e') ->
       let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
-      desugar_expr env
+      desugar_expr trace env
         (Assert ((tassert, e, Some (fk, L assert_failed_str)), tsemi, e'))
   | Assert ((tassert, e, Some (tcolon, e')), _tsemi, e'') ->
-      desugar_expr env (If (tassert, e, e'', Some (tcolon, Error (fk, e'))))
+      desugar_expr trace env
+        (If (tassert, e, e'', Some (tcolon, Error (fk, e'))))
   | Error (v1, v2) ->
       let v1 = desugar_tok env v1 in
-      let v2 = desugar_expr env v2 in
-      C.Error (v1, v2)
+      let v2 = desugar_expr trace env v2 in
+      (C.Error (v1, v2), trace)
   | ParenExpr v ->
-      let _, e, _ = (desugar_bracket desugar_expr) env v in
+      let _, e, _ = (desugar_bracket (desugar_expr trace)) env v in
       e
   | Ellipsis tk
   | DeepEllipsis (tk, _, _) ->
@@ -228,15 +232,15 @@ and desugar_special _env v =
   | Super -> C.Super
   | Dollar -> assert false
 
-and desugar_argument env v =
+and desugar_argument trace env v =
   match v with
   | Arg v ->
-      let v = desugar_expr env v in
+      let v = desugar_expr trace env v in
       C.Arg v
   | NamedArg (v1, v2, v3) ->
       let v1 = desugar_ident env v1 in
       let v2 = desugar_tok env v2 in
-      let v3 = desugar_expr env v3 in
+      let v3 = desugar_expr trace env v3 in
       C.NamedArg (v1, v2, v3)
 
 and desugar_unary_op _env v = v
@@ -266,15 +270,15 @@ and desugar_binary_op _env v =
   | BitXor -> C.BitXor
   | In -> assert false
 
-and desugar_arr_inside env (l, v, r) : C.expr =
+and desugar_arr_inside trace env (l, v, r) : C.expr_with_trace =
   let l = desugar_tok env l in
   let r = desugar_tok env r in
   match v with
   | Array v ->
-      let xs = (desugar_list desugar_expr) env v in
-      C.Array (l, xs, r)
+      let xs = (desugar_list (desugar_expr trace)) env v in
+      (C.Array (l, xs, r), trace)
   | ArrayComp (expr, for_comp, rest_comp) ->
-      desugar_comprehension env expr (CompFor for_comp :: rest_comp)
+      desugar_comprehension trace env expr (CompFor for_comp :: rest_comp)
 
 (* Strictly speaking, the semantics say you're supposed to desugar as an
  * expression in tandem with desugaring the comprehension.
@@ -283,14 +287,14 @@ and desugar_arr_inside env (l, v, r) : C.expr =
  * I hope that applying a single outer-level desugar_expr is equivalent
  * to interleaving it.
  *)
-and desugar_comprehension_helper env e comps : AST_jsonnet.expr =
+and desugar_comprehension_helper trace env e comps : AST_jsonnet.expr =
   match comps with
   | CompIf (tok, e') :: rest ->
       let empty_else = Some (fk, mk_array []) in
       let inner_exp =
         match rest with
         | [] -> mk_array [ e ]
-        | __else__ -> desugar_comprehension_helper env e rest
+        | __else__ -> desugar_comprehension_helper trace env e rest
       in
       If (tok, e', inner_exp, empty_else)
   | CompFor (_, x, _, e') :: rest ->
@@ -308,7 +312,7 @@ and desugar_comprehension_helper env e comps : AST_jsonnet.expr =
         let inner_exp =
           match rest with
           | [] -> mk_array [ e ]
-          | __else__ -> desugar_comprehension_helper env e rest
+          | __else__ -> desugar_comprehension_helper trace env e rest
         in
         let i = freshvar () in
         Lambda
@@ -330,46 +334,48 @@ and desugar_comprehension_helper env e comps : AST_jsonnet.expr =
           std_join (mk_array [], std_mk_array (std_length (Id arr), f)) )
   | [] -> failwith "impossible: Empty array comprehension"
 
-and desugar_comprehension env expr comps =
-  desugar_expr env (desugar_comprehension_helper env expr comps)
+and desugar_comprehension trace env expr comps : C.program =
+  desugar_expr trace env (desugar_comprehension_helper trace env expr comps)
 
 (* The desugaring of method was already done at parsing time,
  * so no need to handle id with parameters here. See AST_jsonnet.bind comment.
  *)
-and desugar_bind env v =
+and desugar_bind trace env v =
   match v with
   | B (v1, v2, v3) ->
       let id = desugar_ident env v1 in
       let teq = desugar_tok env v2 in
-      let e = desugar_expr env v3 in
+      let e = desugar_expr trace env v3 in
       C.B (id, teq, e)
 
-and desugar_function_definition env { f_tok; f_params; f_body } =
+and desugar_function_definition trace env { f_tok; f_params; f_body } =
   let f_tok = desugar_tok env f_tok in
   let f_params =
-    desugar_bracket (desugar_list desugar_parameter) env f_params
+    desugar_bracket (desugar_list (desugar_parameter trace)) env f_params
   in
-  let f_body = desugar_expr env f_body in
+  let f_body = desugar_expr trace env f_body in
   { C.f_tok; f_params; f_body }
 
-and desugar_parameter env v =
+and desugar_parameter trace env v =
   match v with
   | P (v1, v2) -> (
       let id = desugar_ident env v1 in
       match v2 with
       | Some (v1, v2) ->
           let teq = desugar_tok env v1 in
-          let e = desugar_expr env v2 in
+          let e = desugar_expr trace env v2 in
           C.P (id, teq, e)
       | None ->
           C.P
             ( id,
               fk,
-              C.Error (fk, C.L (mk_str_literal ("Parameter not bound", fk))) ))
+              ( C.Error
+                  (fk, (C.L (mk_str_literal ("Parameter not bound", fk)), trace)),
+                trace ) ))
   | ParamEllipsis tk ->
       error tk "ParamEllipsis can appear only in semgrep patterns"
 
-and desugar_obj_inside env (l, v, r) : C.expr =
+and desugar_obj_inside trace env (l, v, r) : C.expr =
   let l = desugar_tok env l in
   let r = desugar_tok env r in
   match v with
@@ -389,43 +395,47 @@ and desugar_obj_inside env (l, v, r) : C.expr =
       in
       let asserts' =
         asserts
-        |> Common.map (fun assert_ -> desugar_assert_ env (assert_, binds))
+        |> Common.map (fun assert_ ->
+               desugar_assert_ trace env (assert_, binds))
       in
       let fields' =
-        fields |> Common.map (fun field -> desugar_field env (field, binds))
+        fields
+        |> Common.map (fun field -> desugar_field trace env (field, binds))
       in
       let obj = C.Object (asserts', fields') in
       if env.within_an_object then
         C.Local
           ( fk,
             [
-              C.B (("$outerself", fk), fk, C.IdSpecial (C.Self, fk));
-              C.B (("$outersuper", fk), fk, C.IdSpecial (C.Super, fk));
+              C.B (("$outerself", fk), fk, (C.IdSpecial (C.Self, fk), trace));
+              C.B (("$outersuper", fk), fk, (C.IdSpecial (C.Super, fk), trace));
             ],
             fk,
-            C.O (l, obj, r) )
+            (C.O (l, obj, r), trace) )
       else C.O (l, obj, r)
   | ObjectComp _vTODO -> C.ExprTodo (("ObjectComp", l), O (l, v, r))
 
-and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
+and desugar_assert_ trace (env : env) (v : assert_ * bind list) : C.obj_assert =
   let (tassert, e, opt), binds = v in
   match opt with
   | None ->
       let assert_failed_str = mk_str_literal ("Assertion failed", tassert) in
-      desugar_assert_ env ((tassert, e, Some (fk, L assert_failed_str)), binds)
+      desugar_assert_ trace env
+        ((tassert, e, Some (fk, L assert_failed_str)), binds)
   | Some (_tcolon, e') ->
       let if_expr =
         If (tassert, e, L (Null fk), Some (tassert, Error (fk, e')))
       in
       let final_expr = Local (fk, binds, fk, if_expr) in
-      (tassert, desugar_expr { env with within_an_object = true } final_expr)
+      ( tassert,
+        desugar_expr trace { env with within_an_object = true } final_expr )
 
-and desugar_field (env : env) (v : field * bind list) : C.field =
+and desugar_field trace (env : env) (v : field * bind list) : C.field =
   let { fld_name; fld_attr; fld_hidden; fld_value = e' }, binds = v in
-  let fld_name_desugared = desugar_field_name env fld_name in
+  let fld_name_desugared = desugar_field_name trace env fld_name in
   let fld_hidden = (desugar_wrap desugar_hidden) env fld_hidden in
   let fld_value =
-    desugar_expr
+    desugar_expr trace
       { env with within_an_object = true }
       (Local (fk, binds, fk, e'))
   in
@@ -442,28 +452,32 @@ and desugar_field (env : env) (v : field * bind list) : C.field =
         | FDynamic (_, p, _) -> p
       in
 
-      let index = desugar_expr env name in
+      let index = desugar_expr trace env name in
       let obj = C.IdSpecial (Super, fk) in
 
-      let rhs = C.ArrayAccess (obj, (fk, index, fk)) in
+      let rhs = C.ArrayAccess ((obj, trace), (fk, index, fk)) in
 
-      let new_fld_value = C.BinaryOp (rhs, (C.Plus, fk), fld_value) in
-      { C.fld_name = fld_name_desugared; fld_hidden; fld_value = new_fld_value }
+      let new_fld_value = C.BinaryOp ((rhs, trace), (C.Plus, fk), fld_value) in
+      {
+        C.fld_name = fld_name_desugared;
+        fld_hidden;
+        fld_value = (new_fld_value, trace);
+      }
 
-and desugar_field_name env v =
+and desugar_field_name trace env v =
   match v with
   | FId v ->
       let id = desugar_ident env v in
       let str = mk_str_literal id in
-      C.FExpr (fk, C.L str, fk)
-  | FStr v -> C.FExpr (fk, C.L (Str v), fk)
+      C.FExpr (fk, (C.L str, trace), fk)
+  | FStr v -> C.FExpr (fk, (C.L (Str v), trace), fk)
   | FDynamic v ->
-      let l, v, r = (desugar_bracket desugar_expr) env v in
+      let l, v, r = (desugar_bracket (desugar_expr trace)) env v in
       C.FExpr (l, v, r)
 
 and desugar_hidden _env v = v
 
-and desugar_import env v : C.expr =
+and desugar_import trace env v : C.expr_with_trace =
   match v with
   | Import (tk, str_) ->
       (* TODO: keep history of import, use tk *)
@@ -482,7 +496,7 @@ and desugar_import env v : C.expr =
             (ast, env)
       in
       (* recurse *)
-      desugar_expr env expr
+      desugar_expr (tk :: trace) env expr
   (* TODO? could also have import_callback on ImportStr!
    * so could fetch network data from our policies
    *)
@@ -492,7 +506,7 @@ and desugar_import env v : C.expr =
       if not (Sys.file_exists final_path) then
         error tk (spf "file does not exist: %s" final_path);
       let s = Common.read_file final_path in
-      C.L (mk_str_literal (s, tk))
+      (C.L (mk_str_literal (s, tk)), trace)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -516,5 +530,5 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
       Local (fk, [ B (("std", fk), fk, std) ], fk, e)
     else e
   in
-  let core = desugar_expr_profiled env e in
+  let core = desugar_expr_profiled [] env e in
   core

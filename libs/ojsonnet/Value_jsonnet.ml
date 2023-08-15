@@ -57,7 +57,10 @@ and local_id = LSelf | LSuper | LId of string
    which also have lazy semantics themselves, and thus again need to be able
    to modify a specifc environment
 *)
-and val_or_unevaluated_ = Val of value_ | Unevaluated of Core_jsonnet.expr
+and val_or_unevaluated_ =
+  | Val of value_
+  | Unevaluated of Core_jsonnet.expr_with_trace
+
 and lazy_value = { value : val_or_unevaluated_; env : env }
 
 (*****************************************************************************)
