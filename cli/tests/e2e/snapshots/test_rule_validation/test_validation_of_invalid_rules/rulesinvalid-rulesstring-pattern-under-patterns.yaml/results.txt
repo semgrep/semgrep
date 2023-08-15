@@ -7,4 +7,4 @@ semgrep error: Invalid rule schema
 'foo' is not of type 'object'
 
 [ERROR] Rule parse error in rule eqeq:
- Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?
+ invalid rule eqeq, the trace of this error is: rules/invalid-rules/string-pattern-under-patterns.yaml:4:4: Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?

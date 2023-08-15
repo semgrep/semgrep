@@ -12,4 +12,4 @@ Additional properties are not allowed ('pattern', 'pattern-not' were unexpected)
 Additional properties are not allowed ('pattern-not' was unexpected)
 
 [ERROR] Rule parse error in rule eqeq:
- Expected object with only one entry -- did you forget a hyphen?
+ invalid rule eqeq, the trace of this error is: rules/invalid-rules/missing-hyphen.yaml:4:6: Expected object with only one entry -- did you forget a hyphen?

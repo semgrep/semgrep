@@ -9,4 +9,4 @@ semgrep error: Invalid rule schema
 One of these properties is missing: 'severity'
 
 [ERROR] Rule parse error in rule blah:
- Missing required field severity
+ invalid rule blah, the trace of this error is: rules/invalid-rules/invalid-missing-top-item.yaml:2:4: Missing required field severity

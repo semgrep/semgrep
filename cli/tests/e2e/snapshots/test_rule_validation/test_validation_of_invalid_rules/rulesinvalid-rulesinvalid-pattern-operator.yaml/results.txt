@@ -7,4 +7,4 @@ semgrep error: Invalid rule schema
 One of these properties is missing: 'all', 'any', 'inside', 'not', 'pattern', 'regex', 'taint'
 
 [ERROR] Rule parse error in rule eqeq:
- Expected one of pattern,all,any,regex,taint,not,inside to be present
+ invalid rule eqeq, the trace of this error is: rules/invalid-rules/invalid-pattern-operator.yaml:4:4: Expected one of pattern,all,any,regex,taint,not,inside to be present

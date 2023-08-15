@@ -12,4 +12,4 @@ semgrep error: Detected duplicate key
 Detected duplicate key name, one of ['metavariable', 'regex'].
 
 [ERROR] Rule parse error in rule boto3-internal-network:
- duplicate key 'metavariable' in dictionary. You should use multiple metavariable-regex
+ invalid rule boto3-internal-network, the trace of this error is: rules/invalid-rules/invalid-metavariable-regex.yaml:8:8: duplicate key 'metavariable' in dictionary. You should use multiple metavariable-regex
