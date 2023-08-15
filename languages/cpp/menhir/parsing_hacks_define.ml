@@ -74,6 +74,7 @@ let mark_end_define ii =
     Tok.OriginTok
       {
         str = "";
+        trace = [];
         pos = { tok_loc.pos with charpos = Tok.bytepos_of_tok ii + 1 };
       }
   in

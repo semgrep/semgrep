@@ -61,6 +61,7 @@ type location = {
    * in Semgrep on huge monorepos. It might be worth inlining it back
    * (and also reduce its number of fields).
    *)
+  trace : t list;
   pos : Pos.t;
 }
 [@@deriving show { with_path = false }, eq, ord]
@@ -68,7 +69,7 @@ type location = {
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
  *)
-type t =
+and t =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
@@ -151,7 +152,7 @@ let is_origintok ii =
   | OriginTok _ -> true
   | _ -> false
 
-let fake_location = { str = ""; pos = Pos.fake_pos }
+let fake_location = { str = ""; pos = Pos.fake_pos; trace = [] }
 
 (* Synthesize a fake token *)
 let unsafe_fake_tok str : t = FakeTokStr (str, None)
@@ -249,6 +250,7 @@ let tok_of_str_and_bytepos str pos =
   let loc =
     {
       str;
+      trace = [];
       pos =
         {
           charpos = pos;
@@ -264,7 +266,9 @@ let tok_of_str_and_bytepos str pos =
 let tok_of_lexbuf lexbuf =
   tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
 
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
+let first_loc_of_file file =
+  { str = ""; trace = []; pos = Pos.first_pos_of_file file }
+
 let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 
 let rewrap_str s ii =
@@ -298,6 +302,7 @@ let empty_tok_after tok : t =
       let loc =
         {
           str = "";
+          trace = [];
           pos =
             {
               loc.pos with
@@ -324,6 +329,7 @@ let split_tok_at_bytepos pos ii =
   let loc2 =
     {
       str = loc2_str;
+      trace = [];
       pos =
         {
           loc.pos with
