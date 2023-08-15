@@ -33,10 +33,10 @@ bar(x)
 # ruleid: string-in-comparison
 bar(xyz)
 
-# ok: string-in-comparison
 # this shouldn't parse as a regexp, it should just be a literal string
+# ok: string-in-comparison
 baz(".*")
 
-# ruleid: string-in-comparison
 # this one's OK though
+# ruleid: string-in-comparison
 qux(".*")
