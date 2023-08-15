@@ -174,41 +174,49 @@ class ConfigLoader:
             return self._download_config_from_url(self._config_path)
         except Exception:
             if self._supports_fallback_config:
-                fallback_url = re.sub(
-                    r"^[^?]*",  # replace everything but query params
-                    f"{get_state().env.fail_open_url}/config",
-                    self._config_path,
-                )
-                return self._download_config_from_url(fallback_url)
-            else:
-                raise
+                try:
+                    fallback_url = re.sub(
+                        r"^[^?]*",  # replace everything but query params
+                        f"{get_state().env.fail_open_url}/config",
+                        self._config_path,
+                    )
+                    return self._download_config_from_url(fallback_url)
+                except Exception:
+                    pass
+
+            raise  # error from first fetch
 
     def _download_config_from_url(self, url: str) -> ConfigFile:
         app_session = get_state().app_session
         logger.debug("Downloading config from %s", url)
-        resp = app_session.get(url, headers={"Accept": "application/json"})
-        if resp.status_code == requests.codes.ok:
-            try:
-                rule_config = resp.json()["rule_config"]
+        error = f"Failed to download configuration from {url}"
+        try:
+            resp = app_session.get(url, headers={"Accept": "application/json"})
+            if resp.status_code == requests.codes.ok:
+                try:
+                    rule_config = resp.json()["rule_config"]
 
-                # The backend wants to return native json, but we support a json string here too
-                config_str = (
-                    rule_config
-                    if isinstance(rule_config, str)
-                    else json.dumps(rule_config)
-                )
+                    # The backend wants to return native json, but we support a json string here too
+                    config_str = (
+                        rule_config
+                        if isinstance(rule_config, str)
+                        else json.dumps(rule_config)
+                    )
 
-                return ConfigFile(None, config_str, url)
-            except Exception as ex:
-                # catch JSONDecodeError, AssertionError, etc. is this needed?
-                logger.debug("Failed to decode JSON: %s", repr(ex))
-                return ConfigFile(
-                    None, resp.content.decode("utf-8", errors="replace"), url
-                )
-            finally:
-                logger.debug(f"Downloaded config from %s", url)
+                    return ConfigFile(None, config_str, url)
+                except Exception as ex:
+                    # catch JSONDecodeError, AssertionError, etc. is this needed?
+                    logger.debug("Failed to decode JSON: %s", repr(ex))
+                    return ConfigFile(
+                        None, resp.content.decode("utf-8", errors="replace"), url
+                    )
+                finally:
+                    logger.debug(f"Downloaded config from %s", url)
 
-        error = f"Failed to download configuration. HTTP {resp.status_code} when fetching {url}"
+            error += f" HTTP {resp.status_code}."
+        except requests.exceptions.RetryError as ex:
+            error += f" Failed after multiple attempts ({ex.args[0].reason})"
+
         logger.debug(error)  # since the raised exception may be caught and suppressed
         raise SemgrepError(error)
 
