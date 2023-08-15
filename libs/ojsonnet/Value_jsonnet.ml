@@ -67,10 +67,10 @@ and lazy_value = { value : val_or_unevaluated_; env : env }
 (* Values *)
 (*****************************************************************************)
 and value_ =
-  | Primitive of primitive
-  | Object of object_ A.bracket
-  | Lambda of Core_jsonnet.function_definition
-  | Array of lazy_value array A.bracket
+  | Primitive of primitive * Tok.t list
+  | Object of object_ A.bracket * Tok.t list
+  | Lambda of Core_jsonnet.function_definition * Tok.t list
+  | Array of lazy_value array A.bracket * Tok.t list
 
 (* mostly like AST_jsonnet.literal but with evaluated Double instead of
  * Number and a simplified string!
@@ -100,7 +100,7 @@ and asserts = Core_jsonnet.obj_assert * env [@@deriving show]
 (*****************************************************************************)
 let empty_obj : value_ =
   let fk = Tok.unsafe_fake_tok "" in
-  Object (fk, ([], []), fk)
+  Object ((fk, ([], []), fk), [])
 
 let empty_env = { locals = Map_.empty; depth = 0 }
 
