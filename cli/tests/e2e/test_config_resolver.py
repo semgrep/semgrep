@@ -4,22 +4,29 @@ import pytest
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
+from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 
 
 @pytest.mark.quick
 def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
-    file_content = dedent(
-        """
-        rules:
-        - id: eqeq-bad
-          pattern-new-feature: $X == $X
-          message: "useless comparison"
-          languages: [python]
-          severity: ERROR
-        """
-    ).lstrip()
-    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    config_file = ConfigFile(
+        None,
+        dedent(
+            """
+            rules:
+            - id: eqeq-bad
+              pattern-new-feature: $X == $X
+              message: "useless comparison"
+              languages: [python]
+              severity: ERROR
+            """
+        ).lstrip(),
+        "https://semgrep.dev/p/ci",
+    )
+    mocker.patch.object(
+        ConfigLoader, "_download_config_from_url", return_value=config_file
+    )
 
     runner = SemgrepRunner(
         env={
