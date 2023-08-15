@@ -175,7 +175,7 @@ class ConfigLoader:
         except Exception:
             if self._supports_fallback_config:
                 fallback_url = re.sub(
-                    r"^[^?]*",
+                    r"^[^?]*",  # replace everything but query params
                     f"{get_state().env.fail_open_url}/config",
                     self._config_path,
                 )
