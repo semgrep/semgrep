@@ -1859,13 +1859,22 @@ and map_quotable (env : env) (x : CST.quotable) : expr =
             v2)
           v3
       in
-      let base = Seq (v2 :: v3) |> G.e in
+      let v6 = (* ")" *) token env v6 in
+      let base =
+        match v3 with
+        (* This means we would produce a singleton Seq. Let's not do that, and just
+           take the expression itself, with the parens around it.
+        *)
+        | [] ->
+            AST_generic_helpers.set_e_range v1 v6 v2;
+            v2
+        | _ -> Seq (v2 :: v3) |> G.e
+      in
       let _v5 =
         match v5 with
         | Some tok -> (* ";" *) Some (token env tok)
         | None -> None
       in
-      let v6 = (* ")" *) token env v6 in
       match v4 with
       | Some x ->
           let comp = map_comprehension_clause env x in
