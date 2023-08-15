@@ -337,7 +337,7 @@ and eval_op op values code =
       match (v1, v2) with
       | _, List xs -> Bool (List.mem v1 xs)
       | String v1, String v2 ->
-          Bool (Common2.string_match_substring (Str.regexp v1) v2)
+          Bool (Common2.string_match_substring (Str.regexp_string v1) v2)
       | _ -> Bool false)
   | G.NotIn, [ v1; v2 ] -> (
       match (v1, v2) with
