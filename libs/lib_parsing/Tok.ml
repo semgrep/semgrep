@@ -72,7 +72,10 @@ type t =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
-   * when building some extra AST elements. *)
+   * when building some extra AST elements.
+   * TODO: we should remove the option below and enforce the construction
+   * of safe fake tokens.
+   *)
   | FakeTokStr of
       string (* to help the generic pretty printer *)
       * (* Sometimes we generate fake tokens close to existing
@@ -91,7 +94,7 @@ type t =
    * trouble back-propagating the transformation back to the original file).
    *)
   | ExpandedTok of
-      (* refers to the preprocessed file, e.g. /tmp/pp-xxxx.pphp *)
+      (* refers to the preprocessed file (e.g., /tmp/pp-xxxx.pphp) *)
       location
       * (* kind of virtual position. This info refers to the last token
          * before a serie of expanded tokens and the int is an offset.
@@ -112,6 +115,10 @@ type t =
    *
    * Ab means AbstractLineTok. I Use a short name to not
    * polluate in debug mode.
+   *
+   * update: this constructor is not that useful anymore; You should prefer to
+   * use t_always_equal instead to compare big AST elements and not care
+   * about position.
    *)
   | Ab
 [@@deriving show { with_path = false }, eq, ord]
