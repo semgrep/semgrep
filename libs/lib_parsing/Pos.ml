@@ -26,9 +26,8 @@ open Common
  *  - Lexing.position (also used for Spacegrep.Loc.Pos), but no convenient
  *    line x col
  *  - Semgrep_output_v1.position, but no filename
- *  - Tree_sitter_run.Loc.pos, but no filename, no bytepos, just line x col.
- *    This type itself is derived from
- *    Tree_sitter_bindings.Tree_sitter_output_t.position
+ *  - Tree_sitter_run.Loc.pos (derived itself from Tree_sitter_bindings.Tree_sitter_output_t.position),
+ *    but no filename, no bytepos, just line x col.
  *)
 
 (*****************************************************************************)
@@ -69,17 +68,21 @@ type t = {
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]
 
+(* alt: could use @@deriving make.
+ * TODO? should we use 0 instead? -1 clearly mark the field has not been set
+ *)
+let make ?(line = -1) ?(column = -1) ?(file = "NO FILE INFO YET") bytepos =
+  { bytepos; line; column; file }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let fake_pos =
-  { bytepos = -1; line = -1; column = -1; file = "FAKE TOKEN LOCATION" }
-
-let first_pos_of_file file = { bytepos = 0; line = 1; column = 0; file }
+let fake_pos = make (-1)
+let first_pos_of_file file = make ~line:1 ~column:0 ~file 0
 
 (* for error reporting *)
-let string_of_pos x = spf "%s:%d:%d" x.file x.line x.column
+let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" file line column
 
 (*****************************************************************************)
 (* Adjust line x col in a position *)

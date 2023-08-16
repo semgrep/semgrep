@@ -6,7 +6,8 @@ let convert_pos ~file (loc : Aliengrep.Match.loc) =
   (* single "token" spanning the whole match *)
   let bytepos = loc.start in
   let line, column = Xpattern_matcher.line_col_of_charpos file bytepos in
-  { Tok.str = loc.substring; pos = { bytepos; file; line; column } }
+  let pos = Pos.make ~file ~line ~column bytepos in
+  { Tok.str = loc.substring; pos }
 
 let convert_loc ~file (loc : Aliengrep.Match.loc) =
   (* single "token" spanning the whole match *)
@@ -16,7 +17,8 @@ let convert_loc ~file (loc : Aliengrep.Match.loc) =
   let end_pos =
     let bytepos = loc.start + loc.length in
     let line, column = Xpattern_matcher.line_col_of_charpos file bytepos in
-    { Tok.str = ""; pos = { bytepos; file; line; column } }
+    let pos = Pos.make ~file ~line ~column bytepos in
+    { Tok.str = ""; pos }
   in
   (start_pos, end_pos)
 
