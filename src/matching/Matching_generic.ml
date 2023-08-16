@@ -114,7 +114,6 @@ type tin = {
   lang : Lang.t;
   config : Rule_options.t;
   deref_sym_vals : int;
-  wildcard_imports : AST_generic.ident list list;
 }
 
 (* list of possible outcoming matching environments *)
@@ -391,14 +390,7 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
       return new_binding
 
 let empty_environment lang config =
-  {
-    mv = [];
-    stmts_matched = [];
-    lang;
-    config;
-    deref_sym_vals = 0;
-    wildcard_imports = [];
-  }
+  { mv = []; stmts_matched = []; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)
