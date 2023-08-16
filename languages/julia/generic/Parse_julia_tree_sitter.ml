@@ -384,7 +384,8 @@ and map_anon_choice_exp_c681153 (env : env) (x : CST.anon_choice_exp_c681153) :
       (* TODO: Might be good to translate this to a `DefStmt` in the future.
          Python just lets it be an `Assign`, though, so we will too.
       *)
-      ExprStmt (map_assignment_exp env x, G.sc) |> G.s
+      let l, t, r = map_assignment env x in
+      AST_generic_helpers.assign_to_vardef (l, t, r)
   | `Bare_tuple x -> ExprStmt (map_bare_tuple_exp env x, G.sc) |> G.s
   | `Short_func_defi x -> map_short_function_definition env x
 

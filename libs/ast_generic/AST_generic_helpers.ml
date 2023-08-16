@@ -202,6 +202,17 @@ let rec pattern_to_expr p =
   | _ -> raise NotAnExpr)
   |> G.e
 
+(* Primarily for usage in converting an Assign into a DefStmt.
+ * This will prefer to translate to an EPattern (OtherPat ...) instead
+ * of an EDynamic, but I (brandon) don't think we do many semantic things
+ * with EDynamic anyways.
+ * So probably fine to prefer this here.
+ *)
+let expr_to_entname (e : G.expr) : G.entity_name =
+  match e.G.e with
+  | N name -> EN name
+  | _ -> EPattern (expr_to_pattern e)
+
 (* We would like to do more things here, like transform certain
  * N in TyN, but we can't do that from the Xxx_to_generic.ml
  * (e.g., Python_to_generic.ml). Indeed, certain transformations
@@ -289,6 +300,15 @@ let vardef_to_assign (ent, def) =
     | None -> L (Null (Tok.unsafe_fake_tok "null")) |> G.e
   in
   Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
+
+let assign_to_vardef ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
+  match e1.G.e with
+  | Cast (ty, _, e) ->
+      let ent = { name = expr_to_entname e; attrs = []; tparams = [] } in
+      DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s
+  | _ ->
+      let ent = { name = expr_to_entname e1; attrs = []; tparams = [] } in
+      DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
