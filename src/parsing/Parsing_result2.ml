@@ -2,7 +2,9 @@
 (* Types *)
 (*****************************************************************************)
 
-type error = Tree_sitter_error of Tree_sitter_run.Tree_sitter_error.t
+module Err = Tree_sitter_run.Tree_sitter_error
+
+type error = Tree_sitter_error of Err.t
 
 type t = {
   ast : AST_generic.program;
@@ -15,7 +17,7 @@ type t = {
 let ok ast stat =
   { ast; errors = []; skipped_tokens = []; inserted_tokens = []; stat }
 
-let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+let loc_of_tree_sitter_error (err : Err.t) =
   let start = err.start_pos in
   {
     Tok.str = err.substring;
@@ -35,12 +37,12 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
    Right: inserted empty tokens (MISSING nodes)
 *)
 let locs_of_tree_sitter_errors errs =
-  errs
-  |> Common.map loc_of_tree_sitter_error
-  |> List.partition (fun (tok : Tok.location) ->
-         (* Assume all empty tokens are missing nodes inserted by tree-sitter.
-            TODO: expose the error kind explicitly in Tree_sitter_error.t *)
-         tok.str <> "")
+  let skipped = List.filter (fun (err : Err.t) -> err.kind = Error_node) errs in
+  let inserted =
+    List.filter (fun (err : Err.t) -> err.kind = Missing_node) errs
+  in
+  ( Common.map loc_of_tree_sitter_error skipped,
+    Common.map loc_of_tree_sitter_error inserted )
 
 let partial ast stat tree_sitter_errors =
   let skipped_tokens, inserted_tokens =
@@ -50,9 +52,7 @@ let partial ast stat tree_sitter_errors =
   { ast; errors; skipped_tokens; inserted_tokens; stat }
 
 let has_error x = x.errors <> []
-
-let format_error ?style (Tree_sitter_error x) =
-  Tree_sitter_run.Tree_sitter_error.to_string ?style x
+let format_error ?style (Tree_sitter_error x) = Err.to_string ?style x
 
 let format_errors ?style x =
   x.errors |> Common.map (format_error ?style) |> String.concat ""

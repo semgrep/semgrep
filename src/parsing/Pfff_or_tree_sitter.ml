@@ -97,6 +97,20 @@ let extract_pattern_from_tree_sitter_result
 (* Run target parsers *)
 (*****************************************************************************)
 
+(* Serious error = any parsing error that causes us to resort to an alternate
+   parser. *)
+let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  match err.kind with
+  | Internal
+  | Error_node ->
+      true
+  | Missing_node -> false
+
+(* Return the first serious error of the list to show as the reason
+   for failure. *)
+let has_serious_errors (res : _ Tree_sitter_run.Parsing_result.t) =
+  List.find_opt (fun err -> is_serious_error err) res.errors
+
 let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
  fun parser file ->
   match parser with
@@ -118,25 +132,25 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat file res.stat in
-        match (res.program, res.errors) with
-        | None, [] ->
+        match (res.program, has_serious_errors res) with
+        | None, None ->
             let msg =
               "internal error: failed to recover typed tree from tree-sitter's \
                untyped tree"
             in
             ResError (Exception.trace (Failure msg))
-        | Some ast, [] -> ResOk (ast, stat)
-        | None, ts_error :: _xs ->
+        | Some ast, None -> ResOk (ast, stat)
+        | None, Some ts_error ->
             let e = error_of_tree_sitter_error ts_error in
             logger#error "non-recoverable error with TreeSitter parser:\n%s"
               (Exception.to_string e);
             ResError e
-        | Some ast, (_ :: _ as errors) ->
+        | Some ast, Some _error ->
             (* Note that the first error is probably the most important;
              * the following one may be due to cascading effects *)
             logger#error "partial errors (%d) with TreeSitter parser"
-              (List.length errors);
-            ResPartial (ast, stat, errors)
+              (List.length res.errors);
+            ResPartial (ast, stat, res.errors)
       with
       | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       (* to get correct stack trace on parse error *)
