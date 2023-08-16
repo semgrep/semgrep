@@ -6,6 +6,35 @@
 
 <!-- insertion point -->
 
+## [1.36.0](https://github.com/returntocorp/semgrep/releases/tag/v1.36.0) - 2023-08-14
+
+### Added
+
+- Added general machinery to support languages with case insensitive identifiers and generalized php to use these case insensitive identifiers.
+
+  For example, in php the pattern `MyClass()` will now match calls with different capitalization such as `myclass()` and `Myclass()`. (gh-8356)
+
+### Fixed
+
+- Convert all '@r2c.dev' email addresses to '@semgrep.com'. (gh-8437)
+- Semgrep LSP now compiled with tls, should no longer crash with not compiled with tls error (ls-conduit)
+- Fixed multiprocess testing crash due to new osemgrep entrypoint (pa-2963)
+- Pro: JS/TS: taint-mode: Fix bug introduced in 1.33.1 that had the side-effect of
+  hurting performance of taint rules on JS/TS repos that used destructuring in
+  functions formal parameters. (pro-119)
+
+## [1.35.0](https://github.com/returntocorp/semgrep/releases/tag/v1.35.0) - 2023-08-09
+
+### Added
+
+- Maven Dep Tree parsing now surfaces children dependencies per package (sc-996)
+
+### Fixed
+
+- fix(promql): make aggregation labels not depend on order
+
+  "sum by (..., b, a, c, ...) (X)" should match "sum by (a,b,c) (X)" (gh-8399)
+
 ## [1.34.1](https://github.com/returntocorp/semgrep/releases/tag/v1.34.1) - 2023-07-28
 
 ### Added

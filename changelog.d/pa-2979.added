@@ -1,0 +1,2 @@
+metavariable-comparison: You can now use "in" and "not in" for strings
+in the same sense as in Python, for substring checking.

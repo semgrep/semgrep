@@ -111,9 +111,9 @@ extras_require = {"experiments": ["jsonnet~=0.18"]}
 
 setuptools.setup(
     name="semgrep",
-    version="1.34.1",
+    version="1.36.0",
     author="Return To Corporation",
-    author_email="support@r2c.dev",
+    author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,

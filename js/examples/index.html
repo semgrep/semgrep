@@ -34,7 +34,9 @@
       engine.addParser(lua);
       document.getElementById("result").innerHTML = JSON.stringify(
         JSON.parse(
-          engine.execute("python", "/static/rules.json", "/static/test.py")
+          engine.execute("python", "/static/rules.json", "/static", [
+            "/static/test.py",
+          ])
         ),
         null,
         2

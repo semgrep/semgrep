@@ -14,10 +14,19 @@
 open Ppx_hash_lib.Std.Hash.Builtin
 
 let bitmask_HIDDEN = 0x01
+let bitmask_CASE_INSENSITIVE = 0x02
 
 type t = int [@@deriving show, eq, ord, hash]
 
 let empty = 0
 let is_hidden flags = Int.logand flags bitmask_HIDDEN <> 0
 let set_hidden flags = Int.logor flags bitmask_HIDDEN
+let is_case_insensitive flags = Int.logand flags bitmask_CASE_INSENSITIVE <> 0
+let set_case_insensitive flags = Int.logor flags bitmask_CASE_INSENSITIVE
 let to_int x = x
+
+let make ~hidden ~case_insensitive =
+  let flags = empty in
+  let flags = if hidden then set_hidden flags else flags in
+  let flags = if case_insensitive then set_case_insensitive flags else flags in
+  flags

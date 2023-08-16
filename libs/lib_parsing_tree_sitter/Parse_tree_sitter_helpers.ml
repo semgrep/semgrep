@@ -76,13 +76,14 @@ let token env (tok : Tree_sitter_run.Token.t) =
   (* Parse_info is 1-line based and 0-column based, like Emacs *)
   let line = start.Tree_sitter_run.Loc.row + 1 in
   let column = start.Tree_sitter_run.Loc.column in
-  let charpos =
+  let bytepos =
     try Hashtbl.find h (line, column) with
     | Not_found -> -1
     (* TODO? more strict? raise exn? *)
   in
   let file = env.file in
-  let tok_loc = { Tok.str; pos = { Pos.charpos; line; column; file } } in
+  let pos = Pos.make ~line ~column ~file bytepos in
+  let tok_loc = { Tok.str; pos } in
   Tok.tok_of_loc tok_loc
 
 let str env (tok : Tree_sitter_run.Token.t) =

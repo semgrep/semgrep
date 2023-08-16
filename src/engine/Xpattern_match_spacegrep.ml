@@ -16,15 +16,16 @@ open Xpattern_matcher
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let lexing_pos_to_loc file x str =
+let lexing_pos_to_loc file (x : Lexing.position) str =
   (* almost like Spacegrep.Semgrep.semgrep_pos() *)
   let line = x.Lexing.pos_lnum in
-  let charpos = x.Lexing.pos_cnum in
+  let bytepos = x.Lexing.pos_cnum in
   (* bugfix: not +1 here, Parse_info.column is 0-based.
    * JSON_report.json_range does the adjust_column + 1.
    *)
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
-  { Tok.str; pos = { charpos; file; line; column } }
+  let pos = Pos.make ~line ~column ~file bytepos in
+  { Tok.str; pos }
 
 let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) file pat =
   let search_param =
