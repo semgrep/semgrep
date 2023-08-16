@@ -93,12 +93,12 @@ let offsets_of_mval extract_mvalue =
   |> Option.map (fun ((start_loc : Tok.location), (end_loc : Tok.location)) ->
          let end_len = String.length end_loc.Tok.str in
          {
-           start_pos = start_loc.pos.charpos;
+           start_pos = start_loc.pos.bytepos;
            (* subtract 1 because lines are 1-indexed, so the
                offset is one less than the current line *)
            start_line = start_loc.pos.line - 1;
            start_col = start_loc.pos.column;
-           end_pos = end_loc.pos.charpos + end_len;
+           end_pos = end_loc.pos.bytepos + end_len;
          })
 
 let check_includes_and_excludes rule extract_rule_ids =
@@ -218,7 +218,7 @@ let map_loc pos line col file (loc : Tok.location) =
     loc with
     pos =
       {
-        charpos = loc.pos.charpos + pos;
+        bytepos = loc.pos.bytepos + pos;
         line = loc.pos.line + line;
         column =
           (if loc.pos.line =|= 1 then loc.pos.column + col else loc.pos.column);
@@ -398,8 +398,8 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
                      start at the correct start location, but the length with
                      dictate the end, so it may not exactly correspond.
                   *)
-                  fun ({ Tok.pos = { charpos; _ }; _ } as loc) ->
-                    if charpos < consumed_loc.start_pos then map_contents loc
+                  fun ({ Tok.pos = { bytepos; _ }; _ } as loc) ->
+                    if bytepos < consumed_loc.start_pos then map_contents loc
                     else
                       (* For some reason, with the concat_json_string_array option, it needs a fix to point the right line *)
                       (* TODO: Find the reason of this behaviour and fix it properly *)
@@ -416,7 +416,7 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
                           pos =
                             {
                               loc.pos with
-                              charpos = loc.pos.charpos - consumed_loc.start_pos;
+                              bytepos = loc.pos.bytepos - consumed_loc.start_pos;
                               line;
                               column =
                                 (if line =|= 1 then

@@ -210,7 +210,7 @@ let line_of_tok ii = (unsafe_loc_of_tok ii).pos.line
 let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
-let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.charpos
+let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.bytepos
 let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
 
 let content_of_tok ii =
@@ -222,7 +222,7 @@ let content_of_tok ii =
       raise (NoTokenLocation "content_of_tok: Expanded or Ab")
 
 (* Token locations are supposed to denote the beginning of a token.
-   Suppose we are interested in instead having line, column, and charpos of
+   Suppose we are interested in instead having line, column, and bytepos of
    the end of a token instead.
    This is something we can do at relatively low cost by going through and
    inspecting the contents of the token, plus the start information.
@@ -237,7 +237,7 @@ let end_pos_of_loc loc =
       (loc.pos.line, loc.pos.column)
       loc.str
   in
-  (line, col, loc.pos.charpos + String.length loc.str)
+  (line, col, loc.pos.bytepos + String.length loc.str)
 
 (*****************************************************************************)
 (* Builders *)
@@ -251,7 +251,7 @@ let tok_of_str_and_bytepos str pos =
       str;
       pos =
         {
-          charpos = pos;
+          bytepos = pos;
           (* info filled in a post-lexing phase, see complete_location *)
           line = -1;
           column = -1;
@@ -301,7 +301,7 @@ let empty_tok_after tok : t =
           pos =
             {
               loc.pos with
-              charpos = loc.pos.charpos + prev_len;
+              bytepos = loc.pos.bytepos + prev_len;
               column = loc.pos.column + prev_len;
             };
         }
@@ -327,7 +327,7 @@ let split_tok_at_bytepos pos ii =
       pos =
         {
           loc.pos with
-          charpos = loc.pos.charpos + pos;
+          bytepos = loc.pos.bytepos + pos;
           column = loc.pos.column + pos;
         };
     }
@@ -340,12 +340,12 @@ let split_tok_at_bytepos pos ii =
 
 (* TODO? move to Pos.ml and use Pos.t instead *)
 let adjust_loc_wrt_base base_loc loc =
-  (* Note that charpos and columns are 0-based, whereas lines are 1-based. *)
+  (* Note that bytepos and columns are 0-based, whereas lines are 1-based. *)
   {
     loc with
     pos =
       {
-        charpos = base_loc.pos.charpos + loc.pos.charpos;
+        bytepos = base_loc.pos.bytepos + loc.pos.bytepos;
         line = base_loc.pos.line + loc.pos.line - 1;
         column =
           (if loc.pos.line =|= 1 then base_loc.pos.column + loc.pos.column
@@ -460,14 +460,14 @@ let compare_pos ii1 ii2 =
   let pos1 = get_pos ii1 in
   let pos2 = get_pos ii2 in
   match (pos1, pos2) with
-  | Real p1, Real p2 -> Int.compare p1.pos.charpos p2.pos.charpos
+  | Real p1, Real p2 -> Int.compare p1.pos.bytepos p2.pos.bytepos
   | Virt (p1, _), Real p2 ->
-      if Int.compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
+      if Int.compare p1.pos.bytepos p2.pos.bytepos =|= -1 then -1 else 1
   | Real p1, Virt (p2, _) ->
-      if Int.compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
+      if Int.compare p1.pos.bytepos p2.pos.bytepos =|= 1 then 1 else -1
   | Virt (p1, o1), Virt (p2, o2) -> (
-      let poi1 = p1.pos.charpos in
-      let poi2 = p2.pos.charpos in
+      let poi1 = p1.pos.bytepos in
+      let poi2 = p2.pos.bytepos in
       match Int.compare poi1 poi2 with
       | -1 -> -1
       | 0 -> Int.compare o1 o2

@@ -98,7 +98,7 @@ let _pos_str
 
 let tok (index, line, column) str env =
   Tok.OriginTok
-    { str; pos = { charpos = index; line = line + 1; column; file = env.file } }
+    { str; pos = { bytepos = index; line = line + 1; column; file = env.file } }
 
 let mk_tok ?(style = `Plain)
     {

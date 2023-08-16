@@ -21,7 +21,7 @@ let vof_token_location
     {
       Tok.str = v_str;
       pos =
-        { charpos = v_charpos; line = v_line; column = v_column; file = v_file };
+        { bytepos = v_charpos; line = v_line; column = v_column; file = v_file };
     } =
   let bnds = [] in
   let arg = vof_filename v_file in
@@ -34,7 +34,7 @@ let vof_token_location
   let bnd = ("line", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_int v_charpos in
-  let bnd = ("charpos", arg) in
+  let bnd = ("bytepos", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_string v_str in
   let bnd = ("str", arg) in

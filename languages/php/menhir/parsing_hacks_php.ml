@@ -60,7 +60,7 @@ let split_two_char pi =
     {
       Tok.str = String.sub pi.Tok.str 1 1;
       pos =
-        { pi.pos with charpos = pi.pos.charpos + 1; column = pi.pos.column + 1 };
+        { pi.pos with bytepos = pi.pos.bytepos + 1; column = pi.pos.column + 1 };
     }
   in
   (lhs, rhs)

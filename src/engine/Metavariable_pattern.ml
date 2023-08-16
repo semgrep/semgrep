@@ -155,7 +155,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
               loc with
               pos =
                 {
-                  charpos = loc.pos.charpos - mast_start_loc.pos.charpos;
+                  bytepos = loc.pos.bytepos - mast_start_loc.pos.bytepos;
                   line = loc.pos.line - mast_start_loc.pos.line + 1;
                   column;
                   file;
@@ -177,7 +177,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
               loc with
               pos =
                 {
-                  charpos = loc.Tok.pos.charpos + mast_start_loc.pos.charpos;
+                  bytepos = loc.Tok.pos.bytepos + mast_start_loc.pos.bytepos;
                   line = loc.pos.line + mast_start_loc.pos.line - 1;
                   column;
                   file = mval_file;

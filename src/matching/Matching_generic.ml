@@ -742,7 +742,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
             pos =
               {
                 loc.pos with
-                charpos = loc.pos.charpos + pos;
+                bytepos = loc.pos.bytepos + pos;
                 column = loc.pos.column + pos;
               };
           }
