@@ -1,6 +1,6 @@
 (* Cooper Pierce
  *
- * Copyright (c) 2022 r2c
+ * Copyright (c) 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,7 +15,6 @@
 open Common
 open File.Operators
 module In = Input_to_core_j
-module C = Common2
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -212,19 +211,15 @@ let report_no_source_range erule =
 (* Result mapping helpers *)
 (*****************************************************************************)
 
-let map_loc pos line col file (loc : Tok.location) =
+let map_loc bytepos line col file (loc : Tok.location) =
   (* this _shouldn't_ be a fake location *)
-  {
-    loc with
-    pos =
-      {
-        bytepos = loc.pos.bytepos + pos;
-        line = loc.pos.line + line;
-        column =
-          (if loc.pos.line =|= 1 then loc.pos.column + col else loc.pos.column);
-        file;
-      };
-  }
+  let pos = loc.pos in
+  let pos =
+    Pos.make ~file ~line:(pos.line + line)
+      ~column:(if pos.line =|= 1 then pos.column + col else pos.column)
+      (pos.bytepos + bytepos)
+  in
+  { loc with pos }
 
 let map_taint_trace map_loc traces =
   let lift_map_loc f x =
@@ -301,8 +296,9 @@ let extract_and_concat erule_table xtarget ~all_rules matches =
   (* Group the matches within this file by rule id.
    * TODO? dangerous use of =*= ?
    *)
-  |> C.group (fun m m' -> m.Pattern_match.rule_id =*= m'.Pattern_match.rule_id)
-  |> Common.map (fun matches -> C.nonempty_to_list matches)
+  |> Common2.group (fun m m' ->
+         m.Pattern_match.rule_id =*= m'.Pattern_match.rule_id)
+  |> Common.map (fun matches -> Common2.nonempty_to_list matches)
   (* Convert matches to the extract metavariable / bound value *)
   |> Common.map
        (Common.map_filter (fun m ->

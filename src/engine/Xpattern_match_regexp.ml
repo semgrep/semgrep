@@ -27,12 +27,14 @@ let regexp_matcher big_str file regexp =
          let bytepos, _ = Pcre.get_substring_ofs sub 0 in
          let str = matched_str in
          let line, column = line_col_of_charpos file bytepos in
-         let loc1 = { Tok.str; pos = { bytepos; file; line; column } } in
+         let pos = Pos.make ~file ~line ~column bytepos in
+         let loc1 = { Tok.str; pos } in
 
          let bytepos = bytepos + String.length str in
          let str = "" in
          let line, column = line_col_of_charpos file bytepos in
-         let loc2 = { Tok.str; pos = { bytepos; file; line; column } } in
+         let pos = Pos.make ~file ~line ~column bytepos in
+         let loc2 = { Tok.str; pos } in
 
          (* the names of all capture groups within the regexp *)
          let names = Pcre.names re |> Array.to_list in
@@ -50,9 +52,8 @@ let regexp_matcher big_str file regexp =
                         let bytepos, _ = Pcre.get_substring_ofs sub n in
                         let str = Pcre.get_substring sub n in
                         let line, column = line_col_of_charpos file bytepos in
-                        let loc =
-                          { Tok.str; pos = { bytepos; file; line; column } }
-                        in
+                        let pos = Pos.make ~file ~line ~column bytepos in
+                        let loc = { Tok.str; pos } in
                         let t = Tok.tok_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t, t))
                       with
@@ -68,9 +69,8 @@ let regexp_matcher big_str file regexp =
                     let bytepos, _ = Pcre.get_named_substring_ofs re name sub in
                     let str = Pcre.get_named_substring re name sub in
                     let line, column = line_col_of_charpos file bytepos in
-                    let loc =
-                      { Tok.str; pos = { bytepos; file; line; column } }
-                    in
+                    let pos = Pos.make ~file ~line ~column bytepos in
+                    let loc = { Tok.str; pos } in
                     let t = Tok.tok_of_loc loc in
                     Some (spf "$%s" name, MV.Text (str, t, t))
                   with

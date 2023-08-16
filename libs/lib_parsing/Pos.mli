@@ -15,6 +15,8 @@ type t = {
 }
 [@@deriving show, eq, ord]
 
+val make : ?line:int -> ?column:int -> ?file:string -> int -> t
+
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]
 

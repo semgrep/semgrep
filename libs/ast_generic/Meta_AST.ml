@@ -21,7 +21,13 @@ let vof_token_location
     {
       Tok.str = v_str;
       pos =
-        { bytepos = v_charpos; line = v_line; column = v_column; file = v_file };
+        {
+          bytepos = v_charpos;
+          line = v_line;
+          column = v_column;
+          file = v_file;
+          _;
+        };
     } =
   let bnds = [] in
   let arg = vof_filename v_file in

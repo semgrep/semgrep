@@ -249,14 +249,8 @@ let tok_of_str_and_bytepos str pos =
   let loc =
     {
       str;
-      pos =
-        {
-          bytepos = pos;
-          (* info filled in a post-lexing phase, see complete_location *)
-          line = -1;
-          column = -1;
-          file = "NO FILE INFO YET";
-        };
+      (* the pos will be filled in post-lexing phase, see complete_location *)
+      pos = Pos.make pos;
     }
   in
   tok_of_loc loc
@@ -341,16 +335,17 @@ let split_tok_at_bytepos pos ii =
 (* TODO? move to Pos.ml and use Pos.t instead *)
 let adjust_loc_wrt_base base_loc loc =
   (* Note that bytepos and columns are 0-based, whereas lines are 1-based. *)
+  let base_pos = base_loc.pos in
+  let pos = loc.pos in
   {
     loc with
     pos =
       {
-        bytepos = base_loc.pos.bytepos + loc.pos.bytepos;
-        line = base_loc.pos.line + loc.pos.line - 1;
+        bytepos = base_pos.bytepos + pos.bytepos;
+        line = base_pos.line + pos.line - 1;
         column =
-          (if loc.pos.line =|= 1 then base_loc.pos.column + loc.pos.column
-          else loc.pos.column);
-        file = base_loc.pos.file;
+          (if pos.line =|= 1 then base_pos.column + pos.column else pos.column);
+        file = base_pos.file;
       };
   }
 
