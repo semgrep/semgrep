@@ -8,9 +8,7 @@
 (*****************************************************************************)
 
 type t = {
-  charpos : int; (* byte position, 0-based *)
-  (* line x column can be filled later based on charpos.
-   * See complete_position() *)
+  bytepos : int; (* 0-based *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   file : Common.filename;
