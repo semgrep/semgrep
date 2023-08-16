@@ -209,7 +209,7 @@ let rec pattern_to_expr p =
  * with EDynamic anyways.
  * So probably fine to prefer this here.
  *)
-let expr_to_entname (e : G.expr) : G.entity_name =
+let expr_to_entity_name (e : G.expr) : G.entity_name =
   match e.G.e with
   | N name -> EN name
   | _ -> EPattern (expr_to_pattern e)
@@ -305,10 +305,10 @@ let vardef_to_assign (ent, def) =
 let assign_to_vardef ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
   match e1.G.e with
   | Cast (ty, _, e) ->
-      let ent = { name = expr_to_entname e; attrs = []; tparams = [] } in
+      let ent = { name = expr_to_entity_name e; attrs = []; tparams = [] } in
       DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s
   | _ ->
-      let ent = { name = expr_to_entname e1; attrs = []; tparams = [] } in
+      let ent = { name = expr_to_entity_name e1; attrs = []; tparams = [] } in
       DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s
 
 (* used in controlflow_build *)
