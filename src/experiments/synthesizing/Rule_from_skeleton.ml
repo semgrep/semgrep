@@ -1,6 +1,47 @@
 open Common
 module In = Input_to_core_j
 
+(* Generate a rule from a rule skeleton
+
+    This supports a hack week project to autogenerate rules from code
+    snippets annotated as #should-match and #ok. chatGPT was first used
+    to generate a rule skeleton. Here is an abbreviated rule skeleton:
+
+    ```
+    [
+      {
+        "op": "And",
+          "children": [
+          {
+            "op": "XPat",
+              "children": [],
+              "matches": [
+                "app.run(exec, debug = True, x)",
+                "app.run(debug=True)"
+                ]
+              }
+            ]
+           },
+           {
+             "op": "Inside",
+             "children": <Not shown>
+           }
+         ]
+       }
+     ]
+    ```
+
+   Given a rule skeleton such as this one, Rule_from_skeleton will generate the
+   correlating rule. Instead of the matches, it will use the most specific pattern
+   that matches both snippets. For the above example, the rule would be:
+
+   ```
+   patterns:
+   - pattern: app.run(...)
+   - pattern-inside: <Not shown>
+   ```
+*)
+
 type formula_json =
   | P of string
   | And of formula_json list
@@ -22,8 +63,8 @@ let lang = Lang.Python
 let rec formula_to_json formula : Yojson.Safe.t =
   match formula with
   | P str -> `String str
-  | And xs -> `Assoc [ ("all", `List (List.map formula_to_json xs)) ]
-  | Or xs -> `Assoc [ ("any", `List (List.map formula_to_json xs)) ]
+  | And xs -> `Assoc [ ("all", `List (Common.map formula_to_json xs)) ]
+  | Or xs -> `Assoc [ ("any", `List (Common.map formula_to_json xs)) ]
   | Not x -> `Assoc [ ("not", formula_to_json x) ]
   | Inside x -> `Assoc [ ("inside", formula_to_json x) ]
 
@@ -32,7 +73,7 @@ let pattern_of_matches matches =
   | [] -> "..."
   | xs -> (
       let config = Rule_options.default_config in
-      let anys = List.map (fun p -> Parse_pattern.parse_pattern lang p) xs in
+      let anys = Common.map (fun p -> Parse_pattern.parse_pattern lang p) xs in
       let pattern = Pattern_from_Targets.generate_patterns config anys lang in
       match pattern with
       | None -> "..."
@@ -43,8 +84,8 @@ let rec skeleton_to_formula (skeleton : In.rule_skeleton) : formula_json =
   let children = Option.fold ~none:[] ~some:(fun x -> x) children in
   let matches = Option.fold ~none:[] ~some:(fun x -> x) matches in
   match op with
-  | In.And -> And (List.map skeleton_to_formula children)
-  | In.Or -> Or (List.map skeleton_to_formula children)
+  | In.And -> And (Common.map skeleton_to_formula children)
+  | In.Or -> Or (Common.map skeleton_to_formula children)
   | In.XPat -> P (pattern_of_matches matches)
   | In.Negation ->
       let negated_val =
