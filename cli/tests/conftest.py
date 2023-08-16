@@ -442,7 +442,7 @@ def git_tmp_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     # Initialize State
     subprocess.run(["git", "init"], check=True, capture_output=True)
     subprocess.run(
-        ["git", "config", "user.email", "baselinetest@r2c.dev"],
+        ["git", "config", "user.email", "baselinetest@semgrep.com"],
         check=True,
         capture_output=True,
     )

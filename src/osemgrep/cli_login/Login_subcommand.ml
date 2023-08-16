@@ -85,7 +85,7 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                   Logs.err (fun m ->
                       m
                         "Failed to login: please check your internet \
-                         connection or contact support@r2c.dev");
+                         connection or contact support@semgrep.com");
                   Exit_code.fatal
               | n -> (
                   let url =
@@ -128,7 +128,8 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
                         Logs.err (fun m ->
                             m
                               "Unexpected failure from %s: status code %d; \
-                               please contact support@r2c.dev if this persists"
+                               please contact support@semgrep.com if this \
+                               persists"
                               (Uri.to_string Semgrep_envvars.v.semgrep_url)
                               status_code);
                         Logs.info (fun m -> m "HTTP error: %s" msg);

@@ -101,10 +101,10 @@ let add_type_args_opt_to_name name topt =
   | None -> name
   | Some t -> add_type_args_to_name name t
 
-let name_of_ids xs =
+let name_of_ids ?(case_insensitive = false) xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"
-  | [ x ] -> Id (x, empty_id_info ())
+  | [ x ] -> Id (x, empty_id_info ~case_insensitive ())
   | x :: xs ->
       let qualif =
         if xs =*= [] then None
@@ -136,7 +136,8 @@ let add_suffix_to_name suffix name =
           name_middle = new_name_middle;
         }
 
-let name_of_id id = Id (id, empty_id_info ())
+let name_of_id ?(case_insensitive = false) id =
+  Id (id, empty_id_info ~case_insensitive ())
 
 let name_of_dot_access e =
   let rec fetch_ids = function
@@ -469,10 +470,10 @@ let first_info_of_any any =
 
 (* Also used below by `nearest_any_of_pos` *)
 let smaller t1 t2 =
-  if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
+  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos < 0 then t1 else t2
 
 let larger t1 t2 =
-  if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
+  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos > 0 then t1 else t2
 
 let incorporate_tokens ranges (left, right) =
   match !ranges with
@@ -571,12 +572,12 @@ type any_range = {
 class ['self] any_range_visitor =
   let pos_within pos (t1', t2') =
     let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    pos >= t1'.Tok.pos.charpos && pos <= t2'_charpos
+    pos >= t1'.Tok.pos.bytepos && pos <= t2'_charpos
   in
   let range_within (t1, t2) (t1', t2') =
     let _, _, t2_charpos = Tok.end_pos_of_loc t2 in
     let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    t1.Tok.pos.charpos >= t1'.Tok.pos.charpos && t2_charpos <= t2'_charpos
+    t1.Tok.pos.bytepos >= t1'.Tok.pos.bytepos && t2_charpos <= t2'_charpos
   in
   let set_any_range info (any, range) =
     let charpos = info.position in

@@ -1,0 +1,1 @@
+`semgrep scan` is now more resilient to failures when fetching config from semgrep.dev. If it can't fetch a config from semgrep.dev it will use backup infrastructure to fetch the most recent successful config for that customers environment.

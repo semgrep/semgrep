@@ -16,12 +16,14 @@ from tests.fixtures import RunSemgrep
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
+from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from semgrep.metrics import Metrics
+
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -301,7 +303,11 @@ def automocks(mocker):
         """
     ).lstrip()
 
-    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ConfigLoader,
+        "_download_config_from_url",
+        side_effect=lambda url: ConfigFile(None, file_content, url),
+    )
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
@@ -1539,7 +1545,11 @@ def test_query_dependency(
             sca-kind: upgrade-only
         """
     ).lstrip()
-    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ConfigLoader,
+        "_download_config_from_url",
+        side_effect=lambda url: ConfigFile(None, file_content, url),
+    )
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",
@@ -1613,7 +1623,11 @@ def test_existing_supply_chain_finding(
             sca-kind: upgrade-only
         """
     ).lstrip()
-    mocker.patch.object(ConfigLoader, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ConfigLoader,
+        "_download_config_from_url",
+        side_effect=lambda url: ConfigFile(None, file_content, url),
+    )
     mocker.patch.object(
         ScanHandler,
         "_get_scan_config_from_app",

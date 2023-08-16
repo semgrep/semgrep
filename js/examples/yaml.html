@@ -29,7 +29,9 @@
       engine.writeFile("/static/test.py", `foo: bar`);
       document.getElementById("result").innerHTML = JSON.stringify(
         JSON.parse(
-          engine.execute("yaml", "/static/rules.json", "/static/test.py")
+          engine.execute("yaml", "/static/rules.json", "/static", [
+            "/static/test.py",
+          ])
         ),
         null,
         2

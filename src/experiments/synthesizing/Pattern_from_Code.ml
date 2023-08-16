@@ -65,17 +65,7 @@ let body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
 let default_id str =
-  G.N
-    (Id
-       ( (str, fk),
-         {
-           id_resolved = ref None;
-           id_type = ref None;
-           id_svalue = ref None;
-           id_hidden = false;
-           id_info_id = IdInfoId.unsafe_default;
-         } ))
-  |> G.e
+  G.N (Id ((str, fk), empty_id_info ~id:IdInfoId.unsafe_default ())) |> G.e
 
 let default_tyvar str typ = TypedMetavar ((str, fk), fk, typ) |> G.e
 

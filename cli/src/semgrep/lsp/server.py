@@ -155,7 +155,7 @@ class SemgrepCoreLSServer:
             elif r.status_code != 404:
                 self.notify_show_message(
                     1,
-                    f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                    f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@semgrep.com if this persists",
                 )
 
             time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
