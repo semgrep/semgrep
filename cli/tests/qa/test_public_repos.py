@@ -67,6 +67,7 @@ def assert_sentinel_results(repo_path, sentinel_path, language):
     ]
 
     # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+    print(f"semgrep command: {cmd}")
     semgrep_run = subprocess.run(cmd, capture_output=True, encoding="utf-8")
     assert semgrep_run.returncode == 0
 
@@ -157,7 +158,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
         sentinel_path = repo_path / sentinel_info["filename"]
         with sentinel_path.open("w") as sentinel_file:
             sentinel_file.write(sentinel_info["file_contents"])
-
+        print(f"assert_sentinel_results({repo_path}, {sentinel_path}, {language})")
         assert_sentinel_results(repo_path, sentinel_path, language)
 
     cmd = SEMGREP_BASE_COMMAND + [

@@ -26,6 +26,11 @@ open Pfff_or_tree_sitter
 (* Entry point *)
 (*****************************************************************************)
 let parse_pattern print_errors lang str =
+  (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
+     when updating this function.
+     TODO: Share the logic of which parser to try for each language to
+     remove this coupling. https://github.com/returntocorp/semgrep/issues/8331
+  *)
   match lang with
   (* use adhoc parser (neither menhir nor tree-sitter) *)
   | Lang.Yaml -> Yaml_to_generic.any str

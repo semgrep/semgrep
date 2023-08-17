@@ -1,0 +1,9 @@
+groups:
+- name: test
+  rules:
+  - alert: MatrixSelector
+    expr: sum_over_time(foo[5m])
+  - alert: SubqueryDefaultStep
+    expr: sum_over_time(sum(foobar)[10m:])
+  - alert: SubqueryNonDefaultStep
+    expr: sum_over_time(sum(foobarbaz)[15m:30s])

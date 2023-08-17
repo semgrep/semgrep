@@ -99,6 +99,12 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
+        | Tok.OriginTok { str = ""; _ } ->
+            (* TODO: at least in some cases, this comes from a MISSING node
+               inserted by tree-sitter. These are reported as errors
+               with a good error message that was lost.
+               We should preserve the original error message. *)
+            "missing element"
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in

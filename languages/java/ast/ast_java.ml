@@ -500,7 +500,9 @@ type any =
 (* Helpers *)
 (*****************************************************************************)
 let unwrap = fst
-let fakeInfo ?(next_to = None) str = Tok.FakeTokStr (str, next_to)
+
+(* TODO: reuse Tok.fake_tok ? *)
+let fakeInfo ?(next_to = None) str = Tok.FakeTok (str, next_to)
 let info_of_ident ident = snd ident
 
 let is_final xs =

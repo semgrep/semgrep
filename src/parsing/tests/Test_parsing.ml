@@ -98,7 +98,7 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
+         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
 let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
   match (parsing_res.program, parsing_res.errors) with

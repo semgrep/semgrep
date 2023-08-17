@@ -1,3 +1,7 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Helper functions and classes useful for writing tests.
 import json
 import os
 import re
@@ -28,9 +32,17 @@ from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 
+##############################################################################
+# Constants
+##############################################################################
+
 TESTS_PATH = Path(__file__).parent
 
+##############################################################################
+# Pytest hacks
+##############################################################################
 
+# ???
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--run-only-snapshots",
@@ -40,6 +52,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+# ???
 def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> None:
     if config.getoption("--run-only-snapshots"):
         selected_items: List[pytest.Item] = []
@@ -55,6 +68,11 @@ def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> 
 
         config.hook.pytest_deselected(items=deselected_items)
         items[:] = selected_items
+
+
+##############################################################################
+# Helper functions
+##############################################################################
 
 
 def make_semgrepconfig_file(dir_path: Path, contents: str) -> None:
@@ -391,6 +409,11 @@ def _run_semgrep(
         assert result.exit_code == assert_exit_code
 
     return result
+
+
+##############################################################################
+# Fixtures
+##############################################################################
 
 
 @pytest.fixture()
