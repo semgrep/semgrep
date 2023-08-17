@@ -18,6 +18,7 @@ from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.requirements import parse_requirements
+from semdep.parsers.packages_lock_c_sharp import parse_packages_lock as parse_packages_lock_c_sharp
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.yarn import parse_yarn
 from semgrep.console import console
@@ -80,7 +81,8 @@ NEW_LOCKFILE_PARSERS: Dict[
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
-    "composer.lock": parse_composer_lock,  # PHP
+    "composer.lock": parse_composer_lock,  # PHP,
+    "packages.lock.json": parse_packages_lock_c_sharp,  # JavaScript
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -97,6 +99,8 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "maven_dep_tree.txt": None,
     "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
+    "packages.lock.json": "*.csproj", # Placeholder, handled in code
+    "packages.config": "packages.config",
 }
 
 
@@ -112,6 +116,15 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
     # some lockfiles don't have a manifest
     if not manifest_pattern:
         return None
+    
+    # Handle the case for C# projects with packages.lock.json
+    if lockfile_pattern == "packages.lock.json":
+        return None
+        # csproj_files = list(path.glob(manifest_pattern))
+        # if len(csproj_files) != 1: # Return None if zero or multiple .csproj files
+        #     return None
+        # else:
+        #     return csproj_files[0]
 
     manifest_path = path / manifest_pattern
     if not manifest_path.exists():
