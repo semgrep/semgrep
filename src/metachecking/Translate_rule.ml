@@ -77,8 +77,13 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         | Some x -> [ ("language", `String (Xlang.to_string x)) ])
 
 and translate_taint_source
-    { source_formula; source_by_side_effect; label; source_requires } :
-    [> `O of (string * Yaml.value) list ] =
+    {
+      source_formula;
+      source_by_side_effect;
+      label;
+      source_control;
+      source_requires;
+    } : [> `O of (string * Yaml.value) list ] =
   let (`O source_f) = translate_formula source_formula in
   let label_obj =
     if label = Rule.default_source_label then []
@@ -92,7 +97,12 @@ and translate_taint_source
   let side_effect_obj =
     if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
-  `O (List.concat [ source_f; label_obj; requires_obj; side_effect_obj ])
+  let control_obj =
+    if source_control then [ ("control", `Bool true) ] else []
+  in
+  `O
+    (List.concat
+       [ source_f; control_obj; label_obj; requires_obj; side_effect_obj ])
 
 and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
     [> `O of (string * Yaml.value) list ] =
@@ -165,9 +175,10 @@ and translate_taint_spec
     ({ sources; sanitizers; sinks; propagators } : taint_spec) :
     [> `O of (string * Yaml.value) list ] =
   let sanitizers =
-    match Common.map translate_taint_sanitizer sanitizers with
-    | [] -> []
-    | other -> [ ("sanitizers", `A other) ]
+    match sanitizers with
+    | None -> []
+    | Some (_, sanitizers) ->
+        [ ("sanitizers", `A (Common.map translate_taint_sanitizer sanitizers)) ]
   in
   let propagators =
     match Common.map translate_taint_propagator propagators with
@@ -275,7 +286,9 @@ let translate_files fparser xs =
                         ]
                     | `Taint spec ->
                         [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
-                    | `Step _ -> failwith "step rules not currently handled")
+                    | `Steps _ -> failwith "step rules not currently handled"
+                    | `Secrets _ ->
+                        failwith "secrets rules not currently handled")
            in
            (file, formulas))
   in
