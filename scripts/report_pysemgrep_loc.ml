@@ -2,6 +2,14 @@
 
 #use "topfind"
 
+#require "fmt"
+
+#require "fmt.tty"
+
+#require "logs"
+
+#require "logs.fmt"
+
 #require "ppx_deriving.show"
 
 #require "ppx_deriving_cmdliner"
@@ -12,11 +20,6 @@
 
 #require "feather"
 
-#require "logs"
-
-#require "commons"
-
-open Common
 open Cmdliner
 module F = Feather
 open Feather (* for |. *)
@@ -29,6 +32,8 @@ open Feather (* for |. *)
  *
  * usage:
  *   $ ./report_pysemgrep_loc --upload cli/semgrep/
+ *
+ * This is also run in a cron in .circleci/config.yml
  *
  * alternatives:
  *  - a bash script, like in report_test_metrics.sh
@@ -56,7 +61,7 @@ type conf = {
 (*****************************************************************************)
 
 let upload conf loc =
-  let url = spf "%s/api/metric/%s" host metric in
+  let url = Printf.sprintf "%s/api/metric/%s" host metric in
   (* TODO: use Logs library *)
   Logs.debug (fun m -> m "uploading to %s" url);
 
@@ -80,6 +85,7 @@ let run conf =
     (* alt: could also use F.filter_lines *)
     |. F.process "grep" [ "-v"; "semgrep_interfaces/" ]
     |. F.process "grep" [ "-v"; "semdep/" ]
+    (* --total is actually a recent flag so old 'wc' might not work *)
     |. F.process "xargs" [ "wc"; "-l"; "--total=only" ]
     |> F.collect F.stdout
   in
@@ -92,11 +98,14 @@ let run conf =
 (* Cmdliner boilerplate *)
 (*****************************************************************************)
 let main () =
+  (* logging setup *)
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter (Logs_fmt.reporter ());
+  (* cmdliner setup *)
   let info = Cmd.info Sys.argv.(0) in
   let term = Term.(const run $ conf_cmdliner_term ()) in
   let cmd = Cmd.v info term in
+  (* Let's go! *)
   exit (Cmd.eval cmd)
 
 let () = main ()
