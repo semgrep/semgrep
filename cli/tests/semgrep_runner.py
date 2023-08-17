@@ -1,11 +1,23 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Small wrapper around 'semgrep' useful for writing end-to-end (e2e) tests.
 #
-# Run either semgrep in the same process using Click or invoke the
-# osemgrep command, which reimplements the semgrep CLI in OCaml.
-#
-# This is replacement for CliRunner provided by Click.
-#
+# TODO: This file was originally introduced to optimize the way we were running
+# semgrep in tests by using Click and its CliRunner to avoid an extra fork.
+# However, with the introduction of osemgrep and the new cli/bin/semgrep (which
+# dispatch to osemgrep), we actually want to avoid to use the CliRunner which
+# only run pysemgrep. Otherwise, our e2e tests would not be really end-to
+# -end and may not represent what the user would get by using semgrep directly.
+# This is why using the CliRunner option is now deprecated. The option is still
+# kept because a few of our tests still rely on Click-specific features that
+# the regular call-semgrep-in-a-subprocess do not provide yet.
+##############################################################################
+# Imports
+##############################################################################
 import os
 import shlex
+from dataclasses import dataclass
 from pathlib import Path
 from subprocess import PIPE
 from subprocess import Popen
@@ -16,6 +28,13 @@ from typing import Sequence
 from typing import Union
 
 from click.testing import CliRunner
+
+# typing
+# deprecated
+
+##############################################################################
+# Helper functions
+##############################################################################
 
 
 def parse_env_bool(var_name: str, var_val: str) -> bool:
@@ -38,6 +57,10 @@ def get_env_bool(var_name: str) -> Optional[bool]:
     else:
         return parse_env_bool(var_name, s)
 
+
+##############################################################################
+# Constants
+##############################################################################
 
 # Environment variables that trigger the use of osemgrep
 OSEMGREP_PATH = "osemgrep"
@@ -63,12 +86,17 @@ SEMGREP_BASE_COMMAND: List[str] = (
 
 SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
 
+##############################################################################
+# Helpers
+##############################################################################
 
+# TODO: this should be removed as we don't want to run tests with Click
+@dataclass
 class Result:
     """Minimal properties of click.testing.Result used in our project.
 
-    This is for compatibility with the test suite that uses a thing called
-    Click to run a Python program without launching a new Python interpreter.
+    This is for compatibility with the test suite that uses Click
+    to run a Python program without launching a new Python interpreter.
     Click is used by the tests to invoke 'semgrep' without incurring
     the 1-second startup delay each time the Python program starts. There's
     no such problem with the OCaml implementation but we must reproduce
@@ -77,34 +105,22 @@ class Result:
     https://click.palletsprojects.com/en/8.0.x/api/#click.testing.Result
     """
 
-    def __init__(self, exit_code: int, stdout: str, stderr: str):
-        self._exit_code = exit_code
-        self._stdout = stdout
-        self._stderr = stderr
-
-    @property
-    def stdout(self) -> str:
-        return self._stdout
-
-    @property
-    def stderr(self) -> str:
-        return self._stderr
+    exit_code: int
+    stdout: str
+    stderr: str
 
     @property
     def output(self) -> str:
         """alias for stdout"""
-        return self._stdout
-
-    @property
-    def exit_code(self) -> int:
-        return self._exit_code
+        return self.stdout
 
 
-# Run osemgrep in an external process
-# (there's no other choice since it's an OCaml binary)
-def invoke_osemgrep(
+# Run semgrep in an external process
+def fork_semgrep(
     args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
 ) -> Result:
+
+    # argv preparation
     arg_list: List[str] = []
     if isinstance(args, str):
         # Parse the list of shell-quoted arguments
@@ -117,17 +133,26 @@ def invoke_osemgrep(
         argv = [OSEMGREP_PATH] + arg_list
     else:
         argv = [OSEMGREP_PATH] + OSEMGREP_COMPATIBILITY_ARGS + arg_list
+
+    # env preparation
     env_dict = {}
     if env:
         env_dict = env
     full_env = dict(os.environ, **env_dict)
+
+    # let's fork and use a pipe to communicate with the external semgrep
     proc = Popen(argv, stdout=PIPE, stderr=PIPE, env=full_env)
     stdout, stderr = proc.communicate()
     return Result(proc.returncode, stdout.decode("utf-8"), stderr.decode("utf-8"))
 
 
+##############################################################################
+# Entry point
+##############################################################################
+
+
 class SemgrepRunner:
-    """Run either semgrep with CliRunner or with osemgrep.
+    """Run either semgrep in a subprocess or with CliRunner.
 
     It's meant as a drop-in replacement for CliRunner(cli, args).
     If a property is missing on the runner object, please add it here.
@@ -153,4 +178,4 @@ class SemgrepRunner:
                 extra_env = dict(self._env, **env)
             else:
                 extra_env = dict(self._env)
-            return invoke_osemgrep(args, env=extra_env)
+            return fork_semgrep(args, env=extra_env)
