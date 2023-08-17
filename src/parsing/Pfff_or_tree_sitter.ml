@@ -103,8 +103,15 @@ let extract_pattern_from_tree_sitter_result
 (* Run target parsers *)
 (*****************************************************************************)
 
-(* Serious error = any parsing error that causes us to resort to an alternate
-   parser. *)
+(*
+   Serious error = any parsing error that causes us to resort to an
+   alternate parser. Missing nodes aren't considered serious enough to
+   warrant another parsing attempt. Otherwise, doing so would result
+   in slowdowns due to the other parser being usually slower
+   (observed: 3 s -> 30 s parsing time on big JS file when retrying
+   due to missing/inserted tokens and falling back to the menhir
+   parser).
+*)
 let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   match err.kind with
   | Internal
