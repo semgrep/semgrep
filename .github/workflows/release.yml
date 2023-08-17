@@ -331,7 +331,7 @@ jobs:
           gh auth setup-git
           git remote add r2c "${R2C_HOMEBREW_CORE_FORK_HTTPS_URL}"
           git checkout -b bump-semgrep-${{ steps.get-version.outputs.VERSION }}
-          git add Formula/semgrep.rb
+          git add Formula/s/semgrep.rb
           git commit -m "semgrep ${{ steps.get-version.outputs.VERSION }}"
       - name: Push Branch to Fork
         env:

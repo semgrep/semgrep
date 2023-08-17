@@ -1,5 +1,5 @@
 # Cron to verify that the Homebrew Core Formula Works.
-# This formula is stored in https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/semgrep.rb
+# This formula is stored in https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/s/semgrep.rb
 # and "bumped" in release.yml by dawidd6/action-homebrew-bump-formula@v3
 #
 # This formula is created by our release process with the PR to homebrew/homebrew-core.
