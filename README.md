@@ -98,7 +98,7 @@ $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep
 
 1.  Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more about `auto` config and other rules.
 
-2.  If there are any issues,  <a href="https://go.semgrep.dev/slack" target="_blank">please ask in the Semgrep Slack</a>
+2.  If there are any issues, <a href="https://go.semgrep.dev/slack" target="_blank">please ask for help in the Semgrep Slack</a>
 
 3.  To run Semgrep Supply Chain, [contact the Semgrep team](https://semgrep.dev/contact-us).
     Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
