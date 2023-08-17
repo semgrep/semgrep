@@ -32,71 +32,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
-(* Autofix the YAML *)
-(*****************************************************************************)
-
-let translation_rule_text =
-  {|
-rules:
-  - id: fix-quoted-keys
-    languages:
-      - yaml
-    severity: ERROR
-    message: |
-      This is a Semgrep rule that is designed to fix the translated YAML
-      output, because it's not very nice! The `Yaml.to_string` method will
-      surround all the keys with quotations, which looks pretty jank. Let's
-      avoid that by autofixing them to not have the quotes.
-      That's what this rule does.
-    patterns:
-      - pattern: |
-          $X: $Y
-      - metavariable-pattern:
-          metavariable: $X
-          patterns:
-            - pattern: $X
-            - pattern: |
-                "$Z"
-      - focus-metavariable: $X
-    fix: |
-      $Z
-|}
-
-let fix_quotes_rule =
-  Common2.with_tmp_file ~str:translation_rule_text ~ext:"yaml" (fun file ->
-      let rules = Parse_rule.parse (Fpath.v file) in
-      match rules with
-      | [ ({ mode = `Search _; _ } as rule) ] -> rule
-      | __else__ -> failwith "impossible")
-
-let fix_quotes_in_text s =
-  let hook _ _ = () in
-  Common2.with_tmp_file ~str:s ~ext:"yaml" (fun target_file ->
-      let { Parsing_result2.ast; skipped_tokens; _ } =
-        Parse_target.parse_and_resolve_name Lang.Yaml target_file
-      in
-      let xtarget =
-        {
-          Xtarget.file = Fpath.v target_file;
-          xlang = Xlang.of_lang Lang.Yaml;
-          lazy_content = lazy s;
-          lazy_ast_and_errors = lazy (ast, skipped_tokens);
-        }
-      in
-      let ({ Report.matches; _ } : _ Report.match_result) =
-        Match_search_mode.check_rule fix_quotes_rule hook
-          Match_env.default_xconfig xtarget
-      in
-      (* This is exception-raising, but it's fine for now because -translate_rules
-         is standalone anywayws. If we fail here, we just failed outright.
-      *)
-      Common.(
-        pr2
-          (spf "matches: %s"
-             (Common.map Pattern_match.show matches |> String.concat "\n ")));
-      Autofix.apply_fixes_to_file matches target_file)
-
-(*****************************************************************************)
 (* Main translation logic *)
 (*****************************************************************************)
 
@@ -288,8 +223,8 @@ let rec json_to_yaml json : Yaml.value =
   | Bool b -> `Bool b
   | Null -> `Null
 
-(* This code exists so that we can go and replace the pattern in the original
-   rule, since we still have yet to amend the original YAML rule that we parsed.
+(* This function goes and replace the pattern in the original rule's structure,
+   so that we can amend the original YAML rule that we parsed.
 *)
 let replace_pattern rule_fields translated_formula : (string * Yaml.value) list
     =
@@ -363,6 +298,6 @@ let translate_files fparser xs =
           `O [ ("rules", `A new_rules) ]
           |> Yaml.to_string ~len:5242880 ~encoding:`Utf8 ~layout_style:`Block
                ~scalar_style:`Literal
-          |> Result.get_ok |> fix_quotes_in_text |> pr
+          |> Result.get_ok |> pr
       | _ -> failwith "wrong syntax")
     formulas_by_file
