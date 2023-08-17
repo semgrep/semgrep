@@ -8,12 +8,12 @@
  * tokens in the ASTs/CSTs at the leaves, and sometimes the actual
  * token is optional (e.g., a virtual semicolon in Javascript).
  * We could use an option type, but that would involve a big refactoring
- * hence the current use of those FakeTokStr.
+ * hence the current use of FakeTok.
  * We also use expanded tokens to track tokens through macro expansions
- * or file includes.
+ * or file includes (e.g., #include in C, #import in Jsonnet).
  *
- * Ideally we should not store tokens in the ASTs, just location information,
- * but again this would involve a big refactoring and redesigning how
+ * Ideally, we should not store tokens in the ASTs, just location information,
+ * but again this would involve a big refactoring and redesigning deeply how
  * we track location in Semgrep.
  *
  * It is reliable to extract the string and position from a token when
@@ -35,37 +35,36 @@ type t =
   (* Token found in the original file *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
-   * when building some extra AST elements (e.g., fake semicolons) *)
-  | FakeTokStr of
-      string (* to help the generic pretty printer, e.g. "," *)
-      * (* Sometimes we generate fake tokens close to existing
-         * origin tokens. This can be useful when we need to give an error
-         * message that involves a fakeToken. The int is a kind of
-         * virtual position, an offset.
-         * Those are called "safe" fake tokens (in contrast to the
-         * regular/unsafe one which have no position information at all).
-         *)
-      (location * int) option
+   * when building some extra AST elements (e.g., fake semicolons).
+   * The string (e.g., ";")  is to help the generic pretty printer.
+   *)
+  | FakeTok of string * virtual_location option
   (* "Expanded" tokens are marked with a special tag so that if someone does
    * a transformation on those expanded tokens, they will get a warning
    * (because we may have trouble back-propagating the transformation back
    *  to the original file).
+   * The location refers to the preprocessed file (e.g. /tmp/pp-xxxx.pphp).
    *)
-  | ExpandedTok of
-      (* refers to the preprocessed file, e.g. /tmp/pp-xxxx.pphp *)
-      location
-      * (* kind of a virtual position. The location refers to the last token
-         * before a series of expanded tokens and the int is an offset.
-         * The goal is to be able to compare the position of tokens
-         * between them, even for expanded tokens. See compare_pos().
-         *)
-      (location * int)
+  | ExpandedTok of location * virtual_location
   (* The Ab constructor is (ab)used to call '=' to compare big AST portions.
    * Ab means AbstractLineTok (short name to not polluate in debug mode).
    * An alternative is to use the t_always_equal special type below.
    *)
   | Ab
-[@@deriving show, eq, ord]
+
+(* Sometimes we generate fake tokens close to existing
+ * origin tokens. This can be useful when we need to give an error
+ * message that involves a fakeToken. The int below is a kind of
+ * virtual position, an offset.
+ * Those are called "safe" fake tokens (in contrast to the
+ * regular/unsafe one which have no position information at all).
+ *
+ * For ExpandedTok the location refers to the last token
+ * before a series of expanded tokens and the int is an offset.
+ * The goal is to be able to compare the position of tokens,
+ * even for expanded tokens. See compare_pos().
+ *)
+and virtual_location = location * int [@@deriving show, eq, ord]
 
 (* To customize show() dynamically. If you set this to true, AST
  * dumper will display the full token information instead of just a '()'
