@@ -108,7 +108,7 @@ jobs:
           command: |
             eval $(opam env)
             opam install -y ocamlfind ppx_deriving fmt logs cmdliner ppx_deriving_cmdliner feather
-            ./scripts/report_pysemgrep_loc.ml cli/src/
+            ./scripts/report_pysemgrep_loc.ml cli/src/ --upload
 
 ###############################################################################
 # The workflows
