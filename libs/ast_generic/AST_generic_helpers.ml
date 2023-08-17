@@ -203,16 +203,14 @@ let rec pattern_to_expr p =
   | _ -> raise NotAnExpr)
   |> G.e
 
-(* Primarily for usage in converting an Assign into a DefStmt.
- * This will prefer to translate to an EPattern (OtherPat ...) instead
- * of an EDynamic, but I (brandon) don't think we do many semantic things
- * with EDynamic anyways.
- * So probably fine to prefer this here.
+(* Primarily for usage in converting an Assign into a DefStmt. We fail to
+ * produce an entity name if we don't definitely have something which is
+ * a name.
  *)
-let expr_to_entity_name (e : G.expr) : G.entity_name =
+let expr_to_entity_name_opt (e : G.expr) : G.entity_name option =
   match e.G.e with
-  | N name -> EN name
-  | _ -> EPattern (expr_to_pattern e)
+  | N name -> Some (EN name)
+  | _ -> None
 
 (* We would like to do more things here, like transform certain
  * N in TyN, but we can't do that from the Xxx_to_generic.ml
@@ -302,14 +300,16 @@ let vardef_to_assign (ent, def) =
   in
   Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
 
-let assign_to_vardef ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
+let assign_to_vardef_opt ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
   match e1.G.e with
   | Cast (ty, _, e) ->
-      let ent = { name = expr_to_entity_name e; attrs = []; tparams = [] } in
-      DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s
+      let* name = expr_to_entity_name_opt e in
+      let ent = { name; attrs = []; tparams = [] } in
+      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s)
   | _ ->
-      let ent = { name = expr_to_entity_name e1; attrs = []; tparams = [] } in
-      DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s
+      let* name = expr_to_entity_name_opt e1 in
+      let ent = { name; attrs = []; tparams = [] } in
+      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s)
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =

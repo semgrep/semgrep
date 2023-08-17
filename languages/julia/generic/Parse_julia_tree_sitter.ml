@@ -380,12 +380,14 @@ and map_anon_choice_exp_c681153 (env : env) (x : CST.anon_choice_exp_c681153) :
   match x with
   | `Exp x -> ExprStmt (map_expression env x, G.sc) |> G.s
   | `Decl x -> map_declaration env x
-  | `Assign x ->
+  | `Assign x -> (
       (* TODO: Might be good to translate this to a `DefStmt` in the future.
          Python just lets it be an `Assign`, though, so we will too.
       *)
       let l, t, r = map_assignment env x in
-      AST_generic_helpers.assign_to_vardef (l, t, r)
+      match AST_generic_helpers.assign_to_vardef_opt (l, t, r) with
+      | None -> ExprStmt (Assign (l, t, r) |> G.e, G.sc) |> G.s
+      | Some stmt -> stmt)
   | `Bare_tuple x -> ExprStmt (map_bare_tuple_exp env x, G.sc) |> G.s
   | `Short_func_defi x -> map_short_function_definition env x
 
