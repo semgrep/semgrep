@@ -106,7 +106,7 @@ jobs:
           name: stats
           command: |
             eval $(opam env)
-            opam install -y commons
+            opam install -y feather
             ./scripts/report_pysemgrep_loc.ml cli/src/
 
 ###############################################################################
