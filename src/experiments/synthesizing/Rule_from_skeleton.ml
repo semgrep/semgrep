@@ -5,30 +5,37 @@ module In = Input_to_core_j
 
     This supports a hack week project to autogenerate rules from code
     snippets annotated as #should-match and #ok. chatGPT was first used
-    to generate a rule skeleton. Here is an abbreviated rule skeleton:
+    to generate a rule skeleton. Here is an example rule skeleton:
 
     ```
     [
       {
         "op": "And",
-          "children": [
+        "children": [
           {
             "op": "XPat",
-              "children": [],
-              "matches": [
-                "app.run(exec, debug = True, x)",
-                "app.run(debug=True)"
+            "children": [],
+            "matches": [
+              "app.run(exec, debug = True, x)",
+              "app.run(debug=True)"
+            ]
+          },
+          {
+            "op": "Inside",
+            "children": [
+              {
+                "op": "XPat",
+                "children": [],
+                "matches": [
+                  "import Flask",
+                  "app = Flask(__name__)"
                 ]
               }
             ]
-           },
-           {
-             "op": "Inside",
-             "children": <Not shown>
-           }
-         ]
-       }
-     ]
+          }
+        ]
+      }
+    ]
     ```
 
    Given a rule skeleton such as this one, Rule_from_skeleton will generate the
@@ -36,9 +43,10 @@ module In = Input_to_core_j
    that matches both snippets. For the above example, the rule would be:
 
    ```
-   patterns:
-   - pattern: app.run(...)
-   - pattern-inside: <Not shown>
+   match:
+     all:
+        - app.run(...)
+        - inside: ...
    ```
 *)
 
