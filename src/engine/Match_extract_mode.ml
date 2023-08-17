@@ -250,6 +250,20 @@ let map_taint_trace map_loc traces =
       })
     traces
 
+let map_bindings map_loc bindings =
+  let map_tokens map_loc mval =
+    let mmval =
+      AST_generic_helpers.fix_token_locations_any map_loc
+        (Metavariable.mvalue_to_any mval)
+      |> Metavariable.mvalue_of_any
+    in
+    match mmval with
+    | Some m -> m
+    | None -> raise Common.Impossible
+  in
+  let map_binding (mvar, mval) = (mvar, map_tokens map_loc mval) in
+  Common.map map_binding bindings
+
 let map_res map_loc tmpfile file
     (mr : Report.partial_profiling Report.match_result) =
   let matches =
@@ -263,6 +277,7 @@ let map_res map_loc tmpfile file
             Option.map
               (Stdcompat.Lazy.map_val (map_taint_trace map_loc))
               m.taint_trace;
+          env = map_bindings map_loc m.env;
         })
       mr.matches
   in
