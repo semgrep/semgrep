@@ -28,7 +28,15 @@ module A = AST_jsonnet
 (* Env *)
 (*****************************************************************************)
 type env = {
-  (* The spec uses a lambda-calculus inspired substitution model, but
+  (* There are currently two implementations of evaluation, one in
+   * Eval_jsonnet, the other in Eval_jsonnet_subst. The former
+   * uses an environment mode, while the later uses lambda calc
+   * substitutions. Currently, the lambda calc version passes more
+   * tests but is inneficient. Keeping both implementations to
+   * possibly mix the two, to get the efficiency benifit of environments
+   * while keeping the simpler super/self implementation given
+   * by substitution model. In the substitution model, we always
+   * just pass an empty environment into the value right now.
    * it is probably simpler and more efficient to use a classic
    * environment where the locals are defined. Jsonnet uses lazy
    * evaluation so we model this by allowing unevaluated expressions in

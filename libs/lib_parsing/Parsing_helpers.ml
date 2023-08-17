@@ -215,7 +215,7 @@ let error_message filename (lexeme, lexstart) =
 let error_message_token_location (info : Tok.location) =
   let filename = info.pos.file in
   let lexeme = info.str in
-  let lexstart = info.pos.charpos in
+  let lexstart = info.pos.bytepos in
   try error_messagebis filename (lexeme, lexstart) 0 with
   | End_of_file ->
       "PB in Common.error_message, position " ^ i_to_s lexstart

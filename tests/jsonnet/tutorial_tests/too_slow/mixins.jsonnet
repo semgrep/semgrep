@@ -1,4 +1,4 @@
-local sours = import 'sours-oo.jsonnet';
+local sours = import 'sours_oo.jsonnet';
 
 local RemoveGarnish = {
   // Not technically removed, but made hidden.

@@ -1,7 +1,11 @@
+import os
 import re
+import subprocess
+from pathlib import Path
 
 import pytest
 from tests.fixtures import RunSemgrep
+from tests.semgrep_runner import SEMGREP_BASE_COMMAND
 
 from semgrep.constants import OutputFormat
 
@@ -147,3 +151,26 @@ def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
         errors,
         "errors.txt",
     )
+
+
+@pytest.mark.slow
+def test_cli_test_from_entrypoint(snapshot):
+    env = {}
+    env["PATH"] = os.environ.get("PATH", "")
+
+    cmd = SEMGREP_BASE_COMMAND + [
+        "--test",
+        "--config",
+        "rules/cli_test/multiple_annotations/multiple-annotations.yaml",
+        "targets/cli_test/multiple_annotations/multiple-annotations-bad.py",
+    ]
+    result = subprocess.run(
+        cmd,
+        cwd=Path(__file__).parent,
+        capture_output=True,
+        encoding="utf-8",
+        check=True,
+        env=env,
+        timeout=15,
+    )
+    snapshot.assert_match(result.stdout, "output.txt")

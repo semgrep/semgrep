@@ -1,0 +1,9 @@
+rules:
+- id: test
+  message: Php function references are case insensitive.
+  languages: [php]
+  severity: WARNING
+  patterns:
+  - pattern: $FUN(...)
+  - pattern-inside: function $FUN(...) { ... }
+

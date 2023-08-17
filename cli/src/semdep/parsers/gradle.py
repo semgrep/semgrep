@@ -4,24 +4,23 @@ Based on
 https://docs.gradle.org/current/userguide/dependency_locking.html
 https://docs.gradle.org/current/userguide/dependency_management_for_java_projects.html
 """
+import re
 from pathlib import Path
+from textwrap import dedent
 from typing import List
 from typing import Optional
 from typing import Tuple
 
 from semdep.external.parsy import any_char
-from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semdep.parsers.util import consume_line
-from semdep.parsers.util import consume_word
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
-from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import GradleLockfile
@@ -46,18 +45,21 @@ PREFIX = """\
 #     implementation fileTree(dir: "libs", include: ["*.jar"])
 # just ignore it
 # Examples:
-#   implementation "com.mx.path-core:http"
-#   testImplementation "org.mockito:mockito-inline:[4.0,5.0["
-manifest_line: "Parser[Optional[str]]" = (
-    (string("\t") | string("  "))
-    >> consume_word
-    >> string(" ")
-    >> any_char.bind(
-        lambda next: (success(None) << consume_line)
-        if next not in ['"', "'"]
-        else upto(":", consume_other=True)
-        >> upto(":", "'", '"').bind(lambda package: success(package) << consume_line)  # type: ignore
+#   implementation "com.mx.path-core:http"å
+manifest_line = (
+    regex(
+        dedent(
+            r"""
+    [\sa-zA-Z]+       # whitespace, followed by "implementation" or "testImplementation" or any number of other things
+    ["']              # opening quote
+        ([^:]+:[^:]+) # package name
+        (?::[^']+)?   # optional version
+    ["']"""
+        ),  # closing quote
+        flags=re.VERBOSE,
+        group=1,
     )
+    | consume_line
 )
 
 # Ignore everything before and after the dependencies data

@@ -631,10 +631,7 @@ let opt_string_of_exn (exn : exn) =
   | Err x -> Some (string_of_error x)
   | _else_ -> None
 
-(* To be called by the application's main().
- * TODO? why not evaluate it now like let () = Printexc.register_printer ...?
- *)
-let register_exception_printer () = Printexc.register_printer opt_string_of_exn
+let () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)
 (* Visitor/extractor *)

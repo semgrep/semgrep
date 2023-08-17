@@ -74,7 +74,7 @@ let mark_end_define ii =
     Tok.OriginTok
       {
         str = "";
-        pos = { tok_loc.pos with charpos = Tok.bytepos_of_tok ii + 1 };
+        pos = { tok_loc.pos with bytepos = Tok.bytepos_of_tok ii + 1 };
       }
   in
   (* fresh_tok *) TCommentNewline_DefineEndOfMacro ii'

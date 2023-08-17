@@ -36,26 +36,6 @@
  *)
 
 (*****************************************************************************)
-(* Exn pretty printers *)
-(*****************************************************************************)
-
-(* TODO: maybe we should update our dependencies to use a more recent
- * Base so we don't need those hacks and every module can independentely
- * register exn printers.
- * TODO? should we just call/reuse Core_CLI.override_janestreet_exn_printers
- * instead?
- *)
-let register_stdlib_exception_printers () =
-  (* Needs to take place after JaneStreet Base does its own registration.
-   * See https://github.com/janestreet/base/issues/146 for more info
-   *)
-  Printexc.register_printer (function
-    | Failure msg ->
-        (* Avoid unnecessary quoting of the error message *)
-        Some ("Failure: " ^ msg)
-    | _else_ -> None)
-
-(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
@@ -73,8 +53,7 @@ let () =
   match Filename.basename Sys.argv.(0) with
   (* osemgrep!! *)
   | "osemgrep" ->
-      (* TODO? What about the Core_CLI.register_exception_printers? *)
-      register_stdlib_exception_printers ();
+      Core_CLI.register_exception_printers ();
       let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
       (* TODO: remove or make debug-only *)
       if exit_code <> 0 then

@@ -1,0 +1,2 @@
+Julia: Fixed a bug where parenthesized expressions would sometimes
+not match in constructs like `metavariable-comparison`.

@@ -36,8 +36,8 @@ let rec expr_to_string expr =
   match e_range with
   | Some (start, end_) ->
       Common.with_open_infile start.pos.file (fun chan ->
-          let extract_size = end_.pos.charpos - start.pos.charpos in
-          seek_in chan start.pos.charpos;
+          let extract_size = end_.pos.bytepos - start.pos.bytepos in
+          seek_in chan start.pos.bytepos;
           really_input_string chan extract_size)
   | None -> failwith "invalid source/sink requires"
 

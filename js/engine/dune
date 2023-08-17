@@ -5,6 +5,7 @@
   integers_stubs_js
   libpcre_stubs_js
   libyaml_stubs_js
+  yaml_ctypes_overrides
   semgrep.running
   tree-sitter.run
   ; semgrep.parsing_languages ; skipped to go from 16MB to 7MB

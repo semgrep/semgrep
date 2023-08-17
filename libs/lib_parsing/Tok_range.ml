@@ -41,12 +41,12 @@ let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
 *)
 let tok_pos_left tok =
   match Tok.loc_of_tok tok with
-  | Ok x -> x.pos.charpos
+  | Ok x -> x.pos.bytepos
   | Error _ -> max_int
 
 let tok_pos_right tok =
   match Tok.loc_of_tok tok with
-  | Ok x -> x.pos.charpos
+  | Ok x -> x.pos.bytepos
   | Error _ -> min_int
 
 (* Prefer non-error. In case of a tie, prefer left-handside argument. *)

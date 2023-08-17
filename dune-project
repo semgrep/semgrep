@@ -390,7 +390,13 @@ For more information see https://semsgrep.dev
     stdcompat
     (menhir (= 20211128)) ; Newer versions cause massive build slowdowns
     grain_dypgen
-    base
+
+    ; We don't use Base directly. If it's being used indirectly
+    ; (is it, though?), we need a version that doesn't register
+    ; rogue exception printers.
+    ; See https://github.com/janestreet/base/issues/146
+    (base (>= v0.15.1))
+
     fpath
     alcotest
     ANSITerminal
@@ -418,8 +424,8 @@ For more information see https://semsgrep.dev
     parmap
     uri
     uuidm
-    http-lwt-client ; this brings lots of dependencies. This is for osemgrep.
-    (happy-eyeballs-lwt (>= 0.6.0)) ; there's a bug with GitHub action & pre-commit before 0.6.0
+    cohttp-lwt-unix
+    tls-lwt ; needed for TLS support in the cohttp HTTP client
     terminal_size
     lwt
     lwt_ppx

@@ -1,16 +1,24 @@
-(* Token type used in many ASTs (including in AST_generic.ml) and CSTs
+(* Type to represent a token (e.g., an identifier, a keyword).
+ * Tok.t is used in many ASTs (including in AST_generic.ml) and CSTs
  * across Semgrep.
  *
- * The types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens.
-
-   TODO: please explain the role of a Tok.t. Is it a best effort to track
-   the start/end location of a node? What can we do with a tok e.g. is it
-   reliable to extract the string from it or does it not make sense in general
-   since it's only a best effort to report error locations?
-   What about empty tokens representing a position in a file such as the
-   position of the contents of an empty string literal - how to create them?
-   Why are there fake tokens at all? When is it safe to use them?
+ * Tok.t is a bit complicated because we want to represent "fake" and
+ * "expanded" tokens. We use fake tokens because in many of
+ * the ASTs/CSTs in Semgrep (including in AST_generic.ml) we store the
+ * tokens in the ASTs/CSTs at the leaves, and sometimes the actual
+ * token is optional (e.g., a virtual semicolon in Javascript).
+ * We could use an option type, but that would involve a big refactoring
+ * hence the current use of those FakeTokStr.
+ * We also use expanded tokens to track tokens through macro expansions
+ * or file includes.
+ *
+ * Ideally we should not store tokens in the ASTs, just location information,
+ * but again this would involve a big refactoring and redesigning how
+ * we track location in Semgrep.
+ *
+ * It is reliable to extract the string and position from a token when
+ * the token is an OriginTok (see also Tok.is_origintok()). For the other
+ * cases, you might get an NoTokenLocation exn.
  *)
 
 (*****************************************************************************)
@@ -18,7 +26,7 @@
 (*****************************************************************************)
 
 type location = {
-  str : string; (* the content of the token starting at pos *)
+  str : string; (* the content of the token starting at pos (e.g., "if") *)
   pos : Pos.t;
 }
 [@@deriving show, eq, ord]

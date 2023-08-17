@@ -308,6 +308,9 @@ let all_actions () =
     ( "-dump_jsonnet_json",
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.dump_jsonnet_json );
+    ( "-perf_test_jsonnet",
+      " <file>",
+      Arg_helpers.mk_action_1_conv Fpath.v Test_ojsonnet.perf_test_jsonnet );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_helpers.mk_action_1_conv Fpath.v (fun file ->
@@ -572,12 +575,13 @@ let options actions =
 (*****************************************************************************)
 
 (*
-   Restore reasonable exception printers for the exceptions of the
-   OCaml standard library.
+   Slightly nicer exception printers than the default.
 *)
-let override_janestreet_exn_printers () =
+let register_stdlib_exn_printers () =
   Printexc.register_printer (function
-    | Failure msg -> Some ("Failure: " ^ msg)
+    | Failure msg ->
+        (* Avoid unnecessary quoting of the error message *)
+        Some ("Failure: " ^ msg)
     | Invalid_argument msg -> Some ("Invalid_argument: " ^ msg)
     | _ -> None)
 
@@ -600,11 +604,9 @@ let register_unix_exn_printers () =
    can be tricky.
 *)
 let register_exception_printers () =
-  override_janestreet_exn_printers ();
+  register_stdlib_exn_printers ();
   register_unix_exn_printers ();
-  Parsing_error.register_exception_printer ();
-  SPcre.register_exception_printer ();
-  Rule.register_exception_printer ()
+  SPcre.register_exception_printer ()
 
 (*****************************************************************************)
 (* Main entry point *)

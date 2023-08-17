@@ -613,7 +613,7 @@ and def_stmt env (entity, def_kind) =
   | ClassDef def -> class_def env (entity, def)
   | _ -> todo (S (DefStmt (entity, def_kind) |> G.s))
 
-(* TODO? maybe we should check id_info.id_hidden *)
+(* TODO? maybe we should check IdFlags.is_hidden !(id_info.id_flags) *)
 and ident_or_dynamic env = function
   | EN (Id (x, _idinfo)) -> ident x
   | EN name -> expr env (N name |> G.e)

@@ -97,8 +97,8 @@ let _pos_str
     s_index (s_line + 1) s_column e_index (e_line + 1) e_column
 
 let tok (index, line, column) str env =
-  Tok.OriginTok
-    { str; pos = { charpos = index; line = line + 1; column; file = env.file } }
+  let pos = Pos.make ~file:env.file ~line:(line + 1) ~column index in
+  Tok.OriginTok { str; pos }
 
 let mk_tok ?(style = `Plain)
     {

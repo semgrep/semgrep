@@ -44,6 +44,7 @@ depends: [
   "uri"
   "uuidm"
   "cohttp-lwt-unix"
+  "tls-lwt"
   "terminal_size"
   "lwt"
   "lwt_ppx"

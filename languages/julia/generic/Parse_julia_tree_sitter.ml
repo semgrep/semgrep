@@ -811,12 +811,15 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       | ">>>" -> opcall (LSR, v2) [ v1; v3 ]
       | s ->
           Call (N (H2.name_of_id (s, v2)) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e)
-  | `Exp_times_op_exp (v1, v2, v3) ->
+  | `Exp_times_op_exp (v1, v2, v3) -> (
       let v1 = map_expression env v1 in
       let v2 = (* times_operator *) token env v2 in
       let v3 = map_expression env v3 in
-      opcall (Mult, v2) [ v1; v3 ]
-  | `Exp_choice_tok_choice_dot_choice_plus_exp (v1, v2, v3) ->
+      (* The Julia tree-sitter-grammar groups "&" as times operator *)
+      match Tok.content_of_tok v2 with
+      | "&" -> opcall (BitAnd, v2) [ v1; v3 ]
+      | _ -> opcall (Mult, v2) [ v1; v3 ])
+  | `Exp_choice_tok_choice_dot_choice_plus_exp (v1, v2, v3) -> (
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
@@ -824,7 +827,10 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
         | `Plus_op tok -> (* plus_operator *) token env tok
       in
       let v3 = map_expression env v3 in
-      opcall (Plus, v2) [ v1; v3 ]
+      (* The Julia tree-sitter-grammar groups "|" as plus operator *)
+      match Tok.content_of_tok v2 with
+      | "|" -> opcall (BitOr, v2) [ v1; v3 ]
+      | _ -> opcall (Plus, v2) [ v1; v3 ])
   | `Exp_ellips_op_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* ellipsis_operator *) str env v2 in
@@ -1853,13 +1859,22 @@ and map_quotable (env : env) (x : CST.quotable) : expr =
             v2)
           v3
       in
-      let base = Seq (v2 :: v3) |> G.e in
+      let v6 = (* ")" *) token env v6 in
+      let base =
+        match v3 with
+        (* This means we would produce a singleton Seq. Let's not do that, and just
+           take the expression itself, with the parens around it.
+        *)
+        | [] ->
+            AST_generic_helpers.set_e_range v1 v6 v2;
+            v2
+        | _ -> Seq (v2 :: v3) |> G.e
+      in
       let _v5 =
         match v5 with
         | Some tok -> (* ";" *) Some (token env tok)
         | None -> None
       in
-      let v6 = (* ")" *) token env v6 in
       match v4 with
       | Some x ->
           let comp = map_comprehension_clause env x in

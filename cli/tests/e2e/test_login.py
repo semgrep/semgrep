@@ -2,6 +2,8 @@ import pytest
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
+from semgrep.config_resolver import ConfigFile
+from semgrep.config_resolver import ConfigLoader
 
 
 @pytest.mark.slow
@@ -106,8 +108,14 @@ def test_login(tmp_path, mocker):
     assert "Need to set env var SEMGREP_REPO_NAME" in result.output
 
     # Run policy. Check that request is made to correct deployment + org/repo
+    mocked_config = mocker.patch.object(
+        ConfigLoader,
+        "_download_config_from_url",
+        side_effect=lambda url: ConfigFile(None, "invalid-conifg}", url),
+    )
     result = runner.invoke(
         cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "org/repo"}
     )
     assert result.exit_code == 7
-    assert "https://semgrep.dev/api/agent/deployments/scans/config" in result.output
+    assert mocked_config.called
+    assert "remote-url_0 was not a mapping" in result.output

@@ -1,6 +1,6 @@
 open Core_jsonnet
 open Common
-module V = Value_jsonnet_subst
+module V = Value_jsonnet
 module A = AST_jsonnet
 module J = JSON
 
@@ -8,6 +8,18 @@ exception Error of string * Tok.t
 
 type cmp = Inf | Eq | Sup
 
+(*Creates std so that we can add it to the environment when we switch back to
+  * environment model for handling standard library functions
+*)
+let pre_std = Std_jsonnet.get_std_jsonnet ()
+
+(* This is an arbitrary path, used as a placeholder, since we aren't desugaring from a file *)
+let path =
+  match Fpath.of_string "../" with
+  | Ok p -> p
+  | Error _ -> failwith ""
+
+let std = Desugar_jsonnet.desugar_program path pre_std
 let fk = Tok.unsafe_fake_tok ""
 let fake_self = IdSpecial (Self, Tok.unsafe_fake_tok "self")
 let fake_super = IdSpecial (Super, Tok.unsafe_fake_tok "super")
@@ -68,8 +80,9 @@ let vobj_to_obj l asserts fields r =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value with
-           | Val _ -> error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
-           | Unevaluated e ->
+           | { value = Val _; _ } ->
+               error (Tok.unsafe_fake_tok "") "shoulnd't be a value"
+           | { value = Unevaluated e; _ } ->
                {
                  fld_name = vfld_name_to_fld_name fld_name;
                  fld_hidden;
@@ -160,27 +173,22 @@ let rec substitute id sub expr =
               L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
               r1 ) ),
         (l, args, r) ) ->
+      (* Because we use environment model substitution for std library,
+         we don't do any substitutions for "std". *)
       let new_args =
-        Common.map
-          (fun arg ->
-            match arg with
-            | Arg e -> Arg (substitute id sub e)
-            | NamedArg (ident, tk, e) ->
-                NamedArg (ident, tk, substitute id sub e))
-          args
+        if id = "std" then args
+        else
+          Common.map
+            (fun arg ->
+              match arg with
+              | Arg e -> Arg (substitute id sub e)
+              | NamedArg (ident, tk, e) ->
+                  NamedArg (ident, tk, substitute id sub e))
+            args
       in
-      (* Because the std library is split into two parts (explicitely part of the language
-         and std.jsonnet) we need to be careful about substitution here, only substituting
-         the "std" keyword when we actually want to go to std.jsonnet, we also only want
-         to do a substitution here if we are substituting for "std" *)
-      let new_std =
-        if is_imp_std meth_str || not (id = "std") then Id ("std", std_tok)
-        else sub
-      in
-
       Call
         ( ArrayAccess
-            ( new_std,
+            ( Id ("std", std_tok),
               ( l1,
                 L (Str (None, DoubleQuote, (l2, [ (meth_str, meth_tk) ], r2))),
                 r1 ) ),
@@ -334,7 +342,12 @@ let rec eval_expr expr =
       V.Primitive prim
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
-      let elts = xs |> Common.map (fun x -> V.Unevaluated x) |> Array.of_list in
+      let elts =
+        xs
+        |> Common.map (fun x ->
+               { V.value = V.Unevaluated x; env = V.empty_env })
+        |> Array.of_list
+      in
       Array (l, elts, r)
   | Lambda v -> Lambda v
   | O v -> eval_obj_inside v
@@ -380,7 +393,7 @@ let rec eval_expr expr =
           with
           | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
           | Some fld -> (
-              match fld.fld_value with
+              match fld.fld_value.value with
               | V.Val v -> v
               | V.Unevaluated e ->
                   (* Late-bound self.
@@ -581,7 +594,21 @@ and eval_std_cmp tk (el : expr) (er : expr) : cmp =
   eval_std_cmp_value_ (eval_expr el) (eval_expr er)
 
 and eval_call e0 (largs, args, _rargs) =
-  match eval_expr e0 with
+  (*
+   * Check if this is a standard library call. If it is, call the environment
+   * model evaluation to get more efficiency (for example, on array_comprehensions2.jsonnet,
+   * this optimization creates an approx 100x speedup (11 seconds down to 0.1)
+   *)
+  let eval_func =
+    match e0 with
+    | ArrayAccess
+        (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
+        (* set locals so that "std" shows up in the environment when evaluating *)
+        let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
+        Eval_jsonnet.eval_program local_wrap
+    | _ -> eval_expr e0
+  in
+  match eval_func with
   | Lambda { f_tok = _; f_params = lparams, params, rparams; f_body = eb } ->
       let fstr =
         match e0 with
@@ -672,7 +699,11 @@ and eval_std_method e0 (method_str, tk) (l, args, r) =
                 ( Lambda fdef,
                   (fk, [ Arg (L (Number (string_of_int i, fk))) ], fk) )
             in
-            Array (fk, Array.init n (fun i -> V.Unevaluated (e i)), fk)
+            Array
+              ( fk,
+                Array.init n (fun i ->
+                    { V.value = V.Unevaluated (e i); env = V.empty_env }),
+                fk )
           else error tk (spf "Got non-integer %f in std.makeArray" n)
       | v, _e' ->
           error tk (spf "Improper arguments to std.makeArray: %s" (sv v)))
@@ -747,7 +778,7 @@ and eval_std_filter_element (tk : tok) (f : function_definition)
       (* similar to eval_expr for Local *)
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
-      match ei with
+      match ei.value with
       | Val _ ->
           error (Tok.unsafe_fake_tok "oof") "shouldn't have been evaluated"
       | Unevaluated e -> eval_call (Lambda f) (_l, [ Arg e ], _r))
@@ -776,12 +807,18 @@ and eval_obj_inside (l, x, r) : V.value_ =
                         * We do not bind Self here! This is done on field
                         * access instead (late bound).
                         *)
-                       fld_value = V.Unevaluated fld_value;
+                       fld_value =
+                         {
+                           V.value = V.Unevaluated fld_value;
+                           env = V.empty_env;
+                         };
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
-
-      V.Object (l, (assertsTODO, fields), r)
+      let new_assertsTODO =
+        assertsTODO |> List.map (fun ass -> (ass, V.empty_env))
+      in
+      V.Object (l, (new_assertsTODO, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
 
 and eval_plus_object _tk objl objr =
@@ -799,12 +836,19 @@ and eval_plus_object _tk objl objr =
     |> List.filter (fun { V.fld_name = s, _; _ } ->
            not (Hashtbl.mem hash_of_right_field_names s))
   in
+
+  let lflds_overlap_hidden =
+    lflds
+    |> List.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
+    |> List.to_seq |> Hashtbl.of_seq
+  in
+
   let super = freshvar () in
   let self = freshvar () in
 
   let new_rh_asserts =
     lassert
-    |> Common.map (fun (tk, e) ->
+    |> Common.map (fun ((tk, e), _) ->
            ( tk,
              e
              |> substitute_kw fake_super (Id super)
@@ -813,7 +857,7 @@ and eval_plus_object _tk objl objr =
   let new_rh_fields =
     lflds
     |> Common.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.value with
            | Val _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
@@ -830,6 +874,7 @@ and eval_plus_object _tk objl objr =
                  fld_value = new_fld_value;
                })
   in
+
   let rh_obj =
     O
       ( Tok.unsafe_fake_tok "{",
@@ -847,7 +892,7 @@ and eval_plus_object _tk objl objr =
   let new_ers =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value with
+           match fld_value.value with
            | Val _ ->
                error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
            | Unevaluated e ->
@@ -858,10 +903,22 @@ and eval_plus_object _tk objl objr =
                      Tok.unsafe_sc,
                      substitute_kw fake_super e_s e )
                in
+               let name, _ = fld_name in
+               (* implements hidden inheritance as defined in spec *)
+               let hidden, _ = fld_hidden in
+               let new_hidden =
+                 if Hashtbl.mem lflds_overlap_hidden name then
+                   match hidden with
+                   | Visible -> Hashtbl.find lflds_overlap_hidden name
+                   | _ -> fld_hidden
+                 else fld_hidden
+               in
+
                {
                  V.fld_name;
-                 fld_hidden;
-                 fld_value = V.Unevaluated new_fld_value;
+                 fld_hidden = new_hidden;
+                 fld_value =
+                   { V.value = V.Unevaluated new_fld_value; env = V.empty_env };
                })
   in
 
@@ -869,7 +926,7 @@ and eval_plus_object _tk objl objr =
   (l, (asserts, all_fields), r)
 
 and evaluate_lazy_value_ (v : V.lazy_value) =
-  match v with
+  match v.value with
   | Val v -> v
   | Unevaluated e -> eval_expr e
 
@@ -897,9 +954,13 @@ and manifest_value (v : V.value_) : JSON.t =
                | A.Visible
                | A.ForcedVisible ->
                    (* similar to what we do in eval_expr on field access *)
-                   let _new_self = vobj_to_obj _l _assertsTODO fields _r in
+                   let _new_assertsTODO =
+                     _assertsTODO
+                     |> List.map (fun ((tk, prog), _) -> (tk, prog))
+                   in
+                   let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =
-                     match fld_value with
+                     match fld_value.value with
                      | Val v -> v
                      | Unevaluated e ->
                          let new_e =
