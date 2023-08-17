@@ -125,6 +125,17 @@ workflows:
   #----------------------------------------
   # Crons
   #----------------------------------------
+  # cron table memento below
+  # (src: https://dev.to/anshuman_bhardwaj/free-cron-jobs-with-github-actions-31d6)
+  # ┌────────── minute (0 - 59)
+  # │ ┌────────── hour (0 - 23)
+  # │ │ ┌────────── day of the month (1 - 31)
+  # │ │ │ ┌────────── month (1 - 12)
+  # │ │ │ │ ┌────────── day of the week (0 - 6)
+  # │ │ │ │ │
+  # │ │ │ │ │
+  # │ │ │ │ │
+  # * * * * *
 
   # Daily semgrep benchmarks
   benchmarks:
@@ -147,14 +158,12 @@ workflows:
   scheduled-parsing-stats:
     jobs:
       - parsing-stats:
-          # Run only on these branches
           filters:
             branches:
               only:
                 - develop
     triggers:
       - schedule:
-          # Run at 00:00 every day, UTC.
           cron: "0 0 * * *"
           filters:
             branches:
@@ -164,15 +173,28 @@ workflows:
   scheduled-autofix-printing-stats:
     jobs:
       - autofix-printing-stats:
-          # Run only on these branches
           filters:
             branches:
               only:
                 - develop
     triggers:
       - schedule:
-          # Run at 00:00 every day, UTC.
           cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+
+  scheduled-pysemgrep-loc-stats:
+    jobs:
+      - pysemgrep-loc-stats:
+          filters:
+            branches:
+              only:
+                - develop
+    triggers:
+      - schedule:
+          cron: "0 12 * * *"
           filters:
             branches:
               only:
