@@ -158,6 +158,7 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/nuget-sca-simple.yaml",
             "dependency_aware/nuget",
         ),
+        # This test intentionally runs poetry rules against C# to check that scan runs correctly and does not produce findings
         (
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/nuget",
