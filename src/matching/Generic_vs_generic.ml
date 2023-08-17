@@ -2249,15 +2249,14 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
       m_stmts_deep ~inside ~less_is_ok xsa bbs
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
-      (* let's first try without going deep *)
-      m_list__m_stmt xsa xsb >!> fun () ->
-      if_config
-        (fun x -> x.go_deeper_stmt)
-        ~then_:
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-          | None -> fail () (* was already flat *)
-          | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
-        ~else_:(fail ())
+      m_list__m_stmt xsa xsb
+      >||> if_config
+             (fun x -> x.go_deeper_stmt)
+             ~then_:
+               (match SubAST_generic.flatten_substmts_of_stmts xsb with
+               | None -> fail () (* was already flat *)
+               | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
+             ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
       as xsa),
