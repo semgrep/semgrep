@@ -13,12 +13,14 @@ from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.package_lock import parse_package_lock
+from semdep.parsers.packages_lock_c_sharp import (
+    parse_packages_lock as parse_packages_lock_c_sharp,
+)
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.requirements import parse_requirements
-from semdep.parsers.packages_lock_c_sharp import parse_packages_lock as parse_packages_lock_c_sharp
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.yarn import parse_yarn
 from semgrep.console import console

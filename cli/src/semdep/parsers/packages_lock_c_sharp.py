@@ -12,21 +12,20 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
-from semdep.external.parsy import regex
-from semdep.external.parsy import string
 
 
 logger = getLogger(__name__)
+
 
 def map_to_transitivity(type_value: Optional[str]) -> Transitivity:
     if type_value == "Direct":
@@ -47,10 +46,14 @@ def parse_dependencies_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
             fields = package_json.as_dict()
             version = fields.get("resolved")
             if not version:
-                logger.info(f"no version for dependency: {package} in framework: {framework}")
+                logger.info(
+                    f"no version for dependency: {package} in framework: {framework}"
+                )
                 continue
 
-            transitivity_str = fields.get("type")
+            transitivity_json = fields.get("type")
+            transitivity_str = transitivity_json.as_str() if transitivity_json else None
+
             output.append(
                 FoundDependency(
                     package=package,
@@ -83,5 +86,5 @@ def parse_packages_lock(
     if deps is None:
         logger.warn("Found packages.lock.json with no 'dependencies'")
         return [], errors
-    
+
     return parse_dependencies_field(deps.as_dict()), errors
