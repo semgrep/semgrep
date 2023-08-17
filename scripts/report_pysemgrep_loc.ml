@@ -98,11 +98,14 @@ let run conf =
 (* Cmdliner boilerplate *)
 (*****************************************************************************)
 let main () =
+  (* logging setup *)
   Fmt_tty.setup_std_outputs ();
   Logs.set_reporter (Logs_fmt.reporter ());
+  (* cmdliner setup *)
   let info = Cmd.info Sys.argv.(0) in
   let term = Term.(const run $ conf_cmdliner_term ()) in
   let cmd = Cmd.v info term in
+  (* Let's go! *)
   exit (Cmd.eval cmd)
 
 let () = main ()
