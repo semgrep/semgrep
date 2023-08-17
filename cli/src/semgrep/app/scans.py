@@ -305,6 +305,9 @@ class ScanHandler:
             renamed_paths=[str(rt) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
         )
+        if self._dependency_query:
+            out.CiScanDependencies(lockfile_dependencies)
+
         findings_and_ignores = ci_scan_results.to_json()
 
         if any(match.severity == RuleSeverity.EXPERIMENT for match in new_ignored):
