@@ -2,10 +2,6 @@
 # Prelude
 ##############################################################################
 # Helper functions and classes useful for writing tests.
-##############################################################################
-# Imports
-##############################################################################
-# standard libs
 import json
 import os
 import re
@@ -35,9 +31,6 @@ from semdep.parse_lockfile import parse_lockfile_path
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
-
-# typing
-# semgrep specific imports
 
 ##############################################################################
 # Constants

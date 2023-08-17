@@ -12,9 +12,6 @@
 # This is why using the CliRunner option is now deprecated. The option is still
 # kept because a few of our tests still rely on Click-specific features that
 # the regular call-semgrep-in-a-subprocess do not provide yet.
-##############################################################################
-# Imports
-##############################################################################
 import os
 import shlex
 from dataclasses import dataclass
@@ -28,9 +25,6 @@ from typing import Sequence
 from typing import Union
 
 from click.testing import CliRunner
-
-# typing
-# deprecated
 
 ##############################################################################
 # Helper functions
@@ -116,6 +110,8 @@ class Result:
 
 
 # Run semgrep in an external process
+# TODO: right now it's forking osemgrep, but we should instead fork semgrep
+# and use the --experimental flag when we want to force to use osemgrep
 def fork_semgrep(
     args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
 ) -> Result:
