@@ -306,7 +306,7 @@ class ScanHandler:
             rule_ids=rule_ids,
         )
         if self._dependency_query:
-            out.CiScanDependencies(lockfile_dependencies)
+            ci_scan_results.dependencies = out.CiScanDependencies(lockfile_dependencies)
 
         findings_and_ignores = ci_scan_results.to_json()
 
