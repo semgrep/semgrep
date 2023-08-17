@@ -106,7 +106,7 @@ jobs:
           name: stats
           command: |
             eval $(opam env)
-            opam install -y feather
+            opam install -y ocamlfind fmt logs cmdliner ppx_deriving feather
             ./scripts/report_pysemgrep_loc.ml cli/src/
 
 ###############################################################################

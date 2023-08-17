@@ -85,6 +85,7 @@ let run conf =
     (* alt: could also use F.filter_lines *)
     |. F.process "grep" [ "-v"; "semgrep_interfaces/" ]
     |. F.process "grep" [ "-v"; "semdep/" ]
+    (* --total is actually a recent flag so old 'wc' might not work *)
     |. F.process "xargs" [ "wc"; "-l"; "--total=only" ]
     |> F.collect F.stdout
   in
