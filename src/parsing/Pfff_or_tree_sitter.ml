@@ -36,7 +36,13 @@ type 'ast parser =
   | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
   | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
 
-(* This type is parametrized by the AST type because ??? *)
+(*
+   This type is parametrized by the AST type because we don't always
+   generate directly generic ASTs. We sometimes generate intermediate
+   ASTs hence the need for polymorphic type (so you can have
+   Ast_cpp.program internal_result, or Ast_php.program
+   internal_result).
+*)
 type 'ast internal_result =
   | ResOk of ('ast * Parsing_stat.t)
   | ResPartial of
