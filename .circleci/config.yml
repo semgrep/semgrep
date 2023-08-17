@@ -106,6 +106,7 @@ jobs:
           name: stats
           command: |
             eval $(opam env)
+            opam install -y commons
             ./scripts/report_pysemgrep_loc.ml cli/src/
 
 ###############################################################################
