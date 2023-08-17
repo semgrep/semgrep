@@ -99,14 +99,15 @@ jobs:
   # run pysemgrep->osemgrep porting stats and publish to the semgrep dashboard
   pysemgrep-loc-stats:
     docker:
-      - image: ocaml/opam:ubuntu
+      # only archlinux seems to have wc 9.3 which is required by report_pysemgrep_loc
+      - image: ocaml/opam:archlinux
     steps:
       - checkout
       - run:
           name: stats
           command: |
             eval $(opam env)
-            opam install -y ocamlfind fmt logs cmdliner ppx_deriving feather
+            opam install -y ocamlfind ppx_deriving fmt logs cmdliner ppx_deriving_cmdliner feather
             ./scripts/report_pysemgrep_loc.ml cli/src/
 
 ###############################################################################
