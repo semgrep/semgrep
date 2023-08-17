@@ -105,6 +105,7 @@ jobs:
       - run:
           name: stats
           command: |
+            eval $(opam env)
             ./scripts/report_pysemgrep_loc.ml cli/src/
 
 ###############################################################################
