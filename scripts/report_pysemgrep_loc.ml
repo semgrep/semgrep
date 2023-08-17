@@ -2,6 +2,14 @@
 
 #use "topfind"
 
+#require "fmt"
+
+#require "fmt.tty"
+
+#require "logs"
+
+#require "logs.fmt"
+
 #require "ppx_deriving.show"
 
 #require "ppx_deriving_cmdliner"
@@ -12,11 +20,6 @@
 
 #require "feather"
 
-#require "logs"
-
-#require "commons"
-
-open Common
 open Cmdliner
 module F = Feather
 open Feather (* for |. *)
@@ -58,7 +61,7 @@ type conf = {
 (*****************************************************************************)
 
 let upload conf loc =
-  let url = spf "%s/api/metric/%s" host metric in
+  let url = Printf.sprintf "%s/api/metric/%s" host metric in
   (* TODO: use Logs library *)
   Logs.debug (fun m -> m "uploading to %s" url);
 
