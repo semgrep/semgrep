@@ -54,7 +54,9 @@ let just_parse_with_lang lang file =
   | Lang.Yaml ->
       {
         ast = Yaml_to_generic.program file;
+        errors = [];
         skipped_tokens = [];
+        inserted_tokens = [];
         stat = Parsing_stat.default_stat file;
       }
   (* Menhir and Tree-sitter *)
@@ -183,13 +185,13 @@ let just_parse_with_lang lang file =
         Js_to_generic.program
   | Lang.Vue ->
       let parse_embedded_js file =
-        let { Parsing_result2.ast; skipped_tokens; stat = _ } =
+        let { Parsing_result2.ast; errors; _ } =
           Parse_target.just_parse_with_lang Lang.Js file
         in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors
          *)
-        if skipped_tokens <> [] then failwith "parse error in embedded JS";
+        if errors <> [] then failwith "parse error in embedded JS";
         ast
       in
       run file

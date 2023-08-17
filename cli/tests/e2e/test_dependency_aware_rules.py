@@ -163,6 +163,7 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/python-poetry-sca.yaml",
             "dependency_aware/nuget",
         ),
+        ("rules/dependency_aware/gradle-guava.yaml", "dependency_aware/gradle-direct"),
     ],
 )
 def test_dependency_aware_rules(

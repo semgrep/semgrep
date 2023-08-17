@@ -82,7 +82,7 @@ let get_printer lang external_printer :
 
 let original_source_of_ast source any =
   let* start, end_ = AST_generic_helpers.range_of_any_opt any in
-  let starti = start.Tok.pos.charpos in
+  let starti = start.Tok.pos.bytepos in
   let _, _, endi = Tok.end_pos_of_loc end_ in
   let len = endi - starti in
   let str = String.sub source starti len in

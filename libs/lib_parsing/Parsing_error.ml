@@ -85,7 +85,7 @@ let shorten_string s =
 let show_token_value (x : Tok.t) : string =
   match x with
   | OriginTok loc -> spf "%S" (shorten_string loc.str)
-  | FakeTokStr (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
+  | FakeTok (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
   | ExpandedTok (first_loc, _) ->
       (* not sure about this *)
       spf "%S" (shorten_string first_loc.str)

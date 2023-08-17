@@ -35,9 +35,6 @@ val run_pattern :
 
 val exn_of_loc : Tok.location -> Exception.t
 
-val loc_of_tree_sitter_error :
-  Tree_sitter_run.Tree_sitter_error.t -> Tok.location
-
 (* used by Parse_jsonnet *)
 val error_of_tree_sitter_error :
   Tree_sitter_run.Tree_sitter_error.t -> Exception.t

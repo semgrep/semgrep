@@ -167,6 +167,11 @@ let should_match_call = function
   | G.IncrDecr _ ->
       false
 
+let m_id_string case_insensitive =
+  if case_insensitive then fun a b ->
+    m_string (String.lowercase_ascii a) (String.lowercase_ascii b)
+  else m_string
+
 (*****************************************************************************)
 (* Name *)
 (*****************************************************************************)
@@ -186,8 +191,12 @@ let m_ident a b =
   | (stra, _), (strb, _) when Pattern.is_regexp_string stra ->
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
+  (* Note: We should try to avoid allowing case insensitive
+   *  identifiers to get here because we have no way of
+   *  distinguishing them from case sensitive identifiers
+   *)
   (* general case *)
-  | a, b -> (m_wrap m_string) a b
+  | a, b -> m_wrap m_string a b
 
 (* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
@@ -570,7 +579,10 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
       if re_match strb then return () else fail ()
   (* general case *)
   | _, _ ->
-      let* () = m_wrap m_string a1 b1 in
+      let case_insensitive =
+        G.is_case_insensitive a2 && B.is_case_insensitive b2
+      in
+      let* () = m_wrap (m_id_string case_insensitive) a1 b1 in
       m_id_info a2 b2
 
 and m_ident_and_empty_id_info a1 b1 =
@@ -2237,15 +2249,14 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
       m_stmts_deep ~inside ~less_is_ok xsa bbs
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
-      (* let's first try without going deep *)
-      m_list__m_stmt xsa xsb >!> fun () ->
-      if_config
-        (fun x -> x.go_deeper_stmt)
-        ~then_:
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-          | None -> fail () (* was already flat *)
-          | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
-        ~else_:(fail ())
+      m_list__m_stmt xsa xsb
+      >||> if_config
+             (fun x -> x.go_deeper_stmt)
+             ~then_:
+               (match SubAST_generic.flatten_substmts_of_stmts xsb with
+               | None -> fail () (* was already flat *)
+               | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
+             ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
       as xsa),

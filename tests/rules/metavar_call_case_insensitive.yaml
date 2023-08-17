@@ -1,0 +1,12 @@
+rules:
+- id: test
+  message: Php function references are case insensitive.
+  languages: [php]
+  severity: WARNING
+  patterns:
+# TODO: This should still work if the pattern were the following, but it doesn't.
+#- pattern: $X == $X
+# The problem is that the metavariable equality as implemented in matching_generic.ml
+# ends up calling the derived equality for the ast_generic.expr and that doesn't respect
+# case insensitivity of names and it wasn't obvious how to fix that.
+  - pattern: $FUN(...) == $FUN(...)

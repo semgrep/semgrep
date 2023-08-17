@@ -1,0 +1,11 @@
+rules:
+  - id: bitwise-op-demo
+    patterns:
+      - pattern: $F($X)
+      - metavariable-comparison:
+          comparison: $X & 2 == 2
+          metavariable: $X
+    message: Demo $X. This also demonstrates Julia singleton parens.
+    languages:
+      - julia
+    severity: WARNING

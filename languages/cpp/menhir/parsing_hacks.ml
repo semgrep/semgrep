@@ -99,10 +99,8 @@ let insert_virtual_positions l =
         | Tok.ExpandedTok (pi, _) ->
             let acc' = inject (Tok.ExpandedTok (pi, (prev, offset))) :: acc in
             loop acc' prev (offset + strlen ii) xs
-        | Tok.FakeTokStr (s, _) ->
-            let acc' =
-              inject (Tok.FakeTokStr (s, Some (prev, offset))) :: acc
-            in
+        | Tok.FakeTok (s, _) ->
+            let acc' = inject (Tok.FakeTok (s, Some (prev, offset))) :: acc in
             loop acc' prev (offset + strlen ii) xs
         | Tok.Ab -> failwith "abstract not expected")
   in
