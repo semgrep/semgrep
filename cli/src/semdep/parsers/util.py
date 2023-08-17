@@ -9,22 +9,23 @@ expression Parser[int] is perfectly fine for Mypy, but causes a runtime error. T
 is a perfectly acceptable type annotation for Mypy, and evaluates immediately to string,
 causing no runtime errors.
 """
+from __future__ import annotations
+
 from base64 import b16encode
 from base64 import b64decode
 from dataclasses import dataclass
-from enum import auto
-from enum import Enum
 from pathlib import Path
 from re import escape
+from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Dict
+from typing import Generic
 from typing import List
-from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TypeVar
-from typing import Union
+
+from ruamel.yaml import YAMLError
 
 from semdep.external.parsy import alt
 from semdep.external.parsy import fail
@@ -35,11 +36,15 @@ from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
 from semgrep.console import console
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -51,26 +56,7 @@ C = TypeVar("C")
 Pos = Tuple[int, int]
 
 
-class ParserName(Enum):
-    gemfile_lock = auto()
-    go_mod = auto()
-    go_sum = auto()
-    gradle_lockfile = auto()
-    gradle_build = auto()
-    jsondoc = auto()
-    pipfile = auto()
-    pnpm_lock = auto()
-    poetry_lock = auto()
-    pyproject_toml = auto()
-    requirements = auto()
-    yarn_1 = auto()
-    yarn_2 = auto()
-    pomtree = auto()
-    cargo = auto()
-    composer_lock = auto()
-
-
-def not_any(*chars: str) -> "Parser[str]":
+def not_any(*chars: str) -> Parser[str]:
     """
     [chars] must contain only single character strings.
     A parser which matches a series of any character that is *not* in [chars] and returns a string
@@ -78,7 +64,7 @@ def not_any(*chars: str) -> "Parser[str]":
     return regex(f"[^{escape(''.join(chars))}]+").desc(f"Any char not in {list(chars)}")
 
 
-def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
+def extract_npm_lockfile_hash(s: str | None) -> dict[str, list[str]]:
     """
     Go from:
         sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A==
@@ -104,28 +90,28 @@ def extract_npm_lockfile_hash(s: Optional[str]) -> Dict[str, List[str]]:
 line_number = line_info.map(lambda t: t[0] + 1)
 
 
-def mark_line(p: "Parser[A]") -> "Parser[Tuple[int,A]]":
+def mark_line(p: Parser[A]) -> Parser[tuple[int, A]]:
     """
     Returns a parser which gets the current line number, runs [p] and then produces a pair of the line number and the result of [p]
     """
     return line_number.bind(lambda line: p.bind(lambda x: success((line, x))))
 
 
-def pair(p1: "Parser[A]", p2: "Parser[B]") -> "Parser[Tuple[A,B]]":
+def pair(p1: Parser[A], p2: Parser[B]) -> Parser[tuple[A, B]]:
     """
     Returns a parser which runs [p1] then [p2] and produces a pair of the results
     """
     return p1.bind(lambda a: p2.bind(lambda b: success((a, b))))
 
 
-def triple(p1: "Parser[A]", p2: "Parser[B]", p3: "Parser[C]") -> "Parser[Tuple[A,B,C]]":
+def triple(p1: Parser[A], p2: Parser[B], p3: Parser[C]) -> Parser[tuple[A, B, C]]:
     """
     Returns a parser which runs [p1] then [p2] then [p3] and produces a triple of the results
     """
     return p1.bind(lambda a: p2.bind(lambda b: p3.bind(lambda c: success((a, b, c)))))
 
 
-def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Transitivity:
+def transitivity(manifest_deps: set[A] | None, dep_sources: list[A]) -> Transitivity:
     """
     Computes the transitivity of a package, based on the set of dependencies from a manifest file
     [manifest_deps] can be None in the case where we did not find a manifest file
@@ -150,7 +136,7 @@ def transitivity(manifest_deps: Optional[Set[A]], dep_sources: List[A]) -> Trans
         return Transitivity(Unknown())
 
 
-def become(p1: "Parser[A]", p2: "Parser[A]") -> None:
+def become(p1: Parser[A], p2: Parser[A]) -> None:
     """
     Gives [p1] the behavior of [p2] by side effect.
     Typed version of the [become] method on "forward delaration" parsers from semdep.external.parsy.
@@ -161,7 +147,7 @@ def become(p1: "Parser[A]", p2: "Parser[A]") -> None:
     p1.__class__ = p2.__class__
 
 
-def delay(p: Callable[[], "Parser[A]"]) -> "Parser[A]":
+def delay(p: Callable[[], Parser[A]]) -> Parser[A]:
     """
     For use when defining (mutually) recursive functions that return parsers. See yarn.py for an example.
     Basically if you have some mutually recursive functions that produce parsers, evaluating one of
@@ -172,7 +158,7 @@ def delay(p: Callable[[], "Parser[A]"]) -> "Parser[A]":
     return Parser(lambda x, y: p()(x, y))
 
 
-def quoted(p: "Parser[A]") -> "Parser[A]":
+def quoted(p: Parser[A]) -> Parser[A]:
     """
     Parse [p], surrounded by quotes, ignoring the quotes in the output
     """
@@ -193,7 +179,7 @@ def upto(
     include_other: bool = False,
     consume_other: bool = False,
     allow_newline: bool = False,
-) -> "Parser[str]":
+) -> Parser[str]:
     """
     [s] must be a list of single character strings. These should be all the possible delimiters
     you wanto to parse "up to"
@@ -234,35 +220,16 @@ def parse_error_to_str(e: ParseError) -> str:
 
 
 @dataclass
-class DependencyParserError(Exception):
-    """
-    Encapsulate failure to parse file using parsy
-    """
-
+class DependencyFileToParse(Generic[A]):
     path: Path
-    parser: ParserName
-    reason: str
-    line: Optional[int] = None
-    col: Optional[int] = None
-    text: Optional[str] = None
-
-    def to_json(self) -> Dict[str, Union[Optional[str], Optional[int]]]:
-        return {
-            "path": str(self.path),
-            "parser": self.parser.name,
-            "reason": self.reason,
-            "line": self.line,
-            "col": self.col,
-            "text": self.text,
-        }
+    parser: Parser[A] | Callable[[str], A]
+    parser_name: ScaParserName
+    preprocessor: Callable[[str], str] = lambda ξ: ξ  # noqa: E731
 
 
-def safe_path_parse(
-    path: Optional[Path],
-    parser: "Parser[A]",
-    parser_name: ParserName,
-    preprocess: Callable[[str], str] = lambda ξ: ξ,  # ξ kinda looks like a string hehe
-) -> Optional[A]:
+def parse_dependency_file(
+    file_to_parse: DependencyFileToParse[A] | None,
+) -> A | DependencyParserError | None:
     """
     Run [parser] on the text in [path]
 
@@ -272,18 +239,28 @@ def safe_path_parse(
 
     Raises DependencyParserError if it fails to parse the file in PATH with PARSER
     """
-    if not path:
+    if not file_to_parse:
         return None
 
-    text = path.read_text()
-    text = preprocess(text)
+    text = file_to_parse.path.read_text()
+    text = file_to_parse.preprocessor(text)
 
     try:
-        return parser.parse(text)
+        if isinstance(file_to_parse.parser, Parser):
+            return file_to_parse.parser.parse(text)
+        else:
+            return file_to_parse.parser(text)
+
+    except YAMLError as e:
+        return DependencyParserError(
+            file_to_parse.path.name, file_to_parse.parser_name, str(e)
+        )
     except RecursionError:
         reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
-        console.print(f"Failed to parse {path} - {reason}")
-        raise DependencyParserError(path, parser_name, reason)
+        console.print(f"Failed to parse {file_to_parse.path} - {reason}")
+        return DependencyParserError(
+            str(file_to_parse.path), file_to_parse.parser_name, reason
+        )
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
@@ -292,7 +269,9 @@ def safe_path_parse(
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
-        location = f"[bold]{path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
+        location = (
+            f"[bold]{file_to_parse.path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
+        )
 
         if line < len(text_lines):
             offending_line = text_lines[line]
@@ -301,13 +280,79 @@ def safe_path_parse(
                 f"{line_prefix}{offending_line}\n"
                 f"{' ' * (col + len(line_prefix))}^"
             )
-            raise DependencyParserError(
-                path, parser_name, error_str, line + 1, col + 1, offending_line
+            return DependencyParserError(
+                str(file_to_parse.path),
+                file_to_parse.parser_name,
+                error_str,
+                line + 1,
+                col + 1,
+                offending_line,
             )
         else:
-            reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {path}?"
+            reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
             console.print(f"Failed to parse {location} - {reason}")
-            raise DependencyParserError(path, parser_name, reason, line + 1, col + 1)
+            return DependencyParserError(
+                str(file_to_parse.path),
+                file_to_parse.parser_name,
+                reason,
+                line + 1,
+                col + 1,
+            )
+
+
+def safe_parse_lockfile_and_manifest(
+    lockfile_to_parse: DependencyFileToParse[A],
+    manifest_to_parse: DependencyFileToParse[B] | None,
+) -> tuple[A | None, B | None, list[DependencyParserError]]:
+    """
+    Parse a lockfile and a manifest file, returning the results along with a list of errors that occurred in either parser
+    """
+    errors = []
+    parsed_manifest = parse_dependency_file(manifest_to_parse)
+    parsed_lockfile = parse_dependency_file(lockfile_to_parse)
+    if isinstance(parsed_manifest, DependencyParserError):
+        errors.append(parsed_manifest)
+        parsed_manifest = None
+    if isinstance(parsed_lockfile, DependencyParserError):
+        errors.append(parsed_lockfile)
+        parsed_lockfile = None
+    return parsed_lockfile, parsed_manifest, errors
+
+
+@dataclass(eq=False)
+class ParsedDependency:
+    """
+    A dependency parsed from a lockfile. Used for freezing dependency information after
+    parsing and children addition.
+    """
+
+    line_number: int
+    transitivity: Transitivity
+    children: list[DependencyChild]
+    package: str
+    version: str
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ParsedDependency:
+        return ParsedDependency(
+            line_number=d["line_number"],
+            transitivity=d["transitivity"],
+            children=[child for child in d["children"]],
+            package=d["package"],
+            version=d["version"],
+        )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ParsedDependency):
+            return NotImplemented
+        return (
+            self.package == other.package
+            and self.version == other.version
+            and self.transitivity == other.transitivity
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.package, self.version, self.transitivity))
 
 
 # A parser for JSON, using a line_number annotated JSON type. This is adapted from an example in the Parsy repo.
@@ -318,25 +363,25 @@ def safe_path_parse(
 @dataclass
 class JSON:
     line_number: int
-    value: Union[None, bool, str, float, int, List["JSON"], Dict[str, "JSON"]]
+    value: None | bool | str | float | int | list[JSON] | dict[str, JSON]
 
     @staticmethod
     def make(
-        marked: Tuple[
+        marked: tuple[
             Pos,
-            Union[None, bool, str, float, int, List["JSON"], Dict[str, "JSON"]],
+            None | bool | str | float | int | list[JSON] | dict[str, JSON],
             Pos,
         ]
-    ) -> "JSON":
+    ) -> JSON:
         return JSON(marked[0][0] + 1, marked[1])
 
-    def as_dict(self) -> Dict[str, "JSON"]:
+    def as_dict(self) -> dict[str, JSON]:
         return cast(Dict[str, "JSON"], self.value)
 
     def as_str(self) -> str:
         return cast(str, self.value)
 
-    def as_list(self) -> List["JSON"]:
+    def as_list(self) -> list[JSON]:
         return cast(List["JSON"], self.value)
 
     def as_int(self) -> int:
@@ -347,7 +392,7 @@ class JSON:
 whitespace = regex(r"\s*")
 
 
-def lexeme(p: "Parser[A]") -> "Parser[A]":
+def lexeme(p: Parser[A]) -> Parser[A]:
     return p << whitespace
 
 
@@ -379,7 +424,7 @@ string_esc = string("\\") >> (
 quoted_str = lexeme(quoted((string_part | string_esc).many().concat()))
 
 # Data structures
-json_value: "Parser[JSON]" = fail("forward ref")
+json_value: Parser[JSON] = fail("forward ref")
 object_pair = pair((quoted_str << colon), json_value)
 json_object = lbrace >> object_pair.sep_by(comma).map(lambda x: dict(x)) << rbrace
 array = lbrack >> json_value.sep_by(comma) << rbrack

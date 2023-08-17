@@ -98,7 +98,7 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
+         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
 let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
   match (parsing_res.program, parsing_res.errors) with
@@ -201,13 +201,19 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_elixir.Boilerplate.dump_tree
   | Lang.Julia ->
       Tree_sitter_julia.Parse.file file
-      |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
+      |> dump_and_print_errors Tree_sitter_julia.Boilerplate.dump_tree
   | Lang.Dart ->
       Tree_sitter_dart.Parse.file file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
   | Lang.Cairo ->
       Tree_sitter_cairo.Parse.file file
       |> dump_and_print_errors Tree_sitter_cairo.Boilerplate.dump_tree
+  | Lang.Promql ->
+      Tree_sitter_promql.Parse.file file
+      |> dump_and_print_errors Tree_sitter_promql.Boilerplate.dump_tree
+  | Lang.Protobuf ->
+      Tree_sitter_proto.Parse.file file
+      |> dump_and_print_errors Tree_sitter_proto.Boilerplate.dump_tree
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->

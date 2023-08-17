@@ -64,6 +64,11 @@ let sndopt = function
   | None -> None
   | Some (_, x) -> Some x
 
+let attr_opt kw x =
+  match x with
+  | None -> []
+  | Some x -> [attr (kw, x)]
+
 (* ugly *)
 let anon_semgrep_lambda = "!anon_semgrep_lambda!"
 
@@ -84,11 +89,11 @@ let fix_sgrep_module_item xs =
   | xs -> Stmts xs
 
 let mk_Fun ?(id=None) ?(attrs=[]) ?(props=[])
-  f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
+  f_kind (_generics,f_params,f_rettype) (lc,xs,rc) =
   let f_attrs = (props |> List.map attr) @ attrs in
   Fun ({ f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs }, id)
 
-let mk_FuncDef props f_kind (_generics,(_,f_params,_),f_rettype) (lc,xs,rc) =
+let mk_FuncDef props f_kind (_generics,f_params,f_rettype) (lc,xs,rc) =
   let f_attrs = props |> List.map attr in
   FuncDef { f_kind; f_params; f_body = Block (lc, xs, rc); f_rettype; f_attrs }
 
@@ -416,35 +421,44 @@ sgrep_spatch_pattern:
      { Expr (Obj ($1, $2, $4)) }
 
   | (* decorators, no body *)
-    decorator+ T_ID
+    decorator+ T_STATIC? T_ASYNC? T_ID
     T_LPAREN formal_parameter_list_opt ")" annotation?
     EOF
    {
+     let static = attr_opt Static $2 in
+     let async = attr_opt Async $3 in
      (* We don't need to pass the attrs into `mk_def` because they're already
         in the FuncDef.
       *)
-     Partial (PartialDef (mk_def (Some $2,
+     Partial (PartialDef (mk_def (Some $4,
       FuncDef
-       { f_kind = (Method, $3)
-       ; f_params = $4
-       ; f_body = Block (fb $3 [])
-       ; f_rettype = $6
-       ; f_attrs = $1
+       { f_kind = (Method, $5)
+       ; f_params = $5, $6, $7
+       ; f_body = Block (fb $5 [])
+       ; f_rettype = $8
+       ; f_attrs = $1 @ static @ async
        }
      )))
    }
 
-  | decorator+ T_ID annotation? EOF
-     { Property (Field {fld_name = PN $2; fld_attrs=$1; fld_type = $3; fld_body = None }) }
+  | decorator+ T_STATIC? T_ASYNC? T_ID annotation? EOF
+     {
+
+     let static = attr_opt Static $2 in
+     let async = attr_opt Async $3 in
+
+      Property (Field {fld_name = PN $4; fld_attrs=$1 @ static @ async; fld_type = $5; fld_body = None }) }
 
   | (* decorators, with body *)
-    decorator+ T_ID
+    decorator+ T_STATIC? T_ASYNC? T_ID
     T_LPAREN formal_parameter_list_opt ")" annotation?
     "{" function_body "}" EOF
    {
-     let sig_ = (None, ($3, $4, $5), $6) in
-     let fun_ = mk_Fun ~attrs:$1 (Method, $3) sig_ ($7, $8, $9) in
-     Property (mk_Field (PN $2) (Some fun_))
+     let sig_ = (None, ($5, $6, $7), $8) in
+     let static = attr_opt Static $2 in
+     let async = attr_opt Async $3 in
+     let fun_ = mk_Fun ~attrs:($1 @ static @ async) (Method, $5) sig_ ($9, $10, $11) in
+     Property (mk_Field (PN $4) (Some fun_))
    }
 
 

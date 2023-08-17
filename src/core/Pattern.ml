@@ -56,8 +56,8 @@ let is_js lang =
 
 (* This is used in Analyze_pattern.ml to skip
  * semgrep special identifiers.
- * new TODO: instead of relying on this list of exceptions, set id_hidden=true
- * in the AST.
+ * new TODO: instead of relying on this list of exceptions, set 'hidden' flag
+ * in the 'id_info'.
  *)
 let is_special_identifier ?lang str =
   Metavariable.is_metavar_name str

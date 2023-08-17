@@ -22,22 +22,25 @@ module G = AST_generic
 let rec type_of_expr lang e : G.name Type.t * G.ident option =
   match e.G.e with
   | G.L lit ->
-      let t =
-        match lit with
-        (* NB: We could infer Type.Number for JS int/float literals, but we can
-         * handle that relationship in matching and we can be more precise for
-         * now. One actual rule uses `float` for a typed metavariable in JS so
-         * let's avoid breaking that for now at least. *)
-        | G.Int _ -> Type.Builtin Type.Int
-        | G.Float _ -> Type.Builtin Type.Float
-        | G.Bool _ -> Type.Builtin Type.Bool
-        | G.String _ -> Type.Builtin Type.String
-        | _else_ -> Type.NoType
-      in
+      let t = type_of_lit lit in
       (t, None)
+  | G.DotAccess
+      (_obj, _, FN (Id (("length", _), { id_type = { contents = None }; _ })))
+    when lang =*= Lang.Java ->
+      (* TODO: Move this to 'guess_type_of_dotaccess', but somehow we need to
+       * pass it additional info (e.g. the "expected type" as in bidirectional
+       * type checking) so that it can distinguish `length` as a method (e.g. `String`)
+       * and `length` as an attribute (arrays). The exact solution needs to be
+       * considered more carefully.
+       *
+       * NOTE that right now the use of `length` as a method is handled by
+       * 'guess_type_of_dotaccess' which is invoked by the 'typing_visitor'
+       * (see 'check_program'). *)
+      (Type.Builtin Type.Int, None)
   | G.N name
   | G.DotAccess (_, _, FN name) ->
       type_of_name lang name
+  | G.Cast (t, _, _) -> (type_of_ast_generic_type lang t, None)
   (* TODO? or generate a fake "new" id for LSP to query on tk? *)
   (* We conflate the type of a class with the type of its instance. Maybe at
    * some point we should introduce a `Class` type and unwrap it here upon
@@ -50,11 +53,13 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       let t =
         match (t1, op, t2) with
         | Type.(Builtin (Int | Float)), (G.Plus | G.Minus (* TODO more *)), _
-        | _, (G.Plus | G.Minus (* TODO more *)), Type.(Builtin (Int | Float))
+        | ( _,
+            (G.Plus | G.Minus | G.Mult (* TODO more *)),
+            Type.(Builtin (Int | Float)) )
         (* Note that `+` is overloaded in many languages and may also be
          * string concatenation, and unfortunately some languages such
          * as Java and JS/TS have implicit coercions to string. *)
-          when lang =*= Lang.Python (* TODO more *) ->
+          when lang =*= Lang.Python || lang =*= Lang.Php (* TODO more *) ->
             Type.Builtin Type.Number
         | ( Type.Builtin Type.Int,
             (G.Plus | G.Minus (* TODO more *)),
@@ -93,6 +98,8 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       in
       (t, None)
   | G.Call (e, _args) ->
+      (* If 'e' is of the form `o.f`, then 'check_program' should have filled in the
+       * 'id_type' of `f` using 'guess_type_of_dotaccess'. *)
       let t, id = type_of_expr lang e in
       let t =
         match t with
@@ -112,7 +119,9 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       let t =
         (* LATER: in theory we should look if the types are compatible,
          * and take the lowest upper bound of the two types *)
-        let eq = Type.equal (AST_utils.with_structural_equal G.equal_name) in
+        let eq =
+          Type.equal (AST_generic_equals.with_structural_equal G.equal_name)
+        in
         if eq t1 t2 then t1 else Type.NoType
       in
       let idopt =
@@ -125,7 +134,27 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
       (t, idopt)
   | _else_ -> (Type.NoType, None)
 
+and type_of_lit = function
+  (* NB: We could infer Type.Number for JS int/float literals, but we can
+     * handle that relationship in matching and we can be more precise for
+     * now. One actual rule uses `float` for a typed metavariable in JS so
+     * let's avoid breaking that for now at least. *)
+  | G.Int _ -> Type.Builtin Type.Int
+  | G.Float _ -> Type.Builtin Type.Float
+  | G.Bool _ -> Type.Builtin Type.Bool
+  | G.String _ -> Type.Builtin Type.String
+  | _else_ -> Type.NoType
+
 and type_of_name lang = function
+  | Id (ident, { id_svalue = { contents = Some (Lit lit) }; _ }) ->
+      let t = type_of_lit lit in
+      (t, Some ident)
+  | Id (ident, { id_svalue = { contents = Some (Cst Cbool) }; _ }) ->
+      (Type.Builtin Type.Bool, Some ident)
+  | Id (ident, { id_svalue = { contents = Some (Cst Cint) }; _ }) ->
+      (Type.Builtin Type.Int, Some ident)
+  | Id (ident, { id_svalue = { contents = Some (Cst Cstr) }; _ }) ->
+      (Type.Builtin Type.String, Some ident)
   | Id (ident, id_info) ->
       let t = resolved_type_of_id_info lang id_info in
       let t =
@@ -170,6 +199,15 @@ and type_of_ast_generic_type lang t : G.name Type.t =
         args
         |> Common.map (function
              | G.TA t -> Type.TA (type_of_ast_generic_type lang t)
+             | G.TAWildcard (_, None) -> Type.TAWildcard None
+             | G.TAWildcard (_, Some ((kind, _), t)) ->
+                 let t = type_of_ast_generic_type lang t in
+                 let kind =
+                   match kind with
+                   | false -> Type.TAUpper t
+                   | true -> Type.TALower t
+                 in
+                 Type.TAWildcard (Some kind)
              | _else_ -> Type.OtherTypeArg None)
       in
       Type.N ((name, args), [])
@@ -250,19 +288,21 @@ let name_and_targs_of_named_type lang = function
  *
  * For example, in Java we guess that `x.equals(y)` returns a `boolean`, even if
  * we don't know the type of `x`. *)
-let guess_type_of_dotaccess lang obj_ty str =
+let guess_type_of_dotaccess lang ty_name_and_targs str =
   (* TODO: The types of the parameters should just be computed from the actuals. *)
   let todo_param =
     (* Param type could be Top if we add that as a type *)
     Type.Param { pident = None; ptype = Type.NoType }
   in
-  match (lang, name_and_targs_of_named_type lang obj_ty, str) with
+  match (lang, ty_name_and_targs, str) with
   | Lang.Java, _, "isEmpty" -> Type.Function ([], Type.Builtin Type.Bool)
   | Lang.Java, _, ("equals" | "contains" | "containsKey" | "containsValue") ->
       (* Really the return type is all that matters. We could add the parameters
        * later if we need to. *)
       Type.Function ([ todo_param ], Type.Builtin Type.Bool)
   | Lang.Java, _, ("size" | "length") ->
+      Type.Function ([], Type.Builtin Type.Int)
+  | Lang.Java, _, ("compareTo" | "compareToIgnoreCase") ->
       Type.Function ([], Type.Builtin Type.Int)
   (* For unresolved types with one type parameter, assume that the `get`
    * method's return type is the type parameter (e.g. List<T>). For unresolved
@@ -277,6 +317,22 @@ let guess_type_of_dotaccess lang obj_ty str =
         Type.Param { pident = None; ptype = Type.Builtin Type.String }
       in
       Type.Function ([ param ], Type.Builtin Type.Bool)
+  | ( Lang.Java,
+      Some (("Boolean" | "java.lang.Boolean"), _),
+      ("valueOf" | "parseBoolean") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Bool)
+  | ( Lang.Java,
+      Some (("Integer" | "java.lang.Integer"), _),
+      ("decode" | "valueOf" | "parseInt" | "parseUnsignedInt") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Int)
+  | ( Lang.Java,
+      Some (("Long" | "java.lang.Long"), _),
+      ("decode" | "valueOf" | "parseLong" | "parseUnsignedLong") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Int)
+  | ( Lang.Java,
+      Some (("Float" | "java.lang.Float"), _),
+      ("valueOf" | "parseFloat") ) ->
+      Type.Function ([ todo_param ], Type.Builtin Type.Float)
   | _else_ -> Type.NoType
 
 (* TODO: We could probably add a `Type.t ref` to `Call` nodes without major perf
@@ -312,7 +368,8 @@ let typing_visitor =
             _ ) -> (
           let obj_ty, _ = type_of_expr lang obj in
           let guessed_type =
-            guess_type_of_dotaccess lang obj_ty id_str
+            let ty_name_and_targs = name_and_targs_of_named_type lang obj_ty in
+            guess_type_of_dotaccess lang ty_name_and_targs id_str
             |> Type.to_ast_generic_type_ lang (fun name _alts -> name)
           in
           match guessed_type with
@@ -326,4 +383,7 @@ let typing_visitor =
       super#visit_expr_kind lang e
   end
 
+(* This is called right after parsing a target file to fill in the 'id_type's.
+ * Right now this pass focuses on giving types to names used as method calls,
+ * for what it relies on 'guess_type_of_dotaccess'. *)
 let check_program lang prog = typing_visitor#visit_program lang prog

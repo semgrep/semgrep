@@ -11,6 +11,10 @@ type 'a debug_info =
   | No_info
 [@@deriving show]
 
+val debug_info_to_option : 'a debug_info -> 'a option
+(** [debug_info_to_option debug] returns [Some profiling] if we collected
+    metrics. Otherwise, it returns [None]. *)
+
 (* Global to set the debug mode. Should be set
    exactly once after the arguments are read *)
 
@@ -21,7 +25,7 @@ val mode : debug_mode ref
 type times = { parse_time : float; match_time : float }
 
 type rule_profiling = {
-  rule_id : Rule.rule_id;
+  rule_id : Rule_ID.t;
   parse_time : float;
   match_time : float;
 }
@@ -42,7 +46,7 @@ type file_profiling = {
 }
 [@@deriving show]
 
-type rule_id_and_engine_kind = Rule.ID.t * Pattern_match.engine_kind
+type rule_id_and_engine_kind = Rule_ID.t * Pattern_match.engine_kind
 [@@deriving show]
 
 (* Substitute in the profiling type we have *)

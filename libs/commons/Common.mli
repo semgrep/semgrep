@@ -155,7 +155,7 @@ val split : string (* sep regexp *) -> string -> string list
  * Ideally 'filename' should be a different type like in Scala with the
  * Path module: https://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html
  *)
-type filename = string [@@deriving show, eq]
+type filename = string [@@deriving show, eq, ord]
 
 (*
    Check that the file exists and produce a valid absolute path for the file.
@@ -475,6 +475,9 @@ type hidden_by_your_nanny
 
 val ( == ) : hidden_by_your_nanny
 val ( != ) : hidden_by_your_nanny
+
+val equal_ref_option :
+  ('a -> 'b -> bool) -> 'a option ref -> 'b option ref -> bool
 
 (*****************************************************************************)
 (* Operators *)

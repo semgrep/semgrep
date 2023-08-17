@@ -1,0 +1,34 @@
+rules:
+  - id: extract-alerting-rule-expression-to-promql
+    mode: extract
+    languages:
+      - yaml
+    pattern: |
+      expr: $PROMQL
+    extract: $PROMQL
+    dest-language: promql
+
+  - id: never-sum-then-rate
+    message: testing
+    severity: ERROR
+    languages:
+      - promql
+    patterns:
+    - pattern-either:
+      - pattern: rate(sum(...)[$D:])
+      - pattern: rate(sum(...)[$D:$S])
+
+  - id: use-sum-over-time-for-xxx
+    message: testing
+    severity: ERROR
+    languages:
+      - promql
+    patterns:
+    - pattern-either:
+      - pattern: $X{...}[$D]
+      - pattern: $X{...}
+    - pattern-not-inside: sum_over_time({...}[$D])
+    - metavariable-regex:
+        metavariable: $X
+        regex: xxx_.*
+

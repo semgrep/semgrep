@@ -1,6 +1,5 @@
 {
   "exit_code": 1,
-  "dependency_parser_errors": [],
   "stats": {
     "findings": 10,
     "errors": [],
@@ -18,5 +17,6 @@
       }
     },
     "engine_requested": "OSS"
-  }
+  },
+  "dependency_parser_errors": []
 }

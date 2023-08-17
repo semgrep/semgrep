@@ -9,7 +9,7 @@ on:
 jobs:
   build-semgrep-js-ocaml:
     runs-on: ubuntu-latest-16-core
-    container: returntocorp/ocaml:alpine-2023-04-17
+    container: returntocorp/ocaml:alpine-2023-06-16
     # We need this hack because GHA tampers with the HOME in container
     # and this does not play well with 'opam' installed in /root
     env:
@@ -20,10 +20,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      #TODO: should just call 'make install-deps-for-semgrep-core'
+      #TODO: we should just call 'make install-deps-for-semgrep-core'
       - name: Set up tree-sitter
         run: |
           (cd libs/ocaml-tree-sitter-core && ./configure && ./scripts/install-tree-sitter-lib)
+      # saving the checkout for build-test-js-artifacts below to save time
       - name: Cache git checkout
         id: cache-git
         uses: actions/cache/save@v3
@@ -115,7 +116,8 @@ jobs:
           path: /tmp/semgrep
       - name: Upload to S3
         run: |
+          cd /tmp/semgrep
+          tar xvzf semgrep-js-artifacts.tar.gz
           branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           urlencoded_branch_name=$(printf %s $branch_name | jq -sRr @uri)
-          current_datetime=$(date +"%Y-%m-%dT%H:%M:%S")
-          aws s3 cp /tmp/semgrep/semgrep-js-artifacts.tar.gz "s3://semgrep-oss-js-artifacts/branch/${urlencoded_branch_name}/sha/${{ github.sha }}/semgrep-js-artifacts_${current_datetime}.tar.gz"
+          aws s3 sync /tmp/semgrep/js/ "s3://semgrep-app-static-assets/static/turbo/${urlencoded_branch_name}/"

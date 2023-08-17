@@ -45,29 +45,7 @@ Passing whole rules directly to semgrep_core
 Running Semgrep engine with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
-<MASKED>
-<MASKED>
-<MASKED>
-{
-  "rules": [
-    {
-      "id": "rules.experiment.research-experiment",
-      "languages": [
-        "python"
-      ],
-      "message": "A match was found.",
-      "pattern": "print(\"...\")",
-      "severity": "EXPERIMENT"
-    }
-  ]
-}
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
+<semgrep-core stderr not captured, should be printed above>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 2 experiment

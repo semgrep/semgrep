@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2023 r2c
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,41 +25,64 @@ open Common
  * similar code:
  *  - Lexing.position (also used for Spacegrep.Loc.Pos), but no convenient
  *    line x col
- *  - Semgrep_output_v1.position (but no filename)
- *  - Tree_sitter_run.Loc.pos (but no filename, no charpos, just line x col),
- *    itself derived from Tree_sitter_bindings.Tree_sitter_output_t.position
+ *  - Semgrep_output_v1.position, but no filename
+ *  - Tree_sitter_run.Loc.pos (derived itself from Tree_sitter_bindings.Tree_sitter_output_t.position),
+ *    but no filename, no bytepos, just line x col.
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
+(* Pos.t is used in many places in Semgrep, either directly
+ * or indirectly via Tok.t.
+ *
+ * In theory, we should just have 'type t = int'. This would be nice
+ * because Pos.t, which is used in Tok.t, is used to store the position of
+ * every token in the generic AST (see AST_generic.ml) so keeping its type
+ * small would help reduce the memory footprint of an AST.
+ * However this would require a big refactoring effort. Indeed,
+ * even though the current type is a bit "fat", it is also convenient
+ * because you can easily get line x col or filename information.
+ * Moving the filename out of Pos.t would require to pass it around
+ * in parsers, evaluators, static analyzers, etc.
+ * With the current design, once you have a Pos.t (or Tok.t), you
+ * can easily issue an error message with a precise location.
+ *
+ * TODO: we could probably remove the line x column and compute them
+ * on demand.
+ *)
 type t = {
-  (* TODO? rename bytepos? handle UTF-8? *)
-  charpos : int; (* byte position, 0-based *)
-  (* line x column can be filled later based on charpos.
-   * See complete_position() *)
+  (* Does it handle UTF-8? This is a byte position, not a character
+   * position, so in theory we should not have to care about UTF-8.
+   *)
+  bytepos : int; (* 0-based *)
+  (* Those two fields can be derived from bytepos (See complete_position() *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   (* TODO: use Fpath.t *)
   file : Common.filename;
 }
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]
+
+(* alt: could use @@deriving make.
+ * TODO? should we use 0 instead? -1 clearly mark the field has not been set
+ *)
+let make ?(line = -1) ?(column = -1) ?(file = "NO FILE INFO YET") bytepos =
+  { bytepos; line; column; file }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let fake_pos =
-  { charpos = -1; line = -1; column = -1; file = "FAKE TOKEN LOCATION" }
-
-let first_pos_of_file file = { charpos = 0; line = 1; column = 0; file }
+let fake_pos = make (-1)
+let first_pos_of_file file = make ~line:1 ~column:0 ~file 0
 
 (* for error reporting *)
-let string_of_pos x = spf "%s:%d:%d" x.file x.line x.column
+let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" file line column
 
 (*****************************************************************************)
 (* Adjust line x col in a position *)
@@ -86,8 +109,8 @@ let complete_position filename table (x : t) =
   {
     x with
     file = filename;
-    line = fst (table x.charpos);
-    column = snd (table x.charpos);
+    line = fst (table x.bytepos);
+    column = snd (table x.bytepos);
   }
 
 let full_charpos_to_pos_large (file : Common.filename) : bytepos_to_linecol_fun

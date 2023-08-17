@@ -56,7 +56,7 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
   let file = env.H.file in
   let h = env.H.conv in
 
-  let charpos, line, column =
+  let bytepos, line, column =
     let pos = loc.Tree_sitter_run.Loc.start in
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
@@ -76,9 +76,10 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
   in
   (* Range.t is inclusive, so we need -1 to remove the char at the pos *)
   let charpos2 = charpos2 - 1 in
-  let r = { Range.start = charpos; end_ = charpos2 } in
+  let r = { Range.start = bytepos; end_ = charpos2 } in
   let str = Range.content_at_range file r in
-  let tok_loc = { Tok.str; pos = { charpos; line; column; file } } in
+  let pos = Pos.make ~file ~line ~column bytepos in
+  let tok_loc = { Tok.str; pos } in
   (str, Tok.tok_of_loc tok_loc)
 
 (*****************************************************************************)

@@ -101,10 +101,10 @@ let add_type_args_opt_to_name name topt =
   | None -> name
   | Some t -> add_type_args_to_name name t
 
-let name_of_ids xs =
+let name_of_ids ?(case_insensitive = false) xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"
-  | [ x ] -> Id (x, empty_id_info ())
+  | [ x ] -> Id (x, empty_id_info ~case_insensitive ())
   | x :: xs ->
       let qualif =
         if xs =*= [] then None
@@ -136,7 +136,8 @@ let add_suffix_to_name suffix name =
           name_middle = new_name_middle;
         }
 
-let name_of_id id = Id (id, empty_id_info ())
+let name_of_id ?(case_insensitive = false) id =
+  Id (id, empty_id_info ~case_insensitive ())
 
 let name_of_dot_access e =
   let rec fetch_ids = function
@@ -447,24 +448,25 @@ let first_info_of_any any =
 (* Extract ranges *)
 (*****************************************************************************)
 
+(* Also used below by `nearest_any_of_pos` *)
+let smaller t1 t2 =
+  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos < 0 then t1 else t2
+
+let larger t1 t2 =
+  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos > 0 then t1 else t2
+
+let incorporate_tokens ranges (left, right) =
+  match !ranges with
+  | None -> ranges := Some (left, right)
+  | Some (orig_left, orig_right) ->
+      ranges := Some (smaller orig_left left, larger orig_right right)
+
+let incorporate_token ranges tok =
+  if Tok.is_origintok tok then
+    let tok_loc = Tok.unsafe_loc_of_tok tok in
+    incorporate_tokens ranges (tok_loc, tok_loc)
+
 class ['self] range_visitor =
-  let smaller t1 t2 =
-    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
-  in
-  let larger t1 t2 =
-    if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
-  in
-  let incorporate_tokens ranges (left, right) =
-    match !ranges with
-    | None -> ranges := Some (left, right)
-    | Some (orig_left, orig_right) ->
-        ranges := Some (smaller orig_left left, larger orig_right right)
-  in
-  let incorporate_token ranges tok =
-    if Tok.is_origintok tok then
-      let tok_loc = Tok.unsafe_loc_of_tok tok in
-      incorporate_tokens ranges (tok_loc, tok_loc)
-  in
   object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
     method! visit_tok ranges tok = incorporate_token ranges tok
@@ -497,14 +499,24 @@ class ['self] range_visitor =
     method! visit_Alias ranges id _e = self#visit_ident ranges id
   end
 
-let extract_ranges : AST_generic.any -> (Tok.location * Tok.location) option =
+let extract_ranges_with_anys :
+    AST_generic.any list -> (Tok.location * Tok.location) option =
   let v = new range_visitor in
   let ranges = ref None in
-  fun any ->
-    v#visit_any ranges any;
+  fun anys ->
+    List.iter (v#visit_any ranges) anys;
     let res = !ranges in
     ranges := None;
     res
+
+let extract_ranges any = extract_ranges_with_anys [ any ]
+
+let set_e_range_with_anys anys e =
+  match extract_ranges_with_anys anys with
+  | Some (l, r) -> e.e_range <- Some (l, r)
+  | None ->
+      logger#debug "set_e_range_with_anys failed: no locations found";
+      ()
 
 let range_of_tokens tokens =
   List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
@@ -526,6 +538,90 @@ let range_of_any_opt any =
   | G.Anys [] -> None
   | _ -> extract_ranges any
   [@@profiling]
+
+(*****************************************************************************)
+(* Nearest Any node of a position *)
+(*****************************************************************************)
+
+type any_range = {
+  range : (Tok.location * Tok.location) option ref;
+  any : (AST_generic.any * (Tok.location * Tok.location)) option ref;
+  position : int; (* charpos *)
+}
+
+class ['self] any_range_visitor =
+  let pos_within pos (t1', t2') =
+    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
+    pos >= t1'.Tok.pos.bytepos && pos <= t2'_charpos
+  in
+  let range_within (t1, t2) (t1', t2') =
+    let _, _, t2_charpos = Tok.end_pos_of_loc t2 in
+    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
+    t1.Tok.pos.bytepos >= t1'.Tok.pos.bytepos && t2_charpos <= t2'_charpos
+  in
+  let set_any_range info (any, range) =
+    let charpos = info.position in
+    match (!(info.any), range) with
+    | _, None -> ()
+    | None, Some range ->
+        if pos_within charpos range then info.any := Some (any, range)
+    | Some (_, cur_range), Some range ->
+        if range_within range cur_range && pos_within charpos range then
+          info.any := Some (any, range)
+  in
+  let handle_any info any visit_fn =
+    let saved_ranges = !(info.range) in
+    info.range := None;
+    visit_fn ();
+    set_any_range info (any, !(info.range));
+    match saved_ranges with
+    | None -> ()
+    | Some range -> incorporate_tokens info.range range
+  in
+  object (self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+    method! visit_tok info tok = incorporate_token info.range tok
+
+    method! visit_type_ info type_ =
+      handle_any info (T type_) (fun () -> super#visit_type_ info type_)
+
+    method! visit_pattern info pat =
+      handle_any info (P pat) (fun () -> super#visit_pattern info pat)
+
+    method! visit_field info field =
+      handle_any info (Fld field) (fun () -> super#visit_field info field)
+
+    method! visit_argument info arg =
+      handle_any info (Ar arg) (fun () -> super#visit_argument info arg)
+
+    method! visit_directive info directive =
+      handle_any info (Dir directive) (fun () ->
+          super#visit_directive info directive)
+
+    method! visit_attribute info attr =
+      handle_any info (At attr) (fun () -> super#visit_attribute info attr)
+
+    method! visit_definition info def =
+      handle_any info (Def def) (fun () -> super#visit_definition info def)
+
+    method! visit_parameter info param =
+      handle_any info (Pa param) (fun () -> super#visit_parameter info param)
+
+    method! visit_expr info expr =
+      handle_any info (E expr) (fun () -> super#visit_expr info expr)
+
+    method! visit_stmt info stmt =
+      handle_any info (S stmt) (fun () -> super#visit_stmt info stmt)
+
+    (* Ignore the tokens from the aliased expression *)
+    method! visit_Alias ranges id _e = self#visit_ident ranges id
+  end
+
+let nearest_any_of_pos prog position =
+  let v = new any_range_visitor in
+  let info = { range = ref None; any = ref None; position } in
+  v#visit_program info prog;
+  !(info.any)
 
 (*****************************************************************************)
 (* Fix token locations *)

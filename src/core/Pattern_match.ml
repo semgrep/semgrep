@@ -120,7 +120,7 @@ and rule_id = {
    * Note that when we process a full rule, this id can temporarily
    * contain a Rule.pattern_id.
    *)
-  id : Rule.ID.t;
+  id : Rule_ID.t;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml.
    *
    * TODO should we remove these fields and just pass around a Rule.t or
@@ -134,7 +134,7 @@ and rule_id = {
 [@@deriving show, eq]
 
 let uniq pms =
-  let eq = AST_utils.with_structural_equal equal in
+  let eq = AST_generic_equals.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
   pms
   |> List.iter (fun pm ->

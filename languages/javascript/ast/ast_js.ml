@@ -429,7 +429,7 @@ and function_definition = {
   f_kind : AST_generic.function_kind wrap;
   (* less: move that in entity? but some anon func have attributes too *)
   f_attrs : attribute list;
-  f_params : parameter list; (* TODO: bracket *)
+  f_params : parameter list bracket;
   (* typescript-ext: *)
   f_rettype : type_ option;
   f_body : stmt;
@@ -716,4 +716,4 @@ let add_decorators_to_declarations decorators declarations =
 let fakeInfoAttach info =
   let info = Tok.rewrap_str "';' (from ASI)" info in
   let loc = Tok.unsafe_loc_of_tok info in
-  Tok.FakeTokStr (";", Some (loc, -1))
+  Tok.FakeTok (";", Some (loc, -1))

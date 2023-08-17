@@ -348,7 +348,9 @@ class YamlMap:
         return self._internal.keys()
 
 
-def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+def parse_yaml_preserve_spans(
+    contents: str, filename: Optional[str], allow_null: bool = False
+) -> Optional[YamlTree]:
     """
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.
@@ -388,7 +390,9 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
                         ],
                     )
 
-            if r is None:
+            if r is None and not allow_null:
+                # This was originally intended only for parsing semgrep rules
+                # but we use it for yaml based lockfiles now too, and those can have null in them
                 from semgrep.error import InvalidRuleSchemaError
 
                 Span.from_node(node, source_hash=source_hash, filename=filename)
@@ -422,16 +426,21 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
     data = yaml.load(StringIO(contents))
-
-    if not data:
-        raise EmptyYamlException()
-
-    validate_yaml(data)
+    if data is None:
+        return None
 
     if not isinstance(data, YamlTree):
         raise Exception(
             f"Something went wrong parsing Yaml (expected a YamlTree as output, but got {type(data).__name__}): {PLEASE_FILE_ISSUE_TEXT}"
         )
+    return data
+
+
+def parse_config_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+    data = parse_yaml_preserve_spans(contents, filename)
+    if not data:
+        raise EmptyYamlException()
+    validate_yaml(data)
     return data
 
 
@@ -447,6 +456,9 @@ class RuleValidation:
         "pattern-sinks",
         "pattern-sources",
         "join",
+        "postprocessor-patterns",
+        "request",
+        "response",
     }
     INVALID_SENTINEL = " is not allowed for "
     INVALID_FOR_MODE_SENTINEL = "False schema does not allow"

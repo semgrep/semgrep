@@ -233,6 +233,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
 
 @pytest.mark.quick
 def test_rule_match_set_indexes(mocker):
+    rule = create_rule()
     file_content = dedent(
         """
         # first line
@@ -320,7 +321,6 @@ def test_rule_match_set_indexes(mocker):
             ),
         ),
     )
-    rule = create_rule()
     matches = RuleMatchSet(rule)
     matches.update(
         [line3, line4, line5, line6]
@@ -391,3 +391,64 @@ def test_rule_match_to_app_finding(snapshot, mocker):
         json.dumps(app_finding.to_json(), indent=2, sort_keys=True) + "\n"
     )  # Needed because pre-commit always adds a newline, seems weird
     snapshot.assert_match(app_finding_str, "results.json")
+
+
+def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
+    dependency_match = out.DependencyMatch(
+        dependency_pattern=out.DependencyPattern(
+            ecosystem=out.Ecosystem(out.Pypi()),
+            package="awscli",
+            semver_range="== 1.11.82",
+        ),
+        found_dependency=out.FoundDependency(
+            ecosystem=out.Ecosystem(out.Pypi()),
+            package="awscli",
+            version="1.11.82",
+            resolved_url=None,
+            allowed_hashes={
+                "sha256": [
+                    "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
+                    "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb",
+                ]
+            },
+            transitivity=out.Transitivity(transitivity),
+        ),
+        lockfile="foo/Pipfile.lock",
+    )
+    return RuleMatch(
+        message="message",
+        metadata={"sca-kind": sca_kind, "dev.semgrep.actions": ["block"]},
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule.id"),
+            location=core.Location(
+                path=core.Fpath("foo.py"),
+                start=core.Position(0, 0, 0),
+                end=core.Position(0, 0, 0),
+            ),
+            extra=core.CoreMatchExtra(
+                metavars=core.Metavars({}), engine_kind=core.EngineKind(core.OSS())
+            ),
+        ),
+        extra={
+            "sca_info": out.ScaInfo(
+                sca_finding_schema=SCA_FINDING_SCHEMA,
+                reachable=reachable_in_code,
+                reachability_rule=sca_kind == "reachable",
+                dependency_match=dependency_match,
+            )
+        },
+    )
+
+
+@pytest.mark.quick
+def test_supply_chain_blocking():
+    assert create_sca_rule_match("reachable", True, out.Direct()).is_blocking
+    assert create_sca_rule_match("reachable", True, out.Transitive()).is_blocking
+    assert not create_sca_rule_match("reachable", False, out.Direct()).is_blocking
+    assert not create_sca_rule_match("reachable", False, out.Transitive()).is_blocking
+    assert create_sca_rule_match("upgrade-only", False, out.Direct()).is_blocking
+    assert not create_sca_rule_match(
+        "upgrade-only", False, out.Transitive()
+    ).is_blocking
+    assert create_sca_rule_match("upgrade-only", False, out.Unknown()).is_blocking

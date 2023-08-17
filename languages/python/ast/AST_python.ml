@@ -414,8 +414,7 @@ and with_clause = expr (* context_expr *) * expr option (* optional_vars *)
 (* ------------------------------------------------------------------------- *)
 (* Decorators (a.k.a annotations) *)
 (* ------------------------------------------------------------------------- *)
-(* TODO: tree-sitter-python accept any expr *)
-and decorator = tok (* @ *) * dotted_name * argument list bracket option
+and decorator = tok (* @ *) * expr
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)

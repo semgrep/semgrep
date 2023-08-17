@@ -20,7 +20,6 @@ export const EngineFactory = async (wasmUri) => {
   });
   // libpcre regrettably must be global because semgrep eagerly compiles regexes
   globalThis.LibPcreModule = wasm;
-
   const {
     getMountpoints,
     setLibYamlWasmModule,
@@ -31,7 +30,6 @@ export const EngineFactory = async (wasmUri) => {
     writeFile,
     deleteFile,
   } = require("../../../_build/default/js/engine/Main.bc");
-
   setLibYamlWasmModule(wasm);
 
   const languages = new Map();

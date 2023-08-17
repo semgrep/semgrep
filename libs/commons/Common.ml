@@ -739,7 +739,7 @@ let null_string s = s = ""
 
 (* TODO: we should use strong types like in Li Haoyi filename Scala library! *)
 type filename = string (* TODO could check that exist :) type sux *)
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
@@ -1247,6 +1247,15 @@ type hidden_by_your_nanny = unit
 
 let ( == ) : hidden_by_your_nanny = ()
 let ( != ) : hidden_by_your_nanny = ()
+
+(* Used to allow choice of whether id_info fields should be checked *)
+let equal_ref_option equal_f a b =
+  match (!a, !b) with
+  | None, None -> true
+  | Some a, Some b -> equal_f a b
+  | Some _, None
+  | None, Some _ ->
+      false
 
 (*****************************************************************************)
 (* Operators *)

@@ -32,7 +32,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * less: we should define everything in Output_from_core.atd, not just typ:
  *)
 type error = {
-  rule_id : Rule.rule_id option;
+  rule_id : Rule_ID.t option;
   typ : Out.core_error_kind;
   loc : Tok.location;
   msg : string;
@@ -88,17 +88,23 @@ let error rule_id loc msg err =
 
    TODO: why not capture AST_generic.error here? So we could get rid
    of Run_semgrep.exn_to_error wrapper.
-
-   TODO: register exception printers in their modules of origin
-   (using Printexc.register_printer).
- *)
+*)
 let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
   match Exception.get_exn e with
+  (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
+     module so that we can use it for the exception printers that are
+     registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
       Some (mk_error_tok ~rule_id tok s Out.LexicalError)
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
+        | Tok.OriginTok { str = ""; _ } ->
+            (* TODO: at least in some cases, this comes from a MISSING node
+               inserted by tree-sitter. These are reported as errors
+               with a good error message that was lost.
+               We should preserve the original error message. *)
+            "missing element"
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
@@ -239,9 +245,10 @@ let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 
 let (expected_error_lines_of_files :
       ?regexp:string ->
+      ?ok_regexp:string option ->
       Common.filename list ->
       (Common.filename * int) (* line *) list) =
- fun ?(regexp = default_error_regexp) test_files ->
+ fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
   test_files
   |> List.concat_map (fun file ->
          Common.cat file |> Common.index_list_1
@@ -250,7 +257,13 @@ let (expected_error_lines_of_files :
                  * don't check if they match. We are just happy to check for
                  * correct lines error reporting.
                  *)
-                if s =~ regexp (* + 1 because the comment is one line before *)
+                if
+                  s =~ regexp (* + 1 because the comment is one line before *)
+                  (* This is so that we can mark a line differently for OSS and Pro,
+                     e.g. `ruleid: deepok: example_rule_id` *)
+                  && Option.fold ~none:true
+                       ~some:(fun ok_regexp -> not (s =~ ok_regexp))
+                       ok_regexp
                 then Some (file, idx + 1)
                 else None))
 

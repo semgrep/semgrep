@@ -128,6 +128,21 @@ val new_temp_file : string (* prefix *) -> string (* suffix *) -> Fpath.t
 val erase_temp_files : unit -> unit
 val erase_this_temp_file : Fpath.t -> unit
 
+val find_first_match_with_whole_line :
+  Fpath.t -> ?split:char -> string -> string option
+(** [find_first_match_with_whole_line path ~split term] opens [path], split it
+    by the given [split] character (defaults to ['\n']) and tries to return the
+    {b first} full element which contains the given [term].
+
+    For instance, you can search the first line which contains ["semgrep"]:
+
+    {[
+      find_first_match_with_whole_line my_file "semgrep"
+    ]}
+
+    It will returns the first {b full} line which contains the ["semgrep"]
+    occurrence. *)
+
 (*****************************************************************************)
 (* File properties *)
 (*****************************************************************************)

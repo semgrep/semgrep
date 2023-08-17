@@ -5,7 +5,7 @@
 # - dogfood Semgrep by running it on each semgrep PRs.
 # - check that Semgrep can run in an alternate CI platform like Circle CI
 #   (and not just in Github Actions).
-# - have a cron that update our parsing statistics as well as some benchmarks,
+# - have crons that update our parsing statistics as well as some benchmarks,
 #   which are then accessible at https://dashboard.semgrep.dev/metrics
 #   and also at https://metabase.corp.r2c.dev/collection/59-semgrep
 
@@ -26,13 +26,13 @@ jobs:
       - checkout
       # Dogfooding on the bleeding edge by using jsonnet, the new syntax, osemgrep!
       # coupling: see also 'make check'
-      - run: osemgrep --config semgrep.jsonnet --error --verbose --exclude tests
+      - run: semgrep --experimental --config semgrep.jsonnet --error --verbose --exclude tests
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
   #    a volume, which is disabled by CircleCI (results in empty folder
   #    once mounted).
-  # B. run everything inside the semgrep-dev container, which comes with
+  # B. run everything inside the semgrep container, which comes with
   #    semgrep and whatever utilities we added.
   #
   # We use B out of necessity.
@@ -40,7 +40,7 @@ jobs:
   # Real benchmarks
   benchmarks:
     docker:
-      - image: returntocorp/semgrep-dev:develop
+      - image: returntocorp/semgrep:develop
     steps:
       - checkout
       - run:
@@ -52,7 +52,7 @@ jobs:
   # Run parsing stats and publish them to the semgrep dashboard.
   parsing-stats:
     docker:
-      - image: returntocorp/semgrep-dev:develop
+      - image: returntocorp/semgrep:develop
     steps:
       - checkout
       - run:
@@ -69,7 +69,7 @@ jobs:
   # Run autofix parsing stats and publish them to the semgrep dashboard.
   autofix-printing-stats:
     docker:
-      # The returntocorp/semgrep-dev:develop image doesn't have OCaml, so
+      # The returntocorp/semgrep:develop image doesn't have OCaml, so
       # instead we use an OCaml image and install the production version of
       # Semgrep.
       #
@@ -96,6 +96,20 @@ jobs:
             PATH=$PATH:"$(pip3 show semgrep | grep '^Location' | sed -e 's/Location: //')/semgrep/bin"
             opam exec -- ./stats/autofix-printing-stats/run --upload
 
+  # run pysemgrep->osemgrep porting stats and publish to the semgrep dashboard
+  pysemgrep-loc-stats:
+    docker:
+      # only archlinux seems to have wc 9.3 which is required by report_pysemgrep_loc
+      - image: ocaml/opam:archlinux
+    steps:
+      - checkout
+      - run:
+          name: stats
+          command: |
+            eval $(opam env)
+            opam install -y ocamlfind ppx_deriving fmt logs cmdliner ppx_deriving_cmdliner feather
+            ./scripts/report_pysemgrep_loc.ml cli/src/ --upload
+
 ###############################################################################
 # The workflows
 ###############################################################################
@@ -107,6 +121,21 @@ workflows:
   semgrep:
     jobs:
       - semgrep
+
+  #----------------------------------------
+  # Crons
+  #----------------------------------------
+  # cron table memento below
+  # (src: https://dev.to/anshuman_bhardwaj/free-cron-jobs-with-github-actions-31d6)
+  # ┌────────── minute (0 - 59)
+  # │ ┌────────── hour (0 - 23)
+  # │ │ ┌────────── day of the month (1 - 31)
+  # │ │ │ ┌────────── month (1 - 12)
+  # │ │ │ │ ┌────────── day of the week (0 - 6)
+  # │ │ │ │ │
+  # │ │ │ │ │
+  # │ │ │ │ │
+  # * * * * *
 
   # Daily semgrep benchmarks
   benchmarks:
@@ -129,14 +158,12 @@ workflows:
   scheduled-parsing-stats:
     jobs:
       - parsing-stats:
-          # Run only on these branches
           filters:
             branches:
               only:
                 - develop
     triggers:
       - schedule:
-          # Run at 00:00 every day, UTC.
           cron: "0 0 * * *"
           filters:
             branches:
@@ -146,20 +173,36 @@ workflows:
   scheduled-autofix-printing-stats:
     jobs:
       - autofix-printing-stats:
-          # Run only on these branches
           filters:
             branches:
               only:
                 - develop
     triggers:
       - schedule:
-          # Run at 00:00 every day, UTC.
           cron: "0 0 * * *"
           filters:
             branches:
               only:
                 - develop
 
+  scheduled-pysemgrep-loc-stats:
+    jobs:
+      - pysemgrep-loc-stats:
+          filters:
+            branches:
+              only:
+                - develop
+    triggers:
+      - schedule:
+          cron: "0 12 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+
+  #----------------------------------------
+  # Debugging workflows
+  #----------------------------------------
   # This is for testing or for forcing a stats job. Requires pushing
   # to a branch named 'parsing-stats'.
   parsing-stats-on-commit:
@@ -170,8 +213,6 @@ workflows:
               only:
                 - parsing-stats
 
-  # This is for testing or for forcing a stats job. Requires pushing
-  # to a branch named 'autofix-printing-stats'.
   autofix-printing-stats-on-commit:
     jobs:
       - autofix-printing-stats:
@@ -179,3 +220,11 @@ workflows:
             branches:
               only:
                 - autofix-printing-stats
+
+  pysemgrep-loc-stats-on-commit:
+    jobs:
+      - pysemgrep-loc-stats:
+          filters:
+            branches:
+              only:
+                - pysemgrep-loc-stats

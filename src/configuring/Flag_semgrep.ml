@@ -20,16 +20,6 @@ let pfff_only = ref false
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
 
-(* TODO: This was turned off by default in 1.22.0, the matching-cache's code
- * should be removed after a few releases once we confirm that disabling it
- * has no major impact on performance for our community users and customers. *)
-(* opt = optimization *)
-let with_opt_cache = ref false
-
-(* TODO: To be removed with `with_opt_cache` a few releases after 1.22.0. *)
-(* Improves performance on some patterns, degrades performance on others. *)
-let max_cache = ref false
-
 (* Maximum size of a single target file, in bytes (exceptions apply). *)
 let max_target_bytes = ref 5_000_000
 

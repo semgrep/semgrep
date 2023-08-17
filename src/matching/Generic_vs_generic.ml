@@ -22,19 +22,13 @@ open Common
  * but it's easy to be confused on what is a pattern and what is the target,
  * so at least using different G and B helps a bit.
  *
- * subtle: use 'b' to report errors, because 'a' is the sgrep pattern and it
- * has no file information usually.
+ * subtle: use 'b' to report errors, because 'a' is the pattern.
  *)
 module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
-module Flag = Flag_semgrep
 module Options = Rule_options_t
 module H = AST_generic_helpers
-
-(* optimisations *)
-module CK = Caching.Cache_key
-module Env = Metavariable_capture
 open Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -81,7 +75,7 @@ let hook_find_possible_parents = ref None
 (*****************************************************************************)
 
 let env_add_matched_stmt rightmost_stmt (tin : tin) =
-  [ extend_stmts_match_span rightmost_stmt tin ]
+  [ extend_stmts_matched rightmost_stmt tin ]
 
 (* equivalence: on different indentation
  * todo? work? was copy-pasted from XHP sgrep matcher
@@ -173,18 +167,10 @@ let should_match_call = function
   | G.IncrDecr _ ->
       false
 
-(*****************************************************************************)
-(* Optimisations (caching) *)
-(*****************************************************************************)
-
-(* Getters and setters that were left abstract in the cache implementation. *)
-let cache_access : tin Caching.Cache.access =
-  {
-    get_span_field = (fun tin -> tin.stmts_match_span);
-    set_span_field = (fun tin x -> { tin with stmts_match_span = x });
-    get_mv_field = (fun tin -> tin.mv);
-    set_mv_field = (fun tin mv -> { tin with mv });
-  }
+let m_id_string case_insensitive =
+  if case_insensitive then fun a b ->
+    m_string (String.lowercase_ascii a) (String.lowercase_ascii b)
+  else m_string
 
 (*****************************************************************************)
 (* Name *)
@@ -205,8 +191,12 @@ let m_ident a b =
   | (stra, _), (strb, _) when Pattern.is_regexp_string stra ->
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
+  (* Note: We should try to avoid allowing case insensitive
+   *  identifiers to get here because we have no way of
+   *  distinguishing them from case sensitive identifiers
+   *)
   (* general case *)
-  | a, b -> (m_wrap m_string) a b
+  | a, b -> m_wrap m_string a b
 
 (* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
@@ -589,7 +579,10 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
       if re_match strb then return () else fail ()
   (* general case *)
   | _, _ ->
-      let* () = m_wrap m_string a1 b1 in
+      let case_insensitive =
+        G.is_case_insensitive a2 && B.is_case_insensitive b2
+      in
+      let* () = m_wrap (m_id_string case_insensitive) a1 b1 in
       m_id_info a2 b2
 
 and m_ident_and_empty_id_info a1 b1 =
@@ -608,14 +601,14 @@ and m_id_info a b =
         G.id_resolved = _a1;
         id_type = _a2;
         id_svalue = _a3;
-        id_hidden = _a4;
+        id_flags = _a4;
         id_info_id = _a5;
       },
       {
         B.id_resolved = _b1;
         id_type = _b2;
         id_svalue = _b3;
-        id_hidden = _b4;
+        id_flags = _b4;
         id_info_id = _b5;
       } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
@@ -2120,6 +2113,17 @@ and m_generic_targ_vs_type_targ lang tok a b =
        * and this will assume covariance. But it's probably not a big deal, and
        * they don't have to be invariant in all cases anyway. *)
       m_generic_type_vs_type_t lang tok t1 t2
+  (* TODO equivalence between Java `List<?>` and `List<? extends Object>`? *)
+  | G.TAWildcard (_, None), Type.TAWildcard None -> return ()
+  | G.TAWildcard (_, Some kinda), Type.TAWildcard (Some kindb) -> (
+      match (kinda, kindb) with
+      | ((false, _), t1), Type.TAUpper t2
+      | ((true, _), t1), Type.TALower t2 ->
+          m_generic_type_vs_type_t lang tok t1 t2
+      | _, Type.TAUpper _
+      | _, Type.TALower _ ->
+          fail ())
+  | G.TA _, Type.TAWildcard _
   | G.TA _, Type.OtherTypeArg _
   (* TODO Represent more typearg kinds in Type.t? *)
   | G.TAWildcard _, _
@@ -2196,21 +2200,7 @@ and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
  *
  * todo? we could restrict ourselves to only a few forms?
  *)
-(* experimental! *)
-and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) tin
-    =
-  (* shares the cache with m_list__m_stmt *)
-  match (tin.cache, xsa, xsb) with
-  | Some cache, a :: _, _ :: _ when a.s_use_cache ->
-      let tin = { tin with mv = Env.update_min_env tin.mv a } in
-      Caching.Cache.match_stmt_list ~access:cache_access ~cache
-        ~function_id:CK.Match_deep ~list_kind:CK.Original ~less_is_ok
-        ~compute:(m_stmts_deep_uncached ~inside ~less_is_ok)
-        ~pattern:xsa ~target:xsb tin
-  | _ -> m_stmts_deep_uncached ~inside ~less_is_ok xsa xsb tin
-
-and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
-    (xsb : G.stmt list) =
+and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
   (* opti: this was the old code:
    *   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
    *   then
@@ -2256,27 +2246,24 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
   | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], xb :: bbs
     when inside ->
       env_add_matched_stmt xb >>= fun () ->
-      m_stmts_deep_uncached ~inside ~less_is_ok xsa bbs
+      m_stmts_deep ~inside ~less_is_ok xsa bbs
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
-      (* let's first try without going deep *)
-      m_list__m_stmt ~list_kind:CK.Original xsa xsb >!> fun () ->
-      if_config
-        (fun x -> x.go_deeper_stmt)
-        ~then_:
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-          | None -> fail () (* was already flat *)
-          | Some (xsb, last_stmt) ->
-              m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
-                xsb)
-        ~else_:(fail ())
+      m_list__m_stmt xsa xsb
+      >||> if_config
+             (fun x -> x.go_deeper_stmt)
+             ~then_:
+               (match SubAST_generic.flatten_substmts_of_stmts xsb with
+               | None -> fail () (* was already flat *)
+               | Some (xsb, _UNUSED_last_stmt) -> m_list__m_stmt xsa xsb)
+             ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
       as xsa),
       xsb )
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
-      m_list__m_stmt ~list_kind:CK.Original xsa xsb
+      m_list__m_stmt xsa xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_stmt xa xb >>= fun () ->
@@ -2284,28 +2271,15 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       m_stmts_deep ~inside ~less_is_ok aas bbs
   | _ :: _, _ -> fail ()
 
-and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
-  (* shares the cache with m_stmts_deep *)
-  match (tin.cache, xsa, xsb) with
-  | Some cache, a :: _, _ :: _ when a.s_use_cache ->
-      let tin = { tin with mv = Env.update_min_env tin.mv a } in
-      Caching.Cache.match_stmt_list ~access:cache_access ~cache
-        ~function_id:CK.Match_list ~list_kind ~less_is_ok:true
-        ~compute:(m_list__m_stmt_uncached ?less_is_ok ~list_kind)
-        ~pattern:xsa ~target:xsb tin
-  | _ -> m_list__m_stmt_uncached ?less_is_ok ~list_kind xsa xsb tin
-
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
 (* coupling: many of the cases below are similar to the one in
- * m_stmts_deep_uncached.
+ * m_stmts_deep.
  * TODO? can we remove the duplication
  *)
-and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
-    (xsb : G.stmt list) =
+and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
+    =
   logger#ldebug
-    (lazy
-      (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
-         (List.length xsb)));
+    (lazy (spf "m_list__m_stmt: %d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
   (* less-is-ok:
@@ -2322,10 +2296,9 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
   | ( { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: xsa_tail,
       (xb :: xsb_tail as xsb) ) ->
       (* can match nothing *)
-      m_list__m_stmt ~list_kind xsa_tail xsb
+      m_list__m_stmt xsa_tail xsb
       >||> (* can match more *)
-      ( env_add_matched_stmt xb >>= fun () ->
-        m_list__m_stmt ~list_kind xsa xsb_tail )
+      (env_add_matched_stmt xb >>= fun () -> m_list__m_stmt xsa xsb_tail)
   (* dots: metavars: $...BODY *)
   | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
       xsb )
@@ -2342,14 +2315,14 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
                   (* when we use { $...BODY }, we don't have an implicit
                    * ... after, so we use less_is_ok:false here
                    *)
-                  m_list__m_stmt ~less_is_ok:false ~list_kind xsa rest)
+                  m_list__m_stmt ~less_is_ok:false xsa rest)
             >||> aux xs
       in
       aux candidates
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_stmt xa xb >>= fun () ->
-      env_add_matched_stmt xb >>= fun () -> m_list__m_stmt ~list_kind aas bbs
+      env_add_matched_stmt xb >>= fun () -> m_list__m_stmt aas bbs
   | _ :: _, _ -> fail ()
 
 (*****************************************************************************)
@@ -2800,6 +2773,24 @@ and m_list__m_type_parameter a b =
 
 and m_definition_kind a b =
   match (a, b) with
+  (* We maintain an equivalence between a FieldDefColon of an ellipsis
+     with any other definition. This is because FieldDefColon appears
+     when describing the RHS of a record, so this describes a record
+     like
+     { x = ... }
+     The FieldDefColon case is matched as different than other
+     `definition_kind` structures, like a `FuncDef`, so we
+     have to explicitly whitelist it so that we can match those with the
+     ellipsis.
+
+     A concrete example is TS, when you have
+     { func: function (opts) { return "whatever"; } }
+     which is a record containing an entry which is a `FuncDef`.
+
+     For now, we only whitelist the FuncDef case.
+  *)
+  | G.FieldDefColon { vinit = Some { e = Ellipsis _; _ }; _ }, B.FuncDef _ ->
+      return ()
   (* boilerplate *)
   | G.EnumEntryDef a1, B.EnumEntryDef b1 -> m_enum_entry_definition a1 b1
   | G.FuncDef a1, B.FuncDef b1 -> m_function_definition a1 b1
@@ -2930,6 +2921,39 @@ and m_parameter_list a b =
 
 and m_parameter a b =
   match (a, b) with
+  (* Only match a metavariable unconditionally if it has no other characteristics than
+     being a metavariable.
+     Otherwise, we might match and not check that things like types or default
+     instantiation are the same.
+     Decided not to match ParamRest and ParamHashSplat, and ParamEllipsis, which
+     don't behave like "singular" params.
+  *)
+  | ( G.Param
+        ({
+           pname = Some (str, tok);
+           ptype = None;
+           pdefault = None;
+           pattrs = [];
+           pinfo = _;
+         } as a1),
+      b )
+    when Metavariable.is_metavar_name str -> (
+      match b with
+      | OtherParam _
+      | ParamPattern _
+      | ParamReceiver _ ->
+          envf (str, tok) (MV.Params [ b ])
+      (* We want to first match in the same way `m_parameter_classic` would,
+         to maintain previous behavior.
+         If there are no matches, then we can just unconditionally match.
+      *)
+      | Param b1 ->
+          m_parameter_classic a1 b1 >!> fun () ->
+          envf (str, tok) (MV.Params [ b ])
+      | ParamRest _
+      | ParamHashSplat _
+      | ParamEllipsis _ ->
+          fail ())
   (* boilerplate *)
   | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->

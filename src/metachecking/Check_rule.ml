@@ -81,14 +81,12 @@ let error env t s =
 
 let unknown_metavar_in_comparison env f =
   let mvar_is_ok mv mvs =
-    (* $1 may be present in the metavariable-pattern but will not
-       appear in the pattern, because it is bound by capture groups
-       in regex patterns rather than an explicit metavar *)
+    (* TODO: remove when we kill numeric capture groups *)
     Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
   in
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
-    | P { pat = _pat; pstr = pstr, _; pid = _pid } ->
+    | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
            matcher expose the metavariables it detects. *)
@@ -100,7 +98,17 @@ let unknown_metavar_in_comparison env f =
         (* Then split the individual metavariables *)
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
-        Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
+        (* Then, for a pattern-regex, get all the named capture groups, and
+           account for the metavariables introduced by their matches.
+        *)
+        let regexp_captured_mvars =
+          match pat with
+          | Xpattern.Regexp s -> Metavariable.mvars_of_regexp_string s
+          | __else__ -> []
+        in
+        [ metavars; ellipsis_metavars; regexp_captured_mvars ]
+        |> Common.map Set.of_list
+        |> List.fold_left Set.union Set.empty
     | Inside (_, f) -> collect_metavars f
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
@@ -139,6 +147,8 @@ let unknown_metavar_in_comparison env f =
                match metavar_cond with
                | CondEval _ -> ()
                | CondRegexp (mv, _, _) ->
+                   if not (mvar_is_ok mv mvs) then mv_error mv t
+               | CondType (mv, _, _, _) ->
                    if not (mvar_is_ok mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
                    if not (mvar_is_ok mv mvs) then mv_error mv t
@@ -186,8 +196,9 @@ let check r =
   | `Search f
   | `Extract { formula = f; _ } ->
       check_formula { r; errors = ref [] } r.languages.target_analyzer f
+  | `Secrets _ -> (* TODO *) []
   | `Taint _ -> (* TODO *) []
-  | `Step _ -> (* TODO *) []
+  | `Steps _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =

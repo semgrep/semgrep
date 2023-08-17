@@ -36,6 +36,8 @@ type t = {
   cleaned : LvalSet.t;
       (** Lvalues that are clean, these should be extensions of other lvalues that
       are tainted. *)
+  control : T.taints;
+      (** Taints propagated via the flow of control (rather than the flow of data). *)
 }
 
 type env = t
@@ -45,6 +47,7 @@ let empty =
     tainted = LvalMap.empty;
     propagated = VarMap.empty;
     cleaned = LvalSet.empty;
+    control = Taints.empty;
   }
 
 let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
@@ -63,6 +66,7 @@ let union le1 le2 =
     tainted;
     propagated = Var_env.varmap_union Taints.union le1.propagated le2.propagated;
     cleaned = LvalSet.union cleaned1 cleaned2;
+    control = Taints.union le1.control le2.control;
   }
 
 (* Reduces an l-value into the form x.a_1. ... . a_N, the resulting l-value may
@@ -117,57 +121,100 @@ let lval_is_prefix lval1 lval2 =
       eq_name x y && offset_prefix (List.rev ro1) (List.rev ro2)
   | __else__ -> false
 
-let add ({ tainted; propagated; cleaned } as lval_env) lval taints =
+(* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
+ * some benchmarks, if we can e.g. double the limit without affecting perf then
+ * just remove this. We could try something clever based e.g. on live-variable
+ * analysis, but there is a high risk that the "solution" may introduce perf
+ * problems of its own... *)
+let remove_some_lval_from_tainted_set tainted =
+  (* Try to make space for a new l-value by removing an auxiliary _tmp one first.
+   * By using using `find_first_opt` we try to find the one with the lowest sid,
+   * which hopefully isn't needed anymore... (unless it's inside a loop...).
+   * This could perhaps (?) break monotonicity and cause divergence of the fixpoint,
+   * but the Limits_semgrep.taint_FIXPOINT_TIMEOUT seconds timeout would take care
+   * of that. *)
+  match
+    tainted
+    |> LvalMap.find_first_opt (fun lval ->
+           match lval.base with
+           (* auxiliary _tmp variables get fake tokens *)
+           | Var var -> Tok.is_fake (snd var.ident)
+           | VarSpecial _
+           | Mem _ ->
+               false)
+  with
+  | None -> None
+  | Some (lval, _) -> Some (lval, LvalMap.remove lval tainted)
+
+let check_tainted_lvals_limit tainted new_lval =
+  if
+    (not (LvalMap.mem new_lval tainted))
+    && !Flag_semgrep.max_tainted_lvals > 0
+    && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals
+  then (
+    match remove_some_lval_from_tainted_set tainted with
+    | Some (dropped_lval, tainted) ->
+        logger#warning
+          "Already tracking too many tainted l-values, dropped %s in order to \
+           track %s"
+          (Display_IL.string_of_lval dropped_lval)
+          (Display_IL.string_of_lval new_lval);
+        Some tainted
+    | None ->
+        logger#warning
+          "Already tracking too many tainted l-values, will not track %s"
+          (Display_IL.string_of_lval new_lval);
+        None)
+  else Some tainted
+
+let add ({ tainted; propagated; cleaned; control } as lval_env) lval taints =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
-  | Some _
-    when (not (LvalMap.mem lval tainted))
-         && !Flag_semgrep.max_tainted_lvals > 0
-         && LvalMap.cardinal tainted > !Flag_semgrep.max_tainted_lvals ->
-      logger#warning
-        "Already tracking too many tainted l-values, will not track %s"
-        (Display_IL.string_of_lval lval);
-      lval_env
-  | Some lval ->
-      let taints =
-        (* If the lvalue is a simple variable, we record it as part of
-           the taint trace. *)
-        match lval with
-        | { IL.base = Var var; rev_offset = [] } ->
-            let var_tok = snd var.ident in
-            if Tok.is_fake var_tok then taints
-            else
-              taints
-              |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-        | __else__ -> taints
-      in
+  | Some lval -> (
       if Taints.is_empty taints then lval_env
       else
-        {
-          tainted =
-            LvalMap.update lval
-              (function
-                | None -> Some taints
-                (* THINK: couldn't we just replace the existing taints? *)
-                | Some taints' ->
-                    if
-                      !Flag_semgrep.max_taint_set_size = 0
-                      || Taints.cardinal taints'
-                         < !Flag_semgrep.max_taint_set_size
-                    then Some (Taints.union taints taints')
-                    else (
-                      logger#warning
-                        "Already tracking too many taint sources for %s, will \
-                         not track more"
-                        (Display_IL.string_of_lval lval);
-                      Some taints'))
-              tainted;
-          propagated;
-          cleaned = LvalSet.remove lval cleaned;
-        }
+        match check_tainted_lvals_limit tainted lval with
+        | None -> lval_env
+        | Some tainted ->
+            let taints =
+              (* If the lvalue is a simple variable, we record it as part of
+                 the taint trace. *)
+              match lval with
+              | { IL.base = Var var; rev_offset = [] } ->
+                  let var_tok = snd var.ident in
+                  if Tok.is_fake var_tok then taints
+                  else
+                    taints
+                    |> Taints.map (fun t ->
+                           { t with tokens = var_tok :: t.tokens })
+              | __else__ -> taints
+            in
+            {
+              tainted =
+                LvalMap.update lval
+                  (function
+                    | None -> Some taints
+                    (* THINK: couldn't we just replace the existing taints? *)
+                    | Some taints' ->
+                        if
+                          !Flag_semgrep.max_taint_set_size = 0
+                          || Taints.cardinal taints'
+                             < !Flag_semgrep.max_taint_set_size
+                        then Some (Taints.union taints taints')
+                        else (
+                          logger#warning
+                            "Already tracking too many taint sources for %s, \
+                             will not track more"
+                            (Display_IL.string_of_lval lval);
+                          Some taints'))
+                  tainted;
+              propagated;
+              cleaned = LvalSet.remove lval cleaned;
+              control;
+            })
 
 let propagate_to prop_var taints env =
   if Taints.is_empty taints then env
@@ -185,7 +232,7 @@ let dumb_find { tainted; cleaned; _ } lval =
 
 let propagate_from prop_var env = VarMap.find_opt prop_var env.propagated
 
-let clean ({ tainted; propagated; cleaned } as lval_env) lval =
+let clean ({ tainted; propagated; cleaned; control } as lval_env) lval =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
@@ -209,14 +256,34 @@ let clean ({ tainted; propagated; cleaned } as lval_env) lval =
           (cleaned
           |> LvalSet.filter (fun lv -> not (lval_is_prefix lval lv))
           |> if needs_clean_mark then LvalSet.add lval else fun x -> x);
+        control;
       }
 
-let equal le1 le2 =
-  LvalMap.equal Taints.equal le1.tainted le2.tainted
-  && VarMap.equal Taints.equal le1.propagated le2.propagated (* ? *)
-  && LvalSet.equal le1.cleaned le2.cleaned
+let add_control_taints lval_env taints =
+  if Taints.is_empty taints then lval_env
+  else { lval_env with control = Taints.union taints lval_env.control }
 
-let to_string taint_to_str { tainted; propagated; cleaned } =
+let get_control_taints { control; _ } = control
+
+let equal
+    {
+      tainted = tainted1;
+      propagated = propagated1;
+      cleaned = cleaned1;
+      control = control1;
+    }
+    {
+      tainted = tainted2;
+      propagated = propagated2;
+      cleaned = cleaned2;
+      control = control2;
+    } =
+  LvalMap.equal Taints.equal tainted1 tainted2
+  && VarMap.equal Taints.equal propagated1 propagated2 (* needed ? *)
+  && LvalSet.equal cleaned1 cleaned2
+  && Taints.equal control1 control2
+
+let to_string taint_to_str { tainted; propagated; cleaned; control } =
   (* FIXME: lval_to_str *)
   LvalMap.fold
     (fun dn v s ->
@@ -228,5 +295,6 @@ let to_string taint_to_str { tainted; propagated; cleaned } =
   ^ LvalSet.fold
       (fun dn s -> s ^ Display_IL.string_of_lval dn ^ " ")
       cleaned "[CLEANED]"
+  ^ "[CONTROL] " ^ taint_to_str control
 
 let seq_of_tainted env = LvalMap.to_seq env.tainted

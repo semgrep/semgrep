@@ -317,6 +317,8 @@ and metavarcond_step1 x =
   | R.CondNestedFormula _ -> None
   | R.CondRegexp (mvar, re, const_prop) ->
       Some (MvarRegexp (mvar, re, const_prop))
+  (* TODO? maybe we should extract the strings from the type constraint *)
+  | R.CondType _ -> None
   | R.CondAnalysis _ -> None
 
 (*****************************************************************************)
@@ -603,7 +605,9 @@ let regexp_prefilter_of_rule (r : R.rule) =
         | `Extract { formula = f; _ } ->
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
-        | `Step _ -> (* TODO *) None
+        | `Secrets _ (* TODO *)
+        | `Steps _ ->
+            (* TODO *) None
       with
       (* TODO: see tests/rules/tainted-filename.yaml,
                    tests/rules/kotlin_slow_import.yaml *)

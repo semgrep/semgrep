@@ -4,15 +4,14 @@ semgrep-core language tests
 Running the tests
 --
 
-All the semgrep-core tests can be run from `/semgrep/semgrep-core`
-with `make test`. This will recompile the test programs if necessary.
-Running just `make` will also rebuild the test programs.
+All the semgrep-core tests can be run from the project's root
+with `make core-test`. This will recompile the test programs if necessary.
 
 Only running the main test program can be done with `./test`. Try
 `./test --help` for options. In particular, running just the tests
 that contain the string `semgrep PHP` is done with
 ```
-$ ./test test 'semgrep PHP'
+$ ./test 'PHP'
 ```
 
 ⚠️ `./test` won't try to rebuild the test program to make things

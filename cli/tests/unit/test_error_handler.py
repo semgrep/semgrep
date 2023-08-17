@@ -29,7 +29,7 @@ def mock_get_token(mocker):
 def mocked_state(mocker):
     mocked = mocker.MagicMock()
     mocked.app_session.user_agent = FAKE_USER_AGENT
-    mocked.env.fail_open_url = FAIL_OPEN_URL
+    mocked.env.fail_open_url = FAIL_OPEN_URL.replace("/failure", "")
     mocker.patch("semgrep.state.get_state", return_value=mocked)
     yield mocked
 

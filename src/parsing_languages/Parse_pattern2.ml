@@ -26,6 +26,11 @@ open Pfff_or_tree_sitter
 (* Entry point *)
 (*****************************************************************************)
 let parse_pattern print_errors lang str =
+  (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
+     when updating this function.
+     TODO: Share the logic of which parser to try for each language to
+     remove this coupling. https://github.com/returntocorp/semgrep/issues/8331
+  *)
   match lang with
   (* use adhoc parser (neither menhir nor tree-sitter) *)
   | Lang.Yaml -> Yaml_to_generic.any str
@@ -52,8 +57,19 @@ let parse_pattern print_errors lang str =
   | Lang.Python
   | Lang.Python2
   | Lang.Python3 ->
-      let parsing_mode = Parse_target2.lang_to_python_parsing_mode lang in
-      let any = Parse_python.any_of_string ~parsing_mode str in
+      let any =
+        str
+        |> run_pattern ~print_errors
+             [
+               PfffPat
+                 (let parsing_mode =
+                    Parse_target2.lang_to_python_parsing_mode lang
+                  in
+                  Parse_python.any_of_string ~parsing_mode);
+               TreeSitterPat Parse_python_tree_sitter.parse_pattern;
+             ]
+      in
+
       Python_to_generic.any any
   (* Use menhir and tree-sitter *)
   | Lang.Cpp ->
@@ -144,6 +160,12 @@ let parse_pattern print_errors lang str =
       extract_pattern_from_tree_sitter_result res print_errors
   | Lang.Lua ->
       let res = Parse_lua_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res print_errors
+  | Lang.Promql ->
+      let res = Parse_promql_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res print_errors
+  | Lang.Protobuf ->
+      let res = Parse_protobuf_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res print_errors
   | Lang.Rust ->
       let res = Parse_rust_tree_sitter.parse_pattern str in

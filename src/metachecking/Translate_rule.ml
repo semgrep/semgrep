@@ -39,14 +39,21 @@ let rec range_to_string (range : (Tok.location * Tok.location) option) =
   match range with
   | Some (start, end_) ->
       Common.with_open_infile start.pos.file (fun chan ->
-          let extract_size = end_.pos.charpos - start.pos.charpos in
-          seek_in chan start.pos.charpos;
+          let extract_size = end_.pos.bytepos - start.pos.bytepos in
+          seek_in chan start.pos.bytepos;
           really_input_string chan extract_size)
   | None -> failwith "invalid source/sink requires"
 
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
+  | CondType (mv, lang, str, _) ->
+      `O
+        ([ ("metavariable", `String mv); ("type", `String str) ]
+        @
+        match lang with
+        | None -> []
+        | Some x -> [ ("language", `String (Xlang.to_string x)) ])
   | CondRegexp (mv, re_str, _) ->
       `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
   | CondAnalysis (mv, analysis) ->

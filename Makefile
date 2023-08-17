@@ -7,7 +7,7 @@
 # used for Semgrep development:
 #  - for OCaml: 'opam' and the right OCaml version (currently 4.14)
 #  - for C: the classic 'gcc', 'ld', but also some C libraries like PCRE
-#  - for Python: 'python3', 'pip', 'pipenv', 'python-config'
+#  - for Python: 'python3', 'pip', 'pipenv'
 #
 # You will also need obviously 'make', but also 'git', and many other
 # common dev tools (e.g., 'docker').
@@ -27,32 +27,25 @@
 #
 # See INSTALL.md for more information
 # See also https://semgrep.dev/docs/contributing/contributing-code/
-
-###############################################################################
-# Portability tricks
-###############################################################################
-
+#
 # Most of the targets in this Makefile should work equally under
 # Linux (Alpine, Ubuntu, Arch linux), macOS, from a Dockerfile, and
 # hopefully also under Windows WSL.
 # The main exceptions are the install-deps-XXX-yyy targets below.
 # If you really have to use platform-specific commands or flags, try to use
 # macros like the one below to have a portable Makefile.
-
-# Used to select commands with different usage under GNU/Linux and *BSD/Darwin
-# such as 'sed'.
-ifeq ($(shell uname -s),Linux)
-  LINUX = true
-else
-  LINUX = false
-endif
-
-# :(
-ifeq ($(LINUX),true)
-  SED = sed -i -e
-else
-  SED = sed -i ''
-endif
+#
+#     # To select commands with different usage under GNU/Linux and *BSD/Darwin
+#     ifeq ($(shell uname -s),Linux)
+#       LINUX = true
+#     else
+#       LINUX = false
+#     endif
+#     ifeq ($(LINUX),true)
+#       SED = sed -i -e
+#     else
+#       SED = sed -i ''
+#     endif
 
 ###############################################################################
 # Build (and clean) targets
@@ -80,7 +73,7 @@ build:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-#history: was the 'all' target in in semgrep-core/Makefile before
+#history: was called the 'all' target in semgrep-core/Makefile before
 .PHONY: core
 core:
 	$(MAKE) minimal-build
@@ -92,9 +85,7 @@ core:
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
 	rm -f cli/src/semgrep/bin/semgrep-core
-	rm -f cli/src/semgrep/bin/osemgrep
 	cp bin/semgrep-core cli/src/semgrep/bin/
-	ln -s semgrep-core cli/src/semgrep/bin/osemgrep
 
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # Requires the environment variables set by the included file above.
@@ -111,12 +102,10 @@ minimal-build:
 build-docker:
 	docker build -t semgrep .
 
-# Build just this executable
 .PHONY: build-otarzan
 build-otarzan:
 	dune build _build/install/default/bin/otarzan
 
-# Build just this executable
 .PHONY: build-pfff
 build-pfff:
 	dune build _build/install/default/bin/pfff
@@ -139,7 +128,7 @@ clean:
 	-$(MAKE) core-clean
 	-$(MAKE) -C cli clean
 
-# was the 'clean' target in in semgrep-core/Makefile before
+#history: was the 'clean' target in semgrep-core/Makefile before
 .PHONY: core-clean
 core-clean:
 	dune clean
@@ -209,6 +198,13 @@ core-test:
 	# from the directory of the checkout
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
+
+# This is for working on one or a few specific test cases.
+# It rebuilds the test executable which can then be called with
+# './test <filter>' where <filter> selects the tests to run.
+.PHONY: build-core-test
+build-core-test:
+	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-e2etest
@@ -440,7 +436,7 @@ report-perf-matching:
 
 
 #coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--config semgrep.jsonnet --error --exclude tests
+SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --exclude tests
 # you can add --verbose for debugging
 
 #Dogfooding osemgrep!
@@ -456,9 +452,8 @@ DOCKER_IMAGE=returntocorp/semgrep:develop
 # If you get parsing errors while running this command, maybe you have an old
 # cached version of the docker image. You can invalidate the cache with
 #   'docker rmi returntocorp/semgrep:develop`
-# We're dogfooding osemgrep here too! which is now part of the docker image.
 check_with_docker:
-	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) osemgrep $(SEMGREP_ARGS)
+	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
 
 ###############################################################################
 # Martin's targets

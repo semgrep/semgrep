@@ -1,0 +1,19 @@
+rules:
+  - id: taint-implicit-return
+    message: Semgrep found a match
+    languages:
+      - rust
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-inside: |
+              fn $F(..., $S : String, ...) -> String {
+                ...
+              }
+          - pattern: $S
+    pattern-sinks:
+      - pattern: |
+          fn $F(...) -> String{
+              ...
+          }

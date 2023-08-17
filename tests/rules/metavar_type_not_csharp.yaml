@@ -1,0 +1,21 @@
+rules:
+- id: no-direct-response-write
+  patterns:
+  - pattern: $RES.Write(...)
+  - pattern-not: $RES.Write("...")
+  - metavariable-type:
+      metavariable: $RES
+      type: HttpResponse
+  message: |
+    Detected a direct write to the HTTP response. This bypasses any
+    view or template environments, including HTML escaping, which may
+    expose this application to cross-site scripting (XSS) vulnerabilities.
+    Consider using a view technology such as JavaServer Faces (JSFs) which
+    automatically escapes HTML views.
+  metadata:
+    owasp: 'A7: Cross-site Scripting (XSS)'
+    cwe: 'CWE-116: Improper Encoding or Escaping of Output'
+    references:
+    - https://www3.ntu.edu.sg/home/ehchua/programming/java/JavaServerFaces.html
+  severity: WARNING
+  languages: [csharp]

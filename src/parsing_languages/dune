@@ -46,6 +46,8 @@
    parser_julia.ast_generic
    parser_r.ast_generic
    parser_html.ast_generic
+   parser_promql.ast_generic
+   parser_protobuf.ast_generic
 
    ; no ast, directoy to generic AST
    tree-sitter-to-generic

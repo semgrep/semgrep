@@ -1,13 +1,14 @@
 ; OCaml implementation of the 'semgrep ci' subcommand.
 ;
 (library
+  (public_name semgrep.osemgrep_cli_ci)
   (name osemgrep_cli_ci)
   (wrapped false)
   (libraries
     cmdliner
     commons
     emile
-
+    osemgrep_configuring
     osemgrep_core
     osemgrep_networking
     osemgrep_cli_scan ; reusing the same flags and most of the code

@@ -1,0 +1,5 @@
+#[test]
+#[more(complicated, attribute)]
+fn $FUN() {
+  ...
+}

@@ -1,6 +1,7 @@
 ; OCaml implementation of the 'semgrep scan' subcommand.
 ;
 (library
+  (public_name semgrep.osemgrep_cli_scan)
   (name osemgrep_cli_scan)
   (wrapped false)
   (libraries

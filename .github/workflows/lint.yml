@@ -71,7 +71,7 @@ jobs:
     # This custom image provides 'ocamlformat' with a specific version needed to check
     # OCaml code (must be the same than the one in dev/dev.opam)
     # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: returntocorp/ocaml:ubuntu-2023-04-17
+    container: returntocorp/ocaml:ubuntu-2023-06-16
     # HOME in the container is tampered by GHA and modified from /root to /home/github
     # which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
     # hence the ugly use of 'env: HOME ...' below.
@@ -105,7 +105,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: reviewdog/action-actionlint@v1
+      - uses: actions/setup-go@v4
         with:
-          fail_on_error: true
-          actionlint_flags: -ignore 'workflow command "set-output" was deprecated. ".+"'
+          go-version: "1.19"
+      - name: Install Actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
+      - name: Run Actionlint
+        run: actionlint -shellcheck=''

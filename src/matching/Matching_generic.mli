@@ -2,9 +2,8 @@
 
 (* incoming environment *)
 type tin = {
-  mv : Metavariable_capture.t;
-  stmts_match_span : Stmts_match_span.t;
-  cache : tout Caching.Cache.t option;
+  mv : Metavariable.bindings;
+  stmts_matched : AST_generic.stmt list;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Rule_options.t;
@@ -49,19 +48,12 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-
-val empty_environment :
-  ?mvar_context:Metavariable.bindings option ->
-  tout Caching.Cache.t option ->
-  Lang.t ->
-  Rule_options.t ->
-  tin
-
+val empty_environment : Lang.t -> Rule_options.t -> tin
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
 (* Update the matching list of statements by providing a new matching
    statement. *)
-val extend_stmts_match_span : AST_generic.stmt -> tin -> tin
+val extend_stmts_matched : AST_generic.stmt -> tin -> tin
 
 val envf :
   Metavariable.mvar AST_generic.wrap -> Metavariable.mvalue -> tin -> tout

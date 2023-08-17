@@ -98,6 +98,35 @@ def test_output_highlighting__force_color_and_no_color(
     )
 
 
+@pytest.mark.osempass
+@pytest.mark.kinda_slow
+def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _errors = run_semgrep_in_tmp(
+        "rules/yaml_capture.yaml",
+        target_name="yaml/yaml_capture.yaml",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_promql_duration_captures(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _errors = run_semgrep_in_tmp(
+        "rules/promql-duration-capture.yaml",
+        target_name="promql/promql-duration-capture.yaml",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
 # This test is just for making sure that our YAML parser interacts properly
 # with metavariables. We don't want to introduce regressions which might
 # mess this up.

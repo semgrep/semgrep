@@ -22,16 +22,12 @@ type conf = {
   strict : bool;
   rewrite_rule_ids : bool;
   time_flag : bool;
-  profile : bool;
-  (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
-  legacy : bool;
+  engine_type : Engine_type.t;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
-  (* mix of --debug, --quiet, --verbose *)
-  logging_level : Logs.level option;
   force_color : bool;
   (* text output config (TODO: make a separate type gathering all of them) *)
   max_chars_per_line : int;
@@ -40,6 +36,7 @@ type conf = {
   metrics : Metrics_.config;
   registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
+  common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
@@ -63,7 +60,7 @@ val default : conf
 val parse_argv : string array -> conf
 
 (* exported because used by Ci_CLI.ml too *)
-val cmdline_term : conf Cmdliner.Term.t
+val cmdline_term : allow_empty_config:bool -> conf Cmdliner.Term.t
 
 (* exported because used by Interactive_CLI.ml too *)
 val o_lang : string option Cmdliner.Term.t

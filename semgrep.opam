@@ -36,14 +36,15 @@ depends: [
   "ppx_hash"
   "ppx_inline_test"
   "ppx_expect"
-  "ppx_sexp_conv" {!= "v0.15.0" & != "v0.15.1"}
+  "ppx_sexp_conv" {= "v0.14.3"}
   "re"
   "pcre"
   "ocamlgraph"
   "parmap"
   "uri"
   "uuidm"
-  "http-lwt-client"
+  "cohttp-lwt-unix"
+  "tls-lwt"
   "terminal_size"
   "lwt"
   "lwt_ppx"

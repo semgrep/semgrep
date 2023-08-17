@@ -1,4 +1,5 @@
 (library
+ (public_name semgrep.libyaml_stubs_js)
  (name libyaml_stubs_js)
  (wrapped false)
  (libraries js_of_ocaml)

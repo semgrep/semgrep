@@ -100,3 +100,9 @@
 [submodule "languages/cairo/tree-sitter/semgrep-cairo"]
 	path = languages/cairo/tree-sitter/semgrep-cairo
 	url = https://github.com/returntocorp/semgrep-cairo
+[submodule "languages/protobuf/tree-sitter/semgrep-proto"]
+	path = languages/protobuf/tree-sitter/semgrep-proto
+	url = https://github.com/returntocorp/semgrep-proto.git
+[submodule "languages/promql/tree-sitter/semgrep-promql"]
+	path = languages/promql/tree-sitter/semgrep-promql
+	url = https://github.com/returntocorp/semgrep-promql.git

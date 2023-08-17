@@ -46,16 +46,13 @@ type conf = {
   strict : bool;
   rewrite_rule_ids : bool;
   time_flag : bool;
-  profile : bool;
-  (* osemgrep-only: whether to keep pysemgrep behavior/limitations/errors *)
-  legacy : bool;
+  (* Engine selection *)
+  engine_type : Engine_type.t;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
-  (* mix of --debug, --quiet, --verbose *)
-  logging_level : Logs.level option;
   force_color : bool;
   max_chars_per_line : int;
   max_lines_per_finding : int;
@@ -63,6 +60,7 @@ type conf = {
   metrics : Metrics_.config;
   registry_caching : bool; (* similar to core_runner_conf.ast_caching *)
   version_check : bool;
+  common : CLI_common.conf;
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
@@ -106,7 +104,7 @@ let default : conf =
         (* Maxing out number of cores used to 16 if more not requested to
          * not overload on large machines
          *)
-        Core_runner.num_jobs = Int.min 16 (Parmap_helpers.get_cpu_count ());
+        Core_runner.num_jobs = min 16 (Parmap_helpers.get_cpu_count ());
         timeout = 30.0 (* seconds *);
         timeout_threshold = 3;
         max_memory_mb = 0;
@@ -121,18 +119,23 @@ let default : conf =
     dryrun = false;
     error_on_findings = false;
     strict = false;
-    profile = false;
+    (* could be move in CLI_common.default_conf? *)
+    common =
+      {
+        profile = false;
+        logging_level = Some Logs.Warning;
+        (* or set to Experimental by default when we release osemgrep? *)
+        maturity = None;
+      };
     time_flag = false;
-    (* ultimately should be set to true when we release osemgrep *)
-    legacy = false;
+    engine_type = OSS;
     output_format = Output_format.Text;
-    logging_level = Some Logs.Warning;
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
     rewrite_rule_ids = true;
     metrics = Metrics_.Auto;
-    (* like legacy, should maybe be set to false when we release osemgrep *)
+    (* like maturity, should maybe be set to false when we release osemgrep *)
     registry_caching = false;
     version_check = true;
     (* ugly: should be separate subcommands *)
@@ -426,6 +429,36 @@ let o_vim : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
+(* TOPORT "Engine type" (mutually exclusive) *)
+(* ------------------------------------------------------------------ *)
+
+let o_oss : bool Term.t =
+  let info = Arg.info [ "oss" ] ~doc:{|Run with the OSS engine.|} in
+  Arg.value (Arg.flag info)
+
+let o_pro_languages : bool Term.t =
+  let info =
+    Arg.info [ "pro-languages" ]
+      ~doc:
+        {|Run a language only supported by the pro engine without extra analysis features.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_pro_intrafile : bool Term.t =
+  let info =
+    Arg.info [ "pro-intrafile" ]
+      ~doc:{|Run with intrafile cross-function analysis.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_pro : bool Term.t =
+  let info =
+    Arg.info [ "pro" ]
+      ~doc:{|Run with all pro engine features including cross-file analysis.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
 (* TOPORT "Configuration options" *)
 (* ------------------------------------------------------------------ *)
 let o_config : string list Term.t =
@@ -608,11 +641,6 @@ let o_target_roots : string list Term.t =
 (* !!NEW arguments!! not in pysemgrep *)
 (* ------------------------------------------------------------------ *)
 
-let o_legacy : bool Term.t =
-  H.negatable_flag [ "legacy" ] ~neg_options:[ "no-legacy" ]
-    ~default:default.legacy
-    ~doc:{|Keep the pysemgrep behaviors/limitations/errors|}
-
 let o_dump_config : string option Term.t =
   let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
   Arg.value (Arg.opt Arg.(some string) None info)
@@ -647,27 +675,31 @@ let o_registry_caching : bool Term.t =
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
-let cmdline_term : conf Term.t =
+let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine ast_caching autofix baseline_commit config dryrun dump_ast
+  let combine ast_caching autofix baseline_commit common config dryrun dump_ast
       dump_config emacs error exclude exclude_rule_ids force_color include_ json
-      lang legacy logging_level max_chars_per_line max_lines_per_finding
-      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations
-      pattern profile project_root registry_caching replacement
+      lang max_chars_per_line max_lines_per_finding max_memory_mb
+      max_target_bytes metrics num_jobs nosem optimizations oss pattern pro
+      project_root pro_intrafile pro_lang registry_caching replacement
       respect_git_ignore rewrite_rule_ids scan_unknown_extensions severity
       show_supported_languages strict target_roots test test_ignore_todo
       time_flag timeout timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
-    Logs_helpers.setup_logging ~force_color ~level:logging_level;
+    Logs_helpers.setup_logging ~force_color
+      ~level:common.CLI_common.logging_level;
 
+    (* to remove at some point *)
     let registry_caching, ast_caching =
-      if legacy then (
-        Logs.debug (fun m ->
-            m "disabling registry and AST caching in legacy mode");
-        (false, false))
-      else (registry_caching, ast_caching)
+      match common.maturity with
+      | Some CLI_common.MDevelop -> (registry_caching, ast_caching)
+      | None
+      | Some (CLI_common.MExperimental | CLI_common.MLegacy) ->
+          Logs.debug (fun m ->
+              m "disabling registry and AST caching unless --develop");
+          (false, false)
     in
     let include_ =
       match include_ with
@@ -685,6 +717,19 @@ let cmdline_term : conf Term.t =
       | _else_ ->
           (* TOPORT: list the possibilities *)
           Error.abort "Mutually exclusive options --json/--emacs/--vim"
+    in
+    let engine_type =
+      match (oss, pro_lang, pro_intrafile, pro) with
+      | false, false, false, false -> default.engine_type
+      | true, false, false, false -> OSS
+      | false, true, false, false -> PRO Engine_type.Language_only
+      | false, false, true, false -> PRO Engine_type.Intrafile
+      | false, false, false, true -> PRO Engine_type.Interfile
+      | _else_ ->
+          (* TOPORT: list the possibilities *)
+          Error.abort
+            "Mutually exclusive options \
+             --oss/--pro-languages/--pro-intrafile/--pro"
     in
     let rules_source =
       match (config, (pattern, lang, replacement)) with
@@ -704,21 +749,24 @@ let cmdline_term : conf Term.t =
           (* TOPORT: raise with Exit_code.missing_config *)
           (* TOPORT? use instead
              "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
-          Error.abort
-            "No config given. Run with `--config auto` or see \
-             https://semgrep.dev/docs/running-rules/ for instructions on \
-             running with a specific config"
+          if allow_empty_config then Rules_source.Configs []
+          else
+            Error.abort
+              "No config given. Run with `--config auto` or see \
+               https://semgrep.dev/docs/running-rules/ for instructions on \
+               running with a specific config"
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
           Rules_source.Pattern (pat, Some xlang, fix)
-      | _, (Some pat, None, fix) ->
-          if
-            legacy
-            (* alt: "language must be specified when a pattern is passed" *)
-          then Error.abort "-e/--pattern and -l/--lang must both be specified"
-            (* osemgrep-only: better: can use -e without -l! *)
-          else Rules_source.Pattern (pat, None, fix)
+      | _, (Some pat, None, fix) -> (
+          match common.maturity with
+          (* osemgrep-only: better: can use -e without -l! *)
+          | Some CLI_common.MDevelop -> Rules_source.Pattern (pat, None, fix)
+          | None
+          | Some (CLI_common.MExperimental | CLI_common.MLegacy) ->
+              (* alt: "language must be specified when a pattern is passed" *)
+              Error.abort "-e/--pattern and -l/--lang must both be specified")
       | _, (None, Some _, _) ->
           (* stricter: error not detected in original semgrep *)
           Error.abort "-e/--pattern and -l/--lang must both be specified"
@@ -755,7 +803,7 @@ let cmdline_term : conf Term.t =
     let rule_filtering_conf =
       {
         Rule_filtering.exclude_rule_ids =
-          Common.map Rule.ID.of_string exclude_rule_ids;
+          Common.map Rule_ID.of_string exclude_rule_ids;
         severity;
       }
     in
@@ -813,12 +861,7 @@ let cmdline_term : conf Term.t =
                specify a rule"
         | Configs (_ :: _)
         | Pattern _ ->
-            Some
-              {
-                Validate_subcommand.rules_source;
-                logging_level;
-                core_runner_conf;
-              }
+            Some { Validate_subcommand.rules_source; core_runner_conf; common }
       else None
     in
     (* ugly: test should be a separate subcommand.
@@ -886,16 +929,15 @@ let cmdline_term : conf Term.t =
       force_color;
       max_chars_per_line;
       max_lines_per_finding;
-      logging_level;
       metrics;
       registry_caching;
       version_check;
       output_format;
-      profile;
+      engine_type;
       rewrite_rule_ids;
       strict;
       time_flag;
-      legacy;
+      common;
       (* ugly: *)
       version;
       show_supported_languages;
@@ -909,17 +951,18 @@ let cmdline_term : conf Term.t =
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_ast_caching $ o_autofix $ o_baseline_commit $ o_config
-    $ o_dryrun $ o_dump_ast $ o_dump_config $ o_emacs $ o_error $ o_exclude
-    $ o_exclude_rule_ids $ o_force_color $ o_include $ o_json $ o_lang
-    $ o_legacy $ CLI_common.o_logging $ o_max_chars_per_line
+    const combine $ o_ast_caching $ o_autofix $ o_baseline_commit
+    $ CLI_common.o_common $ o_config $ o_dryrun $ o_dump_ast $ o_dump_config
+    $ o_emacs $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color
+    $ o_include $ o_json $ o_lang $ o_max_chars_per_line
     $ o_max_lines_per_finding $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_nosem $ o_optimizations $ o_pattern $ CLI_common.o_profile
-    $ o_project_root $ o_registry_caching $ o_replacement $ o_respect_git_ignore
-    $ o_rewrite_rule_ids $ o_scan_unknown_extensions $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ o_test_ignore_todo $ o_time $ o_timeout $ o_timeout_threshold $ o_validate
-    $ o_version $ o_version_check $ o_vim)
+    $ o_num_jobs $ o_nosem $ o_optimizations $ o_oss $ o_pattern $ o_pro
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_registry_caching
+    $ o_replacement $ o_respect_git_ignore $ o_rewrite_rule_ids
+    $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
+    $ o_vim)
 
 let doc = "run semgrep rules on files"
 
@@ -953,5 +996,7 @@ let cmdline_info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man
 (*****************************************************************************)
 
 let parse_argv (argv : string array) : conf =
-  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
+  let cmd : conf Cmd.t =
+    Cmd.v cmdline_info (cmdline_term ~allow_empty_config:false)
+  in
   CLI_common.eval_value ~argv cmd

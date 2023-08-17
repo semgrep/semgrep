@@ -1,0 +1,12 @@
+rules:
+  - id: no-string-eqeq
+    severity: WARNING
+    message: find errors
+    languages:
+      - php
+    patterns:
+      - pattern-not: null == $Y
+      - pattern: $X == $Y
+      - metavariable-type:
+          metavariable: $Y
+          type: string

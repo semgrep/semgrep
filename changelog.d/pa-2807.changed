@@ -1,1 +1,0 @@
-Updated the maximum number of cores autodetected to 16 to prevent overloading on large machines when users do not specify number of jobs themselves

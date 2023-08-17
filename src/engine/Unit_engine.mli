@@ -34,6 +34,5 @@ val match_pattern :
 val make_lang_regression_tests :
   test_pattern_path:Fpath.t ->
   polyglot_pattern_path:Fpath.t ->
-  with_caching:bool ->
   (Lang.t * string * string) list ->
   Testutil.test list
