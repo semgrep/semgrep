@@ -5,7 +5,7 @@
 # - dogfood Semgrep by running it on each semgrep PRs.
 # - check that Semgrep can run in an alternate CI platform like Circle CI
 #   (and not just in Github Actions).
-# - have a cron that update our parsing statistics as well as some benchmarks,
+# - have crons that update our parsing statistics as well as some benchmarks,
 #   which are then accessible at https://dashboard.semgrep.dev/metrics
 #   and also at https://metabase.corp.r2c.dev/collection/59-semgrep
 
@@ -96,6 +96,17 @@ jobs:
             PATH=$PATH:"$(pip3 show semgrep | grep '^Location' | sed -e 's/Location: //')/semgrep/bin"
             opam exec -- ./stats/autofix-printing-stats/run --upload
 
+  # run pysemgrep->osemgrep porting stats and publish to the semgrep dashboard
+  pysemgrep-loc-stats:
+    docker:
+      - image: returntocorp/ocaml:alpine-2023-06-16
+    steps:
+      - checkout
+      - run:
+          name: stats
+          command: |
+            ./scripts/report_pysemgrep_loc.ml cli/src/
+
 ###############################################################################
 # The workflows
 ###############################################################################
@@ -107,6 +118,10 @@ workflows:
   semgrep:
     jobs:
       - semgrep
+
+  #----------------------------------------
+  # Crons
+  #----------------------------------------
 
   # Daily semgrep benchmarks
   benchmarks:
@@ -160,6 +175,9 @@ workflows:
               only:
                 - develop
 
+  #----------------------------------------
+  # Debugging workflows
+  #----------------------------------------
   # This is for testing or for forcing a stats job. Requires pushing
   # to a branch named 'parsing-stats'.
   parsing-stats-on-commit:
@@ -170,8 +188,6 @@ workflows:
               only:
                 - parsing-stats
 
-  # This is for testing or for forcing a stats job. Requires pushing
-  # to a branch named 'autofix-printing-stats'.
   autofix-printing-stats-on-commit:
     jobs:
       - autofix-printing-stats:
@@ -179,3 +195,11 @@ workflows:
             branches:
               only:
                 - autofix-printing-stats
+
+  pysemgrep-loc-stats-on-commit:
+    jobs:
+      - pysemgrep-loc-stats:
+          filters:
+            branches:
+              only:
+                - pysemgrep-loc-stats

@@ -30,6 +30,8 @@ open Feather (* for |. *)
  * usage:
  *   $ ./report_pysemgrep_loc --upload cli/semgrep/
  *
+ * This is also run in a cron in .circleci/config.yml
+ *
  * alternatives:
  *  - a bash script, like in report_test_metrics.sh
  *
