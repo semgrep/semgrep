@@ -158,6 +158,10 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/nuget-sca-simple.yaml",
             "dependency_aware/nuget",
         ),
+        (
+            "rules/dependency_aware/python-poetry-sca.yaml",
+            "dependency_aware/nuget",
+        ),
     ],
 )
 def test_dependency_aware_rules(
