@@ -12,6 +12,7 @@ let parse_pattern _ lang str =
 let parse_target lang file =
   let parsing_mode = lang_to_python_parsing_mode lang in
   Pfff_or_tree_sitter.run file
+    (* coupling: check src/parsing_languages/Parse_pattern2.ml *)
     [
       Pfff (Pfff_or_tree_sitter.throw_tokens (Parse_python.parse ~parsing_mode));
       TreeSitter Parse_python_tree_sitter.parse;
