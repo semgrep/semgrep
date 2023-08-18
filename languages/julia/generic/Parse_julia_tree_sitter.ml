@@ -1543,11 +1543,12 @@ and map_exportable (env : env) (x : CST.exportable) =
       let* x = map_macro_identifier env x in
       Some x
   | `Op x -> Some [ map_operator env x ]
-  | `Interp_exp _x ->
+  | `Interp_exp (`DOLLAR_choice_num x) ->
       (* TODO: AST_generic can't fit an arbitrary expression in an import right now
          We will just discard the entire import in that case, but continue.
       *)
-      None
+      todo env x
+  | `Interp_exp (`Pat_aa33ccb x) -> Some [ map_word_identifier env x ]
   | `LPAR_choice_id_RPAR (v1, v2, v3) ->
       let _v1 = (* "(" *) token env v1 in
       let v2 = map_anon_choice_id_267a5f7 env v2 in
@@ -1720,7 +1721,8 @@ and map_named_field_type_parameter (env : env) ((v1, v2, v3) : CST.named_field)
   let v1 =
     match v1 with
     | `Id id -> map_identifier env id
-    | `Interp_exp v1 -> todo env v1
+    | `Interp_exp (`Pat_aa33ccb x) -> map_word_identifier env x
+    | `Interp_exp (`DOLLAR_choice_num (v1, v2)) -> todo env (v1, v2)
   in
   let _v2 = (* "=" *) token env v2 in
   let v3 = map_anon_choice_exp_91c2553_exp env v3 in
