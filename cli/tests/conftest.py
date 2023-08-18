@@ -322,6 +322,7 @@ def _run_semgrep(
     force_metrics_off: bool = True,
     stdin: Optional[str] = None,
     clean_fingerprint: bool = True,
+    use_click_runner: bool = True,  # TODO: change to False. deprecated! Avoid using! see semgrep_runner.py
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -391,7 +392,7 @@ def _run_semgrep(
     args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
     env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
-    runner = SemgrepRunner(env=env, mix_stderr=False)
+    runner = SemgrepRunner(env=env, mix_stderr=False, use_click_runner=use_click_runner)
     click_result = runner.invoke(cli, args, input=stdin)
     result = SemgrepResult(
         # the actual executable was either semgrep or osemgrep. Is it bad?

@@ -7,7 +7,7 @@
 # semgrep in tests by using Click and its CliRunner to avoid an extra fork.
 # However, with the introduction of osemgrep and the new cli/bin/semgrep (which
 # dispatch to osemgrep), we actually want to avoid to use the CliRunner which
-# only run pysemgrep. Otherwise, our e2e tests would not be really end-to
+# only run pysemgrep code. Otherwise, our e2e tests would not be really end-to
 # -end and may not represent what the user would get by using semgrep directly.
 # This is why using the CliRunner option is now deprecated. The option is still
 # kept because a few of our tests still rely on Click-specific features that
@@ -33,6 +33,7 @@ from click.testing import CliRunner
 # Environment variable that trigger the use of osemgrep
 _USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
+# The --experimental is to force the use of osemgrep.
 # The --project-root option is used to prevent the .semgrepignore
 # at the root of the git project to be taken into account when testing,
 # which is a new behavior in osemgrep.
@@ -77,8 +78,6 @@ class Result:
 
 
 # Run semgrep in an external process
-# TODO: right now it's forking osemgrep, but we should instead fork semgrep
-# and use the --experimental flag when we want to force to use osemgrep
 def fork_semgrep(
     args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
 ) -> Result:
@@ -122,16 +121,19 @@ class SemgrepRunner:
     If a property is missing on the runner object, please add it here.
     """
 
-    def __init__(self, env=None, mix_stderr=True):
-        self._use_osemgrep = _USE_OSEMGREP
+    def __init__(self, env=None, mix_stderr=True, use_click_runner=False):
+        if use_click_runner and _USE_OSEMGREP:
+            use_click_runner = False
+            print("disabling Click_runner use because of PYTEST_USE_OSEMGREP")
+        self._use_click_runner = use_click_runner
         self._output = ""
         self._env = env
         self._mix_stderr = mix_stderr
-        if not self._use_osemgrep:
+        if self._use_click_runner:
             self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
 
     def invoke(self, python_cli, args, input: Optional[str] = None, env=None) -> Result:
-        if not self._use_osemgrep:
+        if self._use_click_runner:
             result = self._runner.invoke(python_cli, args, input=input, env=env)
             stderr = result.stderr if not self._mix_stderr else ""
             return Result(result.exit_code, result.stdout, stderr)
