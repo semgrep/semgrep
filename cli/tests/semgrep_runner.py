@@ -31,20 +31,21 @@ from click.testing import CliRunner
 ##############################################################################
 
 # Environment variable that trigger the use of osemgrep
-USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
+_USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
 # The --project-root option is used to prevent the .semgrepignore
 # at the root of the git project to be taken into account when testing,
 # which is a new behavior in osemgrep.
-OSEMGREP_EXTRA_ARGS = ["--experimental", "--project-root", "."]
+_OSEMGREP_EXTRA_ARGS = ["--experimental", "--project-root", "."]
 
-# The semgrep command suitable to run semgrep as a separate process.
-SEMGREP_BASE_COMMAND_STR: str = str(
-    (Path(__file__).parent.parent / "bin" / "semgrep").absolute()
+_SEMGREP_PATH = str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())
+
+# Exported constant, convenient to use in a list context.
+SEMGREP_BASE_COMMAND: List[str] = (
+    [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if _USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
-# More convenient to use when used in a list context
-SEMGREP_BASE_COMMAND: List[str] = [SEMGREP_BASE_COMMAND_STR]
+SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
 
 ##############################################################################
 # Helpers
@@ -93,9 +94,9 @@ def fork_semgrep(
 
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in arg_list or "--help" in arg_list:
-        argv = SEMGREP_BASE_COMMAND + arg_list
+        argv = [_SEMGREP_PATH] + arg_list
     else:
-        argv = SEMGREP_BASE_COMMAND + OSEMGREP_EXTRA_ARGS + arg_list
+        argv = [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS + arg_list
 
     # env preparation
     env_dict = {}
@@ -122,7 +123,7 @@ class SemgrepRunner:
     """
 
     def __init__(self, env=None, mix_stderr=True):
-        self._use_osemgrep = USE_OSEMGREP
+        self._use_osemgrep = _USE_OSEMGREP
         self._output = ""
         self._env = env
         self._mix_stderr = mix_stderr
