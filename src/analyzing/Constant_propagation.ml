@@ -69,18 +69,10 @@ type env = {
   (* basic constant propagation of literals for semgrep *)
   constants : (var, svalue) Hashtbl.t;
   attributes : (var, G.attribute list) Hashtbl.t;
-  in_lvalue : bool ref;
-  in_static_block : bool ref;
 }
 
 let default_env lang =
-  {
-    lang;
-    constants = Hashtbl.create 100;
-    attributes = Hashtbl.create 100;
-    in_lvalue = ref false;
-    in_static_block = ref false;
-  }
+  { lang; constants = Hashtbl.create 100; attributes = Hashtbl.create 100 }
 
 type lr_stats = {
   (* note that a VarDef defining the value will count as 1 *)
@@ -596,6 +588,14 @@ let add_special_constants env lang prog =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+type visitor_context = {
+  in_lvalue : bool;
+  in_class : ident option;
+  in_static_block : bool;
+  in_constructor : bool;
+}
+
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
@@ -613,8 +613,19 @@ let propagate_basic lang prog =
       inherit [_] AST_generic.iter_no_id_info as super
 
       (* the defs *)
-      method! visit_definition venv x =
+      method! visit_definition ctx x =
         match x with
+        | { name = EN (Id (id, _ii)); _ }, ClassDef cdef ->
+            super#visit_class_definition { ctx with in_class = Some id } cdef
+        | { name = EN (Id (id, _ii)); _ }, FuncDef fdef -> (
+            match ctx.in_class with
+            | Some cid when fst cid = fst id ->
+                super#visit_function_definition
+                  { ctx with in_constructor = true }
+                  fdef
+            | Some _
+            | None ->
+                super#visit_function_definition ctx fdef)
         | ( {
               name =
                 EN
@@ -630,7 +641,7 @@ let propagate_basic lang prog =
                * `private` visibility. An example of this is a class field that
                * is initialized in the constructor or in a `static` block. *)
               Hashtbl.replace env.attributes (fst id, sid) attrs;
-            super#visit_definition venv x
+            super#visit_definition ctx x
         | ( {
               name =
                 EN
@@ -673,37 +684,30 @@ let propagate_basic lang prog =
                     && no_cycles_in_sym_prop sid e ->
                  add_constant_env id (sid, Sym e) env
              | None, _ -> ());
-            super#visit_definition venv x
-        | _ -> super#visit_definition venv x
+            super#visit_definition ctx x
+        | _ -> super#visit_definition ctx x
 
-      method! visit_stmt_kind venv x =
+      method! visit_stmt_kind ctx x =
         (match x with
         | OtherStmtWithStmt (OSWS_Block ("Static", _), [], block) ->
-            Common.save_excursion env.in_static_block true (fun () ->
-                self#visit_stmt venv block)
+            self#visit_stmt { ctx with in_static_block = true } block
         | __else__ -> ());
-        super#visit_stmt_kind venv x
+        super#visit_stmt_kind ctx x
 
       (* the uses (and also defs for Python Assign) *)
-      method! visit_expr venv x =
+      method! visit_expr ctx x =
         match x.e with
         | N (Id (id, id_info))
-        | Call
-            ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
-              (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
-          when not !(env.in_lvalue) ->
+        | DotAccess
+            ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
+          when not ctx.in_lvalue ->
             let/ svalue = find_id env id id_info in
             Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: dockerfile specific *)
         | Call
             ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
               (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
-          when not !(env.in_lvalue) ->
-            let/ svalue = find_id env id id_info in
-            Dataflow_svalue.set_svalue_ref id_info svalue
-        | DotAccess
-            ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
-          when not !(env.in_lvalue) ->
+          when not ctx.in_lvalue ->
             let/ svalue = find_id env id id_info in
             Dataflow_svalue.set_svalue_ref id_info svalue
         (* ugly: terraform specific.
@@ -713,21 +717,32 @@ let propagate_basic lang prog =
             ( { e = N (Id (((("local" | "var") as prefix), _), _)); _ },
               _,
               FN (Id ((str, _tk), id_info)) )
-          when lang = Lang.Terraform && not !(env.in_lvalue) ->
+          when lang = Lang.Terraform && not ctx.in_lvalue ->
             let var = (prefix ^ "." ^ str, terraform_sid) in
             let/ svalue = Hashtbl.find_opt env.constants var in
             Dataflow_svalue.set_svalue_ref id_info svalue
         | ArrayAccess (e1, (_, e2, _)) ->
-            self#visit_expr venv e1;
-            Common.save_excursion env.in_lvalue false (fun () ->
-                self#visit_expr venv e2)
+            self#visit_expr ctx e1;
+            self#visit_expr { ctx with in_lvalue = false } e2
             (* Assign that is really a hidden VarDef (e.g., in Python) *)
         | Assign
             ( {
                 e =
-                  N
-                    (Id
-                      (id, { id_resolved = { contents = Some (kind, sid) }; _ }));
+                  ( N
+                      (Id
+                        ( id,
+                          { id_resolved = { contents = Some (kind, sid) }; _ }
+                        ))
+                  | DotAccess
+                      ( { e = IdSpecial ((This | Self), _); _ },
+                        _,
+                        FN
+                          (Id
+                            ( id,
+                              {
+                                id_resolved = { contents = Some (kind, sid) };
+                                _;
+                              } )) ) );
                 _;
               },
               _,
@@ -745,8 +760,9 @@ let propagate_basic lang prog =
                && ((is_lang env Lang.Python || is_lang env Lang.Ruby
                   || is_lang env Lang.Php || is_js env)
                    && is_global kind
+                  (* TODO: Add other Java-like OO languages, maybe Apex and C# ? *)
                   || is_lang env Lang.Java && is_private_class_field
-                     && !(env.in_static_block))
+                     && (ctx.in_static_block || ctx.in_constructor))
                && is_resolved_name kind sid
              then
                match opt_svalue with
@@ -757,16 +773,22 @@ let propagate_basic lang prog =
                      && no_cycles_in_sym_prop sid rexp
                    then add_constant_env id (sid, Sym rexp) env;
                    ());
-            self#visit_expr venv rexp
+            self#visit_expr ctx rexp
         | Assign (e1, _, e2)
         | AssignOp (e1, _, e2) ->
-            Common.save_excursion env.in_lvalue true (fun () ->
-                self#visit_expr venv e1);
-            self#visit_expr venv e2
-        | _ -> super#visit_expr venv x
+            self#visit_expr { ctx with in_lvalue = true } e1;
+            self#visit_expr ctx e2
+        | _ -> super#visit_expr ctx x
     end
   in
-  visitor#visit_program () prog;
+  visitor#visit_program
+    {
+      in_class = None;
+      in_lvalue = false;
+      in_static_block = false;
+      in_constructor = false;
+    }
+    prog;
   ()
   [@@profiling]
 
