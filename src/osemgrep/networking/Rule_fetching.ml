@@ -224,6 +224,7 @@ let import_callback ~registry_caching base str =
           (* TODO? allow to import any config_str? even a directory?
            * factorize with rules_from_dashdash_config?
            *)
+          | C.Embedded
           | C.Dir _
           | C.File _ ->
               None
@@ -376,6 +377,7 @@ let rules_from_dashdash_config_async ~token_opt ~registry_caching kind :
       in
       Lwt.return [ rules ]
   | C.A SupplyChain -> failwith "TODO: SupplyChain not handled yet"
+  | C.Embedded -> Lwt.return []
 
 let rules_from_dashdash_config ~token_opt ~registry_caching kind :
     rules_and_origin list =

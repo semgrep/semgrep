@@ -1,4 +1,5 @@
 open Common
+open File.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -425,6 +426,32 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
       (* step2: getting the targets *)
       let targets_and_ignored =
         Find_targets.get_targets conf.targeting_conf conf.target_roots
+      in
+      (* embedded hack *)
+      let rules_and_origins =
+        match conf.rules_source with
+        (* alt: get first the targets, pass then to rules_from_rules_source
+         * which when it finds Embedded config_kind, it extract the rules,
+         * but simpler and less invasite to do it here for now.
+         *)
+        | Rules_source.Configs xs
+          when xs
+               |> Common.map Semgrep_dashdash_config.parse_config_string
+               |> List.mem Semgrep_dashdash_config.Embedded ->
+            let targets, _ = targets_and_ignored in
+            (targets
+            |> Common.map_filter (fun target ->
+                   if Parse_embedded_rules.has_embedded_rules target then (
+                     Logs.debug (fun m ->
+                         m "!!Found embedded rules in %s!!" !!target);
+
+                     let rules, errors =
+                       Parse_embedded_rules.extract_rules target
+                     in
+                     Some { Rule_fetching.origin = Some target; rules; errors })
+                   else None))
+            @ rules_and_origins
+        | _else_ -> rules_and_origins
       in
       (* step3: let's go *)
       let res =

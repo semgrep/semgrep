@@ -11,6 +11,8 @@ type config_kind =
   | URL of Uri.t
   | R of registry_config_kind
   | A of app_config_kind
+  (* get the rules from the code itself! *)
+  | Embedded
 
 and registry_config_kind =
   (* r/... *)
