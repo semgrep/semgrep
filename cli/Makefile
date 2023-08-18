@@ -1,4 +1,6 @@
-PYTEST ?= pipenv run pytest -v --tb=short --durations=10
+###############################################################################
+# Main target
+###############################################################################
 
 # Run everything that makes sense to run.
 .PHONY: default
@@ -36,6 +38,14 @@ clean:
 # Tests
 ###############################################################################
 
+# From fastest to slowest (on pad's machine):
+# - 'make quick-tests' (=~ 30s)
+# - 'make e2e' (=~ 1m14s)
+# - 'make kinda-quick-tests' (=~ 2min30s )
+# - 'make test' (=~ )
+
+PYTEST ?= pipenv run pytest -v --tb=short --durations=10
+
 # Typecheck and run all basic tests from quickest to slowest.
 .PHONY: test
 test:
@@ -49,8 +59,7 @@ test:
 # We exclude the few tests that don't invoke the semgrep command directly.
 .PHONY: e2e
 e2e:
-	$(PYTEST) -n auto -v \
-	  -m 'not no_semgrep_cli and not todo' tests/e2e
+	$(PYTEST) -n auto -v -m 'not no_semgrep_cli and not todo' tests/e2e
 
 # Run the extra tests on public repos and semgrep-rules
 .PHONY: qa
