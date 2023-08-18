@@ -494,6 +494,8 @@ let mk_fake_rule lang formula =
   {
     Rule.id = (Rule_ID.of_string "-i", fk);
     mode = `Search formula;
+    min_version = None;
+    max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;

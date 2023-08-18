@@ -454,6 +454,11 @@ type 'mode rule_info = {
   (* MANDATORY fields *)
   id : Rule_ID.t wrap;
   mode : 'mode;
+  (* Range of Semgrep versions supported by the rule.
+     Note that a rule with these fields may not even be parseable
+     in the current version of Semgrep and wouldn't even reach this point. *)
+  min_version : Version_info.t option;
+  max_version : Version_info.t option;
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
@@ -571,6 +576,10 @@ and invalid_rule_error_kind =
   | InvalidRegexp of string (* PCRE error message *)
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | IncompatibleVersion of
+      Version_info.t (* this version of Semgrep *)
+      * (Version_info.t option (* minimum version supported by this rule *)
+        * Version_info.t option (* maximum version *))
   | InvalidOther of string
 [@@deriving show]
 
@@ -604,6 +613,24 @@ let string_of_invalid_rule_error_kind = function
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
+  | IncompatibleVersion (cur, (Some min_version, None)) ->
+      spf "This rule requires upgrading Semgrep from version %s to at least %s"
+        (Version_info.to_string cur)
+        (Version_info.to_string min_version)
+  | IncompatibleVersion (cur, (None, Some max_version)) ->
+      spf
+        "This rule is no longer supported by Semgrep. The last compatible \
+         version was %s. This version of Semgrep is %s"
+        (Version_info.to_string max_version)
+        (Version_info.to_string cur)
+  | IncompatibleVersion (cur, (Some min_version, Some max_version)) ->
+      spf
+        "This rule requires a version of Semgrep within [%s, %s] but we're \
+         using version %s"
+        (Version_info.to_string min_version)
+        (Version_info.to_string max_version)
+        (Version_info.to_string cur)
+  | IncompatibleVersion (_, (None, None)) -> assert false
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
@@ -713,6 +740,8 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   {
     id = (Rule_ID.of_string "-e", fk);
     mode = `Search (P xpat);
+    min_version = None;
+    max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
