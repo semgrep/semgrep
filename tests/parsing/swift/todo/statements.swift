@@ -48,22 +48,22 @@ var y { }
 var x {
   get { return 2 }
   _modify { }
-  set { return () }
+  set { return 2 }
 }
 var x {
   var y = 3
   get { return 2 }
-  set (setter_name) { return () }
+  set (setter_name) { return 3 }
   _modify { }
 }
 
 // Closures
 var x =
-  { @foo [ self, x, y = 3]
+  { @foo [ self, x, y = 3] in
     return 2
   }
 var x =
-  { @foo(x : 3 + 4, 5, long:thing:here:, name 5 . 0 . 2 . 3) [ self, x, y = 3]
+  { @foo(x : 3 + 4, 5, long:thing:here:, name 5 . 0 . 2 . 3) [ self, x, y = 3] in
     return 2
   }
 
@@ -257,7 +257,7 @@ if async let x = true {} else {}
 if case x = true {} else if case x = false {} else {}
 if let x {} else {}
 if var x {} else {}
-if #available(things2) {}
+if #available(things 1, *) {}
 if #available(things 1 . 2 . 3) {}
 if #available(things 2 . 3) {}
 if #available(*) {}
@@ -283,8 +283,9 @@ switch foo {
   case var x:
     return 2
   case _:
-    return 3
+    return 3 fallthrough
   default:
+    return 4 fallthrough
 }
 
 switch foo {
