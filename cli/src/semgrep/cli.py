@@ -10,7 +10,6 @@ from semgrep.commands.login import logout
 from semgrep.commands.lsp import lsp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
-from semgrep.commands.shouldafound import shouldafound
 from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -78,5 +77,4 @@ cli.add_command(logout)
 cli.add_command(publish)
 cli.add_command(scan)
 cli.add_command(install_semgrep_pro)
-cli.add_command(shouldafound)
 cli.add_command(lsp)

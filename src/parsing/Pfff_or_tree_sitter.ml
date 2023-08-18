@@ -36,7 +36,13 @@ type 'ast parser =
   | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
   | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
 
-(* This type is parametrized by the AST type because ??? *)
+(*
+   This type is parametrized by the AST type because we don't always
+   generate directly generic ASTs. We sometimes generate intermediate
+   ASTs hence the need for polymorphic type (so you can have
+   Ast_cpp.program internal_result, or Ast_php.program
+   internal_result).
+*)
 type 'ast internal_result =
   | ResOk of ('ast * Parsing_stat.t)
   | ResPartial of
@@ -97,8 +103,15 @@ let extract_pattern_from_tree_sitter_result
 (* Run target parsers *)
 (*****************************************************************************)
 
-(* Serious error = any parsing error that causes us to resort to an alternate
-   parser. *)
+(*
+   Serious error = any parsing error that causes us to resort to an
+   alternate parser. Missing nodes aren't considered serious enough to
+   warrant another parsing attempt. Otherwise, doing so would result
+   in slowdowns due to the other parser being usually slower
+   (observed: 3 s -> 30 s parsing time on big JS file when retrying
+   due to missing/inserted tokens and falling back to the menhir
+   parser).
+*)
 let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   match err.kind with
   | Internal

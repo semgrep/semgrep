@@ -12,6 +12,5 @@
    ast_generic ; a few AST_generic_helpers, ugly
  )
  (preprocess (pps ppx_deriving.show
-                  ppx_sexp_conv ; for sexp_of in CST_tree_sitter
 		  ))
 )

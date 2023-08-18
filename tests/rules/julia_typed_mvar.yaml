@@ -1,0 +1,15 @@
+rules:
+- id: julia-typed-mvar
+  languages:
+  - julia
+  patterns:
+    - pattern: |
+        foo($X)
+    - metavariable-type:
+        metavariable: $X
+        type: Int64
+  message: |
+    This test actually exercises our ability to
+    perform type inference from converting an Assign
+    to a VarDef.
+  severity: ERROR

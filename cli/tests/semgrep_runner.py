@@ -7,11 +7,11 @@
 # semgrep in tests by using Click and its CliRunner to avoid an extra fork.
 # However, with the introduction of osemgrep and the new cli/bin/semgrep (which
 # dispatch to osemgrep), we actually want to avoid to use the CliRunner which
-# only run pysemgrep. Otherwise, our e2e tests would not be really end-to
+# only run pysemgrep code. Otherwise, our e2e tests would not be really end-to
 # -end and may not represent what the user would get by using semgrep directly.
 # This is why using the CliRunner option is now deprecated. The option is still
 # kept because a few of our tests still rely on Click-specific features that
-# the regular call-semgrep-in-a-subprocess do not provide yet.
+# the regular call-semgrep-in-a-subprocess does not provide yet.
 import os
 import shlex
 from dataclasses import dataclass
@@ -27,55 +27,23 @@ from typing import Union
 from click.testing import CliRunner
 
 ##############################################################################
-# Helper functions
-##############################################################################
-
-
-def parse_env_bool(var_name: str, var_val: str) -> bool:
-    if var_val == "true":
-        return True
-    elif var_val == "false":
-        return False
-    else:
-        raise Exception(
-            f"Environment variable {var_name}={var_val} "
-            f"may not be assigned values other than 'true or 'false'."
-        )
-
-
-def get_env_bool(var_name: str) -> Optional[bool]:
-    """Get the value of an environment holding either 'true' or 'false'."""
-    s = os.environ.get(var_name)
-    if s is None:
-        return None
-    else:
-        return parse_env_bool(var_name, s)
-
-
-##############################################################################
 # Constants
 ##############################################################################
 
-# Environment variables that trigger the use of osemgrep
-OSEMGREP_PATH = "osemgrep"
-env_osemgrep = os.environ.get("PYTEST_OSEMGREP")
-if env_osemgrep:
-    OSEMGREP_PATH = env_osemgrep
+# Environment variable that trigger the use of osemgrep
+_USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
-USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
-
+# The --experimental is to force the use of osemgrep.
 # The --project-root option is used to prevent the .semgrepignore
 # at the root of the git project to be taken into account when testing,
 # which is a new behavior in osemgrep.
-OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", ".", "--experimental"]
+_OSEMGREP_EXTRA_ARGS = ["--experimental", "--project-root", "."]
 
-# The semgrep command suitable to run semgrep as a separate process.
-# It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
-# ["/path/to/osemgrep"].
+_SEMGREP_PATH = str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())
+
+# Exported constant, convenient to use in a list context.
 SEMGREP_BASE_COMMAND: List[str] = (
-    [OSEMGREP_PATH]
-    if USE_OSEMGREP
-    else [str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())]
+    [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if _USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
 SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
@@ -110,8 +78,6 @@ class Result:
 
 
 # Run semgrep in an external process
-# TODO: right now it's forking osemgrep, but we should instead fork semgrep
-# and use the --experimental flag when we want to force to use osemgrep
 def fork_semgrep(
     args: Optional[Union[str, Sequence[str]]], env: Optional[Dict[str, str]] = None
 ) -> Result:
@@ -124,11 +90,12 @@ def fork_semgrep(
     elif isinstance(args, List):
         arg_list = args
     argv: List[str] = []
+
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in arg_list or "--help" in arg_list:
-        argv = [OSEMGREP_PATH] + arg_list
+        argv = [_SEMGREP_PATH] + arg_list
     else:
-        argv = [OSEMGREP_PATH] + OSEMGREP_COMPATIBILITY_ARGS + arg_list
+        argv = [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS + arg_list
 
     # env preparation
     env_dict = {}
@@ -154,16 +121,19 @@ class SemgrepRunner:
     If a property is missing on the runner object, please add it here.
     """
 
-    def __init__(self, env=None, mix_stderr=True):
-        self._use_osemgrep = USE_OSEMGREP
+    def __init__(self, env=None, mix_stderr=True, use_click_runner=False):
+        if use_click_runner and _USE_OSEMGREP:
+            use_click_runner = False
+            print("disabling Click_runner use because of PYTEST_USE_OSEMGREP")
+        self._use_click_runner = use_click_runner
         self._output = ""
         self._env = env
         self._mix_stderr = mix_stderr
-        if not self._use_osemgrep:
+        if self._use_click_runner:
             self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
 
     def invoke(self, python_cli, args, input: Optional[str] = None, env=None) -> Result:
-        if not self._use_osemgrep:
+        if self._use_click_runner:
             result = self._runner.invoke(python_cli, args, input=input, env=env)
             stderr = result.stderr if not self._mix_stderr else ""
             return Result(result.exit_code, result.stdout, stderr)
