@@ -19,7 +19,6 @@ depends: [
   "stdcompat"
   "menhir" {= "20211128"}
   "grain_dypgen"
-  "base"
   "fpath"
   "alcotest"
   "ANSITerminal"
