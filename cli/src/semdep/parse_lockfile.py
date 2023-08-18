@@ -102,7 +102,6 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
     "packages.lock.json": None,
-    "packages.config": "packages.config",
 }
 
 

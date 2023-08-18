@@ -73,7 +73,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "        \"System.Linq\": {\n          \"type\": \"Transitive\",",
-        "message": "Depends on vulnerable System.Linq hypothetical",
+        "message": "Depends on vulnerable System.Linq",
         "metadata": {},
         "metavars": {},
         "sca_info": {
@@ -117,7 +117,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 0 Code rules, 2 Supply Chain rules:
+  Scanning 1 file tracked by git with 0 Code rules, 4 Supply Chain rules:
 
 
   CODE RULES
@@ -131,6 +131,6 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 │ Scan Summary │
 └──────────────┘
 
-Ran 2 rules on 1 file: 2 findings.
+Ran 4 rules on 1 file: 2 findings.
 
 === end of stderr - plain
