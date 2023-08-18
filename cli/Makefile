@@ -42,7 +42,7 @@ clean:
 # - 'make quick-tests' (=~ 30s)
 # - 'make e2e' (=~ 1m14s)
 # - 'make kinda-quick-tests' (=~ 2min30s )
-# - 'make test' (=~ )
+# - 'make test' (=~ 10min)
 
 PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 
