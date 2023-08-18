@@ -691,8 +691,9 @@ let rec map_preconditions f taint =
 (* New taints *)
 (*****************************************************************************)
 
-let src_of_pm ~incoming (pm, (x : Rule.taint_source)) =
-  let relevant_incoming = filter_relevant_taints x.source_requires incoming in
+let src_of_pm ~incoming (pm, (source : Rule.taint_source)) =
+  let pc = R.get_source_precondition source in
+  let relevant_incoming = filter_relevant_taints pc incoming in
   (* We don't expect to be able to solve preconditions here, but we need to try
    * in order to simplify away the trivial cases. Otherwise if we had e.g. a pattern
    * source like `pattern: $X` that matches tons of things, with label 'B' and a
@@ -700,21 +701,27 @@ let src_of_pm ~incoming (pm, (x : Rule.taint_source)) =
    * for sure that we don't have any 'A'!
    *)
   match
-    solve_precondition ~ignore_poly_taint:false ~taints:relevant_incoming
-      x.source_requires
+    solve_precondition ~ignore_poly_taint:false ~taints:relevant_incoming pc
   with
   | Some false -> None
   | Some true ->
       Some
-        (Src { call_trace = PM (pm, x); label = x.label; precondition = None })
+        (Src
+           {
+             call_trace = PM (pm, source);
+             label = source.label;
+             precondition = None;
+           })
   | None ->
       let taints_list = Taint_set.elements relevant_incoming in
       let precondition =
-        match x.source_requires with
+        match pc with
         | Rule.PBool true -> None
         | other -> Some (taints_list, other)
       in
-      Some (Src { call_trace = PM (pm, x); label = x.label; precondition })
+      Some
+        (Src
+           { call_trace = PM (pm, source); label = source.label; precondition })
 
 let taint_of_pm ~incoming pm =
   match src_of_pm ~incoming pm with

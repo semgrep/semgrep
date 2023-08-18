@@ -7,5 +7,5 @@
    semgrep.parsing_languages
    semgrep.targeting ; for Test_parsing.ml
  )
- (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+ (preprocess (pps ppx_profiling ppx_deriving.show))
 )

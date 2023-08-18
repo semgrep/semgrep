@@ -17,6 +17,7 @@ let parse_pattern print_errors _ str =
   let js_ast =
     str
     |> Pfff_or_tree_sitter.run_pattern ~print_errors
+         (* coupling: check src/parsing_languages/Parse_pattern2.ml *)
          [
            PfffPat Parse_js.any_of_string;
            TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;
