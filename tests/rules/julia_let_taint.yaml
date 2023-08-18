@@ -1,0 +1,11 @@
+rules:
+  - id: julia-let-taint
+    mode: taint
+    pattern-sources:
+      - pattern: "..."
+    pattern-sinks:
+      - pattern: f(...)
+    message: Demo.
+    languages:
+      - julia
+    severity: WARNING
