@@ -66,12 +66,6 @@ class Env:
         default=EnvFactory(["SEMGREP_URL", "SEMGREP_APP_URL"], "https://semgrep.dev"),
         converter=url,
     )
-    shouldafound_base_url: str = field(
-        default=EnvFactory(
-            "SEMGREP_SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
-        ),
-        converter=url,
-    )
     app_token: Optional[str] = field(default=EnvFactory("SEMGREP_APP_TOKEN"))
 
     version_check_url: str = field(
@@ -92,7 +86,6 @@ class Env:
     in_docker: bool = field()
     in_gh_action: bool = field()
     in_agent: bool = field()
-    shouldafound_no_email: bool = field()
     min_fetch_depth: int = field()
 
     upload_findings_timeout: int = field()
@@ -155,10 +148,6 @@ class Env:
     @in_agent.default
     def in_agent_default(self) -> bool:
         return "SEMGREP_AGENT" in os.environ
-
-    @shouldafound_no_email.default
-    def shouldafound_no_email_default(self) -> bool:
-        return "SEMGREP_SHOULDAFOUND_NO_EMAIL" in os.environ
 
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:
