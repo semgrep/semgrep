@@ -522,19 +522,6 @@ and map_anon_choice_id_00cc266_ent ?(attrs = []) ?(tparams = []) (env : env)
       | Left id -> { name = EN (H2.name_of_id id); attrs; tparams }
       | Right exp -> { name = EDynamic exp; attrs; tparams })
 
-(* and map_anon_choice_id_a8b5d0d (env : env) (x : CST.anon_choice_id_a8b5d0d) :
-     any =
-   match x with
-   | `Id tok -> G.I (map_identifier env tok)
-   | `Macro_id x -> G.E (map_macro_identifier env x)
-   | `Op x -> G.I (map_operator env x)
-   | `LPAR_choice_id_RPAR (v1, v2, v3) ->
-       let _v1 = (* "(" *) token env v1 in
-       let v2 = map_anon_choice_id_267a5f7 env v2 in
-       let _v3 = (* ")" *) token env v3 in
-       G.I v2
-   | `Interp_exp x -> G.E (map_interpolation_expression env x) *)
-
 and map_anon_choice_id_6965274 (env : env) (x : CST.anon_choice_id_6965274) =
   match x with
   | `Id tok -> map_id_parameter env tok
@@ -840,34 +827,6 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
     Call (N (H2.name_of_id id) |> G.e, fb [ Arg arg1; Arg arg2 ]) |> G.e
   in
   match x with
-  | `Exp_choice_un_plus_op_exp (v1, v2, v3) -> (
-      let v1 = map_expression env v1 in
-      let s, v2 =
-        match v2 with
-        | `Un_plus_op tok -> str env tok
-        | `Plus_op tok -> (* plus_operator *) str env tok
-      in
-      let v3 = map_expression env v3 in
-      (* The Julia tree-sitter-grammar groups "|" as plus operator *)
-      match s with
-      | "|" -> opcall (BitOr, v2) [ v1; v3 ]
-      | "+" -> opcall (Plus, v2) [ v1; v3 ]
-      | _ ->
-          (* A lot of different symbols count as "plus". Let's just Other the
-             rest of them.
-             https://github.com/tree-sitter/tree-sitter-julia/blob/ab0f70c0a919d38b41822305a8ca80e527c94e4f/grammar.js#L62
-          *)
-          G.OtherExpr (("Plus", G.fake "Plus"), [ G.E v1; G.E v3 ]) |> G.e)
-  | `Exp_lazy_or_op_exp (v1, v2, v3) ->
-      let v1 = map_expression env v1 in
-      let v2 = (* lazy_or_operator *) token env v2 in
-      let v3 = map_expression env v3 in
-      opcall (Or, v2) [ v1; v3 ]
-  | `Exp_lazy_and_op_exp (v1, v2, v3) ->
-      let v1 = map_expression env v1 in
-      let v2 = (* lazy_and_operator *) token env v2 in
-      let v3 = map_expression env v3 in
-      opcall (And, v2) [ v1; v3 ]
   | `Exp_power_op_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* power_operator *) token env v2 in
@@ -897,11 +856,29 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       | "&" -> opcall (BitAnd, v2) [ v1; v3 ]
       | "*" -> opcall (Mult, v2) [ v1; v3 ]
       | _ ->
-          (* A lot of different symbols count as "plus". Let's just Other the
+          (* A lot of different symbols count as "times". Let's just Other the
              rest of them.
              https://github.com/tree-sitter/tree-sitter-julia/blob/ab0f70c0a919d38b41822305a8ca80e527c94e4f/grammar.js#L68C4-L68C4
           *)
           G.OtherExpr (("Times", G.fake "Times"), [ G.E v1; G.E v3 ]) |> G.e)
+  | `Exp_choice_un_plus_op_exp (v1, v2, v3) -> (
+      let v1 = map_expression env v1 in
+      let s, v2 =
+        match v2 with
+        | `Un_plus_op tok -> str env tok
+        | `Plus_op tok -> (* plus_operator *) str env tok
+      in
+      let v3 = map_expression env v3 in
+      (* The Julia tree-sitter-grammar groups "|" as plus operator *)
+      match s with
+      | "|" -> opcall (BitOr, v2) [ v1; v3 ]
+      | "+" -> opcall (Plus, v2) [ v1; v3 ]
+      | _ ->
+          (* A lot of different symbols count as "plus". Let's just Other the
+             rest of them.
+             https://github.com/tree-sitter/tree-sitter-julia/blob/ab0f70c0a919d38b41822305a8ca80e527c94e4f/grammar.js#L62
+          *)
+          G.OtherExpr (("Plus", G.fake "Plus"), [ G.E v1; G.E v3 ]) |> G.e)
   | `Exp_ellips_op_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* ellipsis_operator *) str env v2 in
@@ -965,6 +942,16 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
           let s, tok = str env tok in
           Call (N (H2.name_of_id (s, tok)) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
       )
+  | `Exp_lazy_or_op_exp (v1, v2, v3) ->
+      let v1 = map_expression env v1 in
+      let v2 = (* lazy_or_operator *) token env v2 in
+      let v3 = map_expression env v3 in
+      opcall (Or, v2) [ v1; v3 ]
+  | `Exp_lazy_and_op_exp (v1, v2, v3) ->
+      let v1 = map_expression env v1 in
+      let v2 = (* lazy_and_operator *) token env v2 in
+      let v3 = map_expression env v3 in
+      opcall (And, v2) [ v1; v3 ]
   | `Exp_pair_op_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* pair_operator *) str env v2 in
@@ -1061,12 +1048,6 @@ and map_closed_macrocall_expression (env : env)
       DotAccess (v1, v2, FDynamic base) |> G.e
   | None -> base
 
-(* and map_command_literal (env : env) ((v1, v2, v3) : CST.command_literal) =
-   let s, v1 = (* command_start *) str env v1 in
-   let v2 = Common.map (map_anon_choice_str_content_838a78d env) v2 in
-   let v3 = (* command_end *) token env v3 in *)
-(* OtherExpr ((s, v1), [ G.E (G.interpolated (v1, v2, v3)) ]) |> G.e *)
-
 and map_comprehension_clause (env : env)
     ((v1, v2, v3, v4) : CST.comprehension_clause) =
   let _v1 = map_for_clause env v1 in
@@ -1124,9 +1105,6 @@ and map_type_parameter_list (env : env)
   let _v4 = (* "}" *) token env v4 in
   v2
 
-(* and map_declaration (env : env) (x : CST.declaration) : stmt =
-   match x with
-*)
 and map_definition (env : env) (x : CST.definition) : stmt =
   match x with
   | `Module_defi (v1, v2, v3, v4, v5) ->
@@ -1360,6 +1338,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
           let stmt = map_statement env x in
           match stmt with
           | [ { s = ExprStmt (expr, _); _ } ] -> expr
+          | [ { s = Block (_, [ { s = ExprStmt (expr, _); _ } ], _); _ } ] ->
+              expr
           | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
       | `Num x -> map_number env x
       | `Prim_exp x -> map_primary_expression env x
@@ -1405,10 +1385,6 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) =
         | Right exp -> FDynamic exp)
     | `Quote_exp x -> FDynamic (map_quote_expression env x)
     | `Str x -> FDynamic (map_string_literal env x)
-    (* | `Cmd_lit x -> FDynamic (map_command_literal env x)
-       | `Str_lit x -> FDynamic (map_string_literal env x)
-       | `Pref_cmd_lit x -> FDynamic (map_prefixed_command_literal env x)
-       | `Pref_str_lit x -> FDynamic (map_prefixed_string_literal env x) *)
   in
   DotAccess (v1, v2, field) |> G.e
 
@@ -1561,7 +1537,7 @@ and map_exportable (env : env) (x : CST.exportable) =
   match x with
   | `Id tok -> Some [ map_identifier env tok ]
   | `Macro_id x -> Some (map_macro_identifier env x)
-  | `Op _x -> failwith "TODO"
+  | `Op x -> Some [ map_operator env x ]
   | `Interp_exp _x ->
       (* TODO: AST_generic can't fit an arbitrary expression in an import right now
          We will just discard the entire import in that case, but continue.
@@ -1678,12 +1654,6 @@ and map_number (env : env) (x : CST.number) =
   | `Int_lit x -> map_integer_literal env x
   | `Float_lit x -> map_float_literal env x
 
-(* and map_literal (env : env) (x : CST.literal) =
-   match x with
-   | `Bool_lit x -> map_boolean_literal env x
-   | `Int_lit x -> map_integer_literal env x
-   | `Float_lit x -> map_float_literal env x
-*)
 and map_macro_argument_list (env : env) (xs : CST.macro_argument_list) =
   List.concat_map (map_anon_choice_exp_772c79a_args env) xs
 
@@ -1852,8 +1822,6 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Index_exp x -> map_index_expression env x
   | `Interp_exp x -> map_interpolation_expression env x
   | `Quote_exp x -> map_quote_expression env x
-(* | `Pref_cmd_lit x -> map_prefixed_command_literal env x
-   | `Pref_str_lit x -> map_prefixed_string_literal env x *)
 
 and map_type (env : env) (x : CST.primary_expression) : type_ =
   H2.expr_to_type (map_primary_expression env x)
@@ -1933,10 +1901,6 @@ and map_quote_expression (env : env) ((v1, v2) : CST.quote_expression) : expr =
         let _v1 = (* immediate_bracket *) token env v1 in
         let v2 = map_array_ env v2 in
         v2
-    (* | `Imm_tok_choice_tok_choice_dot_choice_plus x ->
-        (* This is a bunch of random operators, like plus, lazy and, some assign ops, etc *)
-        let id = map_imm_tok_choice_tok_choice_dot_choice_plus env x in
-        N (H2.name_of_id id) |> G.e *)
     | `Imme_paren_choice_paren_exp (_v1, _v2) -> failwith "TODO"
     | `Choice_assign_op _x ->
         failwith "TODO"
