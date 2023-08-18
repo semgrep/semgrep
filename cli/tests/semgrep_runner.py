@@ -11,7 +11,7 @@
 # -end and may not represent what the user would get by using semgrep directly.
 # This is why using the CliRunner option is now deprecated. The option is still
 # kept because a few of our tests still rely on Click-specific features that
-# the regular call-semgrep-in-a-subprocess do not provide yet.
+# the regular call-semgrep-in-a-subprocess does not provide yet.
 import os
 import shlex
 from dataclasses import dataclass
@@ -27,58 +27,24 @@ from typing import Union
 from click.testing import CliRunner
 
 ##############################################################################
-# Helper functions
-##############################################################################
-
-
-def parse_env_bool(var_name: str, var_val: str) -> bool:
-    if var_val == "true":
-        return True
-    elif var_val == "false":
-        return False
-    else:
-        raise Exception(
-            f"Environment variable {var_name}={var_val} "
-            f"may not be assigned values other than 'true or 'false'."
-        )
-
-
-def get_env_bool(var_name: str) -> Optional[bool]:
-    """Get the value of an environment holding either 'true' or 'false'."""
-    s = os.environ.get(var_name)
-    if s is None:
-        return None
-    else:
-        return parse_env_bool(var_name, s)
-
-
-##############################################################################
 # Constants
 ##############################################################################
 
-# Environment variables that trigger the use of osemgrep
-OSEMGREP_PATH = "osemgrep"
-env_osemgrep = os.environ.get("PYTEST_OSEMGREP")
-if env_osemgrep:
-    OSEMGREP_PATH = env_osemgrep
-
-USE_OSEMGREP = get_env_bool("PYTEST_USE_OSEMGREP")
+# Environment variable that trigger the use of osemgrep
+USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
 # The --project-root option is used to prevent the .semgrepignore
 # at the root of the git project to be taken into account when testing,
 # which is a new behavior in osemgrep.
-OSEMGREP_COMPATIBILITY_ARGS = ["--project-root", ".", "--experimental"]
+OSEMGREP_EXTRA_ARGS = ["--experimental", "--project-root", "."]
 
 # The semgrep command suitable to run semgrep as a separate process.
-# It's something like ["semgrep"] or ["python3"; -m; "semgrep"] or
-# ["/path/to/osemgrep"].
-SEMGREP_BASE_COMMAND: List[str] = (
-    [OSEMGREP_PATH]
-    if USE_OSEMGREP
-    else [str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())]
+SEMGREP_BASE_COMMAND_STR: str = str(
+    (Path(__file__).parent.parent / "bin" / "semgrep").absolute()
 )
 
-SEMGREP_BASE_COMMAND_STR: str = " ".join(SEMGREP_BASE_COMMAND)
+# More convenient to use when used in a list context
+SEMGREP_BASE_COMMAND: List[str] = [SEMGREP_BASE_COMMAND_STR]
 
 ##############################################################################
 # Helpers
@@ -124,11 +90,12 @@ def fork_semgrep(
     elif isinstance(args, List):
         arg_list = args
     argv: List[str] = []
+
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in arg_list or "--help" in arg_list:
-        argv = [OSEMGREP_PATH] + arg_list
+        argv = SEMGREP_BASE_COMMAND + arg_list
     else:
-        argv = [OSEMGREP_PATH] + OSEMGREP_COMPATIBILITY_ARGS + arg_list
+        argv = SEMGREP_BASE_COMMAND + OSEMGREP_EXTRA_ARGS + arg_list
 
     # env preparation
     env_dict = {}
