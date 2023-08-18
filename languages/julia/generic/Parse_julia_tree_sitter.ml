@@ -1536,7 +1536,9 @@ and map_import_list ~import_tok (env : env) ((v1, v2) : CST.import_list) =
 and map_exportable (env : env) (x : CST.exportable) =
   match x with
   | `Id tok -> Some [ map_identifier env tok ]
-  | `Macro_id x -> Some (map_macro_identifier env x)
+  | `Macro_id x ->
+      let* x = map_macro_identifier env x in
+      Some x
   | `Op x -> Some [ map_operator env x ]
   | `Interp_exp _x ->
       (* TODO: AST_generic can't fit an arbitrary expression in an import right now
@@ -1559,11 +1561,6 @@ and map_importable (env : env) (x : CST.importable) : ident list option =
       let v1 = str env (* "." *) v1 in
       let* v2 = map_anon_choice_id_f1f5a37_closed env v2 in
       Some (v1 :: v2)
-(* | `LPAR_choice_id_RPAR (v1, v2, v3) ->
-    let _v1 = (* "(" *) token env v1 in
-    let v2 = map_anon_choice_id_267a5f7 env v2 in
-    let _v3 = (* ")" *) token env v3 in
-    Some [ v2 ] *)
 
 and map_index_expression (env : env) ((v1, v2, v3) : CST.index_expression) =
   let v1 = map_primary_expression env v1 in
@@ -1670,16 +1667,16 @@ and map_macro_identifier_exp (env : env) ((v1, v2) : CST.macro_identifier) :
   OtherExpr (v1, anys) |> G.e
 
 and map_macro_identifier (env : env) ((v1, v2) : CST.macro_identifier) :
-    ident list =
+    ident list option =
   let _v1 = (* "@" *) str env v1 in
   let ids =
     match v2 with
-    | `Id tok -> [ map_identifier env tok ]
-    | `Op x -> [ map_operator env x ]
-    | `Scoped_id _x ->
+    | `Id tok -> Some [ map_identifier env tok ]
+    | `Op x -> Some [ map_operator env x ]
+    | `Scoped_id x ->
         (* [ map_scoped_identifier_closed env x ] *)
-        failwith "TODO"
-    | `Synt_op x -> [ str env x ]
+        map_scoped_identifier_closed env x
+    | `Synt_op x -> Some [ str env x ]
   in
   ids
 
@@ -1832,6 +1829,40 @@ and map_array_ (env : env) (x : CST.array_) =
   | `Matrix_exp x -> map_matrix_expression env x
   | `Vec_exp x -> map_vector_expression env x
 
+and map_parenthesized_expression (env : env)
+    ((v1, v2, v3, v4, v5, v6) : CST.parenthesized_expression) =
+  let v1 = (* "(" *) token env v1 in
+  let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
+  let v3 =
+    Common.map
+      (fun (v1, v2) ->
+        let _v1 = (* ";" *) token env v1 in
+        let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
+        v2)
+      v3
+  in
+  let v6 = (* ")" *) token env v6 in
+  let base =
+    match v3 with
+    (* This means we would produce a singleton Seq. Let's not do that, and just
+       take the expression itself, with the parens around it.
+    *)
+    | [] ->
+        AST_generic_helpers.set_e_range v1 v6 v2;
+        v2
+    | _ -> Seq (v2 :: v3) |> G.e
+  in
+  let _v5 =
+    match v5 with
+    | Some tok -> (* ";" *) Some (token env tok)
+    | None -> None
+  in
+  match v4 with
+  | Some x ->
+      let comp = map_comprehension_clause env x in
+      Comprehension (List, (v1, (base, comp), v6)) |> G.e
+  | None -> base
+
 and map_quotable (env : env) (x : CST.quotable) : expr =
   match x with
   | `Array x -> map_array_ env x
@@ -1846,38 +1877,7 @@ and map_quotable (env : env) (x : CST.quotable) : expr =
         ( ("curly", fake "curly"),
           [ G.Anys (Common.map (fun x -> G.Tp x) tparams) ] )
       |> G.e
-  | `Paren_exp (v1, v2, v3, v4, v5, v6) -> (
-      let v1 = (* "(" *) token env v1 in
-      let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
-      let v3 =
-        Common.map
-          (fun (v1, v2) ->
-            let _v1 = (* ";" *) token env v1 in
-            let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
-            v2)
-          v3
-      in
-      let v6 = (* ")" *) token env v6 in
-      let base =
-        match v3 with
-        (* This means we would produce a singleton Seq. Let's not do that, and just
-           take the expression itself, with the parens around it.
-        *)
-        | [] ->
-            AST_generic_helpers.set_e_range v1 v6 v2;
-            v2
-        | _ -> Seq (v2 :: v3) |> G.e
-      in
-      let _v5 =
-        match v5 with
-        | Some tok -> (* ";" *) Some (token env tok)
-        | None -> None
-      in
-      match v4 with
-      | Some x ->
-          let comp = map_comprehension_clause env x in
-          Comprehension (List, (v1, (base, comp), v6)) |> G.e
-      | None -> base)
+  | `Paren_exp x -> map_parenthesized_expression env x
   | `Tuple_exp x ->
       let l, xs, r = map_tuple_expression env x in
       Container (Tuple, (l, xs, r)) |> G.e
@@ -1901,25 +1901,39 @@ and map_quote_expression (env : env) ((v1, v2) : CST.quote_expression) : expr =
         let _v1 = (* immediate_bracket *) token env v1 in
         let v2 = map_array_ env v2 in
         v2
-    | `Imme_paren_choice_paren_exp (_v1, _v2) -> failwith "TODO"
-    | `Choice_assign_op _x ->
-        failwith "TODO"
-        (* (match x with
-           | `Assign_op tok -> R.Case ("Assign_op",
-               (* assignment_operator *) token env tok
-             )
-           | `Lazy_or_op tok -> R.Case ("Lazy_or_op",
-               (* lazy_or_operator *) token env tok
-             )
-           | `Lazy_and_op tok -> R.Case ("Lazy_and_op",
-               (* lazy_and_operator *) token env tok
-             )
-           | `Synt_op tok -> R.Case ("Synt_op",
-               (* syntactic_operator *) token env tok
-             )
-           ) *)
-        (* | `Exp_choice_tok_choice_dot_choice_plus_exp (v1, v2, v3) -> (
-    *)
+    | `Imme_paren_choice_paren_exp (v1, v2) -> (
+        let _v1 = (* immediate_paren *) token env v1 in
+        match v2 with
+        | `Paren_exp x -> map_parenthesized_expression env x
+        | `Tuple_exp x ->
+            let l, xs, r = map_tuple_expression env x in
+            Container (Tuple, (l, xs, r)) |> G.e
+        | `LPAR_choice_COLONCOLON_RPAR (v1, v2, v3) ->
+            let l = (* "(" *) token env v1 in
+            let v2 =
+              match v2 with
+              | `COLONCOLON tok -> (* "::" *) str env tok
+              | `COLONEQ tok -> (* ":=" *) str env tok
+              | `DOTEQ tok -> (* ".=" *) str env tok
+              | `EQ tok -> (* "=" *) str env tok
+              | `Assign_op tok -> (* assignment_operator *) str env tok
+              | `Lazy_or_op tok -> (* lazy_or_operator *) str env tok
+              | `Lazy_and_op tok -> (* lazy_and_operator *) str env tok
+              | `Synt_op tok -> (* syntactic_operator *) str env tok
+            in
+            let r = (* ")" *) token env v3 in
+            let e = N (H2.name_of_id v2) |> G.e in
+            AST_generic_helpers.set_e_range l r e;
+            e)
+    | `Choice_assign_op x ->
+        let v1 =
+          match x with
+          | `Assign_op tok -> (* assignment_operator *) str env tok
+          | `Lazy_or_op tok -> (* lazy_or_operator *) str env tok
+          | `Lazy_and_op tok -> (* lazy_and_operator *) str env tok
+          | `Synt_op tok -> (* syntactic_operator *) str env tok
+        in
+        N (H2.name_of_id v1) |> G.e
     | `Imm_tok_choice_bare x ->
         (* Keywords, apparently *)
         let id = map_imm_tok_choice_bare env x in
@@ -2054,7 +2068,13 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
                 match elsee with
                 | Some _x ->
                     (* map_else_clause env x *)
-                    failwith "TODO"
+                    (* TODO: We can't actually accommodate this within the Generic AST.
+                       "else" is something kind of weird where it's something you enter
+                       if you do not enter the "catch", but it's not the same as a
+                        "finally", which always runs in either case.
+                       https://docs.julialang.org/en/v1/manual/control-flow/#else-Clauses
+                    *)
+                    None
                 | None -> None
               in
               let v5 =
@@ -2356,6 +2376,7 @@ and map_unary_expression (env : env) ((v1, v2) : CST.unary_expression) =
       let ((s, t) as id) = (* unary_operator *) str env tok in
       match s with
       | "!" -> opcall (Not, t) [ v2 ]
+      (* Julia says this doesn't exist, the negate I mean. *)
       | "¬"
       | "√"
       | "∛"
@@ -2365,7 +2386,6 @@ and map_unary_expression (env : env) ((v1, v2) : CST.unary_expression) =
   | `Un_plus_op tok ->
       let v1 = token env tok in
       opcall (Plus, v1) [ v2 ]
-(* Julia says this doesn't exist, the negate I mean. *)
 
 and map_vector_expression (env : env) ((v1, v2, v3, v4) : CST.vector_expression)
     =
