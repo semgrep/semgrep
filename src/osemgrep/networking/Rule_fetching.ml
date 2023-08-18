@@ -271,7 +271,7 @@ let parse_rule ~registry_caching (file : Fpath.t) :
           ~import_callback:(import_callback ~registry_caching)
           file ast
       in
-      let value_ = Eval_jsonnet.eval_program core in
+      let value_ = Eval_jsonnet_subst.eval_expr core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)
       Parse_rule.parse_generic_ast ~error_recovery:false file gen
