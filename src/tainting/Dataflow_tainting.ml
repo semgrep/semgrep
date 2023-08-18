@@ -617,7 +617,8 @@ let findings_of_tainted_sink env taints_with_traces (sink : T.sink) :
          behavior is that one of the `$X` bindings is chosen arbitrarily. We will
          try to keep this behavior here.
       *)
-      if env.config.unify_mvars || Option.is_none (snd ts.sink_requires) then
+      if env.config.unify_mvars || Option.is_none sink.rule_sink.sink_requires
+      then
         taints_and_bindings
         |> Common.map_filter (fun (t, bindings) ->
                let* merged_env =
@@ -909,7 +910,7 @@ let handle_taint_propagators env thing taints =
         *)
         match
           T.solve_precondition ~ignore_poly_taint:false ~taints
-            prop.spec.prop.propagator_requires
+            (R.get_propagator_precondition prop.spec.prop)
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
