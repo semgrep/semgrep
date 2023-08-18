@@ -85,22 +85,22 @@ kinda-quick-tests:
 # Osemgrep tests
 ###############################################################################
 
-# Run the end-to-end tests using osemgrep instead of the Python CLI.
+# Run the end-to-end tests using osemgrep instead of pysemgrep.
 # See tests/semgrep_runner.py for the use of the environment variables below.
-# To run individual tests, export PYTEST_OSEMGREP=... export PYTEST_USE_OSEMGREP=true
+# To run individual tests, export PYTEST_USE_OSEMGREP=true
 # and run 'pytest tests/e2e/test_output.py' in a shell for example.
 .PHONY: osemgrep-e2e
 osemgrep-e2e:
-	PYTEST_OSEMGREP=$(PWD)/../bin/osemgrep PYTEST_USE_OSEMGREP=true $(MAKE) e2e
+	PYTEST_USE_OSEMGREP=true $(MAKE) e2e
 
 # Run all the known passing-with-osemgrep tests (tagged with osempass)
 # coupling: this is run in CI in .github/workflows/tests.yml
 osempass:
-	PYTEST_OSEMGREP=$(PWD)/../bin/osemgrep PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -m 'osempass and not todo' tests/e2e
+	PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -m 'osempass and not todo' tests/e2e
 
 # to be used to discover tests that we should add the osempass pytest mark
 osempass-check-if-new-osempass:
-	PYTEST_OSEMGREP=$(PWD)/../bin/osemgrep PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -v --no-summary -m 'not no_semgrep_cli and not todo and not osempass' tests/e2e
+	PYTEST_USE_OSEMGREP=true  $(PYTEST) -n auto -v --no-summary -m 'not no_semgrep_cli and not todo and not osempass' tests/e2e
 
 # Run the quality assurance tests using osemgrep instead of the Python CLI.
 .PHONY: osemgrep-qa
