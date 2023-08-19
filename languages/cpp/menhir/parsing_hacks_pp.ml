@@ -660,7 +660,7 @@ let find_define_init_brace_paren xs =
       :: PToken { t = TIdent_Define (_s, _) }
       :: Parenthised (_xxx, _)
       :: PToken ({ t = TOBrace i1 } as tokbrace)
-      (* can be more complex expression than just an int, like (b)&... *)
+           (* can be more complex expression than just an int, like (b)&... *)
       :: Parenthised (_, _)
       :: PToken { t = TAnd _ | TOr _; _ }
       :: xs ->

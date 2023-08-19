@@ -1011,10 +1011,11 @@ let expr_to_arg e = Arg e
 (* often used for fake return type for constructor *)
 let tvoid ii = (nQ, TPrimitive (TVoid, ii))
 
+(* TODO: reuse Tok API? *)
 let get_original_token_location = function
   | Tok.OriginTok pi -> pi
   | Tok.ExpandedTok (pi, _) -> pi
-  | Tok.FakeTokStr (_, _) -> raise (Tok.NoTokenLocation "FakeTokStr")
+  | Tok.FakeTok (_, _) -> raise (Tok.NoTokenLocation "FakeTok")
   | Tok.Ab -> raise (Tok.NoTokenLocation "Ab")
 
 (* When want add some info in AST that does not correspond to

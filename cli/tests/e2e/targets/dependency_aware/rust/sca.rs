@@ -1,1 +1,1 @@
-let x = bad()
+let x = bad();

@@ -31,9 +31,12 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * That's what this code does.
  *)
 
-let rec expr_to_string expr =
-  let { AST_generic.e_range; _ } = expr in
-  match e_range with
+(*****************************************************************************)
+(* Main translation logic *)
+(*****************************************************************************)
+
+let rec range_to_string (range : (Tok.location * Tok.location) option) =
+  match range with
   | Some (start, end_) ->
       Common.with_open_infile start.pos.file (fun chan ->
           let extract_size = end_.pos.bytepos - start.pos.bytepos in
@@ -43,7 +46,7 @@ let rec expr_to_string expr =
 
 and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
-  | CondEval e -> `O [ ("comparison", `String (expr_to_string e)) ]
+  | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
   | CondType (mv, lang, str, _) ->
       `O
         ([ ("metavariable", `String mv); ("type", `String str) ]
@@ -73,6 +76,124 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         | None -> []
         | Some x -> [ ("language", `String (Xlang.to_string x)) ])
 
+and translate_taint_source
+    {
+      source_formula;
+      source_by_side_effect;
+      label;
+      source_control;
+      source_requires;
+    } : [> `O of (string * Yaml.value) list ] =
+  let (`O source_f) = translate_formula source_formula in
+  let label_obj =
+    if label = Rule.default_source_label then []
+    else [ ("label", `String label) ]
+  in
+  let requires_obj =
+    match source_requires with
+    | None -> []
+    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
+  in
+  let side_effect_obj =
+    if source_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
+  in
+  let control_obj =
+    if source_control then [ ("control", `Bool true) ] else []
+  in
+  `O
+    (List.concat
+       [ source_f; control_obj; label_obj; requires_obj; side_effect_obj ])
+
+and translate_taint_sink { sink_id = _; sink_formula; sink_requires } :
+    [> `O of (string * Yaml.value) list ] =
+  let (`O sink_f) = translate_formula sink_formula in
+  let requires_obj =
+    match sink_requires with
+    | None -> []
+    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
+  in
+  `O (List.concat [ sink_f; requires_obj ])
+
+and translate_taint_sanitizer
+    { sanitizer_formula; sanitizer_by_side_effect; not_conflicting } :
+    [> `O of (string * Yaml.value) list ] =
+  let (`O san_f) = translate_formula sanitizer_formula in
+  let side_effect_obj =
+    if sanitizer_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
+  in
+  let not_conflicting_obj =
+    if not_conflicting then [ ("not-conflicting", `Bool true) ] else []
+  in
+  `O (List.concat [ san_f; side_effect_obj; not_conflicting_obj ])
+
+and translate_taint_propagator
+    {
+      propagator_formula;
+      propagator_by_side_effect;
+      from;
+      to_;
+      propagator_requires;
+      propagator_replace_labels;
+      propagator_label;
+    } : [> `O of (string * Yaml.value) list ] =
+  let (`O prop_f) = translate_formula propagator_formula in
+  let side_effect_obj =
+    if propagator_by_side_effect then []
+    else [ ("by-side-effect", `Bool false) ]
+  in
+  let label_obj =
+    match propagator_label with
+    | None -> []
+    | Some label -> [ ("label", `String label) ]
+  in
+  let requires_obj =
+    match propagator_requires with
+    | None -> []
+    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
+  in
+  let replace_labels_obj =
+    match propagator_replace_labels with
+    | None -> []
+    | Some strs ->
+        [ ("replace-labels", `A (Common.map (fun s -> `String s) strs)) ]
+  in
+  let from_obj = [ ("from", `String (fst from)) ] in
+  let to_obj = [ ("to", `String (fst to_)) ] in
+  `O
+    (List.concat
+       [
+         prop_f;
+         side_effect_obj;
+         from_obj;
+         to_obj;
+         label_obj;
+         requires_obj;
+         replace_labels_obj;
+       ])
+
+and translate_taint_spec
+    ({ sources; sanitizers; sinks; propagators } : taint_spec) :
+    [> `O of (string * Yaml.value) list ] =
+  let sanitizers =
+    match sanitizers with
+    | None -> []
+    | Some (_, sanitizers) ->
+        [ ("sanitizers", `A (Common.map translate_taint_sanitizer sanitizers)) ]
+  in
+  let propagators =
+    match Common.map translate_taint_propagator propagators with
+    | [] -> []
+    | other -> [ ("propagators", `A other) ]
+  in
+  `O
+    (List.concat
+       [
+         [ ("sources", `A (Common.map translate_taint_source (snd sources))) ];
+         sanitizers;
+         propagators;
+         [ ("sinks", `A (Common.map translate_taint_sink (snd sinks))) ];
+       ])
+
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
   match f with
   | P { pat; pstr; _ } -> (
@@ -84,6 +205,14 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
       | Regexp _ -> `O [ ("regex", `String (fst pstr)) ])
   | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
   | And (_, { conjuncts; focus; conditions; _ }) ->
+      let mk_focus_obj (_, mv_list) =
+        match mv_list with
+        | [] ->
+            (* probably shouldn't happen... *)
+            []
+        | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
+        | mvs -> [ `O [ ("focus", `A (Common.map (fun x -> `String x) mvs)) ] ]
+      in
       `O
         (("all", `A (Common.map translate_formula conjuncts :> Yaml.value list))
         ::
@@ -95,15 +224,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
                 (Common.map
                    (fun (_, cond) -> translate_metavar_cond cond)
                    conditions
-                @ Common.map
-                    (fun (_, mv_list) ->
-                      `O
-                        [
-                          ( "focus",
-                            `A (Common.map (fun mvar -> `String mvar) mv_list)
-                          );
-                        ])
-                    focus) );
+                @ List.concat_map mk_focus_obj focus) );
           ]))
   | Or (_, fs) ->
       `O [ ("any", `A (Common.map translate_formula fs :> Yaml.value list)) ]
@@ -120,12 +241,18 @@ let rec json_to_yaml json : Yaml.value =
   | Bool b -> `Bool b
   | Null -> `Null
 
-let replace_pattern rule_fields translated_formula =
+(* This function goes and replace the pattern in the original rule's structure,
+   so that we can amend the original YAML rule that we parsed.
+*)
+let replace_pattern rule_fields translated_formula : (string * Yaml.value) list
+    =
   List.concat_map
     (fun (name, value) ->
       (* Remove all taint fields, except replace sources with translation *)
-      if name = "mode" && value =*= `String "taint" then []
-      else if
+      (* Keep mode: taint for now though, since taint patterns aren't yet
+         a thing.
+      *)
+      if
         List.mem name
           [ "pattern-sinks"; "pattern-sanitizers"; "pattern-propagators" ]
       then []
@@ -139,7 +266,7 @@ let replace_pattern rule_fields translated_formula =
             "pattern-regex";
             "pattern-sources";
           ]
-      then [ ("match", translated_formula) ]
+      then translated_formula
       else [ (name, value) ])
     rule_fields
 
@@ -154,10 +281,14 @@ let translate_files fparser xs =
                     match rule.mode with
                     | `Search formula
                     | `Extract { formula; _ } ->
-                        (formula |> translate_formula :> Yaml.value)
-                    | _ ->
-                        failwith
-                          "Cannot translate taint mode rules at the moment")
+                        [
+                          ("match", (formula |> translate_formula :> Yaml.value));
+                        ]
+                    | `Taint spec ->
+                        [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
+                    | `Steps _ -> failwith "step rules not currently handled"
+                    | `Secrets _ ->
+                        failwith "secrets rules not currently handled")
            in
            (file, formulas))
   in
@@ -186,6 +317,7 @@ let translate_files fparser xs =
           in
           `O [ ("rules", `A new_rules) ]
           |> Yaml.to_string ~len:5242880 ~encoding:`Utf8 ~layout_style:`Block
+               ~scalar_style:`Literal
           |> Result.get_ok |> pr
       | _ -> failwith "wrong syntax")
     formulas_by_file

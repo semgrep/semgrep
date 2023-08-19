@@ -36,10 +36,18 @@ type 'ast parser =
   | Pfff of (Common.filename -> 'ast * Parsing_stat.t)
   | TreeSitter of (Common.filename -> 'ast Tree_sitter_run.Parsing_result.t)
 
+(*
+   This type is parametrized by the AST type because we don't always
+   generate directly generic ASTs. We sometimes generate intermediate
+   ASTs hence the need for polymorphic type (so you can have
+   Ast_cpp.program internal_result, or Ast_php.program
+   internal_result).
+*)
 type 'ast internal_result =
-  | Ok of ('ast * Parsing_stat.t)
-  | Partial of 'ast * Tok.location list * Parsing_stat.t
-  | Error of Exception.t
+  | ResOk of ('ast * Parsing_stat.t)
+  | ResPartial of
+      ('ast * Parsing_stat.t * Tree_sitter_run.Tree_sitter_error.t list)
+  | ResError of Exception.t
 
 (* TODO: factorize with previous type *)
 type 'ast pattern_parser =
@@ -50,22 +58,13 @@ type 'ast pattern_parser =
 (* Helpers *)
 (*****************************************************************************)
 
-let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
-  let start = err.start_pos in
-  {
-    Tok.str = err.substring;
-    pos =
-      Pos.make ~file:err.file.name ~line:(start.row + 1) (* fake *)
-        ~column:start.column 0;
-  }
-
 let exn_of_loc loc =
   let info = Tok.OriginTok loc in
   Parsing_error.Syntax_error info |> Exception.trace
 
 (* used by Parse_jsonnet *)
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
-  let loc = loc_of_tree_sitter_error err in
+  let loc = Parsing_result2.loc_of_tree_sitter_error err in
   exn_of_loc loc
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
@@ -85,7 +84,7 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
+         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
 let extract_pattern_from_tree_sitter_result
     (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
@@ -96,13 +95,34 @@ let extract_pattern_from_tree_sitter_result
       if print_errors then
         res.errors
         |> List.iter (fun err ->
-               pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
+               pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
       (* to be backward compatible with what we do in PfffPat *)
       raise Parsing.Parse_error
 
 (*****************************************************************************)
 (* Run target parsers *)
 (*****************************************************************************)
+
+(*
+   Serious error = any parsing error that causes us to resort to an
+   alternate parser. Missing nodes aren't considered serious enough to
+   warrant another parsing attempt. Otherwise, doing so would result
+   in slowdowns due to the other parser being usually slower
+   (observed: 3 s -> 30 s parsing time on big JS file when retrying
+   due to missing/inserted tokens and falling back to the menhir
+   parser).
+*)
+let is_serious_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  match err.kind with
+  | Internal
+  | Error_node ->
+      true
+  | Missing_node -> false
+
+(* Return the first serious error of the list to show as the reason
+   for failure. *)
+let has_serious_errors (res : _ Tree_sitter_run.Parsing_result.t) =
+  List.find_opt (fun err -> is_serious_error err) res.errors
 
 let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
  fun parser file ->
@@ -112,39 +132,38 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           logger#trace "trying to parse with Pfff parser %s" file;
           try
             let res = f file in
-            Ok res
+            ResOk res
           with
           | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
           | exn ->
               let e = Exception.catch exn in
               (* TODO: print where the exception was raised or reraise *)
               logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
-              Error e)
+              ResError e)
   | TreeSitter f -> (
       logger#trace "trying to parse with TreeSitter parser %s" file;
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat file res.stat in
-        match (res.program, res.errors) with
-        | None, [] ->
+        match (res.program, has_serious_errors res) with
+        | None, None ->
             let msg =
               "internal error: failed to recover typed tree from tree-sitter's \
                untyped tree"
             in
-            Error (Exception.trace (Failure msg))
-        | Some ast, [] -> Ok (ast, stat)
-        | None, ts_error :: _xs ->
+            ResError (Exception.trace (Failure msg))
+        | Some ast, None -> ResOk (ast, stat)
+        | None, Some ts_error ->
             let e = error_of_tree_sitter_error ts_error in
             logger#error "non-recoverable error with TreeSitter parser:\n%s"
               (Exception.to_string e);
-            Error e
-        | Some ast, x :: xs ->
+            ResError e
+        | Some ast, Some _error ->
             (* Note that the first error is probably the most important;
              * the following one may be due to cascading effects *)
             logger#error "partial errors (%d) with TreeSitter parser"
-              (List.length (x :: xs));
-            let locs = x :: xs |> Common.map loc_of_tree_sitter_error in
-            Partial (ast, locs, stat)
+              (List.length res.errors);
+            ResPartial (ast, stat, res.errors)
       with
       | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
       (* to get correct stack trace on parse error *)
@@ -152,38 +171,39 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
       | exn ->
           let e = Exception.catch exn in
           logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          Error e)
+          ResError e)
 
 let rec (run_either :
           Common.filename -> 'ast parser list -> 'ast internal_result) =
  fun file xs ->
   match xs with
-  | [] -> Error (Exception.trace (Failure (spf "no parser found for %s" file)))
+  | [] ->
+      ResError (Exception.trace (Failure (spf "no parser found for %s" file)))
   | p :: xs -> (
       let res = run_parser p file in
       match res with
-      | Ok ast -> Ok ast
-      | Partial (ast, errs, stat) -> (
+      | ResOk ast -> ResOk ast
+      | ResPartial _ as partial -> (
           let res = run_either file xs in
           match res with
-          | Ok res -> Ok res
-          | Error e2 ->
+          | ResOk res -> ResOk res
+          | ResError e2 ->
               logger#debug "exn again but return Partial:\n%s"
                 (Exception.to_string e2);
               (* prefer a Partial to an Error *)
-              Partial (ast, errs, stat)
-          | Partial _ ->
+              partial
+          | ResPartial _ ->
               logger#debug "Partial again but return first Partial";
-              Partial (ast, errs, stat))
-      | Error e1 -> (
+              partial)
+      | ResError e1 -> (
           let res = run_either file xs in
           match res with
-          | Ok res -> Ok res
-          | Partial (ast, errs, stat) ->
+          | ResOk res -> ResOk res
+          | ResPartial _ as partial ->
               logger#debug "Got now a Partial, better than exn:\n%s"
                 (Exception.to_string e1);
-              Partial (ast, errs, stat)
-          | Error e2 ->
+              partial
+          | ResError e2 ->
               logger#debug
                 "exn again but return original exn:\n\
                  --- new exn (ignored) ---\n\
@@ -192,7 +212,7 @@ let rec (run_either :
                  %s"
                 (Exception.to_string e2) (Exception.to_string e1);
               (* prefer the first error *)
-              Error e1))
+              ResError e1))
 
 (*****************************************************************************)
 (* Entry point *)
@@ -219,10 +239,10 @@ let (run :
     | () -> xs
   in
   match run_either file xs with
-  | Ok (ast, stat) -> { ast = fconvert ast; skipped_tokens = []; stat }
-  | Partial (ast, skipped_tokens, stat) ->
-      { ast = fconvert ast; skipped_tokens; stat }
-  | Error e -> Exception.reraise e
+  | ResOk (ast, stat) -> Parsing_result2.ok (fconvert ast) stat
+  | ResPartial (ast, stat, errors) ->
+      Parsing_result2.partial (fconvert ast) stat errors
+  | ResError e -> Exception.reraise e
 
 (*****************************************************************************)
 (* Similar to run, but for pattern parsing *)
@@ -239,7 +259,7 @@ let run_parser_pat ~print_errors p str =
         let res = f str in
         extract_pattern_from_tree_sitter_result res print_errors
   in
-  try Stdlib.Ok (parse ()) with
+  try Ok (parse ()) with
   | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
   | exn -> Error (Exception.catch exn)
 
@@ -251,22 +271,22 @@ let run_pattern ~print_errors parsers program =
   let rec f parsers =
     match parsers with
     | [] ->
-        Stdlib.Error
+        Error
           (Exception.trace
              (Failure "internal error: No pattern parser available"))
     | p :: xs -> (
         match run_parser_pat ~print_errors p program with
-        | Stdlib.Ok res -> Stdlib.Ok res
-        | Stdlib.Error e -> (
+        | Ok res -> Stdlib.Ok res
+        | Error e -> (
             match f xs with
-            | Stdlib.Ok res -> Stdlib.Ok res
-            | Stdlib.Error _ ->
+            | Ok res -> Stdlib.Ok res
+            | Error _ ->
                 (* Return the error from the first parser. *)
-                Stdlib.Error e))
+                Error e))
   in
   match f parsers with
-  | Stdlib.Ok res -> res
-  | Stdlib.Error e -> Exception.reraise e
+  | Ok res -> res
+  | Error e -> Exception.reraise e
 
 (*****************************************************************************)
 (* Other helpers *)

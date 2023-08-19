@@ -91,7 +91,7 @@ let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
       | OriginTok pi -> OriginTok (Tok.complete_location filename table pi)
       | ExpandedTok (pi, vloc) ->
           ExpandedTok (Tok.complete_location filename table pi, vloc)
-      | FakeTokStr (s, vpi_opt) -> FakeTokStr (s, vpi_opt)
+      | FakeTok (s, vpi_opt) -> FakeTok (s, vpi_opt)
       | Ab -> raise Common.Impossible)
   in
   let rec tokens_aux acc =
@@ -111,6 +111,8 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
   | Str str ->
       let lexbuf = Lexing.from_string str in
       let table = Pos.full_charpos_to_pos_str str in
+      (* TODO: don't pass "<file>" where an actual file is expected.
+         This results in cryptic errors later when the file can't be opened. *)
       tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
   | File path ->
       let file = Fpath.to_string path in

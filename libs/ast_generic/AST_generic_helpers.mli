@@ -13,6 +13,7 @@ val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 val argument_to_expr : AST_generic.argument -> AST_generic.expr
 val expr_to_type : AST_generic.expr -> AST_generic.type_
 val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
+val expr_to_entity_name_opt : AST_generic.expr -> AST_generic.entity_name option
 
 (* should avoid; used mainly during expr->condition migration for If/While/..*)
 val cond_to_expr : AST_generic.condition -> AST_generic.expr
@@ -21,6 +22,11 @@ val cond_to_expr : AST_generic.condition -> AST_generic.expr
 
 val vardef_to_assign :
   AST_generic.entity * AST_generic.variable_definition -> AST_generic.expr
+
+(* only translates an assign to a vardef if we definitely have a name on the LHS *)
+val assign_to_vardef_opt :
+  AST_generic.expr * AST_generic.tok * AST_generic.expr ->
+  AST_generic.stmt option
 
 val funcdef_to_lambda :
   AST_generic.entity * AST_generic.function_definition ->

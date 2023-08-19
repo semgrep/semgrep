@@ -20,8 +20,8 @@ open Common
 (*****************************************************************************)
 (* Information about tokens (mostly their location).
  *
- * Note that the types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens. The types used to be even
+ * Note that Tok.t below is a bit complicated because we want
+ * to represent "fake" and "expanded" tokens. The type used to be even
  * more complicated to allow to annotate tokens with transformation information
  * for Spatch in Coccinelle. However, this is not the case anymore because
  * we use a different approach to transform code
@@ -73,36 +73,20 @@ type t =
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
    * when building some extra AST elements.
+   * The string (e.g., ";")  is to help the generic pretty printer.
    * TODO: we should remove the option below and enforce the construction
    * of safe fake tokens.
    *)
-  | FakeTokStr of
-      string (* to help the generic pretty printer *)
-      * (* Sometimes we generate fake tokens close to existing
-         * origin tokens. This can be useful when have to give an error
-         * message that involves a fakeToken. The int is a kind of
-         * virtual position, an offset. See compare_pos below.
-         * Those are called "safe" fake tokens (in contrast to the
-         * regular/unsafe one which have no position information at all).
-         *)
-      (location * int) option
+  | FakeTok of string * virtual_location option
   (* In the case of a XHP file, we could preprocess it and incorporate
    * the tokens of the preprocessed code with the tokens from
    * the original file. We want to mark those "expanded" tokens
    * with a special tag so that if someone do some transformation on
    * those expanded tokens they will get a warning (because we may have
    * trouble back-propagating the transformation back to the original file).
+   * The location refers to the preprocessed file (e.g. /tmp/pp-xxxx.pphp).
    *)
-  | ExpandedTok of
-      (* refers to the preprocessed file (e.g., /tmp/pp-xxxx.pphp) *)
-      location
-      * (* kind of virtual position. This info refers to the last token
-         * before a serie of expanded tokens and the int is an offset.
-         * The goal is to be able to compare the position of tokens
-         * between then, even for expanded tokens. See compare_pos
-         * below.
-         *)
-      (location * int)
+  | ExpandedTok of location * virtual_location
   (* The Ab constructor is (ab)used to call '=' to compare
    * big AST portions. Indeed as we keep the token information in the AST,
    * if we have an expression in the code like "1+1" and want to test if
@@ -121,6 +105,20 @@ type t =
    * about position.
    *)
   | Ab
+
+(* Sometimes we generate fake tokens close to existing
+ * origin tokens. This can be useful when we need to give an error
+ * message that involves a fakeToken. The int below is a kind of
+ * virtual position, an offset.
+ * Those are called "safe" fake tokens (in contrast to the
+ * regular/unsafe one which have no position information at all).
+ *
+ * For ExpandedTok the location refers to the last token
+ * before a series of expanded tokens and the int is an offset.
+ * The goal is to be able to compare the position of tokens,
+ * even for expanded tokens. See compare_pos().
+ *)
+and virtual_location = location * int
 [@@deriving show { with_path = false }, eq, ord]
 
 type t_always_equal = t [@@deriving show]
@@ -150,7 +148,7 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 
 let is_fake tok =
   match tok with
-  | FakeTokStr _ -> true
+  | FakeTok _ -> true
   | _ -> false
 
 let is_origintok ii =
@@ -161,20 +159,20 @@ let is_origintok ii =
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (* Synthesize a fake token *)
-let unsafe_fake_tok str : t = FakeTokStr (str, None)
+let unsafe_fake_tok str : t = FakeTok (str, None)
 
 (* Synthesize a "safe" fake token *)
 let fake_tok_loc next_to_loc str : t =
   (* TODO: offset seems to have no use right now (?) *)
-  FakeTokStr (str, Some (next_to_loc, -1))
+  FakeTok (str, Some (next_to_loc, -1))
 
 let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
   | ExpandedTok (pinfo_pp, _) -> Ok pinfo_pp
-  | FakeTokStr (_, Some (pi, _)) -> Ok pi
-  | FakeTokStr (_, None) -> Error "FakeTokStr"
+  | FakeTok (_, Some (pi, _)) -> Ok pi
+  | FakeTok (_, None) -> Error "FakeTok"
   | Ab -> Error "Ab"
 
 let fake_tok next_to_tok str : t =
@@ -223,7 +221,7 @@ let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
 let content_of_tok ii =
   match ii with
   | OriginTok x -> x.str
-  | FakeTokStr (s, _) -> s
+  | FakeTok (s, _) -> s
   | ExpandedTok _
   | Ab ->
       raise (NoTokenLocation "content_of_tok: Expanded or Ab")
@@ -271,7 +269,7 @@ let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 let rewrap_str s ii =
   match ii with
   | OriginTok pi -> OriginTok { pi with str = s }
-  | FakeTokStr (s, info) -> FakeTokStr (s, info)
+  | FakeTok (s, info) -> FakeTok (s, info)
   | Ab -> Ab
   | ExpandedTok _ ->
       (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
@@ -284,8 +282,8 @@ let str_of_info_fake_ok ii =
   match ii with
   | OriginTok pinfo -> pinfo.str
   | ExpandedTok (pinfo_pp, _vloc) -> pinfo_pp.str
-  | FakeTokStr (_, Some (pi, _)) -> pi.str
-  | FakeTokStr (s, None) -> s
+  | FakeTok (_, Some (pi, _)) -> pi.str
+  | FakeTok (s, None) -> s
   | Ab -> raise (NoTokenLocation "Ab")
 
 let combine_toks x xs =
@@ -360,7 +358,7 @@ let fix_location fix ii =
   match ii with
   | OriginTok pi -> OriginTok (fix pi)
   | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
-  | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
+  | FakeTok (s, vloc_opt) -> FakeTok (s, vloc_opt)
   | Ab -> Ab
 
 let adjust_tok_wrt_base base_loc ii =
@@ -452,10 +450,10 @@ let compare_pos ii1 ii2 =
   let get_pos = function
     | OriginTok pi -> Real pi
     (* todo? I have this for lang_php/
-        | FakeTokStr (s, Some (pi_orig, offset)) ->
+        | FakeTok (s, Some (pi_orig, offset)) ->
             Virt (pi_orig, offset)
     *)
-    | FakeTokStr _ -> raise (NoTokenLocation "compare_pos: FakeTokStr")
+    | FakeTok _ -> raise (NoTokenLocation "compare_pos: FakeTok")
     | Ab -> raise (NoTokenLocation "compare_pos: Ab")
     | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
   in

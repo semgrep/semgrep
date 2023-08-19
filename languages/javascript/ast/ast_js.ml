@@ -716,4 +716,4 @@ let add_decorators_to_declarations decorators declarations =
 let fakeInfoAttach info =
   let info = Tok.rewrap_str "';' (from ASI)" info in
   let loc = Tok.unsafe_loc_of_tok info in
-  Tok.FakeTokStr (";", Some (loc, -1))
+  Tok.FakeTok (";", Some (loc, -1))

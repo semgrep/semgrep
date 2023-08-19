@@ -33,7 +33,8 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
         env={
             "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
             "SEMGREP_APP_TOKEN": "",
-        }
+        },
+        use_click_runner=True,
     )
     result = runner.invoke(cli, ["scan", "--config", "p/ci"])
     snapshot.assert_match(result.output, "output.txt")
@@ -61,7 +62,8 @@ def test_fallback_config_works(monkeypatch, snapshot, mocker, tmp_path):
         env={
             "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
             "SEMGREP_APP_TOKEN": "",
-        }
+        },
+        use_click_runner=True,
     )
     result = runner.invoke(cli, ["scan", "--debug", "--config", "supply-chain"])
 

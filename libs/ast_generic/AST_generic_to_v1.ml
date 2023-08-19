@@ -65,7 +65,7 @@ let map_token_location { Tok.str; pos = { bytepos; line; column; file; _ } } =
 
 let map_tok v : B.token =
   match v with
-  | Tok.FakeTokStr (s, _) -> `FakeTok s
+  | Tok.FakeTok (s, _) -> `FakeTok s
   | Tok.OriginTok loc ->
       let loc = map_token_location loc in
       `OriginTok loc

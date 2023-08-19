@@ -26,6 +26,11 @@ open Pfff_or_tree_sitter
 (* Entry point *)
 (*****************************************************************************)
 let parse_pattern print_errors lang str =
+  (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
+     when updating this function.
+     TODO: Share the logic of which parser to try for each language to
+     remove this coupling. https://github.com/returntocorp/semgrep/issues/8331
+  *)
   match lang with
   (* use adhoc parser (neither menhir nor tree-sitter) *)
   | Lang.Yaml -> Yaml_to_generic.any str
@@ -55,6 +60,7 @@ let parse_pattern print_errors lang str =
       let any =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/python/Parser.ml *)
              [
                PfffPat
                  (let parsing_mode =
@@ -71,6 +77,7 @@ let parse_pattern print_errors lang str =
       let any =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/cpp/Parser.ml *)
              [
                PfffPat
                  (fun x -> Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus x);
@@ -82,6 +89,7 @@ let parse_pattern print_errors lang str =
       let any =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/java/Parser.ml *)
              [
                (* TODO: we should switch to TreeSitterPat first, but
                 * we get regressions on generic_args.sgrep because
@@ -99,6 +107,7 @@ let parse_pattern print_errors lang str =
       let js_ast =
         str
         |> run_pattern ~print_errors
+             (* coupling: semgrep/js/languages/typescript/Parser.ml *)
              [
                PfffPat Parse_js.any_of_string;
                TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;

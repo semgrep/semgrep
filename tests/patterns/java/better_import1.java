@@ -1,4 +1,4 @@
-import A
+import A;
 
 public class Foo {
   public void main () {

@@ -68,8 +68,6 @@ type t = {
   (* deprecated *)
   in_agent : bool;
   min_fetch_depth : int;
-  shouldafound_base_url : Uri.t;
-  shouldafound_no_email : bool;
 }
 
 (* less: make it Lazy? so at least not run in ocaml init time before main() *)
@@ -89,9 +87,6 @@ let v : t =
     fail_open_url =
       env_or Uri.of_string "SEMGREP_FAIL_OPEN_URL"
         (Uri.of_string "https://fail-open.prod.semgrep.dev/failure");
-    shouldafound_base_url =
-      env_or Uri.of_string "SEMGREP_SHOULDAFOUND_BASE_URL"
-        (Uri.of_string "https://shouldafound.semgrep.dev");
     app_token = env_opt "SEMGREP_APP_TOKEN";
     version_check_url =
       env_or Uri.of_string "SEMGREP_VERSION_CHECK_URL"
@@ -112,6 +107,5 @@ let v : t =
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";
     in_agent = in_env "SEMGREP_AGENT";
-    shouldafound_no_email = in_env "SEMGREP_SHOULDAFOUND_NO_EMAIL";
     min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
   }
