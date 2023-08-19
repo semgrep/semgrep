@@ -132,8 +132,20 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
               details = None;
             }
       | R.InvalidRule (kind, rule_id, pos) ->
-          let str = Rule.string_of_invalid_rule_error_kind kind in
-          Some (mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError)
+          let msg = Rule.string_of_invalid_rule_error_kind kind in
+          let err =
+            match kind with
+            | IncompatibleVersion (this_version, (min_version, max_version)) ->
+                Out.IncompatibleSemgrepVersion
+                  {
+                    rule_id = (rule_id :> string);
+                    this_version = Version_info.to_string this_version;
+                    min_version = Option.map Version_info.to_string min_version;
+                    max_version = Option.map Version_info.to_string max_version;
+                  }
+            | _ -> Out.RuleParseError
+          in
+          Some (mk_error_tok ~rule_id:(Some rule_id) pos msg err)
       | R.InvalidYaml (msg, pos) ->
           Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
       | R.DuplicateYamlKey (s, pos) ->

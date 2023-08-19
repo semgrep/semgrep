@@ -1779,8 +1779,8 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
   in
   (* We need to check for version compatibility before attempting to interpret
      the rule. *)
-  let min_version = take_opt_no_env rd parse_version "min_version" in
-  let max_version = take_opt_no_env rd parse_version "max_version" in
+  let min_version = take_opt_no_env rd parse_version "min-version" in
+  let max_version = take_opt_no_env rd parse_version "max-version" in
   check_version_compatibility rule_id ~min_version ~max_version;
 
   let languages = take_no_env rd parse_string_wrap_list_no_env "languages" in

@@ -432,6 +432,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
   | {
    matches;
    errors;
+   incompatible_rules;
    skipped_targets;
    (* LATER *)
    skipped_rules = _;
@@ -473,6 +474,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
         results =
           matches |> Common.map (cli_match_of_core_match env) |> dedup_and_sort;
         errors = errors |> Common.map cli_error_of_core_error;
+        incompatible_rules;
         paths;
         (* LATER *)
         time = None;
