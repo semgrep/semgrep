@@ -390,6 +390,14 @@ utop:
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 
+# Run perf benchmarks
+# Running this will reset your `semgrep` command to point to your local version
+# For more information, see "Reproducing the CI benchmarks" in perf/README.md
+.PHONY: perf-bench
+perf-bench:
+	scripts/run-benchmarks.sh
+
+
 # Run matching performance tests
 .PHONY: perf-matching
 perf-matching:
