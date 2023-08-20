@@ -1,10 +1,12 @@
 import json
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Iterable
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
+from pathlib import Path
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
@@ -15,11 +17,96 @@ from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
+from semgrep.util import get_lines
 
 logger = getLogger(__name__)
 
 
 class SarifFormatter(BaseFormatter):
+
+    @staticmethod
+    def _generate_taint_snippet(location: Any) -> Any:
+        content = "".join(get_lines(Path(location.path), location.start.line, location.end.line + 2)).rstrip('\n')
+        snippet_before = "".join(
+            get_lines(
+                Path(location.path),
+                location.start.line - 2,
+                location.end.line - 1)
+        ).lstrip('\n')
+        start_column = len(snippet_before) + location.start.col
+        end_column = len(snippet_before) + location.end.col
+        return "".join([snippet_before, content]), start_column, end_column
+
+    @staticmethod
+    def _taint_obj_intermediate_vars_to_thread_flow_location_sarif(intermediate_var: Any, rule_match: RuleMatch) -> Any:
+        location = intermediate_var.location
+        content, start_column, end_column = SarifFormatter._generate_taint_snippet(location)
+        propagation_message_text = f"Propagator : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+
+        intermediate_vars_location_sarif = {
+            "location": {
+                "message": {"text": propagation_message_text},
+                "physicalLocation": {
+                    "artifactLocation": {"uri": str(rule_match.path)},
+                    "region": {
+                        "startLine": location.start.line,
+                        "startColumn": start_column,
+                        "endLine": location.end.line,
+                        "endColumn": end_column,
+                        "snippet": {"text": content},
+                        "message": {"text": propagation_message_text},
+                    },
+                },
+            }
+        }
+        return intermediate_vars_location_sarif
+
+    @staticmethod
+    def _rec_taint_obj_to_thread_flow_location_sarif(var_type: str, taint_obj: Any, rule_match: RuleMatch) -> List[Any]:
+        taint_trace = []
+
+        if isinstance(taint_obj, out.CliMatchCallTrace):
+            taint_trace += SarifFormatter._rec_taint_obj_to_thread_flow_location_sarif(var_type, taint_obj.value,
+                                                                                       rule_match)
+
+        if isinstance(taint_obj, out.CliCall):
+            taint_trace += SarifFormatter._rec_taint_obj_to_thread_flow_location_sarif(var_type, taint_obj.value[2],
+                                                                                       rule_match)
+
+            for intermediate_var in taint_obj.value[1]:
+                taint_trace.append(
+                    SarifFormatter._taint_obj_intermediate_vars_to_thread_flow_location_sarif(intermediate_var,
+                                                                                              rule_match))
+
+        # the taint object can be an instance of CliLoc, CliClass or CliMatchCallTrace
+        if isinstance(taint_obj, out.CliLoc):
+            location = taint_obj.value[0]
+        elif isinstance(taint_obj, out.CliCall):
+            var_type = "Propagator"
+            location = taint_obj.value[0][0]
+        else:
+            return taint_trace
+
+        content, start_column, end_column = SarifFormatter._generate_taint_snippet(location)
+        source_message_text = f"{var_type} : '{content}' @ '{str(location.path)}:{str(location.start.line)}'"
+        location_sarif = {
+            "location": {
+                "message": {"text": source_message_text},
+                "physicalLocation": {
+                    "artifactLocation": {"uri": str(rule_match.path)},
+                    "region": {
+                        "startLine": location.start.line,
+                        "startColumn": start_column,
+                        "endLine": location.end.line,
+                        "endColumn": end_column,
+                        "snippet": {"text": content},
+                        "message": {"text": source_message_text},
+                    },
+                },
+            }
+        }
+        return taint_trace + [location_sarif]
+
     @staticmethod
     def _taint_source_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
         dataflow_trace = rule_match.dataflow_trace
@@ -28,34 +115,8 @@ class SarifFormatter(BaseFormatter):
         taint_source = dataflow_trace.taint_source
         if not taint_source:
             return None
-        if isinstance(taint_source.value, out.CliCall):
-            logger.error(
-                "Emitting SARIF output for unsupported dataflow trace (source is a call)"
-            )
-            return None
-        elif isinstance(taint_source.value, out.CliLoc):
-            location = taint_source.value.value[0]
-            content = "".join(taint_source.value.value[1]).strip()
-            source_message_text = f"Source: '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
-
-            taint_source_location_sarif = {
-                "location": {
-                    "message": {"text": source_message_text},
-                    "physicalLocation": {
-                        "artifactLocation": {"uri": str(rule_match.path)},
-                        "region": {
-                            "startLine": location.start.line,
-                            "startColumn": location.start.col,
-                            "endLine": location.end.line,
-                            "endColumn": location.end.col,
-                            "snippet": {"text": content},
-                            "message": {"text": source_message_text},
-                        },
-                    },
-                },
-                "nestingLevel": 0,
-            }
-            return taint_source_location_sarif
+        # calculate source flow - recursive
+        return SarifFormatter._rec_taint_obj_to_thread_flow_location_sarif("Source", taint_source, rule_match)
 
     @staticmethod
     def _intermediate_vars_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
@@ -68,7 +129,7 @@ class SarifFormatter(BaseFormatter):
         intermediate_var_locations = []
         for intermediate_var in intermediate_vars:
             location = intermediate_var.location
-            content = "".join(intermediate_var.content).strip()
+            content, start_column, end_column = SarifFormatter._generate_taint_snippet(location)
             propagation_message_text = f"Propagator : '{content}' @ '{str(location.path.value)}:{str(location.start.line)}'"
 
             intermediate_vars_location_sarif = {
@@ -78,9 +139,9 @@ class SarifFormatter(BaseFormatter):
                         "artifactLocation": {"uri": str(rule_match.path)},
                         "region": {
                             "startLine": location.start.line,
-                            "startColumn": location.start.col,
+                            "startColumn": start_column,
                             "endLine": location.end.line,
-                            "endColumn": location.end.col,
+                            "endColumn": end_column,
                             "snippet": {"text": content},
                             "message": {"text": propagation_message_text},
                         },
@@ -90,32 +151,6 @@ class SarifFormatter(BaseFormatter):
             }
             intermediate_var_locations.append(intermediate_vars_location_sarif)
         return intermediate_var_locations
-
-    @staticmethod
-    def _sink_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
-        content = "".join(rule_match.get_lines()).strip()
-        sink_message_text = (
-            f"Sink: '{content}' @ '{str(rule_match.path)}:{str(rule_match.start.line)}'"
-        )
-
-        sink_location_sarif = {
-            "location": {
-                "message": {"text": sink_message_text},
-                "physicalLocation": {
-                    "artifactLocation": {"uri": str(rule_match.path)},
-                    "region": {
-                        "startLine": rule_match.start.line,
-                        "startColumn": rule_match.start.col,
-                        "endLine": rule_match.end.line,
-                        "endColumn": rule_match.end.col,
-                        "snippet": {"text": "".join(rule_match.lines).rstrip()},
-                        "message": {"text": sink_message_text},
-                    },
-                },
-            },
-            "nestingLevel": 1,
-        }
-        return sink_location_sarif
 
     @staticmethod
     def _dataflow_trace_to_thread_flows_sarif(rule_match: RuleMatch) -> Any:
@@ -130,9 +165,8 @@ class SarifFormatter(BaseFormatter):
         intermediate_vars = dataflow_trace.intermediate_vars
 
         if taint_source:
-            locations.append(
-                SarifFormatter._taint_source_to_thread_flow_location_sarif(rule_match)
-            )
+            # calculate intermediate vars/calls for the source
+            locations += SarifFormatter._taint_source_to_thread_flow_location_sarif(rule_match)
 
         if intermediate_vars:
             intermediate_var_locations = (
@@ -144,14 +178,17 @@ class SarifFormatter(BaseFormatter):
                 for intermediate_var_location in intermediate_var_locations:
                     locations.append(intermediate_var_location)
 
-        locations.append(SarifFormatter._sink_to_thread_flow_location_sarif(rule_match))
+        sink_thread_trace = SarifFormatter._rec_taint_obj_to_thread_flow_location_sarif("Sink",
+                                                                                        dataflow_trace.taint_sink,
+                                                                                        rule_match)[::-1]
+        locations += sink_thread_trace
 
         thread_flows.append({"locations": locations})
         return thread_flows
 
     @staticmethod
     def _dataflow_trace_to_codeflow_sarif(
-        rule_match: RuleMatch,
+            rule_match: RuleMatch,
     ) -> Optional[Mapping[str, Any]]:
         dataflow_trace = rule_match.dataflow_trace
         if not dataflow_trace:
@@ -162,23 +199,22 @@ class SarifFormatter(BaseFormatter):
 
         # TODO: handle rule_match.taint_sink
         if isinstance(taint_source.value, out.CliCall):
-            logger.error(
-                "Emitting SARIF output for unsupported dataflow trace (source is a call)"
-            )
-            return None
+            location = taint_source.value.value[0][0]
+            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
-            code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
-            code_flow_sarif = {
-                "message": {"text": code_flow_message},
-            }
-            thread_flows = SarifFormatter._dataflow_trace_to_thread_flows_sarif(
-                rule_match
-            )
-            if thread_flows:
-                code_flow_sarif["threadFlows"] = thread_flows
+            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
 
-            return code_flow_sarif
+        code_flow_sarif = {
+            "message": {"text": code_flow_message},
+        }
+        thread_flows = SarifFormatter._dataflow_trace_to_thread_flows_sarif(
+            rule_match
+        )
+        if thread_flows:
+            code_flow_sarif["threadFlows"] = thread_flows
+
+        return code_flow_sarif
 
     @staticmethod
     def _rule_match_to_sarif(
@@ -197,9 +233,9 @@ class SarifFormatter(BaseFormatter):
                         "region": {
                             "snippet": {"text": "".join(rule_match.lines).rstrip()},
                             "startLine": rule_match.start.line,
-                            "startColumn": rule_match.start.col,
+                            "startColumn": rule_match.start.col - 1,
                             "endLine": rule_match.end.line,
-                            "endColumn": rule_match.end.col,
+                            "endColumn": rule_match.end.col - 1,
                         },
                     }
                 }
@@ -244,9 +280,9 @@ class SarifFormatter(BaseFormatter):
                         {
                             "deletedRegion": {
                                 "startLine": rule_match.start.line,
-                                "startColumn": rule_match.start.col,
+                                "startColumn": rule_match.start.col - 1,
                                 "endLine": rule_match.end.line,
-                                "endColumn": rule_match.end.col,
+                                "endColumn": rule_match.end.col - 1,
                             },
                             "insertedContent": {"text": "\n".join(fixed_lines)},
                         }
@@ -395,13 +431,13 @@ class SarifFormatter(BaseFormatter):
         return True
 
     def format(
-        self,
-        rules: Iterable[Rule],
-        rule_matches: Iterable[RuleMatch],
-        semgrep_structured_errors: Sequence[SemgrepError],
-        cli_output_extra: out.CliOutputExtra,
-        extra: Mapping[str, Any],
-        is_ci_invocation: bool,
+            self,
+            rules: Iterable[Rule],
+            rule_matches: Iterable[RuleMatch],
+            semgrep_structured_errors: Sequence[SemgrepError],
+            cli_output_extra: out.CliOutputExtra,
+            extra: Mapping[str, Any],
+            is_ci_invocation: bool,
     ) -> str:
         """
         Format matches in SARIF v2.1.0 formatted JSON.
