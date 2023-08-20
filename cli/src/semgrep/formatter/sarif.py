@@ -200,10 +200,10 @@ class SarifFormatter(BaseFormatter):
         # TODO: handle rule_match.taint_sink
         if isinstance(taint_source.value, out.CliCall):
             location = taint_source.value.value[0][0]
-            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+            code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
         elif isinstance(taint_source.value, out.CliLoc):
             location = taint_source.value.value[0]
-            code_flow_message = f"Untrusted dataflow from {str(location.path)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
+            code_flow_message = f"Untrusted dataflow from {str(location.path.value)}:{str(location.start.line)} to {str(rule_match.path)}:{str(rule_match.start.line)}"
 
         code_flow_sarif = {
             "message": {"text": code_flow_message},

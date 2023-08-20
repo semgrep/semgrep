@@ -93,7 +93,6 @@ def test_dataflow_source_to_thread_flow_sarif(mocker):
     )
 
 
-
 @pytest.mark.quick
 def test_intermediate_vars_to_thread_flow_location_sarif(mocker):
     # https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012707
