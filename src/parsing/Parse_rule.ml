@@ -1911,8 +1911,9 @@ let parse_file ?error_recovery file =
            * Use osemgrep --dump-config instead.
            *)
           let core = Desugar_jsonnet.desugar_program file ast in
-          let value_ = Eval_jsonnet.eval_program core in
-          Manifest_jsonnet_to_AST_generic.manifest_value value_
+          let _value = Eval_jsonnet2.eval_program core in
+          failwith ""
+          (* Manifest_jsonnet_to_AST_generic.manifest_value value_ *)
         else
           Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
               let cmd = spf "jsonnet -J vendor %s -o %s" !!file tmpfile in

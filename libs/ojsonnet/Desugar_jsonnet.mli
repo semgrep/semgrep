@@ -27,4 +27,4 @@ val desugar_program :
   ?use_std:bool ->
   Fpath.t ->
   AST_jsonnet.program ->
-  Core_jsonnet.program
+  Core_jsonnet2.program

@@ -15,7 +15,7 @@
 open Common
 open File.Operators
 open AST_jsonnet
-module C = Core_jsonnet
+module C = Core_jsonnet2
 
 (*****************************************************************************)
 (* Prelude *)
@@ -55,6 +55,7 @@ type env = {
    * when talking about import in the core jsonnet spec).
    *)
   within_an_object : bool;
+  no_mutual_recursion: bool;
 }
 
 exception Error of string * Tok.t
@@ -138,12 +139,46 @@ and desugar_expr_aux env v =
   | IdSpecial v ->
       let v = (desugar_wrap desugar_special) env v in
       C.IdSpecial v
-  | Local (v1, v2, v3, v4) ->
-      let tlocal = desugar_tok env v1 in
-      let binds = (desugar_list desugar_bind) env v2 in
-      let tsemi = desugar_tok env v3 in
-      let e = desugar_expr env v4 in
-      C.Local (tlocal, binds, tsemi, e)
+  (* | Local (v1, [ v2 ], v3, v4) ->
+    let tlocal = desugar_tok env v1 in
+    let bind = desugar_bind env v2 in
+    let tsemi = desugar_tok env v3 in
+    let e = desugar_expr env v4 in
+    C.Local (tlocal, bind, tsemi, e) *)
+  | Local (_, ([ B (("std",_),_,_) ] as binds),_,e)
+  | Local (_, ([ B (("$",_),_,_) ] as binds),_,e) ->
+    let env = {env with no_mutual_recursion = false} in
+    List.fold_left (fun e (B (id,tk,b)) -> C.Local (fk, C.B (id, tk, desugar_expr env b), fk, e)) (desugar_expr {env with no_mutual_recursion = false} e) binds
+  | Local (_, binds, _, e) when env.no_mutual_recursion ->
+    let env = {env with no_mutual_recursion = false} in
+    List.fold_left (fun e (B (id,tk,b)) -> C.Local (fk, C.B (id, tk, desugar_expr env b), fk, e)) (desugar_expr {env with no_mutual_recursion = false} e) binds
+  | Local (_tlocal, binds, _tsemi, e) ->
+    (* let tlocal = desugar_tok env tlocal in *)
+    (* let tsemi = desugar_tok env tsemi in *)
+    let e = desugar_expr env e in
+    (* let binds = (desugar_list desugar_bind) env v2 in *)
+    (* local x = f(x) 
+        -->
+      local local_ = {local x = self.x, x: f(x)}
+      local x = local_.x
+    *)
+    (* local x = y, y = x; *)
+    (* local local_ = {
+          local x = self.x,
+          local y = self.y,
+          x: y,
+          y: x
+        }
+        local x = local_.x,
+        local y = local_.y;
+      *)
+    let obj_name = Id ("local_", fk) in
+    let obj_binds = Common.map (fun (B (id, tk, _)) -> OLocal (tk,B (id, tk, ArrayAccess (IdSpecial (Self, tk), Tok.unsafe_fake_bracket (L (Str (AST_jsonnet.mk_string_ (Tok.unsafe_fake_bracket id))))) ))) binds in
+    let obj_fields = Common.map (fun (B (id, _tk, b)) -> OField { fld_name = FId id; fld_attr = None; fld_hidden = (Visible, fk); fld_value = b }) binds in
+    let post_obj_binds = Common.map (fun (B (id, tk, _)) -> C.(B (id, tk, ArrayAccess (desugar_expr env obj_name, Tok.unsafe_fake_bracket (L (Str (AST_jsonnet.mk_string_ (Tok.unsafe_fake_bracket id))))) ))) binds in
+    let obj = O (Tok.unsafe_fake_bracket (Object (obj_binds @ obj_fields))) |> desugar_expr {env with no_mutual_recursion = true} in
+    let post_obj = List.fold_left (fun e b -> C.Local (fk, b, fk, e)) e post_obj_binds in
+    C.Local (fk, C.B (("local_", fk), fk, obj), fk, post_obj)
   (* no need to handle specially super.id, handled by desugar_special *)
   | DotAccess (v1, v2, v3) ->
       let e = desugar_expr env v1 in
@@ -333,17 +368,6 @@ and desugar_comprehension_helper env e comps : AST_jsonnet.expr =
 and desugar_comprehension env expr comps =
   desugar_expr env (desugar_comprehension_helper env expr comps)
 
-(* The desugaring of method was already done at parsing time,
- * so no need to handle id with parameters here. See AST_jsonnet.bind comment.
- *)
-and desugar_bind env v =
-  match v with
-  | B (v1, v2, v3) ->
-      let id = desugar_ident env v1 in
-      let teq = desugar_tok env v2 in
-      let e = desugar_expr env v3 in
-      C.B (id, teq, e)
-
 and desugar_function_definition env { f_tok; f_params; f_body } =
   let f_tok = desugar_tok env f_tok in
   let f_params =
@@ -395,16 +419,7 @@ and desugar_obj_inside env (l, v, r) : C.expr =
         fields |> Common.map (fun field -> desugar_field env (field, binds))
       in
       let obj = C.Object (asserts', fields') in
-      if env.within_an_object then
-        C.Local
-          ( fk,
-            [
-              C.B (("$outerself", fk), fk, C.IdSpecial (C.Self, fk));
-              C.B (("$outersuper", fk), fk, C.IdSpecial (C.Super, fk));
-            ],
-            fk,
-            C.O (l, obj, r) )
-      else C.O (l, obj, r)
+      C.O (l, obj, r)
   | ObjectComp _vTODO -> C.ExprTodo (("ObjectComp", l), O (l, v, r))
 
 and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =
@@ -507,6 +522,7 @@ let desugar_program ?(import_callback = default_callback) ?(use_std = true)
       within_an_object = false;
       base = Filename.dirname !!file;
       import_callback;
+      no_mutual_recursion = false;
     }
   in
   let e =

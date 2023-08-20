@@ -602,10 +602,10 @@ and eval_call e0 (largs, args, _rargs) =
   let eval_func =
     match e0 with
     | ArrayAccess
-        (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
+        (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) -> failwith "matthew"
         (* set locals so that "std" shows up in the environment when evaluating *)
-        let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
-        Eval_jsonnet.eval_program local_wrap
+        (* let local_wrap = Local (fk, [ B (("std", fk), fk, std) ], fk, e0) in
+        Eval_jsonnet.eval_program local_wrap *)
     | _ -> eval_expr e0
   in
   match eval_func with

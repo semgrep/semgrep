@@ -266,15 +266,16 @@ let parse_rule ~registry_caching (file : Fpath.t) :
              internal use only. The syntax may change or be removed at any \
              point.");
       let ast = Parse_jsonnet.parse_program file in
-      let core =
+      let _core =
         Desugar_jsonnet.desugar_program
           ~import_callback:(import_callback ~registry_caching)
           file ast
       in
-      let value_ = Eval_jsonnet.eval_program core in
+      failwith ""
+      (* let _value_ = Eval_jsonnet.eval_program core in
       let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
       (* TODO: put to true at some point *)
-      Parse_rule.parse_generic_ast ~error_recovery:false file gen
+      Parse_rule.parse_generic_ast ~error_recovery:false file gen *)
   | _else_ -> Parse_rule.parse_and_filter_invalid_rules file
 
 (*****************************************************************************)

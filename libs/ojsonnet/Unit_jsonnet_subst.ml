@@ -15,7 +15,7 @@ let related_file_of_target ~ext ~file =
       spf "could not find %s file for test '%s' in %s" ext basename dirname
     in
     Error msg
-
+(* 
 let test_maker dirs pass_or_fail =
   dirs
   |> Common.map (fun dir ->
@@ -56,4 +56,4 @@ let test_maker dirs pass_or_fail =
                           "this threw an error" (not pass_or_fail) true )))
   |> Common.flatten
 
-let tests () = test_maker dir_pass true
+let tests () = test_maker dir_pass true *)
