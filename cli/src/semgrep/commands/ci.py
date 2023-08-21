@@ -442,6 +442,7 @@ def ci(
             optimizations=optimizations,
             baseline_commit=metadata.merge_base_ref,
             baseline_commit_is_mergebase=True,
+            dump_contributions=True,
         )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])

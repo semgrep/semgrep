@@ -1,4 +1,3 @@
-
 ##############################################################################
 # Prelude
 ##############################################################################
@@ -383,6 +382,7 @@ def run_scan(
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
+    dump_contributions: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -517,6 +517,11 @@ def run_scan(
         optimizations=optimizations,
         core_opts_str=core_opts_str,
     )
+
+    if dump_contributions:
+        contributions = core_runner.invoke_semgrep_dump_contributions()
+    else:
+        contributions = Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: rule.severity == RuleSeverity.EXPERIMENT
@@ -663,6 +668,7 @@ def run_scan(
         dependencies,
         dependency_parser_errors,
         num_executed_rules,
+        contributions,
     )
 
 
@@ -696,6 +702,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
         _,

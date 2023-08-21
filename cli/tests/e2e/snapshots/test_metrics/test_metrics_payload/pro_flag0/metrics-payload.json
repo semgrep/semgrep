@@ -37,7 +37,6 @@
     "numTargets": 1,
     "profilingTimes": {
       "config_time": 0.0,
-      "contributions_time": 0.0,
       "core_time": 0.0,
       "ignores_time": 0.0,
       "total_time": 0.0
