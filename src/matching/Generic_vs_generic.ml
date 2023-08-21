@@ -357,7 +357,12 @@ let m_regexp_options a_opt b_opt =
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
  *)
-let rec m_name a b =
+let rec m_name_inner a b =
+  (* Inside of this function, any recursive call to m_name means to not
+     start another round of entry-specific logic. We only recurse with
+     the inner m_name function.
+  *)
+  let m_name = m_name_inner in
   let try_parents dotted =
     let parents =
       match !hook_find_possible_parents with
@@ -516,6 +521,23 @@ let rec m_name a b =
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
+
+(* This is just an entry point for m_name_inner, which just ensures that we only
+   ever unpack wildcard imports once, before entering the main recursive loop of
+   m_name_inner.
+   Since we might reach m_name through many entry points (IdQualified,
+   DotAccess, Id, etc), it's easier to intercept all of these "naming-related"
+   matching procedures at a common point. This is where they all meet.
+*)
+and m_name a b =
+  m_name_inner a b >!> fun () tin ->
+  List.fold_left
+    (fun acc import ->
+      acc
+      >||>
+      let b_ids = import @ AST_generic_helpers.dotted_ident_of_name b in
+      m_name_inner a (H.name_of_ids b_ids))
+    (fail ()) tin.wildcard_imports tin
 
 and m_name_info a b =
   match (a, b) with

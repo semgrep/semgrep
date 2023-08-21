@@ -10,6 +10,7 @@ type tin = {
   deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
     * values. This is bound to prevent potential infinite loops. *)
+  wildcard_imports : AST_generic.ident list list;
 }
 
 (* list of possible outcoming matching environments *)
@@ -49,6 +50,7 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 val empty_environment : Lang.t -> Rule_options.t -> tin
+val environment_of_any : Lang.t -> Rule_options.t -> AST_generic.any -> tin
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
 (* Update the matching list of statements by providing a new matching
