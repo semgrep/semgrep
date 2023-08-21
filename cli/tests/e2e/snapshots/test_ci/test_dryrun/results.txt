@@ -666,6 +666,24 @@ Would have sent findings and ignores blob: {
         "supply-chain1",
         "supply-chain2",
         "supply-chain3"
+    ],
+    "contributions": [
+        {
+            "commit_hash": "<MASKED>",
+            "commit_timestamp": "<MASKED>",
+            "contributor": {
+                "commit_author_name": "Environment Test",
+                "commit_author_email": "test_environment@test.r2c.dev"
+            }
+        },
+        {
+            "commit_hash": "<MASKED>",
+            "commit_timestamp": "<MASKED>",
+            "contributor": {
+                "commit_author_name": "Environment Test",
+                "commit_author_email": "test_environment@test.r2c.dev"
+            }
+        }
     ]
 }
 Would have sent complete blob: {

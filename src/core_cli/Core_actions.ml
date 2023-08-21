@@ -160,3 +160,7 @@ let prefilter_of_rules file =
   in
   let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s
+
+let dump_contributions () =
+  let contributions = Parse_contribution.get_contributions () in
+  pr (Semgrep_output_v1_j.string_of_contributions contributions)
