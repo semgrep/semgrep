@@ -24,6 +24,9 @@
 # but when trying to put this binary in cli/bin, setuptools is yelling
 # and does not know what to do with it. In the end, it is simpler to use
 # a *Python* script when installed via a *Python* package manager (pip).
+#
+# Note that if you modify this file, you will need to `pipenv install --dev`
+# if you want to test the change under `pipenv shell`.
 
 import os
 import sys
