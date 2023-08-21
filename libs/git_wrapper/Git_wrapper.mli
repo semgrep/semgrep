@@ -2,7 +2,14 @@
 
 exception Error of string
 
-type status [@@deriving show]
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
 
 (* precondition: cwd must be a directory
    This returns a list of paths relative to cwd.
