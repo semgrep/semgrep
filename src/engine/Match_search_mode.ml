@@ -839,7 +839,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
           let ranges =
             apply_focus_on_ranges env focus ranges_with_persistent_bindings
           in
-
           let focus_expls =
             match focus with
             | [] -> []

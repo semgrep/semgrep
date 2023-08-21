@@ -55,8 +55,8 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
       in
 
       (* actually call the generic evaluation logic! *)
-      match Eval_generic.eval env mvar_str_exp with
-      | String str -> (
+      match Eval_generic.eval_opt env mvar_str_exp with
+      | Some (String str) -> (
           (* Here, we would like to know what the offset of the metavariable in
              its source file is.
 
@@ -86,5 +86,6 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
           | matches -> Some (Common.map snd matches))
       | _ ->
           logger#error
-            "Somehow got a non-string from str(%s) in generic evaluation" mvar;
+            "Somehow got a non-string or exn from str(%s) in generic evaluation"
+            mvar;
           None)

@@ -19,6 +19,10 @@ exception NotInEnv of Metavariable.mvar
  *)
 val eval : env -> code -> value
 
+(* swallows exns and returns None if they happen
+ *)
+val eval_opt : env -> code -> value option
+
 val eval_regexp_matches :
   ?base_offset:int ->
   file:string ->

@@ -119,6 +119,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
            mvar);
       []
   | Some mval -> (
+      Common.(
+        pr2 (spf "mval of %s is %s" mvar ([%show: Metavariable.mvalue] mval)));
       (* We will create a temporary file with the content of the metavariable,
        * then call evaluate_formula recursively. *)
       match MV.range_of_mvalue mval with

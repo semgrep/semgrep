@@ -545,20 +545,24 @@ let test_eval file =
  * code like `os.getenv('a', 'defaulta')` where $BITS will bind
  * to a string literal, which can't be compared with '<= 0o650'.
  *)
-let eval_bool env e =
-  try
-    let res = eval env e in
-    match res with
-    | Bool b -> b
-    | _ ->
-        logger#trace "not a boolean: %s" (show_value res);
-        false
-  with
+let eval_opt env e =
+  try Some (eval env e) with
   (* this can happen when a metavar is bound to a complex expression,
    * in which case it's filtered in bindings_to_env(), in which case
    * it generates a NotInEnv when we run eval with such an environment.
    *)
-  | NotInEnv _ -> false
+  | NotInEnv _ -> None
   | NotHandled e ->
       logger#trace "NotHandled: %s" (G.show_expr e);
+      None
+
+let eval_bool env e =
+  let res = eval_opt env e in
+  match res with
+  | Some (Bool b) -> b
+  | Some res ->
+      logger#trace "not a boolean: %s" (show_value res);
+      false
+  | None ->
+      logger#trace "got exn during eval_bool";
       false
