@@ -38,30 +38,6 @@ let regexp_matcher big_str file regexp =
 
          (* the names of all capture groups within the regexp *)
          let names = Pcre.names re |> Array.to_list in
-         (* return regexp bound group $1 $2 etc *)
-         let n = Pcre.num_of_subs sub in
-         (* TODO: remove when we kill numeric capture groups *)
-         let numbers_env =
-           match n with
-           | 1 -> []
-           | _ when n <= 0 -> raise Impossible
-           | n ->
-               Common2.enum 1 (n - 1)
-               |> Common.map_filter (fun n ->
-                      try
-                        let bytepos, _ = Pcre.get_substring_ofs sub n in
-                        let str = Pcre.get_substring sub n in
-                        let line, column = line_col_of_charpos file bytepos in
-                        let pos = Pos.make ~file ~line ~column bytepos in
-                        let loc = { Tok.str; pos } in
-                        let t = Tok.tok_of_loc loc in
-                        Some (spf "$%d" n, MV.Text (str, t, t))
-                      with
-                      | Not_found ->
-                          logger#debug "not found %d substring of %s in %s" n
-                            re_src matched_str;
-                          None)
-         in
          let names_env =
            names
            |> Common.map_filter (fun name ->
@@ -79,7 +55,7 @@ let regexp_matcher big_str file regexp =
                         re_src matched_str;
                       None)
          in
-         ((loc1, loc2), names_env @ numbers_env))
+         ((loc1, loc2), names_env))
 
 let matches_of_regexs regexps lazy_content file =
   matches_of_matcher regexps

@@ -25,58 +25,6 @@
           "source-rule-url": "https://github.com/grab/secret-scanner/blob/master/scanner/signatures/pattern.go"
         },
         "metavars": {
-          "$2": {
-            "abstract_content": "aws",
-            "end": {
-              "col": 4,
-              "line": 3,
-              "offset": 47
-            },
-            "start": {
-              "col": 1,
-              "line": 3,
-              "offset": 44
-            }
-          },
-          "$3": {
-            "abstract_content": "account",
-            "end": {
-              "col": 12,
-              "line": 3,
-              "offset": 55
-            },
-            "start": {
-              "col": 5,
-              "line": 3,
-              "offset": 48
-            }
-          },
-          "$4": {
-            "abstract_content": "id",
-            "end": {
-              "col": 15,
-              "line": 3,
-              "offset": 58
-            },
-            "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 56
-            }
-          },
-          "$6": {
-            "abstract_content": ":",
-            "end": {
-              "col": 16,
-              "line": 3,
-              "offset": 59
-            },
-            "start": {
-              "col": 15,
-              "line": 3,
-              "offset": 58
-            }
-          },
           "$ACCOUNT": {
             "abstract_content": "account",
             "end": {
