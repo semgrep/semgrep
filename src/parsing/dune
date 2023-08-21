@@ -8,6 +8,7 @@
    yaml pcre
 
    commons
+   git_wrapper
    paths
    lib_parsing
    process_limits
