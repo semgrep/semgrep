@@ -383,16 +383,12 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.validation_state = PM.No_validator;
              })
     in
-    (* Common.(pr2 (spf "focused matches %s" ([%show: PM.t list] focus_matches))); *)
-    (* Common.(pr2 (spf "orig range %s" ([%show: RM.t] range))); *)
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
       Common.map_filter
         (fun fms ->
           let range_from_mr = RM.match_result_to_range fms in
-          (* Common.(pr2 (spf "range from mr %s" ([%show: RM.t] range_from_mr))); *)
           let intersection = intersect range_from_mr range in
-          (* Common.(pr2 (spf "interscetion %s" ([%show: RM.t option] intersection))); *)
           intersection)
         focus_matches
     in
@@ -767,7 +763,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                    RM.intersect_ranges env.xconf.config !debug_matches acc r)
                  ranges
           in
-          (* Common.(pr2 (spf "positive ranges %s" ([%show: RM.ranges] ranges))); *)
           (* optimization of `pattern: $X` *)
           let ranges = run_selector_on_ranges env selector_opt ranges in
 
@@ -818,8 +813,6 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                  (Common.map (fun x -> (x, [])) ranges, [])
           in
 
-          (* Common.(pr2 (spf "filtered ranges %s" ([%show: RM.ranges] (Common.map fst ranges)))); *)
-
           (* Here, we unpack all the persistent bindings for each instance of the inner
              `metavariable-pattern`s that succeeded.
 
@@ -839,12 +832,10 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                              { r with RM.mvars = new_bindings @ r.RM.mvars })))
           in
 
-          (* Common.(pr2 (spf "ranges with persistent bindings %s" ([%show: RM.ranges] ranges_with_persistent_bindings))); *)
           let ranges =
             apply_focus_on_ranges env focus ranges_with_persistent_bindings
           in
 
-          (* Common.(pr2 (spf "ranges after focus %s" ([%show: RM.ranges] ranges))); *)
           let focus_expls =
             match focus with
             | [] -> []
