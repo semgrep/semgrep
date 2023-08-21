@@ -146,7 +146,6 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
-let fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Adapters *)
@@ -384,10 +383,17 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.validation_state = PM.No_validator;
              })
     in
+    (* Common.(pr2 (spf "focused matches %s" ([%show: PM.t list] focus_matches))); *)
+    (* Common.(pr2 (spf "orig range %s" ([%show: RM.t] range))); *)
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
       Common.map_filter
-        (fun fms -> intersect (RM.match_result_to_range fms) range)
+        (fun fms ->
+          let range_from_mr = RM.match_result_to_range fms in
+          (* Common.(pr2 (spf "range from mr %s" ([%show: RM.t] range_from_mr))); *)
+          let intersection = intersect range_from_mr range in
+          (* Common.(pr2 (spf "interscetion %s" ([%show: RM.t option] intersection))); *)
+          intersection)
         focus_matches
     in
     (* A union of the fm_mval ranges *)
@@ -533,13 +539,16 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
+  let file = Fpath.to_string env.xtarget.file in
   xs
   |> Common.map_filter (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
-             let env = Eval_generic.bindings_to_env env.xconf.config bindings in
+             let env =
+               Eval_generic.bindings_to_env env.xconf.config ~file bindings
+             in
              Eval_generic.eval_bool env e |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
@@ -595,44 +604,18 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * which may not always be a string. The regexp is really done on
           * the text representation of the metavar content.
           *)
-         | R.CondRegexp (mvar, re_str, const_prop) ->
-             let fk = Tok.unsafe_fake_tok "" in
-             let fki = AST_generic.empty_id_info () in
-             let e =
-               (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
-                * but too many possible escaping problems, so easier to build
-                * an expression manually.
-                *)
-               let re_exp = G.L (G.String (fb (re_str, fk))) |> G.e in
-               let mvar_exp = G.N (G.Id ((mvar, fk), fki)) |> G.e in
-               let call_re_match re_exp str_exp =
-                 G.Call
-                   ( G.DotAccess
-                       ( G.N (G.Id (("re", fk), fki)) |> G.e,
-                         fk,
-                         FN (Id (("match", fk), fki)) )
-                     |> G.e,
-                     (fk, [ G.Arg re_exp; G.Arg str_exp ], fk) )
-                 |> G.e
-               in
-               let call_str x =
-                 G.Call
-                   (G.N (G.Id (("str", fk), fki)) |> G.e, (fk, [ G.Arg x ], fk))
-                 |> G.e
-               in
-               (* We generate a fake expression:
-                     re.match(re_str, str($MVAR))
-                  that matches `re_str` against the string representation of
-                  $MVAR's value. *)
-               call_re_match re_exp (call_str mvar_exp)
-             in
-             let config = env.xconf.config in
-             let env =
-               if const_prop && config.constant_propagation then
-                 Eval_generic.bindings_to_env config bindings
-               else Eval_generic.bindings_to_env_just_strings config bindings
-             in
-             Eval_generic.eval_bool env e |> map_bool r
+         | R.CondRegexp (mvar, re_str, const_prop) -> (
+             (* TODO: could return expl for nested matching! *)
+             match
+               Metavariable_regex.get_metavar_regex_capture_bindings env ~file r
+                 (mvar, re_str, const_prop)
+             with
+             | None -> None
+             (* The bindings we get back are solely the new capture group metavariables. We need
+              * to combine them with the metavariables from the original match.
+              *)
+             | Some capture_bindings -> Some (r, capture_bindings @ new_bindings)
+             )
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
@@ -784,6 +767,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                    RM.intersect_ranges env.xconf.config !debug_matches acc r)
                  ranges
           in
+          (* Common.(pr2 (spf "positive ranges %s" ([%show: RM.ranges] ranges))); *)
           (* optimization of `pattern: $X` *)
           let ranges = run_selector_on_ranges env selector_opt ranges in
 
@@ -834,6 +818,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                  (Common.map (fun x -> (x, [])) ranges, [])
           in
 
+          (* Common.(pr2 (spf "filtered ranges %s" ([%show: RM.ranges] (Common.map fst ranges)))); *)
+
           (* Here, we unpack all the persistent bindings for each instance of the inner
              `metavariable-pattern`s that succeeded.
 
@@ -853,9 +839,12 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : R.formula) :
                              { r with RM.mvars = new_bindings @ r.RM.mvars })))
           in
 
+          (* Common.(pr2 (spf "ranges with persistent bindings %s" ([%show: RM.ranges] ranges_with_persistent_bindings))); *)
           let ranges =
             apply_focus_on_ranges env focus ranges_with_persistent_bindings
           in
+
+          (* Common.(pr2 (spf "ranges after focus %s" ([%show: RM.ranges] ranges))); *)
           let focus_expls =
             match focus with
             | [] -> []

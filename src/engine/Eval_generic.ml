@@ -53,7 +53,11 @@ type value =
 (* less: Id of string (* simpler to merge with AST *) *)
 [@@deriving show]
 
-type env = { mvars : (MV.mvar, value) Hashtbl.t; constant_propagation : bool }
+type env = {
+  mvars : (MV.mvar, value) Hashtbl.t;
+  constant_propagation : bool;
+  file : string;
+}
 
 (* we restrict ourselves to simple expressions for now *)
 type code = AST_generic.expr
@@ -103,6 +107,7 @@ let parse_json file =
             {
               mvars = Common.hash_of_list metavars;
               constant_propagation = true;
+              file;
             }
           in
           (env, code)
@@ -207,6 +212,18 @@ let value_of_lit ~code x =
   | G.Float (Some f, _t) -> Float f
   | _ -> raise (NotHandled code)
 
+let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
+  (* alt: take the text range of the metavariable in the original file,
+     * and enforce e1 can only be an Id metavariable.
+     * alt: let s = value_to_string v in
+     * to convert anything in a string before using regexps on it
+  *)
+  let regexp = Regexp_engine.pcre_compile_with_flags ~flags:[ `ANCHORED ] re in
+  let matches =
+    Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
+  in
+  matches
+
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
@@ -296,25 +313,18 @@ let rec eval env code =
                 FN (Id (("match", _), _)) );
           _;
         },
-        (_, [ G.Arg { e = G.L (G.String (_, (re, _), _)); _ }; G.Arg e2 ], _) )
+        (_, [ G.Arg { e = G.L (G.String (_, (re, _), _)); _ }; G.Arg e ], _) )
     -> (
-      (* alt: take the text range of the metavariable in the original file,
-       * and enforce e1 can only be an Id metavariable.
-       * alt: let s = value_to_string v in
-       * to convert anything in a string before using regexps on it
-       *)
-      let v = eval env e2 in
-
-      match v with
-      | String s ->
-          (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
-          (* TODO? allow capture group mvars from this *)
-          let regexp = SPcre.regexp ~flags:[ `ANCHORED ] re in
-          let res = SPcre.pmatch_noerr ~rex:regexp s in
-          let v = Bool res in
-          logger#info "regexp %s on %s return %s" re s (show_value v);
+      match eval env e with
+      | String str ->
+          let v =
+            match eval_regexp_matches ~file:env.file ~regexp:re str with
+            | [] -> Bool false
+            | _ -> Bool true
+          in
+          logger#info "regexp %s on %s return %s" re str (show_value v);
           v
-      | _ -> raise (NotHandled code))
+      | _ -> raise (NotHandled e))
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -461,7 +471,7 @@ let string_of_binding mvar mval =
   let* x = text_of_binding mvar mval in
   Some (mvar, AST x)
 
-let bindings_to_env (config : Rule_options.t) bindings =
+let bindings_to_env (config : Rule_options.t) ~file bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
@@ -470,7 +480,9 @@ let bindings_to_env (config : Rule_options.t) bindings =
              try
                Some
                  ( mvar,
-                   eval { mvars = Hashtbl.create 0; constant_propagation } e )
+                   eval
+                     { mvars = Hashtbl.create 0; constant_propagation; file }
+                     e )
              with
              | NotHandled _
              | NotInEnv _ ->
@@ -495,15 +507,15 @@ let bindings_to_env (config : Rule_options.t) bindings =
            | x -> string_of_binding mvar x)
     |> Common.hash_of_list
   in
-  { mvars; constant_propagation }
+  { mvars; constant_propagation; file }
 
-let bindings_to_env_just_strings (config : Rule_options.t) xs =
+let bindings_to_env_just_strings (config : Rule_options.t) ~file xs =
   let mvars =
     xs
     |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
     |> Common.hash_of_list
   in
-  { mvars; constant_propagation = config.constant_propagation }
+  { mvars; constant_propagation = config.constant_propagation; file }
 
 (*****************************************************************************)
 (* Entry points *)

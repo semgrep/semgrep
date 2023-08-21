@@ -19,6 +19,13 @@ exception NotInEnv of Metavariable.mvar
  *)
 val eval : env -> code -> value
 
+val eval_regexp_matches :
+  ?base_offset:int ->
+  file:string ->
+  regexp:string ->
+  string ->
+  ((Tok.location * Tok.location) * (string * Metavariable.mvalue) list) list
+
 (* This function will swallow exns and always return a bool.
  * This is the function called by Match_rules.ml
  *)
@@ -32,9 +39,11 @@ val parse_json : Common.filename -> env * code
 
 (* for metavariable-comparison and also for metavariable-regex with constant-propagation: true *)
 val bindings_to_env_just_strings :
-  Rule_options.t -> Metavariable.bindings -> env
+  Rule_options.t -> file:string -> Metavariable.bindings -> env
 
 (* For entropy analysis and other string analyzers.
    The mvar is only for making an error message. *)
 val text_of_binding : Metavariable.mvar -> Metavariable.mvalue -> string option
-val bindings_to_env : Rule_options.t -> Metavariable.bindings -> env
+
+val bindings_to_env :
+  Rule_options.t -> file:string -> Metavariable.bindings -> env
