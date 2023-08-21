@@ -37,7 +37,7 @@ jobs:
           make install-deps-for-semgrep-core
           make core
           # needed for the e2e test below
-          make core-install
+          make copy-core-for-cli
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -86,9 +86,7 @@ jobs:
       - name: Install osemgrep
         run: |
           eval $(opam env)
-          make core-install
-          # needed for pipenv install to work below
-          cp bin/semgrep-core /usr/bin/
+          make copy-core-for-cli
       - name: Install Python dependencies
         run: |
           make install-deps-ALPINE-for-pysemgrep

@@ -143,40 +143,17 @@ core-clean:
 ###############################################################################
 
 # Install semgrep on a developer's machine with pip and opam installed.
+# This should *not* install the open-source libraries that we maintain
+# as part of the semgrep project.
 .PHONY: install
 install:
-	# Install semgrep-core into opam's bin which is in our PATH.
-	# This is not needed or used by the pip install.
-	$(MAKE) core-install
+	$(MAKE) copy-core-for-cli
 	# Install semgrep and semgrep-core in a place known to pip.
 	python3 -m pip install ./cli
 
 .PHONY: uninstall
 uninstall:
-	-$(MAKE) core-uninstall
 	-python3 -m pip uninstall --yes semgrep
-
-# Install the semgrep-core executable, as well as any other executable or
-# library built from OCaml or C and needed for a complete semgrep install
-# for a user of semgrep who builds and installs semgrep from source
-# for local use.
-#
-# This should *not* install the open-source libraries that we maintain
-# as part of the semgrep project.
-.PHONY: core-install
-core-install: copy-core-for-cli
-	# The executable created by dune doesn't have the write permission,
-	# causing an error when running a straight cp if a file is already
-	# there.
-	# Known alternative: use 'install -m 0644 ...' instead of cp
-	$(MAKE) core-uninstall
-	cp bin/semgrep-core "$$(opam var bin)"/
-
-# Try to uninstall what was installed by 'make core-install'.
-# This is a best effort.
-.PHONY: core-uninstall
-core-uninstall:
-	rm -f "$$(opam var bin)"/semgrep-core
 
 ###############################################################################
 # Test target
