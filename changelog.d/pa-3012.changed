@@ -1,0 +1,5 @@
+Rule syntax: Numeric capture group metavariables in regex patterns
+have been removed. Now, in order to introduce metavariables in
+regular expressions, you must use named capture groups.
+
+This was something deprecated in 1.30, that has finally been removed.
