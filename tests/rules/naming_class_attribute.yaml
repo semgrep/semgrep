@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    severity: ERROR
+    message: Test
+    languages:
+      - java
+    patterns:
+    - pattern-inside: |
+        class $T {
+          private int $X;
+          ...
+        }
+    - pattern: foo(this.$X)
