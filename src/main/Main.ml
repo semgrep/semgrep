@@ -52,6 +52,7 @@
 let () =
   match Filename.basename Sys.argv.(0) with
   (* osemgrep!! *)
+  | "osemgrep.bc"
   | "osemgrep" ->
       Core_CLI.register_exception_printers ();
       let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
