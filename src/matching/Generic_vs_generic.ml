@@ -535,8 +535,29 @@ and m_name a b =
     (fun acc import ->
       acc
       >||>
-      let b_ids = import @ AST_generic_helpers.dotted_ident_of_name b in
-      m_name_inner a (H.name_of_ids b_ids))
+      (* These imports face the same issue as the original problem with resolved names,
+         which is that these idents could contain confusing location data. In particular,
+         these wildcard imports could be pulled from anywhere.
+         This can mess with lots of things like `metavariable-regex` or even join mode,
+         which expect to see metavariables matching sensible ranges. To maintain that we
+         don't mess those things up, we will try to give these inserted prefixes the same
+         location data as the name that it is modifying.
+      *)
+      match AST_generic_helpers.dotted_ident_of_name b with
+      | [] ->
+          logger#warning
+            "Somehow got empty dotted ident from name %s during matching"
+            ([%show: G.name] b);
+          fail ()
+      | (_, t) :: _ ->
+          let import_with_new_location =
+            Common.map (fun (s, _) -> (s, t)) import
+          in
+          let b_ids =
+            import_with_new_location
+            @ AST_generic_helpers.dotted_ident_of_name b
+          in
+          m_name_inner a (H.name_of_ids b_ids))
     (fail ()) tin.wildcard_imports tin
 
 and m_name_info a b =
