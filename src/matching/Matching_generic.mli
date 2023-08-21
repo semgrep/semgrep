@@ -49,7 +49,6 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-val empty_environment : Lang.t -> Rule_options.t -> tin
 val environment_of_any : Lang.t -> Rule_options.t -> AST_generic.any -> tin
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
