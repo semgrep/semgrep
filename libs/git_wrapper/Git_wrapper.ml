@@ -15,6 +15,8 @@
 open Common
 open File.Operators
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -37,6 +39,15 @@ open File.Operators
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
 
 (*****************************************************************************)
 (* Error management *)
@@ -109,6 +120,73 @@ let files_from_git_ls ~cwd =
     | _ -> raise (Error "Could not get files from git ls-files")
   in
   files |> File.Path.of_strings
+
+let status ~cwd ~commit =
+  let cmd =
+    Bos.Cmd.(
+      v "git" % "-C" % !!cwd % "diff" % "--cached" % "--name-status"
+      % "--no-ext-diff" % "-z" % "--diff-filter=ACDMRTUXB"
+      % "--ignore-submodules" % "--relative" % commit)
+  in
+  let files_r = Bos.OS.Cmd.run_out cmd in
+  let results = Bos.OS.Cmd.out_string ~trim:true files_r in
+  let stats =
+    match results with
+    | Ok (str, (_, `Exited 0)) -> str |> String.split_on_char '\000'
+    | _ -> raise (Error "Could not get files from git ls-files")
+  in
+  let check_dir_symlink file =
+    try
+      match ((Unix.lstat file).st_kind, (Unix.stat file).st_kind) with
+      | Unix.S_LNK, Unix.S_DIR -> true
+      | _ -> false
+    with
+    | _ -> false
+  in
+  let added = ref [] in
+  let modified = ref [] in
+  let removed = ref [] in
+  let unmerged = ref [] in
+  let renamed = ref [] in
+  let rec parse = function
+    | _ :: file :: tail when check_dir_symlink file ->
+        logger#info "Skipping %s since it is a symlink to a directory: %s" file
+          (Unix.realpath file);
+        parse tail
+    | "A" :: file :: tail ->
+        added := file :: !added;
+        parse tail
+    | "M" :: file :: tail ->
+        modified := file :: !modified;
+        parse tail
+    | "D" :: file :: tail ->
+        removed := file :: !removed;
+        parse tail
+    | "U" :: file :: tail ->
+        unmerged := file :: !unmerged;
+        parse tail
+    | typ :: before :: after :: tail when String.starts_with ~prefix:"R" typ ->
+        removed := before :: !removed;
+        added := after :: !added;
+        renamed := (before, after) :: !renamed;
+        parse tail
+    | "!" (* ignored *) :: _ :: tail -> parse tail
+    | "?" (* untracked *) :: _ :: tail -> parse tail
+    | unknown :: file :: tail ->
+        logger#warning "unknown type in git status: %s, %s" unknown file;
+        parse tail
+    | [ remain ] ->
+        logger#warning "unknown data after parsing git status: %s" remain
+    | [] -> ()
+  in
+  parse stats;
+  {
+    added = !added;
+    modified = !modified;
+    removed = !removed;
+    unmerged = !unmerged;
+    renamed = !renamed;
+  }
 
 let is_git_repo cwd =
   let cmd =
