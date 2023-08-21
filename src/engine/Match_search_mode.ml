@@ -386,10 +386,7 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
       Common.map_filter
-        (fun fms ->
-          let range_from_mr = RM.match_result_to_range fms in
-          let intersection = intersect range_from_mr range in
-          intersection)
+        (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
     (* A union of the fm_mval ranges *)
@@ -601,10 +598,17 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, re_str, const_prop) -> (
+             let config = env.xconf.config in
+             let env =
+               if const_prop && config.constant_propagation then
+                 Eval_generic.bindings_to_env config ~file bindings
+               else
+                 Eval_generic.bindings_to_env_just_strings config ~file bindings
+             in
              (* TODO: could return expl for nested matching! *)
              match
                Metavariable_regex.get_metavar_regex_capture_bindings env ~file r
-                 (mvar, re_str, const_prop)
+                 (mvar, re_str)
              with
              | None -> None
              (* The bindings we get back are solely the new capture group metavariables. We need

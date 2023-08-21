@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Match_env
 module MV = Metavariable
 module RM = Range_with_metavars
 module G = AST_generic
@@ -31,7 +30,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Entry point *)
 (*****************************************************************************)
 
-let get_metavar_regex_capture_bindings env ~file r (mvar, re_str, const_prop) =
+let get_metavar_regex_capture_bindings env ~file r (mvar, re_str) =
   let bindings = r.RM.mvars in
   (* If anything goes wrong, we just quit out and fail the condition.
      But, by precondition, this should succeed.
@@ -53,12 +52,6 @@ let get_metavar_regex_capture_bindings env ~file r (mvar, re_str, const_prop) =
           |> G.e
         in
         call_str mvar_exp
-      in
-      let config = env.xconf.config in
-      let env =
-        if const_prop && config.constant_propagation then
-          Eval_generic.bindings_to_env config ~file bindings
-        else Eval_generic.bindings_to_env_just_strings config ~file bindings
       in
 
       (* actually call the generic evaluation logic! *)

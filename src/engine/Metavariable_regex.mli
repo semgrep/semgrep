@@ -7,10 +7,9 @@
  * by  the `metavariable-pattern`, for each instance of the match.
  *)
 val get_metavar_regex_capture_bindings :
-  Match_env.env ->
+  Eval_generic.env ->
   file:string ->
   Range_with_metavars.t ->
-  (* The arguments in CondNestedFormula *)
-  (* mvar, regex string, const prop *)
-  Metavariable.mvar * string * bool ->
+  (* mvar, regex string *)
+  Metavariable.mvar * string ->
   Metavariable.bindings list option

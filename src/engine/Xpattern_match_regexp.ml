@@ -34,13 +34,13 @@ let regexp_matcher ?(base_offset = 0) big_str file regexp =
          let bytepos, _ = Pcre.get_substring_ofs sub 0 in
          let bytepos = bytepos + base_offset in
          let str = matched_str in
-         let line, column = line_col_of_charpos file base_offset in
+         let line, column = line_col_of_charpos file bytepos in
          let pos = Pos.make ~file ~line ~column bytepos in
          let loc1 = { Tok.str; pos } in
 
          let bytepos = bytepos + String.length str in
          let str = "" in
-         let line, column = line_col_of_charpos file base_offset in
+         let line, column = line_col_of_charpos file bytepos in
          let pos = Pos.make ~file ~line ~column bytepos in
          let loc2 = { Tok.str; pos } in
 
