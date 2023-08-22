@@ -148,6 +148,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--suppress-errors/--no-suppress-errors",
     "suppress_errors",
@@ -166,6 +167,7 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
+    beta_testing_secrets: bool,
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -250,6 +252,24 @@ def ci(
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
+    if beta_testing_secrets:
+        if supply_chain:
+            # Not logged in and no explicit config
+            logger.info("Cannot use both `--supply-chain` and `--beta-testing-secrets`")
+            sys.exit(FATAL_EXIT_CODE)
+
+        # TODO: I think this eventually be EngineType.PRO_INTRAFILE, but the
+        # secrets code currently hooks into the interfile search.
+        if requested_engine is EngineType.PRO_INTERFILE:
+            logger.info("No need to specify `--beta-testing-secrets` and `--pro`")
+        elif requested_engine is None:
+            requested_engine = EngineType.PRO_INTERFILE
+        else:
+            logger.info(
+                "Cannot use both `--beta-testing-secrets` and engine types besided `--pro`"
+            )
+            sys.exit(FATAL_EXIT_CODE)
+
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -287,6 +307,7 @@ def ci(
             console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
+            metadata_dict["is_secrets_scan"] = beta_testing_secrets
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
             with Progress(
@@ -349,6 +370,10 @@ def ci(
                 markup=True,
             )
         else:
+            if beta_testing_secrets:
+                console.print(
+                    "Secrets currently requires the pro-engine, installing now."
+                )
             run_install_semgrep_pro()
 
     try:
