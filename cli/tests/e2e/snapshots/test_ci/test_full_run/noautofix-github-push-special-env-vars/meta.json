@@ -18,6 +18,7 @@
     "pull_request_title": "PR_TITLE",
     "scan_environment": "github-actions",
     "is_full_scan": true,
-    "is_sca_scan": false
+    "is_sca_scan": false,
+    "is_secrets_scan": false
   }
 }
