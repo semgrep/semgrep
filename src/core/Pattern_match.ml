@@ -77,11 +77,11 @@ type taint_trace_item = {
 
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 type engine_kind = OSS | Pro [@@deriving show, eq]
-type validation = 
-  | NoneAvailable
-  | Error
-  | Refuted
-  | Verified
+type validation_state =
+  | Confirmed_valid
+  | Confirmed_invalid
+  | Validation_error
+  | No_validator
 [@@deriving show, eq]
 
 type t = {
@@ -109,7 +109,7 @@ type t = {
   *)
   engine_kind : engine_kind;
   (* This flag indicates whether a postprocessor ran and validated this result. *)
-  validation : validation;
+  validation_state : validation_state;
 }
 
 (* This is currently a record, but really only the rule id should matter.

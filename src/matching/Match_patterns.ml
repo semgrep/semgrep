@@ -176,7 +176,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                              from a Pro run.
                           *)
                           engine_kind = OSS;
-                          validation = NoneAvailable;
+                          validation_state = No_validator;
                         }
                       in
                       Common.push pm matches;
@@ -328,7 +328,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                   tokens;
                                   taint_trace = None;
                                   engine_kind = OSS;
-                                  validation = NoneAvailable;
+                                  validation_state = No_validator;
                                 }
                               in
                               Common.push pm matches;
@@ -388,7 +388,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     tokens;
                                     taint_trace = None;
                                     engine_kind = OSS;
-                                    validation = NoneAvailable;
+                                    validation_state = No_validator;
                                   }
                                 in
                                 Common.push pm matches;
@@ -434,7 +434,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       tokens;
                                       taint_trace = None;
                                       engine_kind = OSS;
-                                      validation = NoneAvailable;
+                                      validation_state = No_validator;
                                     }
                                   in
                                   Common.push pm matches;
@@ -526,7 +526,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       tokens;
                                       taint_trace = None;
                                       engine_kind = OSS;
-                                      validation = NoneAvailable;
+                                      validation_state = No_validator;
                                     }
                                   in
                                   Common.push pm matches;
