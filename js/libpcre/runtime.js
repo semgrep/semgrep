@@ -44,6 +44,9 @@ const PCRE_INFO_NAMETABLE = 9;
 //Provides: PCRE_ERROR_NOMATCH const
 const PCRE_ERROR_NOMATCH = -1;
 
+//Provides: PCRE_ERROR_NOSUBSTRING const
+const PCRE_ERROR_NOSUBSTRING = -7;
+
 //Provides: STRUCT_PCRE_EXTRA const
 var STRUCT_PCRE_EXTRA = {
   flags: 0,
@@ -311,7 +314,7 @@ function handle_exec_error(loc, ret) {
       caml_raise_not_found();
       return;
     default:
-      throw new Error("dont know what to do with error: " + ret);
+      throw new Error(`${loc}: unhandled PCRE error code: ${ret}`); // TODO: make pcre-ocaml's raise_internal_error() work
   }
 }
 
@@ -432,8 +435,26 @@ function pcre_names_stub(v_rex) {
   );
 }
 
+//Provides: pcre_get_stringnumber_stub_bc
+//Requires: caml_invalid_argument, PCRE_INFO_SIZE, NULL, libpcre, pcre_alloc_string, PCRE_CONFIG_UTF8, PCRE_ERROR_NOSUBSTRING, auto_malloc
+function pcre_get_stringnumber_stub_bc(v_rex, v_name) {
+  const { regexp_ptr } = v_rex;
+  const string_ptr = pcre_alloc_string(PCRE_CONFIG_UTF8, v_name);
+  try {
+    const ret = libpcre._pcre_get_stringnumber(regexp_ptr, string_ptr);
+
+    if (ret == PCRE_ERROR_NOSUBSTRING) {
+      caml_invalid_argument("Named string not found");
+    }
+
+    return ret;
+  } finally {
+    libpcre._free(string_ptr);
+  }
+}
+
 //Always
-//Requires: pcre_version_stub,pcre_config_utf8_stub,pcre_compile_stub_bc,pcre_exec_stub_bc
+//Requires: pcre_version_stub,pcre_config_utf8_stub,pcre_compile_stub_bc,pcre_exec_stub_bc,pcre_get_stringnumber_stub_bc
 (() => {
   if (globalThis.exposePcreStubsForTesting) {
     module.exports = {
@@ -441,6 +462,7 @@ function pcre_names_stub(v_rex) {
       pcre_config_utf8_stub,
       pcre_compile_stub_bc,
       pcre_exec_stub_bc,
+      pcre_get_stringnumber_stub_bc,
     };
   }
 })();
