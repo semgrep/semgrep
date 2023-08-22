@@ -144,8 +144,8 @@ let render_fix (env : env) (x : Out.core_match) : string option =
 let core_location_to_error_span (loc : Out.location) : Out.error_span =
   {
     file = loc.path;
-    start = { line = loc.start.line; col = loc.start.col };
-    end_ = { line = loc.end_.line; col = loc.end_.col };
+    start = loc.start;
+    end_ = loc.end_;
     source_hash = None;
     config_start = None;
     config_end = None;
@@ -193,6 +193,15 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | OutOfMemory -> "Out of memory"
   | TimeoutDuringInterfile -> "Timeout during interfile analysis"
   | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
+  | IncompatibleRule x ->
+      spf "Rule %s is incompatible with Semgrep %s: requires Semgrep%s%s"
+        x.rule_id x.this_version
+        (match x.min_version with
+        | None -> ""
+        | Some version -> spf " (>= %s)" version)
+        (match x.max_version with
+        | None -> ""
+        | Some version -> spf " (<= %s)" version)
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
@@ -217,13 +226,14 @@ let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
       let span =
         {
           (core_location_to_error_span location) with
-          config_start = Some (Some { line = 0; col = 1 });
+          config_start = Some (Some { line = 0; col = 1; offset = 0 });
           config_end =
             Some
               (Some
                  {
                    line = location.end_.line - location.start.line;
                    col = location.end_.col - location.start.col + 1;
+                   offset = location.end_.offset - location.start.offset;
                  });
         }
       in
@@ -432,7 +442,6 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
   | {
    matches;
    errors;
-   incompatible_rules;
    skipped_targets;
    (* LATER *)
    skipped_rules = _;
@@ -474,7 +483,6 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
         results =
           matches |> Common.map (cli_match_of_core_match env) |> dedup_and_sort;
         errors = errors |> Common.map cli_error_of_core_error;
-        incompatible_rules;
         paths;
         (* LATER *)
         time = None;

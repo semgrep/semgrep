@@ -592,7 +592,7 @@ and invalid_rule_error_kind =
   | InvalidRegexp of string (* PCRE error message *)
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
-  | IncompatibleVersion of
+  | IncompatibleRule of
       Version_info.t (* this version of Semgrep *)
       * (Version_info.t option (* minimum version supported by this rule *)
         * Version_info.t option (* maximum version *))
@@ -629,24 +629,24 @@ let string_of_invalid_rule_error_kind = function
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
-  | IncompatibleVersion (cur, (Some min_version, None)) ->
+  | IncompatibleRule (cur, (Some min_version, None)) ->
       spf "This rule requires upgrading Semgrep from version %s to at least %s"
         (Version_info.to_string cur)
         (Version_info.to_string min_version)
-  | IncompatibleVersion (cur, (None, Some max_version)) ->
+  | IncompatibleRule (cur, (None, Some max_version)) ->
       spf
         "This rule is no longer supported by Semgrep. The last compatible \
          version was %s. This version of Semgrep is %s"
         (Version_info.to_string max_version)
         (Version_info.to_string cur)
-  | IncompatibleVersion (cur, (Some min_version, Some max_version)) ->
+  | IncompatibleRule (cur, (Some min_version, Some max_version)) ->
       spf
         "This rule requires a version of Semgrep within [%s, %s] but we're \
          using version %s"
         (Version_info.to_string min_version)
         (Version_info.to_string max_version)
         (Version_info.to_string cur)
-  | IncompatibleVersion (_, (None, None)) -> assert false
+  | IncompatibleRule (_, (None, None)) -> assert false
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =

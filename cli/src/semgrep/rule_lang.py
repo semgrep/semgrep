@@ -83,7 +83,7 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-# TODO: use out.PositionBis directly
+# TODO: use out.Position directly
 @frozen(repr=False)
 class Position:
     """
@@ -97,8 +97,8 @@ class Position:
     line: int
     col: int
 
-    def to_PositionBis(self) -> out.PositionBis:
-        return out.PositionBis(line=self.line, col=self.col)
+    def to_Position(self) -> out.Position:
+        return out.Position(line=self.line, col=self.col)
 
     def next_line(self) -> "Position":
         return evolve(self, line=self.line + 1)
@@ -140,18 +140,18 @@ class Span:
     def to_ErrorSpan(self) -> out.ErrorSpan:
         context_start = None
         if self.context_start:
-            context_start = self.context_start.to_PositionBis()
+            context_start = self.context_start.to_Position()
         context_end = None
         if self.context_end:
-            context_end = self.context_end.to_PositionBis()
+            context_end = self.context_end.to_Position()
 
         return out.ErrorSpan(
             config_path=self.config_path,
             context_start=context_start,
             context_end=context_end,
             file=out.Fpath(self.file if self.file else "<No file>"),
-            start=self.start.to_PositionBis(),
-            end=self.end.to_PositionBis(),
+            start=self.start.to_Position(),
+            end=self.end.to_Position(),
             source_hash=self.source_hash,
         )
 

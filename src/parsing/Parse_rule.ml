@@ -1753,8 +1753,7 @@ let incompatible_version ?min_version ?max_version rule_id tok =
   raise
     (R.Err
        (InvalidRule
-          ( IncompatibleVersion
-              (Version_info.version, (min_version, max_version)),
+          ( IncompatibleRule (Version_info.version, (min_version, max_version)),
             rule_id,
             tok )))
 

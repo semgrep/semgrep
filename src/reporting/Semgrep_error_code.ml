@@ -52,7 +52,7 @@ let please_file_issue_text =
 
 let mk_error ?(rule_id = None) loc msg err =
   let msg =
-    match err with
+    match (err : Out.core_error_kind) with
     | Out.MatchingError
     | Out.AstBuilderError
     | Out.FatalError
@@ -69,7 +69,8 @@ let mk_error ?(rule_id = None) loc msg err =
     | TimeoutDuringInterfile
     | OutOfMemoryDuringInterfile
     | PatternParseError _
-    | PartialParsing _ ->
+    | PartialParsing _
+    | IncompatibleRule _ ->
         msg
   in
   { rule_id; loc; typ = err; msg; details = None }
@@ -135,8 +136,8 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
           let msg = Rule.string_of_invalid_rule_error_kind kind in
           let err =
             match kind with
-            | IncompatibleVersion (this_version, (min_version, max_version)) ->
-                Out.IncompatibleSemgrepVersion
+            | IncompatibleRule (this_version, (min_version, max_version)) ->
+                Out.IncompatibleRule
                   {
                     rule_id = (rule_id :> string);
                     this_version = Version_info.to_string this_version;
@@ -211,23 +212,24 @@ let string_of_error err =
     err.msg details
 
 let severity_of_error typ =
-  match typ with
-  | Out.SemgrepMatchFound -> Out.Error
-  | Out.MatchingError -> Warning
-  | Out.TooManyMatches -> Warning
-  | Out.LexicalError -> Warning
-  | Out.ParseError -> Warning
-  | Out.PartialParsing _ -> Warning
-  | Out.SpecifiedParseError -> Warning
-  | Out.AstBuilderError -> Error
-  | Out.RuleParseError -> Error
-  | Out.PatternParseError _ -> Error
-  | Out.InvalidYaml -> Warning
-  | Out.FatalError -> Error
-  | Out.Timeout -> Warning
-  | Out.OutOfMemory -> Warning
-  | Out.TimeoutDuringInterfile -> Error
-  | Out.OutOfMemoryDuringInterfile -> Error
+  match (typ : Out.core_error_kind) with
+  | SemgrepMatchFound -> Out.Error
+  | MatchingError -> Warning
+  | TooManyMatches -> Warning
+  | LexicalError -> Warning
+  | ParseError -> Warning
+  | PartialParsing _ -> Warning
+  | SpecifiedParseError -> Warning
+  | AstBuilderError -> Error
+  | RuleParseError -> Error
+  | PatternParseError _ -> Error
+  | InvalidYaml -> Warning
+  | FatalError -> Error
+  | Timeout -> Warning
+  | OutOfMemory -> Warning
+  | TimeoutDuringInterfile -> Error
+  | OutOfMemoryDuringInterfile -> Error
+  | IncompatibleRule _ -> Warning
 
 (*****************************************************************************)
 (* Try with error *)

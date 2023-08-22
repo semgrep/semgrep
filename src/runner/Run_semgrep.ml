@@ -347,7 +347,7 @@ let exn_to_error file (e : Exception.t) =
  * sanity_check_invalid_patterns() below, and then we return the same kind of error
  * we used to before the lazy pattern optimisation.
  *)
-let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
+let _sanity_check_rules_and_invalid_rules _config rules invalid_rules =
   match (rules, invalid_rules) with
   | [], [] -> ()
   | [], err :: _ -> raise (R.Err (R.InvalidRule err))
@@ -724,8 +724,12 @@ let extracted_targets_of_config (config : Runner_config.t)
  *)
 let semgrep_with_rules ?match_hook config
     ((rules, invalid_rules), rules_parse_time) =
-  sanity_check_rules_and_invalid_rules config rules invalid_rules;
+  (*
+   This raises an exception on the first invalid rule, discarding all the other
+   errors and aborting the scan. Why was is like that?
 
+  sanity_check_rules_and_invalid_rules config rules invalid_rules;
+*)
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
   (* The basic targets.
