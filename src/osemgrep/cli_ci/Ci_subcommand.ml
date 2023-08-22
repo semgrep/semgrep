@@ -346,7 +346,7 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf (conf : Ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:conf.force_color
     ~level:conf.common.logging_level;
   Metrics_.configure conf.metrics;
@@ -490,7 +490,7 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
               Find_targets.get_targets conf.targeting_conf conf.target_roots
             in
             let res =
-              Scan_subcommand.scan_files conf profiler rules_and_origin
+              Scan_subcommand.run_scan_files conf profiler rules_and_origin
                 targets_and_ignored
             in
             match res with
@@ -645,4 +645,4 @@ let run (conf : Ci_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Ci_CLI.parse_argv argv in
-  run conf
+  run_conf conf
