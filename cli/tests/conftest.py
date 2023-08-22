@@ -489,3 +489,17 @@ def parse_lockfile_path_in_tmp(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
     return parse_lockfile_path
+
+
+# similar to parse_lockfile_path_in_tmp but with different targets path to save
+# disk space (see performance/targets_perf_sca/readme.txt)
+@pytest.fixture
+def parse_lockfile_path_in_tmp_for_perf(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    (tmp_path / "targets_perf_sca").symlink_to(
+        Path(TESTS_PATH / "performance" / "targets_perf_sca").resolve()
+    )
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+    return parse_lockfile_path
