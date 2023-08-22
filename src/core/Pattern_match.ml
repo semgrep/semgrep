@@ -77,6 +77,7 @@ type taint_trace_item = {
 
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 type engine_kind = OSS | Pro [@@deriving show, eq]
+
 type validation_state =
   | Confirmed_valid
   | Confirmed_invalid
