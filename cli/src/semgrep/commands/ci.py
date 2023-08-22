@@ -376,7 +376,7 @@ def ci(
 
         if scan_handler and not scan_handler.enabled_products:
             raise SemgrepError(
-                'No products are enabled for this organization. Please enable a product in the "Deployment" settings tab of the Semgrep Cloud Platform or reach out to support@semgrep.com for assistance.'
+                "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
             )
 
         (
