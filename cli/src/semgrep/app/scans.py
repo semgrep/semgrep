@@ -122,7 +122,7 @@ class ScanHandler:
         return self._rules
 
     @property
-    def enabled_products(self) -> list[str]:
+    def enabled_products(self) -> List[str]:
         """
         Separate property for easy of mocking in test
         """
