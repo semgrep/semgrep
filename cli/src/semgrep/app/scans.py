@@ -47,7 +47,6 @@ class ScanHandler:
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
-
         self._policy_names: List[str] = []
         self._autofix = False
         self._deepsemgrep = False
@@ -173,9 +172,6 @@ class ScanHandler:
 
         body = self._get_scan_config_from_app(app_get_config_url)
 
-        self.ignore_patterns = body.get("ignored_files") or []
-        self._enabled_products = body.get("enabled_products") or []
-
         self._deployment_id = body["deployment_id"]
         self._deployment_name = body["deployment_name"]
         self._policy_names = body["policy_names"]
@@ -185,6 +181,8 @@ class ScanHandler:
         self._dependency_query = body.get("dependency_query") or False
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
+        self._enabled_products = body.get("enabled_products") or []
+        self.ignore_patterns = body.get("ignored_files") or []
 
         if state.terminal.is_debug:
             config = deepcopy(body)
@@ -226,7 +224,6 @@ class ScanHandler:
             )
 
         body = response.json()
-
         self.scan_id = body["scan"]["id"]
         self._enabled_products = body["scan"].get("enabled_products") or []
 
