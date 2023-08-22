@@ -331,6 +331,11 @@ def automocks(mocker):
             "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
         ],
     )
+    mocker.patch.object(
+        ScanHandler,
+        "enabled_products",
+        ["sast", "sca"],
+    )
     mocker.patch(
         "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
     )

@@ -55,6 +55,12 @@ ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
 # These patterns are excluded via --exclude unless the user provides their own .semgrepignore
 DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
+# Conversion of product codes to product names
+PRODUCT_NAMES_MAP = {
+    "sast": "Semgrep Code",
+    "sca": "Semgrep Supply Chain",
+}
+
 
 def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
     """
@@ -312,7 +318,10 @@ def ci(
                 scan_handler.fetch_and_init_scan_config(metadata_dict)
                 progress_bar.update(connection_task, completed=100)
 
-                products_str = ", ".join(scan_handler.enabled_products) or "None"
+                product_names = [
+                    PRODUCT_NAMES_MAP.get(p) or p for p in scan_handler.enabled_products
+                ]
+                products_str = ", ".join(product_names) or "None"
                 products_task = progress_bar.add_task(
                     f"Enabled products: [bold]{products_str}[/bold]"
                 )

@@ -47,7 +47,6 @@ class ScanHandler:
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
-        self.enabled_products: List[str] = []
 
         self._policy_names: List[str] = []
         self._autofix = False
@@ -58,6 +57,7 @@ class ScanHandler:
         self._skipped_match_based_ids: List[str] = []
         self._scan_params: str = ""
         self._rules: str = ""
+        self._enabled_products: List[str] = []
 
     @property
     def deployment_id(self) -> Optional[int]:
@@ -122,6 +122,13 @@ class ScanHandler:
         """
         return self._rules
 
+    @property
+    def enabled_products(self) -> list[str]:
+        """
+        Separate property for easy of mocking in test
+        """
+        return self._enabled_products
+
     def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
         state = get_state()
         response = state.app_session.get(url)
@@ -167,7 +174,7 @@ class ScanHandler:
         body = self._get_scan_config_from_app(app_get_config_url)
 
         self.ignore_patterns = body.get("ignored_files") or []
-        self.enabled_products = body.get("enabled_products") or []
+        self._enabled_products = body.get("enabled_products") or []
 
         self._deployment_id = body["deployment_id"]
         self._deployment_name = body["deployment_name"]
@@ -221,7 +228,7 @@ class ScanHandler:
         body = response.json()
 
         self.scan_id = body["scan"]["id"]
-        self.enabled_products = body["scan"].get("enabled_products") or []
+        self._enabled_products = body["scan"].get("enabled_products") or []
 
     def report_failure(self, exit_code: int) -> None:
         """

@@ -3,24 +3,445 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of command
 
 === exit code
-2
+1
 === end of exit code
 
 === stdout - plain
 {
-  "errors": [
-    {
-      "code": 2,
-      "level": "error",
-      "message": "No products are enabled for this organization. Please enable a product in the \"Deployment\" settings tab of the Semgrep Cloud Platform or reach out to support@semgrep.com for assistance.",
-      "type": "SemgrepError"
-    }
-  ],
+  "errors": [],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": []
+    "scanned": [
+      "foo.py",
+      "poetry.lock",
+      "yarn.lock"
+    ]
   },
-  "results": [],
+  "results": [
+    {
+      "check_id": "eqeq-bad",
+      "end": {
+        "col": 11,
+        "line": 4,
+        "offset": 43
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    a == a",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 6,
+              "line": 4,
+              "offset": 38
+            },
+            "start": {
+              "col": 5,
+              "line": 4,
+              "offset": 37
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 4,
+        "offset": 37
+      }
+    },
+    {
+      "check_id": "eqeq-bad",
+      "end": {
+        "col": 11,
+        "line": 5,
+        "offset": 54
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    a == a",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 6,
+              "line": 5,
+              "offset": 49
+            },
+            "start": {
+              "col": 5,
+              "line": 5,
+              "offset": 48
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 5,
+        "offset": 48
+      }
+    },
+    {
+      "check_id": "eqeq-bad",
+      "end": {
+        "col": 11,
+        "line": 7,
+        "offset": 89
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    a == a",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 6,
+              "line": 7,
+              "offset": 84
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 83
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 7,
+        "offset": 83
+      }
+    },
+    {
+      "check_id": "eqeq-bad",
+      "end": {
+        "col": 11,
+        "line": 11,
+        "offset": 126
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    y == y",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "y",
+            "end": {
+              "col": 6,
+              "line": 11,
+              "offset": 121
+            },
+            "start": {
+              "col": 5,
+              "line": 11,
+              "offset": 120
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 11,
+        "offset": 120
+      }
+    },
+    {
+      "check_id": "eqeq-five",
+      "end": {
+        "col": 11,
+        "line": 15,
+        "offset": 163
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "fix": "(x == 2)",
+        "is_ignored": false,
+        "lines": "    x == 5",
+        "message": "useless comparison to 5",
+        "metadata": {
+          "dev.semgrep.actions": [],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abcd",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version1"
+            },
+            "src": "unchanged"
+          }
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 6,
+              "line": 15,
+              "offset": 158
+            },
+            "start": {
+              "col": 5,
+              "line": 15,
+              "offset": 157
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 15,
+        "offset": 157
+      }
+    },
+    {
+      "check_id": "eqeq-four",
+      "end": {
+        "col": 13,
+        "line": 19,
+        "offset": 227
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    baz == 4",
+        "message": "useless comparison to 4",
+        "metadata": {
+          "dev.semgrep.actions": [
+            "block"
+          ],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abce",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version2"
+            },
+            "src": "new-version"
+          }
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "baz",
+            "end": {
+              "col": 8,
+              "line": 19,
+              "offset": 222
+            },
+            "start": {
+              "col": 5,
+              "line": 19,
+              "offset": 219
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 19,
+        "offset": 219
+      }
+    },
+    {
+      "check_id": "taint-test",
+      "end": {
+        "col": 13,
+        "line": 27,
+        "offset": 365
+      },
+      "extra": {
+        "dataflow_trace": {
+          "intermediate_vars": [
+            {
+              "content": "d2",
+              "location": {
+                "end": {
+                  "col": 7,
+                  "line": 26,
+                  "offset": 343
+                },
+                "path": "foo.py",
+                "start": {
+                  "col": 5,
+                  "line": 26,
+                  "offset": 341
+                }
+              }
+            }
+          ],
+          "taint_sink": [
+            "CliLoc",
+            [
+              {
+                "end": {
+                  "col": 13,
+                  "line": 27,
+                  "offset": 365
+                },
+                "path": "foo.py",
+                "start": {
+                  "col": 5,
+                  "line": 27,
+                  "offset": 357
+                }
+              },
+              "sink(d2)"
+            ]
+          ],
+          "taint_source": [
+            "CliLoc",
+            [
+              {
+                "end": {
+                  "col": 16,
+                  "line": 26,
+                  "offset": 352
+                },
+                "path": "foo.py",
+                "start": {
+                  "col": 10,
+                  "line": 26,
+                  "offset": 346
+                }
+              },
+              "danger"
+            ]
+          ]
+        },
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "    sink(d2)",
+        "message": "unsafe use of danger",
+        "metadata": {
+          "dev.semgrep.actions": [
+            "block"
+          ],
+          "semgrep.dev": {
+            "rule": {
+              "rule_id": "abcf",
+              "shortlink": "https://sg.run/abcd",
+              "url": "https://semgrep.dev/r/python.eqeq-five",
+              "version_id": "version1"
+            },
+            "src": "new-rule"
+          }
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "d2",
+            "end": {
+              "col": 12,
+              "line": 27,
+              "offset": 364
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "danger",
+              "svalue_end": {
+                "col": 16,
+                "line": 26,
+                "offset": 352
+              },
+              "svalue_start": {
+                "col": 10,
+                "line": 26,
+                "offset": 346
+              }
+            },
+            "start": {
+              "col": 10,
+              "line": 27,
+              "offset": 362
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "foo.py",
+      "start": {
+        "col": 5,
+        "line": 27,
+        "offset": 357
+      }
+    },
+    {
+      "check_id": "supply-chain1",
+      "end": {
+        "col": 0,
+        "line": 2,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "[[package]]\nname = \"badlib\"",
+        "message": "found a dependency",
+        "metadata": {
+          "dev.semgrep.actions": [],
+          "sca-kind": "upgrade-only"
+        },
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "badlib",
+              "semver_range": "== 99.99.99"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "ecosystem": "pypi",
+              "line_number": 1,
+              "package": "badlib",
+              "transitivity": "unknown",
+              "version": "99.99.99"
+            },
+            "lockfile": "poetry.lock"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "ERROR"
+      },
+      "path": "poetry.lock",
+      "start": {
+        "col": 0,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ],
   "version": "0.42"
 }
 === end of stdout - plain
@@ -39,5 +460,34 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   CONNECTION
   Reporting start of scan for deployment_name
   Fetching configuration from Semgrep Cloud Platform
-  Enabled products: None
+  Enabled products: Semgrep Code, Semgrep Supply Chain
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+
+
+  CODE RULES
+  Scanning 1 file with 4 python rules.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+CI scan completed successfully.
+  Found 8 findings (6 blocking) from 7 rules.
+  Uploading scan results
+  Finalizing scan           View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings
+    https://semgrep.dev/orgs/org_name/supply-chain
+  Has findings for blocking rules so exiting with code 1
+  semgrep.dev is suggesting a non-zero exit code <MASKED>
+
 === end of stderr - plain
