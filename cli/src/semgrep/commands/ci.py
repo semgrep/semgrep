@@ -261,7 +261,7 @@ def ci(
             requested_engine = EngineType.PRO_INTERFILE
         else:
             logger.info(
-                "Cannot use both `--beta-testing-secrets` and engine types besided `--pro`"
+                "Cannot use the `--beta-testing-secrets` flag with engine types besides `--pro`"
             )
             sys.exit(FATAL_EXIT_CODE)
 
