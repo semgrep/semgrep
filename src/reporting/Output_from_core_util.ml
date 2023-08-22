@@ -32,9 +32,14 @@ let location_of_token_location loc =
   let start, end_ = position_range loc loc in
   { path = loc.Tok.pos.file; start; end_ }
 
+let location_of_token tok =
+  tok |> Tok.unsafe_loc_of_tok |> location_of_token_location
+
 (* compare boilerplate (=~ deriving ord) *)
 
-let compare_position (a : position) b = Int.compare a.offset b.offset
+let compare_position (a : position) (b : position) =
+  let c = Int.compare a.line b.line in
+  if c <> 0 then c else Int.compare a.col b.col
 
 let compare_location (a : location) (b : location) =
   let c = String.compare a.path b.path in

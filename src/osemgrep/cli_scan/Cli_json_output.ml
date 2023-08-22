@@ -144,8 +144,8 @@ let render_fix (env : env) (x : Out.core_match) : string option =
 let core_location_to_error_span (loc : Out.location) : Out.error_span =
   {
     file = loc.path;
-    start = { line = loc.start.line; col = loc.start.col };
-    end_ = { line = loc.end_.line; col = loc.end_.col };
+    start = loc.start;
+    end_ = loc.end_;
     source_hash = None;
     config_start = None;
     config_end = None;
@@ -217,13 +217,20 @@ let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
       let span =
         {
           (core_location_to_error_span location) with
-          config_start = Some (Some { line = 0; col = 1 });
+          (* TODO: explain what's going here because it looks wrong in
+             a few ways. *)
+          config_start =
+            (* TODO: line numbering starts from 1. Why 0 here? *)
+            Some (Some { line = 0; col = 1; offset = 0 });
           config_end =
             Some
               (Some
                  {
                    line = location.end_.line - location.start.line;
+                   (* TODO: what's a column difference for?
+                      (it can be negative) *)
                    col = location.end_.col - location.start.col + 1;
+                   offset = location.end_.offset - location.start.offset;
                  });
         }
       in

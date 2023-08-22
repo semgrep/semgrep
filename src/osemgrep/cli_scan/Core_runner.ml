@@ -242,12 +242,10 @@ let invoke_semgrep_core
       (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
       let exn = Rule.Err (Rule.InvalidRule err) in
       let e = Exception.catch exn in
-      let res =
-        {
-          RP.empty_final_result with
-          errors = [ Semgrep_error_code.exn_to_error "" e ];
-        }
+      let errors, incompatible_rules =
+        Semgrep_error_code.exn_to_error_lists "" e
       in
+      let res = { RP.empty_final_result with errors; incompatible_rules } in
       (Some e, res, Set_.empty)
   | [] ->
       (* TODO: we should not need to use Common.map below, because

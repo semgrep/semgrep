@@ -40,11 +40,58 @@ type error = {
 }
 [@@deriving show]
 
-let g_errors = ref []
+(*
+   Error accumulators.
+   TODO: explain why they're global or make them not global.
+*)
+let g_errors = ref ([] : error list)
+let g_incompatible_rules = ref ([] : Out.incompatible_rule list)
 
 (****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
+
+(*
+   Type used when sorting internal exceptions and turning them
+   into their own list in the response.
+
+   For example, having an "incompatible rule" is not really an error but
+   should result in a specific behavior in the client app such as
+   inviting the user to upgrade their Semgrep. It's easier for the
+   user of the API if we provide a dedicated record field for this condition
+   rather than having them sort through the error list. Conversely, if they
+   don't care about the different kinds of things that went wrong,
+   it's comparatively easier to compute length(errors)
+   + length(incompatible_rules).
+
+   The rationale for keeping different kinds of errors segregated is that
+   in practice, it's generally easier to mix elements from multiple sets
+   than to unmix/classify them, similarly to how it's easier to print an AST
+   than to parse a string into an AST:
+
+     easy: structured/sorted/ordered/low-entropy -> unordered/high-entropy
+           e.g. list concatenation
+     hard: unordered/high-entropy -> structured/sorted/ordered/low-entropy
+           e.g. partitioning a list based on the properties of its elements
+*)
+type error_class = Error of error | Incompatible_rule of Out.incompatible_rule
+
+(* more compact/readable than what's derived by ppx show *)
+let string_of_incompatible_rule (x : Out.incompatible_rule) =
+  spf
+    "incompatible rule %s: this Semgrep version is %s but the rule requires%s%s"
+    x.rule_id x.this_version
+    (match x.min_version with
+    | None -> ""
+    | Some version -> spf " (>= %s)" version)
+    (match x.max_version with
+    | None -> ""
+    | Some version -> spf " (<= %s)" version)
+
+let push_error_class (x : error_class) =
+  match x with
+  | Error err -> Common.push err g_errors
+  | Incompatible_rule x -> Common.push x g_incompatible_rules
 
 let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
@@ -89,13 +136,14 @@ let error rule_id loc msg err =
    TODO: why not capture AST_generic.error here? So we could get rid
    of Run_semgrep.exn_to_error wrapper.
 *)
-let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
+let known_exn_to_error_class ?(rule_id = None) file (e : Exception.t) :
+    error_class option =
   match Exception.get_exn e with
   (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
      module so that we can use it for the exception printers that are
      registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
-      Some (mk_error_tok ~rule_id tok s Out.LexicalError)
+      Some (Error (mk_error_tok ~rule_id tok s Out.LexicalError))
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
@@ -108,48 +156,52 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
-      Some (mk_error_tok tok msg Out.ParseError)
+      Some (Error (mk_error_tok tok msg Out.ParseError))
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
+      Some (Error (mk_error_tok ~rule_id tok s Out.SpecifiedParseError))
   | R.Err err -> (
       match err with
       | R.InvalidRule
           (R.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
         ->
           Some
-            {
-              rule_id = Some rule_id;
-              typ = Out.PatternParseError yaml_path;
-              loc = Tok.unsafe_loc_of_tok pos;
-              msg =
-                spf
-                  "Invalid pattern for %s:\n\
-                   --- pattern ---\n\
-                   %s\n\
-                   --- end pattern ---\n\
-                   Pattern error: %s\n"
-                  (Xlang.to_string xlang) pattern message;
-              details = None;
-            }
-      | R.InvalidRule (kind, rule_id, pos) ->
-          let msg = Rule.string_of_invalid_rule_error_kind kind in
-          let err =
-            match kind with
-            | IncompatibleVersion (this_version, (min_version, max_version)) ->
-                Out.IncompatibleSemgrepVersion
-                  {
-                    rule_id = (rule_id :> string);
-                    this_version = Version_info.to_string this_version;
-                    min_version = Option.map Version_info.to_string min_version;
-                    max_version = Option.map Version_info.to_string max_version;
-                  }
-            | _ -> Out.RuleParseError
-          in
-          Some (mk_error_tok ~rule_id:(Some rule_id) pos msg err)
+            (Error
+               {
+                 rule_id = Some rule_id;
+                 typ = Out.PatternParseError yaml_path;
+                 loc = Tok.unsafe_loc_of_tok pos;
+                 msg =
+                   spf
+                     "Invalid pattern for %s:\n\
+                      --- pattern ---\n\
+                      %s\n\
+                      --- end pattern ---\n\
+                      Pattern error: %s\n"
+                     (Xlang.to_string xlang) pattern message;
+                 details = None;
+               })
+      | R.InvalidRule (kind, rule_id, pos) -> (
+          match kind with
+          | IncompatibleVersion (this_version, (min_version, max_version)) ->
+              Some
+                (Incompatible_rule
+                   {
+                     rule_id = (rule_id :> string);
+                     this_version = Version_info.to_string this_version;
+                     min_version = Option.map Version_info.to_string min_version;
+                     max_version = Option.map Version_info.to_string max_version;
+                     location = Output_from_core_util.location_of_token pos;
+                   })
+          | _ ->
+              let msg = Rule.string_of_invalid_rule_error_kind kind in
+              Some
+                (Error
+                   (mk_error_tok ~rule_id:(Some rule_id) pos msg
+                      Out.RuleParseError)))
       | R.InvalidYaml (msg, pos) ->
-          Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
+          Some (Error (mk_error_tok ~rule_id pos msg Out.InvalidYaml))
       | R.DuplicateYamlKey (s, pos) ->
-          Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
+          Some (Error (mk_error_tok ~rule_id pos s Out.InvalidYaml))
       (* TODO?? *)
       | R.UnparsableYamlException _ -> None)
   | Time_limit.Timeout timeout_info ->
@@ -158,18 +210,18 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
       (* This exception should always be reraised. *)
       let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
-      Some (mk_error ~rule_id loc msg Out.Timeout)
+      Some (Error (mk_error ~rule_id loc msg Out.Timeout))
   | Memory_limit.ExceededMemoryLimit msg ->
       let loc = Tok.first_loc_of_file file in
-      Some (mk_error ~rule_id loc msg Out.OutOfMemory)
+      Some (Error (mk_error ~rule_id loc msg Out.OutOfMemory))
   | Out_of_memory ->
       let loc = Tok.first_loc_of_file file in
-      Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
+      Some (Error (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory))
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
-let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
-  match known_exn_to_error ~rule_id file e with
+let exn_to_error_class ?(rule_id = None) file (e : Exception.t) : error_class =
+  match known_exn_to_error_class ~rule_id file e with
   | Some err -> err
   | None -> (
       match Exception.get_exn e with
@@ -181,13 +233,19 @@ let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
       | exn ->
           let trace = Exception.to_string e in
           let loc = Tok.first_loc_of_file file in
-          {
-            rule_id;
-            typ = Out.FatalError;
-            loc;
-            msg = Printexc.to_string exn;
-            details = Some trace;
-          })
+          Error
+            {
+              rule_id;
+              typ = Out.FatalError;
+              loc;
+              msg = Printexc.to_string exn;
+              details = Some trace;
+            })
+
+let exn_to_error_lists ?rule_id file exn =
+  match exn_to_error_class ?rule_id file exn with
+  | Error x -> ([ x ], [])
+  | Incompatible_rule x -> ([], [ x ])
 
 (*****************************************************************************)
 (* Pretty printers *)
@@ -209,6 +267,11 @@ let string_of_error err =
     pos.Tok.pos.line pos.Tok.pos.column
     (Out.string_of_core_error_kind err.typ)
     err.msg details
+
+let string_of_error_class err_c =
+  match err_c with
+  | Error err -> string_of_error err
+  | Incompatible_rule x -> string_of_incompatible_rule x
 
 let severity_of_error typ =
   match typ with
@@ -233,20 +296,20 @@ let severity_of_error typ =
 (* Try with error *)
 (*****************************************************************************)
 
-let try_with_exn_to_error file f =
+let try_with_exn_to_error_class file f =
   try f () with
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      Common.push (exn_to_error file e) g_errors
+      exn_to_error_class file e |> push_error_class
 
 let try_with_print_exn_and_reraise file f =
   try f () with
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      let err = exn_to_error file e in
-      pr2 (string_of_error err);
+      let err = exn_to_error_class file e in
+      pr2 (string_of_error_class err);
       Exception.reraise e
 
 (*****************************************************************************)

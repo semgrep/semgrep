@@ -16,7 +16,14 @@ type error = {
 }
 [@@deriving show]
 
+type error_class =
+  | Error of error
+  (* Specific kind of error condition that needs more info than simple errors
+     to be actionable. *)
+  | Incompatible_rule of Semgrep_output_v1_t.incompatible_rule
+
 val g_errors : error list ref
+val g_incompatible_rules : Semgrep_output_v1_t.incompatible_rule list ref
 
 (*****************************************************************************)
 (* Converter functions *)
@@ -37,14 +44,22 @@ val error :
   unit
 
 (* Convert a caught exception and its stack trace to a Semgrep error. *)
-val exn_to_error :
-  ?rule_id:Rule_ID.t option -> Common.filename -> Exception.t -> error
+val exn_to_error_class :
+  ?rule_id:Rule_ID.t option -> Common.filename -> Exception.t -> error_class
+
+(* Turn a single exceptions into lists of the different classes of errors,
+   ready to be injected in a response record. *)
+val exn_to_error_lists :
+  ?rule_id:Rule_ID.t option ->
+  Common.filename ->
+  Exception.t ->
+  error list * Semgrep_output_v1_t.incompatible_rule list
 
 (*****************************************************************************)
 (* Try with error *)
 (*****************************************************************************)
 
-val try_with_exn_to_error : Common.filename -> (unit -> unit) -> unit
+val try_with_exn_to_error_class : Common.filename -> (unit -> unit) -> unit
 val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 
 (*****************************************************************************)
