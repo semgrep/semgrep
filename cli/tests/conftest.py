@@ -322,7 +322,7 @@ def _run_semgrep(
     force_metrics_off: bool = True,
     stdin: Optional[str] = None,
     clean_fingerprint: bool = True,
-    use_click_runner: bool = True,  # TODO: change to False. deprecated! Avoid using! see semgrep_runner.py
+    use_click_runner: bool = False,  # TODO: change to False. deprecated! Avoid using! see semgrep_runner.py
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 

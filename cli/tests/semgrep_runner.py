@@ -3,15 +3,16 @@
 ##############################################################################
 # Small wrapper around 'semgrep' useful for writing end-to-end (e2e) tests.
 #
-# TODO: This file was originally introduced to optimize the way we were running
+# old: This file was originally introduced to optimize the way we were running
 # semgrep in tests by using Click and its CliRunner to avoid an extra fork.
 # However, with the introduction of osemgrep and the new cli/bin/semgrep (which
 # dispatch to osemgrep), we actually want to avoid to use the CliRunner which
 # only run pysemgrep code. Otherwise, our e2e tests would not be really end-to
 # -end and may not represent what the user would get by using semgrep directly.
-# This is why using the CliRunner option is now deprecated. The option is still
-# kept because a few of our tests still rely on Click-specific features that
-# the regular call-semgrep-in-a-subprocess does not provide yet.
+# This is why using the CliRunner option is now deprecated.
+# TODO: The option is still kept because a few of our tests still rely on
+# Click-specific features (e.g., mocking)  that the regular
+# call-semgrep-in-a-subprocess does not provide yet.
 import os
 import shlex
 from dataclasses import dataclass
@@ -89,13 +90,11 @@ def fork_semgrep(
         arg_list = shlex.split(args)
     elif isinstance(args, List):
         arg_list = args
-    argv: List[str] = []
 
+    argv: List[str] = SEMGREP_BASE_COMMAND + arg_list
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in arg_list or "--help" in arg_list:
         argv = [_SEMGREP_PATH] + arg_list
-    else:
-        argv = [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS + arg_list
 
     # env preparation
     env_dict = {}
