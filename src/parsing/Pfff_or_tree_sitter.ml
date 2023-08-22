@@ -86,18 +86,33 @@ let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   |> List.iter (fun err ->
          pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
+let has_errors_other_than_missing_tokens
+    (res : _ Tree_sitter_run.Parsing_result.t) =
+  List.exists
+    (fun (err : Tree_sitter_run.Tree_sitter_error.t) ->
+      match err.kind with
+      | Internal
+      | Error_node ->
+          true
+      | Missing_node -> false)
+    res.errors
+
 let extract_pattern_from_tree_sitter_result
     (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
-  match (res.Tree_sitter_run.Parsing_result.program, res.errors) with
-  | None, _ -> failwith "no pattern found"
-  | Some x, [] -> x
-  | Some _, _ :: _ ->
-      if print_errors then
-        res.errors
-        |> List.iter (fun err ->
-               pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
-      (* to be backward compatible with what we do in PfffPat *)
-      raise Parsing.Parse_error
+  match res.program with
+  | None -> failwith "no pattern found"
+  | Some pat ->
+      (* TODO: treat missing tokens as errors once we're confident that
+         these new errors won't affect users negatively on a large scale. *)
+      if has_errors_other_than_missing_tokens res then (
+        if print_errors then
+          res.errors
+          |> List.iter (fun err ->
+                 pr2
+                   (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err));
+        (* to be backward compatible with what we do in PfffPat *)
+        raise Parsing.Parse_error)
+      else pat
 
 (*****************************************************************************)
 (* Run target parsers *)
