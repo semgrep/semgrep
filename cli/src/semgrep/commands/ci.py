@@ -253,13 +253,8 @@ def ci(
         raise RuntimeError("The token and/or config are misconfigured")
 
     if beta_testing_secrets:
-        if supply_chain:
-            # Not logged in and no explicit config
-            logger.info("Cannot use both `--supply-chain` and `--beta-testing-secrets`")
-            sys.exit(FATAL_EXIT_CODE)
-
-        # TODO: I think this eventually be EngineType.PRO_INTRAFILE, but the
-        # secrets code currently hooks into the interfile search.
+        # TODO: I think this should eventually be PRO_INTRAFILE, but
+        # the secrets code currently hooks into the interfile search.
         if requested_engine is EngineType.PRO_INTERFILE:
             logger.info("No need to specify `--beta-testing-secrets` and `--pro`")
         elif requested_engine is None:
