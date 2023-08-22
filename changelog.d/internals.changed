@@ -1,0 +1,7 @@
+The semgrep_main.py module has been renamed to run_scan.py and its
+invoke_semgrep() function renamed to run_scan_and_return_json().
+External tools (e.g., semgrep wrappers) using directly those functions
+should be updated. Note that thi function will soon disappear as
+part of a migration effort converting Python code to OCaml. Thus,
+those tools should instead wrap the semgrep CLI and rely on
+semgrep_output_v1.atd for a more stable official API.

@@ -1175,7 +1175,7 @@ Exception raised: `{e}`
 
     # end _run_rules_direct_to_semgrep_core
 
-    def invoke_semgrep(
+    def invoke_semgrep_core(
         self,
         target_manager: TargetManager,
         rules: List[Rule],
