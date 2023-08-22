@@ -312,6 +312,12 @@ def ci(
                 scan_handler.fetch_and_init_scan_config(metadata_dict)
                 progress_bar.update(connection_task, completed=100)
 
+                products_str = ", ".join(scan_handler.enabled_products) or "None"
+                products_task = progress_bar.add_task(
+                    f"Enabled products: [bold]{products_str}[/bold]"
+                )
+                progress_bar.update(products_task, completed=100)
+
             config = (scan_handler.rules,)
 
     except Exception as e:
@@ -358,6 +364,12 @@ def ci(
         exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
+
+        if scan_handler and not scan_handler.enabled_products:
+            raise SemgrepError(
+                'No products are enabled for this organization. Please enable a product in the "Deployment" settings tab of the Semgrep Cloud Platform or reach out to support@semgrep.com for assistance.'
+            )
+
         (
             filtered_matches_by_rule,
             semgrep_errors,
