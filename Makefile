@@ -81,6 +81,15 @@ core:
 	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core bin/osemgrep
 
+#history: was called the 'all' target in semgrep-core/Makefile before
+.PHONY: core-bc
+core-bc: minimal-build-bc
+	# make executables easily accessible for manual testing:
+	test -e bin || ln -s _build/install/default/bin .
+	dune build @install # Generate the treesitter stubs for below
+	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
+	ln -s semgrep-core.bc bin/osemgrep.bc
+
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
@@ -94,6 +103,11 @@ copy-core-for-cli:
 .PHONY: minimal-build
 minimal-build:
 	dune build _build/install/default/bin/semgrep-core
+
+
+.PHONY: minimal-build-bc
+minimal-build-bc:
+	dune build _build/install/default/bin/semgrep-core.bc
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
