@@ -11,7 +11,8 @@
 # The main purpose of this small wrapper is to dispatch
 # either to the legacy pysemgrep (see the pysemgrep script in this
 # directory), or to the new osemgrep (accessible via the semgrep-core binary
-# under cli/src/semgrep/bin/ or somewhere in the PATH).
+# under cli/src/semgrep/bin/ or somewhere in the PATH), or even to
+# osemgrep-pro (accessible via the semgrep-core-proprietary binary).
 #
 # It would be faster and cleaner to have a Bash script instead of a Python
 # script here, but actually the overhead of Python here is just 0.015s.
@@ -47,12 +48,12 @@ PATH = os.environ.get("PATH", "")
 os.environ["PATH"] = PATH + os.pathsep + os.path.dirname(os.path.abspath(__file__))
            
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
-def find_semgrep_core_path():
+def find_semgrep_core_path(core="semgrep-core", extra_message=""):
     # First, try the packaged binary.
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
-        with importlib.resources.path("semgrep.bin", "semgrep-core") as path:
+        with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
                 return str(path)
     except FileNotFoundError as e:
@@ -64,42 +65,16 @@ def find_semgrep_core_path():
     # /usr/local/bin (or in a bin/ folder in the PATH). In those cases,
     # there is no /.../site-packages/semgrep-xxx/bin/semgrep-core.
     # In those cases, we want to grab semgrep-core from the PATH instead.
-    path = shutil.which("semgrep-core")
+    path = shutil.which(core)
     if path is not None:
         return path
  
-    print(f"Failed to find semgrep-core in PATH or in the semgrep package.",
+    print(f"Failed to find {core} in PATH or in the semgrep package.{extra_message}",
           file=sys.stderr)
     # fatal error, see src/osemgrep/core/Exit_code.ml
     sys.exit(2)
-           
-# similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
-def find_semgrep_core_proprietary_path():
-    # First, try the packaged binary.
-    try:
-        # the use of .path causes a DeprecationWarning hence the
-        # filterwarnings above
-        with importlib.resources.path("semgrep.bin", "semgrep-core-proprietary") as path:
-            if path.is_file():
-                return str(path)
-    except FileNotFoundError as e:
-        pass
 
-    # Second, try in PATH. In certain context such as Homebrew
-    # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
-    # or Docker (see ../../Dockerfile), we actually copy semgrep-core in
-    # /usr/local/bin (or in a bin/ folder in the PATH). In those cases,
-    # there is no /.../site-packages/semgrep-xxx/bin/semgrep-core-proprietary.
-    # In those cases, we want to grab semgrep-core-proprietary from the PATH instead.
-    path = shutil.which("semgrep-core-proprietary")
-    if path is not None:
-        return path
- 
-    print(f"Failed to find semgrep-core-proprietary in PATH or in the semgrep package.",
-          file=sys.stderr)
-    print(f"You may need to run `semgrep install-semgrep-pro`")
-    # fatal error, see src/osemgrep/core/Exit_code.ml
-    sys.exit(2)
+#
 
 # We could have moved the code below in a separate 'osemgrep' file, like
 # for 'pysemgrep', but we don't want users to be exposed to another command,
@@ -109,11 +84,12 @@ def find_semgrep_core_proprietary_path():
 # by simply using a different program name. Morever, in case of big problems,
 # we can always tell users to run pysemgrep instead of semgrep and be sure
 # they'll get the old behavior.
-def exec_osemgrep(is_pro):
-    if is_pro:
-        path = find_semgrep_core_proprietary_path()
+def exec_osemgrep():
+    if "--pro" in sys.argv:
+        path = find_semgrep_core_path(core="semgrep-core-proprietary",
+                                      extra_messsage="\nYou may need to run `semgrep install-semgrep-pro`"    )
         # If you call semgrep-core-proprietary as osemgrep-pro, 
-        # then we get osemgrep behavior
+        # then we get osemgrep-pro behavior
         sys.argv[0] = "osemgrep-pro"
     else:
         path = find_semgrep_core_path()
@@ -139,8 +115,8 @@ if __name__ == "__main__":
        import semgrep.__main__
        sys.exit(semgrep.__main__.main())
     elif "--experimental" in sys.argv:
-       exec_osemgrep("--pro" in sys.argv)
+       exec_osemgrep()
     else:
        # we now default to osemgrep! but this will usually exec
        # back to pysemgrep for most commands (for now)
-       exec_osemgrep("--pro" in sys.argv)
+       exec_osemgrep()
