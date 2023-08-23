@@ -3,6 +3,8 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import inspect
+import re
 # Match https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L15C1-L16C1
 from gettext import gettext as _
 
@@ -96,7 +98,8 @@ class DefaultGroup(click.Group):
 
     def format_epilog(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
-        Format the epilog (if it exists) to show up at the bottom of the help section
+        Overrides super().format_epilog to include a colored link to our docs
+        https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L1105
         """
         from semgrep.util import with_color  # avoiding circular imports
         if self.epilog:
@@ -111,34 +114,45 @@ class DefaultGroup(click.Group):
 
     def format_help_text(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
-        Override the default help text to include our semgrep logo
+        Overrides super().format_help_text to include our semgrep logo and add color to commands
         """
         from semgrep.util import with_color  # avoiding circular imports
         colored_logo = with_color(Colors.green, SEMGREP_LOGO)
         colored_preamble = DEFAULT_PREAMBLE.replace(SEMGREP_LOGO, colored_logo)
         formatter.write(colored_preamble)
+        if self.help is not None:
+            # truncate the help text to the first form feed
+            text = inspect.cleandoc(self.help).partition("\f")[0]
+            command_match = re.search("`[^`]*`", text)
+            if command_match:
+                command = command_match.group(0)
+                text = text.replace(command, with_color(Colors.cyan, command))
+            formatter.write_text(text)
+            return
+        # If there is no help text, we fall back to the default help text
         super().format_help_text(ctx, formatter)
 
     def format_usage(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
-        Override the default usage statements with our own (none)
+        Overrides super().format_usage to omit the pre-built usage statement
         """
         return
 
     def format_help_section(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
-        Create a help section below commands instead of the options section before commands
+        Overrides super().format_help_section to show our custom help section
         """
         from semgrep.util import with_color  # avoiding circular imports
         help_cmd = with_color(Colors.cyan, f"semgrep {self._help_command}")
         rows = [ (help_cmd, "For more information on each command")]
+        # NOTE: this col_spacing is a little hacky but it works well enough for now
         col_spacing = 2 + self.get_column_max_width(self.list_commands_pairs(ctx)) - len(self._help_command)
         with formatter.section(_(with_color(Colors.foreground, "Help", underline=True))):
             formatter.write_dl(rows, col_spacing=col_spacing)
 
     def list_commands_pairs(self, ctx: click.Context) -> List[Tuple[str, click.Command]]:
         """
-        List the command objects and their corresponding names
+        Helper to list the command objects and their corresponding names
         """
         commands = []
         for subcommand in self.list_commands(ctx):
@@ -153,14 +167,13 @@ class DefaultGroup(click.Group):
 
     def get_column_max_width(self, commands: List[Tuple[str, click.Command]]) -> int:
         """
-        Get the max width of the command names and the help text
+        Get the max width of the command names and the help text for consistent formatting
         """
         return max(len(self._help_command), max(len(cmd[0]) for cmd in commands))
 
     def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
-        Near copy of the default format_commands except we add color and a prefix to the command name
-        https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L1720
+        Overrides super().format_commands to add color and a prefix to the command name
         """
         from semgrep.util import with_color  # avoiding circular imports
         commands = self.list_commands_pairs(ctx)
@@ -180,7 +193,7 @@ class DefaultGroup(click.Group):
 
     def format_options(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
-        Override the default format options to not show the options section and only the commands
+        Overrides super().format_options to show the commands and then a help section
         """
         self.format_commands(ctx, formatter)
         self.format_help_section(ctx, formatter)
