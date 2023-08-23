@@ -157,40 +157,17 @@ core-clean:
 ###############################################################################
 
 # Install semgrep on a developer's machine with pip and opam installed.
+# This should *not* install the open-source libraries that we maintain
+# as part of the semgrep project.
 .PHONY: install
 install:
-	# Install semgrep-core into opam's bin which is in our PATH.
-	# This is not needed or used by the pip install.
-	$(MAKE) core-install
+	$(MAKE) copy-core-for-cli
 	# Install semgrep and semgrep-core in a place known to pip.
 	python3 -m pip install ./cli
 
 .PHONY: uninstall
 uninstall:
-	-$(MAKE) core-uninstall
 	-python3 -m pip uninstall --yes semgrep
-
-# Install the semgrep-core executable, as well as any other executable or
-# library built from OCaml or C and needed for a complete semgrep install
-# for a user of semgrep who builds and installs semgrep from source
-# for local use.
-#
-# This should *not* install the open-source libraries that we maintain
-# as part of the semgrep project.
-.PHONY: core-install
-core-install: copy-core-for-cli
-	# The executable created by dune doesn't have the write permission,
-	# causing an error when running a straight cp if a file is already
-	# there.
-	# Known alternative: use 'install -m 0644 ...' instead of cp
-	$(MAKE) core-uninstall
-	cp bin/semgrep-core "$$(opam var bin)"/
-
-# Try to uninstall what was installed by 'make core-install'.
-# This is a best effort.
-.PHONY: core-uninstall
-core-uninstall:
-	rm -f "$$(opam var bin)"/semgrep-core
 
 ###############################################################################
 # Test target
@@ -221,11 +198,11 @@ build-core-test:
 	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
-.PHONY: core-e2etest
-core-e2etest:
+.PHONY: core-test-e2e
+core-test-e2e:
 	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
 	$(MAKE) -C interfaces/semgrep_interfaces test
-	python3 tests/e2e/test_target_file.py
+	python3 tests/semgrep-core-e2e/test_target_file.py
 
 ###############################################################################
 # External dependencies installation targets

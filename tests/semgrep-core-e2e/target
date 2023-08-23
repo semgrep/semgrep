@@ -1,5 +1,5 @@
 { "target_mappings": 
-  [{"path": "tests/e2e/targets/basic.py",
+  [{"path": "tests/semgrep-core-e2e/targets/basic.py",
    "language": "python",
    "rule_nums": [0]
   }],
