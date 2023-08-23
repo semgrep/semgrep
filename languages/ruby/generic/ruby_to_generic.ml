@@ -633,9 +633,64 @@ and exprs_to_eopt = function
       let xs = list expr xs in
       Some (G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e)
 
+and qualified qual = Common.map variable qual
+
 and pattern pat =
+  let promote expr =
+    match expr with
+    | G.L l -> G.PatLiteral l
+    | _ -> G.OtherPat (("expr", G.fake "expr"), [ G.E (G.e expr) ])
+  in
   match pat with
-  | _ -> failwith "TODO"
+  | PatId var -> G.PatId (variable var, G.empty_id_info ())
+  | PatLiteral lit -> promote (literal lit)
+  | PatAtom (tk, a) -> promote (atom tk a)
+  | PatDisj (p1, p2) -> G.PatDisj (pattern p1, pattern p2)
+  | PatExpr e -> promote (expr e).G.e
+  | PatTuple (l, ps, r) -> G.PatTuple (l, Common.map pattern ps, r)
+  | PatConstructor (qual, ps) ->
+      let name =
+        match List.rev (qualified qual) with
+        | [] ->
+            (* should be impossible *)
+            raise Impossible
+        | last :: rev_prefix ->
+            let qualifier =
+              Common.map (fun id -> (id, None)) rev_prefix |> List.rev
+            in
+            G.IdQualified
+              {
+                G.name_last = (last, None);
+                name_middle = Some (G.QDots qualifier);
+                name_top = None;
+                name_info = G.empty_id_info ();
+              }
+      in
+      G.PatConstructor (name, Common.map pattern ps)
+  | PatList (l, ps, r) -> G.PatList (l, Common.map patlist_arg ps, r)
+  | PatWhen (pat, exp) -> G.PatWhen (pattern pat, expr exp)
+  | PatPin (_tk, exp) ->
+      OtherPat (("PatPin", G.fake "PatPin"), [ G.E (expr exp) ])
+
+and patlist_arg = function
+  | PArgSplat (tk, idopt) ->
+      let arg =
+        match idopt with
+        | None -> []
+        | Some x -> [ G.Arg (G.N (G.Id (ident x, G.empty_id_info ())) |> G.e) ]
+      in
+      let exp =
+        G.E (G.Call (G.IdSpecial (G.Spread, tk) |> G.e, arg |> fb) |> G.e)
+      in
+      G.OtherPat (("PArgSplat", G.fake "PArgSplat"), [ exp ])
+  | PArgKeyVal (p1, tk, p2) ->
+      let p2 =
+        match p2 with
+        | Some p2 -> pattern p2
+        | None -> PatUnderscore tk
+      in
+      G.PatKeyVal (pattern p1, p2)
+  | PArgPat p -> pattern p
 
 and type_ e =
   let e = expr e in

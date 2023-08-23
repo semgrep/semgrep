@@ -341,14 +341,8 @@ and pattern =
   | PatExpr of expr
   | PatTuple of pattern list bracket
   | PatConstructor of qualified * pattern list
-  | PatSplat of tok * variable option
   | PatList of patlist_arg list bracket
   | PatWhen of pattern * expr
-  (* A range, like 1 .. 2 or something. But, both are options,
-     because it might be unbounded on a side.
-     Both can't be None, though.
-  *)
-  | PatRange of pattern option * tok * pattern option
   (* This is an example of "variable pinning", which lets a variable's value be
      used during a pattern match, instead of binding a new identifier.
      https://jemma.dev/blog/variable-pinning
