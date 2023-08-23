@@ -74,8 +74,6 @@ def find_semgrep_core_path(core="semgrep-core", extra_message=""):
     # fatal error, see src/osemgrep/core/Exit_code.ml
     sys.exit(2)
 
-#
-
 # We could have moved the code below in a separate 'osemgrep' file, like
 # for 'pysemgrep', but we don't want users to be exposed to another command,
 # so it is better to hide it.
@@ -88,13 +86,13 @@ def exec_osemgrep():
     if "--pro" in sys.argv:
         path = find_semgrep_core_path(core="semgrep-core-proprietary",
                                       extra_messsage="\nYou may need to run `semgrep install-semgrep-pro`"    )
-        # If you call semgrep-core-proprietary as osemgrep-pro, 
-        # then we get osemgrep-pro behavior
+        # If you call semgrep-core-proprietary as osemgrep-pro, then we get
+        # osemgrep-pro behavior, see semgrep-proprietary/src/main/Pro_main.ml
         sys.argv[0] = "osemgrep-pro"
     else:
         path = find_semgrep_core_path()
-        # If you call semgrep-core as osemgrep, then we get osemgrep behavior,
-        # see src/main/Main.ml
+        # If you call semgrep-core as osemgrep, then we get
+        # osemgrep behavior, see src/main/Main.ml
         sys.argv[0] = "osemgrep"
     os.execvp(str(path), sys.argv)
 
