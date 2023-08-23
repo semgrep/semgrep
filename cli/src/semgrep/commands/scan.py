@@ -35,7 +35,6 @@ from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
-from semgrep.dump_ast import dump_parsed_ast
 from semgrep.engine import EngineType
 from semgrep.error import SemgrepError
 from semgrep.metrics import MetricsState
@@ -636,15 +635,6 @@ def scan_options(func: Callable) -> Callable:
     default=False,
     help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
 )
-@optgroup.option(
-    "--dump-ast/--no-dump-ast",
-    is_flag=True,
-    default=False,
-    help="""
-        If --dump-ast, shows AST of the input file or passed expression and then exit
-        (can use --json).
-    """,
-)
 @click.option(
     "--error/--no-error",
     "error_on_findings",
@@ -677,7 +667,6 @@ def scan(
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     dryrun: bool,
-    dump_ast: bool,
     dump_command_for_core: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -847,14 +836,7 @@ def scan(
         output_handler = OutputHandler(output_settings)
         return_data: ScanReturn = None
 
-        if dump_ast:
-            dump_parsed_ast(
-                output_format == OutputFormat.JSON,
-                __validate_lang("--dump-ast", lang),
-                pattern,
-                targets,
-            )
-        elif validate:
+        if validate:
             if not (pattern or lang or config):
                 logger.error(
                     f"Nothing to validate, use the --config or --pattern flag to specify a rule"

@@ -21,7 +21,13 @@ let vof_token_location
     {
       Tok.str = v_str;
       pos =
-        { charpos = v_charpos; line = v_line; column = v_column; file = v_file };
+        {
+          bytepos = v_charpos;
+          line = v_line;
+          column = v_column;
+          file = v_file;
+          _;
+        };
     } =
   let bnds = [] in
   let arg = vof_filename v_file in
@@ -34,7 +40,7 @@ let vof_token_location
   let bnd = ("line", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_int v_charpos in
-  let bnd = ("charpos", arg) in
+  let bnd = ("bytepos", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_string v_str in
   let bnd = ("str", arg) in
@@ -45,7 +51,7 @@ let vof_token_origin = function
   | OriginTok v1 ->
       let v1 = vof_token_location v1 in
       OCaml.VSum ("OriginTok", [ v1 ])
-  | FakeTokStr (v1, opt) ->
+  | FakeTok (v1, opt) ->
       let v1 = OCaml.vof_string v1 in
       let opt =
         OCaml.vof_option
@@ -53,7 +59,7 @@ let vof_token_origin = function
             OCaml.VTuple [ vof_token_location p1; OCaml.vof_int i ])
           opt
       in
-      OCaml.VSum ("FakeTokStr", [ v1; opt ])
+      OCaml.VSum ("FakeTok", [ v1; opt ])
   | Ab -> OCaml.VSum ("Ab", [])
   | ExpandedTok (v1, (v2, v3)) ->
       let v1 = vof_token_location v1 in

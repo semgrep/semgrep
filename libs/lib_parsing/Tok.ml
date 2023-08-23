@@ -20,8 +20,8 @@ open Common
 (*****************************************************************************)
 (* Information about tokens (mostly their location).
  *
- * Note that the types below are a bit complicated because we want
- * to represent "fake" and "expanded" tokens. The types used to be even
+ * Note that Tok.t below is a bit complicated because we want
+ * to represent "fake" and "expanded" tokens. The type used to be even
  * more complicated to allow to annotate tokens with transformation information
  * for Spatch in Coccinelle. However, this is not the case anymore because
  * we use a different approach to transform code
@@ -72,34 +72,21 @@ type t =
   (* Present both in the AST and list of tokens in the pfff-based parsers *)
   | OriginTok of location
   (* Present only in the AST and generated after parsing. Can be used
-   * when building some extra AST elements. *)
-  | FakeTokStr of
-      string (* to help the generic pretty printer *)
-      * (* Sometimes we generate fake tokens close to existing
-         * origin tokens. This can be useful when have to give an error
-         * message that involves a fakeToken. The int is a kind of
-         * virtual position, an offset. See compare_pos below.
-         * Those are called "safe" fake tokens (in contrast to the
-         * regular/unsafe one which have no position information at all).
-         *)
-      (location * int) option
+   * when building some extra AST elements.
+   * The string (e.g., ";")  is to help the generic pretty printer.
+   * TODO: we should remove the option below and enforce the construction
+   * of safe fake tokens.
+   *)
+  | FakeTok of string * virtual_location option
   (* In the case of a XHP file, we could preprocess it and incorporate
    * the tokens of the preprocessed code with the tokens from
    * the original file. We want to mark those "expanded" tokens
    * with a special tag so that if someone do some transformation on
    * those expanded tokens they will get a warning (because we may have
    * trouble back-propagating the transformation back to the original file).
+   * The location refers to the preprocessed file (e.g. /tmp/pp-xxxx.pphp).
    *)
-  | ExpandedTok of
-      (* refers to the preprocessed file, e.g. /tmp/pp-xxxx.pphp *)
-      location
-      * (* kind of virtual position. This info refers to the last token
-         * before a serie of expanded tokens and the int is an offset.
-         * The goal is to be able to compare the position of tokens
-         * between then, even for expanded tokens. See compare_pos
-         * below.
-         *)
-      (location * int)
+  | ExpandedTok of location * virtual_location
   (* The Ab constructor is (ab)used to call '=' to compare
    * big AST portions. Indeed as we keep the token information in the AST,
    * if we have an expression in the code like "1+1" and want to test if
@@ -112,8 +99,26 @@ type t =
    *
    * Ab means AbstractLineTok. I Use a short name to not
    * polluate in debug mode.
+   *
+   * update: this constructor is not that useful anymore; You should prefer to
+   * use t_always_equal instead to compare big AST elements and not care
+   * about position.
    *)
   | Ab
+
+(* Sometimes we generate fake tokens close to existing
+ * origin tokens. This can be useful when we need to give an error
+ * message that involves a fakeToken. The int below is a kind of
+ * virtual position, an offset.
+ * Those are called "safe" fake tokens (in contrast to the
+ * regular/unsafe one which have no position information at all).
+ *
+ * For ExpandedTok the location refers to the last token
+ * before a series of expanded tokens and the int is an offset.
+ * The goal is to be able to compare the position of tokens,
+ * even for expanded tokens. See compare_pos().
+ *)
+and virtual_location = location * int
 [@@deriving show { with_path = false }, eq, ord]
 
 type t_always_equal = t [@@deriving show]
@@ -143,7 +148,7 @@ let pp fmt t = if !pp_full_token_info then pp fmt t else Format.fprintf fmt "()"
 
 let is_fake tok =
   match tok with
-  | FakeTokStr _ -> true
+  | FakeTok _ -> true
   | _ -> false
 
 let is_origintok ii =
@@ -154,20 +159,20 @@ let is_origintok ii =
 let fake_location = { str = ""; pos = Pos.fake_pos }
 
 (* Synthesize a fake token *)
-let unsafe_fake_tok str : t = FakeTokStr (str, None)
+let unsafe_fake_tok str : t = FakeTok (str, None)
 
 (* Synthesize a "safe" fake token *)
 let fake_tok_loc next_to_loc str : t =
   (* TODO: offset seems to have no use right now (?) *)
-  FakeTokStr (str, Some (next_to_loc, -1))
+  FakeTok (str, Some (next_to_loc, -1))
 
 let loc_of_tok (ii : t) : (location, string) Result.t =
   match ii with
   | OriginTok pinfo -> Ok pinfo
   (* TODO ? dangerous ? *)
   | ExpandedTok (pinfo_pp, _) -> Ok pinfo_pp
-  | FakeTokStr (_, Some (pi, _)) -> Ok pi
-  | FakeTokStr (_, None) -> Error "FakeTokStr"
+  | FakeTok (_, Some (pi, _)) -> Ok pi
+  | FakeTok (_, None) -> Error "FakeTok"
   | Ab -> Error "Ab"
 
 let fake_tok next_to_tok str : t =
@@ -210,19 +215,19 @@ let line_of_tok ii = (unsafe_loc_of_tok ii).pos.line
 let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
-let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.charpos
+let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.bytepos
 let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
 
 let content_of_tok ii =
   match ii with
   | OriginTok x -> x.str
-  | FakeTokStr (s, _) -> s
+  | FakeTok (s, _) -> s
   | ExpandedTok _
   | Ab ->
       raise (NoTokenLocation "content_of_tok: Expanded or Ab")
 
 (* Token locations are supposed to denote the beginning of a token.
-   Suppose we are interested in instead having line, column, and charpos of
+   Suppose we are interested in instead having line, column, and bytepos of
    the end of a token instead.
    This is something we can do at relatively low cost by going through and
    inspecting the contents of the token, plus the start information.
@@ -237,7 +242,7 @@ let end_pos_of_loc loc =
       (loc.pos.line, loc.pos.column)
       loc.str
   in
-  (line, col, loc.pos.charpos + String.length loc.str)
+  (line, col, loc.pos.bytepos + String.length loc.str)
 
 (*****************************************************************************)
 (* Builders *)
@@ -249,14 +254,8 @@ let tok_of_str_and_bytepos str pos =
   let loc =
     {
       str;
-      pos =
-        {
-          charpos = pos;
-          (* info filled in a post-lexing phase, see complete_location *)
-          line = -1;
-          column = -1;
-          file = "NO FILE INFO YET";
-        };
+      (* the pos will be filled in post-lexing phase, see complete_location *)
+      pos = Pos.make pos;
     }
   in
   tok_of_loc loc
@@ -270,7 +269,7 @@ let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
 let rewrap_str s ii =
   match ii with
   | OriginTok pi -> OriginTok { pi with str = s }
-  | FakeTokStr (s, info) -> FakeTokStr (s, info)
+  | FakeTok (s, info) -> FakeTok (s, info)
   | Ab -> Ab
   | ExpandedTok _ ->
       (* ExpandedTok ({ pi with Common.str = s;},vpi) *)
@@ -283,8 +282,8 @@ let str_of_info_fake_ok ii =
   match ii with
   | OriginTok pinfo -> pinfo.str
   | ExpandedTok (pinfo_pp, _vloc) -> pinfo_pp.str
-  | FakeTokStr (_, Some (pi, _)) -> pi.str
-  | FakeTokStr (s, None) -> s
+  | FakeTok (_, Some (pi, _)) -> pi.str
+  | FakeTok (s, None) -> s
   | Ab -> raise (NoTokenLocation "Ab")
 
 let combine_toks x xs =
@@ -301,7 +300,7 @@ let empty_tok_after tok : t =
           pos =
             {
               loc.pos with
-              charpos = loc.pos.charpos + prev_len;
+              bytepos = loc.pos.bytepos + prev_len;
               column = loc.pos.column + prev_len;
             };
         }
@@ -327,7 +326,7 @@ let split_tok_at_bytepos pos ii =
       pos =
         {
           loc.pos with
-          charpos = loc.pos.charpos + pos;
+          bytepos = loc.pos.bytepos + pos;
           column = loc.pos.column + pos;
         };
     }
@@ -340,17 +339,18 @@ let split_tok_at_bytepos pos ii =
 
 (* TODO? move to Pos.ml and use Pos.t instead *)
 let adjust_loc_wrt_base base_loc loc =
-  (* Note that charpos and columns are 0-based, whereas lines are 1-based. *)
+  (* Note that bytepos and columns are 0-based, whereas lines are 1-based. *)
+  let base_pos = base_loc.pos in
+  let pos = loc.pos in
   {
     loc with
     pos =
       {
-        charpos = base_loc.pos.charpos + loc.pos.charpos;
-        line = base_loc.pos.line + loc.pos.line - 1;
+        bytepos = base_pos.bytepos + pos.bytepos;
+        line = base_pos.line + pos.line - 1;
         column =
-          (if loc.pos.line =|= 1 then base_loc.pos.column + loc.pos.column
-          else loc.pos.column);
-        file = base_loc.pos.file;
+          (if pos.line =|= 1 then base_pos.column + pos.column else pos.column);
+        file = base_pos.file;
       };
   }
 
@@ -358,7 +358,7 @@ let fix_location fix ii =
   match ii with
   | OriginTok pi -> OriginTok (fix pi)
   | ExpandedTok (pi, vloc) -> ExpandedTok (fix pi, vloc)
-  | FakeTokStr (s, vloc_opt) -> FakeTokStr (s, vloc_opt)
+  | FakeTok (s, vloc_opt) -> FakeTok (s, vloc_opt)
   | Ab -> Ab
 
 let adjust_tok_wrt_base base_loc ii =
@@ -450,24 +450,24 @@ let compare_pos ii1 ii2 =
   let get_pos = function
     | OriginTok pi -> Real pi
     (* todo? I have this for lang_php/
-        | FakeTokStr (s, Some (pi_orig, offset)) ->
+        | FakeTok (s, Some (pi_orig, offset)) ->
             Virt (pi_orig, offset)
     *)
-    | FakeTokStr _ -> raise (NoTokenLocation "compare_pos: FakeTokStr")
+    | FakeTok _ -> raise (NoTokenLocation "compare_pos: FakeTok")
     | Ab -> raise (NoTokenLocation "compare_pos: Ab")
     | ExpandedTok (_pi_pp, (pi_orig, offset)) -> Virt (pi_orig, offset)
   in
   let pos1 = get_pos ii1 in
   let pos2 = get_pos ii2 in
   match (pos1, pos2) with
-  | Real p1, Real p2 -> Int.compare p1.pos.charpos p2.pos.charpos
+  | Real p1, Real p2 -> Int.compare p1.pos.bytepos p2.pos.bytepos
   | Virt (p1, _), Real p2 ->
-      if Int.compare p1.pos.charpos p2.pos.charpos =|= -1 then -1 else 1
+      if Int.compare p1.pos.bytepos p2.pos.bytepos =|= -1 then -1 else 1
   | Real p1, Virt (p2, _) ->
-      if Int.compare p1.pos.charpos p2.pos.charpos =|= 1 then 1 else -1
+      if Int.compare p1.pos.bytepos p2.pos.bytepos =|= 1 then 1 else -1
   | Virt (p1, o1), Virt (p2, o2) -> (
-      let poi1 = p1.pos.charpos in
-      let poi2 = p2.pos.charpos in
+      let poi1 = p1.pos.bytepos in
+      let poi2 = p2.pos.bytepos in
       match Int.compare poi1 poi2 with
       | -1 -> -1
       | 0 -> Int.compare o1 o2

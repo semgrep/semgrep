@@ -558,7 +558,7 @@ let buffer_matches_of_xtarget state (fake_rule : Rule.search_rule) xconf xtarget
          (fun
            { Pattern_match.range_loc = l1, _; _ }
            { Pattern_match.range_loc = l2, _; _ }
-         -> Int.compare l1.pos.charpos l2.pos.charpos)
+         -> Int.compare l1.pos.bytepos l2.pos.bytepos)
     |> fun matches ->
     match List.length matches with
     | 0 -> () (* no point in putting it in if no matches *)

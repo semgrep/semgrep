@@ -19,7 +19,9 @@ from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SemgrepRunner
 
 from semgrep.cli import cli
+from semgrep.config_resolver import ConfigFile
 from semgrep.profiling import ProfilingData
+
 
 # Test data to avoid making web calls in test code
 
@@ -56,8 +58,8 @@ USELESS_EQEQ = """rules:
 @pytest.fixture(scope="function")
 def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
-        "semgrep.config_resolver.ConfigLoader._make_config_request",
-        lambda s: USELESS_EQEQ,
+        "semgrep.config_resolver.ConfigLoader._download_config_from_url",
+        lambda s, url: ConfigFile(None, USELESS_EQEQ, url),
     )
     yield
 
@@ -269,7 +271,8 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
         env={
             "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
             "SEMGREP_INTEGRATION_NAME": "funkyintegration",
-        }
+        },
+        use_click_runner=True,
     )
     runner.invoke(
         cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"] + pro_flag

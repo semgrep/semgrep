@@ -168,12 +168,6 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
  fun m1 m2 tin ->
-  (* CHOICE
-        let xs = m1 tin in
-        if null xs
-        then m2 tin
-        else xs
-  *)
   (* opti? use set instead of list *)
   m1 tin @ m2 tin
 
@@ -395,13 +389,8 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment ?(mvar_context = None) lang config =
-  let mv =
-    match mvar_context with
-    | None -> []
-    | Some bindings -> bindings
-  in
-  { mv; stmts_matched = []; lang; config; deref_sym_vals = 0 }
+let empty_environment lang config =
+  { mv = []; stmts_matched = []; lang; config; deref_sym_vals = 0 }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -748,7 +737,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
             pos =
               {
                 loc.pos with
-                charpos = loc.pos.charpos + pos;
+                bytepos = loc.pos.bytepos + pos;
                 column = loc.pos.column + pos;
               };
           }

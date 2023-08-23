@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Semgrep Core: Help",
+      "type": "ocaml.earlybird",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/semgrep-core.bc",
+      "arguments": ["--help"],
+      "preLaunchTask": "Build Core Bytecode"
+    },
+    {
+      "name": "OSemgrep: Help",
+      "type": "ocaml.earlybird",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/osemgrep.bc",
+      "arguments": ["--help"],
+      "preLaunchTask": "Build Core Bytecode"
+    },
+    {
+      "name": "OSemgrep: LSP",
+      "type": "ocaml.earlybird",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/osemgrep.bc",
+      "arguments": ["lsp", "--experimental"],
+      "preLaunchTask": "Build Core Bytecode"
+    }
+  ]
+}

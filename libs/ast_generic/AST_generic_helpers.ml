@@ -203,6 +203,15 @@ let rec pattern_to_expr p =
   | _ -> raise NotAnExpr)
   |> G.e
 
+(* Primarily for usage in converting an Assign into a DefStmt. We fail to
+ * produce an entity name if we don't definitely have something which is
+ * a name.
+ *)
+let expr_to_entity_name_opt (e : G.expr) : G.entity_name option =
+  match e.G.e with
+  | N name -> Some (EN name)
+  | _ -> None
+
 (* We would like to do more things here, like transform certain
  * N in TyN, but we can't do that from the Xxx_to_generic.ml
  * (e.g., Python_to_generic.ml). Indeed, certain transformations
@@ -290,6 +299,17 @@ let vardef_to_assign (ent, def) =
     | None -> L (Null (Tok.unsafe_fake_tok "null")) |> G.e
   in
   Assign (name_or_expr, Tok.unsafe_fake_tok "=", v) |> G.e
+
+let assign_to_vardef_opt ((e1, _tk, e2) : G.expr * G.tok * G.expr) =
+  match e1.G.e with
+  | Cast (ty, _, e) ->
+      let* name = expr_to_entity_name_opt e in
+      let ent = { name; attrs = []; tparams = [] } in
+      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = Some ty }) |> G.s)
+  | _ ->
+      let* name = expr_to_entity_name_opt e1 in
+      let ent = { name; attrs = []; tparams = [] } in
+      Some (DefStmt (ent, VarDef { vinit = Some e2; vtype = None }) |> G.s)
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
@@ -450,10 +470,10 @@ let first_info_of_any any =
 
 (* Also used below by `nearest_any_of_pos` *)
 let smaller t1 t2 =
-  if compare t1.Tok.pos.charpos t2.Tok.pos.charpos < 0 then t1 else t2
+  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos < 0 then t1 else t2
 
 let larger t1 t2 =
-  if compare t1.Tok.pos.charpos t2.Tok.pos.charpos > 0 then t1 else t2
+  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos > 0 then t1 else t2
 
 let incorporate_tokens ranges (left, right) =
   match !ranges with
@@ -552,12 +572,12 @@ type any_range = {
 class ['self] any_range_visitor =
   let pos_within pos (t1', t2') =
     let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    pos >= t1'.Tok.pos.charpos && pos <= t2'_charpos
+    pos >= t1'.Tok.pos.bytepos && pos <= t2'_charpos
   in
   let range_within (t1, t2) (t1', t2') =
     let _, _, t2_charpos = Tok.end_pos_of_loc t2 in
     let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    t1.Tok.pos.charpos >= t1'.Tok.pos.charpos && t2_charpos <= t2'_charpos
+    t1.Tok.pos.bytepos >= t1'.Tok.pos.bytepos && t2_charpos <= t2'_charpos
   in
   let set_any_range info (any, range) =
     let charpos = info.position in

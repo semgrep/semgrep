@@ -38,13 +38,8 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   {
     Tok.str = err.substring;
     pos =
-      {
-        charpos = 0;
-        (* fake *)
-        line = start.row + 1;
-        column = start.column;
-        file = err.file.name;
-      };
+      Pos.make ~file:err.file.name ~line:(start.row + 1) (* fake *)
+        ~column:start.column 0;
   }
 
 let exn_of_loc loc =

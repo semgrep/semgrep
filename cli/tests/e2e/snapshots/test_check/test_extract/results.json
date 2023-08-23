@@ -180,8 +180,8 @@
             "abstract_content": "x",
             "end": {
               "col": 14,
-              "line": 7,
-              "offset": 325
+              "line": 10,
+              "offset": 369
             },
             "propagated_value": {
               "svalue_abstract_content": "foo()",
@@ -198,8 +198,8 @@
             },
             "start": {
               "col": 13,
-              "line": 7,
-              "offset": 324
+              "line": 10,
+              "offset": 368
             }
           }
         },
@@ -289,8 +289,8 @@
             "abstract_content": "x",
             "end": {
               "col": 18,
-              "line": 14,
-              "offset": 655
+              "line": 27,
+              "offset": 900
             },
             "propagated_value": {
               "svalue_abstract_content": "foo()",
@@ -307,8 +307,8 @@
             },
             "start": {
               "col": 17,
-              "line": 14,
-              "offset": 654
+              "line": 27,
+              "offset": 899
             }
           }
         },

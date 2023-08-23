@@ -13,6 +13,9 @@ from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.package_lock import parse_package_lock
+from semdep.parsers.packages_lock_c_sharp import (
+    parse_packages_lock as parse_packages_lock_c_sharp,
+)
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
@@ -80,7 +83,8 @@ NEW_LOCKFILE_PARSERS: Dict[
     "poetry.lock": parse_poetry,  # Python
     "go.mod": parse_go_mod,  # Go
     "pnpm-lock.yaml": parse_pnpm,  # JavaScript
-    "composer.lock": parse_composer_lock,  # PHP
+    "composer.lock": parse_composer_lock,  # PHP,
+    "packages.lock.json": parse_packages_lock_c_sharp,  # C#
 }
 
 LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
@@ -97,6 +101,7 @@ LOCKFILE_TO_MANIFEST: Dict[str, Optional[str]] = {
     "maven_dep_tree.txt": None,
     "gradle.lockfile": "build.gradle",
     "pnpm-lock.yaml": None,
+    "packages.lock.json": None,
 }
 
 

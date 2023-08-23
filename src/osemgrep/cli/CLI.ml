@@ -47,7 +47,6 @@ Commands:
   lsp                  [EXPERIMENTAL] Start the Semgrep LSP server
   publish              Upload rule to semgrep.dev
   scan                 Run semgrep rules on files
-  shouldafound         Report a false negative in this project.
 |}
 
 let default_subcommand = "scan"
@@ -105,7 +104,6 @@ let known_subcommands =
     "lsp";
     "publish";
     "scan";
-    "shouldafound";
     (* osemgrep-only *)
     "interactive";
   ]
@@ -160,7 +158,6 @@ let dispatch_subcommand argv =
       | "logout" when experimental -> Logout_subcommand.main subcmd_argv
       | "publish" when experimental -> missing_subcommand ()
       | "scan" when experimental -> Scan_subcommand.main subcmd_argv
-      | "shouldafound" when experimental -> missing_subcommand ()
       (* TODO: next target for not requiring the 'when experimental' guard! *)
       | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
       (* osemgrep-only: and by default! no need experimental! *)

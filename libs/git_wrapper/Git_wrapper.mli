@@ -2,10 +2,22 @@
 
 exception Error of string
 
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
+
 (* precondition: cwd must be a directory
    This returns a list of paths relative to cwd.
 *)
 val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
+
+(* git status *)
+val status : cwd:Fpath.t -> commit:string -> status
 
 (* precondition: cwd must be a directory *)
 val is_git_repo : Fpath.t -> bool

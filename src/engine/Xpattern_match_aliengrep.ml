@@ -4,9 +4,10 @@
 
 let convert_pos ~file (loc : Aliengrep.Match.loc) =
   (* single "token" spanning the whole match *)
-  let charpos = loc.start in
-  let line, column = Xpattern_matcher.line_col_of_charpos file charpos in
-  { Tok.str = loc.substring; pos = { charpos; file; line; column } }
+  let bytepos = loc.start in
+  let line, column = Xpattern_matcher.line_col_of_charpos file bytepos in
+  let pos = Pos.make ~file ~line ~column bytepos in
+  { Tok.str = loc.substring; pos }
 
 let convert_loc ~file (loc : Aliengrep.Match.loc) =
   (* single "token" spanning the whole match *)
@@ -14,9 +15,10 @@ let convert_loc ~file (loc : Aliengrep.Match.loc) =
   (* a location is a pair of positions/tokens so we create an empty token
      at the end of the match *)
   let end_pos =
-    let charpos = loc.start + loc.length in
-    let line, column = Xpattern_matcher.line_col_of_charpos file charpos in
-    { Tok.str = ""; pos = { charpos; file; line; column } }
+    let bytepos = loc.start + loc.length in
+    let line, column = Xpattern_matcher.line_col_of_charpos file bytepos in
+    let pos = Pos.make ~file ~line ~column bytepos in
+    { Tok.str = ""; pos }
   in
   (start_pos, end_pos)
 

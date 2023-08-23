@@ -1,3 +1,0 @@
-Added general machinery to support languages with case insensitive identifiers and generalized php to use these case insensitive identifiers.
-
-For example, in php the pattern `MyClass()` will now match calls with different capitalization such as `myclass()` and `Myclass()`.

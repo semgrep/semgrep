@@ -8,14 +8,14 @@
 (*****************************************************************************)
 
 type t = {
-  charpos : int; (* byte position, 0-based *)
-  (* line x column can be filled later based on charpos.
-   * See complete_position() *)
+  bytepos : int; (* 0-based *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
   file : Common.filename;
 }
 [@@deriving show, eq, ord]
+
+val make : ?line:int -> ?column:int -> ?file:string -> int -> t
 
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]
