@@ -1343,6 +1343,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           | [ { s = ExprStmt (expr, _); _ } ] -> expr
           | [ { s = Block (_, [ { s = ExprStmt (expr, _); _ } ], _); _ } ] ->
               expr
+          | [ x ] -> StmtExpr x |> G.e
           | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
       | `Num x -> map_number env x
       | `Prim_exp x -> map_primary_expression env x
