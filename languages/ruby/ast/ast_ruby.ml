@@ -102,6 +102,8 @@ and id_kind =
   | ID_Global (* prefixed by $ *)
 [@@deriving show { with_path = false }, eq, ord]
 
+type qualified = variable list [@@deriving show { with_path = false }, eq, ord]
+
 (* ------------------------------------------------------------------------- *)
 (* Operators *)
 (* ------------------------------------------------------------------------- *)
@@ -219,6 +221,7 @@ type expr =
    * expr is None only when Splat is used as last element in assign.
    *)
   | Splat of tok (* '*', but also ',' in mlhs *) * expr option
+  | Rescue of expr * (* rescue *) tok * expr
   (* true = {}, false = do/end *)
   | CodeBlock of bool bracket * formal_param list option * stmts
   | Lambda of tok * formal_param list option * stmts
@@ -330,7 +333,35 @@ and variable_or_method_name =
 (* arg or splat_argument in case/when, but
  * also tuple in lhs of Assign.
  *)
-and pattern = expr
+and pattern =
+  | PatId of variable (* Usually Local/Param, Global in toplevel let *)
+  | PatLiteral of literal
+  | PatAtom of atom
+  | PatDisj of pattern * pattern
+  | PatExpr of expr
+  | PatTuple of pattern list bracket
+  | PatConstructor of qualified * pattern list
+  | PatSplat of tok * variable option
+  | PatList of patlist_arg list bracket
+  | PatWhen of pattern * expr
+  (* A range, like 1 .. 2 or something. But, both are options,
+     because it might be unbounded on a side.
+     Both can't be None, though.
+  *)
+  | PatRange of pattern option * tok * pattern option
+  (* This is an example of "variable pinning", which lets a variable's value be
+     used during a pattern match, instead of binding a new identifier.
+     https://jemma.dev/blog/variable-pinning
+
+     I don't know if the expression general case also is... I can't find any
+     documentation on it *anywhere*. But let's assume so.
+  *)
+  | PatPin of tok * expr
+
+and patlist_arg =
+  | PArgSplat of tok * ident option
+  | PArgKeyVal of pattern * (* : *) tok * pattern option
+  | PArgPat of pattern
 
 (*****************************************************************************)
 (* Type *)
@@ -419,6 +450,8 @@ and formal_param =
   (* treesitter: TSNOTDYP *)
   | Formal_hash_splat of tok * ident option
   | Formal_kwd of ident * tok * expr option
+  (* https://blog.saeloun.com/2019/12/04/ruby-2-7-adds-new-operator-for-arguments-forwarding/ *)
+  | Formal_fwd of (* ... *) tok
   (* sgrep-ext: *)
   | ParamEllipsis of tok
 
