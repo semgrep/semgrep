@@ -126,9 +126,9 @@ let dispatch_subcommand argv =
                * but better to be safe than sorry.
                *)
               Error.abort (spf "unknown semgrep command: %s" subcmd)
-            else raise Pysemgrep.FallbackToPysemgrep
+            else raise Pysemgrep.Fallback
       with
-      | Pysemgrep.FallbackToPysemgrep -> Pysemgrep.pysemgrep argv)
+      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
   [@@profiling]
 
 (*****************************************************************************)

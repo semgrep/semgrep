@@ -10,7 +10,7 @@
 (* Entry points *)
 (*************************************************************************)
 
-exception FallbackToPysemgrep
+exception Fallback
 
 (* dispatch back to pysemgrep! *)
 let pysemgrep argv =
