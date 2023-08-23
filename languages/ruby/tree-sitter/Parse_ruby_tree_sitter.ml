@@ -1291,16 +1291,6 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v3 = token2 env v3 in
       Hash (true, (v1, v2, v3))
   | `Subs (v1, v2, v3) -> subshell env (v1, v2, v3)
-  (* | `Simple_symb tok -> Atom (simple_symbol env tok)
-     | `Deli_symb x -> Atom (delimited_symbol env x)
-     | `Int tok -> Literal (Num (str env tok))
-     | `Float tok -> Literal (Float (str env tok))
-     | `Comp x -> Literal (Complex (complex env x))
-     | `Rati (v1, v2) ->
-         let v1 = int_or_float env v1 in
-         let v2 = token2 env v2 in
-         Literal (Rational (v1, v2))
-  *)
   | `Lit x -> literal env x
   | `Str x -> Literal (String (mk_string_kind (string_ env x)))
   | `Char tok -> Literal (Char (str env tok))
@@ -1636,27 +1626,6 @@ and anon_choice_for_call_no_id (env : env) x =
       | Right un, t -> MethodUOperator (un, t))
   | `Cst tok -> MethodId (str env tok, ID_Uppercase)
   | `Func_id x -> MethodId (function_identifier env x, ID_Lowercase)
-(*| `Arg_list x ->
-    (* ex: block.(), to call the block *)
-    let l, xs, r = argument_list env x in
-    (MethodSpecialCall (l, (), r), Some (l, xs, r))
-*)
-
-and anon_choice_for_command_call_no_id (env : env) x =
-  match x with
-  | `Id tok -> MethodId (str env tok, ID_Lowercase)
-  | `Op x -> (
-      let op = operator env x in
-      match op with
-      | Left bin, t -> MethodOperator (bin, t)
-      | Right un, t -> MethodUOperator (un, t))
-  | `Cst tok -> MethodId (str env tok, ID_Uppercase)
-  | `Func_id x -> MethodId (function_identifier env x, ID_Lowercase)
-(*| `Arg_list x ->
-    (* ex: block.(), to call the block *)
-    let l, xs, r = argument_list env x in
-    (MethodSpecialCall (l, (), r), Some (l, xs, r))
-*)
 
 and call_ (env : env) ((v1, v2, v3) : CST.call_) =
   let v1 = primary env v1 in
@@ -1668,7 +1637,7 @@ and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
     AST.expr =
   let v1 = command_call_with_block env v1 in
   let v2 = call_operator env v2 in
-  let v3 = anon_choice_for_command_call_no_id env v3 in
+  let v3 = anon_choice_for_call_no_id env v3 in
   DotAccess (v1, v2, v3)
 
 and command_call_with_block (env : env) (x : CST.command_call_with_block) :
