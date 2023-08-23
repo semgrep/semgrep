@@ -3,7 +3,6 @@ from attrs import Factory
 from attrs import frozen
 
 from semgrep.app.session import AppSession
-from semgrep.command import Command
 from semgrep.env import Env
 from semgrep.error_handler import ErrorHandler
 from semgrep.metrics import Metrics
@@ -25,7 +24,6 @@ class SemgrepState:
     error_handler: ErrorHandler = Factory(ErrorHandler)
     settings: Settings = Factory(Settings)
     terminal: Terminal = Factory(Terminal)
-    command: Command = Factory(Command)
 
 
 def get_state() -> SemgrepState:

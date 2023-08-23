@@ -33,7 +33,6 @@ def cli(ctx: click.Context) -> None:
     state.app_session.authenticate()
     state.app_session.user_agent.tags.add(f"command/{subcommand}")
     state.metrics.add_feature("subcommand", subcommand)
-    state.command.set_subcommand(subcommand)
 
 
 cli.add_command(ci)
