@@ -3,8 +3,13 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import click
+# Match https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L15C1-L16C1
+from gettext import gettext as _
 
+import click
+from semgrep.constants import Colors
+from semgrep.constants import DEFAULT_EPILOGUE, DEFAULT_PREAMBLE, CLI_DOCS_URL, SEMGREP_LOGO
+from semgrep.console import console
 
 # Inspired by https://github.com/pallets/click/issues/430#issuecomment-207580492
 class DefaultGroup(click.Group):
@@ -43,6 +48,7 @@ class DefaultGroup(click.Group):
         self.default_command_name = None
         if default_command is not None:
             self.default_command_name = default_command
+        self._help_command = "COMMAND --help"
 
     def parse_args(self, ctx: click.Context, args: List[str]) -> List[str]:
         """
@@ -87,3 +93,95 @@ class DefaultGroup(click.Group):
         if hasattr(ctx, "_default_command_overwrite_args0"):
             args.insert(0, ctx._default_command_overwrite_args0)
         return cmd_name, cmd, args
+
+    def format_epilog(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Format the epilog (if it exists) to show up at the bottom of the help section
+        """
+        from semgrep.util import with_color  # avoiding circular imports
+        if self.epilog:
+            formatter.write_paragraph()
+            if self.epilog == DEFAULT_EPILOGUE:
+                message, eol = self.epilog.split(CLI_DOCS_URL)
+                text = f"{message}{with_color(Colors.cyan, CLI_DOCS_URL, underline=True)}"
+                formatter.write_dl([(text, "")]) # force single line for link
+                return
+            for line in self.epilog.split("\n"):
+                formatter.write_text(line)
+
+    def format_help_text(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Override the default help text to include our semgrep logo
+        """
+        from semgrep.util import with_color  # avoiding circular imports
+        colored_logo = with_color(Colors.green, SEMGREP_LOGO)
+        colored_preamble = DEFAULT_PREAMBLE.replace(SEMGREP_LOGO, colored_logo)
+        formatter.write(colored_preamble)
+        super().format_help_text(ctx, formatter)
+
+    def format_usage(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Override the default usage statements with our own (none)
+        """
+        return
+
+    def format_help_section(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Create a help section below commands instead of the options section before commands
+        """
+        from semgrep.util import with_color  # avoiding circular imports
+        help_cmd = with_color(Colors.cyan, f"semgrep {self._help_command}")
+        rows = [ (help_cmd, "For more information on each command")]
+        col_spacing = 2 + self.get_column_max_width(self.list_commands_pairs(ctx)) - len(self._help_command)
+        with formatter.section(_(with_color(Colors.foreground, "Help", underline=True))):
+            formatter.write_dl(rows, col_spacing=col_spacing)
+
+    def list_commands_pairs(self, ctx: click.Context) -> List[Tuple[str, click.Command]]:
+        """
+        List the command objects and their corresponding names
+        """
+        commands = []
+        for subcommand in self.list_commands(ctx):
+            cmd = self.get_command(ctx, subcommand)
+            # What is this, the tool lied about a command.  Ignore it
+            if cmd is None:
+                continue
+            if cmd.hidden:
+                continue
+            commands.append((subcommand, cmd))
+        return commands
+
+    def get_column_max_width(self, commands: List[Tuple[str, click.Command]]) -> int:
+        """
+        Get the max width of the command names and the help text
+        """
+        return max(len(self._help_command), max(len(cmd[0]) for cmd in commands))
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Near copy of the default format_commands except we add color and a prefix to the command name
+        https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L1720
+        """
+        from semgrep.util import with_color  # avoiding circular imports
+        commands = self.list_commands_pairs(ctx)
+
+        if len(commands):
+            limit = formatter.width - 6 - self.get_column_max_width(commands)
+
+            rows = []
+            for subcommand, cmd in commands:
+                help = cmd.get_short_help_str(limit)
+                command_text = with_color(Colors.cyan, f"semgrep {subcommand}")
+                rows.append((command_text, help))
+
+            if rows:
+                with formatter.section(_(with_color(Colors.foreground, "Commands", underline=True))):
+                    formatter.write_dl(rows)
+
+    def format_options(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Override the default format options to not show the options section and only the commands
+        """
+        self.format_commands(ctx, formatter)
+        self.format_help_section(ctx, formatter)
+

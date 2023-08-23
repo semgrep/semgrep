@@ -77,6 +77,7 @@ def login() -> NoReturn:
         )
         if r.status_code == 200:
             as_json = r.json()
+            click.echo(f"Token: {as_json}")
             if save_token(as_json.get("token"), echo_token=True):
                 sys.exit(0)
             else:
@@ -98,10 +99,10 @@ def login() -> NoReturn:
 
 def save_token(login_token: Optional[str], echo_token: bool) -> bool:
     state = get_state()
-    if login_token is not None and auth.get_deployment_from_token(login_token):
+    if login_token is not None and (name :=auth.get_deployment_from_token(login_token)):
         auth.set_token(login_token)
         click.echo(
-            f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {state.settings.path}."
+            f"Saved login token for {name}\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {state.settings.path}."
         )
         click.echo(
             f"Note: You can always generate more tokens at {state.env.semgrep_url}/orgs/-/settings/tokens"

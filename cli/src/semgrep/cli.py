@@ -13,14 +13,49 @@ from semgrep.commands.scan import scan
 from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
+from semgrep.constants import DEFAULT_EPILOGUE
 
 logger = getLogger(__name__)
 
+<<<<<<< HEAD
 
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
+=======
+def maybe_set_git_safe_directories() -> None:
+    """
+    Configure Git to be willing to run in any directory when we're in Docker.
+
+    In docker, every path is trusted:
+    - the user explicitly mounts their trusted code directory
+    - r2c provides every other path
+
+    More info:
+    - https://github.blog/2022-04-12-git-security-vulnerability-announced/
+    - https://github.com/actions/checkout/issues/766
+    """
+    env = get_state().env
+    if not env.in_docker:
+        return
+
+    try:
+        # "*" is used over Path.cwd() in case the user targets an absolute path instead of setting --workdir
+        git_check_output(["git", "config", "--global", "--add", "safe.directory", "*"])
+    except Exception as e:
+        logger.info(
+            f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
+        )
+
+@click.group(cls=DefaultGroup, default_command="scan", name="semgrep", epilog=DEFAULT_EPILOGUE)
+@click.help_option("--help", "-h")
+@click.pass_context
+def cli(ctx: click.Context) -> None:
+    """
+    Run `semgrep login && semgrep ci` to scan with Supply Chain and Semgrep Pro rules. 💎
+    """
+>>>>>>> 9a8cefb7c (will patch these commits in incrementally, but want to test out the level of effort)
     state = get_state()
     state.terminal.init_for_cli()
 
