@@ -443,8 +443,8 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
    matches;
    errors;
    skipped_targets;
+   skipped_rules;
    (* LATER *)
-   skipped_rules = _;
    explanations = _;
    stats = _;
    time = _;
@@ -484,6 +484,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
           matches |> Common.map (cli_match_of_core_match env) |> dedup_and_sort;
         errors = errors |> Common.map cli_error_of_core_error;
         paths;
+        skipped_rules;
         (* LATER *)
         time = None;
         explanations = None;
