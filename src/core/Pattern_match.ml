@@ -78,7 +78,7 @@ type taint_trace_item = {
 type taint_trace = taint_trace_item list [@@deriving show, eq]
 type engine_kind = OSS | Pro [@@deriving show, eq]
 
-(* This type is used by postprocessors to report back the validatity
+(* This type is used by postprocessors to report back the validity
    of a finding. No_validator is currently also used when no
    validation has yet occurred, which if that becomes confusing we
    could adjust that, by adding another state. This corresponds to
