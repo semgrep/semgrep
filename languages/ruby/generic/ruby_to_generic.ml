@@ -164,6 +164,19 @@ let rec expr e =
         }
       in
       G.Lambda def
+  | Rescue (e1, t, e2) ->
+      let e1 = expr e1 in
+      let e2 = expr e2 in
+      let st =
+        G.Try
+          ( t,
+            G.exprstmt e1,
+            [ (t, CatchPattern (PatUnderscore t), G.exprstmt e2) ],
+            None )
+        |> G.s
+      in
+      let x = G.stmt_to_expr st in
+      x.G.e
   | S x ->
       let st = stmt x in
       let x = G.stmt_to_expr st in
@@ -240,6 +253,7 @@ and formal_param = function
         | Some e -> { (G.param_of_id id) with G.pdefault = Some e }
       in
       G.Param p
+  | Formal_fwd t -> G.ParamRest (t, G.param_of_id ("...", t))
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       let pat = G.PatTuple (Tok.unsafe_fake_bracket xs) in
@@ -251,8 +265,9 @@ and formal_param_pattern = function
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       G.PatTuple (Tok.unsafe_fake_bracket xs)
-  | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
-    | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
+  | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_fwd _
+    | Formal_default _ | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ )
+    as x ->
       let x = formal_param x in
       G.OtherPat (("ParamPattern", Tok.unsafe_fake_tok ""), [ G.Pa x ])
 
@@ -619,8 +634,8 @@ and exprs_to_eopt = function
       Some (G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e)
 
 and pattern pat =
-  let e = expr pat in
-  H.expr_to_pattern e
+  match pat with
+  | _ -> failwith "TODO"
 
 and type_ e =
   let e = expr e in
