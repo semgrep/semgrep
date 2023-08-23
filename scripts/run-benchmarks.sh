@@ -3,6 +3,8 @@
 # Coupling: If you update this script, you likely also want
 # to update run-pro-benchmarks.sh
 
+# You may also need to update the comment in perf/README.md
+
 set -e
 
 cd cli || return
@@ -36,3 +38,10 @@ jq . ci_small_repos_findings.json
 # Compare timing infos
 pipenv run ../perf/compare-perf baseline_timing1.json baseline_timing2.json timing1.json timing2.json "$1" "$2"
 pipenv run ../perf/compare-bench-findings ci_small_repos_findings.json
+
+# Remove generated files
+rm baseline_timing1.json
+rm baseline_timing2.json
+rm ci_small_repos_findings.json
+rm timing1.json
+rm timing2.json
