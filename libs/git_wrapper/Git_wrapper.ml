@@ -121,6 +121,52 @@ let files_from_git_ls ~cwd =
   in
   files |> File.Path.of_strings
 
+let get_git_root_path () =
+  let cmd = Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel") in
+  let path_r = Bos.OS.Cmd.run_out cmd in
+  let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+  match result with
+  | Ok (path, (_, `Exited 0)) -> path
+  | _ -> raise (Error "Could not get git root from git rev-parse")
+
+let run_with_worktree ~commit f =
+  let cwd = Sys.getcwd () |> Fpath.v |> Fpath.to_dir_path in
+  let git_root = get_git_root_path () |> Fpath.v |> Fpath.to_dir_path in
+  let relative_path =
+    match Fpath.relativize ~root:git_root cwd with
+    | Some p -> p
+    | None -> raise (Error "")
+  in
+  let rand_dir () =
+    let uuid = Uuidm.v `V4 in
+    let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
+    let dir = Filename.concat (Filename.get_temp_dir_name ()) dir_name in
+    Unix.mkdir dir 0o777;
+    dir
+  in
+  let temp_dir = rand_dir () in
+  let cmd = Bos.Cmd.(v "git" % "worktree" % "add" % temp_dir % commit) in
+  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  match status with
+  | Ok (`Exited 0) ->
+      let work () =
+        Fpath.append (Fpath.v temp_dir) relative_path
+        |> Fpath.to_string |> Unix.chdir;
+        f ()
+      in
+      let cleanup () =
+        cwd |> Fpath.to_string |> Unix.chdir;
+        let cmd = Bos.Cmd.(v "git" % "worktree" % "remove" % temp_dir) in
+        let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+        match status with
+        | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
+        | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
+        | Error (`Msg e) -> raise (Error e)
+      in
+      Fun.protect ~finally:cleanup work
+  | Ok _ -> raise (Error ("Could not create git worktree for " ^ commit))
+  | Error (`Msg e) -> raise (Error e)
+
 let status ~cwd ~commit =
   let cmd =
     Bos.Cmd.(
