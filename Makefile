@@ -86,8 +86,6 @@ core:
 core-bc: minimal-build-bc
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
-	dune build @install # Generate the treesitter stubs for below
-	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
 	ln -s semgrep-core.bc bin/osemgrep.bc
 
 # Make binaries available to pysemgrep
@@ -224,6 +222,12 @@ install-deps-for-semgrep-core:
 	# Install OCaml dependencies (globally).
 	opam install -y --deps-only ./libs/ocaml-tree-sitter-core
 	opam install -y --deps-only ./
+
+# The bytecode version of semgrep-core needs dlls for tree-sitter
+# stubs installed into ~/.opam/<switch>/lib/stublibs to be able to run.
+install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
+	dune build @install # Generate the treesitter stubs for below
+	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
 
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
