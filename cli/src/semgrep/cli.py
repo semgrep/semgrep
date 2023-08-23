@@ -16,9 +16,9 @@ from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
+from semgrep.constants import DEFAULT_EPILOGUE
 
 logger = getLogger(__name__)
-
 
 def maybe_set_git_safe_directories() -> None:
     """
@@ -44,17 +44,12 @@ def maybe_set_git_safe_directories() -> None:
             f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
         )
 
-
-@click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.group(cls=DefaultGroup, default_command="scan", name="semgrep", epilog=DEFAULT_EPILOGUE)
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """
-    To get started quickly, run `semgrep scan --config auto`
-
-    Run `semgrep SUBCOMMAND --help` for more information on each subcommand
-
-    If no subcommand is passed, will run `scan` subcommand by default
+    Run `semgrep login && semgrep ci` to scan with Supply Chain and Semgrep Pro rules. 💎
     """
     state = get_state()
     state.terminal.init_for_cli()
