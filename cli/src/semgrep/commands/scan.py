@@ -748,6 +748,12 @@ def scan(
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
+    
+    # NOTE: Show help if no config or targets are passed
+    if not config and not targets:
+        ctx = click.get_current_context()
+        click.echo(ctx.parent.get_help())
+        return None
 
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
