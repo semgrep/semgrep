@@ -12,7 +12,7 @@
  * LICENSE for more details.
  *)
 open Common
-module Out = Output_from_core_j
+module Out = Semgrep_output_v1_j
 module R = Rule
 
 let logger = Logging.get_logger [ __MODULE__ ]
