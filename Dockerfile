@@ -221,10 +221,17 @@ RUN addgroup --system semgrep \
 # We can set it by default once we fix the circle ci workflows
 #USER semgrep
 
+# Configure Git to be willing to run in /src when we're in Docker.
 # Workaround for rootless containers as git operations may fail due to dubious
 # ownership of /src
-RUN printf "[safe]\n	directory = /src"  > ~root/.gitconfig
-RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
+# In docker, every path is trusted:
+# - the user explicitly mounts their trusted code directory
+# - Semgrep provides every other path
+# More info:
+# - https://github.blog/2022-04-12-git-security-vulnerability-announced/
+# - https://github.com/actions/checkout/issues/766
+RUN printf "[safe]\n	directory = /src\n"  > ~root/.gitconfig
+RUN printf "[safe]\n	directory = /src\n"  > ~semgrep/.gitconfig && \
 	chown semgrep:semgrep ~semgrep/.gitconfig
 
 

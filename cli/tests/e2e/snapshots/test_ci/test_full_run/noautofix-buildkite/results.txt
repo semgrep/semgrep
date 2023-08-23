@@ -82,6 +82,7 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
   CONNECTION
   Reporting start of scan for deployment_name
   Fetching configuration from Semgrep Cloud Platform
+  Enabled products: Semgrep Code, Semgrep Supply Chain
 
 ┌─────────────┐
 │ Scan Status │
