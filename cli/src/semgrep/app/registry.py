@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def list_current_public_rulesets() -> List[JsonObject]:
     state = get_state()
-    api_full_url = f"{state.env.semgrep_url}/api/registry/ruleset"
+    api_full_url = f"{state.env.semgrep_url}/api/registry/rulesets"
     try:
         r = state.app_session.get(api_full_url)
     except Exception:

@@ -189,7 +189,7 @@ def _upload_rule(
         "registry_check_id": registry_id,
     }
     response = state.app_session.post(
-        f"{state.env.semgrep_url}/api/registry/rule", json=request_json
+        f"{state.env.semgrep_url}/api/registry/rules", json=request_json
     )
 
     if not response.ok:
