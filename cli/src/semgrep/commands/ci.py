@@ -384,8 +384,8 @@ def ci(
             exclude=exclude,
             exclude_rule=exclude_rule,
             max_target_bytes=max_target_bytes,
-            autofix=scan_handler.autofix if scan_handler else False,
-            dryrun=True,
+            autofix=scan_handler.autofix if scan_handler else autofix,
+            dryrun=dry_run,
             # Always true, as we want to always report all findings, even
             # ignored ones, to the backend
             disable_nosem=True,
