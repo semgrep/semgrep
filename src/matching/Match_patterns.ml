@@ -216,7 +216,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
     (* Our matching environment. We can augment this with new information based on the AST,
      * but we should only need to create it once.
      *)
-    let m_env = MG.environment_of_any lang config (AST_generic.Pr ast) in
+    let m_env = MG.environment_of_program lang config ast in
 
     (* old: let prog = Normalize_AST.normalize (Pr ast) lang in
        * we were rewriting code, e.g., A != B was rewritten as !(A == B),

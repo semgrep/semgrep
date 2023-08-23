@@ -547,7 +547,7 @@ and m_name a b =
       | [] ->
           logger#warning
             "Somehow got empty dotted ident from name %s during matching"
-            ([%show: G.name] b);
+            (G.show_name b);
           fail ()
       | (_, t) :: _ ->
           let import_with_new_location =

@@ -1,4 +1,4 @@
-# will match because wildcard imports in matching are acontextual
+# will match because wildcard imports in matching are acontextual, unfortunately
 # ERROR:
 bar(
   # ERROR:

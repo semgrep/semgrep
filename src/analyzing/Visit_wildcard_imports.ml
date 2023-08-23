@@ -15,22 +15,39 @@
 
 module G = AST_generic
 
-class ['self] import_visitor =
-  object (_self : 'self)
-    inherit ['self] AST_generic.iter
+(* alt:
+   class ['self] import_visitor =
+     object (_self : 'self)
+       inherit ['self] AST_generic.iter
 
-    method! visit_directive_kind store dk =
-      match dk with
-      | ImportAll (_t, DottedName name, _t') -> Common.push name store
-      | ImportAll (_, FileName _, _)
+       method! visit_directive_kind store dk =
+         match dk with
+         | ImportAll (_t, DottedName name, _t') -> Common.push name store
+         | ImportAll (_, FileName _, _)
+         | _ ->
+             ()
+     end
+
+   let visit : AST_generic.any -> G.ident list list =
+     let v = new import_visitor in
+     fun any ->
+       let ids = ref [] in
+       v#visit_any ids any;
+       !ids
+     [@@profiling]
+*)
+
+let visit_toplevel prog : G.ident list list =
+  (* we only collect top-level wildcard imports *)
+  List.fold_right
+    (fun x acc ->
+      match x with
+      | {
+       G.s = DirectiveStmt { d = ImportAll (_t, DottedName name, _t'); _ };
+       _;
+      } ->
+          name :: acc
+      | { s = DirectiveStmt { d = ImportAll (_, FileName _, _); _ }; _ }
       | _ ->
-          ()
-  end
-
-let visit : AST_generic.any -> G.ident list list =
-  let v = new import_visitor in
-  fun any ->
-    let ids = ref [] in
-    v#visit_any ids any;
-    !ids
-  [@@profiling]
+          acc)
+    prog []

@@ -390,16 +390,26 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let environment_of_any lang config any =
-  let wildcard_imports = Visit_wildcard_imports.visit any in
+let default_environment lang config =
   {
     mv = [];
     stmts_matched = [];
     lang;
     config;
     deref_sym_vals = 0;
-    wildcard_imports;
+    wildcard_imports = [];
   }
+
+let environment_of_program lang config prog =
+  let wildcard_imports = Visit_wildcard_imports.visit_toplevel prog in
+  { (default_environment lang config) with wildcard_imports }
+
+let environment_of_any lang config any =
+  match any with
+  | G.Ss prog
+  | Pr prog ->
+      environment_of_program lang config prog
+  | _ -> default_environment lang config
 
 (*****************************************************************************)
 (* Helpers *)

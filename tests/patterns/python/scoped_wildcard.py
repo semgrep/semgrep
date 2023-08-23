@@ -1,6 +1,6 @@
 
-# match because wildcard imports do not respect scoping in matching
-# ERROR:
+# no match because we only examine top-level wildcard imports
+# TODO:
 foo(x)
 # ERROR:
 foo(A.x)
@@ -9,7 +9,7 @@ foo(y)
 
 def foo():
   from A import *
-  # ERROR:
+  # TODO:
   foo(x)
   # ERROR:
   foo(A.x)

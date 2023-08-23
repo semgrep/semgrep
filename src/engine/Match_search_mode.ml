@@ -565,10 +565,12 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                        raise Impossible
                  in
                  let ast, _ = Lazy.force env.xtarget.lazy_ast_and_errors in
-                 (* This will incur some cost from the visitor, but it shouldn't be much. *)
+                 (* This call iterates over the program's top-level statements, and
+                    thus incurs some cost, but it shouldn't be much.
+                 *)
                  let env =
-                   Matching_generic.environment_of_any lang env.xconf.config
-                     (G.Pr ast)
+                   Matching_generic.environment_of_program lang env.xconf.config
+                     ast
                  in
                  let matches =
                    GG.m_compatible_type lang
