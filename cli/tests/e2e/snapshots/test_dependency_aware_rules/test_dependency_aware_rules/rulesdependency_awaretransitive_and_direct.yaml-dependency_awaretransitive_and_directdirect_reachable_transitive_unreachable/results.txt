@@ -118,6 +118,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }
 === end of stdout - plain
