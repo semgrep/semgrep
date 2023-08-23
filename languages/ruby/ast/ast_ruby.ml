@@ -225,6 +225,7 @@ type expr =
   (* true = {}, false = do/end *)
   | CodeBlock of bool bracket * formal_param list option * stmts
   | Lambda of tok * formal_param list option * stmts
+  | Match of expr * (* => or in *) tok * pattern
   | S of stmt
   | D of definition
   (* sgrep-ext: *)
@@ -232,6 +233,7 @@ type expr =
   | DeepEllipsis of expr bracket
   (* TODO: unused for now, need find a syntax *)
   | TypedMetavar of ident * tok * type_
+  | TodoExpr of string * tok
 
 (* less: use for Assign, can be Id, Tuple, Array, more? *)
 and lhs = expr
@@ -245,6 +247,7 @@ and argument =
    * They are converted to AST_generic.ArgKwd in ruby_to_generic.ml though.
    *)
   | ArgKwd of ident * tok (* : *) * expr
+  | ArgAmp of tok
 
 and arguments = argument list
 
@@ -343,6 +346,7 @@ and pattern =
   | PatConstructor of qualified * pattern list
   | PatList of patlist_arg list bracket
   | PatWhen of pattern * expr
+  | PatAs of pattern * ident
   (* This is an example of "variable pinning", which lets a variable's value be
      used during a pattern match, instead of binding a new identifier.
      https://jemma.dev/blog/variable-pinning
@@ -435,7 +439,7 @@ and definition =
 and formal_param =
   (* old: was of expr before *)
   | Formal_id of ident (* usually just xx but sometimes also @xx or $xx *)
-  | Formal_amp of tok * ident
+  | Formal_amp of tok * ident option
   (* less: Formal_splat of tok * ident option *)
   | Formal_star of tok * ident (* as in *x *)
   | Formal_rest of tok (* just '*' *)
@@ -522,6 +526,7 @@ let keyword_arg_to_expr id tk arg =
 let arg_to_expr = function
   | Arg e -> e
   | ArgKwd (id, tk, arg) -> keyword_arg_to_expr id tk arg
+  | ArgAmp tk -> TodoExpr ("ArgAmp", tk)
 
 let args_to_exprs xs = List.map arg_to_expr xs
 let exprs_to_args xs = List.map (fun x -> Arg x) xs

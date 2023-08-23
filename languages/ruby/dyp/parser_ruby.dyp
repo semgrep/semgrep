@@ -142,7 +142,13 @@ let is_exnblock = function
 
 let rec param_to_pattern = function
   | Formal_id id -> Id (id, ID_Lowercase) (* TODO: actually not always that *)
-  | Formal_amp (t, id) -> Unary((Op_UAmper, t), Id (id, ID_Lowercase))
+  | Formal_amp (t, idopt) ->
+      (match idopt with
+      | None ->
+        (* should be impossible *)
+        TodoExpr ("Formal_amp_single", t)
+      | Some id -> Unary((Op_UAmper, t), Id (id, ID_Lowercase))
+      )
   | Formal_star (t, id) -> Splat (t, (Some (Id (id, ID_Lowercase))))
   | Formal_rest t -> Splat (t, None)
   | Formal_tuple (_, xs, _) -> params_to_pattern xs
@@ -973,8 +979,8 @@ lambda_body:
 
 formal_arg:
   | identifier<id>         { M.seen dyp (Id (id, ID_Lowercase)); Formal_id(id)}
-  | T_UAMPER T_LID<id,pos> { M.seen_str dyp id; Formal_amp ($1, $2) }
-  | T_AMPER T_LID<id,pos>  { M.seen_str dyp id; Formal_amp ($1, $2) }
+  | T_UAMPER T_LID<id,pos> { M.seen_str dyp id; Formal_amp ($1, Some $2) }
+  | T_AMPER T_LID<id,pos>  { M.seen_str dyp id; Formal_amp ($1, Some $2) }
   | T_USTAR T_LID<id,pos>  { M.seen_str dyp id; Formal_star ($1, $2) }
 
   | T_USTAR                { Formal_rest $1 }
