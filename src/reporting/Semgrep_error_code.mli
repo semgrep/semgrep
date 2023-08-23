@@ -8,7 +8,7 @@
 
 type error = {
   rule_id : Rule_ID.t option;
-  typ : Output_from_core_t.core_error_kind;
+  typ : Semgrep_output_v1_t.core_error_kind;
   loc : Tok.location;
   msg : string;
   (* ?? diff with msg? *)
@@ -26,14 +26,14 @@ val mk_error :
   ?rule_id:Rule_ID.t option ->
   Tok.location ->
   string ->
-  Output_from_core_t.core_error_kind ->
+  Semgrep_output_v1_t.core_error_kind ->
   error
 
 val error :
   Rule_ID.t ->
   Tok.location ->
   string ->
-  Output_from_core_t.core_error_kind ->
+  Semgrep_output_v1_t.core_error_kind ->
   unit
 
 (* Convert a caught exception and its stack trace to a Semgrep error. *)
@@ -54,7 +54,7 @@ val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 val string_of_error : error -> string
 
 val severity_of_error :
-  Output_from_core_t.core_error_kind -> Output_from_core_t.core_severity
+  Semgrep_output_v1_t.core_error_kind -> Semgrep_output_v1_t.core_severity
 
 (*****************************************************************************)
 (* Helpers for unit testing *)

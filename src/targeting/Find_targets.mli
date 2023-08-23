@@ -43,8 +43,8 @@ type conf = {
 val get_targets :
   conf ->
   Fpath.t list (* scanning roots *) ->
-  Fpath.t list * Output_from_core_t.skipped_target list
+  Fpath.t list * Semgrep_output_v1_t.skipped_target list
 
 (* internals used also in Find_targets_old.ml *)
 val get_reason_for_exclusion :
-  Gitignore.selection_event list -> Output_from_core_t.skip_reason
+  Gitignore.selection_event list -> Semgrep_output_v1_t.skip_reason

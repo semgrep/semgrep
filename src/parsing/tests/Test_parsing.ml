@@ -18,7 +18,7 @@ module PS = Parsing_stat
 module G = AST_generic
 module J = JSON
 module FT = File_type
-module Resp = Output_from_core_t
+module Resp = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

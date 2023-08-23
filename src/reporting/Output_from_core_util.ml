@@ -6,7 +6,7 @@
 
    TODO: ideally once osemgrep is done we should get rid of this module
 *)
-open Output_from_core_t
+open Semgrep_output_v1_t
 
 (* pfff (and Emacs) have the first column at index 0, but not r2c *)
 let adjust_column x = x + 1

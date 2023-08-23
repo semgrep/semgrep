@@ -82,6 +82,7 @@ CI="true" BITBUCKET_BUILD_NUMBER="hi" BITBUCKET_REPO_FULL_NAME="project_name/pro
   CONNECTION
   Reporting start of scan for deployment_name
   Fetching configuration from Semgrep Cloud Platform
+  Enabled products: Semgrep Code, Semgrep Supply Chain
 
 ┌─────────────┐
 │ Scan Status │

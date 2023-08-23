@@ -125,5 +125,5 @@ let _ =
            JSON_report.match_results_of_matches_and_errors
              (Some Autofix.render_fix) (List.length files) res
          in
-         Output_from_core_j.string_of_core_match_results res
+         Semgrep_output_v1_j.string_of_core_match_results res
     end)

@@ -8,4 +8,4 @@
 val main : string array -> Exit_code.t
 
 (* internal *)
-val run : Ci_CLI.conf -> Exit_code.t
+val run_conf : Ci_CLI.conf -> Exit_code.t

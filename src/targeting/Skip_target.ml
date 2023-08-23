@@ -4,7 +4,7 @@
 *)
 open Common
 open File.Operators
-module Resp = Output_from_core_t
+module Resp = Semgrep_output_v1_t
 
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)
