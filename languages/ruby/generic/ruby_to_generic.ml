@@ -177,6 +177,20 @@ let rec expr e =
       in
       let x = G.stmt_to_expr st in
       x.G.e
+  | Match (e, tk, p) ->
+      (* we translate `e in p` to
+
+         switch e of
+           p => true
+         | _ => false
+      *)
+      let t = G.N (Id (("true", G.fake "true"), G.empty_id_info ())) |> G.e in
+      let f = G.N (Id (("false", G.fake "false"), G.empty_id_info ())) |> G.e in
+      let case = G.case_of_pat_and_expr ~tok:(Some tk) (pattern p, t) in
+      let uncase =
+        G.CasesAndBody ([ Case (tk, PatUnderscore tk) ], G.exprstmt f)
+      in
+      G.StmtExpr (Switch (tk, Some (Cond (expr e)), [ case; uncase ]) |> G.s)
   | S x ->
       let st = stmt x in
       let x = G.stmt_to_expr st in
@@ -194,7 +208,8 @@ let rec expr e =
   | TypedMetavar (v1, v2, v3) ->
       let v1 = ident v1 in
       let v3 = type_ v3 in
-      G.TypedMetavar (v1, v2, v3))
+      G.TypedMetavar (v1, v2, v3)
+  | TodoExpr (s, tk) -> G.OtherExpr ((s, G.fake s), [ G.Tk tk ]))
   |> G.e
 
 and argument arg : G.argument =
@@ -208,12 +223,19 @@ and argument arg : G.argument =
       let id = ident id in
       let arg = expr arg in
       G.ArgKwd (id, arg)
+  | ArgAmp tk -> G.OtherArg (("Amp", G.fake "Amp"), [ G.Tk tk ])
 
 and formal_param = function
   | Formal_id id -> G.Param (G.param_of_id id)
-  | Formal_amp (t, id) ->
-      let param = G.Param (G.param_of_id id) in
-      G.OtherParam (("Ref", t), [ G.Pa param ])
+  | Formal_amp (t, idopt) ->
+      let param =
+        match idopt with
+        | None -> []
+        | Some id ->
+            let param = G.Param (G.param_of_id id) in
+            [ G.Pa param ]
+      in
+      G.OtherParam (("Ref", t), param)
   | Formal_star (t, id) -> G.ParamRest (t, G.param_of_id id)
   | Formal_rest t ->
       let p =
@@ -669,6 +691,7 @@ and pattern pat =
       G.PatConstructor (name, Common.map pattern ps)
   | PatList (l, ps, r) -> G.PatList (l, Common.map patlist_arg ps, r)
   | PatWhen (pat, exp) -> G.PatWhen (pattern pat, expr exp)
+  | PatAs (pat, id) -> G.PatAs (pattern pat, (ident id, G.empty_id_info ()))
   | PatPin (_tk, exp) ->
       OtherPat (("PatPin", G.fake "PatPin"), [ G.E (expr exp) ])
 

@@ -232,7 +232,10 @@ and statement (env : env) (x : CST.statement) :
       D (EndBlock (v1, (v2, v3, v4)))
   | `Exp x -> expression env x
 
-and body_expr (_env : env) (_x : CST.body_expr) = failwith "TODO"
+and body_expr (env : env) ((v1, v2) : CST.body_expr) =
+  let _v1 = (* "=" *) token2 env v1 in
+  let v2 = arg_rhs env v2 in
+  { empty_body_exn with body_exprs = [ v2 ] }
 
 and method_rest (env : env) ((v1, v2) : CST.method_rest) =
   let name = method_name env v1 in
@@ -378,10 +381,11 @@ and simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
       in
       Formal_hash_splat (v1, v2)
   | `Hash_splat_nil (v1, v2) ->
-      let _v1 = (* "**" *) token2 env v1 in
-      let _v2 = (* "nil" *) token2 env v2 in
+      let v1 = (* "**" *) token2 env v1 in
+      let v2 = (* "nil" *) str env v2 in
       (* https://stackoverflow.com/questions/34125769/double-splat-on-nil *)
-      failwith "TODO"
+      (* Shouldn't be possible, it seems, but let's just allow it. *)
+      Formal_hash_splat (v1, Some v2)
   | `Forw_param tok -> (
       let x = (* "..." *) token2 env tok in
       match env.extra with
@@ -391,8 +395,8 @@ and simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
       let v1 = token2 env v1 in
       let v2 =
         match v2 with
-        | Some id -> str env id
-        | None -> failwith "TODO"
+        | Some id -> Some (str env id)
+        | None -> None
       in
       Formal_amp (v1, v2)
   | `Kw_param (v1, v2, v3) ->
@@ -615,10 +619,10 @@ and function_identifier (env : env) (x : CST.function_identifier) =
 and pattern_expr (env : env) (x : CST.pattern_expr) =
   match x with
   | `As_pat (v1, v2, v3) ->
-      let _v1 = pattern_expr env v1 in
+      let v1 = pattern_expr env v1 in
       let _v2 = (* "=>" *) token2 env v2 in
-      let _v3 = (* identifier *) token2 env v3 in
-      failwith "TODO"
+      let v3 = (* identifier *) str env v3 in
+      PatAs (v1, v3)
   | `Pat_expr_alt x -> pattern_expr_alt env x
 
 and pattern_expr_alt (env : env) (x : CST.pattern_expr_alt) =
@@ -1140,15 +1144,25 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v2 = command_argument_list env v2 in
       S (Next (v1, v2))
   | `Match_pat (v1, v2, v3) ->
-      let _v1 = arg env v1 in
-      let _v2 = (* "=>" *) token2 env v2 in
-      let _v3 = pattern_top_expr_body env v3 in
-      failwith "TODO"
+      (* https://womanonrails.com/ruby-pattern-matching-second-look
+         This one acts similarly to the below, but might produce a
+         binding or raise an exception.
+         Otherwise, it still returns a boolean. So I don't really
+         care, and will translate them the same.
+      *)
+      let v1 = arg env v1 in
+      let v2 = (* "=>" *) token2 env v2 in
+      let v3 = pattern_top_expr_body env v3 in
+      Match (v1, v2, v3)
   | `Test_pat (v1, v2, v3) ->
-      let _v1 = arg env v1 in
-      let _v2 = (* "in" *) token2 env v2 in
-      let _v3 = pattern_top_expr_body env v3 in
-      failwith "TODO"
+      (* https://womanonrails.com/ruby-pattern-matching-second-look
+         This one must return a boolean on whether the expr matches
+         the pattern or not.
+      *)
+      let v1 = arg env v1 in
+      let v2 = (* "in" *) token2 env v2 in
+      let v3 = pattern_top_expr_body env v3 in
+      Match (v1, v2, v3)
   | `Arg x -> arg env x
 
 and pow (env : env) ((v1, v2, v3) : CST.pow) : expr =
@@ -1759,7 +1773,7 @@ and argument (env : env) (x : CST.argument) : AST.argument =
   | `Blk_arg (v1, v2) -> (
       let v1 = token2 env v1 in
       match v2 with
-      | None -> failwith "TODO"
+      | None -> ArgAmp v1
       | Some v2 ->
           let v2 = arg env v2 in
           Arg (Unary ((Op_UAmper, v1), v2)))
@@ -1776,7 +1790,7 @@ and splat_argument (env : env) ((v1, v2) : CST.splat_argument) =
 and hash_splat_argument (env : env) ((v1, v2) : CST.hash_splat_argument) =
   let v1 = token2 env v1 (* hash_splat_star_star *) in
   match v2 with
-  | None -> failwith "TODO"
+  | None -> TodoExpr ("HashSplatArg", v1)
   | Some v2 ->
       let v2 = arg env v2 in
       Unary ((Op_UStarStar, v1), v2)
@@ -2231,13 +2245,13 @@ and pair (env : env) (x : CST.pair) =
       (* will be converted to ArgKwd in ruby_to_generic.ml if needed *)
       Left (Binop (v1, (Op_ASSOC, v2), v3))
   | `Choice_str_imm_tok_colon_arg (v1, v2, v3) ->
-      let _v1 =
+      let v1 =
         match v1 with
         | `Str x -> Literal (String (mk_string_kind (string_ env x)))
       in
-      let _v2 = (* ":" *) token2 env v2 in
-      let _v3 = arg env v3 in
-      failwith "TODO"
+      let v2 = (* ":" *) token2 env v2 in
+      let v3 = arg env v3 in
+      Left (Binop (v1, (Op_ASSOC, v2), v3))
   | `Choice_hash_key_symb_imm_tok_colon_choice_opt_arg (v1, v2, v3) -> (
       let v1 =
         match v1 with
