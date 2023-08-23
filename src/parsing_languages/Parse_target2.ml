@@ -153,7 +153,6 @@ let just_parse_with_lang lang file =
        *)
       run file
         [
-          TreeSitter Parse_ruby_tree_sitter.parse;
           (* right now the parser is verbose and the token positions
            * may be wrong, but better than nothing. *)
           Pfff (throw_tokens Parse_ruby.parse);

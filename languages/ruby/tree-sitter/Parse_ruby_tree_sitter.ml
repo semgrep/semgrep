@@ -1119,9 +1119,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         | `Choice_var x -> (
             match x with
             | `Var x -> Id (variable env x)
-            | `Func_id x ->
-                Id (function_identifier env x, ID_Lowercase)
-                (* | `Scope_resol x -> ScopedId (scope_resolution env x) *))
+            | `Func_id x -> Id (function_identifier env x, ID_Lowercase))
       in
       let v2 = command_argument_list env v2 in
       Call (v1, fb v2, None)
