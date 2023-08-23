@@ -6,13 +6,13 @@ type render_fix = Pattern_match.t -> Textedit.t option
 val match_to_match :
   render_fix option ->
   Pattern_match.t ->
-  (Output_from_core_t.core_match, Semgrep_error_code.error) Common.either
+  (Semgrep_output_v1_t.core_match, Semgrep_error_code.error) Common.either
 
 val match_results_of_matches_and_errors :
   render_fix option ->
   int (* number of files processed, for the stats.okfiles *) ->
   Report.final_result ->
-  Output_from_core_t.core_match_results
+  Semgrep_output_v1_t.core_match_results
 
 (* for abstract_content and subpatterns matching-explanations
  * TODO: should not use! the result may miss some commas
@@ -20,7 +20,7 @@ val match_results_of_matches_and_errors :
 val metavar_string_of_any : AST_generic.any -> string
 
 (* now used also in osemgrep *)
-val error_to_error : Semgrep_error_code.error -> Output_from_core_t.core_error
+val error_to_error : Semgrep_error_code.error -> Semgrep_output_v1_t.core_error
 
 (* internal *)
 val match_to_error : Pattern_match.t -> unit

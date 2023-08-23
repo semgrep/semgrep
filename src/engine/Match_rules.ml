@@ -16,9 +16,9 @@ open Common
 open File.Operators
 module R = Rule
 module RP = Report
-module Resp = Output_from_core_t
+module Resp = Semgrep_output_v1_t
 module E = Semgrep_error_code
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

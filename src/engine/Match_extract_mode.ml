@@ -291,7 +291,7 @@ let map_res map_loc tmpfile file
     | Debug { skipped_targets; profiling } ->
         let skipped_targets =
           Common.map
-            (fun (st : Output_from_core_t.skipped_target) ->
+            (fun (st : Semgrep_output_v1_t.skipped_target) ->
               { st with path = (if st.path = tmpfile then file else st.path) })
             skipped_targets
         in

@@ -213,11 +213,11 @@ let run_scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
           (conf.target_roots, semgrepignored_targets, targets));
     Logs.info (fun m ->
         semgrepignored_targets
-        |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
-               m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
-                 (Output_from_core_t.show_skip_reason
-                    x.Output_from_core_t.reason)
-                 x.Output_from_core_t.details));
+        |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
+               m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
+                 (Semgrep_output_v1_t.show_skip_reason
+                    x.Semgrep_output_v1_t.reason)
+                 x.Semgrep_output_v1_t.details));
 
     (* step3: choose the right engine and right hooks *)
     let output_format, file_match_results_hook =

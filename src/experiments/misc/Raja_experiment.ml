@@ -1,5 +1,5 @@
 open File.Operators
-module Out = Output_from_core_j
+module Out = Semgrep_output_v1_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
