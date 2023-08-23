@@ -81,6 +81,7 @@ SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGR
   CONNECTION
   Reporting start of scan for deployment_name
   Fetching configuration from Semgrep Cloud Platform
+  Enabled products: Semgrep Code, Semgrep Supply Chain
 
 ┌─────────────┐
 │ Scan Status │

@@ -16,6 +16,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
+from typing import List
 
 import pytest
 from tests.conftest import make_semgrepconfig_file
@@ -348,6 +349,11 @@ def automocks(mocker):
         [
             "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
         ],
+    )
+    mocker.patch.object(
+        ScanHandler,
+        "enabled_products",
+        ["sast", "sca"],
     )
     mocker.patch(
         "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
@@ -1783,3 +1789,35 @@ def test_existing_supply_chain_finding(
     post_calls = AppSession.post.call_args_list
     findings_json = post_calls[num_old_post_calls + 1].kwargs["json"]
     assert len(findings_json["findings"]) == 0
+
+
+@pytest.mark.parametrize(
+    "enabled_products",
+    [[], ["product"]],
+    ids=["empty-products", "non-empty-products"],
+)
+def test_enabled_products(
+    enabled_products: List[str],
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+):
+    """
+    Verify that for any given product, there is a valid output
+    """
+    mocker.patch.object(ScanHandler, "enabled_products", enabled_products)
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+    )
+
+    if not enabled_products:
+        assert "Enabled products: None" in result.stderr
+        assert "No products are enabled for this organization" in result.stderr
+    else:
+        assert f"Enabled products: {enabled_products[0]}" in result.stderr
+        assert "No products are enabled for this organization" not in result.stderr

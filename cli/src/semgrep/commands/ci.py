@@ -55,6 +55,12 @@ ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
 # These patterns are excluded via --exclude unless the user provides their own .semgrepignore
 DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
+# Conversion of product codes to product names
+PRODUCT_NAMES_MAP = {
+    "sast": "Semgrep Code",
+    "sca": "Semgrep Supply Chain",
+}
+
 
 def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
     """
@@ -312,6 +318,15 @@ def ci(
                 scan_handler.fetch_and_init_scan_config(metadata_dict)
                 progress_bar.update(connection_task, completed=100)
 
+                product_names = [
+                    PRODUCT_NAMES_MAP.get(p) or p for p in scan_handler.enabled_products
+                ]
+                products_str = ", ".join(product_names) or "None"
+                products_task = progress_bar.add_task(
+                    f"Enabled products: [bold]{products_str}[/bold]"
+                )
+                progress_bar.update(products_task, completed=100)
+
             config = (scan_handler.rules,)
 
     except Exception as e:
@@ -358,6 +373,12 @@ def ci(
         exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
+
+        if scan_handler and not scan_handler.enabled_products:
+            raise SemgrepError(
+                "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
+            )
+
         (
             filtered_matches_by_rule,
             semgrep_errors,
