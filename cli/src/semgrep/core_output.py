@@ -33,8 +33,8 @@ logger = getLogger(__name__)
 def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
     return out.ErrorSpan(
         file=location.path,
-        start=out.PositionBis(line=location.start.line, col=location.start.col),
-        end=out.PositionBis(line=location.end.line, col=location.end.col),
+        start=out.Position(line=location.start.line, col=location.start.col),
+        end=out.Position(line=location.end.line, col=location.end.col),
     )
 
 
@@ -51,8 +51,8 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     if isinstance(err.error_type.value, core.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
-        config_start = out.PositionBis(line=0, col=1)
-        config_end = out.PositionBis(
+        config_start = out.Position(line=0, col=1)
+        config_end = out.Position(
             line=err.location.end.line - err.location.start.line,
             col=err.location.end.col - err.location.start.col + 1,
         )
