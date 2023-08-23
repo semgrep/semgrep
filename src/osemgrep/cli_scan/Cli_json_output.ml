@@ -376,7 +376,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
             (* It's optional in the CLI output, but not in the core match results!
              *)
             engine_kind = Some engine_kind;
-            validation_state = validation_state;
+            validation_state;
             extra_extra;
           };
       }
