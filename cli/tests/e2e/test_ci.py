@@ -1813,6 +1813,7 @@ def test_enabled_products(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     if not enabled_products:
