@@ -31,7 +31,8 @@
             },
             "start": {
               "col": 1,
-              "line": 1
+              "line": 1,
+              "offset": 0
             }
           },
           "$Y": {
@@ -53,7 +54,8 @@
       "path": "targets/deduplication/deduplication.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
@@ -80,7 +82,8 @@
             },
             "start": {
               "col": 1,
-              "line": 1
+              "line": 1,
+              "offset": 0
             }
           },
           "$Y": {
@@ -102,7 +105,8 @@
       "path": "targets/deduplication/deduplication.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ],

@@ -27,7 +27,8 @@
       "path": "targets/version-constraints/x.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
@@ -50,83 +51,11 @@
       "path": "targets/version-constraints/x.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ],
-  "skipped_rules": [
-    {
-      "details": "This rule requires upgrading Semgrep from version <MASKED> to at least 1000.0.0",
-      "position": {
-        "col": 18,
-        "line": 12,
-        "offset": 307
-      },
-      "rule_id": "rules.need-to-upgrade1"
-    },
-    {
-      "details": "This rule requires upgrading Semgrep from version <MASKED> to at least 1.1000.0",
-      "position": {
-        "col": 18,
-        "line": 18,
-        "offset": 468
-      },
-      "rule_id": "rules.need-to-upgrade2"
-    },
-    {
-      "details": "This rule is no longer supported by Semgrep. The last compatible version was 0.0.0. This version of Semgrep is <MASKED>",
-      "position": {
-        "col": 18,
-        "line": 24,
-        "offset": 629
-      },
-      "rule_id": "rules.retired-feature1"
-    },
-    {
-      "details": "This rule is no longer supported by Semgrep. The last compatible version was 0.0.1000. This version of Semgrep is <MASKED>",
-      "position": {
-        "col": 18,
-        "line": 30,
-        "offset": 787
-      },
-      "rule_id": "rules.retired-feature2"
-    },
-    {
-      "details": "This rule is no longer supported by Semgrep. The last compatible version was 0.1000.0. This version of Semgrep is <MASKED>",
-      "position": {
-        "col": 18,
-        "line": 36,
-        "offset": 948
-      },
-      "rule_id": "rules.retired-feature3"
-    },
-    {
-      "details": "This rule is no longer supported by Semgrep. The last compatible version was 0.8.3. This version of Semgrep is <MASKED>",
-      "position": {
-        "col": 18,
-        "line": 50,
-        "offset": 1324
-      },
-      "rule_id": "rules.past-version-range"
-    },
-    {
-      "details": "This rule requires upgrading Semgrep from version <MASKED> to at least 49.1.7",
-      "position": {
-        "col": 18,
-        "line": 56,
-        "offset": 1486
-      },
-      "rule_id": "rules.future-version-range"
-    },
-    {
-      "details": "This rule requires upgrading Semgrep from version <MASKED> to at least 2.0.0",
-      "position": {
-        "col": 18,
-        "line": 63,
-        "offset": 1672
-      },
-      "rule_id": "rules.empty-version-range"
-    }
-  ],
+  "skipped_rules": [],
   "version": "0.42"
 }

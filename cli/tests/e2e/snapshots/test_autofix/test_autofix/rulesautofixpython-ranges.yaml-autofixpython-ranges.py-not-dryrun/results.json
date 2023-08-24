@@ -42,7 +42,8 @@
       "path": "targets/autofix/python-ranges.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {

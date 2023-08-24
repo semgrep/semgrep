@@ -27,7 +27,8 @@
       "path": "targets/aliengrep/long-match.txt",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {

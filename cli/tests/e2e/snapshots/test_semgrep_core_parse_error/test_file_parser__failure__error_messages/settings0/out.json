@@ -10,7 +10,7 @@
           "end": {
             "col": 13,
             "line": 9,
-            "offset": 0
+            "offset": 3
           },
           "file": "targets/bad/invalid_go.go",
           "start": {
@@ -23,7 +23,7 @@
           "end": {
             "col": 14,
             "line": 10,
-            "offset": 0
+            "offset": 1
           },
           "file": "targets/bad/invalid_go.go",
           "start": {
