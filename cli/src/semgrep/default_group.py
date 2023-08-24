@@ -1,21 +1,21 @@
+import inspect
+import itertools
+import re
+from gettext import gettext as _
 from typing import Any
 from typing import List
 from typing import Optional
 from typing import Tuple
 
-import inspect
-import itertools
-import re
-# Match https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L15C1-L16C1
-from gettext import gettext as _
-
 import click
-from semgrep.constants import Colors
+
 from semgrep.constants import CLI_DOCS_URL
+from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_EPILOGUE
 from semgrep.constants import DEFAULT_PREAMBLE
 from semgrep.constants import GET_STARTED_TEXT
 from semgrep.constants import SEMGREP_LOGO
+# Match https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L15C1-L16C1
 
 
 # Inspired by https://github.com/pallets/click/issues/430#issuecomment-207580492
@@ -107,29 +107,39 @@ class DefaultGroup(click.Group):
         https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L1105
         """
         from semgrep.util import with_color  # avoiding circular imports
+
         if self.epilog:
             formatter.write_paragraph()
             if self.epilog == DEFAULT_EPILOGUE:
                 message, eol = self.epilog.split(CLI_DOCS_URL)
-                text = f"{message}{with_color(Colors.cyan, CLI_DOCS_URL, underline=True)}"
+                text = (
+                    f"{message}{with_color(Colors.cyan, CLI_DOCS_URL, underline=True)}"
+                )
                 formatter.write_dl([(text, "")])  # force single line for link
                 return
             for line in self.epilog.split("\n"):
                 formatter.write_text(line)
 
-    def format_help_text(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_help_text(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         """
         Overrides super().format_help_text to include our semgrep logo and add color to commands
         """
         from semgrep.util import with_color  # avoiding circular imports
+
         colored_logo = with_color(Colors.green, SEMGREP_LOGO)
         colored_preamble = DEFAULT_PREAMBLE.replace(SEMGREP_LOGO, colored_logo)
         formatter.write(colored_preamble)
-        if self.help is None:  # If there is no help text, we fall back to the default help text
+        if (
+            self.help is None
+        ):  # If there is no help text, we fall back to the default help text
             super().format_help_text(ctx, formatter)
             return
-        # Otherwise write out custom help text 
-        text = inspect.cleandoc(self.help).partition("\f")[0]  # truncate the help text to the first form feed
+        # Otherwise write out custom help text
+        text = inspect.cleandoc(self.help).partition("\f")[
+            0
+        ]  # truncate the help text to the first form feed
         link_match = re.search("https://.*", text)
         if link_match:
             command = link_match.group(0)
@@ -140,39 +150,54 @@ class DefaultGroup(click.Group):
         # Add a getting started section to the bottom of our help text prior to the commands
         self.format_get_started_section(ctx, formatter)
 
-
     def format_usage(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
         Overrides super().format_usage to omit the pre-built usage statement
         """
         return
 
-    def format_help_section(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_help_section(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         """
         Overrides super().format_help_section to show our custom help section
         """
         from semgrep.util import with_color  # avoiding circular imports
+
         help_cmd = with_color(Colors.cyan, f"semgrep {self._help_command}")
-        rows = [ (help_cmd, "For more information on each command")]
+        rows = [(help_cmd, "For more information on each command")]
         # NOTE: this col_spacing is a little hacky but it works well enough for now
-        col_spacing = 2 + max(0, self.get_column_max_width(self.list_commands_pairs(ctx)) - len(self._help_command))
-        with formatter.section(_(with_color(Colors.foreground, "Help", underline=True))):
+        col_spacing = 2 + max(
+            0,
+            self.get_column_max_width(self.list_commands_pairs(ctx))
+            - len(self._help_command),
+        )
+        with formatter.section(
+            _(with_color(Colors.foreground, "Help", underline=True))
+        ):
             formatter.write_dl(rows, col_spacing=col_spacing)
 
-    def format_get_started_section(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_get_started_section(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         """
         Adds a get started section to the help text
         """
         from semgrep.util import with_color  # avoiding circular imports
+
         text = GET_STARTED_TEXT
         command_match = re.search("`[^`]*`", text)
         if command_match:
             command = command_match.group(0)
             text = text.replace(command, with_color(Colors.cyan, command))
-        with formatter.section(_(with_color(Colors.foreground, "Get Started", underline=True))):
+        with formatter.section(
+            _(with_color(Colors.foreground, "Get Started", underline=True))
+        ):
             formatter.write_text(text)
 
-    def list_commands_pairs(self, ctx: click.Context) -> List[Tuple[str, click.Command]]:
+    def list_commands_pairs(
+        self, ctx: click.Context
+    ) -> List[Tuple[str, click.Command]]:
         """
         Helper to list the command objects and their corresponding names
         """
@@ -187,15 +212,15 @@ class DefaultGroup(click.Group):
             commands.append((subcommand, cmd))
         return commands
 
-
     def get_column_max_width(self, commands: List[Tuple[str, click.Command]]) -> int:
         """
         Get the max width of the command names and the help text for consistent formatting
         """
         return max(len(cmd[0]) for cmd in commands)
 
-
-    def list_command_sections(self, ctx: click.Context) ->List[Tuple[str, List[Tuple[str, click.Command]]]]:
+    def list_command_sections(
+        self, ctx: click.Context
+    ) -> List[Tuple[str, List[Tuple[str, click.Command]]]]:
         """
         Helper to group the commands by their section
         """
@@ -204,25 +229,30 @@ class DefaultGroup(click.Group):
         for subcommand, cmd in commands:
             section = "Commands" if not hasattr(cmd, "section") else cmd.section
             priority = 0 if not hasattr(cmd, "priority") else cmd.priority
-            if priority not in sections:  # each section has a priority which is used as the key
+            if (
+                priority not in sections
+            ):  # each section has a priority which is used as the key
                 sections[priority] = (section, [])
             _, lst = sections[priority]
             lst.append((subcommand, cmd))
 
         return [sections[priority] for priority in sorted(sections.keys())]
 
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         """
         Overrides super().format_commands to add color and a prefix to the command name
         """
         from semgrep.util import with_color  # avoiding circular imports
+
         sections = self.list_command_sections(ctx)
         if not sections:
             return
 
         all_commands = list(itertools.chain.from_iterable(lst for (_, lst) in sections))
 
-        max_width = self.get_column_max_width(all_commands) # longest command name
+        max_width = self.get_column_max_width(all_commands)  # longest command name
         # Set help text trucation limit
         limit = formatter.width - 6 - max_width
 
@@ -238,14 +268,16 @@ class DefaultGroup(click.Group):
 
             col_spacing = 2 + max_width - self.get_column_max_width(commands)
 
-            with formatter.section(_(with_color(Colors.foreground, section, underline=True))):
+            with formatter.section(
+                _(with_color(Colors.foreground, section, underline=True))
+            ):
                 formatter.write_dl(rows, col_spacing=col_spacing)
 
-
-    def format_options(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_options(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         """
         Overrides super().format_options to show the commands and then a help section
         """
         self.format_commands(ctx, formatter)
         self.format_help_section(ctx, formatter)
-

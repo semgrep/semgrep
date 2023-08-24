@@ -60,18 +60,20 @@ def warn(message: str) -> None:
     """
     Log a warning message
     """
-    click.echo(format_for_terminal(message, color=Colors.yellow, tagname="WARN"), err=True)
+    click.echo(
+        format_for_terminal(message, color=Colors.yellow, tagname="WARN"), err=True
+    )
 
 
-def format_for_terminal(text: str, color: Colors = Colors.red, tagname: str = "ERROR") -> str:
+def format_for_terminal(
+    text: str, color: Colors = Colors.red, tagname: str = "ERROR"
+) -> str:
     """
     Display a tagged (e.g. ERROR) message in the terminal with a colored tag
     """
     level_tag = (
         with_color(color, "[", bgcolor=color)
-        + with_color(
-            Colors.forced_white, tagname, bgcolor=color, bold=True
-        )
+        + with_color(Colors.forced_white, tagname, bgcolor=color, bold=True)
         + with_color(color, "]", bgcolor=color)
     )
 

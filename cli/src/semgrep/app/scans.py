@@ -248,7 +248,9 @@ class ScanHandler:
         try:
             response.raise_for_status()
         except requests.RequestException:
-            raise SemgrepError(f"API server at {state.env.semgrep_url} returned this error: {response.text}")
+            raise SemgrepError(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            )
 
     def report_findings(
         self,
@@ -394,7 +396,9 @@ class ScanHandler:
             progress_bar.update(results_task, completed=100)
 
         except requests.RequestException as exc:
-            raise SemgrepError(f"API server at {state.env.semgrep_url} returned this error: {response.text}") from exc
+            raise SemgrepError(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            ) from exc
 
         try_until = datetime.now() + timedelta(minutes=10)
         complete_task = progress_bar.add_task("Finalizing scan")

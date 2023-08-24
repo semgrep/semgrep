@@ -844,7 +844,7 @@ def scan(
 
         if validate:
             if not (pattern or lang or config):
-               abort(
+                abort(
                     f"Nothing to validate, use the --config or --pattern flag to specify a rule"
                 )
             else:

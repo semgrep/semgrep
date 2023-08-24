@@ -20,9 +20,8 @@ from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.util import with_color
 from semgrep.util import format_for_terminal
-
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -211,16 +210,20 @@ class SemgrepInternalError(Exception):
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
 
+
 class SemgrepFailoverError(SemgrepError):
     """
     Errors that can be recoverable with additional fallback logic (e.g. retrying with a different method)
     and should be (optionally) logs as warnings to the user
     """
+
     code = FATAL_EXIT_CODE  # Fatal if not handled
     level = Level.WARN
 
     def __init__(self, *args: object) -> None:
-        super().__init__(*args, code=SemgrepFailoverError.code, level=SemgrepFailoverError.level)
+        super().__init__(
+            *args, code=SemgrepFailoverError.code, level=SemgrepFailoverError.level
+        )
 
 
 @attr.s(auto_attribs=True, frozen=True)

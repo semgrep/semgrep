@@ -15,8 +15,8 @@ from rich.progress import TimeRemainingColumn
 from rich.progress import TransferSpeedColumn
 
 from semgrep import __VERSION__
-from semgrep.commands.wrapper import handle_command_errors
 from semgrep.commands.wrapper import AdvancedCommand
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE

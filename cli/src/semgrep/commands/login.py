@@ -8,9 +8,8 @@ from typing import Tuple
 import click
 
 from semgrep.app import auth
-from semgrep.commands.wrapper import handle_command_errors
 from semgrep.commands.wrapper import AdvancedCommand
-
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import FATAL_EXIT_CODE
 from semgrep.state import get_state
 from semgrep.util import abort

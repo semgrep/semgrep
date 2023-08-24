@@ -10,15 +10,17 @@ from semgrep.commands.login import logout
 from semgrep.commands.lsp import lsp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
+from semgrep.constants import DEFAULT_EPILOGUE
 from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
-from semgrep.constants import DEFAULT_EPILOGUE
 
 logger = getLogger(__name__)
 
 
-@click.group(cls=DefaultGroup, default_command="scan", name="semgrep", epilog=DEFAULT_EPILOGUE)
+@click.group(
+    cls=DefaultGroup, default_command="scan", name="semgrep", epilog=DEFAULT_EPILOGUE
+)
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:

@@ -42,6 +42,7 @@ UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 # NOTE: copied from error.py to avoid circular import
 FATAL_EXIT_CODE = 2
 
+
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
