@@ -1,0 +1,3 @@
+Julia: Added the deep expression operator, so now you can write patterns like
+foo(<... 42 ...>) to find instances of calls to `foo` that contain `42` somewhere
+inside of it.

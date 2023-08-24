@@ -125,7 +125,7 @@ let default : conf =
         profile = false;
         logging_level = Some Logs.Warning;
         (* or set to Experimental by default when we release osemgrep? *)
-        maturity = None;
+        maturity = Maturity.Default;
       };
     time_flag = false;
     engine_type = OSS;
@@ -694,9 +694,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* to remove at some point *)
     let registry_caching, ast_caching =
       match common.maturity with
-      | Some CLI_common.MDevelop -> (registry_caching, ast_caching)
-      | None
-      | Some (CLI_common.MExperimental | CLI_common.MLegacy) ->
+      | Maturity.Develop -> (registry_caching, ast_caching)
+      | _else_ ->
           Logs.debug (fun m ->
               m "disabling registry and AST caching unless --develop");
           (false, false)
@@ -762,9 +761,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       | _, (Some pat, None, fix) -> (
           match common.maturity with
           (* osemgrep-only: better: can use -e without -l! *)
-          | Some CLI_common.MDevelop -> Rules_source.Pattern (pat, None, fix)
-          | None
-          | Some (CLI_common.MExperimental | CLI_common.MLegacy) ->
+          | Maturity.Develop -> Rules_source.Pattern (pat, None, fix)
+          | _else_ ->
               (* alt: "language must be specified when a pattern is passed" *)
               Error.abort "-e/--pattern and -l/--lang must both be specified")
       | _, (None, Some _, _) ->

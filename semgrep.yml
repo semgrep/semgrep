@@ -409,6 +409,17 @@ rules:
     languages: [ocaml]
     severity: WARNING
 
+  - id: no-logger-flash-in-comments
+    patterns:
+      - pattern: (* ... $LOGGER#flash ... *)
+    message: >-
+      $LOGGER#flash is just for debuggging purposes.
+    fix: ""
+    languages: [generic]
+    paths:
+      include: ["*.ml"]
+    severity: WARNING
+
   - id: no-match-x-x-with
     pattern: match $X, $X with ... -> ...
     message: >-

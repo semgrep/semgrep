@@ -224,7 +224,7 @@ let run_scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
       match conf with
       | {
        output_format = Output_format.Text;
-       common = { maturity = Some CLI_common.MDevelop; _ };
+       common = { maturity = Maturity.Develop; _ };
        _;
       } ->
           ( Output_format.TextIncremental,

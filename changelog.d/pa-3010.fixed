@@ -1,0 +1,17 @@
+Java: Fixed naming bug affecting Java and other OO languages that allowed a
+method parameter to shadow a class attribute, e.g. in:
+
+```java
+class Test {
+
+    private int x;
+
+    public void test2(int x) {
+        foo(this.x);
+    }
+
+}
+```
+
+Semgrep was considering that `this.x` referred to the parameter `x` of `test2`
+rather than to the class attribute `x`.
