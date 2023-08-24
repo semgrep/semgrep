@@ -253,7 +253,7 @@ class OutputHandler:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
             if self.settings.output_format == OutputFormat.TEXT and (
-                error.level != Level.WARN or self.settings.verbose_errors
+                (error.level >= Level.WARN) or self.settings.verbose_errors
             ):
                 logger.error(error.format_for_terminal())
 

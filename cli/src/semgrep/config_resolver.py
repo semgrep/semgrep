@@ -37,6 +37,7 @@ from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
+from semgrep.error import SemgrepFailoverError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
@@ -203,8 +204,8 @@ class ConfigLoader:
             addendum = ""
             if env.in_docker:
                 addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
-            raise SemgrepError(
-                f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
+            raise SemgrepFailoverError(
+                f"Unable to find a config; path `{loc}` does not exist{addendum}"
             )
         logger.debug(f"Done loading local config from {loc}")
         return config
