@@ -160,77 +160,81 @@ let rec statements (env : env) (x : CST.statements) : AST.stmts =
 and statement (env : env) (x : CST.statement) :
     AST.expr (* TODO AST.stmt at some point *) =
   match x with
-  | `Undef (v1, v2, v3) ->
-      let v1 = token2 env v1 in
-      let v2 = method_name env v2 in
-      let v3 =
-        Common.map
-          (fun (v1, v2) ->
-            let _v1 = token2 env v1 in
-            let v2 = method_name env v2 in
-            v2)
-          v3
-      in
-      D (Undef (v1, v2 :: v3))
-  | `Alias (v1, v2, v3) ->
-      let v1 = token2 env v1 in
-      let v2 = method_name env v2 in
-      let v3 = method_name env v3 in
-      D (Alias (v1, v2, v3))
-  | `If_modi (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 = token2 env v2 in
-      let v3 = expression env v3 in
-      S (If (v2, v3, [ v1 ], None))
-  | `Unless_modi (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 = token2 env v2 in
-      let v3 = expression env v3 in
-      S (Unless (v2, v3, [ v1 ], None))
-  | `While_modi (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 = token2 env v2 in
-      let v3 = expression env v3 in
-      let b = true (* ?? *) in
-      S (While (v2, b, v3, [ v1 ]))
-  | `Until_modi (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 = token2 env v2 in
-      let v3 = expression env v3 in
-      S (Until (v2, true, v3, [ v1 ]))
-  | `Rescue_modi (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 = token2 env v2 in
-      let v3 = expression env v3 in
-      S
-        (ExnBlock
-           {
-             body_exprs = [ v1 ];
-             rescue_exprs = [ (v2, [], None, [ v3 ]) ];
-             ensure_expr = None;
-             else_expr = None;
-           })
-  | `Begin_blk (v1, v2, v3, v4) ->
-      let v1 = token2 env v1 in
-      let v2 = token2 env v2 in
-      let v3 =
-        match v3 with
-        | Some x -> statements env x
-        | None -> []
-      in
-      let v4 = token2 env v4 in
-      D (BeginBlock (v1, (v2, v3, v4)))
-  | `End_blk (v1, v2, v3, v4) ->
-      let v1 = token2 env v1 in
-      let v2 = token2 env v2 in
-      let v3 =
-        match v3 with
-        | Some x -> statements env x
-        | None -> []
-      in
-      let v4 = token2 env v4 in
-      D (EndBlock (v1, (v2, v3, v4)))
-  | `Exp x -> expression env x
+  | `DOTDOTDOT tok -> Ellipsis (token2 env tok)
+  | `Semg_ellips_foll_by_nl tok -> Ellipsis (token2 env tok)
+  | `Choice_undef x -> (
+      match x with
+      | `Undef (v1, v2, v3) ->
+          let v1 = token2 env v1 in
+          let v2 = method_name env v2 in
+          let v3 =
+            Common.map
+              (fun (v1, v2) ->
+                let _v1 = token2 env v1 in
+                let v2 = method_name env v2 in
+                v2)
+              v3
+          in
+          D (Undef (v1, v2 :: v3))
+      | `Alias (v1, v2, v3) ->
+          let v1 = token2 env v1 in
+          let v2 = method_name env v2 in
+          let v3 = method_name env v3 in
+          D (Alias (v1, v2, v3))
+      | `If_modi (v1, v2, v3) ->
+          let v1 = statement env v1 in
+          let v2 = token2 env v2 in
+          let v3 = expression env v3 in
+          S (If (v2, v3, [ v1 ], None))
+      | `Unless_modi (v1, v2, v3) ->
+          let v1 = statement env v1 in
+          let v2 = token2 env v2 in
+          let v3 = expression env v3 in
+          S (Unless (v2, v3, [ v1 ], None))
+      | `While_modi (v1, v2, v3) ->
+          let v1 = statement env v1 in
+          let v2 = token2 env v2 in
+          let v3 = expression env v3 in
+          let b = true (* ?? *) in
+          S (While (v2, b, v3, [ v1 ]))
+      | `Until_modi (v1, v2, v3) ->
+          let v1 = statement env v1 in
+          let v2 = token2 env v2 in
+          let v3 = expression env v3 in
+          S (Until (v2, true, v3, [ v1 ]))
+      | `Rescue_modi (v1, v2, v3) ->
+          let v1 = statement env v1 in
+          let v2 = token2 env v2 in
+          let v3 = expression env v3 in
+          S
+            (ExnBlock
+               {
+                 body_exprs = [ v1 ];
+                 rescue_exprs = [ (v2, [], None, [ v3 ]) ];
+                 ensure_expr = None;
+                 else_expr = None;
+               })
+      | `Begin_blk (v1, v2, v3, v4) ->
+          let v1 = token2 env v1 in
+          let v2 = token2 env v2 in
+          let v3 =
+            match v3 with
+            | Some x -> statements env x
+            | None -> []
+          in
+          let v4 = token2 env v4 in
+          D (BeginBlock (v1, (v2, v3, v4)))
+      | `End_blk (v1, v2, v3, v4) ->
+          let v1 = token2 env v1 in
+          let v2 = token2 env v2 in
+          let v3 =
+            match v3 with
+            | Some x -> statements env x
+            | None -> []
+          in
+          let v4 = token2 env v4 in
+          D (EndBlock (v1, (v2, v3, v4)))
+      | `Exp x -> expression env x)
 
 and body_expr (env : env) ((v1, v2) : CST.body_expr) =
   let _v1 = (* "=" *) token2 env v1 in
@@ -1059,7 +1063,11 @@ and literal (env : env) (x : CST.literal) : expr =
   | `Simple_symb tok ->
       (* simple_symbol *)
       let s, t = str env tok in
-      Id ((s, t), ID_Lowercase)
+      if String.starts_with ~prefix:":" s then
+        let tcolon, tafter = Tok.split_tok_at_bytepos 1 t in
+        let str = Tok.content_of_tok tafter in
+        Atom (tcolon, AtomSimple (str, tafter))
+      else Id ((s, t), ID_Lowercase)
   | `Deli_symb x -> Atom (delimited_symbol env x)
   | `Nume x -> numeric env x
 
@@ -1637,27 +1645,37 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
 
 and anon_choice_for_call_no_id (env : env) x =
   match x with
-  | `Id tok -> MethodId (str env tok, ID_Lowercase)
+  | `Id tok -> (
+      let s, t = str env tok in
+      match s with
+      | "..." ->
+          (* This must mean we are meaning to have a DotAccessEllipsis. *)
+          Left t
+      | _ -> Right (MethodId (str env tok, ID_Lowercase)))
   | `Op x -> (
       let op = operator env x in
       match op with
-      | Left bin, t -> MethodOperator (bin, t)
-      | Right un, t -> MethodUOperator (un, t))
-  | `Cst tok -> MethodId (str env tok, ID_Uppercase)
-  | `Func_id x -> MethodId (function_identifier env x, ID_Lowercase)
+      | Left bin, t -> Right (MethodOperator (bin, t))
+      | Right un, t -> Right (MethodUOperator (un, t)))
+  | `Cst tok -> Right (MethodId (str env tok, ID_Uppercase))
+  | `Func_id x -> Right (MethodId (function_identifier env x, ID_Lowercase))
 
 and call_ (env : env) ((v1, v2, v3) : CST.call_) =
   let v1 = primary env v1 in
   let v2 = call_operator env v2 in
   let v3 = anon_choice_for_call_no_id env v3 in
-  DotAccess (v1, v2, v3)
+  match v3 with
+  | Left tok -> DotAccessEllipsis (v1, tok)
+  | Right v3 -> DotAccess (v1, v2, v3)
 
 and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
     AST.expr =
   let v1 = command_call_with_block env v1 in
   let v2 = call_operator env v2 in
   let v3 = anon_choice_for_call_no_id env v3 in
-  DotAccess (v1, v2, v3)
+  match v3 with
+  | Left tok -> DotAccessEllipsis (v1, tok)
+  | Right v3 -> DotAccess (v1, v2, v3)
 
 and command_call_with_block (env : env) (x : CST.command_call_with_block) :
     AST.expr =
@@ -1766,12 +1784,12 @@ and argument (env : env) (x : CST.argument) : AST.argument =
   | `Forw_arg tok -> (
       let t = (* "..." *) token2 env tok in
       match env.extra with
-      | Program -> Arg (Ellipsis t)
+      | Program -> Arg (Splat (t, None))
       | Pattern ->
           (* Close enough. It's not actually strictly a splat, but it behaves
              similarly.
           *)
-          Arg (Splat (t, None)))
+          Arg (Ellipsis t))
   | `Exp x -> Arg (expression env x)
   | `Splat_arg x -> Arg (splat_argument env x)
   | `Hash_splat_arg x -> Arg (hash_splat_argument env x)
@@ -2165,12 +2183,14 @@ and interpolation (env : env) (x : CST.interpolation) :
       let lb = token2 env v1 (* "#{" *) in
       let rb = token2 env v3 (* "}" *) in
       match v2 with
-      | Some x ->
+      | Some x -> (
           (* Hopefully should be fine to represent these as statements.
              If these statements are typically ExprStmts, though, this
              might get sus.
           *)
-          Some (lb, S (Block (statements env x |> fb)), rb)
+          match statements env x with
+          | [ e ] -> Some (lb, e, rb)
+          | other -> Some (lb, S (Block (other |> fb)), rb))
       | None -> None)
   | `Short_interp_nonl_var (v1, v2) ->
       let _v1 = (* short_interpolation *) token2 env v1 in

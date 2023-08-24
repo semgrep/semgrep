@@ -216,6 +216,7 @@ type expr =
   (* TODO: ArrayAccess of expr * expr list bracket *)
   (* old: was Binop(e1, Op_DOT, e2) before *)
   | DotAccess of expr * tok (* . or &. *) * method_name
+  | DotAccessEllipsis of expr * tok (* '...' *)
   (* in argument, pattern, exn, assignment lhs or rhs.
    * old: was Unary(Op_UStar), or UOperator(Op_UStar).
    * expr is None only when Splat is used as last element in assign.
