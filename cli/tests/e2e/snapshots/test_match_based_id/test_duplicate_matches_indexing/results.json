@@ -37,7 +37,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate1.py",
       "start": {
@@ -75,7 +76,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate1.py",
       "start": {
@@ -113,7 +115,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate2.py",
       "start": {
@@ -151,7 +154,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate2.py",
       "start": {
@@ -189,7 +193,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate1.py",
       "start": {
@@ -227,7 +232,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate1.py",
       "start": {
@@ -265,7 +271,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate2.py",
       "start": {
@@ -303,7 +310,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/match_based_id/duplicates/duplicate2.py",
       "start": {

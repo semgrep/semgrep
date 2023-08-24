@@ -38,7 +38,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nested-patterns.js",
       "start": {
@@ -76,7 +77,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nested-patterns.js",
       "start": {

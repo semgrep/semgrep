@@ -32,7 +32,8 @@
           ]
         },
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/csv-writer.py",
       "start": {
@@ -66,7 +67,8 @@
           ]
         },
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/csv-writer.py",
       "start": {
