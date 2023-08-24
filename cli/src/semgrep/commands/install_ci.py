@@ -335,7 +335,7 @@ def get_actions_view_url(repo_path: str):
 @handle_command_errors
 def install_semgrep_ci(repo_path: str) -> None:
     """
-    Install Semgrep CI in Github Actions for a specific local repository.
+    Install Semgrep CI with Github Actions
 
     Must be logged in to use; see `semgrep login`
 

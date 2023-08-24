@@ -16,7 +16,7 @@ from semgrep.types import JsonObject
 from semgrep.util import git_check_output
 
 
-@click.command()
+@click.command(hidden=True)
 @click.option(
     "--message",
     "-m",
