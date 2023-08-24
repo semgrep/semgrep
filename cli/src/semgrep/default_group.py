@@ -4,6 +4,7 @@ from typing import Optional
 from typing import Tuple
 
 import inspect
+import itertools
 import re
 # Match https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L15C1-L16C1
 from gettext import gettext as _
@@ -154,7 +155,7 @@ class DefaultGroup(click.Group):
         help_cmd = with_color(Colors.cyan, f"semgrep {self._help_command}")
         rows = [ (help_cmd, "For more information on each command")]
         # NOTE: this col_spacing is a little hacky but it works well enough for now
-        col_spacing = 2 + self.get_column_max_width(self.list_commands_pairs(ctx)) - len(self._help_command)
+        col_spacing = 2 + max(0, self.get_column_max_width(self.list_commands_pairs(ctx)) - len(self._help_command))
         with formatter.section(_(with_color(Colors.foreground, "Help", underline=True))):
             formatter.write_dl(rows, col_spacing=col_spacing)
 
@@ -186,31 +187,60 @@ class DefaultGroup(click.Group):
             commands.append((subcommand, cmd))
         return commands
 
+
     def get_column_max_width(self, commands: List[Tuple[str, click.Command]]) -> int:
         """
         Get the max width of the command names and the help text for consistent formatting
         """
-        return max(len(self._help_command), max(len(cmd[0]) for cmd in commands))
+        return max(len(cmd[0]) for cmd in commands)
+
+
+    def list_command_sections(self, ctx: click.Context) ->List[Tuple[str, List[Tuple[str, click.Command]]]]:
+        """
+        Helper to group the commands by their section
+        """
+        commands = self.list_commands_pairs(ctx)
+        sections = {}
+        for subcommand, cmd in commands:
+            section = "Commands" if not hasattr(cmd, "section") else cmd.section
+            priority = 0 if not hasattr(cmd, "priority") else cmd.priority
+            if priority not in sections:  # each section has a priority which is used as the key
+                sections[priority] = (section, [])
+            _, lst = sections[priority]
+            lst.append((subcommand, cmd))
+
+        return [sections[priority] for priority in sorted(sections.keys())]
 
     def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
         Overrides super().format_commands to add color and a prefix to the command name
         """
         from semgrep.util import with_color  # avoiding circular imports
-        commands = self.list_commands_pairs(ctx)
+        sections = self.list_command_sections(ctx)
+        if not sections:
+            return
 
-        if len(commands):
-            limit = formatter.width - 6 - self.get_column_max_width(commands)
+        all_commands = list(itertools.chain.from_iterable(lst for (_, lst) in sections))
 
+        max_width = self.get_column_max_width(all_commands) # longest command name
+        # Set help text trucation limit
+        limit = formatter.width - 6 - max_width
+
+        for section, commands in sections:
             rows = []
             for subcommand, cmd in commands:
                 help = cmd.get_short_help_str(limit)
                 command_text = with_color(Colors.cyan, f"semgrep {subcommand}")
                 rows.append((command_text, help))
 
-            if rows:
-                with formatter.section(_(with_color(Colors.foreground, "Commands", underline=True))):
-                    formatter.write_dl(rows)
+            if not rows:
+                continue
+
+            col_spacing = 2 + max_width - self.get_column_max_width(commands)
+
+            with formatter.section(_(with_color(Colors.foreground, section, underline=True))):
+                formatter.write_dl(rows, col_spacing=col_spacing)
+
 
     def format_options(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
