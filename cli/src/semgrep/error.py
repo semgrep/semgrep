@@ -2,7 +2,7 @@ import dataclasses
 import inspect
 import sys
 from dataclasses import dataclass
-from enum import Enum
+from enum import IntEnum
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -43,7 +43,7 @@ INVALID_API_KEY_EXIT_CODE = 13
 SCAN_FAIL_EXIT_CODE = 14
 
 
-class Level(Enum):
+class Level(IntEnum):
     ERROR = 4  # Always an error
     WARN = 3  # Only an error if "strict" is set
 
@@ -63,6 +63,7 @@ class SemgrepError(Exception):
     ) -> None:
         self.code = code
         self.level = level
+        self.color = Colors.red if level == Level.ERROR else Colors.yellow
 
         super().__init__(*args)
 
@@ -83,11 +84,11 @@ class SemgrepError(Exception):
 
     def format_for_terminal(self) -> str:
         level_tag = (
-            with_color(Colors.red, "[", bgcolor=Colors.red)
+            with_color(self.color, "[", bgcolor= self.color)
             + with_color(
-                Colors.forced_white, self.level.name, bgcolor=Colors.red, bold=True
+                Colors.forced_white, self.level.name, bgcolor= self.color, bold=True
             )
-            + with_color(Colors.red, "]", bgcolor=Colors.red)
+            + with_color( self.color, "]", bgcolor= self.color)
         )
 
         return f"{level_tag} {self}"
@@ -215,6 +216,17 @@ class SemgrepInternalError(Exception):
 
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
+
+class SemgrepFailoverError(SemgrepError):
+    """
+    Errors that can be recoverable with additional fallback logic (e.g. retrying with a different method)
+    and should be (optionally) logs as warnings to the user
+    """
+    code = FATAL_EXIT_CODE  # Fatal if not handled
+    level = Level.WARN
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args, code=SemgrepFailoverError.code, level=SemgrepFailoverError.level)
 
 
 @attr.s(auto_attribs=True, frozen=True)
