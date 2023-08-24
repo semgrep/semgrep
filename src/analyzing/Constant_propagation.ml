@@ -379,6 +379,56 @@ let constant_propagation_and_evaluate_literal ?lang =
   eval env
 
 (*****************************************************************************)
+(* Visitor class *)
+(*****************************************************************************)
+
+type visitor_context = {
+  in_lvalue : bool;
+  in_class : ident option;
+  in_static_block : bool;
+  in_constructor : bool;
+}
+
+class virtual ['self] iter_with_context =
+  object (self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+
+    method! visit_definition (env, ctx) x =
+      match x with
+      | { name = EN (Id (id, _ii)); _ }, ClassDef cdef ->
+          self#visit_class_definition
+            (env, { ctx with in_class = Some id })
+            cdef
+      | { name = EN (Id (id, _ii)); _ }, FuncDef fdef -> (
+          match ctx.in_class with
+          | Some in_class_id when fst in_class_id = fst id ->
+              self#visit_function_definition
+                (env, { ctx with in_constructor = true })
+                fdef
+          | Some _
+          | None ->
+              super#visit_function_definition (env, ctx) fdef)
+      | x -> super#visit_definition (env, ctx) x
+
+    method! visit_stmt_kind (env, ctx) x =
+      match x with
+      | OtherStmtWithStmt (OSWS_Block ("Static", _), [], block) ->
+          self#visit_stmt (env, { ctx with in_static_block = true }) block
+      | x -> super#visit_stmt_kind (env, ctx) x
+
+    method! visit_expr (env, ctx) x =
+      match x.e with
+      | ArrayAccess (e1, (_, e2, _)) ->
+          self#visit_expr (env, ctx) e1;
+          self#visit_expr (env, { ctx with in_lvalue = false }) e2
+      | Assign (e1, _, e2)
+      | AssignOp (e1, _, e2) ->
+          self#visit_expr (env, { ctx with in_lvalue = true }) e1;
+          self#visit_expr (env, ctx) e2
+      | __else__ -> super#visit_expr (env, ctx) x
+  end
+
+(*****************************************************************************)
 (* Poor's man const analysis *)
 (*****************************************************************************)
 (* This is mostly useful for languages without a const keyword (e.g., Python).
@@ -589,13 +639,6 @@ let add_special_constants env lang prog =
 (* Entry point *)
 (*****************************************************************************)
 
-type visitor_context = {
-  in_lvalue : bool;
-  in_class : ident option;
-  in_static_block : bool;
-  in_constructor : bool;
-}
-
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
@@ -609,23 +652,12 @@ let propagate_basic lang prog =
 
   (* step2: second pass where we actually propagate when we can *)
   let visitor =
-    object (self : 'self)
-      inherit [_] AST_generic.iter_no_id_info as super
+    object (_self : 'self)
+      inherit [_] iter_with_context as super
 
       (* the defs *)
-      method! visit_definition ctx x =
+      method! visit_definition (env, ctx) x =
         match x with
-        | { name = EN (Id (id, _ii)); _ }, ClassDef cdef ->
-            super#visit_class_definition { ctx with in_class = Some id } cdef
-        | { name = EN (Id (id, _ii)); _ }, FuncDef fdef -> (
-            match ctx.in_class with
-            | Some cid when fst cid = fst id ->
-                super#visit_function_definition
-                  { ctx with in_constructor = true }
-                  fdef
-            | Some _
-            | None ->
-                super#visit_function_definition ctx fdef)
         | ( {
               name =
                 EN
@@ -641,7 +673,7 @@ let propagate_basic lang prog =
                * `private` visibility. An example of this is a class field that
                * is initialized in the constructor or in a `static` block. *)
               Hashtbl.replace env.attributes (fst id, sid) attrs;
-            super#visit_definition ctx x
+            super#visit_definition (env, ctx) x
         | ( {
               name =
                 EN
@@ -684,18 +716,11 @@ let propagate_basic lang prog =
                     && no_cycles_in_sym_prop sid e ->
                  add_constant_env id (sid, Sym e) env
              | None, _ -> ());
-            super#visit_definition ctx x
-        | _ -> super#visit_definition ctx x
-
-      method! visit_stmt_kind ctx x =
-        (match x with
-        | OtherStmtWithStmt (OSWS_Block ("Static", _), [], block) ->
-            self#visit_stmt { ctx with in_static_block = true } block
-        | __else__ -> ());
-        super#visit_stmt_kind ctx x
+            super#visit_definition (env, ctx) x
+        | _ -> super#visit_definition (env, ctx) x
 
       (* the uses (and also defs for Python Assign) *)
-      method! visit_expr ctx x =
+      method! visit_expr (env, ctx) x =
         match x.e with
         | N (Id (id, id_info))
         | DotAccess
@@ -721,11 +746,8 @@ let propagate_basic lang prog =
             let var = (prefix ^ "." ^ str, terraform_sid) in
             let/ svalue = Hashtbl.find_opt env.constants var in
             Dataflow_svalue.set_svalue_ref id_info svalue
-        | ArrayAccess (e1, (_, e2, _)) ->
-            self#visit_expr ctx e1;
-            self#visit_expr { ctx with in_lvalue = false } e2
-            (* Assign that is really a hidden VarDef (e.g., in Python) *)
         | Assign
+            (* Assign that is really a hidden VarDef (e.g., in Python) *)
             ( {
                 e =
                   ( N
@@ -773,21 +795,18 @@ let propagate_basic lang prog =
                      && no_cycles_in_sym_prop sid rexp
                    then add_constant_env id (sid, Sym rexp) env;
                    ());
-            self#visit_expr ctx rexp
-        | Assign (e1, _, e2)
-        | AssignOp (e1, _, e2) ->
-            self#visit_expr { ctx with in_lvalue = true } e1;
-            self#visit_expr ctx e2
-        | _ -> super#visit_expr ctx x
+            super#visit_expr (env, ctx) rexp
+        | __else__ -> super#visit_expr (env, ctx) x
     end
   in
   visitor#visit_program
-    {
-      in_class = None;
-      in_lvalue = false;
-      in_static_block = false;
-      in_constructor = false;
-    }
+    ( env,
+      {
+        in_class = None;
+        in_lvalue = false;
+        in_static_block = false;
+        in_constructor = false;
+      } )
     prog;
   ()
   [@@profiling]
