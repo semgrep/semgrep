@@ -23,7 +23,7 @@ def init_log(name: str, level: int, logfile: Optional[str] = None) -> None:
     log.addHandler(handler)
 
 
-@click.command()
+@click.command(hidden=True)
 @click.option("--verbose", is_flag=True, help="Enable verbose logging")
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option(

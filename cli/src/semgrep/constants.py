@@ -24,10 +24,23 @@ YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
 YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
 FIXTEST_SUFFIX = ".fixed"
 
+SEMGREP_LOGO = s = "○○○"
 RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=json"
+CLI_DOCS_URL = "https://semgrep.dev/docs/category/semgrep-cli/"
+DEFAULT_EPILOGUE = f"For the CLI docs visit {CLI_DOCS_URL}"
+
+DEFAULT_PREAMBLE = f"""
+┌──── {s} ────┐
+│ Semgrep CLI │
+└─────────────┘
+"""
+
+GET_STARTED_TEXT = "Run `semgrep login && semgrep ci` to find dependency vulnerabilities and advanced cross-file findings. 💎"
 
 UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
+# NOTE: copied from error.py to avoid circular import
+FATAL_EXIT_CODE = 2
 
 class OutputFormat(Enum):
     TEXT = auto()

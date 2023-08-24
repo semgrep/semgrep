@@ -787,6 +787,12 @@ def scan(
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
+    # NOTE: Show help if no config is passed (and no other higher priority flags are passed)
+    if not config and not any([validate, targets]):
+        ctx = click.get_current_context()
+        click.echo(ctx.parent.get_help())
+        return None
+
     # change cwd if using docker
     if not targets:
         semgrep.config_resolver.adjust_for_docker()
@@ -838,7 +844,7 @@ def scan(
 
         if validate:
             if not (pattern or lang or config):
-                logger.error(
+               abort(
                     f"Nothing to validate, use the --config or --pattern flag to specify a rule"
                 )
             else:
