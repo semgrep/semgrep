@@ -86,5 +86,6 @@
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

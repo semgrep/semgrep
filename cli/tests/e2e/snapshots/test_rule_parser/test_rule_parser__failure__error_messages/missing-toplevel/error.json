@@ -9,13 +9,15 @@
         {
           "end": {
             "col": 1,
-            "line": 16
+            "line": 16,
+            "offset": 0
           },
           "file": "rules/syntax/missing-toplevel.yaml",
           "source_hash": "f1b1a7f0ef1f89134e4320d364d2e44df788d24337d22506a99c55191350d4fe",
           "start": {
             "col": 1,
-            "line": 2
+            "line": 2,
+            "offset": 0
           }
         }
       ],
@@ -33,5 +35,6 @@
     "scanned": []
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }
