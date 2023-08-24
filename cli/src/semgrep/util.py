@@ -48,8 +48,26 @@ def path_has_permissions(path: Path, permissions: int) -> bool:
 
 
 def abort(message: str) -> None:
-    click.secho(message, fg="red", err=True)
+    """
+    Print an error message and exit with a non-zero exit code
+    """
+    click.echo(format_for_terminal(message), err=True)
     sys.exit(2)
+
+
+def format_for_terminal(text: str, color: Colors = Colors.red, tagname: str = "ERROR") -> str:
+    """
+    Display a tagged (e.g. ERROR) message in the terminal with a colored tag
+    """
+    level_tag = (
+        with_color(color, "[", bgcolor=color)
+        + with_color(
+            Colors.forced_white, tagname, bgcolor=color, bold=True
+        )
+        + with_color(color, "]", bgcolor=color)
+    )
+
+    return f"{level_tag} {text}"
 
 
 def with_color(

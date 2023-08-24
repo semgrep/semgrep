@@ -737,12 +737,6 @@ def scan(
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
-    
-    # NOTE: Show help if no config or targets are passed
-    if not config and not targets:
-        ctx = click.get_current_context()
-        click.echo(ctx.parent.get_help())
-        return None
 
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
@@ -792,6 +786,12 @@ def scan(
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
+
+    # NOTE: Show help if no config is passed (and no other higher priority flags are passed)
+    if not config and not any([test, dump_ast, validate, targets]):
+        ctx = click.get_current_context()
+        click.echo(ctx.parent.get_help())
+        return None
 
     # change cwd if using docker
     if not targets:
@@ -844,7 +844,7 @@ def scan(
 
         if validate:
             if not (pattern or lang or config):
-                logger.error(
+               abort(
                     f"Nothing to validate, use the --config or --pattern flag to specify a rule"
                 )
             else:

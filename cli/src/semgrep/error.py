@@ -21,6 +21,8 @@ from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.util import with_color
+from semgrep.util import format_for_terminal
+
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -83,15 +85,7 @@ class SemgrepError(Exception):
         return cast(Dict[str, Any], self.to_CliError().to_json())
 
     def format_for_terminal(self) -> str:
-        level_tag = (
-            with_color(self.color, "[", bgcolor= self.color)
-            + with_color(
-                Colors.forced_white, self.level.name, bgcolor= self.color, bold=True
-            )
-            + with_color( self.color, "]", bgcolor= self.color)
-        )
-
-        return f"{level_tag} {self}"
+        return format_for_terminal(str(self), self.color, self.level.name)
 
     # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
