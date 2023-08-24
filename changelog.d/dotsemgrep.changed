@@ -1,0 +1,3 @@
+The option to omit --config and to look for the presence of a .semgrep.yml
+or .semgrep/.semgrep.yml in the current directory has been removed. You now
+have to explicitely use --config.
