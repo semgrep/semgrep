@@ -5,7 +5,7 @@ module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
 module E = Semgrep_error_code
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -416,10 +416,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (Lang.Solidity, "solidity", ".sol");
         (Lang.Elixir, "elixir", ".ex");
         (Lang.R, "r", ".r");
-        (* TODO: weird because the tests work in check_maturity above
-         * but note here
-         * (Lang.Julia, "julia", ".jl");
-         *)
+        (Lang.Julia, "julia", ".jl");
         (Lang.Jsonnet, "jsonnet", ".jsonnet");
         (Lang.Clojure, "clojure", ".clj");
         (Lang.Xml, "xml", ".xml");

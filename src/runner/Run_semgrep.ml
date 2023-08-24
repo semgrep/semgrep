@@ -21,7 +21,7 @@ module MR = Mini_rule
 module R = Rule
 module RP = Report
 module In = Input_to_core_j
-module Out = Output_from_core_j
+module Out = Semgrep_output_v1_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_extract_mode = ref false
@@ -300,7 +300,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                         max_match_per_file
                     in
                     {
-                      Output_from_core_t.path = file;
+                      Semgrep_output_v1_t.path = file;
                       reason = Too_many_matches;
                       details;
                       rule_id = Some (rule_id :> string);

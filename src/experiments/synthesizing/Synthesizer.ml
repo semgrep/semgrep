@@ -2,7 +2,7 @@ open Common
 open File.Operators
 module J = JSON
 module In = Input_to_core_j
-module Out = Output_from_core_j
+module Out = Semgrep_output_v1_j
 
 let range_to_ast file lang s =
   let r = Range.range_of_linecol_spec s !!file in

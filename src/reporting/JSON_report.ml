@@ -20,8 +20,8 @@ module J = JSON
 module MV = Metavariable
 module RP = Report
 open Pattern_match
-module SJ = Output_from_core_j (* JSON conversions *)
-module Out = Output_from_core_t (* atdgen definitions *)
+module SJ = Semgrep_output_v1_j (* JSON conversions *)
+module Out = Semgrep_output_v1_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
 (*****************************************************************************)

@@ -40,9 +40,9 @@ clean:
 
 # From fastest to slowest (on pad's machine):
 # - 'make quick-tests' (=~ 30s)
-# - 'make e2e' (=~ 1m14s)
-# - 'make kinda-quick-tests' (=~ 2min30s )
-# - 'make test' (=~ 10min)
+# - 'make e2e' (=~ 2m20s)
+# - 'make kinda-quick-tests' (=~ 3min40s )
+# - 'make test' (=~ 11min)
 
 PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 

@@ -29,5 +29,6 @@ class RunSemgrep(Protocol):
         force_metrics_off: bool = True,
         stdin: str | None = None,
         clean_fingerprint: bool = True,
+        use_click_runner: bool = False,
     ) -> SemgrepResult:
         ...

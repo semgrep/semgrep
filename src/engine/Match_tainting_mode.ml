@@ -26,7 +26,7 @@ module T = Taint
 module Lval_env = Taint_lval_env
 module MV = Metavariable
 module ME = Matching_explanation
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 module Labels = Set.Make (String)
 
 let logger = Logging.get_logger [ __MODULE__ ]

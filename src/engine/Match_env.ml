@@ -14,7 +14,7 @@
  *)
 open File.Operators
 module E = Semgrep_error_code
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 module PM = Pattern_match
 
 (*****************************************************************************)
