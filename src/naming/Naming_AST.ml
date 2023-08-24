@@ -310,12 +310,6 @@ let lookup_scope_opt ?(class_attr = false) (s, _) env =
         *)
         | _ -> [ xs ] @ xxs @ [ !(scopes.global); !(scopes.imported) ])
   in
-  (* actual_scopes |> List.iter (fun scope ->
-       logger#flash "SCOPE";
-       scope |> List.iter (fun (s, si) ->
-         logger#flash "- %s : %s" s (show_resolved_name si.entname);
-       )
-     ); *)
   lookup ~class_attr s actual_scopes
 
 (*****************************************************************************)
@@ -823,7 +817,11 @@ let resolve lang prog =
       method! visit_name venv x =
         match x with
         | Id (id, id_info) -> (
-            if Option.is_none !(id_info.id_resolved) then
+            if
+              (* Avoid overwriting 'id_resolved'.
+               * THINK: Maybe log something if we were going to overwrite ? *)
+              Option.is_none !(id_info.id_resolved)
+            then
               match lookup_scope_opt id env with
               | Some resolved ->
                   (* name resolution *)
@@ -938,7 +936,8 @@ let resolve lang prog =
              * a start.
              *)
             | Some ({ entname = EnclosedVar, _sid; _ } as resolved) ->
-                set_resolved env id_info resolved
+                set_resolved env id_info resolved;
+                recurse := false
             | _ ->
                 let s, tok = id in
                 error tok (spf "could not find '%s' field in environment" s))
