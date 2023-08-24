@@ -399,6 +399,52 @@ let initial_visitor_context =
     in_constructor = false;
   }
 
+let _iter_with_context ~definition ~stmt ~expr =
+  object (_self : 'self)
+    inherit ['self] AST_generic.iter_no_id_info as super
+
+    method! visit_definition (env, ctx) x =
+      let go (env, ctx) x =
+        match x with
+        | { name = EN (Id (id, _ii)); _ }, ClassDef _cdef ->
+            super#visit_definition (env, { ctx with in_class = Some id }) x
+        | { name = EN (Id (id, _ii)); _ }, FuncDef _fdef -> (
+            match ctx.in_class with
+            | Some in_class_id when fst in_class_id = fst id ->
+                super#visit_definition
+                  (env, { ctx with in_constructor = true })
+                  x
+            | Some _
+            | None ->
+                super#visit_definition (env, ctx) x)
+        | __else__ -> super#visit_definition (env, ctx) x
+      in
+      definition ~go (env, ctx) x
+
+    method! visit_stmt (env, ctx) x =
+      let go (env, ctx) x =
+        match x.s with
+        | OtherStmtWithStmt (OSWS_Block ("Static", _), [], _block) ->
+            super#visit_stmt (env, { ctx with in_static_block = true }) x
+        | __else__ -> super#visit_stmt (env, ctx) x
+      in
+      stmt ~go (env, ctx) x
+
+    method! visit_expr (env, ctx) x =
+      let go (env, ctx) x =
+        match x.e with
+        | ArrayAccess (e1, (_, e2, _)) ->
+            super#visit_expr (env, ctx) e1;
+            super#visit_expr (env, { ctx with in_lvalue = false }) e2
+        | Assign (e1, _, e2)
+        | AssignOp (e1, _, e2) ->
+            super#visit_expr (env, { ctx with in_lvalue = true }) e1;
+            super#visit_expr (env, ctx) e2
+        | __else__ -> super#visit_expr (env, ctx) x
+      in
+      expr ~go (env, ctx) x
+  end
+
 class virtual ['self] iter_with_context =
   object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
@@ -439,7 +485,7 @@ class virtual ['self] iter_with_context =
   end
 
 (*****************************************************************************)
-(* Poor's man const analysis *)
+(* Poor man''s const analysis *)
 (*****************************************************************************)
 (* This is mostly useful for languages without a const keyword (e.g., Python).
  *
@@ -462,11 +508,9 @@ let var_stats prog : stats =
   in
 
   let visitor =
-    object (self : 'self)
-      inherit [_] iter_with_context as super
-
-      method! visit_definition (env, ctx) x =
-        match x with
+    _iter_with_context
+      ~definition:(fun ~go (env, ctx) x ->
+        (match x with
         | ( {
               name =
                 EN
@@ -478,12 +522,12 @@ let var_stats prog : stats =
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var env.var_stats in
             incr stat.lvalue;
-            super#visit_definition (env, ctx) x
-        | _ -> super#visit_definition (env, ctx) x
-
-      (* TODO: An `ExprStmt` method call (probably returning 'void') should count as a
-       * potential assignment too... E.g. in Ruby `a.concat(b)` is going to update `a`. *)
-      method! visit_stmt (env, ctx) x =
+            ()
+        | _ -> ());
+        go (env, ctx) x)
+        (* TODO: An `ExprStmt` method call (probably returning 'void') should count as a
+         * potential assignment too... E.g. in Ruby `a.concat(b)` is going to update `a`. *)
+      ~stmt:(fun ~go (env, ctx) x ->
         (match x.s with
         | For
             ( _,
@@ -497,9 +541,8 @@ let var_stats prog : stats =
             let stat = get_stat_or_create var env.var_stats in
             incr stat.lvalue
         | _ -> ());
-        super#visit_stmt (env, ctx) x
-
-      method! visit_expr (env, ctx) x =
+        go (env, ctx) x)
+      ~expr:(fun ~go (env, ctx) x ->
         match x.e with
         (* TODO: What if there is an asignment inside the `lhs` ? *)
         | Assign (* v = ... *) (lhs, _, e2)
@@ -512,7 +555,7 @@ let var_stats prog : stats =
                    match x.e with
                    | AssignOp _ -> incr stat.rvalue
                    | _ -> ());
-            self#visit_expr (env, ctx) e2
+            go (env, ctx) e2
         | Call
             ( { e = IdSpecial (IncrDecr _, _); _ },
               ( _,
@@ -538,9 +581,8 @@ let var_stats prog : stats =
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var env.var_stats in
             incr stat.rvalue;
-            super#visit_expr (env, ctx) x
-        | _ -> super#visit_expr (env, ctx) x
-    end
+            go (env, ctx) x (* ??? *)
+        | _ -> go (env, ctx) x)
   in
   visitor#visit_program (stats, initial_visitor_context) prog;
   stats
