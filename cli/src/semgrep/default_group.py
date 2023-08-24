@@ -10,7 +10,11 @@ from gettext import gettext as _
 
 import click
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_EPILOGUE, DEFAULT_PREAMBLE, CLI_DOCS_URL, SEMGREP_LOGO
+from semgrep.constants import CLI_DOCS_URL
+from semgrep.constants import DEFAULT_EPILOGUE
+from semgrep.constants import DEFAULT_PREAMBLE
+from semgrep.constants import GET_STARTED_TEXT
+from semgrep.constants import SEMGREP_LOGO
 
 
 # Inspired by https://github.com/pallets/click/issues/430#issuecomment-207580492
@@ -107,7 +111,7 @@ class DefaultGroup(click.Group):
             if self.epilog == DEFAULT_EPILOGUE:
                 message, eol = self.epilog.split(CLI_DOCS_URL)
                 text = f"{message}{with_color(Colors.cyan, CLI_DOCS_URL, underline=True)}"
-                formatter.write_dl([(text, "")]) # force single line for link
+                formatter.write_dl([(text, "")])  # force single line for link
                 return
             for line in self.epilog.split("\n"):
                 formatter.write_text(line)
@@ -120,17 +124,21 @@ class DefaultGroup(click.Group):
         colored_logo = with_color(Colors.green, SEMGREP_LOGO)
         colored_preamble = DEFAULT_PREAMBLE.replace(SEMGREP_LOGO, colored_logo)
         formatter.write(colored_preamble)
-        if self.help is not None:
-            # truncate the help text to the first form feed
-            text = inspect.cleandoc(self.help).partition("\f")[0]
-            command_match = re.search("`[^`]*`", text)
-            if command_match:
-                command = command_match.group(0)
-                text = text.replace(command, with_color(Colors.cyan, command))
-            formatter.write_text(text)
+        if self.help is None:  # If there is no help text, we fall back to the default help text
+            super().format_help_text(ctx, formatter)
             return
-        # If there is no help text, we fall back to the default help text
-        super().format_help_text(ctx, formatter)
+        # Otherwise write out custom help text 
+        text = inspect.cleandoc(self.help).partition("\f")[0]  # truncate the help text to the first form feed
+        link_match = re.search("https://.*", text)
+        if link_match:
+            command = link_match.group(0)
+            text = text.replace(command, with_color(Colors.cyan, command))
+            formatter.write_dl([(text, "")])  # force single line for link
+        else:
+            formatter.write_text(text)
+        # Add a getting started section to the bottom of our help text prior to the commands
+        self.format_get_started_section(ctx, formatter)
+
 
     def format_usage(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """
@@ -149,6 +157,19 @@ class DefaultGroup(click.Group):
         col_spacing = 2 + self.get_column_max_width(self.list_commands_pairs(ctx)) - len(self._help_command)
         with formatter.section(_(with_color(Colors.foreground, "Help", underline=True))):
             formatter.write_dl(rows, col_spacing=col_spacing)
+
+    def format_get_started_section(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """
+        Adds a get started section to the help text
+        """
+        from semgrep.util import with_color  # avoiding circular imports
+        text = GET_STARTED_TEXT
+        command_match = re.search("`[^`]*`", text)
+        if command_match:
+            command = command_match.group(0)
+            text = text.replace(command, with_color(Colors.cyan, command))
+        with formatter.section(_(with_color(Colors.foreground, "Get Started", underline=True))):
+            formatter.write_text(text)
 
     def list_commands_pairs(self, ctx: click.Context) -> List[Tuple[str, click.Command]]:
         """

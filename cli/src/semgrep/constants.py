@@ -35,6 +35,8 @@ DEFAULT_PREAMBLE = f"""
 └─────────────┘
 """
 
+GET_STARTED_TEXT = "Run `semgrep login && semgrep ci` to find dependency vulnerabilities and advanced cross-file findings. 💎"
+
 UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
 
