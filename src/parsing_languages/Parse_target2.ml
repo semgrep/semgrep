@@ -147,17 +147,6 @@ let just_parse_with_lang lang file =
           TreeSitter Parse_python_tree_sitter.parse;
         ]
         Python_to_generic.program
-  | Lang.Ruby ->
-      (* for Ruby we start with the tree-sitter parser because the pfff parser
-       * is not great and some of the token positions may be wrong.
-       *)
-      run file
-        [
-          (* right now the parser is verbose and the token positions
-           * may be wrong, but better than nothing. *)
-          Pfff (throw_tokens Parse_ruby.parse);
-        ]
-        Ruby_to_generic.program
   (* Tree-sitter only *)
   | Lang.Bash ->
       run file
@@ -208,6 +197,10 @@ let just_parse_with_lang lang file =
       run file
         [ TreeSitter Parse_elixir_tree_sitter.parse ]
         Elixir_to_generic.program
+  | Lang.Ruby ->
+      run file
+        [ TreeSitter Parse_ruby_tree_sitter.parse ]
+        Ruby_to_generic.program
   (* tree-sitter-dart is currently buggy and can generate some segfaults *)
   | Lang.Dart ->
       run file [ TreeSitter Parse_dart_tree_sitter.parse ] (fun x -> x)

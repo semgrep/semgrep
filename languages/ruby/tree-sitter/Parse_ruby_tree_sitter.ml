@@ -1072,96 +1072,103 @@ and pattern_top_expr_body (env : env) (x : CST.pattern_top_expr_body) =
 
 and expression (env : env) (x : CST.expression) : AST.expr =
   match x with
-  | `Cmd_bin (v1, v2, v3) ->
-      let v1 = expression env v1 in
-      let v2 =
-        match v2 with
-        | `Or tok -> (Op_kOR, token2 env tok)
-        | `And tok -> (Op_kAND, token2 env tok)
-      in
-      let v3 = expression env v3 in
-      Binop (v1, v2, v3)
-  | `Cmd_un x -> command_unary env x
-  | `Cmd_assign x -> command_assignment env x
-  | `Cmd_op_assign (v1, v2, v3) ->
-      let v1 = lhs env v1 in
-      let op, tok =
-        match v2 with
-        | `PLUSEQ tok -> (B Op_PLUS, token2 env tok)
-        | `DASHEQ tok -> (B Op_MINUS, token2 env tok)
-        | `STAREQ tok -> (B Op_TIMES, token2 env tok)
-        | `STARSTAREQ tok -> (B Op_POW, token2 env tok)
-        | `SLASHEQ tok -> (B Op_DIV, token2 env tok)
-        | `BARBAREQ tok -> (Op_OR, token2 env tok)
-        | `BAREQ tok -> (B Op_BOR, token2 env tok)
-        | `AMPAMPEQ tok -> (Op_AND, token2 env tok)
-        | `AMPEQ tok -> (B Op_BAND, token2 env tok)
-        | `PERCEQ tok -> (B Op_REM, token2 env tok)
-        | `GTGTEQ tok -> (B Op_RSHIFT, token2 env tok)
-        | `LTLTEQ tok -> (B Op_LSHIFT, token2 env tok)
-        | `HATEQ tok -> (B Op_XOR, token2 env tok)
-      in
-      let v3 =
-        match v3 with
-        | `Exp x -> expression env x
-        | `Rescue_modi_exp (v1, v2, v3) ->
-            let v1 = expression env v1 in
-            let v2 = (* "rescue" *) token2 env v2 in
-            let v3 = arg env v3 in
-            Rescue (v1, v2, v3)
-      in
-      Binop (v1, (Op_OP_ASGN op, tok), v3)
-  | `Cmd_call (v1, v2) ->
-      let v1 =
-        match v1 with
-        | `Call_ x -> call_ env x
-        | `Chai_cmd_call x -> chained_command_call env x
-        | `Choice_var x -> (
-            match x with
-            | `Var x -> Id (variable env x)
-            | `Func_id x -> Id (function_identifier env x, ID_Lowercase))
-      in
-      let v2 = command_argument_list env v2 in
-      Call (v1, fb v2, None)
-  | `Cmd_call_with_blk x -> command_call_with_block env x
-  | `Chai_cmd_call x -> chained_command_call env x
-  | `Ret_cmd (v1, v2) ->
-      let v1 = token2 env v1 in
-      let v2 = command_argument_list env v2 in
-      S (Return (v1, v2))
-  | `Yield_cmd (v1, v2) ->
-      let v1 = token2 env v1 in
-      let v2 = command_argument_list env v2 in
-      S (Yield (v1, v2))
-  | `Brk_cmd (v1, v2) ->
-      let v1 = token2 env v1 in
-      let v2 = command_argument_list env v2 in
-      S (Break (v1, v2))
-  | `Next_cmd (v1, v2) ->
-      let v1 = token2 env v1 in
-      let v2 = command_argument_list env v2 in
-      S (Next (v1, v2))
-  | `Match_pat (v1, v2, v3) ->
-      (* https://womanonrails.com/ruby-pattern-matching-second-look
-         This one acts similarly to the below, but might produce a
-         binding or raise an exception.
-         Otherwise, it still returns a boolean. So I don't really
-         care, and will translate them the same.
-      *)
-      let v1 = arg env v1 in
-      let v2 = (* "=>" *) token2 env v2 in
-      let v3 = pattern_top_expr_body env v3 in
-      Match (v1, v2, v3)
-  | `Test_pat (v1, v2, v3) ->
-      (* https://womanonrails.com/ruby-pattern-matching-second-look
-         This one must return a boolean on whether the expr matches
-         the pattern or not.
-      *)
-      let v1 = arg env v1 in
-      let v2 = (* "in" *) token2 env v2 in
-      let v3 = pattern_top_expr_body env v3 in
-      Match (v1, v2, v3)
-  | `Arg x -> arg env x
+  | `Semg_ellips_foll_by_nl tok ->
+      let tok = token2 env tok in
+      Ellipsis tok
+  | `Deep_ellips (l, e, r) ->
+      DeepEllipsis (token2 env l, expression env e, token2 env r)
+  | `Choice_cmd_bin x -> (
+      match x with
+      | `Cmd_bin (v1, v2, v3) ->
+          let v1 = expression env v1 in
+          let v2 =
+            match v2 with
+            | `Or tok -> (Op_kOR, token2 env tok)
+            | `And tok -> (Op_kAND, token2 env tok)
+          in
+          let v3 = expression env v3 in
+          Binop (v1, v2, v3)
+      | `Cmd_un x -> command_unary env x
+      | `Cmd_assign x -> command_assignment env x
+      | `Cmd_op_assign (v1, v2, v3) ->
+          let v1 = lhs env v1 in
+          let op, tok =
+            match v2 with
+            | `PLUSEQ tok -> (B Op_PLUS, token2 env tok)
+            | `DASHEQ tok -> (B Op_MINUS, token2 env tok)
+            | `STAREQ tok -> (B Op_TIMES, token2 env tok)
+            | `STARSTAREQ tok -> (B Op_POW, token2 env tok)
+            | `SLASHEQ tok -> (B Op_DIV, token2 env tok)
+            | `BARBAREQ tok -> (Op_OR, token2 env tok)
+            | `BAREQ tok -> (B Op_BOR, token2 env tok)
+            | `AMPAMPEQ tok -> (Op_AND, token2 env tok)
+            | `AMPEQ tok -> (B Op_BAND, token2 env tok)
+            | `PERCEQ tok -> (B Op_REM, token2 env tok)
+            | `GTGTEQ tok -> (B Op_RSHIFT, token2 env tok)
+            | `LTLTEQ tok -> (B Op_LSHIFT, token2 env tok)
+            | `HATEQ tok -> (B Op_XOR, token2 env tok)
+          in
+          let v3 =
+            match v3 with
+            | `Exp x -> expression env x
+            | `Rescue_modi_exp (v1, v2, v3) ->
+                let v1 = expression env v1 in
+                let v2 = (* "rescue" *) token2 env v2 in
+                let v3 = arg env v3 in
+                Rescue (v1, v2, v3)
+          in
+          Binop (v1, (Op_OP_ASGN op, tok), v3)
+      | `Cmd_call (v1, v2) ->
+          let v1 =
+            match v1 with
+            | `Call_ x -> call_ env x
+            | `Chai_cmd_call x -> chained_command_call env x
+            | `Choice_var x -> (
+                match x with
+                | `Var x -> Id (variable env x)
+                | `Func_id x -> Id (function_identifier env x, ID_Lowercase))
+          in
+          let v2 = command_argument_list env v2 in
+          Call (v1, fb v2, None)
+      | `Cmd_call_with_blk x -> command_call_with_block env x
+      | `Chai_cmd_call x -> chained_command_call env x
+      | `Ret_cmd (v1, v2) ->
+          let v1 = token2 env v1 in
+          let v2 = command_argument_list env v2 in
+          S (Return (v1, v2))
+      | `Yield_cmd (v1, v2) ->
+          let v1 = token2 env v1 in
+          let v2 = command_argument_list env v2 in
+          S (Yield (v1, v2))
+      | `Brk_cmd (v1, v2) ->
+          let v1 = token2 env v1 in
+          let v2 = command_argument_list env v2 in
+          S (Break (v1, v2))
+      | `Next_cmd (v1, v2) ->
+          let v1 = token2 env v1 in
+          let v2 = command_argument_list env v2 in
+          S (Next (v1, v2))
+      | `Match_pat (v1, v2, v3) ->
+          (* https://womanonrails.com/ruby-pattern-matching-second-look
+             This one acts similarly to the below, but might produce a
+             binding or raise an exception.
+             Otherwise, it still returns a boolean. So I don't really
+             care, and will translate them the same.
+          *)
+          let v1 = arg env v1 in
+          let v2 = (* "=>" *) token2 env v2 in
+          let v3 = pattern_top_expr_body env v3 in
+          Match (v1, v2, v3)
+      | `Test_pat (v1, v2, v3) ->
+          (* https://womanonrails.com/ruby-pattern-matching-second-look
+             This one must return a boolean on whether the expr matches
+             the pattern or not.
+          *)
+          let v1 = arg env v1 in
+          let v2 = (* "in" *) token2 env v2 in
+          let v3 = pattern_top_expr_body env v3 in
+          Match (v1, v2, v3)
+      | `Arg x -> arg env x)
 
 and pow (env : env) ((v1, v2, v3) : CST.pow) : expr =
   let v1 = simple_numeric env v1 in

@@ -547,6 +547,10 @@ and expr_as_stmt = function
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
+      | G.Assign (e1, tk, e2) -> (
+          match H.assign_to_vardef_opt (e1, tk, e2) with
+          | Some def -> def
+          | None -> G.exprstmt e)
       | _ -> (
           match expr_special_cases e with
           | G.S s -> s
