@@ -5,14 +5,12 @@
    The o_ below stands for option (as in command-line argument option).
 *)
 
-type maturity = MDevelop | MExperimental | MLegacy [@@deriving show]
-
 type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   profile : bool;
   (* mix of --experimental, --legacy, --develop *)
-  maturity : maturity option;
+  maturity : Maturity.t;
 }
 [@@deriving show]
 
@@ -24,9 +22,6 @@ val setup_logging : force_color:bool -> level:Logs.level option -> unit
 
 (* for --profile *)
 val o_profile : bool Cmdliner.Term.t
-
-(* for --experimental and --legacy *)
-val o_maturity : maturity option Cmdliner.Term.t
 
 (* gather all the common flags under one term *)
 val o_common : conf Cmdliner.Term.t
