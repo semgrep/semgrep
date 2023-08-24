@@ -9,8 +9,12 @@ import click
 
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.error import FATAL_EXIT_CODE
+from semgrep.commands.wrapper import SortableCommand
+
+from semgrep.constants import FATAL_EXIT_CODE
 from semgrep.state import get_state
+from semgrep.util import abort
+from semgrep.util import warn
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -25,7 +29,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
     )
 
 
-@click.command()
+@click.command(cls=SortableCommand)
 @handle_command_errors
 def login() -> NoReturn:
     """
@@ -38,10 +42,9 @@ def login() -> NoReturn:
     state = get_state()
     saved_login_token = auth._read_token_from_settings_file()
     if saved_login_token:
-        click.echo(
+        abort(
             f"API token already exists in {state.settings.path}. To login with a different token logout use `semgrep logout`"
         )
-        sys.exit(FATAL_EXIT_CODE)
 
     # If the token is provided as an environment variable, save it to the settings file.
     if state.env.app_token is not None and len(state.env.app_token) > 0:
@@ -52,11 +55,10 @@ def login() -> NoReturn:
     # If token doesn't already exist in the settings file or as an environment variable,
     # interactively prompt the user to supply it (if we are in a TTY).
     if not auth.is_a_tty():
-        click.echo(
+        abort(
             f"Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
             err=True,
         )
-        sys.exit(FATAL_EXIT_CODE)
 
     session_id, url = make_login_url()
     click.echo(
@@ -80,20 +82,19 @@ def login() -> NoReturn:
             if save_token(as_json.get("token"), echo_token=True):
                 sys.exit(0)
             else:
-                sys.exit(FATAL_EXIT_CODE)
+                abort("Failed to save auth token")
         elif r.status_code != 404:
-            click.echo(
+            warn(
                 f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
                 err=True,
             )
 
         time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
 
-    click.echo(
+    abort(
         f"Failed to login: please check your internet connection or contact support@r2c.dev",
         err=True,
     )
-    sys.exit(FATAL_EXIT_CODE)
 
 
 def save_token(login_token: Optional[str], echo_token: bool) -> bool:

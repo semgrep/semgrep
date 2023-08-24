@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 import click
 
 from semgrep.constants import Colors
+from semgrep.constants import FATAL_EXIT_CODE
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
@@ -49,10 +50,17 @@ def path_has_permissions(path: Path, permissions: int) -> bool:
 
 def abort(message: str) -> None:
     """
-    Print an error message and exit with a non-zero exit code
+    Log an error message and exit with a non-zero exit code
     """
     click.echo(format_for_terminal(message), err=True)
-    sys.exit(2)
+    sys.exit(FATAL_EXIT_CODE)
+
+
+def warn(message: str) -> None:
+    """
+    Log a warning message
+    """
+    click.echo(format_for_terminal(message, color=Colors.yellow, tagname="WARN"), err=True)
 
 
 def format_for_terminal(text: str, color: Colors = Colors.red, tagname: str = "ERROR") -> str:

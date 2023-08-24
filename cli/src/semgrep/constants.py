@@ -39,6 +39,8 @@ GET_STARTED_TEXT = "Run `semgrep login && semgrep ci` to find dependency vulnera
 
 UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
+# NOTE: copied from error.py to avoid circular import
+FATAL_EXIT_CODE = 2
 
 class OutputFormat(Enum):
     TEXT = auto()
