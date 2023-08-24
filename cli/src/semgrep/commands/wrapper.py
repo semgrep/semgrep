@@ -4,10 +4,16 @@ from typing import Any
 from typing import Callable
 from typing import NoReturn
 
+import click
+
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
+
+class SortableCommand(click.Command):
+    section: str = "Commands"
+    priority: int = 0
 
 
 def handle_command_errors(func: Callable) -> Callable:
