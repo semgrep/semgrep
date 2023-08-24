@@ -53,7 +53,7 @@ def maybe_set_git_safe_directories() -> None:
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """
-    Run `semgrep login && semgrep ci` to scan with Supply Chain and Semgrep Pro rules. 💎
+    💎 Run `semgrep login && semgrep ci` to scan with Supply Chain and Semgrep Pro rules.
     """
 >>>>>>> 9a8cefb7c (will patch these commits in incrementally, but want to test out the level of effort)
     state = get_state()
