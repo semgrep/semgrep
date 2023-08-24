@@ -788,7 +788,7 @@ def scan(
     possibly_notify_user()
 
     # NOTE: Show help if no config is passed (and no other higher priority flags are passed)
-    if not config and not any([test, dump_ast, validate, targets]):
+    if not config and not any([validate, targets]):
         ctx = click.get_current_context()
         click.echo(ctx.parent.get_help())
         return None

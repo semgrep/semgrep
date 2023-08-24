@@ -22,6 +22,11 @@ logger = getLogger(__name__)
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
+    """
+    Semgrep CLI scans your code for bugs, security and dependency vulnerabilities.
+
+    For more information about Semgrep, visit https://semgrep.dev
+    """
     state = get_state()
     state.terminal.init_for_cli()
 
