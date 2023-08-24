@@ -235,8 +235,7 @@
       "path": "targets/basic/nosem.js",
       "start": {
         "col": 1,
-        "line": 1,
-        "offset": 0
+        "line": 1
       }
     },
     {

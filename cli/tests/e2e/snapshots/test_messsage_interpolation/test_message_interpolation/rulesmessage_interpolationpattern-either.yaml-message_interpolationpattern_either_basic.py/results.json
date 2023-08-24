@@ -41,8 +41,7 @@
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {
         "col": 1,
-        "line": 1,
-        "offset": 0
+        "line": 1
       }
     },
     {

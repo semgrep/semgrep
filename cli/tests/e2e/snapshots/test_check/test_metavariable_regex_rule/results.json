@@ -51,8 +51,7 @@
       "path": "targets/basic/metavariable-regex.py",
       "start": {
         "col": 1,
-        "line": 1,
-        "offset": 0
+        "line": 1
       }
     },
     {

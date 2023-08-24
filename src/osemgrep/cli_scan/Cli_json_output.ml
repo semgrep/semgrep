@@ -224,16 +224,18 @@ let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
          spans = [dataclasses.replace(..., config_path=yaml_path)]
       *)
       let span =
+        (* This code matches the Python code.
+           Not sure what it does, frankly. *)
         {
           (core_location_to_error_span location) with
-          config_start = Some (Some { line = 0; col = 1; offset = 0 });
+          config_start = Some (Some { line = 0; col = 1; offset = -1 });
           config_end =
             Some
               (Some
                  {
                    line = location.end_.line - location.start.line;
                    col = location.end_.col - location.start.col + 1;
-                   offset = location.end_.offset - location.start.offset;
+                   offset = -1;
                  });
         }
       in
