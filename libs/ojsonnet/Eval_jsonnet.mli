@@ -6,7 +6,7 @@ exception Error of string * Tok.t
 
 (* may raise Error *)
 val eval_program_with_env :
-  Value_jsonnet.env -> Core_jsonnet.program -> Value_jsonnet.value_
+  Value_jsonnet.env -> Core_jsonnet.program -> Value_jsonnet.value
 
-val eval_program : Core_jsonnet.program -> Value_jsonnet.value_
-val manifest_value : Value_jsonnet.value_ -> JSON.t
+val eval_program : Core_jsonnet.program -> Value_jsonnet.value
+val manifest_value : Value_jsonnet.value -> JSON.t

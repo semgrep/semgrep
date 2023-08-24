@@ -9,19 +9,19 @@ let dump_jsonnet_ast file =
 let dump_jsonnet_core file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program ~use_std:true file ast in
-  pr2 (Core_jsonnet2.show_program core)
+  pr2 (Core_jsonnet.show_program core)
 
 let dump_jsonnet_value file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program ~use_std:true file ast in
-  let value = Eval_jsonnet2.eval_program core in
-  pr2 (Value_jsonnet2.show_value value)
+  let value = Eval_jsonnet.eval_program core in
+  pr2 (Value_jsonnet.show_value value)
 
 let dump_jsonnet_json file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program file ast in
-  let value_ = Eval_jsonnet2.eval_program core in
-  let json = Eval_jsonnet2.manifest_value value_ in
+  let value_ = Eval_jsonnet.eval_program core in
+  let json = Eval_jsonnet.manifest_value value_ in
   let str = JSON.string_of_json json in
   pr2 str
 
@@ -29,8 +29,8 @@ let perf_test_jsonnet file =
   let ast = Parse_jsonnet.parse_program file in
   let core = Desugar_jsonnet.desugar_program file ast in
   let start_time = Sys.time () in
-  let value_ = Eval_jsonnet2.eval_program core in
-  let _ = Eval_jsonnet2.manifest_value value_ in
+  let value_ = Eval_jsonnet.eval_program core in
+  let _ = Eval_jsonnet.manifest_value value_ in
   let end_time = Sys.time () in
   let approx_dif = string_of_float (end_time -. start_time) in
   pr2

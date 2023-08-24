@@ -28,15 +28,15 @@ module V = Value_jsonnet
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let error tk s = raise (Parsing_error.Other_error (s, tk))
-let fb = Tok.unsafe_fake_bracket
+let _error tk s = raise (Parsing_error.Other_error (s, tk))
+let _fb = Tok.unsafe_fake_bracket
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let rec value_to_expr (v : V.value_) : G.expr =
-  match v with
+let value_to_expr (_v : V.value) : G.expr = failwith "TODO"
+  (* match v with
   | V.Primitive x ->
       let literal =
         match x with
@@ -76,8 +76,8 @@ let rec value_to_expr (v : V.value_) : G.expr =
                    let k = G.L (G.String (fb fld_name)) |> G.e in
                    Some (G.keyval k (snd fld_name) e))
       in
-      G.Container (G.Dict, (l, xs, r)) |> G.e
+      G.Container (G.Dict, (l, xs, r)) |> G.e *)
 
-let manifest_value (v : V.value_) : G.program =
+let manifest_value (v : V.value) : G.program =
   let e = value_to_expr v in
   [ G.exprstmt e ]

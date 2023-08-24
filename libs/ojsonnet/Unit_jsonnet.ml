@@ -28,8 +28,8 @@ let test_maker_err dir =
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
              try
-               let value_ = Eval_jsonnet2.eval_program core in
-               let _ = Eval_jsonnet2.manifest_value value_ in
+               let value_ = Eval_jsonnet.eval_program core in
+               let _ = Eval_jsonnet.manifest_value value_ in
                Alcotest.(fail "this should have raised an error")
              with
              | Eval_jsonnet.Error _ ->
@@ -54,9 +54,9 @@ let test_maker_pass_fail dir pass_or_fail =
              let core = Desugar_jsonnet.desugar_program file ast in
              (* Currently slightly hacky, since we later may want to test for errors thrown *)
              try
-               let value_ = Eval_jsonnet2.eval_program core in
+               let value_ = Eval_jsonnet.eval_program core in
                let json =
-                 JSON.to_yojson (Eval_jsonnet2.manifest_value value_)
+                 JSON.to_yojson (Eval_jsonnet.manifest_value value_)
                in
                let fmt = format_of_string "expected %s \n but got %s" in
                let result =

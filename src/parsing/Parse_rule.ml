@@ -1911,7 +1911,7 @@ let parse_file ?error_recovery file =
            * Use osemgrep --dump-config instead.
            *)
           let core = Desugar_jsonnet.desugar_program file ast in
-          let _value = Eval_jsonnet2.eval_program core in
+          let _value = Eval_jsonnet.eval_program core in
           failwith ""
           (* Manifest_jsonnet_to_AST_generic.manifest_value value_ *)
         else
