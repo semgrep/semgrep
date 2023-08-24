@@ -25,6 +25,9 @@ and target_kind =
   | Pattern of string * Lang.t
   | File of Fpath.t * Lang.t
   | Config of Semgrep_dashdash_config.config_string
+  | EnginePath of bool (* pro = true *)
+  (* LATER: get rid of it *)
+  | CommandForCore
 [@@deriving show]
 
 (*****************************************************************************)
@@ -102,3 +105,5 @@ let run (conf : conf) : Exit_code.t =
       |> List.iter (fun x ->
              Logs.app (fun m -> m "%s" (Rule_fetching.show_rules_and_origin x)));
       Exit_code.ok
+  | EnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
+  | CommandForCore -> failwith "TODO: dump-command-for-core not implemented yet"

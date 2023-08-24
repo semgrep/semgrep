@@ -1,4 +1,5 @@
-open Cmdliner
+module Arg = Cmdliner.Arg
+module Term = Cmdliner.Term
 
 (*************************************************************************)
 (* Prelude *)

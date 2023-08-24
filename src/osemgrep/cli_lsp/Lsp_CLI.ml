@@ -1,4 +1,5 @@
-open Cmdliner
+module Term = Cmdliner.Term
+module Cmd = Cmdliner.Cmd
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,8 +24,8 @@ let cmdline_term : conf Term.t =
 
 let doc = "Language server mode!!"
 
-let man : Manpage.block list =
-  [ `S Manpage.s_description; `P "Language server mode!!" ]
+let man : Cmdliner.Manpage.block list =
+  [ `S Cmdliner.Manpage.s_description; `P "Language server mode!!" ]
   @ CLI_common.help_page_bottom
 
 let cmdline_info : Cmd.info = Cmd.info "semgrep lsp" ~doc ~man
