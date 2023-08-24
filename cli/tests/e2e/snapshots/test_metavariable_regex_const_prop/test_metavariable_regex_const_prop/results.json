@@ -46,7 +46,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/metavariable_propagation/metavariable-regex-const-prop.dockerfile",
       "start": {
@@ -94,7 +95,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/metavariable_propagation/metavariable-regex-const-prop.dockerfile",
       "start": {
