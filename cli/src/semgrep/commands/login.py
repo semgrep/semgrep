@@ -9,7 +9,7 @@ import click
 
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.commands.wrapper import SortableCommand
+from semgrep.commands.wrapper import AdvancedCommand
 
 from semgrep.constants import FATAL_EXIT_CODE
 from semgrep.state import get_state
@@ -29,7 +29,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
     )
 
 
-@click.command(cls=SortableCommand)
+@click.command(cls=AdvancedCommand)
 @handle_command_errors
 def login() -> NoReturn:
     """
@@ -113,7 +113,7 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
         return False
 
 
-@click.command()
+@click.command(cls=AdvancedCommand)
 @handle_command_errors
 def logout() -> None:
     """
