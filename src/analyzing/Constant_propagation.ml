@@ -82,9 +82,15 @@ type lr_stats = {
 
 let default_lr_stats () = { lvalue = ref 0; rvalue = ref 0 }
 
-type stats = { var_stats : (var, lr_stats) Hashtbl.t }
+type class_stats = { mutable num_constructors : int }
 
-let new_stats () = { var_stats = Hashtbl.create 100 }
+type stats = {
+  var_stats : (var, lr_stats) Hashtbl.t;
+  class_stats : (string, class_stats) Hashtbl.t;
+}
+
+let new_stats () =
+  { var_stats = Hashtbl.create 100; class_stats = Hashtbl.create 1 }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -210,6 +216,13 @@ let is_assigned_just_once stats var =
   | Some stats -> !(stats.lvalue) = 1
   | None ->
       logger#debug "No stats for (%s,%s)" id_str (G.SId.show sid);
+      false
+
+let has_just_one_constructor stats cstr =
+  match Hashtbl.find_opt stats cstr with
+  | Some stats -> stats.num_constructors = 1
+  | None ->
+      logger#debug "No stats for %s" cstr;
       false
 
 let deep_constant_propagation_and_evaluate_literal x =
@@ -404,22 +417,27 @@ let _iter_with_context ~definition ~stmt ~expr =
     inherit ['self] AST_generic.iter_no_id_info as super
 
     method! visit_definition (env, ctx) x =
-      let go (env, ctx) x =
+      let ctx =
         match x with
         | { name = EN (Id (id, _ii)); _ }, ClassDef _cdef ->
-            super#visit_definition (env, { ctx with in_class = Some id }) x
+            (* super#visit_definition (env, { ctx with in_class = Some id }) x *)
+            { ctx with in_class = Some id }
         | { name = EN (Id (id, _ii)); _ }, FuncDef _fdef -> (
             match ctx.in_class with
             | Some in_class_id when fst in_class_id = fst id ->
-                super#visit_definition
-                  (env, { ctx with in_constructor = true })
-                  x
+                (* super#visit_definition
+                   (env, { ctx with in_constructor = true })
+                   x *)
+                { ctx with in_constructor = true }
             | Some _
             | None ->
-                super#visit_definition (env, ctx) x)
-        | __else__ -> super#visit_definition (env, ctx) x
+                (* super#visit_definition (env, ctx) x *)
+                ctx)
+        | __else__ ->
+            (* super#visit_definition (env, ctx) x *)
+            ctx
       in
-      definition ~go (env, ctx) x
+      definition ~go:super#visit_definition (env, ctx) x
 
     method! visit_stmt (env, ctx) x =
       let go (env, ctx) x =
@@ -497,13 +515,20 @@ class virtual ['self] iter_with_context =
  * lvalue in this class, they can't be accessed from anywhere else so it's
  * safe to do the const propagation.
  *)
-let var_stats prog : stats =
+let stats_of_prog prog : stats =
   let stats = new_stats () in
   let get_stat_or_create var h =
     try Hashtbl.find h var with
     | Not_found ->
         let stat = default_lr_stats () in
         Hashtbl.add h var stat;
+        stat
+  in
+  let get_cstat_or_create cstr h =
+    try Hashtbl.find h cstr with
+    | Not_found ->
+        let stat = { num_constructors = 0 } in
+        Hashtbl.add h cstr stat;
         stat
   in
 
@@ -521,8 +546,13 @@ let var_stats prog : stats =
             VarDef { vinit = Some _e; _ } ) ->
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var env.var_stats in
-            incr stat.lvalue;
-            ()
+            incr stat.lvalue
+        | _, FuncDef _ when ctx.in_constructor -> (
+            match ctx.in_class with
+            | None -> () (* TODO *)
+            | Some cid ->
+                let stat = get_cstat_or_create (fst cid) env.class_stats in
+                stat.num_constructors <- stat.num_constructors + 1)
         | _ -> ());
         go (env, ctx) x)
         (* TODO: An `ExprStmt` method call (probably returning 'void') should count as a
@@ -700,7 +730,7 @@ let propagate_basic lang prog =
   add_special_constants env lang prog;
 
   (* step1: first pass const analysis for languages without 'const/final' *)
-  let stats = var_stats prog in
+  let stats = stats_of_prog prog in
 
   (* step2: second pass where we actually propagate when we can *)
   let visitor =
@@ -829,6 +859,13 @@ let propagate_basic lang prog =
                | Some attrs ->
                    List.exists is_private attrs && is_class_field env kind
              in
+             let in_unique_constructor =
+               match ctx.in_class with
+               | None -> false
+               | Some cid ->
+                   ctx.in_constructor
+                   && has_just_one_constructor stats.class_stats (fst cid)
+             in
              if
                is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
                (* restricted to prevent unexpected const-prop FPs *)
@@ -837,7 +874,7 @@ let propagate_basic lang prog =
                    && is_global kind
                   (* TODO: Add other Java-like OO languages, maybe Apex and C# ? *)
                   || is_lang env Lang.Java && is_private_class_field
-                     && (ctx.in_static_block || ctx.in_constructor))
+                     && (ctx.in_static_block || in_unique_constructor))
                && is_resolved_name kind sid
              then
                match opt_svalue with
