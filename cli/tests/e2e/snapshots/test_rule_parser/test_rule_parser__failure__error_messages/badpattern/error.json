@@ -9,7 +9,8 @@
         {
           "config_end": {
             "col": 13,
-            "line": 0
+            "line": 0,
+            "offset": 0
           },
           "config_path": [
             "rules",
@@ -20,16 +21,19 @@
           ],
           "config_start": {
             "col": 1,
-            "line": 0
+            "line": 0,
+            "offset": 0
           },
           "end": {
             "col": 34,
-            "line": 11
+            "line": 11,
+            "offset": 0
           },
           "file": "tmp/masked/path",
           "start": {
             "col": 22,
-            "line": 11
+            "line": 11,
+            "offset": 0
           }
         }
       ],
@@ -41,5 +45,6 @@
     "scanned": []
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }

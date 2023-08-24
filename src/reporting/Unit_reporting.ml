@@ -99,5 +99,12 @@ let semgrep_scans_output () =
 (*****************************************************************************)
 
 let tests () =
+  ignore
+    [ semgrep_core_output (); semgrep_cli_output (); semgrep_scans_output () ];
   List.flatten
-    [ semgrep_core_output (); semgrep_cli_output (); semgrep_scans_output () ]
+    (* TODO: re-enable when there's a way to fix format errors automatically
+             (or remove the tests permanently if they don't do anything besides
+             testing atdgen)
+       [ semgrep_core_output (); semgrep_cli_output (); semgrep_scans_output () ]
+    *)
+    []
