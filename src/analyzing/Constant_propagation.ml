@@ -82,7 +82,9 @@ type lr_stats = {
 
 let default_lr_stats () = { lvalue = ref 0; rvalue = ref 0 }
 
-type var_stats = (var, lr_stats) Hashtbl.t
+type stats = { var_stats : (var, lr_stats) Hashtbl.t }
+
+let new_stats () = { var_stats = Hashtbl.create 100 }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -389,6 +391,14 @@ type visitor_context = {
   in_constructor : bool;
 }
 
+let initial_visitor_context =
+  {
+    in_class = None;
+    in_lvalue = false;
+    in_static_block = false;
+    in_constructor = false;
+  }
+
 class virtual ['self] iter_with_context =
   object (self : 'self)
     inherit ['self] AST_generic.iter_no_id_info as super
@@ -441,8 +451,8 @@ class virtual ['self] iter_with_context =
  * lvalue in this class, they can't be accessed from anywhere else so it's
  * safe to do the const propagation.
  *)
-let var_stats prog : var_stats =
-  let h = Hashtbl.create 101 in
+let var_stats prog : stats =
+  let stats = new_stats () in
   let get_stat_or_create var h =
     try Hashtbl.find h var with
     | Not_found ->
@@ -453,9 +463,9 @@ let var_stats prog : var_stats =
 
   let visitor =
     object (self : 'self)
-      inherit [_] AST_generic.iter_no_id_info as super
+      inherit [_] iter_with_context as super
 
-      method! visit_definition env x =
+      method! visit_definition (env, ctx) x =
         match x with
         | ( {
               name =
@@ -466,14 +476,14 @@ let var_stats prog : var_stats =
             },
             VarDef { vinit = Some _e; _ } ) ->
             let var = (H.str_of_ident id, sid) in
-            let stat = get_stat_or_create var h in
+            let stat = get_stat_or_create var env.var_stats in
             incr stat.lvalue;
-            super#visit_definition env x
-        | _ -> super#visit_definition env x
+            super#visit_definition (env, ctx) x
+        | _ -> super#visit_definition (env, ctx) x
 
       (* TODO: An `ExprStmt` method call (probably returning 'void') should count as a
        * potential assignment too... E.g. in Ruby `a.concat(b)` is going to update `a`. *)
-      method! visit_stmt env x =
+      method! visit_stmt (env, ctx) x =
         (match x.s with
         | For
             ( _,
@@ -484,12 +494,12 @@ let var_stats prog : var_stats =
                   _ ),
               _ ) ->
             let var = (H.str_of_ident id, sid) in
-            let stat = get_stat_or_create var h in
+            let stat = get_stat_or_create var env.var_stats in
             incr stat.lvalue
         | _ -> ());
-        super#visit_stmt env x
+        super#visit_stmt (env, ctx) x
 
-      method! visit_expr env x =
+      method! visit_expr (env, ctx) x =
         match x.e with
         (* TODO: What if there is an asignment inside the `lhs` ? *)
         | Assign (* v = ... *) (lhs, _, e2)
@@ -497,12 +507,12 @@ let var_stats prog : var_stats =
             lvars_in_lhs lhs
             |> List.iter (fun (id, sid) ->
                    let var = (H.str_of_ident id, sid) in
-                   let stat = get_stat_or_create var h in
+                   let stat = get_stat_or_create var env.var_stats in
                    incr stat.lvalue;
                    match x.e with
                    | AssignOp _ -> incr stat.rvalue
                    | _ -> ());
-            self#visit_expr env e2
+            self#visit_expr (env, ctx) e2
         | Call
             ( { e = IdSpecial (IncrDecr _, _); _ },
               ( _,
@@ -522,18 +532,18 @@ let var_stats prog : var_stats =
                 ],
                 _ ) ) ->
             let var = (H.str_of_ident id, sid) in
-            let stat = get_stat_or_create var h in
+            let stat = get_stat_or_create var env.var_stats in
             incr stat.lvalue
         | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ })) ->
             let var = (H.str_of_ident id, sid) in
-            let stat = get_stat_or_create var h in
+            let stat = get_stat_or_create var env.var_stats in
             incr stat.rvalue;
-            super#visit_expr env x
-        | _ -> super#visit_expr env x
+            super#visit_expr (env, ctx) x
+        | _ -> super#visit_expr (env, ctx) x
     end
   in
-  visitor#visit_program () prog;
-  h
+  visitor#visit_program (stats, initial_visitor_context) prog;
+  stats
 
 (*****************************************************************************)
 (* Terraform hardcoded semantic *)
@@ -667,7 +677,8 @@ let propagate_basic lang prog =
               _;
             },
             VarDef { vinit = None; _ } ) ->
-            if is_assigned_just_once stats (H.str_of_ident id, sid) then
+            if is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
+            then
               (* This is a potential constant but it's defined later on, so we store
                * it's attributes so check them later, e.g. to know whether it has
                * `private` visibility. An example of this is a class field that
@@ -691,7 +702,7 @@ let propagate_basic lang prog =
         (* note that some languages such as Python do not have VarDef.
          * todo? should add those somewhere instead of in_lvalue detection?*) ->
             let assigned_just_once =
-              is_assigned_just_once stats (H.str_of_ident id, sid)
+              is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
             in
             (if
              H.has_keyword_attr Const attrs
@@ -777,7 +788,7 @@ let propagate_basic lang prog =
                    List.exists is_private attrs && is_class_field env kind
              in
              if
-               is_assigned_just_once stats (H.str_of_ident id, sid)
+               is_assigned_just_once stats.var_stats (H.str_of_ident id, sid)
                (* restricted to prevent unexpected const-prop FPs *)
                && ((is_lang env Lang.Python || is_lang env Lang.Ruby
                   || is_lang env Lang.Php || is_js env)
@@ -799,15 +810,7 @@ let propagate_basic lang prog =
         | __else__ -> super#visit_expr (env, ctx) x
     end
   in
-  visitor#visit_program
-    ( env,
-      {
-        in_class = None;
-        in_lvalue = false;
-        in_static_block = false;
-        in_constructor = false;
-      } )
-    prog;
+  visitor#visit_program (env, initial_visitor_context) prog;
   ()
   [@@profiling]
 
