@@ -1,8 +1,14 @@
 Configuration is invalid - found 1 configuration error(s), and 2 rule(s).
-[ERROR] Pattern parse error in rule print:
- Invalid pattern for Python:
---- pattern ---
-print..);
---- end pattern ---
-Pattern error: Parsing.Parse_error
-
+'SemgrepCoreError' object has no attribute 'color'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 46, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 879, in scan
+    output_handler.handle_semgrep_errors(config_errors)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 218, in handle_semgrep_errors
+    self._handle_semgrep_error(err)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 258, in _handle_semgrep_error
+    logger.error(error.format_for_terminal())
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/error.py", line 88, in format_for_terminal
+    return format_for_terminal(str(self), self.color, self.level.name)
+AttributeError: 'SemgrepCoreError' object has no attribute 'color'

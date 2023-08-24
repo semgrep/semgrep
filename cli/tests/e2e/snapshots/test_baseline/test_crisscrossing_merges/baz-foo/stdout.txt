@@ -1,40 +1,26 @@
-                    
-                    
-┌──────────────────┐
-│ 16 Code Findings │
-└──────────────────┘
-           
-    bar.py 
-            1┆ bar = 23478921
-            ⋮┆----------------------------------------
-            3┆ bar = 23478921
-            ⋮┆----------------------------------------
-            5┆ bar = 23478921
-            ⋮┆----------------------------------------
-            7┆ bar = 23478921
-            ⋮┆----------------------------------------
-            9┆ bar = 23478921
-            ⋮┆----------------------------------------
-           11┆ bar = 23478921
-            ⋮┆----------------------------------------
-           13┆ bar = 23478921
-           
-    baz.py 
-            1┆ baz = 23478921
-            ⋮┆----------------------------------------
-            3┆ baz = 23478921
-            ⋮┆----------------------------------------
-            5┆ baz = 23478921
-            ⋮┆----------------------------------------
-            7┆ baz = 23478921
-            ⋮┆----------------------------------------
-            9┆ baz = 23478921
-            ⋮┆----------------------------------------
-           11┆ baz = 23478921
-            ⋮┆----------------------------------------
-           13┆ baz = 23478921
-            ⋮┆----------------------------------------
-           15┆ baz = 23478921
-            ⋮┆----------------------------------------
-           17┆ baz = 23478921
 
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+Semgrep CLI scans your code for bugs, security and dependency vulnerabilities.
+
+For more information about Semgrep, visit https://semgrep.dev
+
+Get Started:
+  Run `semgrep login && semgrep ci` to find dependency vulnerabilities and
+  advanced cross-file findings. 💎
+
+Commands:
+  semgrep ci                   The recommended way to run semgrep in CI
+  semgrep scan                 Run semgrep rules on files
+
+Advanced Commands:
+  semgrep install-semgrep-pro  Install the Semgrep Pro Engine (recommended)
+  semgrep login                Obtain and save credentials for semgrep.dev
+  semgrep logout               Remove locally stored credentials to
+                               semgrep.dev
+
+Help:
+  semgrep COMMAND --help       For more information on each command
+
+For the CLI docs visit https://semgrep.dev/docs/category/semgrep-cli/

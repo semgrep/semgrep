@@ -5,10 +5,43 @@
 └─────────────┘
   Scanning 23 files tracked by git with 1 Code rule:
   Scanning 1 file.
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Pattern parse error in rule -:
+'SemgrepCoreError' object has no attribute 'color'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 895, in scan
+    ) = semgrep.semgrep_main.main(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 530, in main
+    ) = run_rules(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_main.py", line 231, in run_rules
+    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1194, in invoke_semgrep
+    ) = self._run_rules_direct_to_semgrep_core(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1155, in _run_rules_direct_to_semgrep_core
+    raise e
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1150, in _run_rules_direct_to_semgrep_core
+    return self._run_rules_direct_to_semgrep_core_helper(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 1078, in _run_rules_direct_to_semgrep_core_helper
+    output_json = self._extract_core_output(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py", line 772, in _extract_core_output
+    raise core_error_to_semgrep_error(errors[0])
+semgrep.error.SemgrepCoreError: Pattern parse error in rule -:
  Invalid pattern for C:
 --- pattern ---
 #include<asdf><<>>><$X>
 --- end pattern ---
 Pattern error: Parsing.Parse_error
 
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 46, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/scan.py", line 926, in scan
+    output_handler.handle_semgrep_errors([e])
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 218, in handle_semgrep_errors
+    self._handle_semgrep_error(err)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 258, in _handle_semgrep_error
+    logger.error(error.format_for_terminal())
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/error.py", line 88, in format_for_terminal
+    return format_for_terminal(str(self), self.color, self.level.name)
+AttributeError: 'SemgrepCoreError' object has no attribute 'color'

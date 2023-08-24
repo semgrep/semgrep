@@ -1,9 +1,26 @@
-                  
-                  
-┌────────────────┐
-│ 1 Code Finding │
-└────────────────┘
-                          
-    file_or_dir.py/bar.py 
-            1┆ y = 23478921
 
+┌──── ○○○ ────┐
+│ Semgrep CLI │
+└─────────────┘
+Semgrep CLI scans your code for bugs, security and dependency vulnerabilities.
+
+For more information about Semgrep, visit https://semgrep.dev
+
+Get Started:
+  Run `semgrep login && semgrep ci` to find dependency vulnerabilities and
+  advanced cross-file findings. 💎
+
+Commands:
+  semgrep ci                   The recommended way to run semgrep in CI
+  semgrep scan                 Run semgrep rules on files
+
+Advanced Commands:
+  semgrep install-semgrep-pro  Install the Semgrep Pro Engine (recommended)
+  semgrep login                Obtain and save credentials for semgrep.dev
+  semgrep logout               Remove locally stored credentials to
+                               semgrep.dev
+
+Help:
+  semgrep COMMAND --help       For more information on each command
+
+For the CLI docs visit https://semgrep.dev/docs/category/semgrep-cli/
