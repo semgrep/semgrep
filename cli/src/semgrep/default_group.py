@@ -3,6 +3,7 @@ import itertools
 import re
 from gettext import gettext as _
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -15,6 +16,7 @@ from semgrep.constants import DEFAULT_EPILOGUE
 from semgrep.constants import DEFAULT_PREAMBLE
 from semgrep.constants import GET_STARTED_TEXT
 from semgrep.constants import SEMGREP_LOGO
+
 # Match https://github.com/pallets/click/blob/56db54650fd083cc35bc4891ffbda6e5e08e2762/src/click/core.py#L15C1-L16C1
 
 
@@ -225,7 +227,7 @@ class DefaultGroup(click.Group):
         Helper to group the commands by their section
         """
         commands = self.list_commands_pairs(ctx)
-        sections = {}
+        sections: Dict[str, Tuple[Any, List[Any]]] = {}
         for subcommand, cmd in commands:
             section = "Commands" if not hasattr(cmd, "section") else cmd.section
             priority = 0 if not hasattr(cmd, "priority") else cmd.priority

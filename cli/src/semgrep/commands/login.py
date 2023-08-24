@@ -1,7 +1,6 @@
 import sys
 import time
 import uuid
-from typing import NoReturn
 from typing import Optional
 from typing import Tuple
 
@@ -30,7 +29,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
 
 @click.command(cls=AdvancedCommand)
 @handle_command_errors
-def login() -> NoReturn:
+def login() -> None:
     """
     Obtain and save credentials for semgrep.dev
 
@@ -56,7 +55,6 @@ def login() -> NoReturn:
     if not auth.is_a_tty():
         abort(
             f"Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
-            err=True,
         )
 
     session_id, url = make_login_url()
@@ -86,14 +84,12 @@ def login() -> NoReturn:
         elif r.status_code != 404:
             warn(
                 f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@semgrep.com if this persists",
-                err=True,
             )
 
         time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
 
     abort(
         f"Failed to login: please check your internet connection or contact support@semgrep.com",
-        err=True,
     )
 
 

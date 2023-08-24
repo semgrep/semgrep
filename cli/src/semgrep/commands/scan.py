@@ -790,7 +790,8 @@ def scan(
     # NOTE: Show help if no config is passed (and no other higher priority flags are passed)
     if not config and not any([validate, targets]):
         ctx = click.get_current_context()
-        click.echo(ctx.parent.get_help())
+        if ctx and ctx.parent:
+            click.echo(ctx.parent.get_help())
         return None
 
     # change cwd if using docker
