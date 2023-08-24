@@ -11,7 +11,7 @@ from gettext import gettext as _
 import click
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_EPILOGUE, DEFAULT_PREAMBLE, CLI_DOCS_URL, SEMGREP_LOGO
-from semgrep.console import console
+
 
 # Inspired by https://github.com/pallets/click/issues/430#issuecomment-207580492
 class DefaultGroup(click.Group):
