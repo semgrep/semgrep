@@ -11,10 +11,6 @@ module H = Cmdliner_helpers
    'semgrep scan' command-line arguments processing.
 
    Translated partially from scan.py
-
-   TODO: use parser/printer pair for file paths using Fpath.t so that
-   we don't have to convert manually from string to fpath for each
-   file option offered by the CLI. Add it to CLI_common.
 *)
 
 (*****************************************************************************)
