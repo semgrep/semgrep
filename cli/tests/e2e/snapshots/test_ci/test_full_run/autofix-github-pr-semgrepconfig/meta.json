@@ -11,7 +11,7 @@
     "commit_author_username": "test-username",
     "commit_author_image_url": "some.test.avatar.url.com",
     "commit_title": "Some other commit/ message",
-    "commit_timestamp": "1692914366",
+    "commit_timestamp": "1692915765",
     "on": "pull_request",
     "pull_request_author_username": "user-login",
     "pull_request_author_image_url": "some.user.avatar.com",
