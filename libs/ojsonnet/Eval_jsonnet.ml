@@ -19,9 +19,9 @@
  module A = AST_jsonnet
  module J = JSON
  module V = Value_jsonnet
- 
+
  let logger = Logging.get_logger [ __MODULE__ ]
- 
+
  (*****************************************************************************)
  (* Prelude *)
  (*****************************************************************************)
@@ -29,47 +29,47 @@
   *
   * See https://jsonnet.org/ref/spec.html#semantics
   *)
- 
+
  (*****************************************************************************)
  (* Types and constants *)
  (*****************************************************************************)
- 
+
  exception Error of string * Tok.t
- 
+
  (* -1, 0, 1 *)
  type cmp = Inf | Eq | Sup
- 
+
  (*****************************************************************************)
  (* Helpers *)
  (*****************************************************************************)
- 
+
  let error tk s =
    (* TODO? if Parse_info.is_fake tk ... *)
    raise (Error (s, tk))
- 
+
  let fk = Tok.unsafe_fake_tok ""
- 
+
  let sv e =
    let s = V.show_value e in
    if String.length s > 100 then Str.first_chars s 100 ^ "..." else s
- 
+
  let eval_bracket ofa env (v1, v2, v3) =
    let v2 = ofa env v2 in
    (v1, v2, v3)
- 
+
  let int_to_cmp = function
    | -1 -> Inf
    | 0 -> Eq
    | 1 -> Sup
    (* all the OCaml Xxx.compare should return only -1, 0, or 1 *)
    | _else_ -> assert false
- 
- 
+
+
  let log_call (env : V.env) str tk =
    logger#trace "calling %s> %s at %s"
      (Common2.repeat "-" env.depth |> Common.join "")
      str (Tok.stringpos_of_tok tk)
- 
+
  (*****************************************************************************)
  (* Builtins *)
  (*****************************************************************************)
@@ -83,7 +83,7 @@
    | V.Object _ -> "object"
    | V.Array _ -> "array"
    | V.Lambda _ -> "function"
- 
+
  let std_primivite_equals _env (v : V.value) (v' : V.value) : bool =
    match (v, v') with
    | Primitive p, Primitive p' -> (
@@ -121,17 +121,17 @@
    in
    match entry with
     | Nonrec (lazy v) -> v
-    | Rec binds -> 
+    | Rec binds ->
       match Common2.assoc_opt local_id binds with
         | Some {body; env} -> eval_expr (V.bind_all env (Common.map (fun (id,_) -> (id, V.Rec binds)) binds)) body
         | None -> error tk (spf "could not find '%s' in the environment" local_id)
- 
+
  (*****************************************************************************)
  (* eval_expr *)
  (*****************************************************************************)
- 
+
  and eval_expr (env : V.env) (v : expr) : V.value =
-   (* pr2 (Printf.sprintf "eval_expr\nEXPE: %s\nENV: %s\n\n" (show_expr v) (V.show_env env)); *)
+   pr2 (Printf.sprintf "eval_expr\nEXPE: %s\nSUPER_LEVEL: %d, LAYERS: %d\n\n" (show_expr v) env.super_level (env.self |> function None -> 0 | Some (_,o,_) -> o.V.layers |> List.length));
    match v with
    | L v ->
        let prim =
@@ -154,12 +154,12 @@
        in
        Array (l, elts, r)
    | Lambda body -> Lambda {body; env}
-   | O v -> eval_obj_inside env v
+   | O v -> eval_obj_inside {env with super_level = 0} v
    | Id (s, tk) -> lookup env tk s
-   | IdSpecial (Self, tk) -> 
+   | IdSpecial (Self, tk) ->
       begin
         match env.self with
-          | Some (o,_) -> Object o
+          | Some (l,o,r) -> Object (l,o,r)
           | None -> error tk "cannot access `self` outside of object"
       end
    | IdSpecial (Super, tk) -> error tk "internal error, super is not first class"
@@ -169,10 +169,10 @@
          as e0),
          (l, args, r) ) ->
        eval_std_method env e0 meth (l, args, r)
-   | Local (_, binds, _, e) -> 
+   | Local (_, binds, _, e) ->
       let bind = V.Rec (binds |> Common.map (fun (B (id, _, body)) -> (fst id, V.{env; body}))) in
       eval_expr (V.bind_all env (Common.map (fun (B (id, _, _)) -> (fst id, bind)) binds)) e
-   | ArrayAccess (IdSpecial (Super,_),index) -> eval_super_access env (eval_bracket eval_expr env index)
+   | ArrayAccess (IdSpecial (Super,_),index) -> eval_super_access {env with super_level = env.super_level + 1} (eval_bracket eval_expr env index)
    | ArrayAccess (v1, v2) -> eval_array_access env (eval_expr env v1) (eval_bracket eval_expr env v2)
    | Call (f, args) -> eval_call env (eval_expr env f) (mk_fstr f) (eval_bracket eval_args env args)
    | UnaryOp ((op, tk), e) -> (
@@ -206,7 +206,7 @@
        | Primitive (Str (s, tk)) -> error tk (spf "ERROR: %s" s)
        | v -> error tk (spf "ERROR: %s" (tostring v)))
    | ExprTodo ((s, tk), _ast_expr) -> error tk (spf "ERROR: ExprTODO: %s" s)
- 
+
  and eval_std_method env e0 (method_str, tk) (l, args, r) =
    match (method_str, args) with
    | "type", [ Arg e ] ->
@@ -241,8 +241,8 @@
        | Array (_, arr, _) ->
            let i = Array.length arr in
            Primitive (Double (float_of_int i, tk))
-       | V.Object (_, {fields; _}, _) ->
-           let i = List.length fields in
+       | V.Object (_, {field_names; _}, _) ->
+           let i = List.length field_names in
            (* TODO: in the spec they use std.objectFieldsEx *)
            Primitive (Double (float_of_int i, tk))
        | v ->
@@ -306,9 +306,9 @@
    | "objectHasEx", [ Arg e; Arg e'; Arg e'' ] -> (
        match (eval_expr env e, eval_expr env e', eval_expr env e'') with
        | V.Object o, Primitive (Str (s, _)), Primitive (Bool (b, _)) ->
-           let _, {V.fields; _}, _ = o in
+           let _, {V.field_names; _}, _ = o in
            let eltopt =
-             fields |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
+             field_names |> List.find_opt (fun { V.fld_name; _ } -> fst fld_name = s)
            in
            let b =
              match eltopt with
@@ -332,31 +332,38 @@
    | _else_ -> eval_call env (eval_expr env e0) (mk_fstr e0) (eval_bracket eval_args env (l, args, r))
 
 
- and find_field fld (_,{V.fields; _},_) = List.find_opt (fun field -> fst field.V.fld_name = fld) fields
+ and search_layers level fld = function
+    | [] -> None
+    | {V.fields; _} :: layers ->
+      match fields |> List.find_opt (fun {V.fld_name = (fld', _); _} -> fld = fld') with
+        | Some field -> Some (field, level)
+        | None -> search_layers (level + 1) fld layers
 
- and access_field tk self obj fld =
-  match find_field fld obj with
-    | None -> error tk (spf "field '%s' not present in %s" fld (V.show_field_names obj))
-    | Some {fld_value = {body; env}; _} -> eval_expr {env with self = Some (self, Some (fld,tk))} body
+
+ and access_field tk ((_,_self_obj,_) as self) (_,obj,_) fld super_level =
+   match obj.V.field_names |> List.exists (fun {V.fld_name = (fld', _); _} -> fld = fld') with
+    | false -> error tk (spf "field '%s' not present in %s" fld (V.show_field_names obj.V.field_names))
+    | true ->
+      match obj.V.layers |> search_layers 0 fld with
+        | None -> error tk (spf "Internal error:\n super_level=%d,\nfield '%s' present in field_names but not present in %s" super_level fld (obj.V.layers |> V.show_layers))
+        | Some ({fld_value = {body;env}; _}, lvl) -> eval_expr {env with self = Some self ; super_level = super_level + lvl} body
 
  and eval_super_access env (l,index,_) =
     match index with
-      | Primitive (Str (fld, tk)) -> 
-        let self,(within_fld, within_tk) =
+      | Primitive (Str (fld, tk)) ->
+        let (_,obj,_) as self =
           match env.self with
-            | Some (self, Some within_fld) -> self, within_fld
-            | Some (_, None)
+            | Some self -> self
             | None -> error tk "cannot access `super` outside of object"
         in
         begin
-        match find_field within_fld self with
-          | Some {fld_super = Some super;_} -> access_field tk self super fld
-          | Some {fld_super = None; _} -> error within_tk (spf "field '%s' has no super" fld)
-          | None -> error tk (spf "field '%s' not present in %s" fld (V.show_field_names self))
+        match obj.V.layers |> Common.drop env.super_level |> search_layers 0 fld with
+          | None -> error tk (spf "Internal error:\n super_level=%d,\nfield '%s' present in field_names but not present in %s" env.super_level fld (obj.V.layers |> Common.drop env.super_level |> V.show_layers))
+          | Some ({fld_value = {body;env}; _}, lvl) -> eval_expr {env with self = Some self ; super_level = env.super_level + lvl} body
         end
       | _else_ -> error l (spf "Invalid ArrayAccess: super[%s]" (sv index))
 
-and eval_array_access _env e (l,index,_) =
+and eval_array_access env e (l,index,_) =
     match (e, index) with
     | Array (_l, arr, _r), Primitive (Double (f, tkf)) ->
         if Float.is_integer f then
@@ -373,12 +380,12 @@ and eval_array_access _env e (l,index,_) =
         else error tkf (spf "Not an integer: %s" (sv index))
     (* Field access! A tricky operation. *)
     | (V.Object obj,
-        Primitive (Str (fld, tk)) ) -> access_field tk obj obj fld
+        Primitive (Str (fld, tk)) ) -> access_field tk obj obj fld env.super_level
     (* TODO? support ArrayAccess for Strings? *)
     | _else_ -> error l (spf "Invalid ArrayAccess: %s[%s]" (sv e) (sv index))
 
- and eval_args env = Common.map (function 
-  | Arg e -> V.Arg (lazy (eval_expr env e)) 
+ and eval_args env = Common.map (function
+  | Arg e -> V.Arg (lazy (eval_expr env e))
   | NamedArg (id,tk,e) -> V.NamedArg (id,tk, lazy (eval_expr env e))
 )
 
@@ -414,11 +421,11 @@ and eval_array_access _env e (l,index,_) =
          (V.bind_all { env' with depth = env.depth + 1 } binds)
          eb
    | v -> error largs (spf "not a function: %s" (sv v))
- 
 
-  and eval_plus_object _env _tk ((l,objl,_) as objl_bracket) (_,objr,r) : V.object_ A.bracket =
-    let asserts = objl.V.asserts @ objr.V.asserts in
-    let hobjr =
+
+  and eval_plus_object _env _tk (l,objl,_) (_,objr,r) : V.object_ A.bracket =
+    (* let asserts = objl.V.asserts @ objr.V.asserts in *)
+    (* let hobjr =
       objr.V.fields
       |> Common.map (fun { V.fld_name = s, _; _ } -> s)
       |> Common.hashset_of_list
@@ -427,17 +434,18 @@ and eval_array_access _env e (l,index,_) =
       objl.V.fields
       |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
     in
-    let rflds' = objr.V.fields |> Common.map (fun field -> 
-      match field.V.fld_super with 
+    let rflds' = objr.V.fields |> Common.map (fun field ->
+      match field.V.fld_super with
         | None -> {field with V.fld_super = Some objl_bracket}
-        | Some ((l,super_obj,r) as super) -> 
+        | Some ((l,super_obj,r) as super) ->
           match find_field (fst field.V.fld_name) super with
             | Some _ -> field
-            | None -> {field with V.fld_super = Some (l,{super_obj with fields = field :: super_obj.fields},r)}) 
-    in
-    let fields = lflds' @ rflds' in
-    (l,{V.asserts; fields},r)
- 
+            | None -> {field with V.fld_super = Some (l,{super_obj with fields = field :: super_obj.fields},r)})
+    in *)
+    let layers = objr.V.layers @ objl.V.layers in
+    let field_names = (objl.V.field_names @ objr.V.field_names) |> Common.uniq_by (fun {V.fld_name = (fld, _); _} {V.fld_name = (fld',_);_} -> fld = fld')in
+    (l,{layers; field_names},r)
+
  and eval_binary_op env el (op, tk) er =
    match op with
    | Plus -> (
@@ -534,7 +542,7 @@ and eval_array_access _env e (l,index,_) =
            error tk
              (spf "binary operator wrong operands: %s %s %s" (sv v1)
                 (Tok.content_of_tok tk) (sv v2)))
- 
+
  (*****************************************************************************)
  (* std.cmp *)
  (*****************************************************************************)
@@ -551,9 +559,9 @@ and eval_array_access _env e (l,index,_) =
      | V.Array (_, _, _), V.Array (_, [||], _) -> Sup
      | V.Array (al, ax, ar), V.Array (bl, bx, br) -> (
          let a0 = Lazy.force ax.(0) in
- 
+
          let b0 = Lazy.force bx.(0) in
- 
+
          match eval_std_cmp_value_ a0 b0 with
          | (Inf | Sup) as r -> r
          | Eq ->
@@ -576,11 +584,11 @@ and eval_array_access _env e (l,index,_) =
          error tk (spf "comparing uncomparable: %s vs %s" (sv v_el) (sv v_er))
    in
    eval_std_cmp_value_ (eval_expr env el) (eval_expr env er)
- 
+
  (*****************************************************************************)
  (* eval_obj_inside *)
  (*****************************************************************************)
- 
+
  and eval_obj_inside env (l, x, r) : V.value =
    match x with
    | Object (assertsTODO, fields) ->
@@ -599,46 +607,46 @@ and eval_array_access _env e (l,index,_) =
                     {
                       V.fld_name;
                       fld_hidden;
-                      fld_value = {body = fld_value; env};
-                      fld_super = None;
+                      fld_value = {V.body = fld_value; env};
                     }
               | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
       let asserts = Common.map (fun body -> {V.body; env}) assertsTODO in
-      V.Object (l, {fields ; asserts}, r)
+      let field_names = fields |> Common.map (fun fld -> V.{fld with fld_value = ()}) in
+      V.Object (l, {layers = [{fields;asserts}]; field_names}, r)
    | ObjectComp _x -> error l "TODO: ObjectComp"
  (*
        let v = eval_obj_comprehension env x in
- 
+
  and eval_obj_comprehension env v =
    (fun env (_fldname, _tk, v3, v4) ->
      let v3 = eval_expr env v3 in
      let v4 = eval_for_comp env v4 in
      ...)
      env v
- 
+
  and eval_for_comp env v =
    (fun env (_tk1, _id, _tk2, v4) ->
      let v4 = eval_expr env v4 in
      ...)
      env v
  *)
- 
+
  (*****************************************************************************)
  (* Entry points *)
  (*****************************************************************************)
  and tostring (v : V.value) : string =
    let j = manifest_value v in
    JSON.string_of_json j
- 
+
  (*Same as eval_expr but with profiling *)
  and eval_program_with_env (env : V.env) (e : Core_jsonnet.program) : V.value =
    eval_expr env e
    [@@profiling]
- 
+
  and eval_program (e : Core_jsonnet.program) : V.value =
    eval_program_with_env V.empty_env e
- 
+
  (*****************************************************************************)
  (* Manfestation *)
  (*****************************************************************************)
@@ -660,16 +668,16 @@ and eval_array_access _env e (l,index,_) =
          (arr |> Array.to_list
          |> Common.map (fun entry ->
                 manifest_value (Lazy.force entry)))
-   | V.Object ((_l, {fields ; _}, _r) as self) ->
+   | V.Object ((_l, {field_names; _}, _r) as self) ->
        (* TODO: evaluate asserts *)
        let xs =
-         fields
-         |> Common.map_filter (fun { V.fld_name; fld_hidden; fld_value; _} ->
+         field_names
+         |> Common.map_filter (fun { V.fld_name; fld_hidden; _ } ->
                 match fst fld_hidden with
                 | A.Hidden -> None
                 | A.Visible
                 | A.ForcedVisible ->
-                    let j = manifest_value (eval_expr {fld_value.env with self = Some (self, Some fld_name)} fld_value.body) in
+                    let j = manifest_value (access_field fk self self (fst fld_name) 0) in
                     Some (fst fld_name, j))
        in
        J.Object xs

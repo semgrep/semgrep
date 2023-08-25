@@ -395,16 +395,7 @@ and desugar_obj_inside env (l, v, r) : C.expr =
         fields |> Common.map (fun field -> desugar_field env (field, binds))
       in
       let obj = C.Object (asserts', fields') in
-      if env.within_an_object then
-        C.Local
-          ( fk,
-            [
-              C.B (("$outerself", fk), fk, C.IdSpecial (C.Self, fk));
-              C.B (("$outersuper", fk), fk, C.IdSpecial (C.Super, fk));
-            ],
-            fk,
-            C.O (l, obj, r) )
-      else C.O (l, obj, r)
+      C.O (l, obj, r)
   | ObjectComp _vTODO -> C.ExprTodo (("ObjectComp", l), O (l, v, r))
 
 and desugar_assert_ (env : env) (v : assert_ * bind list) : C.obj_assert =

@@ -14,27 +14,29 @@ and primitive =
   | Double of float A.wrap
   | Str of string A.wrap
 
+and object_ = {layers: layers; field_names: unit field list}
 
+and layers = object_data list
 
-and object_ = {asserts: obj_assert clo list; fields: field list list}
+and object_data = {asserts: obj_assert clo list; fields: (C.expr clo) field list}
 
 and obj_assert = A.tok (* assert *) * C.expr
 
-and arg = 
+and arg =
   | Arg of value Lazy.t
   | NamedArg of C.ident * A.tok * value Lazy.t
 
-and field = {
+and 'a field = {
   fld_name : string A.wrap;
   fld_hidden : C.hidden A.wrap;
-  fld_value : C.expr clo;
-  fld_super: object_ A.bracket option;
+  fld_value : 'a;
 }
 
 and env = {
   depth: int;
   locals: (string, bind) Map_.t;
-  self: (object_ A.bracket * string A.wrap option) option;
+  self: object_ A.bracket option;
+  super_level: int;
 }
 
 and bind =
@@ -45,8 +47,8 @@ and 'a clo = {env: env [@opaque]; body: 'a}
 
 [@@deriving show]
 
-let show_field_names (_,{fields;_},_) =
-  fields |> List.map (fun fs -> match List.hd fs with {fld_name = (fld,_); _} -> fld ^ " ") |> String.concat ", "
+let show_field_names fields =
+  fields |> List.map (fun {fld_name = (fld,_); _} -> fld ^ " ") |> String.concat ", "
 
 let bind env name value =
   {env with locals = Map_.add name value env.locals}
@@ -55,7 +57,7 @@ let bind_all env bindings =
   List.fold_left (fun env (name, value) ->
     bind env name value) env bindings
 
-let empty_env = {depth = 0; locals = Map_.empty; self = None}
+let empty_env = {depth = 0; super_level = 0; locals = Map_.empty; self = None}
 
 let show_env env = show_env {env with locals = env.locals |> Map_.remove "std" |> Map_.remove "$"}
 
