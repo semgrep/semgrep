@@ -4,9 +4,8 @@
 # the Semgrep HomeBrew package, and the Semgrep Docker container.
 #
 # In the future we may have different entry points when packaging Semgrep
-# with Cargo, Npm, Opam, or even with Docker
-# (ideally the entry point would be src/main/Main.ml without
-#  any wrapper around once osemgrep is finished).
+# with Cargo, Npm, Opam, or even with Docker (ideally the entry point would
+# be src/main/Main.ml without any wrapper around once osemgrep is finished).
 #
 # The main purpose of this small wrapper is to dispatch
 # either to the legacy pysemgrep (see the pysemgrep script in this
@@ -25,6 +24,9 @@
 # but when trying to put this binary in cli/bin, setuptools is yelling
 # and does not know what to do with it. In the end, it is simpler to use
 # a *Python* script when installed via a *Python* package manager (pip).
+#
+# Note that if you modify this file, you will need to `pipenv install --dev`
+# if you want to test the change under `pipenv shell`.
 
 import os
 import sys
@@ -102,8 +104,8 @@ if __name__ == "__main__":
        # thing not supported by osemgrep anyway),
        #TODO: we should fix --test instead.
        # The past investigation of Austin is available in #8360 PR comments
-       import semgrep.__main__
-       sys.exit(semgrep.__main__.main())
+       import semgrep.main
+       sys.exit(semgrep.main.main())
     elif "--experimental" in sys.argv:
        exec_osemgrep()
     else:
