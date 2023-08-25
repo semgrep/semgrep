@@ -1,3 +1,14 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Running a semgrep scan and returning a structured result (RuleMatchMap,
+# List[SemgrepError], etc.). Most of the CLI arguments processing is done
+# in commands/scan.py (but some of the CLI argument sanity checking is
+# still done here).
+#
+# old: this file used to be the entry point of semgrep but became a regular
+# file when we introduced semgrep commands (e.g., scan, login). This file
+# is now called from commands/scan.py and commands/ci.py instead.
 import json
 import time
 from io import StringIO
@@ -63,6 +74,10 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+##############################################################################
+# Helper functions
+##############################################################################
+
 
 def get_file_ignore() -> FileIgnore:
     TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -97,54 +112,6 @@ def get_file_ignore() -> FileIgnore:
         )
 
     return file_ignore
-
-
-def invoke_semgrep(
-    config: Path,
-    targets: List[Path],
-    output_settings: Optional[OutputSettings] = None,
-    **kwargs: Any,
-) -> Union[Dict[str, Any], str]:
-    """
-    Return Semgrep results of 'config' on 'targets' as a dict|str
-    Uses default arguments of 'semgrep_main.main' unless overwritten with 'kwargs'
-    """
-    if output_settings is None:
-        output_settings = OutputSettings(output_format=OutputFormat.JSON)
-
-    StringIO()
-    output_handler = OutputHandler(output_settings)
-    (
-        filtered_matches_by_rule,
-        _,
-        _,
-        _,
-        filtered_rules,
-        profiler,
-        output_extra,
-        shown_severities,
-        _,
-        _,
-    ) = main(
-        output_handler=output_handler,
-        target=[str(t) for t in targets],
-        pattern="",
-        lang="",
-        configs=[str(config)],
-        **kwargs,
-    )
-
-    output_handler.rules = frozenset(filtered_rules)
-    output_handler.rule_matches = [
-        m for ms in filtered_matches_by_rule.values() for m in ms
-    ]
-    output_handler.profiler = profiler
-    output_handler.profiling_data = output_extra.profiling_data
-    output_handler.severities = shown_severities
-    output_handler.explanations = output_extra.explanations
-    output_handler.rules_by_engine = output_extra.rules_by_engine
-
-    return json.loads(output_handler._build_output())  # type: ignore
 
 
 def print_summary_line(
@@ -204,6 +171,39 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     sca_plan.print(with_tables_for=RuleProduct.sca)
 
 
+def remove_matches_in_baseline(
+    head_matches_by_rule: RuleMatchMap,
+    baseline_matches_by_rule: RuleMatchMap,
+    file_renames: Dict[str, Path],
+) -> RuleMatchMap:
+    """
+    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
+    """
+    logger.verbose("Removing matches that exist in baseline scan")
+    kept_matches_by_rule: RuleMatchMap = {}
+    num_removed = 0
+
+    for rule, matches in head_matches_by_rule.items():
+        if len(matches) == 0:
+            continue
+        baseline_matches = {
+            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
+        }
+        kept_matches_by_rule[rule] = [
+            match
+            for match in matches
+            if match.get_path_changed_ci_unique_key(file_renames)
+            not in baseline_matches
+        ]
+        num_removed += len(matches) - len(kept_matches_by_rule[rule])
+
+    logger.verbose(
+        f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
+    )
+    return kept_matches_by_rule
+
+
+# This run semgrep-core but also handles SCA and join rules
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -228,7 +228,12 @@ def run_rules(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
 
-    (rule_matches_by_rule, semgrep_errors, output_extra,) = core_runner.invoke_semgrep(
+    # Dispatching to semgrep-core!
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        output_extra,
+    ) = core_runner.invoke_semgrep_core(
         target_manager, rest_of_the_rules, dump_command_for_core, engine_type
     )
 
@@ -312,39 +317,13 @@ def run_rules(
     )
 
 
-def remove_matches_in_baseline(
-    head_matches_by_rule: RuleMatchMap,
-    baseline_matches_by_rule: RuleMatchMap,
-    file_renames: Dict[str, Path],
-) -> RuleMatchMap:
-    """
-    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
-    """
-    logger.verbose("Removing matches that exist in baseline scan")
-    kept_matches_by_rule: RuleMatchMap = {}
-    num_removed = 0
+##############################################################################
+# Entry points
+##############################################################################
 
-    for rule, matches in head_matches_by_rule.items():
-        if len(matches) == 0:
-            continue
-        baseline_matches = {
-            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
-        }
-        kept_matches_by_rule[rule] = [
-            match
-            for match in matches
-            if match.get_path_changed_ci_unique_key(file_renames)
-            not in baseline_matches
-        ]
-        num_removed += len(matches) - len(kept_matches_by_rule[rule])
-
-    logger.verbose(
-        f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
-    )
-    return kept_matches_by_rule
-
-
-def main(
+# cli/bin/semgrep -> main.py -> cli.py -> commands/scan.py -> run_scan()
+# old: this used to be called semgrep.semgrep_main.main
+def run_scan(
     *,
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
@@ -651,3 +630,57 @@ def main(
         dependencies,
         dependency_parser_errors,
     )
+
+
+# This is called from join_rule.py and test.py (and maybe tools wrapping
+# semgrep)
+# old: this used to be called semgrep.semgrep_main.invoke_semgrep()
+# and was part of an unofficial Python API but external users should
+# instead wrap the CLI, not this internal Python function that will
+# soon disappear.
+def run_scan_and_return_json(
+    config: Path,
+    targets: List[Path],
+    output_settings: Optional[OutputSettings] = None,
+    **kwargs: Any,
+) -> Union[Dict[str, Any], str]:
+    """
+    Return Semgrep results of 'config' on 'targets' as a dict|str
+    Uses default arguments of 'run_scan.run_scan' unless overwritten with 'kwargs'
+    """
+    if output_settings is None:
+        output_settings = OutputSettings(output_format=OutputFormat.JSON)
+
+    StringIO()
+    output_handler = OutputHandler(output_settings)
+    (
+        filtered_matches_by_rule,
+        _,
+        _,
+        _,
+        filtered_rules,
+        profiler,
+        output_extra,
+        shown_severities,
+        _,
+        _,
+    ) = run_scan(
+        output_handler=output_handler,
+        target=[str(t) for t in targets],
+        pattern="",
+        lang="",
+        configs=[str(config)],
+        **kwargs,
+    )
+
+    output_handler.rules = frozenset(filtered_rules)
+    output_handler.rule_matches = [
+        m for ms in filtered_matches_by_rule.values() for m in ms
+    ]
+    output_handler.profiler = profiler
+    output_handler.profiling_data = output_extra.profiling_data
+    output_handler.severities = shown_severities
+    output_handler.explanations = output_extra.explanations
+    output_handler.rules_by_engine = output_extra.rules_by_engine
+
+    return json.loads(output_handler._build_output())  # type: ignore

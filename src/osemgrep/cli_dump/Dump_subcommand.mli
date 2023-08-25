@@ -9,6 +9,8 @@ and target_kind =
   | Pattern of string * Lang.t
   | File of Fpath.t * Lang.t
   | Config of Semgrep_dashdash_config.config_string
+  | EnginePath of bool (* pro = true *)
+  | CommandForCore
 [@@deriving show]
 
 val run : conf -> Exit_code.t

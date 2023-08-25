@@ -22,7 +22,7 @@ from peewee import ModelSelect
 from ruamel.yaml import YAML
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_main
+import semgrep.run_scan
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import RuleSeverity
@@ -546,7 +546,7 @@ def run_join_rule(
         logger.debug(
             f"Running join mode rule {join_rule.get('id')} on {len(targets)} files."
         )
-        output = semgrep.semgrep_main.invoke_semgrep(
+        output = semgrep.run_scan.run_scan_and_return_json(
             config=Path(rule_path.name),
             targets=targets,
             no_rewrite_rule_ids=True,

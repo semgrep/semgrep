@@ -1,4 +1,5 @@
-open Cmdliner
+module Term = Cmdliner.Term
+module Cmd = Cmdliner.Cmd
 module H = Cmdliner_helpers
 
 (*****************************************************************************)
@@ -75,8 +76,8 @@ let cmdline_term : conf Term.t =
 
 let doc = "Interactive mode!!"
 
-let man : Manpage.block list =
-  [ `S Manpage.s_description; `P "Interactive mode!!" ]
+let man : Cmdliner.Manpage.block list =
+  [ `S Cmdliner.Manpage.s_description; `P "Interactive mode!!" ]
   @ CLI_common.help_page_bottom
 
 let cmdline_info : Cmd.info = Cmd.info "semgrep interactive" ~doc ~man

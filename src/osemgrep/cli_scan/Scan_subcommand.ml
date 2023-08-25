@@ -394,6 +394,14 @@ let run_scan_conf (conf : Scan_CLI.conf) (settings : Semgrep_settings.t)
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  (* TODO: move this further down! *)
+  (match conf.common.maturity with
+  | Maturity.Default
+  | Maturity.Legacy ->
+      raise Pysemgrep.Fallback
+  | Maturity.Experimental
+  | Maturity.Develop ->
+      ());
   setup_logging conf;
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
