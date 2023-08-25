@@ -410,6 +410,7 @@ def ci(
             shown_severities,
             dependencies,
             dependency_parser_errors,
+            num_executed_rules,
         ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
@@ -529,7 +530,7 @@ def ci(
 
     logger.info("CI scan completed successfully.")
     logger.info(
-        f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
+        f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(num_executed_rules, 'rule')}."
     )
 
     app_block_override = False
