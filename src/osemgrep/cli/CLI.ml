@@ -52,6 +52,45 @@ Commands:
 let default_subcommand = "scan"
 
 (*****************************************************************************)
+(* TOPORT *)
+(*****************************************************************************)
+
+(* TOPORT:
+      def maybe_set_git_safe_directories() -> None:
+          """
+          Configure Git to be willing to run in any directory when we're in Docker.
+
+          In docker, every path is trusted:
+          - the user explicitly mounts their trusted code directory
+          - r2c provides every other path
+
+          More info:
+          - https://github.blog/2022-04-12-git-security-vulnerability-announced/
+          - https://github.com/actions/checkout/issues/766
+          """
+          env = get_state().env
+          if not env.in_docker:
+              return
+
+          try:
+              # "*" is used over Path.cwd() in case the user targets an absolute path instead of setting --workdir
+              git_check_output(["git", "config", "--global", "--add", "safe.directory", "*"])
+          except Exception as e:
+              logger.info(
+                  f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
+              )
+
+   def abort_if_linux_arm64() -> None:
+       """
+       Exit with FATAL_EXIT_CODE if the user is running on Linux ARM64.
+       Print helpful error message.
+       """
+       if platform.machine() in {"arm64", "aarch64"} and platform.system() == "Linux":
+           logger.error("Semgrep does not support Linux ARM64")
+           sys.exit(FATAL_EXIT_CODE)
+*)
+
+(*****************************************************************************)
 (* Subcommands dispatch *)
 (*****************************************************************************)
 
