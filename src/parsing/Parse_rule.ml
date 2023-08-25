@@ -1741,6 +1741,34 @@ let report_unparsed_fields rd =
       |> List.iter (fun (k, _v) ->
              logger#warning "skipping unknown field: %s" k)
 
+let parse_version key value =
+  let str, tok = parse_string_wrap_no_env key value in
+  match Version_info.of_string str with
+  | Some version -> (version, tok)
+  | None ->
+      yaml_error_at_key key
+        ("Expected a version of the form X.Y.Z for " ^ fst key)
+
+let incompatible_version ?min_version ?max_version rule_id tok =
+  raise
+    (R.Err
+       (InvalidRule
+          ( IncompatibleRule (Version_info.version, (min_version, max_version)),
+            rule_id,
+            tok )))
+
+let check_version_compatibility rule_id ~min_version ~max_version =
+  (match min_version with
+  | None -> ()
+  | Some (mini, tok) ->
+      if not (Version_info.compare mini Version_info.version <= 0) then
+        incompatible_version ?min_version:(Some mini) rule_id tok);
+  match max_version with
+  | None -> ()
+  | Some (maxi, tok) ->
+      if not (Version_info.compare Version_info.version maxi <= 0) then
+        incompatible_version ?max_version:(Some maxi) rule_id tok
+
 let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
   let rd = yaml_to_dict_no_env ("rules", t) rule in
   (* We need a rule ID early to produce useful error messages. *)
@@ -1748,6 +1776,12 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
     let rule_id_str, tok = take_no_env rd parse_string_wrap_no_env "id" in
     (Rule_ID.of_string rule_id_str, tok)
   in
+  (* We need to check for version compatibility before attempting to interpret
+     the rule. *)
+  let min_version = take_opt_no_env rd parse_version "min-version" in
+  let max_version = take_opt_no_env rd parse_version "max-version" in
+  check_version_compatibility rule_id ~min_version ~max_version;
+
   let languages = take_no_env rd parse_string_wrap_list_no_env "languages" in
   let options_opt, options_key =
     match take_opt_no_env rd (parse_options rule_id) "options" with
@@ -1783,6 +1817,8 @@ let parse_one_rule (t : G.tok) (i : int) (rule : G.expr) : Rule.t =
   report_unparsed_fields rd;
   {
     R.id;
+    min_version = Option.map fst min_version;
+    max_version = Option.map fst max_version;
     message;
     languages;
     severity = parse_severity ~id:env.id severity;
