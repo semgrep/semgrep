@@ -24,7 +24,7 @@ exception Semgrep_error of string * Exit_code.t option
 exception Exit of Exit_code.t
 
 (* TOPORT?
-   exception Semgrep_core_error of Output_from_core_t.core_error
+   exception Semgrep_core_error of Semgrep_output_v1_t.core_error
 
    (*
       python: class ErrorWithSpan(SemgrepError)

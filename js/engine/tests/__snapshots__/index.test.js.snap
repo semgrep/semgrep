@@ -26,6 +26,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
             "engine_kind": "OSS",
             "message": "test",
             "metavars": {},
+            "validation_state": "NO_VALIDATOR",
           },
           "location": {
             "end": {
@@ -55,6 +56,7 @@ exports[`yaml parser parses a pattern with pattern-regex 1`] = `
         "engine_kind": "OSS",
         "message": "test",
         "metavars": {},
+        "validation_state": "NO_VALIDATOR",
       },
       "location": {
         "end": {
@@ -126,6 +128,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
                 },
               },
             },
+            "validation_state": "NO_VALIDATOR",
           },
           "location": {
             "end": {
@@ -169,6 +172,7 @@ exports[`yaml parser parses a simple pattern 1`] = `
             },
           },
         },
+        "validation_state": "NO_VALIDATOR",
       },
       "location": {
         "end": {

@@ -8,7 +8,7 @@
 val main : string array -> Exit_code.t
 
 (* internal *)
-val run : Scan_CLI.conf -> Exit_code.t
+val run_conf : Scan_CLI.conf -> Exit_code.t
 
 (* Semgrep Pro hook *)
 (* TODO it might be better to pass this through and avoid the hook,
@@ -17,7 +17,7 @@ val invoke_semgrep_core_proprietary :
   (Fpath.t list -> Engine_type.t -> Core_runner.semgrep_core_runner) option ref
 
 (* internal: scan all the files - also used in CI *)
-val scan_files :
+val run_scan_files :
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->

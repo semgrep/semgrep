@@ -1,3 +1,0 @@
-The --dump-ast flag now requires the additional --experimental flag
-and does not require to pass a --config flag anymore.
-Example of use: `semgrep --experimental --lang python --dump-ast foo.py`

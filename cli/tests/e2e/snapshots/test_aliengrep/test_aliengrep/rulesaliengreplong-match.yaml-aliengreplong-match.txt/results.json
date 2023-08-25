@@ -22,7 +22,8 @@
         "message": "found something",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/aliengrep/long-match.txt",
       "start": {
@@ -46,7 +47,8 @@
         "message": "found something",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/aliengrep/long-match.txt",
       "start": {

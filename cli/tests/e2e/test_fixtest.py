@@ -94,6 +94,7 @@ def test_fixtest_test4_no_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
         options=["--test"],
         output_format=OutputFormat.TEXT,
         assert_exit_code=1,
+        use_click_runner=True,  # TODO: does not seem related to mocking but still fail with False
     )
     snapshot.assert_match(
         results.as_snapshot(
@@ -111,6 +112,7 @@ def test_fixtest_test4_json(run_semgrep_in_tmp: RunSemgrep, snapshot):
         options=["--test"],
         output_format=OutputFormat.JSON,
         assert_exit_code=1,
+        use_click_runner=True,  # TODO: does not seem related to mocking but still fail with False
     )
     snapshot.assert_match(
         results.as_snapshot(

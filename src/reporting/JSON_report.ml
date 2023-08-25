@@ -20,8 +20,8 @@ module J = JSON
 module MV = Metavariable
 module RP = Report
 open Pattern_match
-module SJ = Output_from_core_j (* JSON conversions *)
-module Out = Output_from_core_t (* atdgen definitions *)
+module SJ = Semgrep_output_v1_j (* JSON conversions *)
+module Out = Semgrep_output_v1_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
 (*****************************************************************************)
@@ -51,6 +51,12 @@ let convert_engine_kind ek =
   match ek with
   | OSS -> `OSS
   | Pro -> `PRO
+
+let convert_validation_state = function
+  | Confirmed_valid -> `CONFIRMED_VALID
+  | Confirmed_invalid -> `CONFIRMED_INVALID
+  | Validation_error -> `VALIDATION_ERROR
+  | No_validator -> `NO_VALIDATOR
 
 let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
   ((id :> string), convert_engine_kind ek)
@@ -270,6 +276,7 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
         dataflow_trace;
         rendered_fix;
         engine_kind = convert_engine_kind x.engine_kind;
+        validation_state = Some (convert_validation_state x.validation_state);
         extra_extra = None;
       };
   }

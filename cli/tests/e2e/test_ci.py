@@ -1,3 +1,13 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Testing 'semgrep ci' "end-to-end".
+#
+# TODO: actually most of the tests in this file rely on use_click_runner=True
+# because of some mocking and monkeypatching. Thus, this is this not
+# a real e2e test because cli/bin/semgrep is not invoked.
+# Try to use environment variables instead of Python monkey patching
+# so that those tests can also pass with osemgrep.
 import json
 import re
 import shutil
@@ -6,6 +16,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
+from typing import List
 
 import pytest
 from tests.conftest import make_semgrepconfig_file
@@ -24,6 +35,9 @@ from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from semgrep.metrics import Metrics
 
+##############################################################################
+# Constants
+##############################################################################
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -46,6 +60,11 @@ BAD_CONFIG = dedent(
       severity: ERROR
 """
 ).lstrip()
+
+
+##############################################################################
+# Fixtures
+##############################################################################
 
 
 @pytest.fixture
@@ -331,6 +350,11 @@ def automocks(mocker):
             "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
         ],
     )
+    mocker.patch.object(
+        ScanHandler,
+        "enabled_products",
+        ["sast", "sca"],
+    )
     mocker.patch(
         "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
     )
@@ -340,6 +364,11 @@ def automocks(mocker):
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
 def mock_autofix(request, mocker):
     mocker.patch.object(ScanHandler, "autofix", request.param)
+
+
+##############################################################################
+# The tests
+##############################################################################
 
 
 @pytest.mark.parametrize(
@@ -716,6 +745,7 @@ def test_full_run(
         strict=False,
         assert_exit_code=None,
         env=env,
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     snapshot.assert_match(
@@ -839,6 +869,7 @@ def test_lockfile_parse_failure_reporting(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1141,6 +1172,7 @@ def test_shallow_wrong_merge_base(
         strict=False,
         assert_exit_code=None,
         env=env,
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1165,6 +1197,7 @@ def test_shallow_wrong_merge_base(
         strict=False,
         assert_exit_code=None,
         env={**env, "SEMGREP_GHA_MIN_FETCH_DEPTH": "100"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     snapshot.assert_match(
@@ -1196,6 +1229,7 @@ def test_config_run(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1224,6 +1258,7 @@ def test_outputs(
         assert_exit_code=None,
         output_format=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1248,6 +1283,7 @@ def test_nosem(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1269,6 +1305,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep: RunSe
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     AppSession.post.assert_not_called()  # type: ignore
@@ -1298,6 +1335,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         strict=False,
         assert_exit_code=13,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     mocker.patch("semgrep.app.auth.get_deployment_from_token", side_effect=Exception)
@@ -1307,6 +1345,7 @@ def test_fail_auth(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
 
@@ -1324,6 +1363,7 @@ def test_fail_auth_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     mock_send.assert_called_once_with(mocker.ANY, 2)
@@ -1342,6 +1382,7 @@ def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_comm
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
 
@@ -1359,6 +1400,7 @@ def test_fail_start_scan_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
     mock_send.assert_called_once_with(mocker.ANY, 2)
@@ -1385,6 +1427,7 @@ def test_bad_config(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit):
         strict=False,
         assert_exit_code=7,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     assert "Invalid rule schema" in result.stderr
 
@@ -1413,6 +1456,7 @@ def test_bad_config_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     assert "Invalid rule schema" in result.stderr
     mock_send.assert_called_once_with(mocker.ANY, 7)
@@ -1432,6 +1476,7 @@ def test_fail_scan_findings(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_c
         strict=False,
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     mock_send.assert_called_once_with(mocker.ANY, 1)
     mock_request_post.assert_not_called()
@@ -1450,6 +1495,7 @@ def test_fail_finish_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_com
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
 
@@ -1466,6 +1512,7 @@ def test_backend_exit_code(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_co
         strict=False,
         assert_exit_code=1,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
 
@@ -1483,6 +1530,7 @@ def test_fail_finish_scan_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
@@ -1500,6 +1548,7 @@ def test_git_failure(run_semgrep: RunSemgrep, git_tmp_path_with_commit, mocker):
         strict=False,
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
 
 
@@ -1517,6 +1566,7 @@ def test_git_failure_error_handler(
         strict=False,
         assert_exit_code=0,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     mock_send.assert_called_once_with(mocker.ANY, 2)
 
@@ -1569,6 +1619,7 @@ def test_query_dependency(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1599,6 +1650,7 @@ def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):
         assert_exit_code=1,
         force_metrics_off=False,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     mock_send.assert_called_once()
 
@@ -1646,6 +1698,7 @@ def test_existing_supply_chain_finding(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1718,6 +1771,7 @@ def test_existing_supply_chain_finding(
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1735,3 +1789,36 @@ def test_existing_supply_chain_finding(
     post_calls = AppSession.post.call_args_list
     findings_json = post_calls[num_old_post_calls + 1].kwargs["json"]
     assert len(findings_json["findings"]) == 0
+
+
+@pytest.mark.parametrize(
+    "enabled_products",
+    [[], ["product"]],
+    ids=["empty-products", "non-empty-products"],
+)
+def test_enabled_products(
+    enabled_products: List[str],
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+):
+    """
+    Verify that for any given product, there is a valid output
+    """
+    mocker.patch.object(ScanHandler, "enabled_products", enabled_products)
+
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+
+    if not enabled_products:
+        assert "Enabled products: None" in result.stderr
+        assert "No products are enabled for this organization" in result.stderr
+    else:
+        assert f"Enabled products: {enabled_products[0]}" in result.stderr
+        assert "No products are enabled for this organization" not in result.stderr

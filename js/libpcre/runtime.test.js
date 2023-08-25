@@ -96,4 +96,24 @@ describe("pcre-ocaml stubs", () => {
       stubs.pcre_exec_stub_bc(0, regex, ovec[2], 0, subject, ovec, 0, 0)
     ).toThrow(NotFoundError);
   });
+
+  test("pcre_get_stringnumber works with named capture groups", async () => {
+    await libpcrePromise;
+    const stubs = require("../libpcre");
+    const regex = stubs.pcre_compile_stub_bc(
+      0,
+      0,
+      "(?<numbers>[0-9]+)(?<letters>[a-z]+)"
+    );
+    const subject = "123abc";
+
+    stubs.pcre_exec_stub_bc(0, regex, 0, 0, subject, [0, 0, 0, 0], 0, 0);
+
+    expect(stubs.pcre_get_stringnumber_stub_bc(regex, "numbers")).toEqual(1);
+    expect(stubs.pcre_get_stringnumber_stub_bc(regex, "letters")).toEqual(2);
+
+    expect(() => stubs.pcre_get_stringnumber_stub_bc(regex, "foobar")).toThrow(
+      "invalid argument"
+    );
+  });
 });

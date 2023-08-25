@@ -44,7 +44,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/flask-use-jsonify.py",
       "start": {
@@ -90,7 +91,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/flask-use-jsonify.py",
       "start": {

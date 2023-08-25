@@ -15,6 +15,8 @@
 open Common
 open File.Operators
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -37,6 +39,15 @@ open File.Operators
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
 
 (*****************************************************************************)
 (* Error management *)
@@ -109,6 +120,119 @@ let files_from_git_ls ~cwd =
     | _ -> raise (Error "Could not get files from git ls-files")
   in
   files |> File.Path.of_strings
+
+let get_git_root_path () =
+  let cmd = Bos.Cmd.(v "git" % "rev-parse" % "--show-toplevel") in
+  let path_r = Bos.OS.Cmd.run_out cmd in
+  let result = Bos.OS.Cmd.out_string ~trim:true path_r in
+  match result with
+  | Ok (path, (_, `Exited 0)) -> path
+  | _ -> raise (Error "Could not get git root from git rev-parse")
+
+let run_with_worktree ~commit f =
+  let cwd = Sys.getcwd () |> Fpath.v |> Fpath.to_dir_path in
+  let git_root = get_git_root_path () |> Fpath.v |> Fpath.to_dir_path in
+  let relative_path =
+    match Fpath.relativize ~root:git_root cwd with
+    | Some p -> p
+    | None -> raise (Error "")
+  in
+  let rand_dir () =
+    let uuid = Uuidm.v `V4 in
+    let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
+    let dir = Filename.concat (Filename.get_temp_dir_name ()) dir_name in
+    Unix.mkdir dir 0o777;
+    dir
+  in
+  let temp_dir = rand_dir () in
+  let cmd = Bos.Cmd.(v "git" % "worktree" % "add" % temp_dir % commit) in
+  let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+  match status with
+  | Ok (`Exited 0) ->
+      let work () =
+        Fpath.append (Fpath.v temp_dir) relative_path
+        |> Fpath.to_string |> Unix.chdir;
+        f ()
+      in
+      let cleanup () =
+        cwd |> Fpath.to_string |> Unix.chdir;
+        let cmd = Bos.Cmd.(v "git" % "worktree" % "remove" % temp_dir) in
+        let status = Bos.OS.Cmd.run_status ~quiet:true cmd in
+        match status with
+        | Ok (`Exited 0) -> logger#info "Finished cleaning up git worktree"
+        | Ok _ -> raise (Error ("Could not remove git worktree at " ^ temp_dir))
+        | Error (`Msg e) -> raise (Error e)
+      in
+      Fun.protect ~finally:cleanup work
+  | Ok _ -> raise (Error ("Could not create git worktree for " ^ commit))
+  | Error (`Msg e) -> raise (Error e)
+
+let status ~cwd ~commit =
+  let cmd =
+    Bos.Cmd.(
+      v "git" % "-C" % !!cwd % "diff" % "--cached" % "--name-status"
+      % "--no-ext-diff" % "-z" % "--diff-filter=ACDMRTUXB"
+      % "--ignore-submodules" % "--relative" % commit)
+  in
+  let files_r = Bos.OS.Cmd.run_out cmd in
+  let results = Bos.OS.Cmd.out_string ~trim:true files_r in
+  let stats =
+    match results with
+    | Ok (str, (_, `Exited 0)) -> str |> String.split_on_char '\000'
+    | _ -> raise (Error "Could not get files from git ls-files")
+  in
+  let check_dir_symlink file =
+    try
+      match ((Unix.lstat file).st_kind, (Unix.stat file).st_kind) with
+      | Unix.S_LNK, Unix.S_DIR -> true
+      | _ -> false
+    with
+    | _ -> false
+  in
+  let added = ref [] in
+  let modified = ref [] in
+  let removed = ref [] in
+  let unmerged = ref [] in
+  let renamed = ref [] in
+  let rec parse = function
+    | _ :: file :: tail when check_dir_symlink file ->
+        logger#info "Skipping %s since it is a symlink to a directory: %s" file
+          (Unix.realpath file);
+        parse tail
+    | "A" :: file :: tail ->
+        added := file :: !added;
+        parse tail
+    | "M" :: file :: tail ->
+        modified := file :: !modified;
+        parse tail
+    | "D" :: file :: tail ->
+        removed := file :: !removed;
+        parse tail
+    | "U" :: file :: tail ->
+        unmerged := file :: !unmerged;
+        parse tail
+    | typ :: before :: after :: tail when String.starts_with ~prefix:"R" typ ->
+        removed := before :: !removed;
+        added := after :: !added;
+        renamed := (before, after) :: !renamed;
+        parse tail
+    | "!" (* ignored *) :: _ :: tail -> parse tail
+    | "?" (* untracked *) :: _ :: tail -> parse tail
+    | unknown :: file :: tail ->
+        logger#warning "unknown type in git status: %s, %s" unknown file;
+        parse tail
+    | [ remain ] ->
+        logger#warning "unknown data after parsing git status: %s" remain
+    | [] -> ()
+  in
+  parse stats;
+  {
+    added = !added;
+    modified = !modified;
+    removed = !removed;
+    unmerged = !unmerged;
+    renamed = !renamed;
+  }
 
 let is_git_repo cwd =
   let cmd =

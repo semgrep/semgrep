@@ -203,7 +203,7 @@ val rules_from_rule_source :
 val targets_of_config :
   Runner_config.t ->
   Rule_ID.t list ->
-  Input_to_core_t.targets * Output_from_core_t.skipped_target list
+  Input_to_core_t.targets * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
@@ -215,7 +215,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   Pattern_match.t list ->
   Pattern_match.t list
   * Semgrep_error_code.error list
-  * Output_from_core_j.skipped_target list
+  * Semgrep_output_v1_j.skipped_target list
 
 (* TODO: This is used by semgrep-pro and not by semgrep. What is it?
    TODO: Explain what it does if xlang contains multiple langs. *)

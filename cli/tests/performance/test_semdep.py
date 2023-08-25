@@ -28,11 +28,12 @@ import pytest
     ],
 )
 def test_dependency_aware_timing(
-    parse_lockfile_path_in_tmp, file_size, target, max_time
+    parse_lockfile_path_in_tmp_for_perf, file_size, target, max_time
 ):
     start = time()
-    _, error = parse_lockfile_path_in_tmp(
-        Path(f"targets/dependency_aware/perf/{file_size}/{target}")
+    # parse_lockfile_path_in_tmp_for_perf is defined in ../conftest.py
+    _, error = parse_lockfile_path_in_tmp_for_perf(
+        Path(f"targets_perf_sca/{file_size}/{target}")
     )
     end = time()
     assert len(error) == 0

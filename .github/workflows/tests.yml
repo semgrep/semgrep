@@ -36,14 +36,12 @@ jobs:
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make core
-          # needed for the e2e test below
-          make core-install
       - name: Test semgrep-core
         run: |
           eval $(opam env)
           START=`date +%s`
           make core-test
-          make core-e2etest
+          make core-test-e2e
           END=`date +%s`
           TEST_RUN_TIME=$((END-START))
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
@@ -86,9 +84,7 @@ jobs:
       - name: Install osemgrep
         run: |
           eval $(opam env)
-          make core-install
-          # needed for pipenv install to work below
-          cp bin/semgrep-core /usr/bin/
+          make copy-core-for-cli
       - name: Install Python dependencies
         run: |
           make install-deps-ALPINE-for-pysemgrep

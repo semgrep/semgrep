@@ -362,10 +362,12 @@ class Metrics:
             # When running logged in with `semgrep ci`, configs are
             # resolved before `self.is_using_registry` is set.
             # However, these scans are still pulling from the registry
-            using_app = (
-                state.command.get_subcommand() == "ci"
-                and state.app_session.is_authenticated
-            )
+            # TODO?
+            # using_app = (
+            #    state.command.get_subcommand() == "ci"
+            #    and state.app_session.is_authenticated
+            # )
+            using_app = state.app_session.is_authenticated
             return self.is_using_registry or using_app
         return self.metrics_state == MetricsState.ON
 
