@@ -28,7 +28,8 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {

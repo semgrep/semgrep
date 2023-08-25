@@ -52,7 +52,8 @@
       "path": "targets/basic/metavariable-comparison-strip.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ],

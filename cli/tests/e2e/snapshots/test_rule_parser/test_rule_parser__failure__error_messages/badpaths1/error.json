@@ -10,14 +10,14 @@
           "end": {
             "col": 5,
             "line": 10,
-            "offset": 0
+            "offset": -1
           },
           "file": "rules/syntax/badpaths1.yaml",
           "source_hash": "5f729ef631099eaddf81dca6b10c2e399989ff7c923ac53ab0e4e51b6124d1a1",
           "start": {
             "col": 7,
             "line": 8,
-            "offset": 0
+            "offset": -1
           }
         }
       ],

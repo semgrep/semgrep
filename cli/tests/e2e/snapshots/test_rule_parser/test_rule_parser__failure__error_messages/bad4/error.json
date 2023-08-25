@@ -10,14 +10,14 @@
           "end": {
             "col": 5,
             "line": 8,
-            "offset": 0
+            "offset": -1
           },
           "file": "rules/syntax/bad4.yaml",
           "source_hash": "df19d059fbcde7ca517f3dcbd6d58733d738f332467bc02d1d11051ab62e2549",
           "start": {
             "col": 7,
             "line": 4,
-            "offset": 0
+            "offset": -1
           }
         }
       ],

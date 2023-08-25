@@ -65,7 +65,8 @@
       "path": "targets/basic/metavariable-regex-multi-regex.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ],
