@@ -187,6 +187,7 @@ class GitMeta:
             "commit_author_username": None,
             "commit_author_image_url": None,
             "commit_title": commit_title,
+            "commit_timestamp": self.commit_datetime,
             "on": self.event_name,
             "pull_request_author_username": None,
             "pull_request_author_image_url": None,

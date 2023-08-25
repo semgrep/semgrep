@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 from typing import List
@@ -326,6 +327,11 @@ def automocks(mocker):
         ConfigLoader,
         "_download_config_from_url",
         side_effect=lambda url: ConfigFile(None, file_content, url),
+    )
+    mocker.patch.object(
+        GitMeta,
+        "commit_datetime",
+        str(int(datetime(2023, 1, 1).timestamp())),
     )
     mocker.patch.object(
         ScanHandler,
