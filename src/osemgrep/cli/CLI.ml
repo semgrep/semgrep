@@ -144,18 +144,18 @@ let dispatch_subcommand argv =
       try
         match subcmd with
         (* TODO: gradually remove those 'when experimental' guards as
-         * we progress in osemgrep port (or move the dispatch back
-         * to pysemgrep futher down, when we know we don't handle
-         * certain kind of arguments.
+         * we progress in osemgrep port (or use Pysemgrep.Fallback further
+         * down when we know we don't handle certain kind of arguments).
          *)
         | "ci" when experimental -> Ci_subcommand.main subcmd_argv
         | "install-semgrep-pro" when experimental -> missing_subcommand ()
         | "login" when experimental -> Login_subcommand.main subcmd_argv
         | "logout" when experimental -> Logout_subcommand.main subcmd_argv
         | "publish" when experimental -> missing_subcommand ()
-        | "scan" when experimental -> Scan_subcommand.main subcmd_argv
-        (* TODO: next target for not requiring the 'when experimental' guard! *)
+        (* TODO: next target for not requiring the 'when experimental' guard!*)
         | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
+        (* partial support, still use Pysemgrep.Fallback in it *)
+        | "scan" -> Scan_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "interactive" -> Interactive_subcommand.main subcmd_argv
         (* LATER: "dump", "test", "validate" *)

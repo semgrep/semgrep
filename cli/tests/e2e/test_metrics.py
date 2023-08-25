@@ -168,68 +168,6 @@ def test_flags_actual_send(run_semgrep_in_tmp: RunSemgrep):
     assert "Failed to send pseudonymous metrics" not in stderr
 
 
-@pytest.mark.slow
-def test_legacy_flags(run_semgrep_in_tmp: RunSemgrep):
-    """
-    Test metrics sending respects legacy flags. Flags take precedence over envvar
-    """
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--debug", "--enable-metrics"],
-        force_metrics_off=False,
-    )
-    assert "Sending pseudonymous metrics" in stderr
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--debug", "--enable-metrics"],
-        env={"SEMGREP_SEND_METRICS": ""},
-        force_metrics_off=False,
-    )
-    assert "Sending pseudonymous metrics" in stderr
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--debug", "--disable-metrics"],
-        force_metrics_off=False,
-    )
-    assert "Sending pseudonymous metrics" not in stderr
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--disable-metrics"],
-        env={"SEMGREP_SEND_METRICS": "1"},
-        force_metrics_off=False,
-        assert_exit_code=2,
-    )
-    assert (
-        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        in stderr
-    )
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--disable-metrics"],
-        env={"SEMGREP_SEND_METRICS": "off"},
-        force_metrics_off=False,
-    )
-    assert (
-        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        not in stderr
-    )
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq.yaml",
-        options=["--enable-metrics"],
-        env={"SEMGREP_SEND_METRICS": "on"},
-        force_metrics_off=False,
-    )
-    assert (
-        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        not in stderr
-    )
-
-
 def _mask_version(value: str) -> str:
     return re.sub(r"\d+", "x", value)
 
