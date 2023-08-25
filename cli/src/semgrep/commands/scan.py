@@ -740,6 +740,8 @@ def scan(
 
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
+    # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
+    # is installed and check if the binary is statically linked.
     if dump_engine_path:
         if engine_type == EngineType.OSS:
             print(SemgrepCore.path())
