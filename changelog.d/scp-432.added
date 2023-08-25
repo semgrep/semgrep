@@ -1,3 +1,0 @@
-`semgrep ci` displays enabled products when scans are created and/or when the scan
-config is generated from Semgrep Cloud Platform. Additionally, if no products are
-enabled then a friendly error is raised.
