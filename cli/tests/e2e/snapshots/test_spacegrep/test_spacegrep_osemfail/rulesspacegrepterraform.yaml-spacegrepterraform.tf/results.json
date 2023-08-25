@@ -22,7 +22,8 @@
         "message": "CORS rule on bucket permits any origin",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/terraform.tf",
       "start": {
