@@ -8,6 +8,7 @@
 # a real e2e test because cli/bin/semgrep is not invoked.
 # Try to use environment variables instead of Python monkey patching
 # so that those tests can also pass with osemgrep.
+from datetime import datetime
 import json
 import re
 import shutil
@@ -326,6 +327,11 @@ def automocks(mocker):
         ConfigLoader,
         "_download_config_from_url",
         side_effect=lambda url: ConfigFile(None, file_content, url),
+    )
+    mocker.patch.object(
+        GitMeta,
+        "commit_datetime",
+        str(int(datetime(2023, 1, 1).timestamp())),
     )
     mocker.patch.object(
         ScanHandler,
