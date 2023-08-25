@@ -83,6 +83,39 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
+# TODO: use out.Position directly
+# If we switch to using out.Position directly, we get the following error:
+# $ pipenv run pytest -k 'test_osv_parsing[targets/dependency_aware/osv_parsing/pnpm/no-packages/pnpm-lock.yaml]'
+# ...
+# E           attr.exceptions.NotAnAttrsClassError: <class 'semgrep.semgrep_interfaces.semgrep_output_v1.Position'> is not an attrs-decorated class.
+#
+# This looks like it's because the generated Position class uses dataclasses
+# rather than attrs.
+#
+@frozen(repr=False)
+class Position:
+    """
+    Position within a file.
+    :param line: 1-indexed line number
+    :param col: 1-indexed column number
+
+    line & column are 1-indexed for compatibility with semgrep-core which also produces 1-indexed results
+    """
+
+    line: int
+    col: int
+    offset: int  # set to -1 if unknown
+
+    def to_Position(self) -> out.Position:
+        return out.Position(line=self.line, col=self.col, offset=self.offset)
+
+    def to_dict(self) -> dict:
+        return {"line": self.line, "col": self.col, "offset": self.offset}
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
+
+
 # TODO: use out.ErrorSpan directly
 @frozen(repr=False)
 class Span:
@@ -91,37 +124,37 @@ class Span:
     optionally can contain surrounding context.
     """
 
-    start: out.Position
-    end: out.Position
+    start: Position
+    end: Position
     source_hash: SourceFileHash
     file: Optional[str]
 
     # ???
-    context_start: Optional[out.Position] = None
-    context_end: Optional[out.Position] = None
+    context_start: Optional[Position] = None
+    context_end: Optional[Position] = None
 
     # The path to the pattern in the yaml rule
     # and an adjusted start/end within just the pattern
     # Used to report playground parse errors in the simpler editor
     config_path: Optional[List[str]] = None
-    config_start: Optional[out.Position] = None
-    config_end: Optional[out.Position] = None
+    config_start: Optional[Position] = None
+    config_end: Optional[Position] = None
 
     def to_ErrorSpan(self) -> out.ErrorSpan:
         context_start = None
         if self.context_start:
-            context_start = self.context_start
+            context_start = self.context_start.to_Position()
         context_end = None
         if self.context_end:
-            context_end = self.context_end
+            context_end = self.context_end.to_Position()
 
         return out.ErrorSpan(
             config_path=self.config_path,
             context_start=context_start,
             context_end=context_end,
             file=out.Fpath(self.file if self.file else "<No file>"),
-            start=self.start,
-            end=self.end,
+            start=self.start.to_Position(),
+            end=self.end.to_Position(),
             source_hash=self.source_hash,
         )
 
@@ -129,10 +162,10 @@ class Span:
     def from_node(
         cls, node: Node, source_hash: SourceFileHash, filename: Optional[str]
     ) -> "Span":
-        start = out.Position(
+        start = Position(
             line=node.start_mark.line + 1, col=node.start_mark.column + 1, offset=-1
         )
-        end = out.Position(
+        end = Position(
             line=node.end_mark.line + 1, col=node.end_mark.column + 1, offset=-1
         )
         return Span(start=start, end=end, file=filename, source_hash=source_hash).fix()
@@ -140,9 +173,9 @@ class Span:
     @classmethod
     def from_string(cls, s: str, filename: Optional[str] = None) -> "Span":
         src_hash = SourceTracker.add_source(s)
-        start = out.Position(line=1, col=1, offset=-1)
+        start = Position(line=1, col=1, offset=-1)
         lines = s.splitlines()
-        end = out.Position(line=len(lines), col=len(lines[-1]), offset=-1)
+        end = Position(line=len(lines), col=len(lines[-1]), offset=-1)
         return Span(start=start, end=end, file=filename, source_hash=src_hash)
 
     def fix(self) -> "Span":
@@ -159,7 +192,7 @@ class Span:
                         cur_col -= 1
                     else:
                         # assign the span to the whitespace
-                        start = out.Position(cur_line + 1, cur_col + 2, offset=-1)
+                        start = Position(cur_line + 1, cur_col + 2, offset=-1)
                         end = evolve(start, col=cur_col + 3)
                         return evolve(self, start=start, end=end)
                 cur_line -= 1
@@ -175,7 +208,7 @@ class Span:
         if self.end.line - self.start.line > lines:
             return evolve(
                 self,
-                end=out.Position(line=self.start.line + lines, col=0, offset=-1),
+                end=Position(line=self.start.line + lines, col=0, offset=-1),
                 context_end=None,
             )
         return self
@@ -190,7 +223,7 @@ class Span:
         if before is not None:
             new = evolve(
                 new,
-                context_start=out.Position(
+                context_start=Position(
                     col=0, line=max(0, self.start.line - before), offset=-1
                 ),
             )
@@ -198,7 +231,7 @@ class Span:
         if after is not None:
             new = evolve(
                 new,
-                context_end=out.Position(
+                context_end=Position(
                     col=0,
                     line=min(
                         len(SourceTracker.source(self.source_hash)),

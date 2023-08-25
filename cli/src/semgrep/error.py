@@ -17,6 +17,7 @@ import attr  # TODO: update to next-gen API with @define; difficult cause these 
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
+from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.util import with_color
@@ -235,15 +236,15 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     return tuple(spans)
 
 
-def add_to_line(pos: out.Position, num_lines: int) -> out.Position:
-    return out.Position(col=pos.col, line=pos.line + num_lines, offset=-1)
+def add_to_line(pos: Position, num_lines: int) -> Position:
+    return Position(col=pos.col, line=pos.line + num_lines, offset=-1)
 
 
-def previous_line(pos: out.Position) -> out.Position:
+def previous_line(pos: Position) -> Position:
     return add_to_line(pos, -1)
 
 
-def next_line(pos: out.Position) -> out.Position:
+def next_line(pos: Position) -> Position:
     return add_to_line(pos, 1)
 
 
@@ -326,8 +327,8 @@ class ErrorWithSpan(SemgrepError):
 
     def _format_code_segment(
         self,
-        start: out.Position,
-        end: out.Position,
+        start: Position,
+        end: Position,
         source: List[str],
         part_of_span: Span,
     ) -> List[str]:
