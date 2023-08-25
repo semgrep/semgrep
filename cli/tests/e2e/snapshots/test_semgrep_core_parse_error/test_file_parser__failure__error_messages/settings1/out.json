@@ -10,7 +10,7 @@
           "end": {
             "col": 49,
             "line": 2,
-            "offset": 0
+            "offset": 59
           },
           "file": "targets/bad/invalid_python.py",
           "start": {

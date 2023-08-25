@@ -10,24 +10,24 @@
           "context_end": {
             "col": 0,
             "line": 8,
-            "offset": 0
+            "offset": -1
           },
           "context_start": {
             "col": 0,
             "line": 6,
-            "offset": 0
+            "offset": -1
           },
           "end": {
             "col": 26,
             "line": 7,
-            "offset": 0
+            "offset": -1
           },
           "file": "rules/syntax/badlanguage.yaml",
           "source_hash": "a586ed585e5f1676161a6663c037292f13a97ff02aeb7fa9c62517732cc00766",
           "start": {
             "col": 16,
             "line": 7,
-            "offset": 0
+            "offset": -1
           }
         }
       ],
