@@ -36,7 +36,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {
@@ -73,7 +74,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {
@@ -111,7 +113,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {

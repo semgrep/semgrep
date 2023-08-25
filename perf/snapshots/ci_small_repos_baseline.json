@@ -19,7 +19,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/tools/setup/emoji/import_emoji_names_from_csv",
           "start": {
@@ -43,7 +44,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/tools/setup/emoji/import_emoji_names_from_csv",
           "start": {
@@ -67,7 +69,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/management/commands/sync_ldap_user_data.py",
           "start": {
@@ -91,7 +94,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/tools/setup/emoji/import_emoji_names_from_csv",
           "start": {
@@ -115,7 +119,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
           "start": {
@@ -139,7 +144,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
           "start": {
@@ -163,7 +169,8 @@
             "message": "Prefer f-strings or .format for string formatting",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zilencer/management/commands/rundjangoserver.py",
           "start": {
@@ -187,7 +194,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/auth.py",
           "start": {
@@ -211,7 +219,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -235,7 +244,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
           "start": {
@@ -259,7 +269,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -283,7 +294,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -307,7 +319,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
           "start": {
@@ -331,7 +344,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/views/users.py",
           "start": {
@@ -355,7 +369,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/webhooks/librato/view.py",
           "start": {
@@ -379,7 +394,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -403,7 +419,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -427,7 +444,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -451,7 +469,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -475,7 +494,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/test_classes.py",
           "start": {
@@ -499,7 +519,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/send_email.py",
           "start": {
@@ -523,7 +544,8 @@
             "message": "Guard mutable default with read-only type (Sequence, Mapping, AbstractSet)",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/zulip/input/zulip/zerver/lib/events.py",
           "start": {
@@ -556,22 +578,22 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
-          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
+          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1:\n `{% load l10n %}\nOpenLayers.Projection.addTransform(\"EPSG:4326\", \"EPSG:3857\", OpenLayers.Layer.SphericalMercator.projectForward);\n{% block vars %}var {{ module }} = {};\n{{ module }}.map = null; {{ module }}.controls = null; {{ module }}.panel = null; {{ module }}.re = new RegExp(\"^SRID=\\\\d+;(.+)\", \"i\"); {{ module }}.layers = {};\n{{ module }}.modifiable = {{ modifiable|yesno:\"true,false\" }};\n{{ module }}.wkt_f = new OpenLayers.Format.WKT();\n{{ module }}.is_collection = {{ is_collection|yesno:\"true,false\" }};\n{{ module }}.collection_type = '{{ collection_type }}';\n{{ module }}.is_generic = {{ is_generic|yesno:\"true,false\" }};\n{{ module }}.is_linestring = {{ is_linestring|yesno:\"true,false\" }};\n{{ module }}.is_polygon = {{ is_polygon|yesno:\"true,false\" }};\n{{ module }}.is_point = {{ is_point|yesno:\"true,false\" }};\n{% endblock %}\n{{ module }}.get_ewkt = function(feat){\n    return 'SRID={{ srid|unlocalize }};' + {{ module }}.wkt_f.write(feat);\n};\n{{ module }}.read_wkt = function(wkt){\n    // OpenLayers cannot handle EWKT -- we make sure to strip it out.\n    // EWKT is only exposed to OL if there's a validation error in the admin.\n    var match = {{ module }}.re.exec(wkt);\n    if (match){wkt = match[1];}\n    return {{ module }}.wkt_f.read(wkt);\n};\n{{ module }}.write_wkt = function(feat){\n    if ({{ module }}.is_collection){ {{ module }}.num_geom = feat.geometry.components.length;}\n    else { {{ module }}.num_geom = 1;}\n    document.getElementById('{{ id }}').value = {{ module }}.get_ewkt(feat);\n};\n{{ module }}.add_wkt = function(event){\n    // This function will sync the contents of the `vector` layer with the\n    // WKT in the text field.\n    if ({{ module }}.is_collection){\n        var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n        for (var i = 0; i < {{ module }}.layers.vector.features.length; i++){\n            feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n        }\n        {{ module }}.write_wkt(feat);\n    } else {\n        // Make sure to remove any previously added features.\n        if ({{ module }}.layers.vector.features.length > 1){\n            old_feats = [{{ module }}.layers.vector.features[0]];\n            {{ module }}.layers.vector.removeFeatures(old_feats);\n            {{ module }}.layers.vector.destroyFeatures(old_feats);\n        }\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n{{ module }}.modify_wkt = function(event){\n    if ({{ module }}.is_collection){\n        if ({{ module }}.is_point){\n            {{ module }}.add_wkt(event);\n            return;\n        } else {\n            // When modifying the selected components are added to the\n            // vector layer so we only increment to the `num_geom` value.\n            var feat = new OpenLayers.Feature.Vector(new OpenLayers.Geometry.{{ geom_type }}());\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                feat.geometry.addComponents([{{ module }}.layers.vector.features[i].geometry]);\n            }\n            {{ module }}.write_wkt(feat);\n        }\n    } else {\n        {{ module }}.write_wkt(event.feature);\n    }\n};\n// Function to clear vector features and purge wkt from div\n{{ module }}.deleteFeatures = function(){\n    {{ module }}.layers.vector.removeFeatures({{ module }}.layers.vector.features);\n    {{ module }}.layers.vector.destroyFeatures();\n};\n{{ module }}.clearFeatures = function (){\n    {{ module }}.deleteFeatures();\n    document.getElementById('{{ id }}').value = '';\n    {% localize off %}\n    {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n    {% endlocalize %}\n};\n// Add Select control\n{{ module }}.addSelectControl = function(){\n    var select = new OpenLayers.Control.SelectFeature({{ module }}.layers.vector, {'toggle' : true, 'clickout' : true});\n    {{ module }}.map.addControl(select);\n    select.activate();\n};\n{{ module }}.enableDrawing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.DrawFeature')[0].activate();\n};\n{{ module }}.enableEditing = function(){\n    {{ module }}.map.getControlsByClass('OpenLayers.Control.ModifyFeature')[0].activate();\n};\n// Create an array of controls based on geometry type\n{{ module }}.getControls = function(lyr){\n    {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});\n    {{ module }}.controls = [new OpenLayers.Control.Navigation()];\n    if (!{{ module }}.modifiable && lyr.features.length) return;\n    if ({{ module }}.is_linestring || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));\n    }\n    if ({{ module }}.is_polygon || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));\n    }\n    if ({{ module }}.is_point || {{ module }}.is_generic){\n        {{ module }}.controls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));\n    }\n    if ({{ module }}.modifiable){\n        {{ module }}.controls.push(new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'}));\n    }\n};\n{{ module }}.init = function(){\n    {% block map_options %}// The options hash, w/ zoom, resolution, and projection settings.\n    var options = {\n{% autoescape off %}{% for item in map_options.items %}      '{{ item.0 }}' : {{ item.1 }}{% if not forloop.last %},{% endif %}\n{% endfor %}{% endautoescape %}    };{% endblock %}\n    // The admin map for this geometry field.\n    {% block map_creation %}\n    {{ module }}.map = new OpenLayers.Map('{{ id }}_map', options);\n    // Base Layer\n    {{ module }}.layers.base = {% block base_layer %}new OpenLayers.Layer.WMS(\"{{ wms_name }}\", \"{{ wms_url }}\", {layers: '{{ wms_layer }}'{{ wms_options|safe }}});{% endblock %}\n    {{ module }}.map.addLayer({{ module }}.layers.base);\n    {% endblock %}\n    {% block extra_layers %}{% endblock %}\n    {% if is_linestring %}OpenLayers.Feature.Vector.style[\"default\"][\"strokeWidth\"] = 3; // Default too thin for linestrings. {% endif %}\n    {{ module }}.layers.vector = new OpenLayers.Layer.Vector(\" {{ field_name }}\");\n    {{ module }}.map.addLayer({{ module }}.layers.vector);\n    // Read WKT from the text field.\n    var wkt = document.getElementById('{{ id }}').value;\n    if (wkt){\n        // After reading into geometry, immediately write back to\n        // WKT <textarea> as EWKT (so that SRID is included).\n        var admin_geom = {{ module }}.read_wkt(wkt);\n        {{ module }}.write_wkt(admin_geom);\n        if ({{ module }}.is_collection){\n            // If geometry collection, add each component individually so they may be\n            // edited individually.\n            for (var i = 0; i < {{ module }}.num_geom; i++){\n                {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);\n            }\n        } else {\n            {{ module }}.layers.vector.addFeatures([admin_geom]);\n        }\n        // Zooming to the bounds.\n        {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());\n        if ({{ module }}.is_point){\n            {{ module }}.map.zoomTo({{ point_zoom }});\n        }\n    } else {\n        {% localize off %}\n        {{ module }}.map.setCenter(new OpenLayers.LonLat({{ default_lon }}, {{ default_lat }}), {{ default_zoom }});\n        {% endlocalize %}\n    }\n    // This allows editing of the geographic fields -- the modified WKT is\n    // written back to the content field (as EWKT, so that the ORM will know\n    // to transform back to original SRID).\n    {{ module }}.layers.vector.events.on({\"featuremodified\" : {{ module }}.modify_wkt});\n    {{ module }}.layers.vector.events.on({\"featureadded\" : {{ module }}.add_wkt});\n    {% block controls %}\n    // Map controls:\n    // Add geometry specific panel of toolbar controls\n    {{ module }}.getControls({{ module }}.layers.vector);\n    {{ module }}.panel.addControls({{ module }}.controls);\n    {{ module }}.map.addControl({{ module }}.panel);\n    {{ module }}.addSelectControl();\n    // Then add optional visual controls\n    {% if mouse_position %}{{ module }}.map.addControl(new OpenLayers.Control.MousePosition());{% endif %}\n    {% if scale_text %}{{ module }}.map.addControl(new OpenLayers.Control.Scale());{% endif %}\n    {% if layerswitcher %}{{ module }}.map.addControl(new OpenLayers.Control.LayerSwitcher());{% endif %}\n    // Then add optional behavior controls\n    {% if not scrollable %}{{ module }}.map.getControlsByClass('OpenLayers.Control.Navigation')[0].disableZoomWheel();{% endif %}\n    {% endblock %}\n    if (wkt){\n        if ({{ module }}.modifiable){\n            {{ module }}.enableEditing();\n        }\n    } else {\n        {{ module }}.enableDrawing();\n    }\n};\n` was unexpected",
+          "path": "/Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1:\n `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
+          "path": "/Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
           "spans": [
             {
               "end": {
                 "col": 88,
                 "line": 2
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
               "start": {
                 "col": 1,
                 "line": 1
@@ -615,7 +637,8 @@
               "references": ["https://golang.org/pkg/html/template/#HTML"]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
           "start": {
@@ -643,7 +666,8 @@
               "references": ["https://golang.org/pkg/html/template/#HTML"]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
           "start": {
@@ -671,7 +695,8 @@
               "references": ["https://golang.org/pkg/html/template/#HTML"]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
           "start": {
@@ -699,7 +724,8 @@
               "references": ["https://golang.org/pkg/html/template/#HTML"]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
           "start": {
@@ -727,7 +753,8 @@
               "source-rule-url": "https://github.com/securego/gosec"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/util/database/database.go",
           "start": {
@@ -755,7 +782,8 @@
               "source-rule-url": "https://github.com/securego/gosec#available-rules"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/csa/csa.go",
           "start": {
@@ -783,7 +811,8 @@
               "source-rule-url": "https://github.com/securego/gosec#available-rules"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/vulnerability/idor/idor.go",
           "start": {
@@ -811,7 +840,8 @@
               "source-rule-url": "https://github.com/securego/gosec#available-rules"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/0c34/input/govwa/user/user.go",
           "start": {
@@ -843,7 +873,8 @@
             "message": "Detected a useless comparison operation `position == position` or `position != position`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/lodash/input/lodash/endsWith.js",
           "start": {
@@ -869,15 +900,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
-          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14:\n `new?:` was unexpected",
+          "path": "/Users/andre/semgrep/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
           "spans": [
             {
               "end": {
                 "col": 8,
                 "line": 14
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
               "start": {
                 "col": 3,
                 "line": 14
@@ -907,7 +938,8 @@
               "source-rule-url": "https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/juice-shop/input/juice-shop/lib/insecurity.js",
           "start": {
@@ -934,7 +966,8 @@
               "owasp": "A8: Insecure Deserialization"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/juice-shop/input/juice-shop/server.js",
           "start": {
@@ -976,7 +1009,8 @@
               "source-rule-url": "https://github.com/PyCQA/bandit/blob/d5f8fa0d89d7b11442fc6ec80ca42953974354c8/bandit/blacklists/calls.py#L59"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
           "start": {
@@ -1004,7 +1038,8 @@
               "references": ["https://docs.python.org/3/library/pickle.html"]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
           "start": {
@@ -1035,7 +1070,8 @@
               ]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
           "start": {
@@ -1066,7 +1102,8 @@
               ]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
           "start": {
@@ -1098,7 +1135,8 @@
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/debughelpers.py",
           "start": {
@@ -1122,7 +1160,8 @@
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/debughelpers.py",
           "start": {
@@ -1146,7 +1185,8 @@
             "message": "Found identical comparison using is. Ensure this is what you intended.",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/cli.py",
           "start": {
@@ -1170,7 +1210,8 @@
             "message": "Found identical comparison using is. Ensure this is what you intended.",
             "metadata": {},
             "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
+            "severity": "ERROR",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/pallets/input/flask/src/flask/cli.py",
           "start": {
@@ -1196,46 +1237,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-          "spans": [
-            {
-              "end": {
-                "col": 20,
-                "line": 62
-              },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-              "start": {
-                "col": 1,
-                "line": 62
-              }
-            },
-            {
-              "end": {
-                "col": 7,
-                "line": 64
-              },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-              "start": {
-                "col": 1,
-                "line": 64
-              }
-            }
-          ],
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Syntax error at line /Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
-          "path": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49:\n `__MALLOC_HOOK_VOLATILE` was unexpected",
+          "path": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
           "spans": [
             {
               "end": {
                 "col": 30,
                 "line": 49
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
                 "col": 8,
                 "line": 49
@@ -1246,7 +1256,7 @@
                 "col": 63,
                 "line": 102
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
                 "col": 51,
                 "line": 102
@@ -1257,7 +1267,7 @@
                 "col": 56,
                 "line": 108
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
                 "col": 44,
                 "line": 108
@@ -1268,7 +1278,7 @@
                 "col": 43,
                 "line": 219
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
                 "col": 31,
                 "line": 219
@@ -1279,10 +1289,41 @@
                 "col": 44,
                 "line": 238
               },
-              "file": "/Users/emma/workspace/semgrep-proprietary/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
               "start": {
                 "col": 32,
                 "line": 238
+              }
+            }
+          ],
+          "type": "Syntax error"
+        },
+        {
+          "code": 3,
+          "level": "warn",
+          "message": "Syntax error at line /Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62:\n `#ifndef __WINDOWS__` was unexpected",
+          "path": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+          "spans": [
+            {
+              "end": {
+                "col": 20,
+                "line": 62
+              },
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "start": {
+                "col": 1,
+                "line": 62
+              }
+            },
+            {
+              "end": {
+                "col": 7,
+                "line": 64
+              },
+              "file": "/Users/andre/semgrep/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+              "start": {
+                "col": 1,
+                "line": 64
               }
             }
           ],
@@ -1310,7 +1351,8 @@
               ]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
           "start": {
@@ -1339,7 +1381,8 @@
               ]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
           "start": {
@@ -1368,7 +1411,8 @@
               ]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
           "start": {
@@ -1397,7 +1441,8 @@
               ]
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/t00sh/input/rop-tool/api/src/disassemble/dis.c",
           "start": {
@@ -1434,7 +1479,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
           "start": {
@@ -1463,7 +1509,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
           "start": {
@@ -1492,7 +1539,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
           "start": {
@@ -1521,7 +1569,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
           "start": {
@@ -1550,7 +1599,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
           "start": {
@@ -1579,7 +1629,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -1608,7 +1659,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
           "start": {
@@ -1637,7 +1689,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
           "start": {
@@ -1666,7 +1719,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
           "start": {
@@ -1695,7 +1749,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
           "start": {
@@ -1724,7 +1779,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
           "start": {
@@ -1753,7 +1809,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
           "start": {
@@ -1782,7 +1839,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
           "start": {
@@ -1811,7 +1869,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/golang/Dockerfile",
           "start": {
@@ -1840,7 +1899,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/csharp/Dockerfile",
           "start": {
@@ -1869,7 +1929,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
           "start": {
@@ -1898,7 +1959,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -1927,7 +1989,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
           "start": {
@@ -1956,7 +2019,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -1985,7 +2049,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.21.0/cxx/Dockerfile",
           "start": {
@@ -2014,7 +2079,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.12.0/cxx/Dockerfile",
           "start": {
@@ -2043,7 +2109,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
           "start": {
@@ -2072,7 +2139,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
           "start": {
@@ -2101,7 +2169,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2130,7 +2199,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2159,7 +2229,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2188,7 +2259,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2217,7 +2289,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
           "start": {
@@ -2246,7 +2319,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2275,7 +2349,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
           "start": {
@@ -2304,7 +2379,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
           "start": {
@@ -2333,7 +2409,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
           "start": {
@@ -2362,7 +2439,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
           "start": {
@@ -2391,7 +2469,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
           "start": {
@@ -2420,7 +2499,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
           "start": {
@@ -2449,7 +2529,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
           "start": {
@@ -2478,7 +2559,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -2507,7 +2589,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2536,7 +2619,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -2565,7 +2649,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -2594,7 +2679,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
           "start": {
@@ -2623,7 +2709,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
           "start": {
@@ -2652,7 +2739,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
           "start": {
@@ -2681,7 +2769,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
           "start": {
@@ -2710,7 +2799,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
           "start": {
@@ -2739,7 +2829,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
           "start": {
@@ -2768,7 +2859,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
           "start": {
@@ -2797,7 +2889,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/golang/Dockerfile",
           "start": {
@@ -2826,7 +2919,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/golang/Dockerfile",
           "start": {
@@ -2855,7 +2949,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
           "start": {
@@ -2884,7 +2979,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
           "start": {
@@ -2913,7 +3009,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
           "start": {
@@ -2942,7 +3039,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -2971,7 +3069,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
           "start": {
@@ -3000,7 +3099,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.21.0/cxx/Dockerfile",
           "start": {
@@ -3029,7 +3129,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
           "start": {
@@ -3058,7 +3159,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.12.0/cxx/Dockerfile",
           "start": {
@@ -3087,7 +3189,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
           "start": {
@@ -3116,7 +3219,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -3145,7 +3249,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
           "start": {
@@ -3174,7 +3279,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
           "start": {
@@ -3203,7 +3309,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
           "start": {
@@ -3232,7 +3339,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
           "start": {
@@ -3261,7 +3369,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
           "start": {
@@ -3290,7 +3399,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
           "start": {
@@ -3319,7 +3429,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
           "start": {
@@ -3348,7 +3459,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/golang/Dockerfile",
           "start": {
@@ -3377,7 +3489,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
           "start": {
@@ -3406,7 +3519,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
           "start": {
@@ -3435,7 +3549,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3009"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "WARNING"
+            "severity": "WARNING",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -3464,7 +3579,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3027"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -3493,7 +3609,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/slim/Dockerfile",
           "start": {
@@ -3522,7 +3639,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/Dockerfile",
           "start": {
@@ -3551,7 +3669,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/alpine/Dockerfile",
           "start": {
@@ -3580,7 +3699,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/slim/Dockerfile",
           "start": {
@@ -3609,7 +3729,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/slim/Dockerfile",
           "start": {
@@ -3638,7 +3759,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/slim/Dockerfile",
           "start": {
@@ -3667,7 +3789,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/Dockerfile",
           "start": {
@@ -3696,7 +3819,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/Dockerfile",
           "start": {
@@ -3725,7 +3849,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/Dockerfile",
           "start": {
@@ -3754,7 +3879,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/alpine/Dockerfile",
           "start": {
@@ -3783,7 +3909,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
           "start": {
@@ -3812,7 +3939,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
           "start": {
@@ -3841,7 +3969,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/slim/Dockerfile",
           "start": {
@@ -3870,7 +3999,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/python/Dockerfile",
           "start": {
@@ -3899,7 +4029,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/slim/Dockerfile",
           "start": {
@@ -3928,7 +4059,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/slim/Dockerfile",
           "start": {
@@ -3957,7 +4089,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/slim/Dockerfile",
           "start": {
@@ -3986,7 +4119,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/Dockerfile",
           "start": {
@@ -4015,7 +4149,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.13.0/python/Dockerfile",
           "start": {
@@ -4044,7 +4179,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.4/python/Dockerfile",
           "start": {
@@ -4073,7 +4209,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -4102,7 +4239,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/csharp/Dockerfile",
           "start": {
@@ -4131,7 +4269,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -4160,7 +4299,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
           "start": {
@@ -4189,7 +4329,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
           "start": {
@@ -4218,7 +4359,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/node/Dockerfile",
           "start": {
@@ -4247,7 +4389,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/node/Dockerfile",
           "start": {
@@ -4276,7 +4419,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
           "start": {
@@ -4305,7 +4449,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/ruby/Dockerfile",
           "start": {
@@ -4334,7 +4479,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/php/Dockerfile",
           "start": {
@@ -4363,7 +4509,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
           "start": {
@@ -4392,7 +4539,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/cxx/Dockerfile",
           "start": {
@@ -4421,7 +4569,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/cxx/Dockerfile",
           "start": {
@@ -4450,7 +4599,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/php/Dockerfile",
           "start": {
@@ -4479,7 +4629,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.0/php/Dockerfile",
           "start": {
@@ -4508,7 +4659,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.21.0/cxx/Dockerfile",
           "start": {
@@ -4537,7 +4689,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
           "start": {
@@ -4566,7 +4719,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.12.0/cxx/Dockerfile",
           "start": {
@@ -4595,7 +4749,8 @@
               "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3015"
             },
             "metavars": "<masked in benchmarks>",
-            "severity": "INFO"
+            "severity": "INFO",
+            "validation_state": "NO_VALIDATOR"
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
           "start": {

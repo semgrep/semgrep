@@ -22,7 +22,8 @@
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/regex-utf8.txt",
       "start": {
@@ -46,7 +47,8 @@
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/regex-utf8.txt",
       "start": {
@@ -70,7 +72,8 @@
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/regex-utf8.txt",
       "start": {

@@ -22,7 +22,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -46,7 +47,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -70,7 +72,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -94,7 +97,8 @@
         "message": "Found match",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -203,7 +207,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {
@@ -312,7 +317,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/js_html_concat.html",
       "start": {

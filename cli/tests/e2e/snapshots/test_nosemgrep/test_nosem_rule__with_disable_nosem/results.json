@@ -38,7 +38,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.c",
       "start": {
@@ -62,7 +63,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.c",
       "start": {
@@ -86,7 +88,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.c",
       "start": {
@@ -110,7 +113,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.go",
       "start": {
@@ -134,7 +138,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.go",
       "start": {
@@ -158,7 +163,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.java",
       "start": {
@@ -182,7 +188,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.java",
       "start": {
@@ -206,7 +213,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.java",
       "start": {
@@ -230,12 +238,14 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
@@ -253,7 +263,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -277,7 +288,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -301,7 +313,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -325,7 +338,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -349,7 +363,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -373,7 +388,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -397,7 +413,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -421,7 +438,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.js",
       "start": {
@@ -445,7 +463,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -469,7 +488,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -493,7 +513,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -517,7 +538,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -541,7 +563,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -565,7 +588,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -589,7 +613,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -613,7 +638,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -637,7 +663,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -661,7 +688,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {
@@ -685,7 +713,8 @@
         "message": "test-nosem-message",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/nosem.py",
       "start": {

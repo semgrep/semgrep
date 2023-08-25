@@ -265,6 +265,8 @@ let prepare_for_report ~blocking_findings findings errors rules ~targets
         renamed_paths = [];
         rule_ids;
         contributions = None;
+        (* TODO: Figure out correct value for this. *)
+        dependencies = None;
       }
   in
   let findings_and_ignores =

@@ -326,6 +326,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
        metavars;
        engine_kind;
        extra_extra;
+       validation_state;
        (* used now in render_fix instead *)
        rendered_fix = _;
        (* LATER *)
@@ -387,6 +388,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
             (* It's optional in the CLI output, but not in the core match results!
              *)
             engine_kind = Some engine_kind;
+            validation_state;
             extra_extra;
           };
       }

@@ -21,7 +21,8 @@
         "message": "Match any file",
         "metadata": {},
         "metavars": {},
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/empty/totally_empty_file",
       "start": {

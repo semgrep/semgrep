@@ -22,7 +22,8 @@
         "message": "left `test123` in the code",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/python_jupyter_paths_include.ipynb",
       "start": {
@@ -46,7 +47,8 @@
         "message": "check for data",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/extract/python_jupyter_paths_include.ipynb",
       "start": {

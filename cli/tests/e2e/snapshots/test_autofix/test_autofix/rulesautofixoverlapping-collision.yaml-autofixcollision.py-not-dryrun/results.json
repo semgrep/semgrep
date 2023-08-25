@@ -50,7 +50,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/collision.py",
       "start": {
@@ -102,7 +103,8 @@
             }
           }
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/collision.py",
       "start": {

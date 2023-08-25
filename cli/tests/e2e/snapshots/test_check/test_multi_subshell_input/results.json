@@ -23,7 +23,8 @@
         "message": "a",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "/tmp/masked/path",
       "start": {
@@ -47,7 +48,8 @@
         "message": "a",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "/tmp/masked/path",
       "start": {

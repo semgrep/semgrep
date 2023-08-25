@@ -62,7 +62,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/propagated_constant.py",
       "start": {
@@ -113,7 +114,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/message_interpolation/propagated_constant.py",
       "start": {

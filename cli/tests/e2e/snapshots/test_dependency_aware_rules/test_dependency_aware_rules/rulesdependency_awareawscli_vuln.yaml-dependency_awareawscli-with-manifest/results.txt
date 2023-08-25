@@ -58,7 +58,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
       "start": {
@@ -108,7 +109,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
       "start": {
@@ -208,7 +210,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
       "start": {
@@ -258,7 +261,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
       "start": {
@@ -308,7 +312,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
       "start": {
@@ -358,7 +363,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/awscli-with-manifest/awscli_vuln.py",
       "start": {

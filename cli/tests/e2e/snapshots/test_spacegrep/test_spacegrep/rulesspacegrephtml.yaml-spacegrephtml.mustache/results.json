@@ -22,7 +22,8 @@
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/html.mustache",
       "start": {
@@ -46,7 +47,8 @@
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/html.mustache",
       "start": {
@@ -70,7 +72,8 @@
         "message": "Detected template variable in script tag. This is dangerous because\nHTML escaping does not prevent injection in script contexts.\n",
         "metadata": {},
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/html.mustache",
       "start": {

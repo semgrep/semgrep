@@ -36,7 +36,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
@@ -74,7 +75,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
@@ -112,7 +114,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
@@ -150,7 +153,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
@@ -188,7 +192,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
@@ -226,7 +231,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/spacegrep/markdown.md",
       "start": {
