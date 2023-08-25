@@ -479,6 +479,17 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
               skipped = None;
             }
       in
+      let skipped_rules =
+        (* TODO: return skipped_rules with --develop
+
+           if maturity = Develop then
+             invalid_rules
+           else
+        *)
+        (* compatibility with pysemgrep *)
+        ignore skipped_rules;
+        []
+      in
       {
         version = Some Version.version;
         (* Skipping the python intermediate RuleMatchMap for now.
