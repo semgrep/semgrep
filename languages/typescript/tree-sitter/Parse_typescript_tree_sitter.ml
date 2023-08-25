@@ -3215,7 +3215,7 @@ let parse ?dialect file =
 
       if debug then (
         Printexc.record_backtrace true;
-        CST.dump_tree cst);
+        Boilerplate_tree_sitter_typescript.dump_tree cst);
 
       match program env cst with
       | Program p -> p

@@ -34,8 +34,6 @@ type t = {
   in_agent : bool;
   (* $SEMGREP_xxx *)
   min_fetch_depth : int;
-  shouldafound_base_url : Uri.t;
-  shouldafound_no_email : bool;
 }
 
 val v : t

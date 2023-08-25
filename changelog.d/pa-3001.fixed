@@ -1,0 +1,6 @@
+Julia: Type information from declarations can now be used in
+`metavariable-type`. For instance, the program:
+```
+x :: Int64 = 2
+```
+will now allow uses of `x` to match to the type `Int64`.
