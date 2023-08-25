@@ -47,8 +47,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "ERROR"
       },
       "path": "foo.py",
       "start": {
@@ -86,8 +85,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "ERROR"
       },
       "path": "foo.py",
       "start": {
@@ -125,8 +123,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "ERROR"
       },
       "path": "foo.py",
       "start": {
@@ -164,8 +161,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "ERROR"
       },
       "path": "foo.py",
       "start": {
@@ -215,8 +211,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "ERROR"
       },
       "path": "foo.py",
       "start": {
@@ -267,8 +262,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "ERROR",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "ERROR"
       },
       "path": "foo.py",
       "start": {
@@ -390,8 +384,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
             }
           }
         },
-        "severity": "WARNING",
-        "validation_state": "NO_VALIDATOR"
+        "severity": "WARNING"
       },
       "path": "foo.py",
       "start": {
