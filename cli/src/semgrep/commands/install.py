@@ -15,6 +15,7 @@ from rich.progress import TimeRemainingColumn
 from rich.progress import TransferSpeedColumn
 
 from semgrep import __VERSION__
+from semgrep.commands.wrapper import AdvancedCommand
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
@@ -149,11 +150,11 @@ def run_install_semgrep_pro() -> None:
     logger.info(f"Successfully installed Semgrep Pro Engine (version {version})!")
 
 
-@click.command()
+@click.command(cls=AdvancedCommand)
 @handle_command_errors
 def install_semgrep_pro() -> None:
     """
-    Install the Semgrep Pro Engine
+    Install the Semgrep Pro Engine (recommended)
 
     The binary is installed in the same directory that semgrep-core
     is installed in.

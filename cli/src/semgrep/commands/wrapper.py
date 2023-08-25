@@ -4,10 +4,24 @@ from typing import Any
 from typing import Callable
 from typing import NoReturn
 
+import click
+
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
+
+
+class CommandSection(click.Command):
+    section: str = (
+        "Commands"  # Name of the section to group the command under in the help menu
+    )
+    priority: int = 0  # Order of the command group (lowest is first)
+
+
+class AdvancedCommand(CommandSection):
+    section: str = "Advanced Commands"
+    priority: int = 1
 
 
 def handle_command_errors(func: Callable) -> Callable:

@@ -67,7 +67,7 @@ def _get_test_code_for_config(
     return config_filenames, config_test_filenames
 
 
-@click.command()
+@click.command(hidden=True)
 @click.argument("target", nargs=1, type=click.Path(allow_dash=True))
 @click.option(
     "--visibility",

@@ -9,6 +9,7 @@ from semgrep.commands.login import logout
 from semgrep.commands.lsp import lsp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
+from semgrep.constants import DEFAULT_EPILOGUE
 from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.util import git_check_output
@@ -42,16 +43,16 @@ def maybe_set_git_safe_directories() -> None:
         )
 
 
-@click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.group(
+    cls=DefaultGroup, default_command="scan", name="semgrep", epilog=DEFAULT_EPILOGUE
+)
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """
-    To get started quickly, run `semgrep scan --config auto`
+    Semgrep CLI scans your code for bugs, security and dependency vulnerabilities.
 
-    Run `semgrep SUBCOMMAND --help` for more information on each subcommand
-
-    If no subcommand is passed, will run `scan` subcommand by default
+    For more information about Semgrep, visit https://semgrep.dev
     """
     state = get_state()
     state.terminal.init_for_cli()
