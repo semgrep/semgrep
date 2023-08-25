@@ -10,5 +10,5 @@
 --- pattern ---
 $X == $X 3
 --- end pattern ---
-Pattern error: Parsing.Parse_error
+Pattern error: Stdlib.Parsing.Parse_error
 
