@@ -17,7 +17,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
 
-import semgrep.semgrep_main
+import semgrep.run_scan
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
@@ -410,7 +410,7 @@ def ci(
             shown_severities,
             dependencies,
             dependency_parser_errors,
-        ) = semgrep.semgrep_main.main(
+        ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
             output_handler=output_handler,
