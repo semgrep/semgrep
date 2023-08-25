@@ -27,8 +27,6 @@ from semgrep.app import auth
 from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_CONFIG_FILE
-from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
@@ -374,12 +372,6 @@ class Config:
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
 
-        if not configs:
-            try:
-                config_dict.update(load_default_config())
-            except SemgrepError as e:
-                errors.append(e)
-
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
@@ -699,20 +691,6 @@ def _is_hidden_config(loc: Path) -> bool:
     )
 
 
-def load_default_config() -> Dict[str, YamlTree]:
-    """
-    Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
-    """
-    default_file = Path(DEFAULT_CONFIG_FILE)
-    default_folder = Path(DEFAULT_CONFIG_FOLDER)
-    config_infos = []
-    if default_file.exists():
-        config_infos = [read_config_at_path(default_file)]
-    elif default_folder.exists():
-        config_infos = read_config_folder(default_folder, relative=True)
-    return parse_config_files(config_infos)
-
-
 def is_registry_id(config_str: str) -> bool:
     """
     Starts with r/, p/, s/ for registry, pack, and snippet respectively
@@ -826,7 +804,7 @@ def get_config(
 
     if not config:
         raise SemgrepError(
-            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
+            f"No config given. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
     return config, errors
