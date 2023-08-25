@@ -9,21 +9,25 @@
         {
           "context_end": {
             "col": 0,
-            "line": 3
+            "line": 3,
+            "offset": 0
           },
           "context_start": {
             "col": 0,
-            "line": 1
+            "line": 1,
+            "offset": 0
           },
           "end": {
             "col": 9,
-            "line": 2
+            "line": 2,
+            "offset": 0
           },
           "file": "rules/syntax/bad11.yaml",
           "source_hash": "7a019471428f78e4d02c4c06c76fd7195445c3ccb10b555af042346e63d8c3de",
           "start": {
             "col": 5,
-            "line": 2
+            "line": 2,
+            "offset": 0
           }
         }
       ],
@@ -41,5 +45,6 @@
     "scanned": []
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }

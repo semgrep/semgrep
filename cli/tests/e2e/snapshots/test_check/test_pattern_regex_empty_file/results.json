@@ -11,8 +11,7 @@
       "check_id": "rules.any-file",
       "end": {
         "col": 1,
-        "line": 0,
-        "offset": 0
+        "line": 0
       },
       "extra": {
         "engine_kind": "OSS",
@@ -28,10 +27,10 @@
       "path": "targets/empty/totally_empty_file",
       "start": {
         "col": 1,
-        "line": 0,
-        "offset": 0
+        "line": 0
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }

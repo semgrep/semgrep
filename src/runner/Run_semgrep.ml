@@ -332,29 +332,6 @@ let exn_to_error file (e : Exception.t) =
       E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file e
 
-(* Return an exception
- * - always, if there are no rules but just invalid rules
- * - TODO when users want to fail fast, if there are valid and invalid rules.
- *   (right now we always fail when there is one invalid rule, because
- *   we don't have a fail_fast flag (we could use the flag for -strict))
- *
- * update: we now parse patterns lazily in Parse_rule.ml, which means
- * we will not get anymore an invalid_rule below for a rule containing
- * a parse error in a pattern (we still get an invalid_rule for
- * other kinds of errors such as the use of an invalid language).
- * Instead, parse error exns in patterns are raised later (as we run the engine).
- * Fortunately, now those exns are converted in errors which are detected in
- * sanity_check_invalid_patterns() below, and then we return the same kind of error
- * we used to before the lazy pattern optimisation.
- *)
-let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
-  match (rules, invalid_rules) with
-  | [], [] -> ()
-  | [], err :: _ -> raise (R.Err (R.InvalidRule err))
-  | _, err :: _ (* TODO fail fast only when in strict mode? *) ->
-      raise (R.Err (R.InvalidRule err))
-  | _, [] -> ()
-
 let sanity_check_invalid_patterns (res : RP.final_result) files =
   match
     res.RP.errors
@@ -724,8 +701,6 @@ let extracted_targets_of_config (config : Runner_config.t)
  *)
 let semgrep_with_rules ?match_hook config
     ((rules, invalid_rules), rules_parse_time) =
-  sanity_check_rules_and_invalid_rules config rules invalid_rules;
-
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
   (* The basic targets.

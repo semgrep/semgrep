@@ -368,7 +368,7 @@ functions.
   (description "\
 Semgrep is like grep but for searching patterns at the AST level.
 
-For more information see https://semsgrep.dev
+For more information see https://semgrep.com
 "
   )
 
@@ -428,6 +428,7 @@ For more information see https://semsgrep.dev
     pcre
     ocamlgraph
     parmap
+    semver
     uri
     uuidm
     cohttp-lwt-unix
