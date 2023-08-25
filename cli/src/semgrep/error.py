@@ -65,7 +65,6 @@ class SemgrepError(Exception):
         self.code = code
         self.level = level
         self.color = Colors.red if level == Level.ERROR else Colors.yellow
-
         super().__init__(*args)
 
     def to_CliError(self) -> out.CliError:
@@ -84,7 +83,11 @@ class SemgrepError(Exception):
         return cast(Dict[str, Any], self.to_CliError().to_json())
 
     def format_for_terminal(self) -> str:
-        return format_for_terminal(str(self), self.color, self.level.name)
+        return format_for_terminal(
+            str(self),
+            self.color if hasattr(self, "color") else Colors.red,
+            self.level.name,
+        )
 
     # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
