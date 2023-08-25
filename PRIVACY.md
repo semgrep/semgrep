@@ -58,7 +58,7 @@ The following never leave your environment and are not sent or shared with anyon
 The following data will never leave your environment as part of metrics.
 
 - Filenames
-- Git commit hashes, messages, authors
+- Git commit hashes, timestamps, messages, authors
 - User-identifiable data about Semgrep’s findings in your code, including finding messages
 
 This data will be sent to Semgrep App only if you explicitly request it,
@@ -328,7 +328,7 @@ The classes of scan data are:
 - Project identity (e.g., name, URL)
 - Scan environment (e.g., CI provider, OS)
 - Author identity (e.g., committer email)
-- Commit metadata (e.g., commit hash)
+- Commit metadata (e.g., commit hash and timestamp)
 - Review and review-requester identifying data (e.g., pull-request ID, branch, merge base, request author)
 - Scan metadata, including type of scan and scan parameters (e.g., paths scanned and extensions of ignored files)
 - Timing metrics (e.g., time taken to scan per-rule and per-path)
