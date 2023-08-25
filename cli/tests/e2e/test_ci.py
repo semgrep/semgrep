@@ -8,13 +8,13 @@
 # a real e2e test because cli/bin/semgrep is not invoked.
 # Try to use environment variables instead of Python monkey patching
 # so that those tests can also pass with osemgrep.
-from datetime import datetime
 import json
 import re
 import shutil
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 from typing import List
