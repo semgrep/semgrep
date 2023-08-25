@@ -849,10 +849,21 @@ let semgrep_with_rules ?match_hook config
     | RP.No_info -> RP.No_info
   in
   let errors = new_errors @ res.errors in
+  let skipped_rules =
+    (* TODO: return skipped_rules with --develop
+
+        if maturity = Develop then
+          invalid_rules
+        else
+    *)
+    (* compatibility with pysemgrep *)
+    ignore invalid_rules;
+    []
+  in
   ( {
       RP.matches;
       errors;
-      skipped_rules = invalid_rules;
+      skipped_rules;
       extra;
       explanations = res.explanations;
       rules_by_engine =
