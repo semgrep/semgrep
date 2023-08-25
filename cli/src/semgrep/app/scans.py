@@ -56,6 +56,7 @@ class ScanHandler:
         self._skipped_match_based_ids: List[str] = []
         self._scan_params: str = ""
         self._rules: str = ""
+        self._enabled_products: List[str] = []
 
     @property
     def deployment_id(self) -> Optional[int]:
@@ -120,6 +121,13 @@ class ScanHandler:
         """
         return self._rules
 
+    @property
+    def enabled_products(self) -> List[str]:
+        """
+        Separate property for easy of mocking in test
+        """
+        return self._enabled_products
+
     def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
         state = get_state()
         response = state.app_session.get(url)
@@ -173,6 +181,7 @@ class ScanHandler:
         self._dependency_query = body.get("dependency_query") or False
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
+        self._enabled_products = body.get("enabled_products") or []
         self.ignore_patterns = body.get("ignored_files") or []
 
         if state.terminal.is_debug:
@@ -216,6 +225,7 @@ class ScanHandler:
 
         body = response.json()
         self.scan_id = body["scan"]["id"]
+        self._enabled_products = body["scan"].get("enabled_products") or []
 
     def report_failure(self, exit_code: int) -> None:
         """

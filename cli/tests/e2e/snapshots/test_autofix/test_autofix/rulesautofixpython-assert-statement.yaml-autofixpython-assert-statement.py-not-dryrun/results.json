@@ -37,7 +37,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/python-assert-statement.py",
       "start": {
@@ -76,7 +77,8 @@
             }
           }
         },
-        "severity": "INFO"
+        "severity": "INFO",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/autofix/python-assert-statement.py",
       "start": {

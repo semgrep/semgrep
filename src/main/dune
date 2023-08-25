@@ -21,5 +21,8 @@
  (package semgrep)
  (section bin)
  ; LATER: at some point we should copy it as osemgrep instead
- (files (Main.exe as semgrep-core))
+ (files
+  (Main.exe as semgrep-core)
+  (Main.bc as semgrep-core.bc)
+ )
 )

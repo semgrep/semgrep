@@ -1329,6 +1329,8 @@ and map_operation (env : env) (x : CST.operation) =
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
+  | `Deep_exp (l, e, r) ->
+      G.DeepEllipsis (token env l, map_expression env e, token env r) |> G.e
   | `Semg_ellips tok -> Ellipsis (token env tok) |> G.e
   | `Choice_choice_module_defi x -> (
       match x with
@@ -1343,6 +1345,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           | [ { s = ExprStmt (expr, _); _ } ] -> expr
           | [ { s = Block (_, [ { s = ExprStmt (expr, _); _ } ], _); _ } ] ->
               expr
+          | [ x ] -> StmtExpr x |> G.e
           | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
       | `Num x -> map_number env x
       | `Prim_exp x -> map_primary_expression env x

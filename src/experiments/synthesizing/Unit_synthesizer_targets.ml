@@ -2,7 +2,7 @@
 open Common
 module R = Rule
 module E = Semgrep_error_code
-module Out = Output_from_core_t
+module Out = Semgrep_output_v1_t
 
 (* ran from the root of the semgrep repository *)
 let test_path = "tests/synthesizing/targets/"

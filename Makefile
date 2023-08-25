@@ -81,6 +81,13 @@ core:
 	test -e bin || ln -s _build/install/default/bin .
 	ln -s semgrep-core bin/osemgrep
 
+#history: was called the 'all' target in semgrep-core/Makefile before
+.PHONY: core-bc
+core-bc: minimal-build-bc
+	# make executables easily accessible for manual testing:
+	test -e bin || ln -s _build/install/default/bin .
+	ln -s semgrep-core.bc bin/osemgrep.bc
+
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
@@ -94,6 +101,11 @@ copy-core-for-cli:
 .PHONY: minimal-build
 minimal-build:
 	dune build _build/install/default/bin/semgrep-core
+
+
+.PHONY: minimal-build-bc
+minimal-build-bc:
+	dune build _build/install/default/bin/semgrep-core.bc
 
 # It is better to run this from a fresh repo or after a 'make clean',
 # to not send too much data to the Docker daemon.
@@ -143,40 +155,17 @@ core-clean:
 ###############################################################################
 
 # Install semgrep on a developer's machine with pip and opam installed.
+# This should *not* install the open-source libraries that we maintain
+# as part of the semgrep project.
 .PHONY: install
 install:
-	# Install semgrep-core into opam's bin which is in our PATH.
-	# This is not needed or used by the pip install.
-	$(MAKE) core-install
+	$(MAKE) copy-core-for-cli
 	# Install semgrep and semgrep-core in a place known to pip.
 	python3 -m pip install ./cli
 
 .PHONY: uninstall
 uninstall:
-	-$(MAKE) core-uninstall
 	-python3 -m pip uninstall --yes semgrep
-
-# Install the semgrep-core executable, as well as any other executable or
-# library built from OCaml or C and needed for a complete semgrep install
-# for a user of semgrep who builds and installs semgrep from source
-# for local use.
-#
-# This should *not* install the open-source libraries that we maintain
-# as part of the semgrep project.
-.PHONY: core-install
-core-install: copy-core-for-cli
-	# The executable created by dune doesn't have the write permission,
-	# causing an error when running a straight cp if a file is already
-	# there.
-	# Known alternative: use 'install -m 0644 ...' instead of cp
-	$(MAKE) core-uninstall
-	cp bin/semgrep-core "$$(opam var bin)"/
-
-# Try to uninstall what was installed by 'make core-install'.
-# This is a best effort.
-.PHONY: core-uninstall
-core-uninstall:
-	rm -f "$$(opam var bin)"/semgrep-core
 
 ###############################################################################
 # Test target
@@ -207,11 +196,11 @@ build-core-test:
 	dune build ./_build/default/src/tests/test.exe
 
 #coupling: this is run by .github/workflow/tests.yml
-.PHONY: core-e2etest
-core-e2etest:
+.PHONY: core-test-e2e
+core-test-e2e:
 	SEMGREP_CORE=$(PWD)/bin/semgrep-core \
 	$(MAKE) -C interfaces/semgrep_interfaces test
-	python3 tests/e2e/test_target_file.py
+	python3 tests/semgrep-core-e2e/test_target_file.py
 
 ###############################################################################
 # External dependencies installation targets
@@ -233,6 +222,12 @@ install-deps-for-semgrep-core:
 	# Install OCaml dependencies (globally).
 	opam install -y --deps-only ./libs/ocaml-tree-sitter-core
 	opam install -y --deps-only ./
+
+# The bytecode version of semgrep-core needs dlls for tree-sitter
+# stubs installed into ~/.opam/<switch>/lib/stublibs to be able to run.
+install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
+	dune build @install # Generate the treesitter stubs for below
+	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
 
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
@@ -389,6 +384,14 @@ utop:
 .PHONY: dump
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
+
+# Run perf benchmarks
+# Running this will reset your `semgrep` command to point to your local version
+# For more information, see "Reproducing the CI benchmarks" in perf/README.md
+.PHONY: perf-bench
+perf-bench:
+	scripts/run-benchmarks.sh
+
 
 # Run matching performance tests
 .PHONY: perf-matching

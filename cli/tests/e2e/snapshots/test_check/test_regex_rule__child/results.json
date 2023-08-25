@@ -32,7 +32,8 @@
         "message": "test regex message",
         "metadata": {},
         "metavars": {},
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/regex.py",
       "start": {

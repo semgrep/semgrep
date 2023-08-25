@@ -115,11 +115,6 @@ let missing_subcommand () =
   Logs.err (fun m -> m "This semgrep subcommand is not implemented\n%!");
   Exit_code.not_implemented_in_osemgrep
 
-(* dispatch back to pysemgrep! *)
-let pysemgrep argv =
-  (* pysemgrep should be in the PATH, thx to the code in ../../../cli/bin/semgrep *)
-  Unix.execvp "pysemgrep" argv
-
 let dispatch_subcommand argv =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
@@ -146,30 +141,33 @@ let dispatch_subcommand argv =
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with the main_help_msg if you add an entry below.
        *)
-      match subcmd with
-      (* TODO: gradually remove those 'when experimental' guards as
-       * we progress in osemgrep port (or move the dispatch back
-       * to pysemgrep futher down, when we know we don't handle
-       * certain kind of arguments.
-       *)
-      | "ci" when experimental -> Ci_subcommand.main subcmd_argv
-      | "install-semgrep-pro" when experimental -> missing_subcommand ()
-      | "login" when experimental -> Login_subcommand.main subcmd_argv
-      | "logout" when experimental -> Logout_subcommand.main subcmd_argv
-      | "publish" when experimental -> missing_subcommand ()
-      | "scan" when experimental -> Scan_subcommand.main subcmd_argv
-      (* TODO: next target for not requiring the 'when experimental' guard! *)
-      | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
-      (* osemgrep-only: and by default! no need experimental! *)
-      | "interactive" -> Interactive_subcommand.main subcmd_argv
-      (* LATER: "dump", "test", "validate" *)
-      | _else_ ->
-          if experimental then
-            (* this should never happen because we default to 'scan',
-             * but better to be safe than sorry.
-             *)
-            Error.abort (spf "unknown semgrep command: %s" subcmd)
-          else pysemgrep argv)
+      try
+        match subcmd with
+        (* TODO: gradually remove those 'when experimental' guards as
+         * we progress in osemgrep port (or use Pysemgrep.Fallback further
+         * down when we know we don't handle certain kind of arguments).
+         *)
+        | "ci" when experimental -> Ci_subcommand.main subcmd_argv
+        | "install-semgrep-pro" when experimental -> missing_subcommand ()
+        | "login" when experimental -> Login_subcommand.main subcmd_argv
+        | "logout" when experimental -> Logout_subcommand.main subcmd_argv
+        | "publish" when experimental -> missing_subcommand ()
+        (* TODO: next target for not requiring the 'when experimental' guard!*)
+        | "lsp" when experimental -> Lsp_subcommand.main subcmd_argv
+        (* partial support, still use Pysemgrep.Fallback in it *)
+        | "scan" -> Scan_subcommand.main subcmd_argv
+        (* osemgrep-only: and by default! no need experimental! *)
+        | "interactive" -> Interactive_subcommand.main subcmd_argv
+        (* LATER: "dump", "test", "validate" *)
+        | _else_ ->
+            if experimental then
+              (* this should never happen because we default to 'scan',
+               * but better to be safe than sorry.
+               *)
+              Error.abort (spf "unknown semgrep command: %s" subcmd)
+            else raise Pysemgrep.Fallback
+      with
+      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
   [@@profiling]
 
 (*****************************************************************************)

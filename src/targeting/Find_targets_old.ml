@@ -1,8 +1,8 @@
 open Common
 open File.Operators
 module In = Input_to_core_t
-module Out = Output_from_core_t
-module Resp = Output_from_core_t
+module Out = Semgrep_output_v1_t
+module Resp = Semgrep_output_v1_t
 open Find_targets (* conf type *)
 
 (*************************************************************************)

@@ -31,7 +31,8 @@
           ]
         },
         "metavars": {},
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/aliengrep/nosem.html",
       "start": {

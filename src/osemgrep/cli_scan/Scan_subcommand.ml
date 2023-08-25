@@ -186,7 +186,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Conduct the scan *)
 (*****************************************************************************)
 
-let scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
+let run_scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
     targets_and_ignored =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
@@ -213,18 +213,18 @@ let scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
           (conf.target_roots, semgrepignored_targets, targets));
     Logs.info (fun m ->
         semgrepignored_targets
-        |> List.iter (fun (x : Output_from_core_t.skipped_target) ->
-               m "Ignoring %s due to %s (%s)" x.Output_from_core_t.path
-                 (Output_from_core_t.show_skip_reason
-                    x.Output_from_core_t.reason)
-                 x.Output_from_core_t.details));
+        |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
+               m "Ignoring %s due to %s (%s)" x.Semgrep_output_v1_t.path
+                 (Semgrep_output_v1_t.show_skip_reason
+                    x.Semgrep_output_v1_t.reason)
+                 x.Semgrep_output_v1_t.details));
 
     (* step3: choose the right engine and right hooks *)
     let output_format, file_match_results_hook =
       match conf with
       | {
        output_format = Output_format.Text;
-       common = { maturity = Some CLI_common.MDevelop; _ };
+       common = { maturity = Maturity.Develop; _ };
        _;
       } ->
           ( Output_format.TextIncremental,
@@ -333,38 +333,106 @@ let scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
     *)
     Ok (filtered_rules, res, cli_output)
 
+let run_scan_conf (conf : Scan_CLI.conf) (settings : Semgrep_settings.t)
+    (profiler : Profiler.t) : Exit_code.t =
+  (* step0: potentially notify user about metrics *)
+  if not (settings.has_shown_metrics_notification =*= Some true) then (
+    (* python compatibility: the 22m and 24m are "normal color or intensity",
+     * and "underline off" *)
+    let esc =
+      if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[22m\027[24m"
+      else ""
+    in
+    Logs.warn (fun m ->
+        m
+          "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
+           reports pseudonymous rule metrics to semgrep.dev.@.To disable \
+           Registry rule metrics, use \"--metrics=off\".@.Using configs only \
+           from local files (like --config=xyz.yml) does not enable \
+           metrics.@.@.More information: https://semgrep.dev/docs/metrics"
+          esc);
+    Logs.app (fun m -> m "");
+    let settings =
+      {
+        settings with
+        Semgrep_settings.has_shown_metrics_notification = Some true;
+      }
+    in
+    ignore (Semgrep_settings.save settings));
+
+  (* step1: getting the rules *)
+
+  (* Rule_fetching.rules_and_origin record also contain errors *)
+  let rules_and_origins =
+    Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
+      ~rewrite_rule_ids:conf.rewrite_rule_ids
+      ~registry_caching:conf.registry_caching conf.rules_source
+  in
+  Metrics_.add_token settings.api_token;
+
+  (* step2: getting the targets *)
+  let targets_and_ignored =
+    Find_targets.get_targets conf.targeting_conf conf.target_roots
+  in
+  (* step3: let's go *)
+  let res =
+    run_scan_files conf profiler rules_and_origins targets_and_ignored
+  in
+  match res with
+  | Error ex -> ex
+  | Ok (_, res, cli_output) ->
+      (* step4: exit with the right exit code *)
+      (* final result for the shell *)
+      if conf.error_on_findings && not (Common.null cli_output.results) then
+        Exit_code.findings
+      else exit_code_of_errors ~strict:conf.strict res.core.errors
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  (* TODO: move this further down! *)
+  (match conf.common.maturity with
+  | Maturity.Default
+  | Maturity.Legacy ->
+      raise Pysemgrep.Fallback
+  | Maturity.Experimental
+  | Maturity.Develop ->
+      ());
   setup_logging conf;
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
+
+  (* TODO? maybe this could be moved in run_scan_conf() instead *)
   let profiler = Profiler.make () in
   Profiler.start profiler ~name:"total_time";
-  let config () =
-    Metrics_.configure conf.metrics;
-    let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-    if Metrics_.is_enabled conf.metrics then
-      Metrics_.add_project_url (Git_wrapper.get_project_url ());
-    Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
-    (match conf.rules_source with
-    | Rules_source.Configs configs -> Metrics_.add_configs configs
-    | _ -> ());
-    settings
+  let settings =
+    (fun () ->
+      Metrics_.configure conf.metrics;
+      let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
+      if Metrics_.is_enabled conf.metrics then
+        Metrics_.add_project_url (Git_wrapper.get_project_url ());
+      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+      (match conf.rules_source with
+      | Rules_source.Configs configs -> Metrics_.add_configs configs
+      | _ -> ());
+      settings)
+    |> Profiler.record profiler ~name:"config_time"
   in
-  let settings = Profiler.record profiler ~name:"config_time" config in
 
   match () with
   (* "alternate modes" where no search is performed.
    * coupling: if you add a new alternate mode, you probably need to modify
    * Scan_CLI.cmdline_term.combine.rules_source match cases and allow
    * more cases returning an empty 'Configs []'.
-   * TODO? stricter: we should allow just one of those alternate modes.
+   * LATER: this should be real separate subcommands instead of abusing
+   * semgrep scan flags. Maybe a 'semgrep show version',
+   * 'semgrep show supported_languages', 'semgrep show ast foo.py',
+   * 'semgrep test dir/'
    *)
   | _ when conf.version ->
       (* alt: we could use Common.pr, but because '--quiet' doc says
@@ -377,67 +445,15 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.show_supported_languages ->
       Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
-  (* LATER: this should be real separate subcommands instead of abusing
-   * semgrep scan flags
-   *)
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run (Common2.some conf.validate)
   | _ when conf.dump <> None -> Dump_subcommand.run (Common2.some conf.dump)
-  | _else_ -> (
+  | _else_ ->
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      (* step0: potentially notify user about metrics *)
-      if not (settings.has_shown_metrics_notification =*= Some true) then (
-        (* python compatibility: the 22m and 24m are "normal color or intensity", and "underline off" *)
-        let esc =
-          if Fmt.style_renderer Fmt.stderr =*= `Ansi_tty then "\027[22m\027[24m"
-          else ""
-        in
-        Logs.warn (fun m ->
-            m
-              "%sMETRICS: Using configs from the Registry (like --config=p/ci) \
-               reports pseudonymous rule metrics to semgrep.dev.@.To disable \
-               Registry rule metrics, use \"--metrics=off\".@.Using configs \
-               only from local files (like --config=xyz.yml) does not enable \
-               metrics.@.@.More information: https://semgrep.dev/docs/metrics"
-              esc);
-        Logs.app (fun m -> m "");
-        let settings =
-          {
-            settings with
-            Semgrep_settings.has_shown_metrics_notification = Some true;
-          }
-        in
-        ignore (Semgrep_settings.save settings));
-
-      (* step1: getting the rules *)
-
-      (* Rule_fetching.rules_and_origin record also contain errors *)
-      let rules_and_origins =
-        Rule_fetching.rules_from_rules_source ~token_opt:settings.api_token
-          ~rewrite_rule_ids:conf.rewrite_rule_ids
-          ~registry_caching:conf.registry_caching conf.rules_source
-      in
-      Metrics_.add_token settings.api_token;
-
-      (* step2: getting the targets *)
-      let targets_and_ignored =
-        Find_targets.get_targets conf.targeting_conf conf.target_roots
-      in
-      (* step3: let's go *)
-      let res =
-        scan_files conf profiler rules_and_origins targets_and_ignored
-      in
-      match res with
-      | Error ex -> ex
-      | Ok (_, res, cli_output) ->
-          (* step4: exit with the right exit code *)
-          (* final result for the shell *)
-          if conf.error_on_findings && not (Common.null cli_output.results) then
-            Exit_code.findings
-          else exit_code_of_errors ~strict:conf.strict res.core.errors)
+      run_scan_conf conf settings profiler
 
 (*****************************************************************************)
 (* Entry point *)
@@ -445,4 +461,4 @@ let run (conf : Scan_CLI.conf) : Exit_code.t =
 
 let main (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv argv in
-  run conf
+  run_conf conf

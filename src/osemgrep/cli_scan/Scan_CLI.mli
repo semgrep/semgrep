@@ -28,8 +28,11 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  dataflow_traces : bool;
   force_color : bool;
-  (* text output config (TODO: make a separate type gathering all of them) *)
+  (* text output config (TODO: make a separate type gathering all of them)
+   * or add them under Output_format.Text
+   *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
   (* Networking options *)

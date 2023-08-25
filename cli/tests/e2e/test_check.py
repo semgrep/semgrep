@@ -337,20 +337,6 @@ def test_hidden_rule__implicit(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_default_rule__file(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    Path(".semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
-    snapshot.assert_match(run_semgrep_in_tmp().stdout, "results.json")
-
-
-@pytest.mark.kinda_slow
-def test_default_rule__folder(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    Path(".semgrep").mkdir()
-    Path(".semgrep/.semgrep.yml").symlink_to(Path("rules/eqeq.yaml").resolve())
-
-    snapshot.assert_match(run_semgrep_in_tmp().stdout, "results.json")
-
-
-@pytest.mark.kinda_slow
 @pytest.mark.osempass
 def test_regex_rule__top(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(

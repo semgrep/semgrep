@@ -1,6 +1,10 @@
-(lang dune 2.7)
+(lang dune 3.7)
 (name semgrep)
 (using menhir 2.1)
+; disable mangling of of workspace root, to preserve debugging information
+; needed to support earlybird debugger
+; See https://dune.readthedocs.io/en/stable/dune-files.html#map-workspace-root
+(map_workspace_root false)
 
 ; Opam package declarations for public libraries and public executables
 ; defined in various dune files.

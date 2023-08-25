@@ -17,7 +17,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
 
-import semgrep.semgrep_main
+import semgrep.run_scan
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
@@ -54,6 +54,12 @@ ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
 
 # These patterns are excluded via --exclude unless the user provides their own .semgrepignore
 DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
+
+# Conversion of product codes to product names
+PRODUCT_NAMES_MAP = {
+    "sast": "Semgrep Code",
+    "sca": "Semgrep Supply Chain",
+}
 
 
 def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
@@ -148,6 +154,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option("--beta-testing-secrets", is_flag=True, hidden=True)
 @click.option(
     "--suppress-errors/--no-suppress-errors",
     "suppress_errors",
@@ -166,6 +173,7 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
+    beta_testing_secrets: bool,
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -250,6 +258,19 @@ def ci(
     else:  # impossible state… until we break the code above
         raise RuntimeError("The token and/or config are misconfigured")
 
+    if beta_testing_secrets:
+        # TODO: I think this should eventually be PRO_INTRAFILE, but
+        # the secrets code currently hooks into the interfile search.
+        if requested_engine is EngineType.PRO_INTERFILE:
+            logger.info("No need to specify `--beta-testing-secrets` and `--pro`")
+        elif requested_engine is None:
+            requested_engine = EngineType.PRO_INTERFILE
+        else:
+            logger.info(
+                "Cannot use the `--beta-testing-secrets` flag with engine types besides `--pro`"
+            )
+            sys.exit(FATAL_EXIT_CODE)
+
     output_settings = OutputSettings(
         output_format=output_format,
         output_destination=output,
@@ -287,6 +308,7 @@ def ci(
             console.print(Title("Connection", order=2))
             metadata_dict = metadata.to_dict()
             metadata_dict["is_sca_scan"] = supply_chain
+            metadata_dict["is_secrets_scan"] = beta_testing_secrets
             proj_config = ProjectConfig.load_all()
             metadata_dict = {**metadata_dict, **proj_config.to_dict()}
             with Progress(
@@ -311,6 +333,15 @@ def ci(
                 )
                 scan_handler.fetch_and_init_scan_config(metadata_dict)
                 progress_bar.update(connection_task, completed=100)
+
+                product_names = [
+                    PRODUCT_NAMES_MAP.get(p) or p for p in scan_handler.enabled_products
+                ]
+                products_str = ", ".join(product_names) or "None"
+                products_task = progress_bar.add_task(
+                    f"Enabled products: [bold]{products_str}[/bold]"
+                )
+                progress_bar.update(products_task, completed=100)
 
             config = (scan_handler.rules,)
 
@@ -349,6 +380,10 @@ def ci(
                 markup=True,
             )
         else:
+            if beta_testing_secrets:
+                console.print(
+                    "Secrets currently requires the pro-engine, installing now."
+                )
             run_install_semgrep_pro()
 
     try:
@@ -358,6 +393,12 @@ def ci(
         exclude = (*exclude, *yield_exclude_paths(excludes_from_app))
         assert config  # Config has to be defined here. Helping mypy out
         start = time.time()
+
+        if scan_handler and not scan_handler.enabled_products:
+            raise SemgrepError(
+                "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
+            )
+
         (
             filtered_matches_by_rule,
             semgrep_errors,
@@ -369,7 +410,7 @@ def ci(
             shown_severities,
             dependencies,
             dependency_parser_errors,
-        ) = semgrep.semgrep_main.main(
+        ) = semgrep.run_scan.run_scan(
             core_opts_str=core_opts,
             engine_type=engine_type,
             output_handler=output_handler,

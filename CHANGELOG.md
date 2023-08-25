@@ -6,6 +6,109 @@
 
 <!-- insertion point -->
 
+## [1.37.0](https://github.com/returntocorp/semgrep/releases/tag/v1.37.0) - 2023-08-25
+
+### Added
+
+- `semgrep scan` is now more resilient to failures when fetching config from semgrep.dev. If it can't fetch a config from semgrep.dev it will use backup infrastructure to fetch the most recent successful config for that customers environment. (gh-8459)
+- C#: Added experimental NuGet ecosystem parser (gh-8484)
+- metavariable-comparison: You can now use "in" and "not in" for strings
+  in the same sense as in Python, for substring checking. (pa-2979)
+- Julia: Added the deep expression operator, so now you can write patterns like
+  foo(<... 42 ...>) to find instances of calls to `foo` that contain `42` somewhere
+  inside of it. (pa-3018)
+- `semgrep ci` displays enabled products when scans are created and/or when the scan
+  config is generated from Semgrep Cloud Platform. Additionally, if no products are
+  enabled then a friendly error is raised. (scp-432)
+
+### Changed
+
+- The --dump-ast flag now requires the additional --experimental flag
+  and does not require to pass a --config flag anymore.
+  Example of use: `semgrep --experimental --lang python --dump-ast foo.py` (dumpast)
+- The 'semgrep shouldafound' command has been removed. It was not really used
+  and it might be better to offer such a functionality in the IDE instead of
+  in the CLI. (shouldafound)
+
+### Fixed
+
+- Parsing: Some parsing errors involving tree-sitter inserting fake "missing"
+  nodes were previously unreported. They are now reported as errors although the
+  parse tree is preserved, including the phony node inserted by tree-sitter.
+  This should not result in different Semgrep findings. It results only in more
+  reports of partial parsing. See the original issue at
+  https://github.com/returntocorp/ocaml-tree-sitter-core/issues/8 for technical
+  details. (gh-8190)
+- fix(extract): correctly map metavariable locations into source file (gh-8416)
+- fix(julia): correctly parse BitOr and BitAnd (gh-8449)
+- Implement missing pcre-ocaml stub (pcre_get_stringnumber_stub_bc) in JavaScript (gh-8520)
+- Julia: Fixed a bug where parenthesized expressions would sometimes
+  not match in constructs like `metavariable-comparison`. (pa-2991)
+- Fixed a regression introduced three years ago in 0.9.0, when optimizing
+  the evaluation of `...` (ellipsis) to be faster. We made `...` only match
+  deeply (inside an `if` for example) if nothing matched non-deeply, thus
+  causing that this pattern:
+
+  ```python
+  foo()
+  ...
+  bar($A)
+  ```
+
+  would only produce a match rather than two on this code:
+
+  ```python
+  foo()
+  if cond:
+      bar(x)
+  bar(y)
+  ```
+
+  Semgrep matched from `foo()` to `bar(y)` and because of that it did not
+  try to match inside the `if`, thus there was no match from `foo()` to `bar(x)`.
+  However, if we commented out `bar(y)`, then Semgrep did match `bar(x)`.
+
+  Semgrep now produces the two expected matches. (pa-2992)
+
+- Julia: Type information from declarations can now be used in
+  `metavariable-type`. For instance, the program:
+  ```
+  x :: Int64 = 2
+  ```
+  will now allow uses of `x` to match to the type `Int64`. (pa-3001)
+- Julia: Metavariables should now be able to appear anywhere that
+  identifiers can.
+
+  For instance, they were not able to appear as the argument to a
+  do block. Now, we can write patterns like:
+
+  ````
+  map($Y) do $X
+    ...
+  end
+  ``` (pa-3007)
+  ````
+
+- Java: Fixed naming bug affecting Java and other OO languages that allowed a
+  method parameter to shadow a class attribute, e.g. in:
+
+  ```java
+  class Test {
+
+      private int x;
+
+      public void test2(int x) {
+          foo(this.x);
+      }
+
+  }
+  ```
+
+  Semgrep was considering that `this.x` referred to the parameter `x` of `test2`
+  rather than to the class attribute `x`. (pa-3010)
+
+- Fixed bug where packages in build.gradle files had their names incorrectly parsed without their group ID (sc-1012)
+
 ## [1.36.0](https://github.com/returntocorp/semgrep/releases/tag/v1.36.0) - 2023-08-14
 
 ### Added

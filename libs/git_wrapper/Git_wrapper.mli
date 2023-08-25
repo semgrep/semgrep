@@ -2,10 +2,40 @@
 
 exception Error of string
 
+type status = {
+  added : string list;
+  modified : string list;
+  removed : string list;
+  unmerged : string list;
+  renamed : (string * string) list;
+}
+[@@deriving show]
+
 (* precondition: cwd must be a directory
    This returns a list of paths relative to cwd.
 *)
 val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
+
+(* Executing a function inside a directory created from git-worktree.
+
+   `git worktree` is doing 90% of the heavy lifting here. Docs:
+   https://git-scm.com/docs/git-worktree
+
+   In short, git allows you to have multiple working trees checked out at
+   the same time. This means you can essentially have X different
+   branches/commits checked out from the same repo, in different locations
+
+   Different worktrees share the same .git directory, so this is a lot
+   faster/cheaper than cloning the repo multiple times
+
+   This also allows us to not worry about git state, since
+   unstaged/staged files are not shared between worktrees. This means we
+   don't need to git stash anything, or expect a clean working tree.
+*)
+val run_with_worktree : commit:string -> (unit -> 'a) -> 'a
+
+(* git status *)
+val status : cwd:Fpath.t -> commit:string -> status
 
 (* precondition: cwd must be a directory *)
 val is_git_repo : Fpath.t -> bool
