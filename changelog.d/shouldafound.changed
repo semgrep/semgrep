@@ -1,3 +1,0 @@
-The 'semgrep shouldafound' command has been removed. It was not really used
-and it might be better to offer such a functionality in the IDE instead of
-in the CLI.

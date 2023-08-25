@@ -1,7 +1,0 @@
-Parsing: Some parsing errors involving tree-sitter inserting fake "missing"
-nodes were previously unreported. They are now reported as errors although the
-parse tree is preserved, including the phony node inserted by tree-sitter.
-This should not result in different Semgrep findings. It results only in more
-reports of partial parsing. See the original issue at
-https://github.com/returntocorp/ocaml-tree-sitter-core/issues/8 for technical
-details.
