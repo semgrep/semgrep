@@ -266,7 +266,6 @@ jobs:
         working-directory: cli
         run: |
           pipenv run semgrep --version
-          pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
           pipenv run python3 ../perf/run-benchmarks --dummy
 

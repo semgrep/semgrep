@@ -17,7 +17,7 @@ from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
 import semgrep.config_resolver
-import semgrep.semgrep_main
+import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
@@ -740,6 +740,8 @@ def scan(
 
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)
 
+    # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
+    # is installed and check if the binary is statically linked.
     if dump_engine_path:
         if engine_type == EngineType.OSS:
             print(SemgrepCore.path())
@@ -893,7 +895,7 @@ def scan(
                     shown_severities,
                     _dependencies,
                     _dependency_parser_errors,
-                ) = semgrep.semgrep_main.main(
+                ) = semgrep.run_scan.run_scan(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     engine_type=engine_type,

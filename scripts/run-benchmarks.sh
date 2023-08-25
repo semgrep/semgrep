@@ -11,7 +11,7 @@ cd cli || return
 
 # Run timing benchmark
 pipenv install semgrep==1.36.0
-pipenv run python -m semgrep --version
+pipenv run semgrep --version
 export PATH=/github/home/.local/bin:$PATH
 
 config_path=../perf/configs/ci_small_repos.yaml
@@ -27,7 +27,7 @@ pipenv uninstall -y semgrep
 pipenv install -e .
 
 # Run latest timing benchmark
-pipenv run python -m semgrep --version
+pipenv run semgrep --version
 pipenv run semgrep-core -version
 pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing1.json
 jq . timing1.json

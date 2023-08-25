@@ -37,6 +37,7 @@ let mock_run_results (files : string list) : Core_runner.result =
           dataflow_trace = None;
           rendered_fix = None;
           engine_kind = `OSS;
+          validation_state = Some `NO_VALIDATOR;
           extra_extra = None;
         }
     in

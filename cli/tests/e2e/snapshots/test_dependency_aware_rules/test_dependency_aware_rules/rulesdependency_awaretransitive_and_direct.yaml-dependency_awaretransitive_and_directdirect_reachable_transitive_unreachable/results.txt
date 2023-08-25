@@ -58,7 +58,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
           "reachable": true,
           "sca_finding_schema": 20220913
         },
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/dependency_aware/transitive_and_direct/direct_reachable_transitive_unreachable/bad.js",
       "start": {

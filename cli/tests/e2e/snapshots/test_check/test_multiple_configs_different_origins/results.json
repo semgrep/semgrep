@@ -51,7 +51,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/stupid.py",
       "start": {
@@ -102,7 +103,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/stupid.js",
       "start": {
@@ -140,7 +142,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/stupid.py",
       "start": {
@@ -178,7 +181,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/stupid.py",
       "start": {
@@ -216,7 +220,8 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
       },
       "path": "targets/basic/stupid.py",
       "start": {

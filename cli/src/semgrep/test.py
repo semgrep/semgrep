@@ -33,9 +33,9 @@ from typing import Tuple
 from boltons.iterutils import partition
 from ruamel.yaml import YAML
 
+import semgrep.run_scan
 from semgrep.constants import BREAK_LINE
 from semgrep.engine import EngineType
-from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
 from semgrep.util import is_config_suffix
@@ -300,7 +300,7 @@ def invoke_semgrep_multi(
     config: Path, targets: List[Path], **kwargs: Any
 ) -> Tuple[Path, Optional[str], Any]:
     try:
-        output = invoke_semgrep(config, targets, **kwargs)
+        output = semgrep.run_scan.run_scan_and_return_json(config, targets, **kwargs)
     except Exception as error:
         # We must get the string of the error because the multiprocessing library
         # will fail the marshal the error and hang

@@ -1,1 +1,0 @@
-Fixed bug where packages in build.gradle files had their names incorrectly parsed without their group ID
