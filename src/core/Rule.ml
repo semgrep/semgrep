@@ -600,14 +600,29 @@ and invalid_rule_error_kind =
 [@@deriving show]
 
 (* General errors *)
-type error =
+type error_kind =
   | InvalidRule of invalid_rule_error
   | InvalidYaml of string * Tok.t
   | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
 
-(* can't use Error because it's used for severity *)
-exception Err of error
+type error = {
+  (* Some errors are in the YAML file before we can enter a specific rule
+     or it could be a rule without an ID. This is why the rule ID is
+     optional. *)
+  rule_id : Rule_ID.t option;
+  kind : error_kind;
+}
+
+exception Error of error
+
+(*
+   You must provide a rule ID for a rule to be reported properly as an invalid
+   rule. The argument is not optional because it's important to not forget to
+   specify a rule ID whenever possible.
+*)
+let raise_error optional_rule_id kind =
+  raise (Error { rule_id = optional_rule_id; kind })
 
 (*****************************************************************************)
 (* String-of *)
@@ -656,7 +671,7 @@ let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
-  match error with
+  match error.kind with
   | InvalidRule x -> string_of_invalid_rule_error x
   | InvalidYaml (msg, pos) ->
       spf "invalid YAML, %s: %s" (Tok.stringpos_of_tok pos) msg
@@ -671,8 +686,8 @@ let string_of_error (error : error) : string =
 *)
 let opt_string_of_exn (exn : exn) =
   match exn with
-  | Err x -> Some (string_of_error x)
-  | _else_ -> None
+  | Error x -> Some (string_of_error x)
+  | _ -> None
 
 let () = Printexc.register_printer opt_string_of_exn
 

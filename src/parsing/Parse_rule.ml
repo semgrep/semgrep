@@ -86,7 +86,7 @@ type dict = {
 (* Error Management *)
 (*****************************************************************************)
 
-let yaml_error t s = raise (R.Err (R.InvalidYaml (s, t)))
+let yaml_error t s = Rule.raise_error None (InvalidYaml (s, t))
 
 let yaml_error_at_expr (e : G.expr) s =
   yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
@@ -94,7 +94,7 @@ let yaml_error_at_expr (e : G.expr) s =
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 
 let error rule_id t s =
-  raise (R.Err (R.InvalidRule (R.InvalidOther s, rule_id, t)))
+  Rule.raise_error (Some rule_id) (InvalidRule (InvalidOther s, rule_id, t))
 
 let error_at_key rule_id (key : key) s = error rule_id (snd key) s
 
@@ -127,21 +127,17 @@ let pcre_error_to_string s exn =
   in
   spf "'%s': %s" s message
 
-let try_and_raise_invalid_pattern_if_error env (s, t) f =
+let try_and_raise_invalid_pattern_if_error (env : env) (s, t) f =
   try f () with
   | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidPattern
-                  ( s,
-                    env.languages.target_analyzer,
-                    Common.exn_to_s exn,
-                    env.path ),
-                env.id,
-                t )))
+      Rule.raise_error (Some env.id)
+        (InvalidRule
+           ( InvalidPattern
+               (s, env.languages.target_analyzer, Common.exn_to_s exn, env.path),
+             env.id,
+             t ))
 
 (*****************************************************************************)
 (* Helpers *)
@@ -196,8 +192,8 @@ let read_string_wrap e =
 (* Dict helper methods *)
 (*****************************************************************************)
 
-let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
-    (rule : G.expr) : dict =
+let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
+    (enclosing : string R.wrap) (rule : G.expr) : dict =
   match rule.G.e with
   (* note that the l/r are actually populated by yaml_to_generic, even
    * though there is no proper corresponding token
@@ -218,10 +214,9 @@ let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
                   * metavariable-regex.
                   *)
                  if Hashtbl.mem dict key_str then
-                   raise
-                     (R.Err
-                        (R.DuplicateYamlKey
-                           (spf "duplicate key '%s' in dictionary" key_str, t)));
+                   Rule.raise_error opt_rule_id
+                     (DuplicateYamlKey
+                        (spf "duplicate key '%s' in dictionary" key_str, t));
                  Hashtbl.add dict key_str ((key_str, t), value)
              | _ -> error_fun_f field "Not a valid key value pair");
       { h = dict; first_tok = l }
@@ -246,8 +241,9 @@ let take (dict : dict) (env : env) (f : env -> key -> G.expr -> 'a)
 
 let fold_dict f dict x = Hashtbl.fold f dict.h x
 
-let yaml_to_dict env enclosing =
-  yaml_to_dict_helper (error_at_expr env.id) (error_at_expr env.id) enclosing
+let yaml_to_dict (env : env) enclosing =
+  yaml_to_dict_helper (Some env.id) (error_at_expr env.id)
+    (error_at_expr env.id) enclosing
 
 (*****************************************************************************)
 (* Parsing methods for before env is created *)
@@ -271,7 +267,7 @@ let take_no_env (dict : dict) (f : key -> G.expr -> 'a) (key_str : string) : 'a
   | None -> yaml_error dict.first_tok ("Missing required field " ^ key_str)
 
 let yaml_to_dict_no_env =
-  yaml_to_dict_helper yaml_error_at_expr yaml_error_at_expr
+  yaml_to_dict_helper None yaml_error_at_expr yaml_error_at_expr
 
 let parse_string_wrap_no_env (key : key) x =
   match read_string_wrap x.G.e with
@@ -392,7 +388,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 
 let parse_language ~id ((s, t) as _lang) : Lang.t =
   match Lang.of_string_opt s with
-  | None -> raise (R.Err (R.InvalidRule (R.InvalidLanguage s, id, t)))
+  | None -> Rule.raise_error (Some id) (InvalidRule (InvalidLanguage s, id, t))
   | Some l -> l
 
 (*
@@ -417,34 +413,31 @@ let parse_languages ~id (options : Rule_options_t.t) langs : Rule.languages =
         | `Spacegrep -> (None, LSpacegrep)
         | `Aliengrep -> (None, LAliengrep))
     | xs -> (
-        let langs = xs |> Common.map (parse_language ~id:(fst id)) in
+        let rule_id, _ = id in
+        let langs = xs |> Common.map (parse_language ~id:rule_id) in
         match langs with
         | [] ->
-            raise
-              (R.Err
-                 (R.InvalidRule
-                    ( R.InvalidOther "we need at least one language",
-                      fst id,
-                      snd id )))
+            Rule.raise_error (Some rule_id)
+              (InvalidRule
+                 (InvalidOther "we need at least one language", fst id, snd id))
         | x :: xs -> (Some langs, L (x, xs)))
   in
   { target_selector = opt_target_selector; target_analyzer }
 
-let parse_severity ~id (s, t) =
+let parse_severity ~id (s, t) : Rule.severity =
   match s with
-  | "ERROR" -> R.Error
-  | "WARNING" -> R.Warning
-  | "INFO" -> R.Info
-  | "INVENTORY" -> R.Inventory
-  | "EXPERIMENT" -> R.Experiment
+  | "ERROR" -> Error
+  | "WARNING" -> Warning
+  | "INFO" -> Info
+  | "INVENTORY" -> Inventory
+  | "EXPERIMENT" -> Experiment
   | s ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidOther
-                  (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
-                id,
-                t )))
+      Rule.raise_error (Some id)
+        (InvalidRule
+           ( InvalidOther
+               (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
+             id,
+             t ))
 
 (*****************************************************************************)
 (* Parsers for extra (metavar-xxx:, fix:, etc.) *)
@@ -505,10 +498,8 @@ let parse_regexp env (s, t) =
     s
   with
   | Pcre.Error exn ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t)))
+      Rule.raise_error (Some env.id)
+        (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
@@ -921,7 +912,8 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
       in
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
-        raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
+        Rule.raise_error (Some env.id)
+          (InvalidRule (MissingPositiveTermInAnd, env.id, t));
       R.And (t, { conjuncts; focus; conditions })
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
@@ -939,7 +931,8 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "metavariable-comparison" ->
       error_at_key env.id key "Must occur directly under a patterns:"
   | "pattern-where-python" ->
-      raise (R.Err (R.InvalidRule (R.DeprecatedFeature (fst key), env.id, t)))
+      Rule.raise_error (Some env.id)
+        (InvalidRule (DeprecatedFeature (fst key), env.id, t))
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key env.id key
@@ -968,7 +961,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
   | "metavariable-regex" ->
       let mv_regex_dict =
         try yaml_to_dict env key value with
-        | R.Err (R.DuplicateYamlKey (msg, t)) ->
+        | R.Error { kind = DuplicateYamlKey (msg, t); _ } ->
             error env.id t (msg ^ ". You should use multiple metavariable-regex")
       in
       let metavar, regexp, const_prop =
@@ -1110,16 +1103,15 @@ and parse_formula env (value : G.expr) : R.formula =
             Exception.catch_and_reraise e
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
         | exn ->
-            raise
-              (R.Err
-                 (R.InvalidRule
-                    ( R.InvalidPattern
-                        ( s,
-                          env.languages.target_analyzer,
-                          Common.exn_to_s exn,
-                          env.path ),
-                      env.id,
-                      t ))))
+            Rule.raise_error (Some env.id)
+              (InvalidRule
+                 ( InvalidPattern
+                     ( s,
+                       env.languages.target_analyzer,
+                       Common.exn_to_s exn,
+                       env.path ),
+                   env.id,
+                   t )))
   (* If that doesn't work, it should be a key-value pairing.
    *)
   | Right dict -> (
@@ -1274,7 +1266,8 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
       let conjuncts = parse_listi env key parse_formula value in
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
-        raise (R.Err (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t)));
+        Rule.raise_error (Some env.id)
+          (InvalidRule (MissingPositiveTermInAnd, env.id, t));
       R.And (t, { conjuncts; focus = []; conditions = [] })
   | "any" -> R.Or (t, parse_listi env key parse_formula value)
   | "regex" ->
@@ -1493,14 +1486,12 @@ let parse_extract_reduction ~id (s, t) =
   | "concat" -> R.Concat
   | "separate" -> R.Separate
   | s ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidOther
-                  (spf "Bad extract reduction: %s (expected concat or separate)"
-                     s),
-                id,
-                t )))
+      Rule.raise_error (Some id)
+        (InvalidRule
+           ( InvalidOther
+               (spf "Bad extract reduction: %s (expected concat or separate)" s),
+             id,
+             t ))
 
 let parse_extract_transform ~id (s, t) =
   match s with
@@ -1508,16 +1499,15 @@ let parse_extract_transform ~id (s, t) =
   | "unquote_string" -> R.Unquote
   | "concat_json_string_array" -> R.ConcatJsonArray
   | s ->
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidOther
-                  (spf
-                     "Bad extract transform: %s (expected unquote_string or \
-                      concat_json_string_array)"
-                     s),
-                id,
-                t )))
+      Rule.raise_error (Some id)
+        (InvalidRule
+           ( InvalidOther
+               (spf
+                  "Bad extract transform: %s (expected unquote_string or \
+                   concat_json_string_array)"
+                  s),
+             id,
+             t ))
 
 let parse_rules_to_run_with_extract env key value =
   let ruleids_dict = yaml_to_dict env key value in
@@ -1750,12 +1740,11 @@ let parse_version key value =
         ("Expected a version of the form X.Y.Z for " ^ fst key)
 
 let incompatible_version ?min_version ?max_version rule_id tok =
-  raise
-    (R.Err
-       (InvalidRule
-          ( IncompatibleRule (Version_info.version, (min_version, max_version)),
-            rule_id,
-            tok )))
+  Rule.raise_error (Some rule_id)
+    (InvalidRule
+       ( IncompatibleRule (Version_info.version, (min_version, max_version)),
+         rule_id,
+         tok ))
 
 let check_version_compatibility rule_id ~min_version ~max_version =
   (match min_version with
@@ -1879,7 +1868,8 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
     |> Common.mapi (fun i rule ->
            if error_recovery then (
              try Left (parse_one_rule t i rule) with
-             | R.Err (R.InvalidRule ((kind, ruleid, _) as err)) ->
+             | Rule.Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+               ->
                  let s = Rule.string_of_invalid_rule_error_kind kind in
                  logger#warning "skipping rule %s, error = %s"
                    (ruleid :> string)
@@ -1899,7 +1889,8 @@ let parse_generic_ast ?(error_recovery = false) (file : Fpath.t)
 let parse_yaml_rule_file file =
   let str = Common.read_file file in
   try Yaml_to_generic.parse_yaml_file file str with
-  | Parsing_error.Other_error (s, t) -> raise (R.Err (R.InvalidYaml (s, t)))
+  | Parsing_error.Other_error (s, t) ->
+      Rule.raise_error None (InvalidYaml (s, t))
 
 let parse_file ?error_recovery file =
   let ast =
