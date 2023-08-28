@@ -101,5 +101,5 @@ let sort_match_list (matches : core_match list) : core_match list =
   in
   List.stable_sort compare_match matches
 
-let sort_match_results (res : core_match_results) : core_match_results =
-  { res with matches = sort_match_list res.matches }
+let sort_match_results (res : core_output) : core_output =
+  { res with results = sort_match_list res.results }

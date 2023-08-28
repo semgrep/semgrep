@@ -55,10 +55,9 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
 (* Entry point *)
 (*****************************************************************************)
 
-let adjust_core_match_results (x : Out.core_match_results) :
-    Out.core_match_results =
-  let matches =
-    x.matches
+let adjust_core_match_results (x : Out.core_output) : Out.core_output =
+  let results =
+    x.results
     |> Common.map (fun (m : Out.core_match) ->
            let _rule_id = m.rule_id in
            let path = Fpath.v m.location.path in
@@ -91,4 +90,4 @@ let adjust_core_match_results (x : Out.core_match_results) :
                in
                { m with extra })
   in
-  { x with matches }
+  { x with results }

@@ -925,7 +925,7 @@ let output_semgrep_results (exn, res, files) config =
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = Out.string_of_core_match_results res in
+      let s = Out.string_of_core_output res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
       match exn with
@@ -1012,7 +1012,7 @@ let semgrep_with_one_pattern config =
         JSON_report.match_results_of_matches_and_errors
           (Some Autofix.render_fix) (List.length files) res
       in
-      let s = Out.string_of_core_match_results json in
+      let s = Out.string_of_core_output json in
       pr s
   | Text ->
       let minirule, _rules_parse_time =

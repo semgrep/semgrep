@@ -36,7 +36,7 @@ let semgrep_core_output () =
             ( file,
               fun () ->
                 let s = Common.read_file file in
-                let _res = Out.core_match_results_of_string s in
+                let _res = Out.core_output_of_string s in
                 () )))
 
 (*****************************************************************************)

@@ -57,7 +57,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let core =
     Out.
       {
-        matches;
+        results = matches;
         errors = [];
         skipped_targets = None;
         skipped_rules = None;
