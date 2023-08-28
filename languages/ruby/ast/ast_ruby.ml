@@ -361,6 +361,8 @@ and patlist_arg =
   | PArgSplat of tok * ident option
   | PArgKeyVal of pattern * (* : *) tok * pattern option
   | PArgPat of pattern
+  (* sgrep-ext: *)
+  | PArgEllipsis of tok
 
 (*****************************************************************************)
 (* Type *)

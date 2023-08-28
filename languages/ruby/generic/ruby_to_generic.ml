@@ -373,7 +373,18 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   | MethodEllipsis t -> raise (Parsing_error.Syntax_error t)
 
 and interpolated_string (t1, xs, t2) : G.expr_kind =
-  let xs = list (string_contents t1) xs in
+  let rec fold_constants xs =
+    match xs with
+    | [] -> []
+    | [ x ] -> [ x ]
+    | x :: y :: xs -> (
+        match (x, fold_constants (y :: xs)) with
+        | StrChars (s1, t1), StrChars (s2, t2) :: rest ->
+            let t' = Tok.combine_toks t1 [ t2 ] in
+            StrChars (s1 ^ s2, t') :: rest
+        | x, other -> x :: other)
+  in
+  let xs = xs |> fold_constants |> list (string_contents t1) in
   G.Call
     ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
       (t1, xs |> Common.map (fun e -> G.Arg e), t2) )
@@ -544,7 +555,8 @@ and expr_as_stmt = function
          * unless it's a metavariable
       *)
       | G.N (G.Id ((s, _), _)) ->
-          if AST_generic.is_metavar_name s then G.exprstmt e
+          if AST_generic.is_metavar_name s || !Flag_parsing.sgrep_mode then
+            G.exprstmt e
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
@@ -658,6 +670,16 @@ and exprs_to_eopt = function
 
 and qualified qual = Common.map variable qual
 
+and pattern_as_exp pat =
+  match pat with
+  (* coupling: this should include only the cases below in `pattern`
+     which involve `promote`
+  *)
+  | PatLiteral lit -> literal lit |> G.e
+  | PatAtom (tk, a) -> atom tk a |> G.e
+  | PatExpr e -> expr e
+  | _ -> H.pattern_to_expr (pattern pat)
+
 and pattern pat =
   let promote expr =
     match expr with
@@ -715,6 +737,7 @@ and patlist_arg = function
       in
       G.PatKeyVal (pattern p1, p2)
   | PArgPat p -> pattern p
+  | PArgEllipsis tok -> PatEllipsis tok
 
 and type_ e =
   let e = expr e in
@@ -913,17 +936,37 @@ and list_stmt1 xs =
 (* was called stmts, but you should either use list_stmt1 or list_stmts *)
 and list_stmts xs = list expr_as_stmt xs
 
-let program xs = list_stmts xs
+let program xs =
+  Common.save_excursion Flag_parsing.sgrep_mode false (fun () -> list_stmts xs)
 
 let any x =
-  match x with
-  | E x -> (
+  (* We need this sgrep_mode flag because we want some branching behavior
+     for the Generic translation depending on whether we are parsing a program
+     or pattern.
+     In particular, this comes into play when translating a single name on its
+     own line, which may be a call in a target.
+  *)
+  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
       match x with
-      | S x -> G.S (stmt x)
-      | D x -> G.S (definition x)
-      | e -> expr_special_cases (expr e))
-  | S2 x -> G.S (stmt x)
-  | Ss xs -> G.Ss (list_stmts xs)
-  | Pr xs -> G.Ss (list_stmts xs)
-  (* sgrep_spatch_pattern just generate E/S2/Ss *)
-  | _ -> raise Impossible
+      (* coupling: match pattern
+         This is what a standalone pattern looks like in Ruby.
+         For a pattern, we prefer to parse this as a hash, which is
+         more likely what the rule-writer means.
+         See the other "coupling: match pattern" for more.*)
+      | Ss [ (Match (e, _tk, pat) as orig_e) ] -> (
+          try
+            let pat_expr = pattern_as_exp pat in
+            let e = expr e in
+            G.E (Container (Tuple, fb [ e; pat_expr ]) |> G.e)
+          with
+          | H.NotAnExpr -> G.E (expr orig_e))
+      | E x -> (
+          match x with
+          | S x -> G.S (stmt x)
+          | D x -> G.S (definition x)
+          | e -> expr_special_cases (expr e))
+      | S2 x -> G.S (stmt x)
+      | Ss xs -> G.Ss (list_stmts xs)
+      | Pr xs -> G.Ss (list_stmts xs)
+      (* sgrep_spatch_pattern just generate E/S2/Ss *)
+      | _ -> raise Impossible)
