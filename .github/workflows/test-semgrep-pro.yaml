@@ -65,7 +65,7 @@ jobs:
         run: |
           docker load --input /tmp/image.tar
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::338683922796:role/returntocorp-semgrep-deploy-role
           role-duration-seconds: 900
