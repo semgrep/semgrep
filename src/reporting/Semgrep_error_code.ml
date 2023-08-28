@@ -50,9 +50,9 @@ let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
    this by creating an issue at https://github.com/returntocorp/semgrep"
 
-let mk_error ?(rule_id = None) loc msg err =
+let mk_error opt_rule_id loc msg err =
   let msg =
-    match err with
+    match (err : Out.core_error_kind) with
     | Out.MatchingError
     | Out.AstBuilderError
     | Out.FatalError
@@ -69,17 +69,63 @@ let mk_error ?(rule_id = None) loc msg err =
     | TimeoutDuringInterfile
     | OutOfMemoryDuringInterfile
     | PatternParseError _
-    | PartialParsing _ ->
+    | PartialParsing _
+    | IncompatibleRule _ ->
         msg
   in
-  { rule_id; loc; typ = err; msg; details = None }
+  { rule_id = opt_rule_id; loc; typ = err; msg; details = None }
 
-let mk_error_tok ?(rule_id = None) tok msg err =
+let mk_error_tok opt_rule_id tok msg err =
   let loc = Tok.unsafe_loc_of_tok tok in
-  mk_error ~rule_id loc msg err
+  mk_error opt_rule_id loc msg err
 
 let error rule_id loc msg err =
-  Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
+  Common.push (mk_error (Some rule_id) loc msg err) g_errors
+
+let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
+    error =
+  let msg = Rule.string_of_invalid_rule_error_kind kind in
+  let err =
+    match kind with
+    | IncompatibleRule (this_version, (min_version, max_version)) ->
+        Out.IncompatibleRule
+          {
+            rule_id = (rule_id :> string);
+            this_version = Version_info.to_string this_version;
+            min_version = Option.map Version_info.to_string min_version;
+            max_version = Option.map Version_info.to_string max_version;
+          }
+    | _ -> Out.RuleParseError
+  in
+  mk_error_tok (Some rule_id) pos msg err
+
+let opt_error_of_rule_error (err : Rule.error) : error option =
+  let rule_id = err.rule_id in
+  match err.kind with
+  | InvalidRule
+      (InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos) ->
+      Some
+        {
+          rule_id = Some rule_id;
+          typ = Out.PatternParseError yaml_path;
+          loc = Tok.unsafe_loc_of_tok pos;
+          msg =
+            spf
+              "Invalid pattern for %s:\n\
+               --- pattern ---\n\
+               %s\n\
+               --- end pattern ---\n\
+               Pattern error: %s\n"
+              (Xlang.to_string xlang) pattern message;
+          details = None;
+        }
+  | InvalidRule err -> Some (error_of_invalid_rule_error err)
+  | InvalidYaml (msg, pos) ->
+      Some (mk_error_tok rule_id pos msg Out.InvalidYaml)
+  | DuplicateYamlKey (s, pos) ->
+      Some (mk_error_tok rule_id pos s Out.InvalidYaml)
+  (* TODO?? *)
+  | UnparsableYamlException _ -> None
 
 (*
    This function converts known exceptions to Semgrep errors.
@@ -89,13 +135,13 @@ let error rule_id loc msg err =
    TODO: why not capture AST_generic.error here? So we could get rid
    of Run_semgrep.exn_to_error wrapper.
 *)
-let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
+let known_exn_to_error rule_id file (e : Exception.t) : error option =
   match Exception.get_exn e with
   (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
      module so that we can use it for the exception printers that are
      registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
-      Some (mk_error_tok ~rule_id tok s Out.LexicalError)
+      Some (mk_error_tok rule_id tok s Out.LexicalError)
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
@@ -108,56 +154,28 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
-      Some (mk_error_tok tok msg Out.ParseError)
+      Some (mk_error_tok rule_id tok msg Out.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
-  | R.Err err -> (
-      match err with
-      | R.InvalidRule
-          (R.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
-        ->
-          Some
-            {
-              rule_id = Some rule_id;
-              typ = Out.PatternParseError yaml_path;
-              loc = Tok.unsafe_loc_of_tok pos;
-              msg =
-                spf
-                  "Invalid pattern for %s:\n\
-                   --- pattern ---\n\
-                   %s\n\
-                   --- end pattern ---\n\
-                   Pattern error: %s\n"
-                  (Xlang.to_string xlang) pattern message;
-              details = None;
-            }
-      | R.InvalidRule (kind, rule_id, pos) ->
-          let str = Rule.string_of_invalid_rule_error_kind kind in
-          Some (mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError)
-      | R.InvalidYaml (msg, pos) ->
-          Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
-      | R.DuplicateYamlKey (s, pos) ->
-          Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
-      (* TODO?? *)
-      | R.UnparsableYamlException _ -> None)
+      Some (mk_error_tok rule_id tok s Out.SpecifiedParseError)
+  | Rule.Error err -> opt_error_of_rule_error err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
       let loc = Tok.first_loc_of_file file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
-      Some (mk_error ~rule_id loc msg Out.Timeout)
+      Some (mk_error rule_id loc msg Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
       let loc = Tok.first_loc_of_file file in
-      Some (mk_error ~rule_id loc msg Out.OutOfMemory)
+      Some (mk_error rule_id loc msg Out.OutOfMemory)
   | Out_of_memory ->
       let loc = Tok.first_loc_of_file file in
-      Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
+      Some (mk_error rule_id loc "Heap space exceeded" Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
-let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
-  match known_exn_to_error ~rule_id file e with
+let exn_to_error rule_id file (e : Exception.t) : error =
+  match known_exn_to_error rule_id file e with
   | Some err -> err
   | None -> (
       match Exception.get_exn e with
@@ -199,23 +217,24 @@ let string_of_error err =
     err.msg details
 
 let severity_of_error typ =
-  match typ with
-  | Out.SemgrepMatchFound -> Out.Error
-  | Out.MatchingError -> Warning
-  | Out.TooManyMatches -> Warning
-  | Out.LexicalError -> Warning
-  | Out.ParseError -> Warning
-  | Out.PartialParsing _ -> Warning
-  | Out.SpecifiedParseError -> Warning
-  | Out.AstBuilderError -> Error
-  | Out.RuleParseError -> Error
-  | Out.PatternParseError _ -> Error
-  | Out.InvalidYaml -> Warning
-  | Out.FatalError -> Error
-  | Out.Timeout -> Warning
-  | Out.OutOfMemory -> Warning
-  | Out.TimeoutDuringInterfile -> Error
-  | Out.OutOfMemoryDuringInterfile -> Error
+  match (typ : Out.core_error_kind) with
+  | SemgrepMatchFound -> Out.Error
+  | MatchingError -> Warning
+  | TooManyMatches -> Warning
+  | LexicalError -> Warning
+  | ParseError -> Warning
+  | PartialParsing _ -> Warning
+  | SpecifiedParseError -> Warning
+  | AstBuilderError -> Error
+  | RuleParseError -> Error
+  | PatternParseError _ -> Error
+  | InvalidYaml -> Warning
+  | FatalError -> Error
+  | Timeout -> Warning
+  | OutOfMemory -> Warning
+  | TimeoutDuringInterfile -> Error
+  | OutOfMemoryDuringInterfile -> Error
+  | IncompatibleRule _ -> Warning
 
 (*****************************************************************************)
 (* Try with error *)
@@ -226,14 +245,14 @@ let try_with_exn_to_error file f =
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      Common.push (exn_to_error file e) g_errors
+      Common.push (exn_to_error None file e) g_errors
 
 let try_with_print_exn_and_reraise file f =
   try f () with
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      let err = exn_to_error file e in
+      let err = exn_to_error None file e in
       pr2 (string_of_error err);
       Exception.reraise e
 

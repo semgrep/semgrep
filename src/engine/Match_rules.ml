@@ -150,7 +150,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
           raise File_timeout;
         let loc = Tok.first_loc_of_file file in
-        let error = E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout in
+        let error = E.mk_error (Some rule_id) loc "" Out.Timeout in
         RP.make_match_result []
           (Report.ErrorSet.singleton error)
           (RP.empty_rule_profiling rule)

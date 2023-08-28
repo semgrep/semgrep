@@ -84,7 +84,7 @@ let timeout_function file timeout f =
   | Some res -> res
   | None ->
       let loc = Tok.first_loc_of_file file in
-      let err = E.mk_error loc "" Out.Timeout in
+      let err = E.mk_error None loc "" Out.Timeout in
       Common.push err E.g_errors
 
 let update_cli_progress config =
@@ -281,7 +281,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
            let error =
-             E.mk_error ~rule_id:(Some id) loc
+             E.mk_error (Some id) loc
                (spf
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
@@ -329,31 +329,18 @@ let exn_to_error file (e : Exception.t) =
   match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
       let loc = Tok.unsafe_loc_of_tok tok in
-      E.mk_error loc s AstBuilderError
-  | _ -> E.exn_to_error file e
+      E.mk_error None loc s AstBuilderError
+  | _ -> E.exn_to_error None file e
 
-(* Return an exception
- * - always, if there are no rules but just invalid rules
- * - TODO when users want to fail fast, if there are valid and invalid rules.
- *   (right now we always fail when there is one invalid rule, because
- *   we don't have a fail_fast flag (we could use the flag for -strict))
- *
- * update: we now parse patterns lazily in Parse_rule.ml, which means
- * we will not get anymore an invalid_rule below for a rule containing
- * a parse error in a pattern (we still get an invalid_rule for
- * other kinds of errors such as the use of an invalid language).
- * Instead, parse error exns in patterns are raised later (as we run the engine).
- * Fortunately, now those exns are converted in errors which are detected in
- * sanity_check_invalid_patterns() below, and then we return the same kind of error
- * we used to before the lazy pattern optimisation.
- *)
-let sanity_check_rules_and_invalid_rules _config rules invalid_rules =
-  match (rules, invalid_rules) with
-  | [], [] -> ()
-  | [], err :: _ -> raise (R.Err (R.InvalidRule err))
-  | _, err :: _ (* TODO fail fast only when in strict mode? *) ->
-      raise (R.Err (R.InvalidRule err))
-  | _, [] -> ()
+(* Convert invalid rules to errors to be reported at the end.
+   This used to raise an exception causing an early abort.
+
+   TODO: restore early abort but only in strict mode?
+   TODO: report an error or not depending on the kind of problem?
+*)
+let sanity_check_rules_and_invalid_rules
+    (invalid_rules : Rule.invalid_rule_error list) =
+  Common.map E.error_of_invalid_rule_error invalid_rules
 
 let sanity_check_invalid_patterns (res : RP.final_result) files =
   match
@@ -377,13 +364,12 @@ let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
       logger#error "parse_pattern: exn = %s" (Common.exn_to_s exn);
-      raise
-        (R.Err
-           (R.InvalidRule
-              ( R.InvalidPattern
-                  (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-                Rule_ID.of_string "no-id",
-                Tok.unsafe_fake_tok "no loc" )))
+      Rule.raise_error None
+        (InvalidRule
+           ( InvalidPattern
+               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
+             Rule_ID.of_string "no-id",
+             Tok.unsafe_fake_tok "no loc" ))
   [@@profiling]
 
 (* for -rules *)
@@ -467,7 +453,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    let loc = Tok.first_loc_of_file file in
                    let errors =
                      RP.ErrorSet.singleton
-                       (E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
+                       (E.mk_error !Rule.last_matched_rule loc ""
                           (match exn with
                           | Match_rules.File_timeout ->
                               logger#info "Timeout on %s" file;
@@ -724,14 +710,22 @@ let extracted_targets_of_config (config : Runner_config.t)
  *)
 let semgrep_with_rules ?match_hook config
     ((rules, invalid_rules), rules_parse_time) =
-  sanity_check_rules_and_invalid_rules config rules invalid_rules;
-
+  let rule_errors = sanity_check_rules_and_invalid_rules invalid_rules in
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
   (* The basic targets.
    * TODO: possibly extract (recursively) from generated stuff? *)
   let targets_info, skipped = targets_of_config config rule_ids in
-  let targets = targets_info.target_mappings in
+  let targets =
+    (* Optimization: no valid rule => no findings.
+       This solution avoids using an exception which would be a little harder
+       to track.
+       Use case: a user is creating a rule and testing it on their project
+       but the rule is invalid. *)
+    match rules with
+    | [] -> []
+    | _some_rules -> targets_info.target_mappings
+  in
 
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
@@ -873,7 +867,7 @@ let semgrep_with_rules ?match_hook config
     | RP.Time profiling -> RP.Time profiling
     | RP.No_info -> RP.No_info
   in
-  let errors = new_errors @ res.errors in
+  let errors = rule_errors @ new_errors @ res.errors in
   ( {
       RP.matches;
       errors;
@@ -898,7 +892,7 @@ let semgrep_with_raw_results_and_exn_handler config =
       let e = Exception.catch exn in
       logger#info "Uncaught exception: %s" (Exception.to_string e);
       let res =
-        { RP.empty_final_result with errors = [ E.exn_to_error "" e ] }
+        { RP.empty_final_result with errors = [ E.exn_to_error None "" e ] }
       in
       (Some e, res, [])
 

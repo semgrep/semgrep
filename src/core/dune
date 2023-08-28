@@ -6,6 +6,7 @@
  (name semgrep_core)
  (wrapped false)
  (libraries
+   semver
    stdcompat
    str
    uri
