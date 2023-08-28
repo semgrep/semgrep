@@ -49,7 +49,7 @@ let filter_clean_lines matches =
 (*************************************************************************)
 
 let of_matches ?(only_git_dirty = true) (result : Core_runner.result) =
-  let matches = result.core.matches in
+  let matches = result.core.results in
   let hrules = result.hrules in
   let env = { Cli_json_output.hrules } in
   (* Match up the rules with the matches so we can get fixes, rule ids, messages *)

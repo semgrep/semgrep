@@ -177,7 +177,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   let fold acc (core_match : Out.core_match) =
     Map_.update core_match.Out.rule_id update acc
   in
-  let map = List.fold_left fold Map_.empty res.core.Out.matches in
+  let map = List.fold_left fold Map_.empty res.core.Out.results in
   Map_.fold
     (fun rule_id n acc ->
       match Rule_ID.of_string_opt rule_id with
