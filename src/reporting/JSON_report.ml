@@ -354,7 +354,7 @@ let json_time_of_profiling_data profiling_data =
     max_memory_bytes = profiling_data.max_memory_bytes;
   }
 
-let match_results_of_matches_and_errors render_fix nfiles res =
+let core_output_of_matches_and_errors render_fix nfiles res =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in

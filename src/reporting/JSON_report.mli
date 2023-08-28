@@ -8,7 +8,7 @@ val match_to_match :
   Pattern_match.t ->
   (Semgrep_output_v1_t.core_match, Semgrep_error_code.error) Common.either
 
-val match_results_of_matches_and_errors :
+val core_output_of_matches_and_errors :
   render_fix option ->
   int (* number of files processed, for the stats.okfiles *) ->
   Report.final_result ->

@@ -55,7 +55,7 @@ let ranges_of_path (path : Fpath.t) : Function_range.ranges =
 (* Entry point *)
 (*****************************************************************************)
 
-let adjust_core_match_results (x : Out.core_output) : Out.core_output =
+let adjust_core_output (x : Out.core_output) : Out.core_output =
   let results =
     x.results
     |> Common.map (fun (m : Out.core_match) ->

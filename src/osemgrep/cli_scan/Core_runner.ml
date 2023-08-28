@@ -193,7 +193,7 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
  *)
 let create_core_result all_rules (_exns, res, scanned) =
   let match_results =
-    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+    JSON_report.core_output_of_matches_and_errors (Some Autofix.render_fix)
       (Set_.cardinal scanned) res
   in
 
