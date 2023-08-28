@@ -1,1 +1,1 @@
-{"errors": [{"code": 2, "level": "error", "message": "File not found: targets/stupid-does-not-exist.p", "type": "SemgrepError"}], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": []}, "results": [], "version": "0.42"}
+{"errors": [{"code": 2, "level": "error", "message": "File not found: targets/stupid-does-not-exist.p", "type": "SemgrepError"}], "paths": {"_comment": "<add --verbose for a list of skipped paths>", "scanned": []}, "results": [], "skipped_rules": [], "version": "0.42"}
