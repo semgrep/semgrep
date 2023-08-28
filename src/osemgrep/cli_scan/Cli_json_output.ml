@@ -432,7 +432,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
     Out.cli_output =
   match res.core with
   | {
-   matches;
+   results = matches;
    errors;
    skipped_targets;
    (* LATER *)

@@ -16,5 +16,4 @@ val location_of_token_location : Tok.location -> Semgrep_output_v1_t.location
    match location first.
 *)
 val sort_match_results :
-  Semgrep_output_v1_t.core_match_results ->
-  Semgrep_output_v1_t.core_match_results
+  Semgrep_output_v1_t.core_output -> Semgrep_output_v1_t.core_output

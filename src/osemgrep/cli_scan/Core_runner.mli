@@ -12,7 +12,7 @@ type conf = {
 
 (* output *)
 type result = {
-  core : Semgrep_output_v1_t.core_match_results;
+  core : Semgrep_output_v1_t.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
 }
