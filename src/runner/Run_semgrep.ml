@@ -716,7 +716,16 @@ let semgrep_with_rules ?match_hook config
   (* The basic targets.
    * TODO: possibly extract (recursively) from generated stuff? *)
   let targets_info, skipped = targets_of_config config rule_ids in
-  let targets = targets_info.target_mappings in
+  let targets =
+    (* Optimization: no valid rule => no findings.
+       This solution avoids using an exception which would be a little harder
+       to track.
+       Use case: a user is creating a rule and testing it on their project
+       but the rule is invalid. *)
+    match rules with
+    | [] -> []
+    | _some_rules -> targets_info.target_mappings
+  in
 
   (* The "extracted" targets we generate on the fly by calling
    * our extractors (extract mode rules) on the relevant basic targets.
