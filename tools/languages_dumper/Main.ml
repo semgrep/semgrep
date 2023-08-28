@@ -90,7 +90,6 @@ let all_actions () =
   @ Test_parsing_js.actions ()
   @ Test_parsing_json.actions ()
   @ Test_parsing_python.actions ()
-  @ Test_parsing_ruby.actions ()
   @ Test_parsing_c.actions ()
   @ Test_parsing_cpp.actions ()
   @ Test_parsing_java.actions ()
