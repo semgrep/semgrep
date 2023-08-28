@@ -17,7 +17,10 @@ module RP = Report
 (* To run the pro engine, including multistep rules *)
 (*****************************************************************************)
 
-let invoke_semgrep_core_proprietary = ref None
+let (invoke_semgrep_core_proprietary :
+      (Fpath.t list -> Engine_type.t -> Core_runner.semgrep_core_runner) option
+      ref) =
+  ref None
 
 (*****************************************************************************)
 (* Logging/Profiling/Debugging *)
@@ -186,8 +189,10 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Conduct the scan *)
 (*****************************************************************************)
 
-let run_scan_files (conf : Scan_CLI.conf) profiler rules_and_origins
-    targets_and_ignored =
+let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
+    (rules_and_origins : Rule_fetching.rules_and_origin list)
+    (targets_and_ignored : Fpath.t list * Out.skipped_target list) :
+    (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   let rules, errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
