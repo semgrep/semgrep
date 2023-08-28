@@ -10,13 +10,7 @@
 
             5┆ expr: sum_over_time(foo[5m])
             ⋮┆----------------------------------------
-       rules.test-promql-duration-capture
-          captured duration "10m"
-
             7┆ expr: sum_over_time(sum(foobar)[10m:])
             ⋮┆----------------------------------------
-       rules.test-promql-duration-capture
-          captured duration "15m"
-
             9┆ expr: sum_over_time(sum(foobarbaz)[15m:30s])
 
