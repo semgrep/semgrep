@@ -38,6 +38,13 @@ jobs:
 
           # clean up after ourselves
           docker rm $CONTAINER_ID
+
+          # note: this was originally accomplished by running `cat` from within the container and redirecting stdout to a file:
+          #
+          # docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} cat cli/dist.zip > /tmp/dist.zip
+          #
+          # we ended up hitting an edge case where the final ~100kb doesn't always get written to disk, which results in a corrupted zip file.
+          # our theory is that the pipe between the container and the host is being closed prematurely.
       - uses: actions/upload-artifact@v3
         with:
           name: manylinux-aarch64-wheel
