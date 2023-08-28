@@ -375,7 +375,7 @@ let match_results_of_matches_and_errors render_fix nfiles res =
     | RP.No_info -> (None, None)
   in
   {
-    Out.matches;
+    Out.results = matches;
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
