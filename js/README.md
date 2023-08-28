@@ -7,12 +7,12 @@ After running:
 ```
 $ source libs/ocaml-tree-sitter-core/tree-sitter-config.sh
 $ make core
-$ dune build --profile=release
+$ make build-semgrep-jsoo # run dune build js --profile=release
 ```
 
 you should get a few MB files in `_build/default/js/engine/Main.bc.js`
 
-Building with `dune build --profile=release` (instead of the default --profile=dev)
+Building with `dune build js --profile=release` (instead of the default --profile=dev)
 has a significant impact on the size of the generated JS file. You can go
 from 110MB to 16MB!
 See https://discuss.ocaml.org/t/tutorial-full-stack-web-dev-in-ocaml-w-dream-bonsai-and-graphql/9963/8?u=aryx for more information
