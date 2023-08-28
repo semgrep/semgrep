@@ -888,6 +888,7 @@ def scan(
                     shown_severities,
                     _dependencies,
                     _dependency_parser_errors,
+                    _num_executed_rules,
                 ) = semgrep.run_scan.run_scan(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
