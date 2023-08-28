@@ -1174,7 +1174,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
          and really mean that, and not this match pattern thing.
          For consistency with that, we will prefer to parse it as a hash
          pair, in the case where we are parsing a pattern.
-         See the other "couplign: match pattern" for where we handle this.
+         See the other "coupling: match pattern" for where we handle this.
       *)
       let v1 = arg env v1 in
       let v2 = (* "=>" *) token2 env v2 in
@@ -2127,6 +2127,15 @@ and anon_choice_DOTDOT_ed078ec (env : env) (x : CST.anon_choice_DOTDOT_ed078ec)
   | `DOTDOTDOT tok -> (Op_DOT3, token2 env tok)
 
 and range (env : env) (x : CST.range) : AST.expr =
+  (* A note: if we are parsing a pattern, someone writes a
+     command call expression with arbitrary arguments, they might write
+
+     foo ...
+
+     which looks exactly like a range expression.
+     So when parsing a pattern, let's prefer the command call version,
+     which is more likely to come up.
+  *)
   match x with
   | `Arg_choice_DOTDOT_arg (v1, v2, v3) ->
       let v1 = arg env v1 in
@@ -2138,11 +2147,13 @@ and range (env : env) (x : CST.range) : AST.expr =
       let v2 = arg env v2 in
       let t = snd v1 in
       Binop (fake_nil t, v1, v2)
-  | `Arg_choice_DOTDOT (v1, v2) ->
+  | `Arg_choice_DOTDOT (v1, v2) -> (
       let v1 = arg env v1 in
-      let v2 = anon_choice_DOTDOT_ed078ec env v2 in
+      let ((_, v2_tok) as v2) = anon_choice_DOTDOT_ed078ec env v2 in
       let t = snd v2 in
-      Binop (v1, v2, fake_nil t)
+      match env.extra with
+      | Pattern -> Call (v1, fb [ Arg (Ellipsis v2_tok) ], None)
+      | _ -> Binop (v1, v2, fake_nil t))
 
 and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) :
     AST.expr list =

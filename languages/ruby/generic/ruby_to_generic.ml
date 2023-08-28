@@ -166,6 +166,10 @@ let rec expr e =
       in
       G.Lambda def
   | Rescue (e1, t, e2) ->
+      (* We translate `e1 rescue e2` to
+
+         try e1 with _ -> e2
+      *)
       let e1 = expr e1 in
       let e2 = expr e2 in
       let st =
@@ -373,6 +377,9 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   | MethodEllipsis t -> raise (Parsing_error.Syntax_error t)
 
 and interpolated_string (t1, xs, t2) : G.expr_kind =
+  (* Here, we combine all adjacent literal strings, and only
+     leave them delimited by the interpolations.
+  *)
   let rec fold_constants xs =
     match xs with
     | [] -> []
@@ -681,6 +688,9 @@ and pattern_as_exp pat =
   | _ -> H.pattern_to_expr (pattern pat)
 
 and pattern pat =
+  (* coupling: this function should be used in a way that is inverted by
+     `pattern_as_exp` above
+  *)
   let promote expr =
     match expr with
     | G.L l -> G.PatLiteral l

@@ -234,6 +234,7 @@ type expr =
   | DeepEllipsis of expr bracket
   (* TODO: unused for now, need find a syntax *)
   | TypedMetavar of ident * tok * type_
+  (* only really for standalone ampersand & and hash splat ** *)
   | TodoExpr of string * tok
 
 (* less: use for Assign, can be Id, Tuple, Array, more? *)
@@ -338,7 +339,7 @@ and variable_or_method_name =
  * also tuple in lhs of Assign.
  *)
 and pattern =
-  | PatId of variable (* Usually Local/Param, Global in toplevel let *)
+  | PatId of variable
   | PatLiteral of literal
   | PatAtom of atom
   | PatDisj of pattern * pattern
