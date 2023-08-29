@@ -14,7 +14,6 @@ import shutil
 import subprocess
 import sys
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 from typing import List
