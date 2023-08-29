@@ -583,7 +583,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              | None ->
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
-                 Some (r, new_bindings))
+                 None)
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really

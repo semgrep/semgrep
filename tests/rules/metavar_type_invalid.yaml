@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - java
+    severity: WARNING
+    patterns:
+      - pattern: private $T x;
+      - metavariable-type:
+          metavariable: $T
+          type: int
