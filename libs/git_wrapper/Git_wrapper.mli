@@ -16,6 +16,9 @@ type status = {
 *)
 val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
 
+(* get merge base between arg and HEAD *)
+val get_merge_base : string -> string
+
 (* Executing a function inside a directory created from git-worktree.
 
    `git worktree` is doing 90% of the heavy lifting here. Docs:
