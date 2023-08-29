@@ -61,6 +61,7 @@ BAD_CONFIG = dedent(
       severity: ERROR
 """
 ).lstrip()
+FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
 
 
 ##############################################################################
@@ -330,8 +331,8 @@ def automocks(mocker):
     )
     mocker.patch.object(
         GitMeta,
-        "commit_datetime",
-        str(int(datetime(2023, 1, 1).timestamp())),
+        "commit_timestamp",
+        FROZEN_ISOTIMESTAMP,
     )
     mocker.patch.object(
         ScanHandler,
@@ -784,6 +785,8 @@ def test_full_run(
 
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
+
+    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP
 
     if env.get("GITLAB_CI"):
         # If in a merge pipeline, base_sha is defined, otherwise is None

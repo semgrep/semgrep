@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os
 import subprocess
@@ -165,6 +166,13 @@ class GitMeta:
         return git_check_output(["git", "show", "-s", "--format=%ct"])
 
     @property
+    def commit_timestamp(self) -> str:
+        """
+        Returns the commit timestamp as an iso-formatted datetime string.
+        """
+        return datetime.fromtimestamp(int(self.commit_datetime)).isoformat()
+
+    @property
     def is_full_scan(self) -> bool:
         return self.merge_base_ref is None
 
@@ -187,7 +195,7 @@ class GitMeta:
             "commit_author_username": None,
             "commit_author_image_url": None,
             "commit_title": commit_title,
-            "commit_timestamp": self.commit_datetime,
+            "commit_timestamp": self.commit_timestamp,
             "on": self.event_name,
             "pull_request_author_username": None,
             "pull_request_author_image_url": None,

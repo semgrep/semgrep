@@ -11,7 +11,7 @@
     "commit_author_username": null,
     "commit_author_image_url": null,
     "commit_title": "Some other commit/ message",
-    "commit_timestamp": "1672552800",
+    "commit_timestamp": "1970-01-01T00:00:00",
     "on": "pull_request",
     "pull_request_author_username": null,
     "pull_request_author_image_url": null,
