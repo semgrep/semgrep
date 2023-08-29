@@ -41,7 +41,10 @@ let default_subcommand = "scan"
 (* Subcommands dispatch *)
 (*****************************************************************************)
 
-(* This is used to determine if we should fall back to assuming 'scan'. *)
+(* This is used to determine if we should fall back to assuming 'scan'.
+ * coupling: if you modify the set of subcommands, you probably need to
+ * update Help.ml messages.
+ *)
 let known_subcommands =
   [
     "ci";
@@ -70,16 +73,18 @@ let dispatch_subcommand argv =
    * we removed support for the .semgrep.yml implicit config in pysemgrep.
    *)
   | [ _ ]
+  | [ _; "--experimental" ] ->
+      Help.print_help ();
+      Exit_code.ok
   | [ _; ("-h" | "--help") ]
   (* ugly: this --experimental management here is a bit ugly, to allow the
    * different combination.
    * alt: remove --experimental from argv, but it's useful to pass it down
    * to the subcommands too.
    *)
-  | [ _; "--experimental" ]
   | [ _; ("-h" | "--help"); "--experimental" ]
   | [ _; "--experimental"; ("-h" | "--help") ] ->
-      Help.print_semgrep_help ();
+      Help.print_semgrep_dashdash_help ();
       Exit_code.ok
   | argv0 :: args -> (
       let subcmd, subcmd_args =
@@ -98,7 +103,7 @@ let dispatch_subcommand argv =
       in
       let experimental = Array.mem "--experimental" argv in
       (* coupling: with known_subcommands if you add an entry below.
-       * coupling: with the main_help_msg if you add an entry below.
+       * coupling: with Help.ml if you add an entry below.
        *)
       try
         match subcmd with
