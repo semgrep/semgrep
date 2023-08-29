@@ -33,6 +33,8 @@ if WHEEL_CMD in sys.argv:
             abi = "none"
             if plat == "linux_x86_64":
                 plat = "any"
+            elif plat == "linux_aarch64":
+                plat = "musllinux1_0_aarch64.manylinux2014_aarch64"
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
