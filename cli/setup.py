@@ -33,24 +33,25 @@ if WHEEL_CMD in sys.argv:
             # For more information about python compatibility tags, check out:
             # https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/
 
-            # we support Python 3.7+
+            # We support Python 3.7+
             python = "cp37.cp38.cp39.cp310.cp311.py37.py38.py39.py310.py311"
 
-            # we don't require a specific Python ABI
+            # We don't require a specific Python ABI
             abi = "none"
 
-            # To prevent potential compatibility issues that could arise when mixing glibc and libmusl,
-            # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform tags. Instead,
-            # package maintainers must explicity identify whether their package supports glibc or
-            # libmusl. Semgrep-core is statically compiled, so this isn't a concern for us.
+            # To prevent potential compatibility issues when mixing glibc and libmusl,
+            # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
+            # tags. Instead, package maintainers must explicity identify if their package
+            # supports glibc and/or libmusl. Semgrep-core is statically compiled,
+            # so this isn't a concern for us.
             #
-            # For linux_aarch64, we explicitly indicate that we support both platforms
-            #   (musllinux_10 == libmusl, manylinux2014 == glibc)
+            # For linux_aarch64, we indicate that we support both platforms
+            #   (musllinux_1_0 == libmusl, manylinux2014 == glibc)
             #
             # For linux_x86_64, we use the catch-all "any" tag
             #
             if plat == "linux_aarch64":
-                plat = "musllinux1_0_aarch64.manylinux2014_aarch64"
+                plat = "musllinux_1_0_aarch64.manylinux2014_aarch64"
             elif plat == "linux_x86_64":
                 plat = "any"
             return python, abi, plat
