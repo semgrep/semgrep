@@ -216,9 +216,7 @@ WORKDIR /src
 
 # Better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
-RUN addgroup semgrep \
-    && adduser --shell /bin/false --ingroup semgrep semgrep \
-    && chown semgrep /src
+RUN adduser semgrep && chown semgrep /src
 
 # Disabling defaulting to the user semgrep for now
 # We can set it by default once we fix the circle ci workflows
