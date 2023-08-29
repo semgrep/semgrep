@@ -287,8 +287,15 @@ def test_maven_version_comparison(version, specifier, outcome):
 def test_osv_parsing(parse_lockfile_path_in_tmp, caplog, target):
     caplog.set_level(logging.ERROR)
     _, error = parse_lockfile_path_in_tmp(Path(target))
+    # These two files have some packages we cannot really make sense of, so we ignore them
+    # We include our failures in the error output for informational purposes
+    if target.endswith("files/pnpm-lock.yaml"):
+        assert len(error) == 1
+    elif target.endswith("exotic/pnpm-lock.yaml"):
+        assert len(error) == 5
+    else:
+        assert len(error) == 0
     assert len(caplog.records) == 0
-    assert len(error) == 0
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent
