@@ -129,7 +129,7 @@ let o_common : conf Term.t =
 let help_page_bottom =
   [
     `S Manpage.s_authors;
-    `P "r2c <support@semgrep.com>";
+    `P "Semgrep Inc. <support@semgrep.com>";
     `S Manpage.s_bugs;
     `P
       "If you encounter an issue, please report it at\n\

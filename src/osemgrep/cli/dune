@@ -8,6 +8,7 @@
   (libraries
     ; External libraries
     cmdliner
+    ocolor
     commons
 
     ; Internal libraries

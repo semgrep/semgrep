@@ -54,7 +54,6 @@ let () =
   (* osemgrep!! *)
   | "osemgrep.bc"
   | "osemgrep" ->
-      Core_CLI.register_exception_printers ();
       let exit_code = CLI.main Sys.argv |> Exit_code.to_int in
       (* TODO: remove or make debug-only *)
       if exit_code <> 0 then

@@ -141,8 +141,13 @@ def print_summary_line(
     console.print(summary_line + ":")
 
 
-def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> None:
-    """Print a section like:"""
+def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> int:
+    """
+    Print a section like:
+
+    Return total number of rules semgrep think is applicable to this repo
+    e.g. it skips rules when there are no files with a relevant extension since no findings will be found
+    """
     console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(
@@ -163,12 +168,14 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> N
     if not sca_plan.rules:
         # just print these tables without the section headers
         sast_plan.print(with_tables_for=RuleProduct.sast)
-        return
+        return len(sast_plan.rules)
 
     console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
     sast_plan.print(with_tables_for=RuleProduct.sast)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
+
+    return len(sast_plan.rules) + len(sca_plan.rules)
 
 
 def remove_matches_in_baseline(
@@ -217,8 +224,9 @@ def run_rules(
     OutputExtra,
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
+    int,
 ]:
-    print_scan_status(filtered_rules, target_manager)
+    num_executed_rules = print_scan_status(filtered_rules, target_manager)
 
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
@@ -314,6 +322,7 @@ def run_rules(
         output_extra,
         dependencies,
         dependency_parser_errors,
+        num_executed_rules,
     )
 
 
@@ -365,6 +374,7 @@ def run_scan(
     Collection[RuleSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
+    int,
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -506,6 +516,7 @@ def run_scan(
         output_extra,
         dependencies,
         dependency_parser_errors,
+        num_executed_rules,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -570,6 +581,7 @@ def run_scan(
                         _,
                         _,
                         _,
+                        _,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -629,6 +641,7 @@ def run_scan(
         shown_severities,
         dependencies,
         dependency_parser_errors,
+        num_executed_rules,
     )
 
 
@@ -662,6 +675,7 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
+        _,
         _,
         _,
     ) = run_scan(

@@ -1639,6 +1639,15 @@ def test_query_dependency(
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+    complete_dependency_json = complete_json["dependencies"]
+    results_json = post_calls[1].kwargs["json"]
+    results_dependency_json = results_json["dependencies"]
+    snapshot.assert_match(
+        json.dumps(complete_dependency_json, indent=2), "dependencies.json"
+    )
+    snapshot.assert_match(
+        json.dumps(results_dependency_json, indent=2), "dependencies.json"
+    )
 
 
 def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):

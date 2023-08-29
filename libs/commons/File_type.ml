@@ -1,6 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010-2013 Facebook
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -69,24 +70,24 @@ and pl_type =
   | Rust
   | Beta
   | Pascal
-  | Web of webpl_type
   | Haxe
-  | Opa
-  | Flash
   | Bytecode of string
   | Asm
-  | Thrift
+  | Web of webpl_type
+  | IDL of idl_type
   | MiscPL of string
 
 and config_type =
   | Makefile
   | Dockerfile
+  (* note: XML is in webpl_type below *)
   | Json
   | Jsonnet
   (* kinda pl_type *)
   | Yaml
   | Terraform
   | Sexp (* e.g., dune files *)
+  | Toml
 
 and lisp_type = CommonLisp | Elisp | Scheme | Clojure
 
@@ -100,8 +101,11 @@ and webpl_type =
   | Css
   | Html
   | Xml
+  | Opa
+  | Flash
   | Sql
 
+and idl_type = Thrift | ATD | Protobuf
 and media_type = Sound of string | Picture of string | Video of string
 
 (*****************************************************************************)
@@ -145,9 +149,9 @@ let file_type_of_file file =
   | "hxp"
   | "hxml" ->
       PL Haxe
-  | "opa" -> PL Opa
+  | "opa" -> PL (Web Opa)
   | "sk" -> PL Skip
-  | "as" -> PL Flash
+  | "as" -> PL (Web Flash)
   | "bet" -> PL Beta
   (* todo detect false C file, look for "Mode: Objective-C++" string in file ?
    * can also be a c++, use Parser_cplusplus.is_problably_cplusplus_file
@@ -175,7 +179,9 @@ let file_type_of_file file =
   | "kt" -> PL Kotlin
   | "cs" -> PL Csharp
   | "p" -> PL Pascal
-  | "thrift" -> PL Thrift
+  | "thrift" -> PL (IDL Thrift)
+  | "atd" -> PL (IDL ATD)
+  | "proto" -> PL (IDL Protobuf)
   | "scm"
   | "rkt"
   | "ss"
@@ -246,6 +252,7 @@ let file_type_of_file file =
   | "yaml" ->
       Config Yaml
   | "tf" -> Config Terraform
+  | "toml" -> Config Toml
   (* sometimes people use foo.Dockerfile *)
   | "Dockerfile" -> Config Dockerfile
   | "sql" -> PL (Web Sql)

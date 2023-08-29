@@ -38,7 +38,7 @@ type result = {
   (* ocaml: not in original python implem, but just enough to get
    * Semgrep_scan.cli_output_of_core_results to work
    *)
-  core : Out.core_match_results;
+  core : Out.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)
@@ -191,7 +191,7 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
  *)
 let create_core_result all_rules (_exns, (res : RP.final_result), scanned) =
   let match_results =
-    JSON_report.match_results_of_matches_and_errors (Some Autofix.render_fix)
+    JSON_report.core_output_of_matches_and_errors (Some Autofix.render_fix)
       (Set_.cardinal scanned) res
   in
 

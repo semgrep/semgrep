@@ -1,0 +1,1 @@
+Dependency data is now also sent to the /results endpoint of semgrep app. It is still sent to the /complete endpoint.

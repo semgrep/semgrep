@@ -34,10 +34,20 @@ def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
     return get_key_values(yaml, "specifiers")
 
 
+def parse_package_key_pre_6(key: str) -> Optional[Tuple[str, str]]:
+    match = re.compile(r"/(.+)/([^/]+)").match(key)
+    return match.groups() if match else None  # type: ignore
+
+
 def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
     return get_key_values(yaml, "dependencies") + get_key_values(
         yaml, "devDependencies"
     )
+
+
+def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
+    match = re.compile(r"/(.+?)@([^(@]+)").match(key)
+    return match.groups() if match else None  # type: ignore
 
 
 def parse_pnpm(
@@ -61,10 +71,12 @@ def parse_pnpm(
         lockfile_version = float(parsed_lockfile.value["lockfileVersion"].value)
     except KeyError:
         return [], errors
-    if lockfile_version <= 5.4:
-        parse_direct = parse_direct_pre_6
-    else:
-        parse_direct = parse_direct_post_6
+
+    parse_direct, parse_package_key = (
+        (parse_direct_pre_6, parse_package_key_pre_6)
+        if lockfile_version <= 5.4
+        else (parse_direct_post_6, parse_package_key_post_6)
+    )
 
     if "importers" in parsed_lockfile.value:
         direct_deps = {
@@ -78,7 +90,7 @@ def parse_pnpm(
         package_map = parsed_lockfile.value["packages"].value
         if not package_map:
             return [], errors
-        all_deps: List[tuple[int, tuple[str, str]]] = []
+        all_deps: List[Tuple[int, Tuple[str, str]]] = []
         for key, map in package_map.items():
             if map.value and "name" in map.value and "version" in map.value:
                 all_deps.append(
@@ -88,10 +100,18 @@ def parse_pnpm(
                     )
                 )
             else:
-                match = re.compile(r"/(.+)/([^/]+)").match(key.value)
-                if match:
+                data = parse_package_key(key.value)
+                if data:
                     # re does not have a way for us to refine the type of the match to what we know it is
-                    all_deps.append((key.span.start.line, match.groups()))  # type: ignore
+                    all_deps.append((key.span.start.line, data))
+                else:
+                    errors.append(
+                        DependencyParserError(
+                            str(lockfile_path),
+                            key.span.start.line,
+                            f"Could not parse package key {key.value}",
+                        )
+                    )
 
     except KeyError:
         return [], errors

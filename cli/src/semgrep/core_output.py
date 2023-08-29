@@ -95,8 +95,8 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     return SemgrepCoreError(code, level, spans, err)
 
 
-def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
-    match_results = core.CoreMatchResults.from_json(raw_json)
+def parse_core_output(raw_json: JsonObject) -> core.CoreOutput:
+    match_results = core.CoreOutput.from_json(raw_json)
     if match_results.skipped_targets:
         for skip in match_results.skipped_targets:
             if skip.rule_id:
@@ -110,7 +110,7 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
 
 
 def core_matches_to_rule_matches(
-    rules: List[Rule], res: core.CoreMatchResults
+    rules: List[Rule], res: core.CoreOutput
 ) -> Dict[Rule, List[RuleMatch]]:
     """
     Convert core_match objects into RuleMatch objects that the rest of the codebase
@@ -209,7 +209,7 @@ def core_matches_to_rule_matches(
     # TODO: Dict[core.RuleId, RuleMatchSet]
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()
-    for match in res.matches:
+    for match in res.results:
         rule = rule_table[match.rule_id.value]
         rule_match = convert_to_rule_match(match)
         if rule_match.cli_unique_key in seen_cli_unique_keys:
