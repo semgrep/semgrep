@@ -14,21 +14,11 @@
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )
 
-;(rule
-; (targets Output_from_core_j.ml Output_from_core_j.mli)
-; (deps    Output_from_core.atd)
-; (action  (run atdgen -j -j-std %{deps})))
-;
-;(rule
-; (targets Output_from_core_t.ml Output_from_core_t.mli)
-; (deps    Output_from_core.atd)
-; (action  (run atdgen -t %{deps})))
-
-; this is just used in Unit_reporting.ml
 (rule
  (targets semgrep_output_v1_j.ml semgrep_output_v1_j.mli)
  (deps    semgrep_output_v1.atd)
  (action  (run atdgen -j -j-std %{deps})))
+
 (rule
  (targets semgrep_output_v1_t.ml semgrep_output_v1_t.mli)
  (deps    semgrep_output_v1.atd)

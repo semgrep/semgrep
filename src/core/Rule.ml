@@ -470,6 +470,11 @@ type 'mode rule_info = {
   (* MANDATORY fields *)
   id : Rule_ID.t wrap;
   mode : 'mode;
+  (* Range of Semgrep versions supported by the rule.
+     Note that a rule with these fields may not even be parseable
+     in the current version of Semgrep and wouldn't even reach this point. *)
+  min_version : Version_info.t option;
+  max_version : Version_info.t option;
   (* Currently a dummy value for extract mode rules *)
   message : string;
   (* Currently a dummy value for extract mode rules *)
@@ -587,18 +592,37 @@ and invalid_rule_error_kind =
   | InvalidRegexp of string (* PCRE error message *)
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | IncompatibleRule of
+      Version_info.t (* this version of Semgrep *)
+      * (Version_info.t option (* minimum version supported by this rule *)
+        * Version_info.t option (* maximum version *))
   | InvalidOther of string
 [@@deriving show]
 
 (* General errors *)
-type error =
+type error_kind =
   | InvalidRule of invalid_rule_error
   | InvalidYaml of string * Tok.t
   | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
 
-(* can't use Error because it's used for severity *)
-exception Err of error
+type error = {
+  (* Some errors are in the YAML file before we can enter a specific rule
+     or it could be a rule without an ID. This is why the rule ID is
+     optional. *)
+  rule_id : Rule_ID.t option;
+  kind : error_kind;
+}
+
+exception Error of error
+
+(*
+   You must provide a rule ID for a rule to be reported properly as an invalid
+   rule. The argument is not optional because it's important to not forget to
+   specify a rule ID whenever possible.
+*)
+let raise_error optional_rule_id kind =
+  raise (Error { rule_id = optional_rule_id; kind })
 
 (*****************************************************************************)
 (* String-of *)
@@ -620,6 +644,24 @@ let string_of_invalid_rule_error_kind = function
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
+  | IncompatibleRule (cur, (Some min_version, None)) ->
+      spf "This rule requires upgrading Semgrep from version %s to at least %s"
+        (Version_info.to_string cur)
+        (Version_info.to_string min_version)
+  | IncompatibleRule (cur, (None, Some max_version)) ->
+      spf
+        "This rule is no longer supported by Semgrep. The last compatible \
+         version was %s. This version of Semgrep is %s"
+        (Version_info.to_string max_version)
+        (Version_info.to_string cur)
+  | IncompatibleRule (cur, (Some min_version, Some max_version)) ->
+      spf
+        "This rule requires a version of Semgrep within [%s, %s] but we're \
+         using version %s"
+        (Version_info.to_string min_version)
+        (Version_info.to_string max_version)
+        (Version_info.to_string cur)
+  | IncompatibleRule (_, (None, None)) -> assert false
   | InvalidOther s -> s
 
 let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
@@ -629,7 +671,7 @@ let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
     (string_of_invalid_rule_error_kind kind)
 
 let string_of_error (error : error) : string =
-  match error with
+  match error.kind with
   | InvalidRule x -> string_of_invalid_rule_error x
   | InvalidYaml (msg, pos) ->
       spf "invalid YAML, %s: %s" (Tok.stringpos_of_tok pos) msg
@@ -644,8 +686,8 @@ let string_of_error (error : error) : string =
 *)
 let opt_string_of_exn (exn : exn) =
   match exn with
-  | Err x -> Some (string_of_error x)
-  | _else_ -> None
+  | Error x -> Some (string_of_error x)
+  | _ -> None
 
 let () = Printexc.register_printer opt_string_of_exn
 
@@ -729,6 +771,8 @@ let rule_of_xpattern (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
   {
     id = (Rule_ID.of_string "-e", fk);
     mode = `Search (P xpat);
+    min_version = None;
+    max_version = None;
     (* alt: could put xpat.pstr for the message *)
     message = "";
     severity = Error;
