@@ -40,10 +40,9 @@ packages:
     dev: true
 
 
-  /ansi-regex@2.1.1:
+  /vercel@28.16.12:
     resolution: {integrity: sha512-TIGnTpdo+E3+pCyAluZvtED5p5wCqLdezCyhPZzKPcxvFplEt4i+W7OONCKgeZFT3+y5NZZfOOS/Bdcanm1MYA==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
 
   /tslint@5.10.0(typescript@4.9.5):
