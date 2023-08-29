@@ -1,5 +1,70 @@
 {
-  "errors": [],
+  "errors": [
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.need-to-upgrade1 on /tmp/tmpr65_g_fo.json:\n This rule requires upgrading Semgrep from version <MASKED> to at least 1000.0.0",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.need-to-upgrade1",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.need-to-upgrade2 on /tmp/tmpr65_g_fo.json:\n This rule requires upgrading Semgrep from version <MASKED> to at least 1.1000.0",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.need-to-upgrade2",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.retired-feature1 on /tmp/tmpr65_g_fo.json:\n This rule is no longer supported by Semgrep. The last compatible version was 0.0.0. This version of Semgrep is <MASKED>",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.retired-feature1",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.retired-feature2 on /tmp/tmpr65_g_fo.json:\n This rule is no longer supported by Semgrep. The last compatible version was 0.0.1000. This version of Semgrep is <MASKED>",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.retired-feature2",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.retired-feature3 on /tmp/tmpr65_g_fo.json:\n This rule is no longer supported by Semgrep. The last compatible version was 0.1000.0. This version of Semgrep is <MASKED>",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.retired-feature3",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.past-version-range on /tmp/tmpr65_g_fo.json:\n This rule is no longer supported by Semgrep. The last compatible version was 0.8.3. This version of Semgrep is <MASKED>",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.past-version-range",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.future-version-range on /tmp/tmpr65_g_fo.json:\n This rule requires upgrading Semgrep from version <MASKED> to at least 49.1.7",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.future-version-range",
+      "type": "Incompatible rule"
+    },
+    {
+      "code": 0,
+      "level": "info",
+      "message": "Incompatible rule when running rules.empty-version-range on /tmp/tmpr65_g_fo.json:\n This rule requires upgrading Semgrep from version <MASKED> to at least 2.0.0",
+      "path": "/tmp/tmpr65_g_fo.json",
+      "rule_id": "rules.empty-version-range",
+      "type": "Incompatible rule"
+    }
+  ],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [

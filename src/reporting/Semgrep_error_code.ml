@@ -234,7 +234,9 @@ let severity_of_error typ =
   | OutOfMemory -> Warning
   | TimeoutDuringInterfile -> Error
   | OutOfMemoryDuringInterfile -> Error
-  | IncompatibleRule _ -> Warning
+  | IncompatibleRule _ ->
+      (* Running into an incompatible rule may be normal, with nothing to fix *)
+      Info
 
 (*****************************************************************************)
 (* Try with error *)

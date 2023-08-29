@@ -46,6 +46,7 @@ SCAN_FAIL_EXIT_CODE = 14
 class Level(Enum):
     ERROR = 4  # Always an error
     WARN = 3  # Only an error if "strict" is set
+    INFO = 2  # Nothing may be wrong
 
 
 class SemgrepError(Exception):
@@ -113,6 +114,8 @@ class SemgrepCoreError(SemgrepError):
             return "Syntax error"
         if isinstance(type_.value, core.PatternParseError):
             return "Pattern parse error"
+        if isinstance(type_.value, core.IncompatibleRule_):
+            return "Incompatible rule"
         # All the other cases don't have arguments in Semgrep_output_v1.atd
         # and have some <json name="..."> annotations to generate the right string
         else:

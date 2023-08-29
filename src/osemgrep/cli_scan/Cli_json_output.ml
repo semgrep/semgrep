@@ -164,10 +164,11 @@ let string_of_severity (severity : Rule.severity) : string =
   | Inventory -> "INVENTORY"
 
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.core_severity) : Severity.basic_severity =
+let level_of_severity (severity : Out.core_severity) : Severity.t =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
+  | Info -> `Info
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
@@ -252,7 +253,21 @@ let exit_code_of_error_type (error_type : Out.core_error_kind) : Exit_code.t =
   | LexicalError
   | PartialParsing _ ->
       Exit_code.invalid_code
-  | _else_ -> Exit_code.fatal
+  | SpecifiedParseError
+  | AstBuilderError
+  | RuleParseError
+  | PatternParseError _
+  | InvalidYaml
+  | MatchingError
+  | SemgrepMatchFound
+  | TooManyMatches
+  | FatalError
+  | Timeout
+  | OutOfMemory
+  | TimeoutDuringInterfile
+  | OutOfMemoryDuringInterfile ->
+      Exit_code.fatal
+  | IncompatibleRule _ -> Exit_code.ok
 
 (* Skipping the intermediate python SemgrepCoreError for now.
  * TODO: should we return an Error.Semgrep_core_error instead? like we
@@ -297,7 +312,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
          *)
         code = Exit_code.to_int exit_code;
         (* LATER: should use a variant too *)
-        level = Severity.string_of_basic_severity level;
+        level = Severity.to_string level;
         (* LATER: type_ should be a proper variant instead of a string *)
         type_ = error_type_string error_type;
         rule_id;

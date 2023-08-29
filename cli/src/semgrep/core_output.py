@@ -18,6 +18,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
+from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
@@ -74,7 +75,9 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if (
+    if level == Level.INFO:
+        code = OK_EXIT_CODE
+    elif (
         isinstance(err.error_type.value, core.ParseError)
         or isinstance(err.error_type.value, core.LexicalError)
         or isinstance(err.error_type.value, core.PartialParsing)
