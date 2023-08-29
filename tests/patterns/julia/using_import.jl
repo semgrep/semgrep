@@ -5,10 +5,8 @@ using x
 # ERROR: match
 using a, b
 
-# ERROR: match
 using x: y
 
-# ERROR: match
 using x as y
 
 import x
