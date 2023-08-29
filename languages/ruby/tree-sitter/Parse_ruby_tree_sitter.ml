@@ -761,7 +761,7 @@ and hash_splat_parameter (env : env) ((v1, v2) : CST.hash_splat_parameter) =
 
 and keyword_pattern (env : env) (x : CST.keyword_pattern) =
   match x with
-  | `DOTDOTDOT tok -> if_in_pattern env (PArgEllipsis (token2 env tok))
+  | `Semg_ellips tok -> if_in_pattern env (PArgEllipsis (token2 env tok))
   | `Choice_id_imm_tok_colon_opt_pat_expr (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -1280,7 +1280,7 @@ and lambda (env : env) ((v1, v2, v3) : CST.lambda) =
 
 and primary (env : env) (x : CST.primary) : AST.expr =
   match x with
-  | `DOTDOTDOT tok
+  | `Semg_ellips tok
   | `Semg_ellips_foll_by_nl tok -> (
       match env.extra with
       | Program ->
@@ -1841,12 +1841,12 @@ and argument (env : env) (x : CST.argument) : AST.argument =
   | `Forw_arg tok -> (
       let t = (* "..." *) token2 env tok in
       match env.extra with
-      | Program -> Arg (Splat (t, None))
-      | Pattern ->
+      | Program ->
           (* Close enough. It's not actually strictly a splat, but it behaves
              similarly.
           *)
-          Arg (Ellipsis t))
+          Arg (Splat (t, None))
+      | Pattern -> Arg (Ellipsis t))
   | `Exp x -> Arg (expression env x)
   | `Splat_arg x -> Arg (splat_argument env x)
   | `Hash_splat_arg x -> Arg (hash_splat_argument env x)
@@ -2330,7 +2330,7 @@ and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
 
 and pair (env : env) (x : CST.pair) =
   match x with
-  | `DOTDOTDOT tok -> if_in_pattern env (Left (Ellipsis (token2 env tok)))
+  | `Semg_ellips tok -> if_in_pattern env (Left (Ellipsis (token2 env tok)))
   | `Choice_arg_EQGT_arg x -> (
       match x with
       | `Arg_EQGT_arg (v1, v2, v3) ->
