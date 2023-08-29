@@ -45,13 +45,8 @@ depends: [
   "pcre"
   "ocamlgraph"
   "parmap"
-  "<<<<<<<"
-  "HEAD"
   "semver"
   "uri"
-  "======="
-  ">>>>>>>"
-  "origin/develop"
   "uuidm"
   "lsp" {= "1.15.1-5.0"}
   "uri"
