@@ -214,6 +214,8 @@ def mask_capture_group(match: re.Match) -> str:
     return text
 
 
+# ProTip: make sure your regexps can't match JSON quotes so as to keep any
+# JSON parseable after a substitution!
 ALWAYS_MASK: Maskers = (
     _clean_output_sarif,
     __VERSION__,
@@ -222,8 +224,10 @@ ALWAYS_MASK: Maskers = (
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
     re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
     # Temporary rule file stored in temporary folder.
-    # Need to mask (1) temp folder location and (2) random part of file name
-    re.compile(r"([^ ]*/tmp[a-z0-9]+).json"),
+    # Need to mask (1) temp folder location and (2) random part of file name.
+    # Note that paths are masked using a more fine-grained mechanism below
+    # but it's more complicated.
+    re.compile(r"([/A-Za-z0-9_-]*/tmp[a-z0-9_]+).json"),
 )
 
 
