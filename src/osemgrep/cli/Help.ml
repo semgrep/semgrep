@@ -32,33 +32,33 @@
 (*****************************************************************************)
 
 let print_help () =
-  print_string
+  Ocolor_format.printf
     {|
-┌──── ○○○ ────┐
+┌──── @{<green>○○○@} ────┐
 │ Semgrep CLI │
 └─────────────┘
 Semgrep CLI scans your code for bugs, security and dependency vulnerabilities.
 
-For more information about Semgrep, visit https://semgrep.dev
+For more information about Semgrep, visit @{<cyan;ul>https://semgrep.dev@}
 
-Get Started:
-  Run `semgrep login && semgrep ci` to find dependency
+@{<ul>Get Started@}:
+  Run @{<cyan>`semgrep login && semgrep ci`@} to find dependency
   vulnerabilities and advanced cross-file findings. 💎
 
-Commands:
-  semgrep ci                   The recommended way to run semgrep in CI
-  semgrep scan                 Run semgrep rules on files
+@{<ul>Commands@}:
+  @{<cyan>semgrep ci@}                   The recommended way to run semgrep in CI
+  @{<cyan>semgrep scan@}                 Run semgrep rules on files
 
-Advanced Commands:
-  semgrep install-semgrep-pro  Install the Semgrep Pro Engine (recommended)
-  semgrep login                Obtain and save credentials for semgrep.dev
-  semgrep logout               Remove locally stored credentials to
+@{<ul>Advanced Commands@}:
+  @{<cyan>semgrep install-semgrep-pro@}  Install the Semgrep Pro Engine (recommended)
+  @{<cyan>semgrep login@}                Obtain and save credentials for semgrep.dev
+  @{<cyan>semgrep logout@}               Remove locally stored credentials to
                                semgrep.dev
 
-Help:
-  semgrep COMMAND --help       For more information on each command
+@{<ul>Help@}:
+  @{<cyan>semgrep COMMAND --help@}       For more information on each command
 
-For the CLI docs visit https://semgrep.dev/docs/category/semgrep-cli/
+For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/category/semgrep-cli/@}
 |}
 
 let print_semgrep_dashdash_help () =
