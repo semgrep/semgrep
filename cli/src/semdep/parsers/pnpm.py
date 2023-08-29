@@ -34,7 +34,7 @@ def parse_direct_pre_6(yaml: YamlTree[YamlMap]) -> List[str]:
     return get_key_values(yaml, "specifiers")
 
 
-def parse_package_key_pre_6(key: str) -> Optional[tuple[str, str]]:
+def parse_package_key_pre_6(key: str) -> Optional[Tuple[str, str]]:
     match = re.compile(r"/(.+)/([^/]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
@@ -45,7 +45,7 @@ def parse_direct_post_6(yaml: YamlTree[YamlMap]) -> List[str]:
     )
 
 
-def parse_package_key_post_6(key: str) -> Optional[tuple[str, str]]:
+def parse_package_key_post_6(key: str) -> Optional[Tuple[str, str]]:
     match = re.compile(r"/(.+?)@([^(@]+)").match(key)
     return match.groups() if match else None  # type: ignore
 
@@ -90,7 +90,7 @@ def parse_pnpm(
         package_map = parsed_lockfile.value["packages"].value
         if not package_map:
             return [], errors
-        all_deps: List[tuple[int, tuple[str, str]]] = []
+        all_deps: List[Tuple[int, Tuple[str, str]]] = []
         for key, map in package_map.items():
             if map.value and "name" in map.value and "version" in map.value:
                 all_deps.append(
