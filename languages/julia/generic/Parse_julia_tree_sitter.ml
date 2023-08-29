@@ -2166,12 +2166,23 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
                 |> List.filter_map Fun.id
                 |> Common.map (fun (dotted, aliasopt) ->
                        if is_using then
-                         (* It doesn't really make sense to me how you would use an `as`
-                            in conjunction with something which is like a wildcard import,
-                            so let's just drop it on the floor here for now.
-                         *)
-                         let _TODO_alias = aliasopt in
-                         ImportAll (tk, DottedName dotted, tk) |> G.d
+                         let dk =
+                           ImportAll (tk, DottedName dotted, tk) |> G.d
+                         in
+                         match aliasopt with
+                         | None -> dk
+                         | Some (id, _idinfo) ->
+                             (* It doesn't really make sense to me how you would use an `as`
+                                 in conjunction with something which is like a wildcard import.
+                                 In fact, the Julia documentation says you're not supposed to do
+                                 that:
+                                 https://docs.julialang.org/en/v1/manual/modules/#Renaming-with-as
+                                 but it might have some benefit to match, so let's Other out.
+                             *)
+                             OtherDirective
+                               ( ("using_as", G.fake "using_as"),
+                                 [ G.Dir dk; G.I id ] )
+                             |> G.d
                        else ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
             | `Sele_import x -> (
                 match map_selected_import ~import_tok:tk env x with
