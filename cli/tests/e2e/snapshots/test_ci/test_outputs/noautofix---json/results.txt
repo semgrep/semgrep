@@ -449,6 +449,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
       }
     }
   ],
+  "skipped_rules": [],
   "version": "0.42"
 }
 === end of stdout - plain

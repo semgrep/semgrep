@@ -442,6 +442,8 @@ For more information see https://semgrep.dev
     ; misc
     ocamlgraph
     parmap
+    semver
+    uri
     uuidm
     (lsp (= 1.15.1-5.0))
     ; web stuff

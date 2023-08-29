@@ -511,6 +511,7 @@ class OutputHandler:
                 rules_by_engine=rules_by_engine,
                 # this flattens the information into just distinguishing "pro" and "not-pro"
                 engine_requested=self.engine_type.to_engine_kind(),
+                skipped_rules=[],  # TODO
             ),
             extra,
             self.severities,

@@ -167,12 +167,10 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
     lang_jobs
     |> List.fold_left
          (fun (n, acc_mappings, acc_rules) lang_job ->
-           let num_rules, mappings, rule_ids =
+           let num_rules, mappings, rules =
              target_mappings_of_lang_job lang_job n
            in
-           ( n + num_rules,
-             mappings :: acc_mappings,
-             List.rev rule_ids :: acc_rules ))
+           (n + num_rules, mappings :: acc_mappings, List.rev rules :: acc_rules))
          (0, [], [])
   in
   let target_mappings = List.concat target_mappings in
@@ -191,7 +189,7 @@ let prepare_config_for_semgrep_core (config : Runner_config.t)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result all_rules (_exns, res, scanned) =
+let create_core_result all_rules (_exns, (res : RP.final_result), scanned) =
   let match_results =
     JSON_report.core_output_of_matches_and_errors (Some Autofix.render_fix)
       (Set_.cardinal scanned) res
@@ -226,70 +224,53 @@ let create_core_result all_rules (_exns, res, scanned) =
 let invoke_semgrep_core
     ?(engine = Run_semgrep.semgrep_with_raw_results_and_exn_handler)
     ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
-    (all_rules : Rule.t list) (rule_errors : Rule.invalid_rule_error list)
+    (all_rules : Rule.t list) (skipped_rules : Rule.invalid_rule_error list)
     (all_targets : Fpath.t list) =
   let config : Runner_config.t = runner_config_of_conf conf in
   let config = { config with file_match_results_hook } in
+  (* TODO: we should not need to use Common.map below, because
+     Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
+     a list of targets with different languages! We just
+     need to pass the right target object (and not a lang_job)
+     TODO: Martin said the issue was that Run_semgrep.targets_of_config
+     requires the xlang object to contain a single language.
+     TODO: Martin says there's no fundamental reason to split
+     a scanning job by programming language. Several optimizations
+     are possible based on target project structure, number and diversity
+     of rules, presence of rule-specific include/exclude patterns etc.
+     Right now we're constrained by the pysemgrep/semgrep-core interface
+     that requires a split by "language". While this interface is still
+     in use, bypassing it without removing it seems complicated.
+     See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
+  *)
+  let lang_jobs = split_jobs_by_language all_rules all_targets in
+  Logs.app (fun m ->
+      m "%a"
+        (fun ppf () ->
+          Status_report.pp_status ~num_rules:(List.length all_rules)
+            ~num_targets:(List.length all_targets) ~respect_git_ignore lang_jobs
+            ppf)
+        ());
+  List.iter
+    (fun { Lang_job.xlang; _ } ->
+      Metrics_.add_feature "language" (Xlang.to_string xlang))
+    lang_jobs;
+  let config = prepare_config_for_semgrep_core config lang_jobs in
 
-  match rule_errors with
-  (* with pysemgrep, semgrep-core is passed all the rules unparsed,
-   * and as soon as semgrep-core detects an error in a rule, it raises
-   * InvalidRule which is caught and translated to JSON before exiting.
-   * Here we emulate the same behavior, even though the rules
-   * were parsed in the caller already.
-   *)
-  | err :: _ ->
-      (* like in Run_semgrep.sanity_check_rules_and_invalid_rules *)
-      let exn = Rule.Err (Rule.InvalidRule err) in
-      let e = Exception.catch exn in
-      let res =
-        {
-          RP.empty_final_result with
-          errors = [ Semgrep_error_code.exn_to_error "" e ];
-        }
-      in
-      (Some e, res, Set_.empty)
-  | [] ->
-      (* TODO: we should not need to use Common.map below, because
-         Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
-         a list of targets with different languages! We just
-         need to pass the right target object (and not a lang_job)
-         TODO: Martin said the issue was that Run_semgrep.targets_of_config
-         requires the xlang object to contain a single language.
-         TODO: Martin says there's no fundamental reason to split
-         a scanning job by programming language. Several optimizations
-         are possible based on target project structure, number and diversity
-         of rules, presence of rule-specific include/exclude patterns etc.
-         Right now we're constrained by the pysemgrep/semgrep-core interface
-         that requires a split by "language". While this interface is still
-         in use, bypassing it without removing it seems complicated.
-         See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
-      *)
-      let lang_jobs = split_jobs_by_language all_rules all_targets in
-      Logs.app (fun m ->
-          m "%a"
-            (fun ppf () ->
-              Status_report.pp_status ~num_rules:(List.length all_rules)
-                ~num_targets:(List.length all_targets) ~respect_git_ignore
-                lang_jobs ppf)
-            ());
-      List.iter
-        (fun { Lang_job.xlang; _ } ->
-          Metrics_.add_feature "language" (Xlang.to_string xlang))
-        lang_jobs;
-      let config = prepare_config_for_semgrep_core config lang_jobs in
+  (* !!!!Finally! this is where we branch to semgrep-core!!! *)
+  let exn, res, files = engine config in
 
-      (* !!!!Finally! this is where we branch to semgrep-core!!! *)
-      let exn, res, files = engine config in
+  (* Reinject rule errors *)
+  let res = { res with skipped_rules = skipped_rules @ res.skipped_rules } in
 
-      let scanned = Set_.of_list files in
+  let scanned = Set_.of_list files in
 
-      (* TODO(dinosaure): currently, we don't collect metrics when we invoke
-         semgrep-core but we should. However, if we implement a way to collect
-         metrics, we will just need to set [final_result.extra] to
-         [RP.Debug]/[RP.Time] and this line of code will not change. *)
-      Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
-      Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
+  (* TODO(dinosaure): currently, we don't collect metrics when we invoke
+     semgrep-core but we should. However, if we implement a way to collect
+     metrics, we will just need to set [final_result.extra] to
+     [RP.Debug]/[RP.Time] and this line of code will not change. *)
+  Metrics_.add_max_memory_bytes (RP.debug_info_to_option res.extra);
+  Metrics_.add_targets scanned (RP.debug_info_to_option res.extra);
 
-      (exn, res, scanned)
+  (exn, res, scanned)
   [@@profiling]

@@ -46,6 +46,7 @@ SCAN_FAIL_EXIT_CODE = 14
 class Level(Enum):
     ERROR = 4  # Always an error
     WARN = 3  # Only an error if "strict" is set
+    INFO = 2  # Nothing may be wrong
 
 
 class SemgrepError(Exception):
@@ -113,6 +114,8 @@ class SemgrepCoreError(SemgrepError):
             return "Syntax error"
         if isinstance(type_.value, core.PatternParseError):
             return "Pattern parse error"
+        if isinstance(type_.value, core.IncompatibleRule_):
+            return "Incompatible rule"
         # All the other cases don't have arguments in Semgrep_output_v1.atd
         # and have some <json name="..."> annotations to generate the right string
         else:
@@ -236,6 +239,18 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     return tuple(spans)
 
 
+def add_to_line(pos: Position, num_lines: int) -> Position:
+    return Position(col=pos.col, line=pos.line + num_lines, offset=-1)
+
+
+def previous_line(pos: Position) -> Position:
+    return add_to_line(pos, -1)
+
+
+def next_line(pos: Position) -> Position:
+    return add_to_line(pos, 1)
+
+
 @attr.s(auto_attribs=True, eq=True, frozen=True)
 class ErrorWithSpan(SemgrepError):
     """
@@ -314,7 +329,11 @@ class ErrorWithSpan(SemgrepError):
             return with_color(Colors.bright_blue, "".ljust(width) + "| ")
 
     def _format_code_segment(
-        self, start: Position, end: Position, source: List[str], part_of_span: Span
+        self,
+        start: Position,
+        end: Position,
+        source: List[str],
+        part_of_span: Span,
     ) -> List[str]:
         """
         Line by line output for a snippet of code from `start_line` to `end_line`
@@ -363,7 +382,7 @@ class ErrorWithSpan(SemgrepError):
             # Finally, print end context from `end` to `context_end`
             if span.context_start:
                 snippet += self._format_code_segment(
-                    span.context_start, span.start.previous_line(), source, span
+                    span.context_start, previous_line(span.start), source, span
                 )
             snippet += self._format_code_segment(span.start, span.end, source, span)
             # Currently, only span highlighting if it's a one line span
@@ -376,7 +395,7 @@ class ErrorWithSpan(SemgrepError):
                 )
             if span.context_end:
                 snippet += self._format_code_segment(
-                    span.end.next_line(), span.context_end, source, span
+                    next_line(span.end), span.context_end, source, span
                 )
 
             snippets.append("\n".join(snippet))
