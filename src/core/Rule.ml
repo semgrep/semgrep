@@ -691,6 +691,32 @@ let kind_of_formula = function
   | Not _ ->
       "formula"
 
+let rec formula_of_mode (mode : mode) =
+  match mode with
+  | `Search formula -> [ formula ]
+  | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
+    ->
+      Common.map (fun src -> src.source_formula) sources
+      @ (match sanitizers with
+        | None -> []
+        | Some (_, sanitizers) ->
+            Common.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
+      @ Common.map (fun sink -> sink.sink_formula) sinks
+      @ Common.map (fun prop -> prop.propagator_formula) propagators
+  | `Extract { formula; extract = _; _ } -> [ formula ]
+  | `Secrets { secrets; _ } -> secrets
+  | `Steps steps ->
+      List.concat_map
+        (fun step -> formula_of_mode (step.step_mode :> mode))
+        steps
+
+let xpatterns_of_rule rule =
+  let formulae = formula_of_mode rule.mode in
+  let xpat_store = ref [] in
+  let visit xpat _ = xpat_store := xpat :: !xpat_store in
+  List.iter (visit_new_formula visit) formulae;
+  !xpat_store
+
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
