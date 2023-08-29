@@ -221,6 +221,9 @@ ALWAYS_MASK: Maskers = (
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
     re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
+    # Temporary rule file stored in temporary folder.
+    # Need to mask (1) temp folder location and (2) random part of file name
+    re.compile(r"([^ ]*/tmp[a-z0-9]+).json"),
 )
 
 
