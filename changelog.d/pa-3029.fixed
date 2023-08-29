@@ -1,0 +1,6 @@
+Julia: Fixed a bug where `let end` blocks were not being parsed
+correctly, causing their contents to not strictly match while inside of
+a block.
+
+For instance, `let ... end` would not count as being inside of the `let`,
+and would match everything.
