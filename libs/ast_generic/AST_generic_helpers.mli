@@ -5,6 +5,7 @@ val str_of_ident : AST_generic.ident -> string
 exception NotAnExpr
 
 val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
+val expr_to_stmt : AST_generic.expr -> AST_generic.stmt
 
 (* may raise NotAnExpr *)
 val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
