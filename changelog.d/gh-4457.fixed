@@ -1,0 +1,5 @@
+Running just `semgrep` now displays the help message. Semgrep does not
+try anymore to look for a .semgrep.yml config file or .semgrep/ in the
+current directory, which used to cause issues when running from your
+home directory which can contain the .semgrep/settings.yml file (which
+is actually not a semgrep rule).
