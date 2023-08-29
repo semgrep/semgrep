@@ -216,8 +216,8 @@ WORKDIR /src
 
 # Better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
-RUN addgroup --system semgrep \
-    && adduser --system --shell /bin/false --ingroup semgrep semgrep \
+RUN addgroup semgrep \
+    && adduser --shell /bin/false --ingroup semgrep semgrep \
     && chown semgrep /src
 
 # Disabling defaulting to the user semgrep for now
