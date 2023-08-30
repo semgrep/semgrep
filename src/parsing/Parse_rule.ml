@@ -404,6 +404,10 @@ let parse_language ~id ((s, t) as _lang) : Lang.t =
      spacegrep, aliengrep, ...) or by trying to parse the semgrep pattern
      as one of several programming languages.
    This decouples target selection from pattern parsing.
+
+   TODO: note that there's a few places in this file where we use
+   Xlang.of_string which allows "spacegrep" and "aliengrep" so
+   this might lead to inconsistencies as here we allow just "generic".
 *)
 let parse_languages ~id (options : Rule_options_t.t) langs : Rule.languages =
   let opt_target_selector, (target_analyzer : Xlang.t) =

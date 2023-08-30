@@ -612,11 +612,6 @@ def scan_options(func: Callable) -> Callable:
     """,
     shell_complete=__get_severity_options,
 )
-@click.option(
-    "--show-supported-languages",
-    is_flag=True,
-    help=("Print a list of languages that are currently supported by Semgrep."),
-)
 @optgroup.group("Alternate modes", help="No search is performed in these modes")
 @optgroup.option(
     "--validate",
@@ -693,7 +688,6 @@ def scan(
     rewrite_rule_ids: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
-    show_supported_languages: bool,
     strict: bool,
     targets: Sequence[str],
     test: bool,
@@ -732,10 +726,6 @@ def scan(
             from semgrep.app.version import version_check
 
             version_check()
-        return None
-
-    if show_supported_languages:
-        click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
     engine_type = EngineType.decide_engine_type(requested_engine=requested_engine)

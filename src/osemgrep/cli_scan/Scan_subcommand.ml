@@ -305,7 +305,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       { res with core }
     in
 
-    (* outputting the result! in JSON/Text/... depending on conf *)
+    (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
       Output.output_result { conf with output_format } profiler res
     in
@@ -325,6 +325,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             size,
             other_ignored,
             errors_skipped ));
+    (* Note that Logs.app() is printing on stderr (but without any [XXX]
+     * prefix), and is filtered when using --quiet.
+     *)
     Logs.app (fun m ->
         m "%a" Summary_report.pp_summary
           ( conf.targeting_conf.respect_git_ignore,
@@ -353,8 +356,23 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     *)
     Ok (filtered_rules, res, cli_output)
 
-let run_scan_conf (conf : Scan_CLI.conf) (settings : Semgrep_settings.t)
-    (profiler : Profiler.t) : Exit_code.t =
+let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  let profiler = Profiler.make () in
+  Profiler.start profiler ~name:"total_time";
+  let settings =
+    (fun () ->
+      Metrics_.configure conf.metrics;
+      let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
+      if Metrics_.is_enabled conf.metrics then
+        Metrics_.add_project_url (Git_wrapper.get_project_url ());
+      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+      (match conf.rules_source with
+      | Rules_source.Configs configs -> Metrics_.add_configs configs
+      | _ -> ());
+      settings)
+    |> Profiler.record profiler ~name:"config_time"
+  in
+
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
@@ -414,11 +432,14 @@ let run_scan_conf (conf : Scan_CLI.conf) (settings : Semgrep_settings.t)
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
-  (* TODO: move this further down! *)
   (match conf.common.maturity with
-  | Maturity.Default
-  | Maturity.Legacy ->
-      raise Pysemgrep.Fallback
+  | Maturity.Default -> (
+      match conf with
+      (* TODO: handle more confs, or fallback to pysemgrep further down *)
+      | { show_supported_languages = true; _ } -> ()
+      | _else_ -> raise Pysemgrep.Fallback)
+  (* this should never happen because --legacy is handled in cli/bin/semgrep *)
+  | Maturity.Legacy -> raise Pysemgrep.Fallback
   | Maturity.Experimental
   | Maturity.Develop ->
       ());
@@ -426,23 +447,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
-
-  (* TODO? maybe this could be moved in run_scan_conf() instead *)
-  let profiler = Profiler.make () in
-  Profiler.start profiler ~name:"total_time";
-  let settings =
-    (fun () ->
-      Metrics_.configure conf.metrics;
-      let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      if Metrics_.is_enabled conf.metrics then
-        Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
-      (match conf.rules_source with
-      | Rules_source.Configs configs -> Metrics_.add_configs configs
-      | _ -> ());
-      settings)
-    |> Profiler.record profiler ~name:"config_time"
-  in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -455,15 +459,11 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      (* alt: we could use Common.pr, but because '--quiet' doc says
-       * "Only output findings.", a version is not a finding so
-       * we use Logs.app (which is filtered by --quiet).
-       *)
-      Logs.app (fun m -> m "%s" Version.version);
+      Common.pr Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.show_supported_languages ->
-      Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
+      Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
@@ -473,7 +473,7 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      run_scan_conf conf settings profiler
+      run_scan_conf conf
 
 (*****************************************************************************)
 (* Entry point *)

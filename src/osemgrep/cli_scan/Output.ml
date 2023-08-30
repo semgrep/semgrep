@@ -13,8 +13,9 @@ module Out = Semgrep_output_v1_j
    it currently depends on Scan_CLI.conf and Core_runner so simpler to keep
    here for now.
 
-   We're using Common.pr below, not Logs.app, because even with --quiet
-   we want semgrep to report the findings.
+   We're using Common.pr() below, not Logs.app(), because we want to output
+   findings on stdout (Logs.app uses stderr). That also mean semgrep will
+   display findings even with --quiet.
 *)
 
 (*****************************************************************************)
@@ -68,7 +69,7 @@ let dispatch_output_format (output_format : Output_format.t)
   match output_format with
   | Json ->
       let s = Out.string_of_cli_output cli_output in
-      pr s
+      Common.pr s
   | Vim ->
       cli_output.results
       |> List.iter (fun (m : Out.cli_match) ->
@@ -85,7 +86,7 @@ let dispatch_output_format (output_format : Output_format.t)
                      message;
                    ]
                  in
-                 pr (String.concat ":" parts))
+                 Common.pr (String.concat ":" parts))
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
@@ -133,7 +134,7 @@ let dispatch_output_format (output_format : Output_format.t)
                      message;
                    ]
                  in
-                 pr (String.concat ":" parts))
+                 Common.pr (String.concat ":" parts))
   | Text ->
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
@@ -144,7 +145,7 @@ let dispatch_output_format (output_format : Output_format.t)
   | Gitlab_secrets
   | Junit_xml
   | Sarif ->
-      pr
+      Common.pr
         (spf "TODO: output format %s not supported yet"
            (Output_format.show output_format))
 
