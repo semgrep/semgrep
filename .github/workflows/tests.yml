@@ -305,6 +305,8 @@ jobs:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
+      docker-flavor: |
+        latest=auto
       docker-tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
@@ -328,30 +330,33 @@ jobs:
       repository-name: ${{ github.repository }}
       dry-run: false
 
-  build-docker-rootless:
+  build-test-docker-nonroot:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
+      docker-flavor: |
+        latest=auto
+        suffix=-nonroot
       docker-tags: |
-        type=semver,pattern={{version}},suffix=-rootless
-        type=semver,pattern={{major}}.{{minor}},suffix=-rootless
-        type=ref,event=pr,suffix=-rootless
-        type=ref,event=branch,suffix=-rootless
-        type=sha,event=branch,suffix=-rootless
-        type=edge,suffix=-rootless
-      artifact-name: image-test-rootless
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=ref,event=pr
+        type=ref,event=branch
+        type=sha,event=branch
+        type=edge
+      artifact-name: image-test-nonroot
       repository-name: ${{ github.repository }}
       file: Dockerfile
-      target: rootless
+      target: nonroot
       enable-tests: false
 
-  push-docker-rootless:
-    needs: [build-docker-rootless]
+  push-docker-nonroot:
+    needs: [build-test-docker-nonroot]
     uses: ./.github/workflows/push-docker.yaml
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     secrets: inherit
     with:
-      artifact-name: image-test-rootless
+      artifact-name: image-test-nonroot
       repository-name: ${{ github.repository }}
       dry-run: false
 
