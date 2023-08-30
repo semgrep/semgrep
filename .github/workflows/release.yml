@@ -107,14 +107,14 @@ jobs:
     secrets: inherit
     with:
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{version}},suffix=-rootless
+        type=semver,pattern={{major}}.{{minor}},suffix=-rootless
         type=raw,value=latest-rootless
       repository-name: ${{ github.repository }}
       artifact-name: image-release-rootless
       file: Dockerfile
       target: rootless
-      enable-tests: true
+      enable-tests: false
 
   build-test-osx-x86:
     uses: ./.github/workflows/build-test-osx-x86.yaml

@@ -333,12 +333,12 @@ jobs:
     secrets: inherit
     with:
       docker-tags: |
-        type=semver,pattern={{version}}
-        type=semver,pattern={{major}}.{{minor}}
-        type=ref,event=pr
-        type=ref,event=branch
-        type=sha,event=branch
-        type=edge
+        type=semver,pattern={{version}},suffix=-rootless
+        type=semver,pattern={{major}}.{{minor}},suffix=-rootless
+        type=ref,event=pr,suffix=-rootless
+        type=ref,event=branch,suffix=-rootless
+        type=sha,event=branch,suffix=-rootless
+        type=edge,suffix=-rootless
       artifact-name: image-test-rootless
       repository-name: ${{ github.repository }}
       file: Dockerfile
