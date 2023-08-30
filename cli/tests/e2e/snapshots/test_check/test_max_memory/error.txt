@@ -7,8 +7,24 @@ Rules:
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Scanning 1 file tracked by git with 1 Code rule, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         1       1          Custom       1
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency
+     vulnerabilities and advanced cross-file findings.
+
+
+  PROGRESS
+
 
 ========================================
 Files skipped:

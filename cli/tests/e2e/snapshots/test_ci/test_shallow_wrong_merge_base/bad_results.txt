@@ -29,8 +29,24 @@ Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 2 files tracked by git with 4 Code rules:
-  Scanning 2 files with 4 python rules.
+  Scanning 2 files tracked by git with 4 Code rules, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         4       2          Custom       4
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Run `semgrep ci` to find dependency vulnerabilities and advanced
+     cross-file findings.
+
+
+  PROGRESS
+
   Current version has 3 findings.
 
 Creating git worktree from 'b903231925961ac9d787ae53ee0bd15ec156e689' to scan baseline.
@@ -43,8 +59,24 @@ Creating git worktree from 'b903231925961ac9d787ae53ee0bd15ec156e689' to scan ba
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
+  Scanning 1 file tracked by git with 1 Code rule, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         1       1          Custom       1
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Run `semgrep ci` to find dependency vulnerabilities and advanced
+     cross-file findings.
+
+
+  PROGRESS
+
 
 
 ┌──────────────────────────────┐

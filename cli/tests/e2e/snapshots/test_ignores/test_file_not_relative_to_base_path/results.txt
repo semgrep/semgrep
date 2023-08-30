@@ -52,8 +52,25 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 2 files.
+  Scanning 1 file tracked by git with 1 Code rule, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  js             1       1          Custom       1
+  ts             1       1
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency
+     vulnerabilities and advanced cross-file findings.
+
+
+  PROGRESS
+
 
 
 ┌──────────────┐
