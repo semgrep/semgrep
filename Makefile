@@ -219,15 +219,15 @@ install-deps-for-semgrep-core: semgrep.opam
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
-	# Install OCaml dependencies (globally)
-	opam install -y --deps-only ./libs/ocaml-tree-sitter-core
-	# Use semgrep.opam to install dependencies, include dune.
-	opam install -y --deps-only ./
+	# Install OCaml dependencies (globally) from *.opam files.
+	opam install -y --deps-only ./ ./libs/ocaml-tree-sitter-core
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
-# and dune isn't installed yet.
+# and dune isn't installed yet. You can always install dune with
+# 'opam install dune' to get started.
 semgrep.opam: dune-project
 	dune build $@
+	# Foolproofing
 	chmod a-w semgrep.opam
 
 # The bytecode version of semgrep-core needs dlls for tree-sitter
