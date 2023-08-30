@@ -188,8 +188,8 @@ core-test:
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
-.PHONY: core-test-bc
-core-test-bc:
+.PHONY: test-bc
+test-bc:
 	# Bytecode version of the test for debugging
 	dune build ./_build/default/src/tests/test.bc
 

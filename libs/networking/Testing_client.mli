@@ -1,3 +1,33 @@
+(* Commentary *)
+(* This is a testing client to mock out http_helpers.ml so we
+ * can check requests and insert responses. It works by replacing
+ * the Cohttp client module with a custom one that calls
+ * a make response function. The make response function
+ * is called to check a request and create a response to
+   return to the caller.
+ * Example usage:
+let with_foo_client =
+    let make_fn = (fun req body ->
+        match Uri.path (Cohttp.Request.uri req) with
+        | "http://foo.com/api/v1/blah" ->
+            Testing_client.check_method req "GET";
+            Testing_client.check_body body "./tests/foo/request.json"
+            Lwt.return Testing_client.(basic_response "./tests/foo/response.json")
+        | _ -> Alcotest.fail "unexpected request"
+    )
+    in
+    Testing_client.with_testing_client make_fn
+   ...
+
+   let test_foo = ... in
+   let tests =
+   [
+     ("Test foo", with_foo_client test_foo)
+   ]
+   in
+   pack_tests "Foo Tests" tests
+ *)
+
 type test_response = { response : Cohttp_lwt.Response.t; body_path : string }
 (** [test_response] is a response (headers and status), and a path to a file
   * which will make the body of the response. The file is simply read and it's

@@ -29,7 +29,7 @@
     {
       "label": "Build Test Bytecode",
       "type": "shell",
-      "command": "make core-test-bc",
+      "command": "make test-bc",
       "group": {
         "kind": "build"
       }
