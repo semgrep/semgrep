@@ -7,6 +7,7 @@ an outdated version.
 # TODO: for predictable test output, add a flag to avoid making actual
 # network calls?
 import json
+import re
 import time
 from json import JSONDecodeError
 from pathlib import Path
@@ -125,7 +126,7 @@ def _show_banners(current_version: Version, latest_version_object: JsonObject) -
         if (not show or current_version >= show) and (
             not hide or current_version < hide
         ):
-            logger.warning("\n" + b.get("message", ""))
+            logger.warning("\n⏫  " + b.get("message", ""))
             logged_something = True
 
     env = get_state().env
@@ -163,5 +164,5 @@ def get_no_findings_msg() -> Optional[str]:
     latest_version_object = _get_latest_version(allow_fetch=False)
     if latest_version_object is None or "no_findings_msg" not in latest_version_object:
         return None
-
-    return str(latest_version_object["no_findings_msg"])
+    msg = re.sub("\n(\n+)?", "\\1\n    ", str(latest_version_object["no_findings_msg"]))
+    return f"\n✨  {msg}"
