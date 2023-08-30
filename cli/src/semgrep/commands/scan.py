@@ -701,24 +701,7 @@ def scan(
     verbose: bool,
     version: bool,
 ) -> ScanReturn:
-    """
-    Run semgrep rules on files
-
-    Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
-
-    To get started quickly, run
-
-        semgrep --config auto .
-
-    This will automatically fetch rules for your project from the Semgrep Registry. NOTE: Using `--config auto` will
-    log in to the Semgrep Registry with your project URL.
-
-    For more information about Semgrep, go to https://semgrep.dev.
-
-    NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
-    the Semgrep registry. To learn more about how and why these metrics are collected, please see
-    https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
-    """
+    """ """
 
     if version:
         print(__VERSION__)
