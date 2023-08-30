@@ -75,23 +75,8 @@ let dispatch_subcommand argv =
   | [ _ ]
   | [ _; "--experimental" ] ->
       Help.print_help ();
-      (* warn people if they still rely on the deprecated .semgrep.yml
-       * or .semgrep/ rules folder (except if it's the usual ~/.semgrep).
-       *)
-      if
-        Sys.file_exists ".semgrep.yml"
-        || Sys.file_exists ".semgrep"
-           && not (Sys.file_exists ".semgrep/settings.yml")
-      then (
-        flush stdout;
-        Logs.err (fun m ->
-            m
-              "The implicit use of .semgrep.yml (or .semgrep/) has been \
-               deprecated in Semgrep 1.38.0.\n\
-               Please use an explicit --config .semgrep.yml (or --config \
-               .semgrep/)");
-        Exit_code.fatal)
-      else Exit_code.ok
+      Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
+      Exit_code.ok
   | [ _; ("-h" | "--help") ]
   (* ugly: this --experimental management here is a bit ugly, to allow the
    * different combination.
