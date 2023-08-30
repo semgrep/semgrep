@@ -685,10 +685,6 @@ let o_target_roots : string list Term.t =
 (* !!NEW arguments!! not in pysemgrep *)
 (* ------------------------------------------------------------------ *)
 
-let o_dump_config : string option Term.t =
-  let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
-  Arg.value (Arg.opt Arg.(some string) None info)
-
 let o_project_root : string option Term.t =
   let info =
     Arg.info [ "project-root" ]
@@ -723,15 +719,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine ast_caching autofix baseline_commit common config dataflow_traces
-      dryrun dump_ast dump_command_for_core dump_config dump_engine_path emacs
-      error exclude exclude_rule_ids force_color gitlab_sast gitlab_secrets
-      include_ json junit_xml lang max_chars_per_line max_lines_per_finding
-      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations oss
-      pattern pro project_root pro_intrafile pro_lang registry_caching
-      replacement respect_git_ignore rewrite_rule_ids sarif
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate version version_check vim =
+      dryrun dump_ast dump_command_for_core dump_engine_path emacs error exclude
+      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
+      junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
+      max_target_bytes metrics num_jobs nosem optimizations oss pattern pro
+      project_root pro_intrafile pro_lang registry_caching replacement
+      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
+      show_supported_languages strict target_roots test test_ignore_todo
+      time_flag timeout timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -782,8 +777,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
        * this ugly special case returning an empty Configs.
        *)
       | [], (None, _, _)
-        when dump_ast || dump_config <> None || dump_engine_path || validate
-             || test || version || show_supported_languages ->
+        when dump_ast || dump_engine_path || validate || test || version
+             || show_supported_languages ->
           Rules_source.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
@@ -908,9 +903,6 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           (* stricter: *)
           | Some _, _, _ :: _ ->
               Error.abort "Can't specify both -e and a target for --dump-ast")
-      | _ when dump_config <> None ->
-          let config = Common2.some dump_config in
-          Some { Show.target = Show.Config config; json }
       | _ when dump_engine_path ->
           Some { Show.target = Show.EnginePath pro; json }
       | _ when dump_command_for_core ->
@@ -1028,8 +1020,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * combine above! *)
     const combine $ o_ast_caching $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_dryrun $ o_dump_ast
-    $ o_dump_command_for_core $ o_dump_config $ o_dump_engine_path $ o_emacs
-    $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
+    $ o_dump_command_for_core $ o_dump_engine_path $ o_emacs $ o_error
+    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
     $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang
     $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
