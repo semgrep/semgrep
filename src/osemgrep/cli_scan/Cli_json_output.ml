@@ -194,15 +194,7 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | OutOfMemory -> "Out of memory"
   | TimeoutDuringInterfile -> "Timeout during interfile analysis"
   | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
-  | IncompatibleRule x ->
-      spf "Rule %s is incompatible with Semgrep %s: requires Semgrep%s%s"
-        x.rule_id x.this_version
-        (match x.min_version with
-        | None -> ""
-        | Some version -> spf " (>= %s)" version)
-        (match x.max_version with
-        | None -> ""
-        | Some version -> spf " (<= %s)" version)
+  | IncompatibleRule _ -> "Incompatible rule"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)

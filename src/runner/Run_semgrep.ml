@@ -338,8 +338,8 @@ let exn_to_error file (e : Exception.t) =
    TODO: restore early abort but only in strict mode?
    TODO: report an error or not depending on the kind of problem?
 *)
-let sanity_check_rules_and_invalid_rules
-    (invalid_rules : Rule.invalid_rule_error list) =
+let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
+    =
   Common.map E.error_of_invalid_rule_error invalid_rules
 
 let sanity_check_invalid_patterns (res : RP.final_result) files =
@@ -710,7 +710,7 @@ let extracted_targets_of_config (config : Runner_config.t)
  *)
 let semgrep_with_rules ?match_hook config
     ((rules, invalid_rules), rules_parse_time) =
-  let rule_errors = sanity_check_rules_and_invalid_rules invalid_rules in
+  let rule_errors = errors_of_invalid_rule_errors invalid_rules in
   let rule_ids = rules |> Common.map (fun r -> fst r.R.id) in
 
   (* The basic targets.

@@ -224,8 +224,9 @@ let create_core_result all_rules (_exns, (res : RP.final_result), scanned) =
 let invoke_semgrep_core
     ?(engine = Run_semgrep.semgrep_with_raw_results_and_exn_handler)
     ?(respect_git_ignore = true) ?(file_match_results_hook = None) (conf : conf)
-    (all_rules : Rule.t list) (skipped_rules : Rule.invalid_rule_error list)
+    (all_rules : Rule.t list) (invalid_rules : Rule.invalid_rule_error list)
     (all_targets : Fpath.t list) =
+  let rule_errors = Run_semgrep.errors_of_invalid_rule_errors invalid_rules in
   let config : Runner_config.t = runner_config_of_conf conf in
   let config = { config with file_match_results_hook } in
   (* TODO: we should not need to use Common.map below, because
@@ -261,7 +262,13 @@ let invoke_semgrep_core
   let exn, res, files = engine config in
 
   (* Reinject rule errors *)
-  let res = { res with skipped_rules = skipped_rules @ res.skipped_rules } in
+  let res =
+    {
+      res with
+      errors = rule_errors @ res.errors;
+      skipped_rules = invalid_rules @ res.skipped_rules;
+    }
+  in
 
   let scanned = Set_.of_list files in
 
