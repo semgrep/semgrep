@@ -577,8 +577,12 @@ def print_text_output(
         if (
             rule_match.rule_id
             and rule_match.rule_id != CLI_RULE_ID
-            and (last_rule_id is None or last_rule_id != rule_match.rule_id)
-            and (last_message is None or last_message != message)
+            and (
+                last_rule_id is None
+                or last_rule_id != rule_match.rule_id
+                or last_message is None
+                or last_message != message
+            )
         ):
             shortlink = get_details_shortlink(rule_match)
             shortlink_text = (8 * " " + shortlink + "\n") if shortlink else ""
@@ -613,8 +617,12 @@ def print_text_output(
         elif (
             "sca_info" in rule_match.extra
             and "sca-fix-versions" in rule_match.metadata
-            and (last_rule_id is None or last_rule_id != rule_match.rule_id)
-            and (last_message is None or last_message != message)
+            and (
+                last_rule_id is None
+                or last_rule_id != rule_match.rule_id
+                or last_message is None
+                or last_message != message
+            )
         ):
             # this is a list of objects like [{'minimist': '0.2.4'}, {'minimist': '1.2.6'}]
             fixes = rule_match.metadata["sca-fix-versions"]
