@@ -219,14 +219,14 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
   in
   if Common.null rules then Error Exit_code.missing_config
   else
-    (* step1: last touch on rules *)
+    (* step 1: last touch on rules *)
     let filtered_rules =
       Rule_filtering.filter_rules conf.rule_filtering_conf rules
     in
     Logs.info (fun m ->
         m "%a" Rules_report.pp_rules (conf.rules_source, filtered_rules));
 
-    (* step2: printing the ignored targets *)
+    (* step 2: printing the ignored targets *)
     let targets, semgrepignored_targets = targets_and_ignored in
     Logs.debug (fun m ->
         m "%a" Targets_report.pp_targets_debug
@@ -239,7 +239,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
                     x.Semgrep_output_v1_t.reason)
                  x.Semgrep_output_v1_t.details));
 
-    (* step3: choose the right engine and right hooks *)
+    (* step 3: choose the right engine and right hooks *)
     let output_format, file_match_results_hook =
       match conf with
       | {
@@ -275,7 +275,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
         targets
     in
     let exn_and_matches = Profiler.record profiler ~name:"core_time" core in
-    (* step3 bis: call the engine! *)
+    (* step 3': call the engine! *)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
     in
@@ -289,7 +289,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     Metrics_.add_findings filtered_matches;
     Metrics_.add_errors res.core.errors;
 
-    (* step4: report matches *)
+    (* step 4: report matches *)
     let errors_skipped = errors_to_skipped res.core.errors in
     let semgrepignored, included, excluded, size, other_ignored =
       analyze_skipped semgrepignored_targets

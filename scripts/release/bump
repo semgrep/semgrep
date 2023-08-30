@@ -37,7 +37,7 @@ update_init_py() {
 }
 
 update_version_ml() {
-  target=src/core_cli/version.ml
+  target=src/core/Version.ml
   targets+=" $target"
   echo "Updating $target"
   sed_in_place 's/let version = ".*"/let version = "'"$release"'"/g' "$target"

@@ -47,7 +47,6 @@ let tests () =
       Glob.Unit_glob.tests;
       Unit_semgrepignore.tests;
       Unit_parsing.tests ();
-      Unit_reporting.tests ();
       Unit_entropy.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;

@@ -9,12 +9,14 @@
         {
           "end": {
             "col": 49,
-            "line": 2
+            "line": 2,
+            "offset": 59
           },
           "file": "targets/bad/invalid_python.py",
           "start": {
             "col": 1,
-            "line": 1
+            "line": 1,
+            "offset": 0
           }
         }
       ],
@@ -33,5 +35,6 @@
     ]
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }

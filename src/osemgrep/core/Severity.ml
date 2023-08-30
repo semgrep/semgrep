@@ -17,24 +17,21 @@
 (* Types *)
 (*****************************************************************************)
 
-(* valid for rules and for findings, but also for semgrep errors *)
-type basic_severity = [ `Error | `Warning ] [@@deriving show]
-
-(* found in rules, and in semgrep --severity *)
-type rule_severity = [ basic_severity | `Info ] [@@deriving show]
-
-(* do we still need this? *)
-type extended_severity = [ rule_severity | `Inventory | `Experiment ]
-[@@deriving show]
+(* valid for rules and for findings, but also for semgrep errors
+   found in rules, and in semgrep --severity
+*)
+type t = [ `Error | `Warning | `Info ] [@@deriving show]
 
 (*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
 
 (* for CLI JSON output *)
-let string_of_basic_severity = function
+let to_string (x : t) =
+  match x with
   | `Warning -> "warn"
   | `Error -> "error"
+  | `Info -> "info"
 
 (* TOPORT?
     def _missing_(cls: Type[Enum], value: object) -> Enum:
@@ -52,8 +49,7 @@ let converter =
     [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ]
 
 (* for CLI --severity filtering *)
-let rule_severity_of_rule_severity_opt (x : Rule.severity) :
-    rule_severity option =
+let of_rule_severity_opt (x : Rule.severity) : t option =
   match x with
   | Rule.Error -> Some `Error
   | Rule.Warning -> Some `Warning

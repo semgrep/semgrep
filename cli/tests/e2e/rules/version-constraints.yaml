@@ -1,0 +1,68 @@
+#
+# Rules that either should be skipped due to an incompatible Semgrep
+# version or shouldn't be skipped and produce a match.
+#
+rules:
+  - id: any-version
+    pattern: x
+    message: "This rule was successfully applied."
+    languages: [python]
+    severity: ERROR
+  - id: need-to-upgrade1
+    min-version: 1000.0.0
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: need-to-upgrade2
+    min-version: 1.1000.0
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: retired-feature1
+    max-version: 0.0.0
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: retired-feature2
+    max-version: 0.0.1000
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: retired-feature3
+    max-version: 0.1000.0
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: compatible-version-range
+    min-version: 1.0.0
+    max-version: 50.0.0
+    pattern: x
+    message: "This rule was successfully applied."
+    languages: [python]
+    severity: ERROR
+  - id: past-version-range
+    min-version: 0.1.7
+    max-version: 0.8.3
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: future-version-range
+    min-version: 49.1.7
+    max-version: 49.8.3
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR
+  - id: empty-version-range
+    min-version: 2.0.0
+    max-version: 1.0.0
+    pattern: x
+    message: "This rule should have been skipped."
+    languages: [python]
+    severity: ERROR

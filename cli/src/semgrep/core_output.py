@@ -18,6 +18,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 import semgrep.util as util
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
+from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import TARGET_PARSE_FAILURE_EXIT_CODE
@@ -33,8 +34,8 @@ logger = getLogger(__name__)
 def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
     return out.ErrorSpan(
         file=location.path,
-        start=out.PositionBis(line=location.start.line, col=location.start.col),
-        end=out.PositionBis(line=location.end.line, col=location.end.col),
+        start=location.start,
+        end=location.end,
     )
 
 
@@ -51,10 +52,11 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     if isinstance(err.error_type.value, core.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
-        config_start = out.PositionBis(line=0, col=1)
-        config_end = out.PositionBis(
+        config_start = out.Position(line=0, col=1, offset=-1)
+        config_end = out.Position(
             line=err.location.end.line - err.location.start.line,
             col=err.location.end.col - err.location.start.col + 1,
+            offset=-1,
         )
         spans = [
             dataclasses.replace(
@@ -73,7 +75,9 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if (
+    if level == Level.INFO:
+        code = OK_EXIT_CODE
+    elif (
         isinstance(err.error_type.value, core.ParseError)
         or isinstance(err.error_type.value, core.LexicalError)
         or isinstance(err.error_type.value, core.PartialParsing)
