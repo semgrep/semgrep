@@ -133,6 +133,10 @@ def _clean_output_json(output_json: str, clean_fingerprint: bool) -> str:
     for path in masked_keys:
         mark_masked(output, path)
 
+    # The masking code below is a little complicated. We could use the
+    # regexp-based mechanism above (mark_masked) for everything to simplify
+    # the porting to osemgrep.
+
     # Remove temp file paths
     results = output.get("results")
     if isinstance(results, Sequence):
