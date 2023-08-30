@@ -1,0 +1,4 @@
+Add support for `min-version` and `max-version` fields for each rule,
+specifying a range of compatible Semgrep versions. If a rule is incompatible
+with the version of Semgrep being used, it is reported in the JSON output at
+the "info" level which doesn't cause an exit failure.
