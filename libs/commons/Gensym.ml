@@ -37,19 +37,40 @@ module MkId () : sig
   val unsafe_default : t
   val is_unsafe_default : t -> bool
   val unsafe_reset_counter : unit -> unit
+
+  type partition = A | B
+
+  val set_partition : partition -> unit
 end = struct
   open Ppx_hash_lib.Std.Hash.Builtin
 
   type t = int [@@deriving show, eq, ord, hash]
+  type partition = A | B
 
-  let counter = ref 0
+  let partition = ref A
+  let set_partition p = partition := p
+  let counter_a = ref 0
+
+  (* We could use min_int and increment, but small negative numbers are
+   * represented more compactly both in string-based serialization formats and
+   * in OCaml's binary marshalling format. So, start with -2 (-1 is the unsafe
+   * default) and move downward. *)
+  let counter_b = ref (-2)
 
   let mk () =
-    incr counter;
-    !counter
+    match !partition with
+    | A ->
+        incr counter_a;
+        !counter_a
+    | B ->
+        decr counter_b;
+        !counter_b
 
   let to_int = Fun.id
   let unsafe_default = -1
   let is_unsafe_default id = id = unsafe_default
-  let unsafe_reset_counter () = counter := 0
+
+  let unsafe_reset_counter () =
+    counter_a := 0;
+    counter_b := -2
 end
