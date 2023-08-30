@@ -31,6 +31,11 @@ val enable_logging : unit -> unit
    calls, otherwise your log will not go anywhere (not even on stderr).
 *)
 val setup_logging : force_color:bool -> level:Logs.level option -> unit
+
+(* TODO:
+   Logs.Error, Logs.Warning, and friends should apply the appropriate color and tag prefix (e.g. ERROR)
+   to the message. For now, we prepend the tag manually before the log message.
+*)
 val with_err_tag : ?tag:string -> unit -> string
 val with_warn_tag : ?tag:string -> unit -> string
 val with_success_tag : ?tag:string -> unit -> string
