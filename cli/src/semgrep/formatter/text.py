@@ -656,6 +656,7 @@ def print_text_output(
         ):
             console.print(line)
 
+        # Temporary CLI UI until a more thorough implementation.
         if "validation_state" in rule_match.extra:
             validation_state = rule_match.extra["validation_state"]
             if validation_state == "NO_VALIDATOR":
