@@ -31,3 +31,6 @@ val enable_logging : unit -> unit
    calls, otherwise your log will not go anywhere (not even on stderr).
 *)
 val setup_logging : force_color:bool -> level:Logs.level option -> unit
+val with_err_tag : ?tag:string -> unit -> string
+val with_warn_tag : ?tag:string -> unit -> string
+val with_success_tag : ?tag:string -> unit -> string
