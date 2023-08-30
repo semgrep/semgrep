@@ -669,6 +669,22 @@ def print_text_output(
         ):
             console.print(line)
 
+        # Temporary CLI UI until a more thorough implementation.
+        if "validation_state" in rule_match.extra:
+            validation_state = rule_match.extra["validation_state"]
+            # Do nothing for NO_VALIDATOR to preserve previous UI.
+            if validation_state != "NO_VALIDATOR":
+                msg = ""
+                if validation_state == "CONFIRMED_VALID":
+                    msg = "Semgrep confirmed this secret is still valid."
+                elif validation_state == "CONFIRMED_INVALID":
+                    msg = "Semgrep confirmed this secret is invalid."
+                elif validation_state == "CONFIRMED_ERROR":
+                    msg = "Semgrep encountered a network error while trying to validate this secret."
+                console.print(
+                    f"{8 * ' '}{with_color(Colors.foreground, msg, bold=True)}\n"
+                )
+
         if dataflow_traces:
             for line in dataflow_trace_to_lines(
                 rule_match.path,
