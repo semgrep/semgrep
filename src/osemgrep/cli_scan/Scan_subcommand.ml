@@ -432,14 +432,14 @@ let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
-  (* TODO: move this further down! *)
   (match conf.common.maturity with
-  | Maturity.Legacy -> raise Pysemgrep.Fallback
   | Maturity.Default -> (
       match conf with
-      (* TODO: handle more and more confs *)
+      (* TODO: handle more confs, or fallback to pysemgrep further down *)
       | { show_supported_languages = true; _ } -> ()
       | _else_ -> raise Pysemgrep.Fallback)
+  (* this should never happen because --legacy is handled in cli/bin/semgrep *)
+  | Maturity.Legacy -> raise Pysemgrep.Fallback
   | Maturity.Experimental
   | Maturity.Develop ->
       ());
