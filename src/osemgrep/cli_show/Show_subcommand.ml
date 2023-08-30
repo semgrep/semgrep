@@ -4,9 +4,10 @@ module J = JSON
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* There is currently no 'semgrep show' subcommand. Dumps are run via
- * 'semgrep scan --dump-ast ...' but internally it's quite similar to
- * a subcommand.
+(* There was no 'pysemgrep show' subcommand. Dumps were run via
+ * 'semgrep scan --dump-ast ...' but it is better to have a separate
+ * subcommand. Note that the legacy 'semgrep scan --dump-xxx' are
+ * redirected to this file after having built a compatible Show_CLI.conf
  *
  * LATER: get rid of Core_CLI.dump_pattern and Core_CLI.dump_ast functions
  *)
@@ -14,21 +15,6 @@ module J = JSON
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-
-(* a slice of Scan_CLI.conf *)
-type conf = { target : target_kind; json : bool }
-
-(* alt: we could accept multiple Files via multiple target_roots
- * alt: we could accept XLang.t to dump extended patterns.
- *)
-and target_kind =
-  | Pattern of string * Lang.t
-  | File of Fpath.t * Lang.t
-  | Config of Semgrep_dashdash_config.config_string
-  | EnginePath of bool (* pro = true *)
-  (* LATER: get rid of it *)
-  | CommandForCore
-[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -66,10 +52,10 @@ let dump_v_to_format ~json (v : OCaml.v) =
   if json then J.string_of_json (json_of_v v) else OCaml.string_of_v v
 
 (*****************************************************************************)
-(* Entry point *)
+(* Main logic *)
 (*****************************************************************************)
 
-let run (conf : conf) : Exit_code.t =
+let run (conf : Show_CLI.conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
 
@@ -107,3 +93,10 @@ let run (conf : conf) : Exit_code.t =
       Exit_code.ok
   | EnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | CommandForCore -> failwith "TODO: dump-command-for-core not implemented yet"
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+let main (argv : string array) : Exit_code.t =
+  let conf = Show_CLI.parse_argv argv in
+  run conf
