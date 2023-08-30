@@ -1,3 +1,4 @@
+open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
@@ -25,14 +26,23 @@ type conf = {
 }
 
 and target_kind =
-  (* alt: we could accept XLang.t to dump extended patterns *)
+  (* 'semgrep show ???'
+   * was 'semgrep scan --dump-ast -e <pattern>'
+   * alt: we could accept XLang.t to dump extended patterns *)
   | Pattern of string * Lang.t
-  (* alt: we could accept multiple Files via multiple target_roots *)
+  (* 'semgrep show ???'
+   * was 'semgrep scan --lang <lang> --dump-ast <target>
+   * alt: we could accept multiple Files via multiple target_roots *)
   | File of Fpath.t * Lang.t
+  (* 'semgrep show config <config_str>' (osemgrep-only) *)
   | Config of Semgrep_dashdash_config.config_string
-  (* LATER: get rid of it? *)
+  (* 'semgrep show ???'
+   * was 'semgrep scan --dump-engine-path
+   * LATER: get rid of it? *)
   | EnginePath of bool (* pro = true *)
-  (* LATER: get rid of it *)
+  (* 'semgrep show ???'
+   * was 'semgrep scan --dump-command-for-core' (or just 'semgrep scan -d')
+   * LATER: get rid of it *)
   | CommandForCore
 [@@deriving show]
 
@@ -64,13 +74,32 @@ let o_args : string list Term.t =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine _args _json = failwith "TODO" in
+  let combine args json =
+    let target =
+      (* coupling: if you add a command here, update also the man page
+       * further below
+       *)
+      match args with
+      | [ "dump-config"; config_str ] -> Config config_str
+      | _ ->
+          Error.abort
+            (spf "show command not supported: %s" (String.concat " " args))
+    in
+    { target; json }
+  in
+
   Term.(const combine $ o_args $ o_json)
 
 let doc = "Show various information"
 
 let man : Cmdliner.Manpage.block list =
-  [ `S Cmdliner.Manpage.s_description; `P "Display various information" ]
+  [
+    `S Cmdliner.Manpage.s_description;
+    `P "Display various information";
+    `P "Here are the different subcommands";
+    `Pre "semgrep show dump-config <STRING>";
+    `P "Dump the internal representation of the result of --config=<STRING>";
+  ]
   @ CLI_common.help_page_bottom
 
 let cmdline_info : Cmd.info = Cmd.info "semgrep show" ~doc ~man

@@ -15,14 +15,10 @@ type conf = {
 }
 
 and target_kind =
-  (* alt: we could accept XLang.t to dump extended patterns *)
   | Pattern of string * Lang.t
-  (* alt: we could accept multiple Files via multiple target_roots *)
   | File of Fpath.t * Lang.t
   | Config of Semgrep_dashdash_config.config_string
-  (* LATER: get rid of it? *)
   | EnginePath of bool (* pro = true *)
-  (* LATER: get rid of it *)
   | CommandForCore
 [@@deriving show]
 
