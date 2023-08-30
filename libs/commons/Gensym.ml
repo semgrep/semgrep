@@ -30,7 +30,7 @@
    and avoid boilerplate code with refs and counters.
 *)
 module MkId () : sig
-  type t [@@deriving show, eq, ord, hash]
+  type t [@@deriving show, eq, ord, hash, sexp]
 
   val mk : unit -> t
   val to_int : t -> int
@@ -43,8 +43,9 @@ module MkId () : sig
   val set_partition : partition -> unit
 end = struct
   open Ppx_hash_lib.Std.Hash.Builtin
+  open Sexplib.Std
 
-  type t = int [@@deriving show, eq, ord, hash]
+  type t = int [@@deriving show, eq, ord, hash, sexp]
   type partition = A | B
 
   let partition = ref A
