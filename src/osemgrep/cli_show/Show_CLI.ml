@@ -27,21 +27,21 @@ type conf = {
 
 and target_kind =
   (* 'semgrep show ???'
-   * was 'semgrep scan --dump-ast -e <pattern>'
+   * accessible also as 'semgrep scan --dump-ast -e <pattern>'
    * alt: we could accept XLang.t to dump extended patterns *)
   | Pattern of string * Lang.t
   (* 'semgrep show ???'
-   * was 'semgrep scan --lang <lang> --dump-ast <target>
+   * accessible also as 'semgrep scan --lang <lang> --dump-ast <target>
    * alt: we could accept multiple Files via multiple target_roots *)
   | File of Fpath.t * Lang.t
-  (* 'semgrep show config <config_str>' (osemgrep-only) *)
+  (* 'semgrep show dump-config <config_str>' *)
   | Config of Semgrep_dashdash_config.config_string
   (* 'semgrep show ???'
-   * was 'semgrep scan --dump-engine-path
+   * accessible also as 'semgrep scan --dump-engine-path
    * LATER: get rid of it? *)
   | EnginePath of bool (* pro = true *)
   (* 'semgrep show ???'
-   * was 'semgrep scan --dump-command-for-core' (or just 'semgrep scan -d')
+   * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
    * LATER: get rid of it *)
   | CommandForCore
 [@@deriving show]
