@@ -1,0 +1,14 @@
+                   
+                   
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+                                                             
+  [36m[22m[24m  tests/e2e/targets/cli_test/basic/basic.py [0m
+       [1m[24mtests.e2e.rules.cli_test.match_rules_same_message.rule1[0m
+          Same message as other rule.                                   
+                                                                        
+            2┆ print([1m[24m1 == 1[0m)
+            ⋮┆----------------------------------------
+            2┆ print([1m[24m1 == 1[0m)
+
