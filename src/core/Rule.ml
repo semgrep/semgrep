@@ -296,41 +296,7 @@ and extract_reduction = Separate | Concat [@@deriving show]
 (* secrets mode *)
 (*****************************************************************************)
 
-(* This type encodes a basic HTTP request; mainly used for in the secrets
- * post-processor; such that a basic http request like
- * GET semgrep.dev
- * Auth: ok
- * Type: tau
- * would be represented as
- * {
- *   url     = semgrep.dev/user;
- *   meth    = `GET;
- *   headers =
- *  [
- *    { n = Auth, v = ok};
- *    { n = Type, v = tau};
- *  ]
- * }
- * NOTE: we don't reuse cohttp's abstract type Cohttp.Headers.t; we still need
- * it to not be abstract for metavariable substitution.
- *)
-
-type header = { name : string; value : string } [@@deriving show]
-type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
-
-(* why is url : string? metavariables (i.e http://$X) are present at parsing; which
- * if parsed with Uri.of_string translates it to http://%24x
- *)
-type request = {
-  url : string;
-  meth : meth;
-  headers : header list;
-  body : string option;
-}
-[@@deriving show]
-
-(* Used to match on the returned response of some request *)
-type response = { return_code : int; regex : Xpattern.regexp_string option }
+type expected_response = { return_code : int; regex : Xpattern.regexp_string option }
 [@@deriving show]
 
 type secrets = {
@@ -339,8 +305,8 @@ type secrets = {
    * bindings made available in the request post matching.
    *)
   secrets : formula list;
-  request : request;
-  response : response;
+  request : Http_request.t;
+  response : expected_response;
 }
 [@@deriving show]
 

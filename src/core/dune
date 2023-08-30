@@ -16,6 +16,7 @@
    glob
    lib_parsing ; Parse_info.ml
    ast_generic
+   networking
    parser_javascript.ast ; TODO remove this, ugly dependency to Ast_js.default_entity in Pattern.ml
    ;note: we should not depend on pfff-lang_GENERIC-analyze in core
    ;note: we should also not depend on any other semgrep libs
