@@ -552,7 +552,7 @@ to the console. This lets you see the changes before you commit to them. Only
 works with the --autofix flag. Otherwise does nothing.
 |}
 
-let o_severity : Severity.rule_severity list Term.t =
+let o_severity : Severity.t list Term.t =
   let info =
     Arg.info [ "severity" ]
       ~doc:

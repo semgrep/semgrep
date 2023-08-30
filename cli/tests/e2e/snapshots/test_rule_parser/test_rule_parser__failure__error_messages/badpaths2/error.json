@@ -9,13 +9,15 @@
         {
           "end": {
             "col": 5,
-            "line": 9
+            "line": 9,
+            "offset": -1
           },
           "file": "rules/syntax/badpaths2.yaml",
           "source_hash": "e8a29e15677c634a77353a6099e2c0acf18909672c87d06292a1caece7cd4d3c",
           "start": {
             "col": 7,
-            "line": 8
+            "line": 8,
+            "offset": -1
           }
         }
       ],
@@ -33,5 +35,6 @@
     "scanned": []
   },
   "results": [],
+  "skipped_rules": [],
   "version": "0.42"
 }
