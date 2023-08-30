@@ -305,7 +305,7 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
       { res with core }
     in
 
-    (* outputting the result! in JSON/Text/... depending on conf *)
+    (* outputting the result on stdout! in JSON/Text/... depending on conf *)
     let cli_output =
       Output.output_result { conf with output_format } profiler res
     in
@@ -325,6 +325,9 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             size,
             other_ignored,
             errors_skipped ));
+    (* Note that Logs.app() is printing on stderr (but without any [XXX]
+     * prefix), and is filtered when using --quiet.
+     *)
     Logs.app (fun m ->
         m "%a" Summary_report.pp_summary
           ( conf.targeting_conf.respect_git_ignore,
@@ -456,15 +459,11 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
    * 'semgrep test dir/'
    *)
   | _ when conf.version ->
-      (* alt: we could use Common.pr, but because '--quiet' doc says
-       * "Only output findings.", a version is not a finding so
-       * we use Logs.app (which is filtered by --quiet).
-       *)
-      Logs.app (fun m -> m "%s" Version.version);
+      Common.pr Version.version;
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok
   | _ when conf.show_supported_languages ->
-      Logs.app (fun m -> m "supported languages are: %s" Xlang.supported_xlangs);
+      Common.pr (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok
   | _ when conf.test <> None -> Test_subcommand.run (Common2.some conf.test)
   | _ when conf.validate <> None ->
