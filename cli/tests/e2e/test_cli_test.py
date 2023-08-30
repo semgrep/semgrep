@@ -174,3 +174,17 @@ def test_cli_test_from_entrypoint(snapshot):
         timeout=15,
     )
     snapshot.assert_match(result.stdout, "output.txt")
+
+
+@pytest.mark.kinda_slow
+def test_cli_test_match_rules_same_message(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/match_rules_same_message/rules.yml",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )

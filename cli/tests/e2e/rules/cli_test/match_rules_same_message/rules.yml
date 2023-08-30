@@ -1,0 +1,11 @@
+rules:
+  - id: rule1
+    pattern: $X == $X
+    message: Same message as other rule.
+    severity: ERROR
+    languages: [python]
+  - id: rule2
+    pattern: $X == $X
+    message: Same message as other rule.
+    severity: ERROR
+    languages: [python]
