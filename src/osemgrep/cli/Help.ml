@@ -23,7 +23,7 @@
  * generate it manually, but anyway we want full control of the help
  * message so this isn't too bad.
  *
- * LATER: add 'interactive', 'test', 'validate', and 'dump' new osemgrep-only
+ * LATER: add 'interactive' and 'test' new osemgrep-only
  * subcommands (not added yet to avoid regressions in tests/e2e/test_help.py).
  *)
 
@@ -79,7 +79,8 @@ Commands:
   install-semgrep-pro  Install the Semgrep Pro Engine
   login                Obtain and save credentials for semgrep.dev
   logout               Remove locally stored credentials to semgrep.dev
-  lsp                  [EXPERIMENTAL] Start the Semgrep LSP server
+  lsp                  Start the Semgrep LSP server (useful for IDEs)
   publish              Upload rule to semgrep.dev
   scan                 Run semgrep rules on files
+  show                 Show various information about Semgrep
 |}

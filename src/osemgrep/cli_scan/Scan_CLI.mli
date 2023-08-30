@@ -43,7 +43,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
-  show : Show_subcommand.conf option;
+  show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
 }

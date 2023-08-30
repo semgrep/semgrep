@@ -3,7 +3,7 @@ module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
 module H = Cmdliner_helpers
-module Show = Show_subcommand
+module Show = Show_CLI
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,7 +63,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
-  show : Show_subcommand.conf option;
+  show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
 }
