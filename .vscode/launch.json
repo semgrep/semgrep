@@ -24,6 +24,14 @@
       "program": "${workspaceFolder}/bin/osemgrep.bc",
       "arguments": ["lsp", "--experimental"],
       "preLaunchTask": "Build Core Bytecode"
+    },
+    {
+      "name": "Test: LS",
+      "type": "ocaml.earlybird",
+      "request": "launch",
+      "program": "${workspaceFolder}/_build/default/src/tests/test.bc",
+      "arguments": ["test", "Language Server"],
+      "preLaunchTask": "Build Test Bytecode"
     }
   ]
 }

@@ -13,6 +13,7 @@ type t = {
   documents : (Fpath.t, Semgrep_output_v1_t.cli_match list) Hashtbl.t;
   cached_rules : rule_cache;
   user_settings : UserSettings.t;
+  token : string option; (* Mostly for testing *)
 }
 
 val create : ServerCapabilities.t -> t

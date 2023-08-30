@@ -19,6 +19,7 @@ type t = {
   documents : (Fpath.t, Out.cli_match list) Hashtbl.t;
   cached_rules : rule_cache;
   user_settings : UserSettings.t;
+  token : string option; (* Mostly for testing *)
 }
 
 (*****************************************************************************)
@@ -35,6 +36,7 @@ let create capabilities =
     documents = Hashtbl.create 10;
     cached_rules;
     user_settings = UserSettings.default;
+    token = None;
   }
 
 let dirty_files_of_folder folder =
@@ -97,10 +99,11 @@ let targets session =
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
 
-let fetch_ci_rules_and_origins () =
+let fetch_ci_rules_and_origins session () =
   let token = auth_token () in
-  match token with
-  | Some token ->
+  match (token, session.token) with
+  | _, Some token
+  | Some token, _ ->
       let%lwt scan_config =
         Scan_helper.fetch_scan_config_async ~token ~sca:false ~dry_run:true
           ~full_scan:true ""
@@ -116,7 +119,7 @@ let fetch_ci_rules_and_origins () =
 (* TODO Default to auto *)
 let fetch_rules session =
   let%lwt ci_rules =
-    if session.user_settings.ci then fetch_ci_rules_and_origins ()
+    if session.user_settings.ci then fetch_ci_rules_and_origins session ()
     else Lwt.return_none
   in
   let home = Unix.getenv "HOME" |> Fpath.v in
