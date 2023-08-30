@@ -3,6 +3,7 @@ module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
 module H = Cmdliner_helpers
+module Show = Show_subcommand
 
 (*****************************************************************************)
 (* Prelude *)
@@ -62,7 +63,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
-  dump : Dump_subcommand.conf option;
+  show : Show_subcommand.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
 }
@@ -140,7 +141,7 @@ let default : conf =
     (* ugly: should be separate subcommands *)
     version = false;
     show_supported_languages = false;
-    dump = None;
+    show = None;
     validate = None;
     test = None;
     nosem = true;
@@ -877,7 +878,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: dump should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
      *)
-    let dump =
+    let show =
       match () with
       | _ when dump_ast -> (
           let target_roots =
@@ -887,15 +888,13 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some str, Some lang_str, [] ->
               Some
                 {
-                  Dump_subcommand.target =
-                    Dump_subcommand.Pattern (str, Lang.of_string lang_str);
+                  Show.target = Show.Pattern (str, Lang.of_string lang_str);
                   json;
                 }
           | None, Some lang_str, [ file ] ->
               Some
                 {
-                  Dump_subcommand.target =
-                    Dump_subcommand.File (file, Lang.of_string lang_str);
+                  Show.target = Show.File (file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -911,11 +910,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
               Error.abort "Can't specify both -e and a target for --dump-ast")
       | _ when dump_config <> None ->
           let config = Common2.some dump_config in
-          Some { Dump_subcommand.target = Dump_subcommand.Config config; json }
+          Some { Show.target = Show.Config config; json }
       | _ when dump_engine_path ->
-          Some { Dump_subcommand.target = Dump_subcommand.EnginePath pro; json }
+          Some { Show.target = Show.EnginePath pro; json }
       | _ when dump_command_for_core ->
-          Some { Dump_subcommand.target = Dump_subcommand.CommandForCore; json }
+          Some { Show.target = Show.CommandForCore; json }
       | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.
@@ -1017,7 +1016,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       (* ugly: *)
       version;
       show_supported_languages;
-      dump;
+      show;
       validate;
       test;
       nosem;
