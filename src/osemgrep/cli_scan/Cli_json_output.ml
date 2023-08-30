@@ -144,8 +144,8 @@ let render_fix (env : env) (x : Out.core_match) : string option =
 let core_location_to_error_span (loc : Out.location) : Out.error_span =
   {
     file = loc.path;
-    start = { line = loc.start.line; col = loc.start.col };
-    end_ = { line = loc.end_.line; col = loc.end_.col };
+    start = loc.start;
+    end_ = loc.end_;
     source_hash = None;
     config_start = None;
     config_end = None;
@@ -164,10 +164,11 @@ let string_of_severity (severity : Rule.severity) : string =
   | Inventory -> "INVENTORY"
 
 (* LATER: move also to Severity.ml and reuse types there *)
-let level_of_severity (severity : Out.core_severity) : Severity.basic_severity =
+let level_of_severity (severity : Out.core_severity) : Severity.t =
   match severity with
   | Error -> `Error
   | Warning -> `Warning
+  | Info -> `Info
 
 let error_type_string (error_type : Out.core_error_kind) : string =
   match error_type with
@@ -193,6 +194,7 @@ let error_type_string (error_type : Out.core_error_kind) : string =
   | OutOfMemory -> "Out of memory"
   | TimeoutDuringInterfile -> "Timeout during interfile analysis"
   | OutOfMemoryDuringInterfile -> "OOM during interfile analysis"
+  | IncompatibleRule _ -> "Incompatible rule"
 
 (* Generate error message exposed to user *)
 let error_message ~rule_id ~(location : Out.location)
@@ -215,15 +217,18 @@ let error_spans ~(error_type : Out.core_error_kind) ~(location : Out.location) =
          spans = [dataclasses.replace(..., config_path=yaml_path)]
       *)
       let span =
+        (* This code matches the Python code.
+           Not sure what it does, frankly. *)
         {
           (core_location_to_error_span location) with
-          config_start = Some (Some { line = 0; col = 1 });
+          config_start = Some (Some { line = 0; col = 1; offset = -1 });
           config_end =
             Some
               (Some
                  {
                    line = location.end_.line - location.start.line;
                    col = location.end_.col - location.start.col + 1;
+                   offset = -1;
                  });
         }
       in
@@ -240,7 +245,21 @@ let exit_code_of_error_type (error_type : Out.core_error_kind) : Exit_code.t =
   | LexicalError
   | PartialParsing _ ->
       Exit_code.invalid_code
-  | _else_ -> Exit_code.fatal
+  | SpecifiedParseError
+  | AstBuilderError
+  | RuleParseError
+  | PatternParseError _
+  | InvalidYaml
+  | MatchingError
+  | SemgrepMatchFound
+  | TooManyMatches
+  | FatalError
+  | Timeout
+  | OutOfMemory
+  | TimeoutDuringInterfile
+  | OutOfMemoryDuringInterfile ->
+      Exit_code.fatal
+  | IncompatibleRule _ -> Exit_code.ok
 
 (* Skipping the intermediate python SemgrepCoreError for now.
  * TODO: should we return an Error.Semgrep_core_error instead? like we
@@ -285,7 +304,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
          *)
         code = Exit_code.to_int exit_code;
         (* LATER: should use a variant too *)
-        level = Severity.string_of_basic_severity level;
+        level = Severity.to_string level;
         (* LATER: type_ should be a proper variant instead of a string *)
         type_ = error_type_string error_type;
         rule_id;
@@ -435,8 +454,8 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
    results = matches;
    errors;
    skipped_targets;
+   skipped_rules;
    (* LATER *)
-   skipped_rules = _;
    explanations = _;
    stats = _;
    time = _;
@@ -467,6 +486,17 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
               skipped = None;
             }
       in
+      let skipped_rules =
+        (* TODO: return skipped_rules with --develop
+
+           if maturity = Develop then
+             invalid_rules
+           else
+        *)
+        (* compatibility with pysemgrep *)
+        ignore skipped_rules;
+        []
+      in
       {
         version = Some Version.version;
         (* Skipping the python intermediate RuleMatchMap for now.
@@ -476,6 +506,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
           matches |> Common.map (cli_match_of_core_match env) |> dedup_and_sort;
         errors = errors |> Common.map cli_error_of_core_error;
         paths;
+        skipped_rules;
         (* LATER *)
         time = None;
         explanations = None;

@@ -14,21 +14,17 @@
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )
 
-;(rule
-; (targets Output_from_core_j.ml Output_from_core_j.mli)
-; (deps    Output_from_core.atd)
-; (action  (run atdgen -j -j-std %{deps})))
+; '-j-defaults' is for matching the behavior of atdpy so that we can get the
+; same JSON output from pysemgrep and osemgrep. This is useful only for
+; passing end-to-end tests where osemgrep is expected to produce the same
+; output as pysemgrep. This allows us to use '~field: ... list' which is more
+; convenient than '?field: ... list option'.
 ;
-;(rule
-; (targets Output_from_core_t.ml Output_from_core_t.mli)
-; (deps    Output_from_core.atd)
-; (action  (run atdgen -t %{deps})))
-
-; this is just used in Unit_reporting.ml
 (rule
  (targets semgrep_output_v1_j.ml semgrep_output_v1_j.mli)
  (deps    semgrep_output_v1.atd)
- (action  (run atdgen -j -j-std %{deps})))
+ (action  (run atdgen -j -j-std -j-defaults %{deps})))
+
 (rule
  (targets semgrep_output_v1_t.ml semgrep_output_v1_t.mli)
  (deps    semgrep_output_v1.atd)

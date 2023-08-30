@@ -147,6 +147,10 @@ val semgrep_with_rules :
 (* Utilities functions used in tests or semgrep-core variants *)
 (*****************************************************************************)
 
+(* used internally but also called by osemgrep *)
+val errors_of_invalid_rule_errors :
+  Rule.invalid_rule_error list -> Semgrep_error_code.error list
+
 val replace_named_pipe_by_regular_file : Fpath.t -> Fpath.t
 (**
    Copy named pipes created with <(echo 'foo') on the command line
