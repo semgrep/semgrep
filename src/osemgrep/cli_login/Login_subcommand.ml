@@ -11,6 +11,8 @@
 (* Helpers *)
 (*****************************************************************************)
 
+let support_url = "https://semgrep.dev/docs/support/"
+
 let make_login_url () =
   let session_id = Uuidm.v `V4 in
   ( session_id,
@@ -132,11 +134,17 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
             in
             let rec fetch = function
               | 0 ->
-                  Logs.err (fun m ->
-                      m
-                        "%s Failed to login: please check your internet \
-                         connection or contact support@semgrep.com"
-                        (Logs_helpers.with_err_tag ()));
+                  let msg =
+                    Ocolor_format.asprintf
+                      "%s Login Failed!\n\
+                       Your login attempt either timed out or we couldn't \
+                       connect to Semgrep servers. Please check your internet \
+                       connection and try again. If this issue persists, \
+                       please reach out to Semgrep support at @{<cyan;ul>%s@}"
+                      (Logs_helpers.with_err_tag ())
+                      support_url
+                  in
+                  Logs.err (fun m -> m "%s" msg);
                   Exit_code.fatal
               | n -> (
                   let url =
@@ -178,7 +186,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                           Logs.debug (fun m ->
                               m "failed to parse json %s: %s" msg body);
                           Exit_code.fatal)
-                  | Error (status_code, msg) ->
+                  | Error (status_code, err) ->
                       if status_code = 404 then (
                         let steps = 100 in
                         for i = 1 to steps do
@@ -192,16 +200,20 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
                         done;
                         apply_backoff ();
                         fetch (n - 1))
-                      else (
-                        Logs.err (fun m ->
-                            m
-                              "%s Unexpected failure from %s: status code %d; \
-                               please contact support@semgrep.com if this \
-                               persists"
-                              (Logs_helpers.with_err_tag ())
-                              (Uri.to_string url) status_code);
-                        Logs.info (fun m -> m "HTTP error: %s" msg);
-                        Exit_code.fatal))
+                      else
+                        let msg =
+                          Ocolor_format.asprintf
+                            "%s Login Failed!\n\
+                             We hit an unexpected failure with our endpoint %s \
+                             (status code %d).\n\
+                             Please try again or reach out to Semgrep support \
+                             at @{<cyan;ul>%s@}"
+                            (Logs_helpers.with_err_tag ())
+                            (Uri.to_string url) status_code support_url
+                        in
+                        Logs.err (fun m -> m "%s" msg);
+                        Logs.info (fun m -> m "HTTP error: %s" err);
+                        Exit_code.fatal)
             in
             Unix.sleepf 0.1;
             (* wait 100ms for the browser to open and then start showing the spinner *)
