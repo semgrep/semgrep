@@ -294,9 +294,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
       in
-      let err =
-        E.mk_error ~rule_id:(Some x.rule_id.id) loc s Out.MatchingError
-      in
+      let err = E.mk_error (Some x.rule_id.id) loc s Out.MatchingError in
       Right err
   [@@profiling]
 
@@ -354,7 +352,8 @@ let json_time_of_profiling_data profiling_data =
     max_memory_bytes = profiling_data.max_memory_bytes;
   }
 
-let core_output_of_matches_and_errors render_fix nfiles res =
+let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
+    =
   let matches, new_errs =
     Common.partition_either (match_to_match render_fix) res.RP.matches
   in
@@ -379,15 +378,14 @@ let core_output_of_matches_and_errors render_fix nfiles res =
     errors = errs |> Common.map error_to_error;
     skipped_targets;
     skipped_rules =
-      ( res.RP.skipped_rules
+      res.RP.skipped_rules
       |> Common.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              {
                Out.rule_id = (rule_id :> string);
                details = Rule.string_of_invalid_rule_error_kind kind;
                position = OutH.position_of_token_location loc;
-             })
-      |> fun xs -> Some xs );
+             });
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
     explanations =
