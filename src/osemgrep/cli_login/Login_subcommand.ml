@@ -209,12 +209,10 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
   | Some _ ->
       Logs.app (fun m ->
           m
-            "%s API token already exists in %s. To login with a different \
-             token logout use `semgrep logout`"
-            (Logs_helpers.with_err_tag ())
-            (Fpath.to_string Semgrep_envvars.v.user_settings_file));
+            "%s You're already logged in. Use `semgrep logout` to log out \
+             first, and then you can login with a new access token."
+            (Logs_helpers.with_err_tag ()));
       Exit_code.fatal
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
