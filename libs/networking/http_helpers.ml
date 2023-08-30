@@ -1,5 +1,6 @@
 open Cohttp
 open Cohttp_lwt_unix
+
 (* Below we separate the methods out by async (returns Lwt promise),
    and sync (runs async method in lwt runtime)
 *)
@@ -8,10 +9,18 @@ open Cohttp_lwt_unix
 *)
 
 (*****************************************************************************)
+(* Client *)
+(*****************************************************************************)
+
+(* Create a client reference so we can swap it out with a testing version *)
+let client_ref = ref (module Client : Cohttp_lwt.S.Client)
+
+(*****************************************************************************)
 (* Async *)
 (*****************************************************************************)
 
 let get_async ?(headers = []) url =
+  let module Client = (val !client_ref) in
   let headers = Header.of_list headers in
   let%lwt response, body = Client.get ~headers url in
   let%lwt body = Cohttp_lwt.Body.to_string body in
@@ -31,6 +40,7 @@ let get_async ?(headers = []) url =
   [@@profiling]
 
 let post_async ~body ?(headers = [ ("content-type", "application/json") ]) url =
+  let module Client = (val !client_ref) in
   let headers = Header.of_list headers in
   let%lwt response, body =
     Client.post ~headers ~body:(Cohttp_lwt.Body.of_string body) url
