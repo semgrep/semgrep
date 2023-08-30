@@ -328,6 +328,33 @@ jobs:
       repository-name: ${{ github.repository }}
       dry-run: false
 
+  build-docker-rootless:
+    uses: ./.github/workflows/build-test-docker.yaml
+    secrets: inherit
+    with:
+      docker-tags: |
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=ref,event=pr
+        type=ref,event=branch
+        type=sha,event=branch
+        type=edge
+      artifact-name: image-test-rootless
+      repository-name: ${{ github.repository }}
+      file: Dockerfile
+      target: rootless
+      enable-tests: false
+
+  push-docker-rootless:
+    needs: [build-docker-rootless]
+    uses: ./.github/workflows/push-docker.yaml
+    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+    secrets: inherit
+    with:
+      artifact-name: image-test-rootless
+      repository-name: ${{ github.repository }}
+      dry-run: false
+
   test-semgrep-pro:
     needs: [build-test-docker, push-docker]
     uses: ./.github/workflows/test-semgrep-pro.yaml
