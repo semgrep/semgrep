@@ -353,8 +353,23 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     *)
     Ok (filtered_rules, res, cli_output)
 
-let run_scan_conf (conf : Scan_CLI.conf) (settings : Semgrep_settings.t)
-    (profiler : Profiler.t) : Exit_code.t =
+let run_scan_conf (conf : Scan_CLI.conf) : Exit_code.t =
+  let profiler = Profiler.make () in
+  Profiler.start profiler ~name:"total_time";
+  let settings =
+    (fun () ->
+      Metrics_.configure conf.metrics;
+      let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
+      if Metrics_.is_enabled conf.metrics then
+        Metrics_.add_project_url (Git_wrapper.get_project_url ());
+      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
+      (match conf.rules_source with
+      | Rules_source.Configs configs -> Metrics_.add_configs configs
+      | _ -> ());
+      settings)
+    |> Profiler.record profiler ~name:"config_time"
+  in
+
   (* step0: potentially notify user about metrics *)
   if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
@@ -416,9 +431,12 @@ let run_scan_conf (conf : Scan_CLI.conf) (settings : Semgrep_settings.t)
 let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (* TODO: move this further down! *)
   (match conf.common.maturity with
-  | Maturity.Default
-  | Maturity.Legacy ->
-      raise Pysemgrep.Fallback
+  | Maturity.Legacy -> raise Pysemgrep.Fallback
+  | Maturity.Default -> (
+      match conf with
+      (* TODO: handle more and more confs *)
+      | { show_supported_languages = true; _ } -> ()
+      | _else_ -> raise Pysemgrep.Fallback)
   | Maturity.Experimental
   | Maturity.Develop ->
       ());
@@ -426,23 +444,6 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
   (* return a new conf because can adjust conf.num_jobs (-j) *)
   let conf = setup_profiling conf in
   Logs.debug (fun m -> m "conf = %s" (Scan_CLI.show_conf conf));
-
-  (* TODO? maybe this could be moved in run_scan_conf() instead *)
-  let profiler = Profiler.make () in
-  Profiler.start profiler ~name:"total_time";
-  let settings =
-    (fun () ->
-      Metrics_.configure conf.metrics;
-      let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-      if Metrics_.is_enabled conf.metrics then
-        Metrics_.add_project_url (Git_wrapper.get_project_url ());
-      Metrics_.add_integration_name (Sys.getenv_opt "SEMGREP_INTEGRATION_NAME");
-      (match conf.rules_source with
-      | Rules_source.Configs configs -> Metrics_.add_configs configs
-      | _ -> ());
-      settings)
-    |> Profiler.record profiler ~name:"config_time"
-  in
 
   match () with
   (* "alternate modes" where no search is performed.
@@ -473,7 +474,7 @@ let run_conf (conf : Scan_CLI.conf) : Exit_code.t =
       (* --------------------------------------------------------- *)
       (* Let's go *)
       (* --------------------------------------------------------- *)
-      run_scan_conf conf settings profiler
+      run_scan_conf conf
 
 (*****************************************************************************)
 (* Entry point *)

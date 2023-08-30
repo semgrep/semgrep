@@ -9,6 +9,7 @@ val main : string array -> Exit_code.t
 
 (* internal *)
 val run_conf : Scan_CLI.conf -> Exit_code.t
+val run_scan_conf : Scan_CLI.conf -> Exit_code.t
 
 (* Semgrep Pro hook *)
 (* TODO it might be better to pass this through and avoid the hook,
