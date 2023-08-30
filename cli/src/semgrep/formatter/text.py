@@ -549,7 +549,6 @@ def print_text_output(
     dataflow_traces: bool,
 ) -> None:
     last_file = None
-    last_rule_id = None
     last_message = None
     sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
     for rule_index, rule_match in enumerate(sorted_rule_matches):
@@ -571,13 +570,11 @@ def print_text_output(
                     else ""
                 )
             )
-            last_rule_id = None
             last_message = None
         # don't display the rule line if the check is empty
         if (
             rule_match.rule_id
             and rule_match.rule_id != CLI_RULE_ID
-            and (last_rule_id is None or last_rule_id != rule_match.rule_id)
             and (last_message is None or last_message != message)
         ):
             shortlink = get_details_shortlink(rule_match)
@@ -613,7 +610,6 @@ def print_text_output(
         elif (
             "sca_info" in rule_match.extra
             and "sca-fix-versions" in rule_match.metadata
-            and (last_rule_id is None or last_rule_id != rule_match.rule_id)
             and (last_message is None or last_message != message)
         ):
             # this is a list of objects like [{'minimist': '0.2.4'}, {'minimist': '1.2.6'}]
@@ -639,7 +635,6 @@ def print_text_output(
             )
 
         last_file = current_file
-        last_rule_id = rule_match.rule_id
         last_message = message
         next_rule_match = (
             sorted_rule_matches[rule_index + 1]
@@ -662,23 +657,25 @@ def print_text_output(
             console.print(line)
 
         if "validation_state" in rule_match.extra:
-            validation_state = rule_match.extra['validation_state']
-            if  validation == 'NO_VALIDATOR':
+            validation_state = rule_match.extra["validation_state"]
+            if validation_state == "NO_VALIDATOR":
                 # Just printing a line to seperate different findings
                 # since they are now intermixed with these messages.
-                console.print("\n") 
-            else:
-               msg = ""
-               if rule_match.extra['validation_state'] == 'CONFIRMED_VALID':
-                   msg = "Semgrep confirmed this secret is still valid."
-               elif rule_match.extra['validation_state'] == 'CONFIRMED_INVALID':
-                   msg = "Semgrep confirmed this secret is invalid."
-               elif rule_match.extra['validation_state'] == 'CONFIRMED_ERROR':
-                   msg = "Semgrep encountered a network error while trying to validate this secret."
-                console.print(f"{8 * ' '}{with_color(Colors.foreground, msg, bold=True)}")
-            else:
                 console.print("\n")
-            
+            else:
+                msg = ""
+                if validation_state == "CONFIRMED_VALID":
+                    msg = "Semgrep confirmed this secret is still valid."
+                elif validation_state == "CONFIRMED_INVALID":
+                    msg = "Semgrep confirmed this secret is invalid."
+                elif validation_state == "CONFIRMED_ERROR":
+                    msg = "Semgrep encountered a network error while trying to validate this secret."
+                console.print(
+                    f"{8 * ' '}{with_color(Colors.foreground, msg, bold=True)}"
+                )
+        else:
+            console.print("\n")
+
         if dataflow_traces:
             for line in dataflow_trace_to_lines(
                 rule_match.path,
