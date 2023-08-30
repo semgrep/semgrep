@@ -5,6 +5,10 @@ name: build-test-docker
 on:
   workflow_dispatch:
     inputs:
+      docker-flavor:
+        required: true
+        type: string
+        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
       docker-tags:
         required: true
         type: string
@@ -34,6 +38,10 @@ on:
 
   workflow_call:
     inputs:
+      docker-flavor:
+        required: true
+        type: string
+        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
       docker-tags:
         required: true
         type: string
@@ -79,8 +87,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ inputs.repository-name }}
-          flavor: |
-            latest=false # pass latest tag in inputs
+          flavor: ${{ inputs.docker-flavor }}
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
       - name: Build image

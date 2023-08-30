@@ -92,28 +92,31 @@ jobs:
     secrets: inherit
     needs: [inputs]
     with:
+      docker-flavor: |
+        latest=auto
       docker-tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
-        type=raw,value=latest
       repository-name: ${{ github.repository }}
       artifact-name: image-release
       file: Dockerfile
       target: semgrep-cli
       enable-tests: true
 
-  build-test-docker-rootless:
+  build-test-docker-nonroot:
     uses: ./.github/workflows/build-test-docker.yaml
     secrets: inherit
     with:
+      docker-flavor: |
+        latest=auto
+        suffix=-nonroot
       docker-tags: |
-        type=semver,pattern={{version}},suffix=-rootless
-        type=semver,pattern={{major}}.{{minor}},suffix=-rootless
-        type=raw,value=latest-rootless
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
       repository-name: ${{ github.repository }}
-      artifact-name: image-release-rootless
+      artifact-name: image-release-nonroot
       file: Dockerfile
-      target: rootless
+      target: nonroot
       enable-tests: false
 
   build-test-osx-x86:
@@ -144,7 +147,7 @@ jobs:
     needs:
       [
         build-test-docker,
-        build-test-docker-rootless,
+        build-test-docker-nonroot,
         build-test-manylinux-x86,
         build-test-manylinux-aarch64,
         build-test-osx-x86,
@@ -163,12 +166,12 @@ jobs:
       repository-name: ${{ github.repository }}
       dry-run: ${{ needs.inputs.outputs.dry-run == 'true' }}
 
-  push-docker-rootless:
+  push-docker-nonroot:
     needs: [wait-for-build-test, inputs]
     uses: ./.github/workflows/push-docker.yaml
     secrets: inherit
     with:
-      artifact-name: image-release-rootless
+      artifact-name: image-release-nonroot
       repository-name: ${{ github.repository }}
       dry-run: ${{ needs.inputs.outputs.dry-run == 'true' }}
 

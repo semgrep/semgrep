@@ -218,6 +218,7 @@ RUN adduser -D -u 1000 -h /home/semgrep semgrep \
 
 # Disabling defaulting to the user semgrep for now
 # We can set it by default once we fix the circle ci workflows
+# See nonroot build stage below.
 #USER semgrep
 
 # Workaround for rootless containers as git operations may fail due to dubious
@@ -233,5 +234,9 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
-FROM semgrep-cli AS rootless
+# Additional build stage that sets a non-root user.
+# Can't make this the default in semgrep-cli stage because of permissions errors
+# on the mounted volume when using instructions for running semgrep with docker:
+# `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
+FROM semgrep-cli AS nonroot
 USER semgrep
