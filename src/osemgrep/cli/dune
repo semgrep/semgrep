@@ -17,7 +17,7 @@
     osemgrep_cli_login
     osemgrep_cli_lsp
     osemgrep_cli_interactive
-    osemgrep_cli_dump
+    osemgrep_cli_show
     osemgrep_cli_test
 
     ; reusing code from Core_cli

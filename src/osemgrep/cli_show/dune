@@ -1,8 +1,8 @@
-; OCaml implementation of the 'semgrep dump' subcommand.
+; OCaml implementation of the 'semgrep show' subcommand.
 
 (library
-  (public_name semgrep.osemgrep_cli_dump)
-  (name osemgrep_cli_dump)
+  (public_name semgrep.osemgrep_cli_show)
+  (name osemgrep_cli_show)
   (wrapped false)
   (libraries
     cmdliner
