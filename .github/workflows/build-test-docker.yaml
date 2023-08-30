@@ -23,6 +23,10 @@ on:
         type: string
         description: Dockerfile to build
         default: Dockerfile
+      target:
+        required: true
+        type: string
+        description: Dockerfile target to build
       enable-tests:
         required: true
         type: boolean
@@ -46,6 +50,10 @@ on:
         required: true
         type: string
         description: Dockerfile to build
+      target:
+        required: true
+        type: string
+        description: Dockerfile target to build
       enable-tests:
         required: true
         type: boolean
@@ -71,6 +79,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ inputs.repository-name }}
+          flavor: |
+            latest=false # pass latest tag in inputs
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
       - name: Build image
@@ -83,6 +93,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
+          target: ${{ inputs.target }}
           buildx-fallback: true
       - name: Load image
         if: ${{ inputs.enable-tests }}

@@ -315,6 +315,7 @@ jobs:
       artifact-name: image-test
       repository-name: ${{ github.repository }}
       file: Dockerfile
+      target: semgrep-cli
       enable-tests: true
 
   push-docker:

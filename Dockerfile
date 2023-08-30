@@ -232,3 +232,6 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # to interactively explore the docker image.
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
+
+FROM semgrep-cli AS rootless
+USER semgrep
