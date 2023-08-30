@@ -214,14 +214,21 @@ core-test-e2e:
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
 # Note that this target is now called from our Dockerfile, so do not
 # run 'opam update' below to not slow down things.
-install-deps-for-semgrep-core:
+install-deps-for-semgrep-core: semgrep.opam
 	# Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
-	# Install OCaml dependencies (globally).
+	# Install OCaml dependencies (globally)
 	opam install -y --deps-only ./libs/ocaml-tree-sitter-core
+	# Use semgrep.opam to install dependencies, include dune.
 	opam install -y --deps-only ./
+
+# This will fail if semgrep.opam isn't up-to-date (in git),
+# and dune isn't installed yet.
+semgrep.opam: dune-project
+	dune build $@
+	chmod a-w semgrep.opam
 
 # The bytecode version of semgrep-core needs dlls for tree-sitter
 # stubs installed into ~/.opam/<switch>/lib/stublibs to be able to run.
@@ -336,10 +343,10 @@ homebrew-setup:
 # As a developer you should not run frequently 'make setup', only when
 # important dependencies change.
 .PHONY: setup
-setup:
+setup: semgrep.opam
 	git submodule update --init
 	opam update -y
-	make install-deps-for-semgrep-core
+	$(MAKE) install-deps-for-semgrep-core
 
 # Install development dependencies in addition to build dependencies.
 .PHONY: dev-setup
