@@ -1,16 +1,13 @@
-(* There is currently no 'semgrep dump' subcommand. Dumps are run via
- * 'semgrep scan --dump-ast ...' but internally it's quite similar to
- * a subcommand.
+(*
+   Parse a semgrep-show command, execute it and exit.
+
+   Usage: main [| "semgrep-show"; ... |]
+
+   This function returns an exit code to be passed to the 'exit' function.
+*)
+val main : string array -> Exit_code.t
+
+(* called from main() but also from Scan_subcommand.ml to manage the legacy
+ * way to show things (e.g., 'semgrep scan --show-supported-languages')
  *)
-
-type conf = { target : target_kind; json : bool }
-
-and target_kind =
-  | Pattern of string * Lang.t
-  | File of Fpath.t * Lang.t
-  | Config of Semgrep_dashdash_config.config_string
-  | EnginePath of bool (* pro = true *)
-  | CommandForCore
-[@@deriving show]
-
-val run : conf -> Exit_code.t
+val run : Show_CLI.conf -> Exit_code.t

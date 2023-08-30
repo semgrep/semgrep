@@ -56,6 +56,7 @@ let known_subcommands =
     "scan";
     (* osemgrep-only *)
     "interactive";
+    "show";
   ]
 
 (* Exit with a code that a proper semgrep implementation would never return.
@@ -123,7 +124,8 @@ let dispatch_subcommand argv =
         | "scan" -> Scan_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "interactive" -> Interactive_subcommand.main subcmd_argv
-        (* LATER: "dump", "test", "validate" *)
+        | "show" -> Show_subcommand.main subcmd_argv
+        (* LATER: "test" *)
         | _else_ ->
             if experimental then
               (* this should never happen because we default to 'scan',
