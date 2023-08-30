@@ -791,11 +791,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           (* TOPORT? use instead
              "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
           if allow_empty_config then Rules_source.Configs []
-          else
+          else (
+            Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
             Error.abort
               "No config given. Run with `--config auto` or see \
                https://semgrep.dev/docs/running-rules/ for instructions on \
-               running with a specific config"
+               running with a specific config")
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in

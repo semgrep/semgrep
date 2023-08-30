@@ -75,6 +75,7 @@ let dispatch_subcommand argv =
   | [ _ ]
   | [ _; "--experimental" ] ->
       Help.print_help ();
+      Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
       Exit_code.ok
   | [ _; ("-h" | "--help") ]
   (* ugly: this --experimental management here is a bit ugly, to allow the
