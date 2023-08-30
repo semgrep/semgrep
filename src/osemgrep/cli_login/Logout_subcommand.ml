@@ -18,7 +18,9 @@ let run (conf : Login_CLI.conf) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let settings = Semgrep_settings.{ settings with api_token = None } in
   if Semgrep_settings.save settings then (
-    Logs.app (fun m -> m "Logged out (log back in with `semgrep login`)");
+    Logs.app (fun m ->
+        m "%s Logged out! Log back in with `semgrep login`"
+          (Logs_helpers.with_success_tag ()));
     Exit_code.ok)
   else Exit_code.fatal
 

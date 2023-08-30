@@ -5,7 +5,10 @@
   (name osemgrep_cli_login)
   (wrapped false)
   (libraries
+  ; External libraries
+    ANSITerminal
     cmdliner
+    ocolor
     commons
 
     osemgrep_configuring
