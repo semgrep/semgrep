@@ -25,6 +25,7 @@
     osemgrep_targeting
     osemgrep_language_server
   )
+ (modes native byte)
  (preprocess
    (pps
       ppx_deriving.show

@@ -14,7 +14,34 @@
  *)
 
 (* Commentary *)
-(*  *)
+(* This is a testing client to mock out http_helpers.ml so we
+ * can check requests and insert responses. It works by replacing
+ * the Cohttp client module with a custom one that calls
+ * a make response function. The make response function
+ * is called to check a request and create a response to
+   return to the caller.
+ * Example usage:
+let with_foo_client =
+    let make_fn = (fun req body ->
+        match Uri.path (Cohttp.Request.uri req) with
+        | "http://foo.com/api/v1/blah" ->
+            Testing_client.check_method req "GET";
+            Testing_client.check_body body "./tests/foo/request.json"
+            Lwt.return Testing_client.(basic_response "./tests/foo/response.json")
+        | _ -> Alcotest.fail "unexpected request"
+    )
+    in
+    Testing_client.with_testing_client make_fn
+   ...
+
+   let test_foo = ... in
+   let tests =
+   [
+     ("Test foo", with_foo_client test_foo)
+   ]
+   in
+   pack_tests "Foo Tests" tests
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,18 +54,14 @@ module Body = Cohttp_lwt.Body
 module Header = Cohttp.Header
 
 (*****************************************************************************)
-(* Code *)
+(* Types *)
 (*****************************************************************************)
 
-(* List of expected requests in order, replies in order*)
-
 type test_response = { response : Response.t; body_path : string }
-type check_request_fn = Request.t -> Body.t -> unit
-type make_response_fn = Request.t -> Body.t -> test_response
+type make_response_fn = Request.t -> Body.t -> test_response Lwt.t
 
 module type S = sig
-  val check_request : Request.t -> Body.t -> unit
-  val make_response : Request.t -> Body.t -> test_response
+  val make_response : make_response_fn
 end
 
 module Make (M : S) : Cohttp_lwt.S.Client = struct
@@ -59,23 +82,64 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
       | None -> false
     in
     let req = Request.make_for_client ~headers ~chunked meth uri in
-    check_request req body;
-    let response = make_response req body in
+    let%lwt response = make_response req body in
     let response_body =
       response.body_path |> Common.read_file |> Cohttp_lwt.Body.of_string
     in
     Lwt.return (response.response, response_body)
+
+  let get ?ctx ?headers uri = call ?ctx ?headers `GET uri
+
+  let delete ?ctx ?body ?chunked ?headers uri =
+    call ?ctx ?headers ?body ?chunked `DELETE uri
+
+  let post ?ctx ?body ?chunked ?headers uri =
+    call ?ctx ?headers ?body ?chunked `POST uri
+
+  let put ?ctx ?body ?chunked ?headers uri =
+    call ?ctx ?headers ?body ?chunked `PUT uri
+
+  let patch ?ctx ?body ?chunked ?headers uri =
+    call ?ctx ?headers ?body ?chunked `PATCH uri
 end
+
+(*****************************************************************************)
+(* Helper Functions *)
+(*****************************************************************************)
 
 let basic_response ?(status = `OK) ?(headers = Header.init ()) body_path =
   let response = Response.make ~status ~headers ~flush:true () in
   { response; body_path }
 
-let with_testing_client test_fn check_fn make_fn =
+let check_body body path =
+  let expected_body = path |> Common.read_file in
+  let%lwt actual_body = Cohttp_lwt.Body.to_string body in
+  Alcotest.(check string) "body" expected_body actual_body;
+  Lwt.return_unit
+
+let check_method req meth =
+  Alcotest.(check string)
+    "method" meth
+    (Cohttp.Request.meth req |> Cohttp.Code.string_of_method)
+
+let check_header req header header_val =
+  let actual_header = Cohttp.Header.get (Cohttp.Request.headers req) header in
+  match actual_header with
+  | None ->
+      Alcotest.fail
+        (Printf.sprintf "header %s not found. Headers: %s" header
+           (Cohttp.Header.to_string (Cohttp.Request.headers req)))
+  | Some actual_header ->
+      Alcotest.(check string) "header" header_val actual_header
+
+(*****************************************************************************)
+(* Entrypoint *)
+(*****************************************************************************)
+
+let with_testing_client make_fn test_fn () =
   let prev_client = !Http_helpers.client_ref in
   let new_client : (module Cohttp_lwt.S.Client) =
     (module Make (struct
-      let check_request = check_fn
       let make_response = make_fn
     end))
   in

@@ -27,6 +27,14 @@
       }
     },
     {
+      "label": "Build Test Bytecode",
+      "type": "shell",
+      "command": "make core-test-bc",
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
       "label": "Test",
       "type": "shell",
       "command": "make test",

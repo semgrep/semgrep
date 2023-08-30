@@ -1,5 +1,4 @@
 open Cohttp
-open Cohttp_lwt_unix
 
 (* Below we separate the methods out by async (returns Lwt promise),
    and sync (runs async method in lwt runtime)
@@ -13,7 +12,7 @@ open Cohttp_lwt_unix
 (*****************************************************************************)
 
 (* Create a client reference so we can swap it out with a testing version *)
-let client_ref = ref (module Client : Cohttp_lwt.S.Client)
+let client_ref = ref (module Cohttp_lwt_unix.Client : Cohttp_lwt.S.Client)
 
 (*****************************************************************************)
 (* Async *)

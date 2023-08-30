@@ -224,5 +224,25 @@ let processed_run () =
   in
   pack_tests "Processed Run" tests
 
+let session_rules () =
+  let with_ci_client =
+    let make_fn req body =
+      ignore body;
+      Testing_client.check_method req "GET";
+      Lwt.return Testing_client.(basic_response "./tests/ls/ci/response.json")
+    in
+    Testing_client.with_testing_client make_fn
+  in
+  let test_cache_rules () =
+    let session = mock_session () in
+    let session = { session with token = Some "123456789" } in
+    Lwt_main.run (Session.cache_rules session);
+    let rules = session.cached_rules.rules in
+    Alcotest.(check int) "rules" 1 (List.length rules)
+  in
+  let tests = [ ("Test session rules", with_ci_client test_cache_rules) ] in
+  pack_tests "Session Rules" tests
+
 let tests =
-  pack_suites "Language Server" [ session_targets (); processed_run () ]
+  pack_suites "Language Server"
+    [ session_targets (); processed_run (); session_rules () ]

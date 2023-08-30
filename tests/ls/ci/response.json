@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "test",
+      "languages": ["go"],
+      "message": "test",
+      "pattern": "fmt.Printf(\"$X\")",
+      "severity": "ERROR"
+    }
+  ]
+}

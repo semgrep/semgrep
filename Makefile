@@ -188,6 +188,12 @@ core-test:
 	./_build/default/src/tests/test.exe --show-errors --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
+.PHONY: core-test-bc
+core-test-bc:
+	# Bytecode version of the test for debugging
+	dune build ./_build/default/src/tests/test.bc
+
+
 # This is for working on one or a few specific test cases.
 # It rebuilds the test executable which can then be called with
 # './test <filter>' where <filter> selects the tests to run.
