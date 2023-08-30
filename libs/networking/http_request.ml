@@ -7,7 +7,7 @@ open Common
 open Cohttp
 open Cohttp_lwt_unix
 
-let logger = Logging.get_logger[__MODULE__]
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (* This type encodes a basic HTTP request; mainly used for in the secrets
  * post-processor; such that a basic http request like
@@ -42,10 +42,7 @@ type t = {
 }
 [@@deriving show]
 
-type response = {
-  response_code : int;
-  response_body : string
-}
+type response = { response_code : int; response_body : string }
 [@@deriving show]
 
 let to_cohttp_headers (headers : header list) =
@@ -58,10 +55,11 @@ let perform_async (req : t) =
   let body = Option.map (fun x -> (`String x :> Cohttp_lwt.Body.t)) req.body in
   let%lwt res, body = Client.call meth uri ~headers ?body in
   let%lwt response_body = Cohttp_lwt.Body.to_string body in
-  Lwt.return {
-    response_code = Response.status res |> Code.code_of_status;
-    response_body;
-  }
+  Lwt.return
+    {
+      response_code = Response.status res |> Code.code_of_status;
+      response_body;
+    }
 
 let perform_blocking (req : t) =
   (* cohttp-lwt-unix is super fragile, its behavior changes based on
@@ -75,7 +73,7 @@ let perform_blocking (req : t) =
     (* TODO: Investigate why these two don't show up in the logs. *)
     logger#info "Http response: %s" (show_response res);
     Result.ok res
-  with e -> begin
-    logger#info "Http exception: %s" (Printexc.to_string e);
-    Result.error (Exception.catch e)
-  end
+  with
+  | e ->
+      logger#info "Http exception: %s" (Printexc.to_string e);
+      Result.error (Exception.catch e)

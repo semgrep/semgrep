@@ -1660,7 +1660,8 @@ let parse_secrets_fields env rule_dict : R.secrets =
     take req env yaml_to_dict "headers" |> fun { h; _ } ->
     Hashtbl.fold
       (fun name value lst ->
-        Http_request.{ name; value = parse_string env (fst value) (snd value) } :: lst)
+        Http_request.{ name; value = parse_string env (fst value) (snd value) }
+        :: lst)
       h []
   in
   let body = take_opt req env parse_string "body" in

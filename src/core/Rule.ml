@@ -296,7 +296,10 @@ and extract_reduction = Separate | Concat [@@deriving show]
 (* secrets mode *)
 (*****************************************************************************)
 
-type expected_response = { return_code : int; regex : Xpattern.regexp_string option }
+type expected_response = {
+  return_code : int;
+  regex : Xpattern.regexp_string option;
+}
 [@@deriving show]
 
 type secrets = {
