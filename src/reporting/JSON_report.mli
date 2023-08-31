@@ -22,5 +22,7 @@ val metavar_string_of_any : AST_generic.any -> string
 (* now used also in osemgrep *)
 val error_to_error : Semgrep_error_code.error -> Semgrep_output_v1_t.core_error
 
-(* internal *)
+(* This is used only in the testing code, to reuse the
+ * Semgrep_error_code.compare_actual_to_expected
+ *)
 val match_to_error : Pattern_match.t -> unit
