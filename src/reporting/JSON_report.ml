@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,6 +19,7 @@ module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable
 module RP = Report
+module PM = Pattern_match
 open Pattern_match
 module SJ = Semgrep_output_v1_j (* JSON conversions *)
 module Out = Semgrep_output_v1_t (* atdgen definitions *)
@@ -186,7 +187,7 @@ let parse_info_to_location pi =
 
 let tokens_to_locations toks = Common.map_filter parse_info_to_location toks
 
-let tokens_to_single_loc toks =
+let tokens_to_single_loc (toks : Tok.t list) : Out.location option =
   (* toks should be nonempty and should contain only origintoks, but since we
    * can't prove that by construction we have to filter and handle the empty
    * case here. In theory this could lead to, e.g. a missing taint source for a
@@ -199,32 +200,50 @@ let tokens_to_single_loc toks =
   Some
     { Out.path = first_loc.path; start = first_loc.start; end_ = last_loc.end_ }
 
-let token_to_intermediate_var token =
+(* TODO! semgrep-core used to have its own format for taint traces
+ * (called core_match_call_trace), but with osemgrep we want to merge
+ * things gradually, but the cli_match_dataflow_trace has those
+ * strings attached to location that we ultimately need to generate
+ * directly from semgrep-core (to avoid some boilerplate code in
+ * pysemgrep).
+ *)
+let todo_content_for_location = "??"
+
+let token_to_intermediate_var token : Out.cli_match_intermediate_var option =
   let* location = tokens_to_single_loc [ token ] in
-  Some { Out.location }
+  Some
+    ({ Out.location; content = todo_content_for_location }
+      : Out.cli_match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
   Common.map_filter token_to_intermediate_var tokens
 
-let rec taint_call_trace = function
+let rec taint_call_trace (trace : PM.taint_call_trace) :
+    Out.cli_match_call_trace option =
+  match trace with
   | Toks toks ->
       let* loc = tokens_to_single_loc toks in
-      Some (Out.CoreLoc loc)
+      Some (Out.CliLoc (loc, todo_content_for_location))
   | Call { call_trace; intermediate_vars; call_toks } ->
       let* location = tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
-      Some (Out.CoreCall (location, intermediate_vars, call_trace))
+      Some
+        (Out.CliCall
+           ((location, todo_content_for_location), intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace traces : Out.core_match_dataflow_trace =
+let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
+    Out.cli_match_dataflow_trace =
   (* Here, we ignore all but the first taint trace, for source or sink.
-     This is because we added support for multiple sources/sinks in a single trace, but only
-     internally to semgrep-core. Externally, our CLI dataflow trace datatype still has
-     only one trace per finding. To fit into that type, we have to pick one arbitrarily.
+     This is because we added support for multiple sources/sinks in a single
+     trace, but only internally to semgrep-core. Externally, our CLI dataflow
+     trace datatype still has only one trace per finding. To fit into that
+     type, we have to pick one arbitrarily.
 
-     This is fine to do, because we previously only emitted one finding per taint sink,
-     due to deduplication, so we shouldn't get more or less findings.
-     It's possible that this could change the dataflow trace of an existing finding though.
+     This is fine to do, because we previously only emitted one finding per
+     taint sink, due to deduplication, so we shouldn't get more or less
+     findings. It's possible that this could change the dataflow trace of
+     an existing finding though.
   *)
   let source_call_trace, tokens, sink_call_trace =
     match traces with
@@ -351,6 +370,10 @@ let json_time_of_profiling_data profiling_data =
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
     max_memory_bytes = profiling_data.max_memory_bytes;
   }
+
+(*****************************************************************************)
+(* Final semgrep-core output *)
+(*****************************************************************************)
 
 let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
     =

@@ -449,9 +449,15 @@ class RuleMatch:
 
     @property
     def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+        # TODO: once semgrep-core generates directly the right content, we can
+        # just remove all those functions below as loc[1] will contain the right thing instead
+        # of "??" currently,
+        # and just return self.match.extra.dataflow_trace
+
         # We need this to quickly get augment a Location with the contents of the location
         # Convenient to just have it as a separate function
-        def translate_loc(location: core.Location) -> Tuple[core.Location, str]:
+        def translate_loc(loc: Tuple[core.Location, str]) -> Tuple[core.Location, str]:
+            location = loc[0]
             with open(location.path.value, errors="replace") as fd:
                 content = util.read_range(
                     fd, location.start.offset, location.end.offset
@@ -459,15 +465,17 @@ class RuleMatch:
             return (location, content)
 
         def translate_core_match_call_trace(
-            call_trace: core.CoreMatchCallTrace,
+            call_trace: core.CliMatchCallTrace,
         ) -> core.CliMatchCallTrace:
-            if isinstance(call_trace.value, core.CoreLoc):
+            if isinstance(call_trace.value, core.CliLoc):
                 return core.CliMatchCallTrace(
                     core.CliLoc(translate_loc(call_trace.value.value))
                 )
-            elif isinstance(call_trace.value, core.CoreCall):
+            elif isinstance(call_trace.value, core.CliCall):
                 intermediate_vars = [
-                    core.CliMatchIntermediateVar(*translate_loc(var.location))
+                    core.CliMatchIntermediateVar(
+                        *translate_loc((var.location, var.content))
+                    )
                     for var in call_trace.value.value[1]
                 ]
 
