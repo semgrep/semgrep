@@ -86,6 +86,7 @@ class Env:
     in_docker: bool = field()
     in_gh_action: bool = field()
     in_agent: bool = field()
+    with_new_cli_ux: bool = field()
     min_fetch_depth: int = field()
 
     upload_findings_timeout: int = field()
@@ -148,6 +149,10 @@ class Env:
     @in_agent.default
     def in_agent_default(self) -> bool:
         return "SEMGREP_AGENT" in os.environ
+
+    @with_new_cli_ux.default
+    def with_new_cli_default(self) -> bool:
+        return "SEMGREP_NEW_CLI_UX" in os.environ
 
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:
