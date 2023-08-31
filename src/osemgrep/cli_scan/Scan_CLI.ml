@@ -293,7 +293,7 @@ let o_max_memory_mb : int Term.t =
   let info =
     Arg.info [ "max-memory" ]
       ~doc:
-        {|Maximum system memory to use running a rule on a single file in MiB. 
+        {|Maximum system memory to use running a rule on a single file in MiB.
 If set to 0 will not have memory limit. Defaults to 0. For CI scans
 that use the Pro Engine, it defaults to 5000 MiB.
 |}
