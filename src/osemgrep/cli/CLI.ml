@@ -106,6 +106,9 @@ let dispatch_subcommand argv =
        * coupling: with Help.ml if you add an entry below.
        *)
       try
+        Logs.app (fun m ->
+            m "Running semgrep subcommand: %s, experimental = %b" subcmd
+              experimental);
         match subcmd with
         (* TODO: gradually remove those 'when experimental' guards as
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
@@ -131,7 +134,8 @@ let dispatch_subcommand argv =
               Error.abort (spf "unknown semgrep command: %s" subcmd)
             else raise Pysemgrep.Fallback
       with
-      | Pysemgrep.Fallback -> Pysemgrep.pysemgrep argv)
+      | Pysemgrep.Fallback -> Error.abort (spf "No fallbacks allowed!"))
+  (* Pysemgrep.pysemgrep argv) *)
   [@@profiling]
 
 (*****************************************************************************)

@@ -29,8 +29,12 @@ let fullpath file = Common.fullpath !!file |> Fpath.v
 let readable ~root path = Common.readable ~root:!!root !!path |> Fpath.v
 
 let files_of_dirs_or_files_no_vcs_nofilter xs =
-  xs |> Path.to_strings |> Common.files_of_dir_or_files_no_vcs_nofilter
-  |> Path.of_strings
+  xs |> Path.to_strings
+  |> List.filter (fun x ->
+         not
+           (x = "supply-chain" || x = "auto"
+           || Stdcompat.String.starts_with ~prefix:"p/" x))
+  |> Common.files_of_dir_or_files_no_vcs_nofilter |> Path.of_strings
 
 let input_text_line = Common.input_text_line
 let cat path = Common.cat !!path
