@@ -28,7 +28,6 @@ from typing import Union
 
 from boltons.iterutils import get_path
 from boltons.iterutils import partition
-from rich.padding import Padding
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
@@ -126,8 +125,7 @@ def print_summary_line(
     summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
 
     sca_rule_count = len(sca_plan.rules)
-    if sca_rule_count:
-        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+    summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
 
     pro_rule_count = sum(
         1
@@ -135,8 +133,7 @@ def print_summary_line(
         if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
         == "pro_rules"
     )
-    if pro_rule_count:
-        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+    summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
 
     console.print(summary_line + ":")
 
@@ -165,15 +162,12 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     print_summary_line(target_manager, sast_plan, sca_plan)
 
-    if not sca_plan.rules:
-        # just print these tables without the section headers
-        sast_plan.print(with_tables_for=RuleProduct.sast)
-        return len(sast_plan.rules)
-
-    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
+    console.print(Title("Code Rules", order=2))
     sast_plan.print(with_tables_for=RuleProduct.sast)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
+    console.print(Title("Progress", order=2))
+    console.print(" ")  # space intentional for progress bar
 
     return len(sast_plan.rules) + len(sca_plan.rules)
 
