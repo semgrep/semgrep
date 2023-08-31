@@ -419,6 +419,22 @@ class Config:
             ).values()
         )
 
+    def get_rules_by_product(
+        self, no_rewrite_rule_ids: bool
+    ) -> List[Tuple[str, List[Rule]]]:
+        """
+        Return list of rules with product name
+        """
+        rules = self.get_rules(no_rewrite_rule_ids)
+        rules_by_product: Dict[str, Any] = {}
+        for rule in rules:
+            product = f"{rule.product}".upper().split(".")[-1]
+            if product not in rules_by_product:
+                rules_by_product[product] = (product, [])
+            lst = rules_by_product[product][1]
+            lst.append(rule)
+        return list(rules_by_product.values())
+
     @staticmethod
     def _safe_relative_to(a: Path, b: Path) -> Path:
         try:
