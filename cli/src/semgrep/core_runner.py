@@ -10,6 +10,7 @@ import tempfile
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+from textwrap import wrap
 from typing import Any
 from typing import Callable
 from typing import cast
@@ -66,7 +67,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
-from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -229,7 +229,6 @@ class StreamingSemgrepCore:
         """
         stdout_lines: List[bytes] = []
         num_total_targets: int = self._total
-        num_scanned_targets: int = 0
 
         # Start out reading two bytes at a time (".\n")
         get_input: Callable[
@@ -613,9 +612,7 @@ class Plan:
         table.add_column("Rules", justify="right")
 
         origin_counts = collections.Counter(
-            get_path(
-                rule.metadata, ("semgrep.dev", "rule", "origin"), default="unknown"
-            )
+            get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
             for rule in self.rules
             if rule.product == RuleProduct.sast
         )
@@ -664,31 +661,38 @@ class Plan:
 
     def print(self, *, with_tables_for: RuleProduct) -> None:
         if self.target_mappings.rule_count == 0:
-            console.print("Nothing to scan.")
+            sep = "\n   "
+            message = "No rules to run."
+            if with_tables_for == RuleProduct.sca:
+                if auth.get_token() is None:
+                    message = sep.join(
+                        wrap(
+                            "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                            width=70,
+                        )
+                    )
+                else:  # logged in but --config supply-chain not passed
+                    message = sep.join(
+                        wrap(
+                            "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                            width=70,
+                        )
+                    )
+            else:  # sast or another product without rules
+                pass
+            console.print(f"\n{message}\n")
             return
 
-        if self.target_mappings.rule_count == 1:
-            console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
-            return
-
-        if len(self.split_by_lang_label()) == 1:
-            console.print(
-                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
-            )
-            return
-
-        if with_tables_for == RuleProduct.sast:
-            tables = [
-                self.table_by_language(),
-                self.table_by_origin(),
-            ]
-        elif with_tables_for == RuleProduct.sca:
+        if with_tables_for == RuleProduct.sca:
             tables = [
                 self.table_by_ecosystem(),
                 self.table_by_sca_analysis(),
             ]
         else:
-            tables = []
+            tables = tables = [
+                self.table_by_language(),
+                self.table_by_origin(),
+            ]
 
         columns = Columns(tables, padding=(1, 8))
 
