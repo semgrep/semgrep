@@ -1,16 +1,4 @@
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules:
-  Scanning 4 files.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 4 rules on 4 files: 4 findings.
+Running semgrep subcommand: scan, experimental = false
+[31mNo fallbacks allowed!
+exiting with error status 2: osemgrep --include excluded.* --include included.* --strict --config rules/eqeq.yaml --json targets/exclude_include
+[0m

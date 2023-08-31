@@ -1,16 +1,4 @@
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 1 file tracked by git with 1 Code rule:
-  Scanning 1 file.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 1 rule on 1 file: 1 finding.
+Running semgrep subcommand: scan, experimental = false
+[31mNo fallbacks allowed!
+exiting with error status 2: osemgrep --strict --config rules/nosem.yaml --json targets/nosem_invalid_id
+[0m

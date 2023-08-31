@@ -1,0 +1,4 @@
+Running semgrep subcommand: scan, experimental = false
+[31mNo fallbacks allowed!
+exiting with error status 2: osemgrep --strict --config rules/nosem.yaml --json targets/stupid-does-not-exist.p
+[0m

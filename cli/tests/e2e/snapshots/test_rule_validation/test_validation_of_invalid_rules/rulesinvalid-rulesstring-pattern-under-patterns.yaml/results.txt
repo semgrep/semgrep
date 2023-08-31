@@ -1,10 +1,4 @@
-Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
-semgrep error: Invalid rule schema
-  --> rules/invalid-rules/string-pattern-under-patterns.yaml:4
-4 |     - "foo"
-  |       ^^^^^
-
-'foo' is not of type 'object'
-
-[ERROR] Rule parse error in rule eqeq:
- Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?
+Running semgrep subcommand: scan, experimental = false
+[31mNo fallbacks allowed!
+exiting with error status 2: osemgrep --validate --strict --config rules/invalid-rules/string-pattern-under-patterns.yaml targets/basic
+[0m

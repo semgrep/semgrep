@@ -62,14 +62,25 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 1 Code rule, 1 Supply Chain rule:
-
+  Scanning 4 files tracked by git with 1 Code rule, 1 Supply Chain rule, 0 Pro
+  rules:
 
   CODE RULES
-  Scanning 1 file.
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         1       1          Custom       1
+
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+
+  Ecosystem   Rules   Files   Lockfiles            Analysis   Rules
+ ─────────────────────────────────────────        ──────────────────
+  Pypi            1       1   poetry.lock          Basic          1
+
+
+  PROGRESS
+
 
 
 ┌──────────────┐

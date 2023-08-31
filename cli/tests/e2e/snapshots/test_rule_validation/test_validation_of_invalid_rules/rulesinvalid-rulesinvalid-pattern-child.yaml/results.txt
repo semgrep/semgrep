@@ -1,9 +1,4 @@
-Configuration is invalid - found 1 configuration error(s), and 0 rule(s).
-semgrep error: Invalid rule schema
-  --> rules/invalid-rules/invalid-pattern-child.yaml:7
-7  |       - pattern-either:
-8  |           - pattern: $X == $Y
-9  |           - pattern-not: $Z == $Z
-
-Additional properties are not allowed ('pattern-not' was unexpected)
-
+Running semgrep subcommand: scan, experimental = false
+[31mNo fallbacks allowed!
+exiting with error status 2: osemgrep --validate --strict --config rules/invalid-rules/invalid-pattern-child.yaml targets/basic
+[0m

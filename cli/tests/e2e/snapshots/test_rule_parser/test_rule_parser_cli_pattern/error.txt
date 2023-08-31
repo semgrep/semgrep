@@ -1,14 +1,4 @@
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 23 files tracked by git with 1 Code rule:
-  Scanning 1 file.
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Pattern parse error in rule -:
- Invalid pattern for C:
---- pattern ---
-#include<asdf><<>>><$X>
---- end pattern ---
-Pattern error: Stdlib.Parsing.Parse_error
-
+Running semgrep subcommand: scan, experimental = false
+[31mNo fallbacks allowed!
+exiting with error status 2: osemgrep -e #include<asdf><<>>><$X> -l c --strict targets/basic
+[0m
