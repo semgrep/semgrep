@@ -3,7 +3,7 @@
    other.*)
 module MkId () : sig
   (* abstract type! *)
-  type t [@@deriving show, eq, ord, hash]
+  type t [@@deriving show, eq, ord, hash, sexp]
 
   val mk : unit -> t
   val to_int : t -> int

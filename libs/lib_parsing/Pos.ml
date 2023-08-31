@@ -14,6 +14,7 @@
  * license.txt for more details.
  *)
 open Common
+open Sexplib.Std
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,7 +64,7 @@ type t = {
   (* TODO: use Fpath.t *)
   file : Common.filename;
 }
-[@@deriving show, eq, ord]
+[@@deriving show, eq, ord, sexp]
 
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]
