@@ -1,1 +1,0 @@
-The CLI now returns the commit timestamp when using `semgrep ci`

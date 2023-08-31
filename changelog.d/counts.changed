@@ -1,2 +1,0 @@
-Adjust the count printed at the conclusion summary to match the top summary
-(only printing the count of rules actually run by semgrep and not just the number of rules received from the server).
