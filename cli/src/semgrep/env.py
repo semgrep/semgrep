@@ -152,7 +152,7 @@ class Env:
 
     @with_new_cli_ux.default
     def with_new_cli_default(self) -> bool:
-        return "SEMGREP_NEW_CLI_UX" in os.environ
+        return os.environ.get("SEMGREP_NEW_CLI_UX", "0") == "1"
 
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:

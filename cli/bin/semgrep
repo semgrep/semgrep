@@ -122,5 +122,5 @@ if __name__ == "__main__":
        # We activate the new CLI UX only when semgrep is invoked directly
        # (and legacy is not specified)
        # and osemgrep needs to fallback on pysemgrep
-       os.environ["SEMGREP_NEW_CLI_UX"] = "1"
+       os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(os.isatty(sys.stdout.fileno()))}"
        exec_osemgrep()

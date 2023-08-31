@@ -45,6 +45,7 @@ import sys
 # https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 # It doesn't explain in enough detail to give a real answer, hence the guess above.
 if __name__ == "__main__":
-    os.environ["SEMGREP_NEW_CLI_UX"] = "1"  # Only enable new CLI UX when pysemgrep is invoked directly
+    # Only enable new CLI UX when pysemgrep is invoked directly and with interactive terminal
+    os.environ["SEMGREP_NEW_CLI_UX"] =  f"{int(os.isatty(sys.stdout.fileno()))}"
     import semgrep.main
     sys.exit(semgrep.main.main())

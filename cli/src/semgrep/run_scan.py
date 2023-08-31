@@ -28,6 +28,7 @@ from typing import Union
 
 from boltons.iterutils import get_path
 from boltons.iterutils import partition
+from rich.padding import Padding
 
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
@@ -117,6 +118,8 @@ def print_summary_line(
     target_manager: TargetManager, sast_plan: Plan, sca_plan: Plan
 ) -> None:
     file_count = len(target_manager.get_all_files())
+    new_cli_ux = get_state().env.with_new_cli_ux
+
     summary_line = f"Scanning {unit_str(file_count, 'file')}"
     if target_manager.respect_git_ignore:
         summary_line += " tracked by git"
@@ -125,7 +128,12 @@ def print_summary_line(
     summary_line += f" with {unit_str(sast_rule_count, 'Code rule')}"
 
     sca_rule_count = len(sca_plan.rules)
-    summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+    if sca_rule_count:
+        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+    elif (
+        new_cli_ux
+    ):  # Always print the count of Supply Chain rules in new CLI UX (even if 0)
+        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
 
     pro_rule_count = sum(
         1
@@ -133,7 +141,10 @@ def print_summary_line(
         if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
         == "pro_rules"
     )
-    summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+    if pro_rule_count:
+        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
+    elif new_cli_ux:  # Always print the count of Pro rules in new CLI UX (even if 0)
+        summary_line += f", {unit_str(pro_rule_count, 'Pro rule')}"
 
     console.print(summary_line + ":")
 
@@ -145,6 +156,7 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
     Return total number of rules semgrep think is applicable to this repo
     e.g. it skips rules when there are no files with a relevant extension since no findings will be found
     """
+    new_cli_ux = get_state().env.with_new_cli_ux
     console.print(Title("Scan Status"))
 
     sast_plan = CoreRunner.plan_core_run(
@@ -162,12 +174,24 @@ def print_scan_status(rules: Sequence[Rule], target_manager: TargetManager) -> i
 
     print_summary_line(target_manager, sast_plan, sca_plan)
 
-    console.print(Title("Code Rules", order=2))
+    if new_cli_ux:
+        console.print(Title("Code Rules", order=2))
+        sast_plan.print(with_tables_for=RuleProduct.sast)
+        console.print(Title("Supply Chain Rules", order=2))
+        sca_plan.print(with_tables_for=RuleProduct.sca)
+        console.print(Title("Progress", order=2))
+        console.print(" ")  # space intentional for progress bar
+        return len(sast_plan.rules) + len(sca_plan.rules)
+
+    if not sca_plan.rules:
+        # just print these tables without the section headers
+        sast_plan.print(with_tables_for=RuleProduct.sast)
+        return len(sast_plan.rules)
+
+    console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
     sast_plan.print(with_tables_for=RuleProduct.sast)
     console.print(Title("Supply Chain Rules", order=2))
     sca_plan.print(with_tables_for=RuleProduct.sca)
-    console.print(Title("Progress", order=2))
-    console.print(" ")  # space intentional for progress bar
 
     return len(sast_plan.rules) + len(sca_plan.rules)
 
