@@ -3,8 +3,22 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules:
-  Nothing to scan.
+  Scanning 5 files tracked by git with 4 Code rules, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  No rules to run.
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency
+     vulnerabilities and advanced cross-file findings.
+
+
+  PROGRESS
+
 
 
 ┌──────────────┐

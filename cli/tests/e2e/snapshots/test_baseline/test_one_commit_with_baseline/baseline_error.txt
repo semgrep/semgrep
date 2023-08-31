@@ -3,8 +3,22 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 0 files tracked by git with 1 Code rule:
-  Nothing to scan.
+  Scanning 0 files tracked by git with 1 Code rule, 0 Supply Chain rules, 0 Pro 
+  rules:                                                                        
+            
+  CODE RULES
+                  
+  No rules to run.
+                  
+                    
+  SUPPLY CHAIN RULES
+                                                                         
+  💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency
+     vulnerabilities and advanced cross-file findings.                   
+                                                                         
+          
+  PROGRESS
+   
   Current version has 0 findings.
 
 Skipping baseline scan, because there are no current findings.

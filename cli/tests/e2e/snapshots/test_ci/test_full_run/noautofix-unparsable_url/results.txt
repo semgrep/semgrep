@@ -86,14 +86,26 @@ CI="true" SEMGREP_REPO_NAME="org_name/project_name/project_name" SEMGREP_REPO_UR
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules:
-
+  Scanning 4 files tracked by git with 4 Code rules, 3 Supply Chain rules, 0 Pro
+  rules:
 
   CODE RULES
-  Scanning 1 file with 4 python rules.
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         4       1          Custom       4
+
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+
+  Ecosystem   Rules   Files   Lockfiles            Analysis       Rules
+ ─────────────────────────────────────────        ──────────────────────
+  Pypi            1       1   poetry.lock          Basic              2
+  Npm             2       0   yarn.lock            Reachability       1
+
+
+  PROGRESS
+
 
 
 ┌──────────────┐

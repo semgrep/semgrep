@@ -29,14 +29,22 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
-
+  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule, 0 Pro
+  rules:
 
   CODE RULES
-  Nothing to scan.
+
+  No rules to run.
+
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+
+  💎 Run `semgrep ci` to find dependency vulnerabilities and advanced
+     cross-file findings.
+
+
+  PROGRESS
+
   Current version has 1 finding.
 
 Creating git worktree from '<MASKED>' to scan baseline.
@@ -48,14 +56,22 @@ Creating git worktree from '<MASKED>' to scan baseline.
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule:
-
+  Scanning 1 file tracked by git with 0 Code rules, 1 Supply Chain rule, 0 Pro
+  rules:
 
   CODE RULES
-  Nothing to scan.
+
+  No rules to run.
+
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+
+  💎 Run `semgrep ci` to find dependency vulnerabilities and advanced
+     cross-file findings.
+
+
+  PROGRESS
+
 
 
 ┌──────────────┐

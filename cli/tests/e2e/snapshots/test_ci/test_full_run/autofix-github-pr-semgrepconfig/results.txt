@@ -32,8 +32,24 @@ Using <MASKED> as the merge-base of <MASKED> and <MASKED>
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 4 Code rules:
-  Scanning 1 file with 4 python rules.
+  Scanning 1 file tracked by git with 4 Code rules, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         4       1          Custom       4
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Run `semgrep ci` to find dependency vulnerabilities and advanced
+     cross-file findings.
+
+
+  PROGRESS
+
   Current version has 14 findings.
 
 Creating git worktree from '<MASKED>' to scan baseline.
@@ -45,8 +61,24 @@ Creating git worktree from '<MASKED>' to scan baseline.
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 4 Code rules:
-  Scanning 1 file with 4 python rules.
+  Scanning 1 file tracked by git with 4 Code rules, 0 Supply Chain rules, 0 Pro
+  rules:
+
+  CODE RULES
+
+  Language   Rules   Files          Origin   Rules
+ ──────────────────────────        ────────────────
+  python         4       1          Custom       4
+
+
+  SUPPLY CHAIN RULES
+
+  💎 Run `semgrep ci` to find dependency vulnerabilities and advanced
+     cross-file findings.
+
+
+  PROGRESS
+
 
 
 ┌──────────────────────────┐
