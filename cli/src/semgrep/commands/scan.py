@@ -318,7 +318,7 @@ _scan_options: List[Callable] = [
         "--max-memory",
         type=int,
         help="""
-            Maximum system memory to use running a rule on a single file in MiB. 
+            Maximum system memory to use running a rule on a single file in MiB.
             If set to 0 will not have memory limit. Defaults to 0. For CI scans
             that use the Pro Engine, it defaults to 5000 MiB.
         """,
