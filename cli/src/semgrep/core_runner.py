@@ -67,6 +67,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -659,7 +660,10 @@ class Plan:
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
 
-    def print(self, *, with_tables_for: RuleProduct) -> None:
+    def pprint(self, *, with_tables_for: RuleProduct) -> None:
+        """
+        Pretty print the plan to stdout with the new CLI UX.
+        """
         if self.target_mappings.rule_count == 0:
             sep = "\n   "
             message = "No rules to run."
@@ -683,22 +687,71 @@ class Plan:
             console.print(f"\n{message}\n")
             return
 
-        if with_tables_for == RuleProduct.sca:
-            tables = [
-                self.table_by_ecosystem(),
-                self.table_by_sca_analysis(),
-            ]
-        else:
-            tables = tables = [
+        # NOTE: we already returned early if the rule_count was 0
+        # default to SAST table if sca is specified
+        tables = (
+            [
                 self.table_by_language(),
                 self.table_by_origin(),
             ]
+            if with_tables_for != RuleProduct.sca
+            else [
+                self.table_by_ecosystem(),
+                self.table_by_sca_analysis(),
+            ]
+        )
 
         columns = Columns(tables, padding=(1, 8))
 
         # rich tables are 2 spaces indented by default
         # deindent only by 1 to align the content, instead of the invisible table border
         console.print(Padding(columns, (1, 0)), deindent=1)
+
+    def oprint(self, *, with_tables_for: RuleProduct) -> None:
+        """
+        Print the plan to stdout with the original CLI UX.
+        """
+        if self.target_mappings.rule_count == 0:
+            console.print("Nothing to scan.")
+            return
+
+        if self.target_mappings.rule_count == 1:
+            console.print(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
+            return
+
+        if len(self.split_by_lang_label()) == 1:
+            console.print(
+                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{list(self.split_by_lang_label())[0]} rule')}."
+            )
+            return
+
+        if with_tables_for == RuleProduct.sast:
+            tables = [
+                self.table_by_language(),
+                self.table_by_origin(),
+            ]
+        elif with_tables_for == RuleProduct.sca:
+            tables = [
+                self.table_by_ecosystem(),
+                self.table_by_sca_analysis(),
+            ]
+        else:
+            tables = []
+
+        columns = Columns(tables, padding=(1, 8))
+
+        # rich tables are 2 spaces indented by default
+        # deindent only by 1 to align the content, instead of the invisible table border
+        console.print(Padding(columns, (1, 0)), deindent=1)
+
+    def print(self, *, with_tables_for: RuleProduct) -> None:
+        """
+        Dispatch the correct print method based on the CLI UX.
+        """
+        if get_state().env.with_new_cli_ux:
+            self.pprint(with_tables_for=with_tables_for)
+        else:
+            self.oprint(with_tables_for=with_tables_for)
 
     def __str__(self) -> str:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"

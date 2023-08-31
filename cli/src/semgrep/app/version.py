@@ -114,6 +114,7 @@ def _get_latest_version(allow_fetch: bool = True) -> Optional[JsonObject]:
 def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:
     logged_something = False
     banners = latest_version_object.get("banners", [])
+    state = get_state()
     for b in banners:
         try:
             show_str = b.get("show_version")  # Note that b["show_version"] can be None
@@ -126,7 +127,10 @@ def _show_banners(current_version: Version, latest_version_object: JsonObject) -
         if (not show or current_version >= show) and (
             not hide or current_version < hide
         ):
-            logger.warning("\n⏫  " + b.get("message", ""))
+            if state.env.with_new_cli_ux:
+                logger.warning("\n⏫  " + b.get("message", ""))
+            else:
+                logger.warning("\n" + b.get("message", ""))
             logged_something = True
 
     env = get_state().env
@@ -164,5 +168,9 @@ def get_no_findings_msg() -> Optional[str]:
     latest_version_object = _get_latest_version(allow_fetch=False)
     if latest_version_object is None or "no_findings_msg" not in latest_version_object:
         return None
-    msg = re.sub("\n(\n+)?", "\\1\n    ", str(latest_version_object["no_findings_msg"]))
-    return f"\n✨  {msg}"
+    state = get_state()
+    base_msg = str(latest_version_object["no_findings_msg"])
+    if not state.env.with_new_cli_ux:
+        return base_msg
+    msg = re.sub("\n(\n+)?", "\\1\n    ", base_msg)
+    return f"\n✨ {msg}"
