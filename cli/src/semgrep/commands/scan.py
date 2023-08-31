@@ -867,10 +867,24 @@ def scan(
                 config_errors = list(chain(config_errors, metacheck_errors))
 
                 valid_str = "invalid" if config_errors else "valid"
-                rule_count = len(resolved_configs.get_rules(True))
-                logger.info(
-                    f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
-                )
+                base_msg = f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s)"
+                rule_msg = "with 0 rules."
+
+                grouped_rules = resolved_configs.get_rules_by_product(True)
+
+                if grouped_rules:
+                    first, *middle, last = (
+                        grouped_rules
+                        if len(grouped_rules) > 1
+                        else [*grouped_rules, None]  # type: ignore
+                    )
+                    front = [first] + middle
+                    prefix = ",".join(f"{len(t[1])} {t[0]} rule(s)" for t in front)
+                    suffix = f" and {len(last[1])} {last[0]} rule(s)" if last else ""
+                    rule_msg = f"with {prefix}{suffix}.".strip()
+
+                logger.info(f"{base_msg} {rule_msg}")
+
                 if config_errors:
                     output_handler.handle_semgrep_errors(config_errors)
                     output_handler.output({}, all_targets=set(), filtered_rules=[])
