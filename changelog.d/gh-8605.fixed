@@ -1,1 +1,0 @@
-Adds an error message clarifying the removal of `python -m semgrep`. This change originated in https://github.com/returntocorp/semgrep/pull/8504.
