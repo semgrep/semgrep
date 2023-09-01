@@ -1,1 +1,0 @@
-Updated `--max-memory` help description to make it more clear/concise. To say "Defaults to 0 for all CLI scans." implies a different default for non-CLI scans, where in practicality the default is 0 for all scans except when using Pro Engine, where the default is 5000.

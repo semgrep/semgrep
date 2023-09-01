@@ -1,1 +1,0 @@
-Semgrep PyPI package can now be pip install-ed on aarch64 libmusl platforms (e.g. Alpine)

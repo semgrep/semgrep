@@ -6,6 +6,53 @@
 
 <!-- insertion point -->
 
+## [1.38.0](https://github.com/returntocorp/semgrep/releases/tag/v1.38.0) - 2023-08-31
+
+### Added
+
+- The CLI now returns the commit timestamp when using `semgrep ci` (cli-timestamp)
+- Add support for `min-version` and `max-version` fields for each rule,
+  specifying a range of compatible Semgrep versions. If a rule is incompatible
+  with the version of Semgrep being used, it is reported in the JSON output at
+  the "info" level which doesn't cause an exit failure. (gh-8496)
+- Dependency data is now also sent to the /results endpoint of semgrep app. It is still sent to the /complete endpoint. (sc-async)
+
+### Changed
+
+- Adjust the count printed at the conclusion summary to match the top summary
+  (only printing the count of rules actually run by semgrep and not just the number of rules received from the server). (counts)
+- The option to omit --config and to look for the presence of a .semgrep.yml
+  or .semgrep/.semgrep.yml in the current directory has been removed. You now
+  have to explicitly use --config. (dotsemgrep)
+- The deprecated --enable-metrics and --disable-metrics flags have finally been
+  removed. Use --metrics=on or --metrics=off instead (or --metrics=auto). (enable_metrics)
+- The semgrep_main.py module has been renamed to run_scan.py and its
+  invoke_semgrep() function renamed to run_scan_and_return_json().
+  External tools (e.g., semgrep wrappers) using directly those functions
+  should be updated. Note that this function will soon disappear as
+  part of a migration effort converting Python code to OCaml. Thus,
+  those tools should instead wrap the semgrep CLI and rely on
+  semgrep_output_v1.atd for a more stable official API. (internals)
+
+### Fixed
+
+- Running just `semgrep` now displays the help message. Semgrep does not
+  try anymore to look for a .semgrep.yml config file or .semgrep/ in the
+  current directory, which used to cause issues when running from your
+  home directory which can contain the .semgrep/settings.yml file (which
+  is actually not a semgrep rule). (gh-4457)
+- Fixed CLI output to display matches from different rules with the same message. (gh-8557)
+- Semgrep PyPI package can now be pip install-ed on aarch64 libmusl platforms (e.g. Alpine) (gh-8565)
+- Updated `--max-memory` help description to make it more clear/concise. To say "Defaults to 0 for all CLI scans." implies a different default for non-CLI scans, where in practicality the default is 0 for all scans except when using Pro Engine, where the default is 5000. (max_memory_help)
+- Julia: Fixed a bug where `let end` blocks were not being parsed
+  correctly, causing their contents to not strictly match while inside of
+  a block.
+
+  For instance, `let ... end` would not count as being inside of the `let`,
+  and would match everything. (pa-3029)
+
+- Fixed bug where dependencies in (pnpm-lock.yaml at version 6.0 or above) files were not parsed. (sc-1033)
+
 ## [1.37.0](https://github.com/returntocorp/semgrep/releases/tag/v1.37.0) - 2023-08-25
 
 ### Added

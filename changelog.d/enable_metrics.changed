@@ -1,2 +1,0 @@
-The deprecated --enable-metrics and --disable-metrics flags have finally been
-removed. Use --metrics=on or --metrics=off instead (or --metrics=auto).
