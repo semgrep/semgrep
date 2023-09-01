@@ -387,12 +387,10 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
             join_rule.get("severity", match.get("severity", RuleSeverity.INFO.value))
         ),
         match=core.CoreMatch(
-            rule_id=core.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
-            location=core.Location(
-                path=core.Fpath(match.get("path", "[empty]")),
-                start=core.Position.from_json(match["start"]),
-                end=core.Position.from_json(match["end"]),
-            ),
+            check_id=core.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
+            path=core.Fpath(match.get("path", "[empty]")),
+            start=core.Position.from_json(match["start"]),
+            end=core.Position.from_json(match["end"]),
             extra=extra,
         ),
         # still needed?

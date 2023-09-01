@@ -286,8 +286,12 @@ let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     else x.file
   in
   {
-    Out.rule_id = (x.rule_id.id :> string);
-    location = { path = file; start = startp; end_ = endp };
+    Out.check_id = (x.rule_id.id :> string);
+    (* inherited location *)
+    path = file;
+    start = startp;
+    end_ = endp;
+    (* end inherited location *)
     extra =
       {
         message = Some x.rule_id.message;

@@ -190,7 +190,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
     | None -> Some 1
   in
   let fold acc (core_match : Out.core_match) =
-    Map_.update core_match.Out.rule_id update acc
+    Map_.update core_match.check_id update acc
   in
   let map = List.fold_left fold Map_.empty res.core.Out.results in
   Map_.fold

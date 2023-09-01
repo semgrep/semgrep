@@ -112,19 +112,19 @@ class RuleMatch:
     # TODO: return a out.RuleId
     @property
     def rule_id(self) -> str:
-        return self.match.rule_id.value
+        return self.match.check_id.value
 
     @property
     def path(self) -> Path:
-        return Path(self.match.location.path.value)
+        return Path(self.match.path.value)
 
     @property
     def start(self) -> core.Position:
-        return self.match.location.start
+        return self.match.start
 
     @property
     def end(self) -> core.Position:
-        return self.match.location.end
+        return self.match.end
 
     @property
     def product(self) -> RuleProduct:

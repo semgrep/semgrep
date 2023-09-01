@@ -59,12 +59,10 @@ let adjust_core_output (x : Out.core_output) : Out.core_output =
   let results =
     x.results
     |> Common.map (fun (m : Out.core_match) ->
-           let _rule_id = m.rule_id in
-           let path = Fpath.v m.location.path in
+           let _rule_id = m.check_id in
+           let path = Fpath.v m.path in
            let ranges = ranges_of_path path in
-           let start, end_ =
-             (m.location.start.offset, m.location.end_.offset)
-           in
+           let start, end_ = (m.start.offset, m.end_.offset) in
            match find_function_info (start, end_) ranges with
            | None ->
                logger#info "no function info found for range: %d, %d" start end_;

@@ -124,12 +124,11 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
 (* TODO: expose this function so it can be used in language_server *)
 let render_fix (env : env) (x : Out.core_match) : string option =
   match x with
-  | { rule_id; location; extra = { metavars; rendered_fix; _ }; _ } -> (
+  | { check_id = rule_id; path; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
         try Hashtbl.find env.hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
-      let path = location.path in
       (* TOPORT: debug logging which indicates the source of the fix *)
       match (rendered_fix, rule.fix) with
       | Some fix, _ -> Some fix
@@ -325,8 +324,10 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
 let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
   match m with
   | {
-   rule_id;
-   location;
+   check_id = rule_id;
+   path;
+   start;
+   end_;
    extra =
      {
        message;
@@ -344,9 +345,6 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
         try Hashtbl.find env.hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
-      let path = location.path in
-      let start = location.start in
-      let end_ = location.end_ in
       let message =
         match message with
         (* message where the metavars have been interpolated *)
@@ -467,7 +465,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
       let matches =
         matches
         |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
-               compare a.rule_id b.rule_id)
+               compare a.check_id b.check_id)
       in
       (* TODO: not sure how it's sorted, but Set_.elements return
        * elements in OCaml compare order (=~ lexicographic for strings)
