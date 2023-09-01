@@ -424,6 +424,10 @@ let o_output : string option Term.t =
 (* ------------------------------------------------------------------ *)
 (* Output formats (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
+let o_text : bool Term.t =
+  let info = Arg.info [ "text" ] ~doc:{|Output results in text format.|} in
+  Arg.value (Arg.flag info)
+
 let o_json : bool Term.t =
   let info =
     Arg.info [ "json" ] ~doc:{|Output results in Semgrep's JSON format.|}
@@ -738,7 +742,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       max_target_bytes metrics num_jobs nosem optimizations oss output pattern
       pro project_root pro_intrafile pro_lang registry_caching replacement
       respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo
+      show_supported_languages strict target_roots test test_ignore_todo text
       time_flag timeout timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
@@ -759,6 +763,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         Error.abort
           "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
       match () with
+      | _ when text -> Output_format.Text
       | _ when json -> Output_format.Json
       | _ when emacs -> Output_format.Emacs
       | _ when vim -> Output_format.Vim
@@ -1043,7 +1048,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_text $ o_time
     $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
     $ o_vim)
 
