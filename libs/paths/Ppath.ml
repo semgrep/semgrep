@@ -324,6 +324,9 @@ let () =
       test_in_project_ok "a/b" "a/b/c" "/c";
       test_in_project_ok "." "a/b" "/a/b";
       test_in_project_ok "a" "./a/b" "/b";
+      test_in_project_ok "." "." "/";
+      test_in_project_ok "a/b" "a/b" "/";
+      test_in_project_ok "/a/b" "/a/b" "/";
       test_in_project_fail "/a/b" "/a";
       test_in_project_fail "/a/b" "/b";
       test_in_project_fail "/a/b" "a")
