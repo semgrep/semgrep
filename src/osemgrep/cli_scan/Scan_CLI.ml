@@ -49,6 +49,8 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* file or URL (None means output to stdout) *)
+  output : string option;
   (* maybe should define an Output_option.t, or add a record to
    * Output_format.Text *)
   dataflow_traces : bool;
@@ -129,6 +131,7 @@ let default : conf =
     time_flag = false;
     engine_type = OSS;
     output_format = Output_format.Text;
+    output = None;
     dataflow_traces = false;
     force_color = false;
     max_chars_per_line = 160;
@@ -408,6 +411,15 @@ let o_nosem : bool Term.t =
     ~doc:
       {|Enables 'nosem'. Findings will not be reported on lines containing
           a 'nosem' comment at the end. Enabled by default.|}
+
+let o_output : string option Term.t =
+  let info =
+    Arg.info [ "o"; "output" ]
+      ~doc:
+        "Save search results to a file or post to URL. Default is to print to \
+         stdout."
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 (* ------------------------------------------------------------------ *)
 (* Output formats (mutually exclusive) *)
@@ -723,8 +735,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       dryrun dump_ast dump_command_for_core dump_engine_path emacs error exclude
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
       junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations oss pattern pro
-      project_root pro_intrafile pro_lang registry_caching replacement
+      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
+      pro project_root pro_intrafile pro_lang registry_caching replacement
       respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
       show_supported_languages strict target_roots test test_ignore_todo
       time_flag timeout timeout_threshold validate version version_check vim =
@@ -1001,6 +1013,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       registry_caching;
       version_check;
       output_format;
+      output;
       engine_type;
       rewrite_rule_ids;
       strict;
@@ -1026,7 +1039,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang
     $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
-    $ o_oss $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
+    $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages

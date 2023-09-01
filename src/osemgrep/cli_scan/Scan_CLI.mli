@@ -28,6 +28,8 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* file or URL (None means output to stdout) *)
+  output : string option;
   dataflow_traces : bool;
   force_color : bool;
   (* text output config (TODO: make a separate type gathering all of them)
