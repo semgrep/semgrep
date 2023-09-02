@@ -6,6 +6,12 @@
 
 <!-- insertion point -->
 
+## [1.38.2](https://github.com/returntocorp/semgrep/releases/tag/v1.38.2) - 2023-09-01
+
+### Fixed
+
+- restore access to the --text option (gh-8610)
+
 ## [1.38.1](https://github.com/returntocorp/semgrep/releases/tag/v1.38.1) - 2023-09-01
 
 ### Fixed
