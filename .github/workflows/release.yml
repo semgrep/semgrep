@@ -108,7 +108,7 @@ jobs:
     secrets: inherit
     with:
       docker-flavor: |
-        latest=auto
+        latest=false
         suffix=-nonroot
       docker-tags: |
         type=semver,pattern={{version}}
