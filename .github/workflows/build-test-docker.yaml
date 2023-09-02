@@ -5,10 +5,6 @@ name: build-test-docker
 on:
   workflow_dispatch:
     inputs:
-      docker-flavor:
-        required: true
-        type: string
-        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
       docker-tags:
         required: true
         type: string
@@ -27,10 +23,6 @@ on:
         type: string
         description: Dockerfile to build
         default: Dockerfile
-      target:
-        required: true
-        type: string
-        description: Dockerfile target to build
       enable-tests:
         required: true
         type: boolean
@@ -38,10 +30,6 @@ on:
 
   workflow_call:
     inputs:
-      docker-flavor:
-        required: true
-        type: string
-        description: A multi-line string in the format accepted by docker metadata tag action for the flavor of the image
       docker-tags:
         required: true
         type: string
@@ -58,10 +46,6 @@ on:
         required: true
         type: string
         description: Dockerfile to build
-      target:
-        required: true
-        type: string
-        description: Dockerfile target to build
       enable-tests:
         required: true
         type: boolean
@@ -87,7 +71,6 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ inputs.repository-name }}
-          flavor: ${{ inputs.docker-flavor }}
           tags: ${{ inputs.docker-tags }}
       - uses: depot/setup-action@v1
       - name: Build image
@@ -100,7 +83,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ inputs.file }}
-          target: ${{ inputs.target }}
           buildx-fallback: true
       - name: Load image
         if: ${{ inputs.enable-tests }}
