@@ -1,5 +1,5 @@
-
-
+               
+               
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -11,15 +11,15 @@ Creating git worktree from 'HEAD^' to scan baseline.
   Will report findings introduced by these commits (may be incomplete for shallow checkouts):
     * ea47e9e commit #2
 
-
-
+               
+               
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 0 files tracked by git with 1 Code rule:
   Nothing to scan.
-
-
+                
+                
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

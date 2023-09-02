@@ -129,14 +129,6 @@ let get_git_root_path () =
   | Ok (path, (_, `Exited 0)) -> path
   | _ -> raise (Error "Could not get git root from git rev-parse")
 
-let get_merge_base commit =
-  let cmd = Bos.Cmd.(v "git" % "merge-base" % commit % "HEAD") in
-  let base_r = Bos.OS.Cmd.run_out cmd in
-  let results = Bos.OS.Cmd.out_string ~trim:true base_r in
-  match results with
-  | Ok (merge_base, (_, `Exited 0)) -> merge_base
-  | _ -> raise (Error "Could not get merge base from git merge-base")
-
 let run_with_worktree ~commit f =
   let cwd = Sys.getcwd () |> Fpath.v |> Fpath.to_dir_path in
   let git_root = get_git_root_path () |> Fpath.v |> Fpath.to_dir_path in
@@ -189,18 +181,10 @@ let status ~cwd ~commit =
     | Ok (str, (_, `Exited 0)) -> str |> String.split_on_char '\000'
     | _ -> raise (Error "Could not get files from git ls-files")
   in
-  let check_dir file =
+  let check_dir_symlink file =
     try
-      match (Unix.stat file).st_kind with
-      | Unix.S_DIR -> true
-      | _ -> false
-    with
-    | _ -> false
-  in
-  let check_symlink file =
-    try
-      match (Unix.lstat file).st_kind with
-      | Unix.S_LNK -> true
+      match ((Unix.lstat file).st_kind, (Unix.stat file).st_kind) with
+      | Unix.S_LNK, Unix.S_DIR -> true
       | _ -> false
     with
     | _ -> false
@@ -211,7 +195,7 @@ let status ~cwd ~commit =
   let unmerged = ref [] in
   let renamed = ref [] in
   let rec parse = function
-    | _ :: file :: tail when check_dir file && check_symlink file ->
+    | _ :: file :: tail when check_dir_symlink file ->
         logger#info "Skipping %s since it is a symlink to a directory: %s" file
           (Unix.realpath file);
         parse tail
@@ -226,9 +210,6 @@ let status ~cwd ~commit =
         parse tail
     | "U" :: file :: tail ->
         unmerged := file :: !unmerged;
-        parse tail
-    | "T" (* type changed *) :: file :: tail ->
-        if not (check_symlink file) then modified := file :: !modified;
         parse tail
     | typ :: before :: after :: tail when String.starts_with ~prefix:"R" typ ->
         removed := before :: !removed;

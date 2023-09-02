@@ -1,7 +1,6 @@
 import os
 import subprocess
 import tempfile
-import textwrap
 from collections import defaultdict
 from itertools import permutations
 from pathlib import Path
@@ -126,27 +125,6 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
         raise e
 
 
-def assert_out_match(snapshot, output, snapshot_name):
-    return snapshot.assert_match(textwrap.dedent(output.stdout), snapshot_name)
-
-
-def assert_err_match(snapshot, output, snapshot_name, replace_base_commit=None):
-    if "PYTEST_USE_OSEMGREP" in os.environ:
-        # PySemgrep and OSemgrep currently display slightly different information
-        # messages, causing a mismatch in the stderr output. While we may consider
-        # activating this assertion for OSemgrep in the future, it will only be
-        # feasible once PySemgrep and OSemgrep exhibit identical line-by-line
-        # information messages.
-        return
-    err = (
-        output.stderr.replace(replace_base_commit, "baseline-commit")
-        if replace_base_commit
-        else output.stderr
-    )
-    return snapshot.assert_match(textwrap.dedent(err), snapshot_name)
-
-
-@pytest.mark.osempass
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
     foo = git_tmp_path / "foo.py"
     foo.write_text(f"x = {SENTINEL_1}\n")
@@ -163,21 +141,21 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     _git_commit(2)
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
     )  # If you fail this assertion means above snapshot was incorrectly changed
-    assert_err_match(snapshot, output, "error.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == ""
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_symlink(git_tmp_path, snapshot):
     # Test that head having no change to base (git commit --allow-empty)
     # doesnt break semgrep
@@ -202,21 +180,21 @@ def test_symlink(git_tmp_path, snapshot):
     _git_commit(2)
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
     )  # If you fail this assertion means above snapshot was incorrectly changed
-    assert_err_match(snapshot, output, "error.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == ""
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_renamed_dir(git_tmp_path, snapshot):
     dir = git_tmp_path / "dir_old"
     dir.mkdir()
@@ -231,20 +209,19 @@ def test_renamed_dir(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "full.out")
+    snapshot.assert_match(output.stdout, "full.out")
     assert (
         output.stdout != ""
     ), "If you fail this assertion, above snapshot was incorrectly changed"
-    assert_err_match(snapshot, output, "full.err")
+    snapshot.assert_match(output.stderr, "full.err")
 
     # Diff scan should report no findings due to
     # renamed file detection and diffing logic
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
-    assert_out_match(snapshot, baseline_output, "diff.out")
-    assert_err_match(snapshot, baseline_output, "diff.err")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.osempass
 def test_dir_symlink_changed(git_tmp_path, snapshot):
     dir_one = git_tmp_path / "dir_one"
     dir_two = git_tmp_path / "dir_two"
@@ -265,19 +242,18 @@ def test_dir_symlink_changed(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "full.out")
+    snapshot.assert_match(output.stdout, "full.out")
     assert (
         output.stdout != ""
     ), "If you fail this assertion, above snapshot was incorrectly changed"
-    assert_err_match(snapshot, output, "full.err")
+    snapshot.assert_match(output.stderr, "full.err")
 
     # Baseline scan should report no findings
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
-    assert_out_match(snapshot, baseline_output, "diff.out")
-    assert_err_match(snapshot, baseline_output, "diff.err")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.osempass
 def test_file_changed_to_dir(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_dir.py"
     file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
@@ -294,19 +270,18 @@ def test_file_changed_to_dir(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "full.out")
+    snapshot.assert_match(output.stdout, "full.out")
     assert (
         output.stdout != ""
     ), "If you fail this assertion, above snapshot was incorrectly changed"
-    assert_err_match(snapshot, output, "full.err")
+    snapshot.assert_match(output.stderr, "full.err")
 
     # Diff scan should report no findings
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
-    assert_out_match(snapshot, baseline_output, "diff.out")
-    assert_err_match(snapshot, baseline_output, "diff.err")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.osempass
 def test_dir_changed_to_file(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_dir.py"
     file_or_dir_path.mkdir()
@@ -326,19 +301,18 @@ def test_dir_changed_to_file(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "full.out")
+    snapshot.assert_match(output.stdout, "full.out")
     assert (
         output.stdout != ""
     ), "If you fail this assertion, above snapshot was incorrectly changed"
-    assert_err_match(snapshot, output, "full.err")
+    snapshot.assert_match(output.stderr, "full.err")
 
     # Diff scan should report no findings
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
-    assert_out_match(snapshot, baseline_output, "diff.out")
-    assert_err_match(snapshot, baseline_output, "diff.err")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.osempass
 def test_no_findings_both(git_tmp_path, snapshot):
     # Test if no findings in head or base semgrep doesnt explode
     foo = git_tmp_path / "foo.py"
@@ -362,17 +336,19 @@ def test_no_findings_both(git_tmp_path, snapshot):
     # Non-baseline scan should report no findings
     output = run_sentinel_scan()
     assert output.stdout == ""
-    assert_err_match(snapshot, output, "error.txt", replace_base_commit=base_commit)
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
 
     # Baseline scan should report no findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == output.stdout
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_file_changed_to_symlink(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_link.py"
     file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
@@ -384,18 +360,17 @@ def test_file_changed_to_symlink(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "full.out")
+    snapshot.assert_match(output.stdout, "full.out")
     assert (
         output.stdout != ""
     ), "If you fail this assertion, above snapshot was incorrectly changed"
-    assert_err_match(snapshot, output, "full.err")
+    snapshot.assert_match(output.stderr, "full.err")
 
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
-    assert_out_match(snapshot, baseline_output, "diff.out")
-    assert_err_match(snapshot, baseline_output, "diff.err")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.osempass
 def test_symlink_changed_to_file(git_tmp_path, snapshot):
     file_path = git_tmp_path / "definitely_a_file.py"
     file_path.write_text(f"x = {SENTINEL_1}\n")
@@ -409,18 +384,17 @@ def test_symlink_changed_to_file(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "full.out")
+    snapshot.assert_match(output.stdout, "full.out")
     assert (
         output.stdout != ""
     ), "If you fail this assertion, above snapshot was incorrectly changed"
-    assert_err_match(snapshot, output, "full.err")
+    snapshot.assert_match(output.stderr, "full.err")
 
     baseline_output = run_sentinel_scan(base_commit="HEAD^")
-    assert_out_match(snapshot, baseline_output, "diff.out")
-    assert_err_match(snapshot, baseline_output, "diff.err")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.osempass
 def test_no_findings_head(git_tmp_path, snapshot):
     # Test that no findings in head reports no findings even if
     # findings in baseline
@@ -447,17 +421,19 @@ def test_no_findings_head(git_tmp_path, snapshot):
     # Non-baseline scan should report no findings
     output = run_sentinel_scan()
     assert output.stdout == ""
-    assert_err_match(snapshot, output, "error.txt", replace_base_commit=base_commit)
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
 
     # Baseline scan should report no findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == output.stdout
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_no_findings_baseline(git_tmp_path, snapshot):
     # Test when head contains all findings and baseline doesnt contain any
     foo = git_tmp_path / "foo.py"
@@ -479,20 +455,22 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
-    assert_err_match(snapshot, output, "error.txt", replace_base_commit=base_commit)
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
 
     # Baseline scan should report same findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
-    assert_out_match(snapshot, baseline_output, "baseline_output.txt")
+    snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     assert baseline_output.stdout == output.stdout
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_some_intersection(git_tmp_path, snapshot):
     # Test when baseline contains some findings of head
     foo = git_tmp_path / "foo.py"
@@ -513,20 +491,22 @@ def test_some_intersection(git_tmp_path, snapshot):
 
     # Non-baseline scan should report 2 findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
-    assert_err_match(snapshot, output, "error.txt", replace_base_commit=base_commit)
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
 
     # Baseline scan should report 1 finding but hide 1
     baseline_output = run_sentinel_scan(base_commit=base_commit)
-    assert_out_match(snapshot, baseline_output, "baseline_output.txt")
+    snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     assert baseline_output.stdout != output.stdout
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_all_intersect(git_tmp_path, snapshot):
     # Test when baseline and head contain same findings none are reported
     foo = git_tmp_path / "foo.py"
@@ -548,21 +528,21 @@ def test_all_intersect(git_tmp_path, snapshot):
 
     # Non-baseline scan should report findings
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
     )  # If you fail this assertion means above snapshot was incorreclty changed
-    assert_err_match(snapshot, output, "error.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == ""
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
-@pytest.mark.osempass
 def test_no_intersection(git_tmp_path, snapshot):
     # If no intersection of baseline and head finding should still report head finding
     foo = git_tmp_path / "foo.py"
@@ -584,15 +564,18 @@ def test_no_intersection(git_tmp_path, snapshot):
 
     # Non-baseline scan should report 1 finding
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
-    assert_err_match(snapshot, output, "error.txt", replace_base_commit=base_commit)
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
 
     # Baseline scan should report same finding
     baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == output.stdout
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
 
@@ -603,7 +586,6 @@ def test_no_intersection(git_tmp_path, snapshot):
         pytest.param("Foo.py", id="case-sensitive"),
     ],
 )
-@pytest.mark.osempass
 def test_renamed_file(git_tmp_path, snapshot, new_name):
     old_name = "foo.py"
     old_path = git_tmp_path / old_name
@@ -622,15 +604,18 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
 
     # Non-baseline scan should report 1 finding
     output = run_sentinel_scan()
-    assert_out_match(snapshot, output, "output.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
-    assert_err_match(snapshot, output, "error.txt", replace_base_commit=base_commit)
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
 
     # Diff scan should report no findings
     baseline_output = run_sentinel_scan(base_commit=base_commit)
-    assert_out_match(snapshot, baseline_output, "baseline_output.txt")
-    assert_err_match(
-        snapshot, baseline_output, "baseline_error.txt", replace_base_commit=base_commit
+    snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
     )
 
     assert set(git_tmp_path.glob("*.py")) == {
@@ -648,7 +633,6 @@ def test_run_in_subdirectory(git_tmp_path, snapshot):
     pass
 
 
-@pytest.mark.osempass
 def test_unstaged_changes(git_tmp_path, snapshot):
     # Should not abort if have unstaged changes
     foo = git_tmp_path / "foo"
@@ -664,11 +648,10 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     foo_a.write_text(f"y = {SENTINEL_1}\n")
     output = run_sentinel_scan(base_commit=base_commit, check=False)
     assert output.returncode == 0
-    assert_out_match(snapshot, output, "output.txt")
-    assert_err_match(snapshot, output, "error.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.osempass
 def test_staged_changes(git_tmp_path, snapshot):
     # Should report findings in staged changes
 
@@ -690,8 +673,8 @@ def test_staged_changes(git_tmp_path, snapshot):
 
     output = run_sentinel_scan(base_commit=base_commit, check=False)
     assert output.returncode == 0
-    assert_out_match(snapshot, output, "output.txt")
-    assert_err_match(snapshot, output, "error.txt")
+    snapshot.assert_match(output.stdout, "output.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
 
 
 @pytest.mark.todo
@@ -700,7 +683,6 @@ def test_baseline_has_head_untracked(git_tmp_path, snapshot):
 
 
 @pytest.mark.no_semgrep_cli
-@pytest.mark.osempass
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)
@@ -717,7 +699,6 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.osempass
 def test_commit_doesnt_exist(git_tmp_path, snapshot):
     # Should abort baseline scan if baseline is not valid commit
     foo = git_tmp_path / "foo"
@@ -729,7 +710,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
 
     output = run_sentinel_scan(base_commit="12345", check=False)
     assert output.returncode != 0
-    assert_err_match(snapshot, output, "error.txt")
+    snapshot.assert_match(output.stderr, "error.txt")
 
 
 @pytest.fixture
@@ -806,9 +787,8 @@ def complex_merge_repo(git_tmp_path, snapshot):
 
 
 @pytest.mark.parametrize("current, baseline", permutations(["foo", "bar", "baz"], 2))
-@pytest.mark.osempass
 def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     subprocess.run(["git", "checkout", current])
     output = run_sentinel_scan(base_commit=baseline)
-    assert_out_match(snapshot, output, f"stdout.txt")
-    assert_err_match(snapshot, output, f"stderr.txt")
+    snapshot.assert_match(output.stdout, f"stdout.txt")
+    snapshot.assert_match(output.stderr, f"stderr.txt")
