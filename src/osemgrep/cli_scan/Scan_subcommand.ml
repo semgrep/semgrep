@@ -27,13 +27,22 @@ open Common
 
 module Out = Semgrep_output_v1_t
 module RP = Report
+module SS = Set.Make (String)
 
 (*****************************************************************************)
 (* To run the pro engine, including multistep rules *)
 (*****************************************************************************)
 
+type diff_config = { diff_targets : Fpath.t list; diff_depth : int option }
+
+let default_diff_config = { diff_targets = []; diff_depth = None }
+
 let (invoke_semgrep_core_proprietary :
-      (Fpath.t list -> Engine_type.t -> Core_runner.semgrep_core_runner) option
+      (Fpath.t list ->
+      ?diff_config:diff_config ->
+      Engine_type.t ->
+      Core_runner.semgrep_core_runner)
+      option
       ref) =
   ref None
 
@@ -200,10 +209,172 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
       | None -> acc)
     map []
 
+(* Select and execute the Semgrep core engine based on the configured
+   engine settings. *)
+let core (conf : Scan_CLI.conf) file_match_results_hook errors targets
+    ?(diff_config = default_diff_config) rules () =
+  let invoke_semgrep_core =
+    match conf.engine_type with
+    | OSS ->
+        Core_runner.invoke_semgrep_core
+          ~engine:Run_semgrep.semgrep_with_raw_results_and_exn_handler
+    | PRO _ -> (
+        match !invoke_semgrep_core_proprietary with
+        | None ->
+            (* TODO: improve this error message depending on what the instructions should be *)
+            failwith
+              "You have requested running semgrep with a setting that requires \
+               the pro engine, but do not have the pro engine. You may need to \
+               acquire a different binary."
+        | Some invoke_semgrep_core_proprietary ->
+            let roots = conf.target_roots in
+            invoke_semgrep_core_proprietary roots ~diff_config conf.engine_type)
+  in
+  invoke_semgrep_core ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
+    ~file_match_results_hook conf.core_runner_conf rules errors targets
+
+(*****************************************************************************)
+(* Differential scanning *)
+(*****************************************************************************)
+
+(* This function removes duplicated matches from the results of the
+   head commit scan if they are also present in the results of the
+   baseline commit scan. Matches are considered identical if the
+   tuples containing the rule ID, file path, and matched code snippet
+   are equal. *)
+let remove_matches_in_baseline (commit : string) (baseline : RP.final_result)
+    (head : RP.final_result) (renamed : (filename * filename) stack) =
+  let extract_sig renamed m =
+    let rule_id = m.Pattern_match.rule_id in
+    let path =
+      m.Pattern_match.file |> fun p ->
+      renamed
+      >>= Common.find_some_opt (fun (before, after) ->
+              if after = p then Some before else None)
+      |> Option.value ~default:p
+    in
+    let start_range, end_range = m.Pattern_match.range_loc in
+    let syntactic_ctx =
+      File.lines_of_file
+        (start_range.pos.line, end_range.pos.line)
+        (Fpath.v m.Pattern_match.file)
+    in
+    (rule_id, path, syntactic_ctx)
+  in
+  let sigs = Hashtbl.create 10 in
+  Git_wrapper.run_with_worktree ~commit (fun () ->
+      List.iter
+        (fun m -> m |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
+        baseline.RP.matches);
+  let removed = ref 0 in
+  let matches =
+    Common.map_filter
+      (fun m ->
+        let s = extract_sig (Some renamed) m in
+        if Hashtbl.mem sigs s then (
+          Hashtbl.remove sigs s;
+          removed := !removed + 1;
+          None)
+        else Some m)
+      (head.RP.matches
+       (* Sort the matches in ascending order according to their byte positions.
+          This ensures that duplicated matches are not removed arbitrarily;
+          rather, priority is given to removing matches positioned closer to the
+          beginning of the file. *)
+      |> List.sort (fun x y ->
+             let x_start_range, x_end_range = x.Pattern_match.range_loc in
+             let y_start_range, y_end_range = y.Pattern_match.range_loc in
+             let start_compare =
+               x_start_range.pos.bytepos - y_start_range.pos.bytepos
+             in
+             if start_compare <> 0 then start_compare
+             else x_end_range.pos.bytepos - y_end_range.pos.bytepos))
+  in
+  Logs.app (fun m ->
+      m "Removed %s that were in baseline scan"
+        (String_utils.unit_str !removed "finding"));
+  { head with matches }
+
+(* Execute the engine again on the baseline checkout, utilizing only
+   the files and rules linked with matches from the head checkout
+   scan. Subsequently, eliminate any previously identified matches
+   from the results of the head checkout scan. *)
+let scan_baseline_and_remove_duplicates (conf : Scan_CLI.conf)
+    (profiler : Profiler.t)
+    ( (exn : Exception.t option),
+      (r : RP.final_result),
+      (scanned : Fpath.t Set_.t) ) (rules : Rule.rules) (commit : string)
+    (status : Git_wrapper.status)
+    (core :
+      Fpath.t list ->
+      ?diff_config:diff_config ->
+      Rule.rules ->
+      unit ->
+      Exception.t option * RP.final_result * Fpath.t Set_.t) =
+  if r.matches <> [] then
+    let add_renamed paths =
+      List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
+    in
+    let remove_added paths =
+      List.fold_left (Fun.flip SS.remove) paths status.added
+    in
+    let rules_in_match =
+      r.matches
+      |> Common.map (fun m -> m.Pattern_match.rule_id.id |> Rule_ID.to_string)
+      |> SS.of_list
+    in
+    (* only use the rules that have been identified within the existing
+       matches. *)
+    let baseline_rules =
+      rules
+      |> List.filter (fun x ->
+             SS.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
+    in
+    let _, baseline_r, _ =
+      Profiler.record profiler ~name:"baseline_core_time" (fun () ->
+          Git_wrapper.run_with_worktree ~commit (fun () ->
+              let paths_in_match =
+                r.matches
+                |> Common.map (fun m -> m.Pattern_match.file)
+                |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
+                |> Seq.filter_map (fun x ->
+                       if
+                         Sys.file_exists x
+                         &&
+                         match (Unix.lstat x).st_kind with
+                         | S_LNK -> false
+                         | _ -> true
+                       then Some (Fpath.v x)
+                       else None)
+                |> List.of_seq
+              in
+              let baseline_targets, baseline_diff_targets =
+                match conf.engine_type with
+                | PRO Interfile ->
+                    let all_in_baseline, _ =
+                      Find_targets.get_targets conf.targeting_conf
+                        conf.target_roots
+                    in
+                    (* Performing a scan on the same set of files for the
+                       baseline that were previously scanned for the head.
+                       In Interfile mode, the matches are influenced not
+                       only by the file displaying matches but also by its
+                       dependencies. Hence, merely rescanning files with
+                       matches is insufficient. *)
+                    (all_in_baseline, Set_.elements scanned)
+                | _ -> (paths_in_match, [])
+              in
+              core baseline_targets
+                ~diff_config:
+                  { diff_targets = baseline_diff_targets; diff_depth = Some 0 }
+                baseline_rules ()))
+    in
+    (exn, remove_matches_in_baseline commit baseline_r r status.renamed, scanned)
+  else (exn, r, scanned)
+
 (*****************************************************************************)
 (* Conduct the scan *)
 (*****************************************************************************)
-
 let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_ignored : Fpath.t list * Out.skipped_target list) :
@@ -251,30 +422,33 @@ let run_scan_files (conf : Scan_CLI.conf) (profiler : Profiler.t)
             Some (file_match_results_hook conf filtered_rules) )
       | { output_format; _ } -> (output_format, None)
     in
-    let core () =
-      let invoke_semgrep_core =
-        match conf.engine_type with
-        | OSS ->
-            Core_runner.invoke_semgrep_core
-              ~engine:Run_semgrep.semgrep_with_raw_results_and_exn_handler
-        | PRO _ -> (
-            match !invoke_semgrep_core_proprietary with
-            | None ->
-                (* TODO: improve this error message depending on what the instructions should be *)
-                failwith
-                  "You have requested running semgrep with a setting that \
-                   requires the pro engine, but do not have the pro engine. \
-                   You may need to acquire a different binary."
-            | Some invoke_semgrep_core_proprietary ->
-                let roots = conf.target_roots in
-                invoke_semgrep_core_proprietary roots conf.engine_type)
-      in
-      invoke_semgrep_core
-        ~respect_git_ignore:conf.targeting_conf.respect_git_ignore
-        ~file_match_results_hook conf.core_runner_conf filtered_rules errors
-        targets
+    let core = core conf file_match_results_hook errors in
+    let exn_and_matches =
+      match conf.targeting_conf.baseline_commit with
+      | None ->
+          Profiler.record profiler ~name:"core_time"
+            (core targets filtered_rules)
+      | Some baseline_commit ->
+          (* diff scan mode *)
+          let commit = Git_wrapper.get_merge_base baseline_commit in
+          let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit in
+          let targets, diff_targets =
+            let added_or_modified =
+              status.added @ status.modified |> Common.map Fpath.v
+            in
+            match conf.engine_type with
+            | PRO Interfile -> (targets, added_or_modified)
+            | _ -> (added_or_modified, [])
+          in
+          let head_scan_result =
+            Profiler.record profiler ~name:"head_core_time"
+              (core targets
+                 ~diff_config:{ diff_targets; diff_depth = None }
+                 filtered_rules)
+          in
+          scan_baseline_and_remove_duplicates conf profiler head_scan_result
+            filtered_rules commit status core
     in
-    let exn_and_matches = Profiler.record profiler ~name:"core_time" core in
     (* step 3': call the engine! *)
     let (res : Core_runner.result) =
       Core_runner.create_core_result filtered_rules exn_and_matches
