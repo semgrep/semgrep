@@ -1,5 +1,5 @@
-
-
+               
+               
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -8,8 +8,8 @@
   Current version has 0 findings.
 
 Skipping baseline scan, because there are no current findings.
-
-
+                
+                
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

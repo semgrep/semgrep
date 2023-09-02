@@ -1,6 +1,6 @@
 git could not find a single branch-off point, so we will compare the baseline commit directly
-
-
+               
+               
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -49,15 +49,15 @@ Creating git worktree from 'foo' to scan baseline.
   To avoid reporting such findings, compare to the branch-off point with:
     --baseline-commit=$(git merge-base foo HEAD)
 
-
-
+               
+               
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
-
-
+                
+                
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘

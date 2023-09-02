@@ -205,7 +205,7 @@ let remove_prefix root path =
   let path = Fpath.to_dir_path path in
   (* now we can call this function to remove the root prefix from path *)
   match Fpath.rem_prefix root path with
-  | None -> if Fpath.equal root path then Some (Fpath.v ".") else None
+  | None -> None
   | Some rel_path ->
       (* remove the trailing slash if we added one *)
       let rel_path =
@@ -324,9 +324,6 @@ let () =
       test_in_project_ok "a/b" "a/b/c" "/c";
       test_in_project_ok "." "a/b" "/a/b";
       test_in_project_ok "a" "./a/b" "/b";
-      test_in_project_ok "." "." "/";
-      test_in_project_ok "a/b" "a/b" "/";
-      test_in_project_ok "/a/b" "/a/b" "/";
       test_in_project_fail "/a/b" "/a";
       test_in_project_fail "/a/b" "/b";
       test_in_project_fail "/a/b" "a")

@@ -13,12 +13,6 @@ type t
 
 (*
    Returns an absolute, normalized path relative to the project root.
-
-   For instance, when given the input path "/a/b/c" and the project
-   root "/a," the function would return "/b/c." Similarly, for the
-   input path "a/b" and the project root "a/b," the function would
-   return "/".
-
    This is purely syntactic.
    It is recommended to work on physical paths as returned by 'realpath()'
    to ensure that both paths below share the longest common prefix.
