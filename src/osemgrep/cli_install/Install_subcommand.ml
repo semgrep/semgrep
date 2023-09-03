@@ -25,10 +25,10 @@ let install_gh_cli_if_needed () =
   let installed = test_gh_cli () in
   match installed with
   | true ->
-      Logs.app (fun m ->
+      Logs.info (fun m ->
           m "Github cli already installed, skipping installation")
   | false ->
-      Logs.app (fun m -> m "Github cli not installed, installing now");
+      Logs.info (fun m -> m "Github cli not installed, installing now");
       install_gh_cli ()
 
 (*****************************************************************************)
@@ -36,14 +36,15 @@ let install_gh_cli_if_needed () =
 (*****************************************************************************)
 
 let run (conf : Install_CLI.conf) : Exit_code.t =
-  Logs.app (fun m ->
+  CLI_common.setup_logging ~force_color:true ~level:conf.logging_level;
+  Logs.debug (fun m ->
       m "Running install command with env %s"
         (Install_CLI.show_ci_env_flavor conf.ci_env));
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
   | None ->
-      Logs.app (fun m ->
+      Logs.err (fun m ->
           m
             "%s You are not logged in! Run `semgrep login` before using \
              `semgrep install`"

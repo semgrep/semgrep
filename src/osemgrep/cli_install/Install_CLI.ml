@@ -14,7 +14,9 @@ module Cmd = Cmdliner.Cmd
 (* Types and constants *)
 (*****************************************************************************)
 type ci_env_flavor = Github [@@deriving show]
-type conf = { ci_env : ci_env_flavor } [@@deriving show]
+
+type conf = { ci_env : ci_env_flavor; logging_level : Logs.level option }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Manpage Documentation *)
@@ -38,16 +40,16 @@ let o_ci_env : string Term.t =
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 let cmdline_term =
-  let combine v =
+  let combine logging_level v =
     let ci_env =
       let v = String.lowercase_ascii v in
       match v with
       | "github" -> Github
       | _ -> Error.abort (spf "ci env not supported: %s" v)
     in
-    { ci_env }
+    { logging_level; ci_env }
   in
-  Term.(const combine $ o_ci_env)
+  Term.(const combine $ CLI_common.o_logging $ o_ci_env)
 
 let parse_argv (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
