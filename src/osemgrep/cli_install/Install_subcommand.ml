@@ -26,10 +26,31 @@ let install_gh_cli_if_needed () =
   match installed with
   | true ->
       Logs.info (fun m ->
-          m "Github cli already installed, skipping installation")
+          m "Github CLI already installed, skipping installation")
   | false ->
-      Logs.info (fun m -> m "Github cli not installed, installing now");
+      Logs.info (fun m -> m "Github CLI not installed, installing now");
       install_gh_cli ()
+
+let test_gh_authed () : bool =
+  let cmd = Bos.Cmd.(v "gh" % "auth" % "status") in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> true
+  | _ -> false
+
+let prompt_gh_auth () =
+  let cmd = Bos.Cmd.(v "gh" % "auth" % "login" % "--web") in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | _ -> ()
+
+let prompt_gh_auth_if_needed () =
+  let authed = test_gh_authed () in
+  match authed with
+  | true ->
+      Logs.info (fun m ->
+          m "Github CLI already logged in, skipping authentication")
+  | false ->
+      Logs.info (fun m -> m "Prompting Github CLI authentication");
+      prompt_gh_auth ()
 
 (*****************************************************************************)
 (* Main logic *)
@@ -53,6 +74,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
   | Some _ ->
       Logs.app (fun m ->
           install_gh_cli_if_needed ();
+          prompt_gh_auth_if_needed ();
           m "%s Installed semgrep for this repository"
             (Logs_helpers.with_success_tag ()));
       Exit_code.ok
