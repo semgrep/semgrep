@@ -55,6 +55,7 @@ let known_subcommands =
     "publish";
     "scan";
     (* osemgrep-only *)
+    "install";
     "interactive";
     "show";
   ]
@@ -85,7 +86,7 @@ let dispatch_subcommand argv =
    * to the subcommands too.
    *)
   | [ _; ("-h" | "--help"); "--experimental" ]
-  | [ _; "--experimental"; ("-h" | "--help") ] ->
+  | [ _; "--"; ("-h" | "--help") ] ->
       Help.print_semgrep_dashdash_help ();
       Exit_code.ok
   | argv0 :: args -> (
@@ -94,10 +95,11 @@ let dispatch_subcommand argv =
         | [] -> (default_subcommand, [])
         | arg1 :: other_args ->
             if List.mem arg1 known_subcommands then (arg1, other_args)
-            else
+            else (
+              Logs.app (fun m -> m "could not locate: %s" arg1);
               (* No valid subcommand was found.
                  Assume the 'scan' subcommand was omitted and insert it. *)
-              (default_subcommand, arg1 :: other_args)
+              (default_subcommand, arg1 :: other_args))
       in
       let subcmd_argv =
         let subcmd_argv0 = argv0 ^ "-" ^ subcmd in
@@ -107,6 +109,7 @@ let dispatch_subcommand argv =
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
        *)
+      Logs.app (fun m -> m "dispatching subcommand: %s" subcmd);
       try
         match subcmd with
         (* TODO: gradually remove those 'when experimental' guards as
@@ -123,6 +126,7 @@ let dispatch_subcommand argv =
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" -> Scan_subcommand.main subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
+        | "install" -> Install_subcommand.main subcmd_argv
         | "interactive" -> Interactive_subcommand.main subcmd_argv
         | "show" -> Show_subcommand.main subcmd_argv
         (* LATER: "test" *)
