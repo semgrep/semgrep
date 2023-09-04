@@ -32,7 +32,8 @@ val files_from_git_ls : cwd:Fpath.t -> Fpath.t list
    unstaged/staged files are not shared between worktrees. This means we
    don't need to git stash anything, or expect a clean working tree.
 *)
-val run_with_worktree : commit:string -> (unit -> 'a) -> 'a
+val run_with_worktree :
+  commit:string -> ?branch:string option -> (unit -> 'a) -> 'a
 
 (* git status *)
 val status : cwd:Fpath.t -> commit:string -> status

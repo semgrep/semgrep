@@ -88,8 +88,7 @@ let test_semgrep_workflow_added ~repo : bool =
   | _ -> false
 
 let sprint_workflow () =
-  Printf.sprintf
-    {|
+  {|
 # This workflow runs Semgrep on pull requests and pushes to the main branch
 
 name: semgrep
@@ -117,23 +116,95 @@ on:
             - run: semgrep ci
 |}
 
+(* NOTE: we use the gh repo clone subcommand over
+   the regular git clone as the subcommand allows for
+   both OWNER/REPO and cannonical GitHub URLs as arguments
+   to clone the repo.
+*)
+let clone_repo ~repo =
+  let cmd =
+    Bos.Cmd.(v "gh" % "repo" % "clone" % repo % "--" % "--depth" % "1")
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> ()
+  | _ -> Error.abort (Printf.sprintf "failed to clone remote repo: %s" repo)
+
+let clone_repo_to ~repo ~dst =
+  match Bos.OS.Dir.with_current dst (fun () -> clone_repo ~repo) () with
+  | Ok _ ->
+      Logs.info (fun m -> m "Cloned repo %s to %s." repo (Fpath.to_string dst))
+  | _ ->
+      Logs.warn (fun m ->
+          m "Failed to clone repo %s to %s." repo (Fpath.to_string dst))
+
+let get_default_branch () =
+  let cmd =
+    Bos.Cmd.(v "git" % "symbolic-ref" % "refs/remotes/origin/HEAD" % "--short")
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok s -> s
+  | _ ->
+      Logs.warn (fun m -> m "Failed to get default branch");
+      "origin/main"
+
+let get_default_branch_in ~dst =
+  let res = ref "origin/main" in
+  match
+    Bos.OS.Dir.with_current dst (fun () -> res := get_default_branch ()) ()
+  with
+  | Ok _ -> !res
+  | _ ->
+      Logs.warn (fun m ->
+          m "Failed to get default branch in %s, defaulting to %s"
+            (Fpath.to_string dst) !res);
+      !res
+
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 let write_workflow_file ~repo =
   let dir =
     match repo with
-    | _ when Common2.dir_exists repo -> repo
+    | _ when Common2.dir_exists repo -> Fpath.v repo
     | _ ->
-        Error.abort
-          (Printf.sprintf "todo: [not implemented] clone remote repo: %s" repo)
+        let tmp_dir =
+          Filename.concat
+            (Filename.get_temp_dir_name ())
+            (Printf.sprintf "semgrep_install_ci_%6X" (Random.int 0xFFFFFF))
+        in
+        mkdir tmp_dir;
+        clone_repo_to ~repo ~dst:(Fpath.v tmp_dir);
+        (* NOTE: when we clone we get a directory with the repo name.
+           we need to strip the owner from the repo name if it is present
+           and then join the tmp_dir with the repo name to get the full path
+        *)
+        let repo =
+          match String.split_on_char '/' repo with
+          | [ _; repo ] -> repo
+          | _ -> repo
+        in
+        Fpath.v (Filename.concat tmp_dir repo)
   in
-  let workflow_dir = Filename.concat dir ".github/workflows" in
-  let file = Filename.concat workflow_dir "semgrep.yml" in
-  mkdir workflow_dir;
-  let oc = open_out_bin file in
-  output_string oc (sprint_workflow ());
-  close_out oc;
-  Logs.info (fun m -> m "Wrote semgrep workflow to %s" file)
+  let commit = get_default_branch_in ~dst:dir in
+  match
+    Bos.OS.Dir.with_current dir
+      (fun () ->
+        Git_wrapper.run_with_worktree ~commit
+          ~branch:(Some "semgrep/install-ci") (fun () ->
+            let workflow_dir = ".github/workflows" in
+            let file = Filename.concat workflow_dir "semgrep.yml" in
+            mkdir workflow_dir;
+            let oc = open_out_bin file in
+            output_string oc (sprint_workflow ());
+            close_out oc;
+            Logs.info (fun m -> m "Wrote semgrep workflow to %s" file);
+            let cwd =
+              Bos.OS.Dir.current () |> Rresult.R.get_ok |> Fpath.to_string
+            in
+            Logs.info (fun m -> m "Current dir: %s" cwd)))
+      ()
+  with
+  | Ok _ -> ()
+  | _ -> Logs.err (fun m -> m "Failed to write workflow file")
 
 let add_semgrep_workflow ~repo =
   let added = test_semgrep_workflow_added ~repo in
