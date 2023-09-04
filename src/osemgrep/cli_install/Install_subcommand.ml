@@ -67,15 +67,16 @@ let test_semgrep_workflow_added ~repo : bool =
     | _ ->
         Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml" % "--repo" % repo)
   in
+  let res = ref false in
   match
     Bos.OS.Dir.with_current repo_path
       (fun () ->
         match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
-        | Ok _ -> true
-        | _ -> false)
+        | Ok _ -> res := true
+        | _ -> res := false)
       ()
   with
-  | Ok _ -> true
+  | Ok _ -> !res
   | _ -> false
 
 let print_help () = Printf.printf {| Hello World |}
