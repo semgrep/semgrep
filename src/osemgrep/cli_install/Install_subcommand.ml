@@ -61,6 +61,8 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
   Logs.debug (fun m ->
       m "Running install command with env %s"
         (Install_CLI.show_ci_env_flavor conf.ci_env));
+  Logs.debug (fun m ->
+      m "Running with repo %s" (Install_CLI.show_repo_kind conf.repo));
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
