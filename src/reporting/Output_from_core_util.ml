@@ -84,7 +84,10 @@ let compare_match_extra (a : core_match_extra) (b : core_match_extra) =
    in a natural order.
 *)
 let compare_match (a : core_match) (b : core_match) =
-  let c = compare_location a.location b.location in
+  let (aloc : location) = { path = a.path; start = a.start; end_ = a.end_ } in
+  let (bloc : location) = { path = b.path; start = b.start; end_ = b.end_ } in
+
+  let c = compare_location aloc bloc in
   if c <> 0 then c else compare_match_extra a.extra b.extra
 
 let sort_metavars (metavars : (string * metavar_value) list) =

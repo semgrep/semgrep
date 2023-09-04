@@ -141,7 +141,7 @@ def core_matches_to_rule_matches(
         propagated_values = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-        with open(match.location.path.value, errors="replace") as fd:
+        with open(match.path.value, errors="replace") as fd:
             for metavariable, metavariable_data in match.extra.metavars.value.items():
                 # Offsets are start inclusive and end exclusive
                 start_offset = metavariable_data.start.offset
@@ -163,7 +163,7 @@ def core_matches_to_rule_matches(
         return matched_values, propagated_values
 
     def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
-        rule = rule_table[match.rule_id.value]
+        rule = rule_table[match.check_id.value]
         matched_values, propagated_values = read_metavariables(match)
         message = interpolate(rule.message, matched_values, propagated_values)
         if match.extra.rendered_fix is not None:
@@ -210,7 +210,7 @@ def core_matches_to_rule_matches(
     findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()
     for match in res.results:
-        rule = rule_table[match.rule_id.value]
+        rule = rule_table[match.check_id.value]
         rule_match = convert_to_rule_match(match)
         if rule_match.cli_unique_key in seen_cli_unique_keys:
             continue

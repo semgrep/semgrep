@@ -22,12 +22,10 @@ def create_taint_rule_match():
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule.id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 4, 6),
-                end=core.Position(3, 5, 7),
-            ),
+            check_id=core.RuleId("rule.id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 4, 6),
+            end=core.Position(3, 5, 7),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}),
                 dataflow_trace=core.CliMatchDataflowTrace(
