@@ -60,6 +60,17 @@ let prompt_gh_auth_if_needed () =
       Logs.info (fun m -> m "Prompting Github CLI authentication");
       prompt_gh_auth ()
 
+(* TODO: handle GitHub Enterprise *)
+let set_ssh_as_default () =
+  let cmd =
+    Bos.Cmd.(
+      v "gh" % "config" % "set" % "git_protocol" % "ssh" % "--host"
+      % "github.com")
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> ()
+  | _ -> Error.abort "failed to set git_protocol as ssh"
+
 let test_semgrep_workflow_added ~repo : bool =
   let repo_path =
     match repo with
@@ -159,6 +170,39 @@ let get_default_branch_in ~dst =
             (Fpath.to_string dst) !res);
       !res
 
+let add_all_to_git () =
+  let cmd = Bos.Cmd.(v "git" % "add" % ".") in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> ()
+  | _ -> Error.abort "Failed to add files to git"
+
+let get_new_branch () =
+  let version = "v1" in
+  Printf.sprintf "semgrep/install-ci-%s" version
+
+let git_push () =
+  let branch = get_new_branch () in
+  let cmd = Bos.Cmd.(v "git" % "push" % "--set-upstream" % "origin" % branch) in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> ()
+  | _ ->
+      Logs.warn (fun m -> m "Failed to push to branch %s" branch);
+      Error.abort
+        (Printf.sprintf "Failed to push to branch %s. Please push manually"
+           branch)
+
+let git_commit () =
+  let cmd =
+    Bos.Cmd.(
+      v "git" % "commit" % "-m" % "Add semgrep workflow"
+      % "--author=\"Semgrep CI Installer <support@semgrep.com>\"")
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> ()
+  | _ ->
+      Logs.warn (fun m -> m "Failed to commit changes to current branch!");
+      Error.abort "Failed to commit changes. Please commit manually"
+
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 let write_workflow_file ~repo =
@@ -189,14 +233,20 @@ let write_workflow_file ~repo =
     Bos.OS.Dir.with_current dir
       (fun () ->
         Git_wrapper.run_with_worktree ~commit
-          ~branch:(Some "semgrep/install-ci") (fun () ->
-            let workflow_dir = ".github/workflows" in
-            let file = Filename.concat workflow_dir "semgrep.yml" in
+          ~branch:(Some (get_new_branch ()))
+          (fun () ->
+            let github_dir = ".github" in
+            mkdir github_dir;
+            let workflow_dir = Filename.concat github_dir "workflows" in
             mkdir workflow_dir;
+            let file = Filename.concat workflow_dir "semgrep.yml" in
             let oc = open_out_bin file in
             output_string oc (sprint_workflow ());
             close_out oc;
             Logs.info (fun m -> m "Wrote semgrep workflow to %s" file);
+            add_all_to_git ();
+            git_commit ();
+            git_push ();
             let cwd =
               Bos.OS.Dir.current () |> Rresult.R.get_ok |> Fpath.to_string
             in
@@ -239,6 +289,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           install_gh_cli_if_needed ();
           prompt_gh_auth_if_needed ();
+          set_ssh_as_default ();
           add_semgrep_workflow ~repo:(Install_CLI.get_repo conf.repo);
           m "%s Installed semgrep for this repository"
             (Logs_helpers.with_success_tag ()));
