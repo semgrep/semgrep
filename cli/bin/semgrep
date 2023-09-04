@@ -119,4 +119,8 @@ if __name__ == "__main__":
     else:
        # we now default to osemgrep! but this will usually exec
        # back to pysemgrep for most commands (for now)
+       # We activate the new CLI UX only when semgrep is invoked directly
+       # (and legacy is not specified)
+       # and osemgrep needs to fallback on pysemgrep
+       os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(os.isatty(sys.stdout.fileno()))}"
        exec_osemgrep()
