@@ -14,7 +14,11 @@ module Cmd = Cmdliner.Cmd
 (* Types and constants *)
 (*****************************************************************************)
 type ci_env_flavor = Github [@@deriving show]
-type repo_kind = Dir of Fpath.t (* local directory *) [@@deriving show]
+
+type repo_kind =
+  | Dir of Fpath.t (* local directory *)
+  | Repository of string * string (* owner, repo *)
+[@@deriving show]
 
 type conf = {
   ci_env : ci_env_flavor;
@@ -23,9 +27,10 @@ type conf = {
 }
 [@@deriving show]
 
-let get_repo (repo : repo_kind) : Fpath.t =
+let get_repo (repo : repo_kind) : string =
   match repo with
-  | Dir v -> v
+  | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg |> Fpath.to_string
+  | Repository (owner, repo) -> spf "%s/%s" owner repo
 
 (*****************************************************************************)
 (* Manpage Documentation *)
@@ -59,7 +64,18 @@ let o_repo_pos : string Term.t =
 let cmdline_term =
   let combine logging_level repo_kw provider repo_pos =
     let repo_arg = if repo_kw = "." then repo_pos else repo_kw in
-    let repo = Dir (Fpath.v repo_arg) in
+    let repo =
+      match repo_arg with
+      | "." -> Dir (Fpath.v ".")
+      | _ when Common2.is_directory repo_arg -> Dir (Fpath.v repo_arg)
+      | _ ->
+          let owner, repo =
+            match String.split_on_char '/' repo_arg with
+            | [ owner; repo ] -> (owner, repo)
+            | _ -> Error.abort (spf "invalid repo: %s" repo_arg)
+          in
+          Repository (owner, repo)
+    in
     let ci_env =
       let provider = String.lowercase_ascii provider in
       match provider with
