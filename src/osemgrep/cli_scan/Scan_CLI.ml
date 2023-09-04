@@ -49,6 +49,8 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* file or URL (None means output to stdout) *)
+  output : string option;
   (* maybe should define an Output_option.t, or add a record to
    * Output_format.Text *)
   dataflow_traces : bool;
@@ -129,6 +131,7 @@ let default : conf =
     time_flag = false;
     engine_type = OSS;
     output_format = Output_format.Text;
+    output = None;
     dataflow_traces = false;
     force_color = false;
     max_chars_per_line = 160;
@@ -291,10 +294,11 @@ parallel. Defaults to the number of cores detected on the system.
 
 let o_max_memory_mb : int Term.t =
   let info =
-    Arg.info [ "max-memory-mb" ]
+    Arg.info [ "max-memory" ]
       ~doc:
-        {|Maximum system memory to use running a rule on a single file
-in MB. If set to 0 will not have memory limit. Defaults to 0.
+        {|Maximum system memory to use running a rule on a single file in MiB.
+If set to 0 will not have memory limit. Defaults to 0. For CI scans
+that use the Pro Engine, it defaults to 5000 MiB.
 |}
   in
   Arg.value (Arg.opt Arg.int default.core_runner_conf.max_memory_mb info)
@@ -408,9 +412,22 @@ let o_nosem : bool Term.t =
       {|Enables 'nosem'. Findings will not be reported on lines containing
           a 'nosem' comment at the end. Enabled by default.|}
 
+let o_output : string option Term.t =
+  let info =
+    Arg.info [ "o"; "output" ]
+      ~doc:
+        "Save search results to a file or post to URL. Default is to print to \
+         stdout."
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 (* ------------------------------------------------------------------ *)
 (* Output formats (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
+let o_text : bool Term.t =
+  let info = Arg.info [ "text" ] ~doc:{|Output results in text format.|} in
+  Arg.value (Arg.flag info)
+
 let o_json : bool Term.t =
   let info =
     Arg.info [ "json" ] ~doc:{|Output results in Semgrep's JSON format.|}
@@ -722,10 +739,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       dryrun dump_ast dump_command_for_core dump_engine_path emacs error exclude
       exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
       junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
-      max_target_bytes metrics num_jobs nosem optimizations oss pattern pro
-      project_root pro_intrafile pro_lang registry_caching replacement
+      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
+      pro project_root pro_intrafile pro_lang registry_caching replacement
       respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
-      show_supported_languages strict target_roots test test_ignore_todo
+      show_supported_languages strict target_roots test test_ignore_todo text
       time_flag timeout timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
@@ -746,6 +763,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         Error.abort
           "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
       match () with
+      | _ when text -> Output_format.Text
       | _ when json -> Output_format.Json
       | _ when emacs -> Output_format.Emacs
       | _ when vim -> Output_format.Vim
@@ -1000,6 +1018,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       registry_caching;
       version_check;
       output_format;
+      output;
       engine_type;
       rewrite_rule_ids;
       strict;
@@ -1025,11 +1044,11 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang
     $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
-    $ o_oss $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
+    $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_text $ o_time
     $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
     $ o_vim)
 

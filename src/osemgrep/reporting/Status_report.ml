@@ -11,7 +11,7 @@
 (*****************************************************************************)
 
 let origin rule =
-  Option.value ~default:"unknown"
+  Option.value ~default:"custom"
     (match rule.Rule.metadata with
     | Some meta -> (
         match Yojson.Basic.Util.member "semgrep.dev" (JSON.to_yojson meta) with

@@ -10,6 +10,7 @@ import tempfile
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+from textwrap import wrap
 from typing import Any
 from typing import Callable
 from typing import cast
@@ -229,7 +230,6 @@ class StreamingSemgrepCore:
         """
         stdout_lines: List[bytes] = []
         num_total_targets: int = self._total
-        num_scanned_targets: int = 0
 
         # Start out reading two bytes at a time (".\n")
         get_input: Callable[
@@ -613,9 +613,7 @@ class Plan:
         table.add_column("Rules", justify="right")
 
         origin_counts = collections.Counter(
-            get_path(
-                rule.metadata, ("semgrep.dev", "rule", "origin"), default="unknown"
-            )
+            get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default="custom")
             for rule in self.rules
             if rule.product == RuleProduct.sast
         )
@@ -662,7 +660,57 @@ class Plan:
         for language in self.split_by_lang_label():
             metrics.add_feature("language", language)
 
-    def print(self, *, with_tables_for: RuleProduct) -> None:
+    def pprint(self, *, with_tables_for: RuleProduct) -> None:
+        """
+        Pretty print the plan to stdout with the new CLI UX.
+        """
+        if self.target_mappings.rule_count == 0:
+            sep = "\n   "
+            message = "No rules to run."
+            if with_tables_for == RuleProduct.sca:
+                if auth.get_token() is None:
+                    message = sep.join(
+                        wrap(
+                            "💎 Sign in with `semgrep login` and run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                            width=70,
+                        )
+                    )
+                else:  # logged in but --config supply-chain not passed
+                    message = sep.join(
+                        wrap(
+                            "💎 Run `semgrep ci` to find dependency vulnerabilities and advanced cross-file findings.",
+                            width=70,
+                        )
+                    )
+            else:  # sast or another product without rules
+                pass
+            console.print(f"\n{message}\n")
+            return
+
+        # NOTE: we already returned early if the rule_count was 0
+        # default to SAST table if sca is specified
+        tables = (
+            [
+                self.table_by_language(),
+                self.table_by_origin(),
+            ]
+            if with_tables_for != RuleProduct.sca
+            else [
+                self.table_by_ecosystem(),
+                self.table_by_sca_analysis(),
+            ]
+        )
+
+        columns = Columns(tables, padding=(1, 8))
+
+        # rich tables are 2 spaces indented by default
+        # deindent only by 1 to align the content, instead of the invisible table border
+        console.print(Padding(columns, (1, 0)), deindent=1)
+
+    def oprint(self, *, with_tables_for: RuleProduct) -> None:
+        """
+        Print the plan to stdout with the original CLI UX.
+        """
         if self.target_mappings.rule_count == 0:
             console.print("Nothing to scan.")
             return
@@ -695,6 +743,15 @@ class Plan:
         # rich tables are 2 spaces indented by default
         # deindent only by 1 to align the content, instead of the invisible table border
         console.print(Padding(columns, (1, 0)), deindent=1)
+
+    def print(self, *, with_tables_for: RuleProduct) -> None:
+        """
+        Dispatch the correct print method based on the CLI UX.
+        """
+        if get_state().env.with_new_cli_ux:
+            self.pprint(with_tables_for=with_tables_for)
+        else:
+            self.oprint(with_tables_for=with_tables_for)
 
     def __str__(self) -> str:
         return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
