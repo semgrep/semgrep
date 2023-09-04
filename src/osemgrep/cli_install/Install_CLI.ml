@@ -23,6 +23,10 @@ type conf = {
 }
 [@@deriving show]
 
+let get_repo (repo : repo_kind) : Fpath.t =
+  match repo with
+  | Dir v -> v
+
 (*****************************************************************************)
 (* Manpage Documentation *)
 (*****************************************************************************)

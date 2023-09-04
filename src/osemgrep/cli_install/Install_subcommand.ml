@@ -52,6 +52,30 @@ let prompt_gh_auth_if_needed () =
       Logs.info (fun m -> m "Prompting Github CLI authentication");
       prompt_gh_auth ()
 
+let repo_to_path repo : string =
+  Fpath.to_dir_path (Install_CLI.get_repo repo)
+  |> Fpath.rem_empty_seg |> Fpath.to_string
+
+let test_semgrep_workflow_added ~repo : bool =
+  let cmd =
+    if repo = "." then Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml")
+    else
+      Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml" % "--repo" % repo)
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok _ -> true
+  | _ -> false
+
+let print_help () = Printf.printf {| Hello World |}
+
+let add_semgrep_workflow ~repo =
+  let added = test_semgrep_workflow_added ~repo in
+  match added with
+  | true -> Logs.info (fun m -> m "Semgrep workflow already present, skipping")
+  | false ->
+      Logs.info (fun m -> m "Preparing Semgrep workflow");
+      print_help ()
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -61,8 +85,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
   Logs.debug (fun m ->
       m "Running install command with env %s"
         (Install_CLI.show_ci_env_flavor conf.ci_env));
-  Logs.debug (fun m ->
-      m "Running with repo %s" (Install_CLI.show_repo_kind conf.repo));
+  Logs.debug (fun m -> m "Running with repo %s" (repo_to_path conf.repo));
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
@@ -77,6 +100,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
       Logs.app (fun m ->
           install_gh_cli_if_needed ();
           prompt_gh_auth_if_needed ();
+          add_semgrep_workflow ~repo:(repo_to_path conf.repo);
           m "%s Installed semgrep for this repository"
             (Logs_helpers.with_success_tag ()));
       Exit_code.ok
