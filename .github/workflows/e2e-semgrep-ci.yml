@@ -44,7 +44,7 @@ jobs:
     container:
       image: "returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       #TODO? this run semgrep ci on the checkout semgrep repo itself?
       - run: semgrep ci
 
@@ -60,7 +60,7 @@ jobs:
       image: "returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}"
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       #TODO: why do we remove git? what are we testing here?
       - name: Remove Git Exe
         run: |
@@ -80,7 +80,7 @@ jobs:
       image: "returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}"
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create code under test
         id: create-code
         run: |

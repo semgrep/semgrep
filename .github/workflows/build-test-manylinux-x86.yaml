@@ -12,7 +12,7 @@ jobs:
     #pad: What is this sgrep-xxx image?
     container: returntocorp/sgrep-build:ubuntu-16.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       #pad: Why do we have this weird setup python step?

@@ -66,7 +66,7 @@ jobs:
       # with caching.
       OPAM_SWITCH_NAME: "4.14.0"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -109,7 +109,7 @@ jobs:
     runs-on: macos-12
     needs: [build-core-osx]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: actions/download-artifact@v3

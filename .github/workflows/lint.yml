@@ -19,7 +19,7 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
       # We grab those submodules below because they are the one needed by 'mypy', which
@@ -55,7 +55,7 @@ jobs:
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: pre-commit/action@v3.0.0
@@ -77,7 +77,7 @@ jobs:
     # hence the ugly use of 'env: HOME ...' below.
     # An alternative would be to run commands with 'sudo' or prefixed with 'HOME=root ...'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Check OCaml code with ocamlformat
@@ -104,7 +104,7 @@ jobs:
   github-actions:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version: "1.19"

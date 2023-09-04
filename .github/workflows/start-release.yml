@@ -52,7 +52,7 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         id: checkout
         with:
           submodules: "recursive"
@@ -114,7 +114,7 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         id: checkout
         with:
           submodules: "recursive"
@@ -270,7 +270,7 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         id: checkout
         with:
           submodules: true

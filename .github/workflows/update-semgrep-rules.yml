@@ -74,7 +74,7 @@ jobs:
       # ensure that we're on the default branch (develop)
       # Use the token provided by the JWT token getter above
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: "recursive"
           # By default actions/checkout will checkout on the pull_request branch (e.g., 'cron').
