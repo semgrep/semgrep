@@ -8,12 +8,20 @@
 (*****************************************************************************)
 
 let install_gh_cli () =
+  (* NOTE: This only supports mac users and we would need to direct users to
+     their own platform-specific instructions at https://github.com/cli/cli#installation
+  *)
   let cmd = Bos.Cmd.(v "brew" % "install" % "github") in
   match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
   | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
   | _ ->
       Logs.err (fun m ->
-          m "%s Github cli failed to install" (Logs_helpers.with_err_tag ()))
+          m "%s Github cli failed to install" (Logs_helpers.with_err_tag ()));
+      Error.abort
+        (Printf.sprintf
+           "Please install the Github CLI manually by following the \
+            instructions at %s"
+           "https://github.com/cli/cli#installation")
 
 let test_gh_cli () : bool =
   let cmd = Bos.Cmd.(v "command" % "-v" % "gh") in
@@ -55,14 +63,14 @@ let prompt_gh_auth_if_needed () =
 let test_semgrep_workflow_added ~repo : bool =
   let repo_path =
     match repo with
-    | _ when Common2.is_directory repo -> Fpath.to_dir_path Fpath.(v repo)
+    | _ when Common2.dir_exists repo -> Fpath.to_dir_path Fpath.(v repo)
     | _ -> Bos.OS.Dir.current () |> Rresult.R.get_ok
   in
   Logs.info (fun m ->
       m "Checking for semgrep workflow in %a" Fpath.pp repo_path);
   let cmd =
     match repo with
-    | _ when Common2.is_directory repo ->
+    | _ when Common2.dir_exists repo ->
         Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml")
     | _ ->
         Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml" % "--repo" % repo)
@@ -79,7 +87,53 @@ let test_semgrep_workflow_added ~repo : bool =
   | Ok _ -> !res
   | _ -> false
 
-let print_help () = Printf.printf {| Hello World |}
+let sprint_workflow () =
+  Printf.sprintf
+    {|
+# This workflow runs Semgrep on pull requests and pushes to the main branch
+
+name: semgrep
+on:
+  workflow_dispatch: {}
+  pull_request_target: {}
+  push:
+    branches:
+    # This workflow will run against PRs on the following default branches
+      - develop
+      - main
+      - master
+
+  jobs:
+    semgrep:
+        name: semgrep/ci
+        runs-on: ubuntu-latest
+        if: (github.actor != 'dependabot[bot]')
+        env:
+            SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        container:
+            image: returntocorp/semgrep
+        steps:
+            - uses: actions/checkout@v3
+            - run: semgrep ci
+|}
+
+let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
+
+let write_workflow_file ~repo =
+  let dir =
+    match repo with
+    | _ when Common2.dir_exists repo -> repo
+    | _ ->
+        Error.abort
+          (Printf.sprintf "todo: [not implemented] clone remote repo: %s" repo)
+  in
+  let workflow_dir = Filename.concat dir ".github/workflows" in
+  let file = Filename.concat workflow_dir "semgrep.yml" in
+  mkdir workflow_dir;
+  let oc = open_out_bin file in
+  output_string oc (sprint_workflow ());
+  close_out oc;
+  Logs.info (fun m -> m "Wrote semgrep workflow to %s" file)
 
 let add_semgrep_workflow ~repo =
   let added = test_semgrep_workflow_added ~repo in
@@ -87,7 +141,7 @@ let add_semgrep_workflow ~repo =
   | true -> Logs.info (fun m -> m "Semgrep workflow already present, skipping")
   | false ->
       Logs.info (fun m -> m "Preparing Semgrep workflow");
-      print_help ()
+      write_workflow_file ~repo
 
 (*****************************************************************************)
 (* Main logic *)
