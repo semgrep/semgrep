@@ -1,5 +1,5 @@
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
@@ -37,15 +37,15 @@ Creating git worktree from 'baz' to scan baseline.
   To avoid reporting such findings, compare to the branch-off point with:
     --baseline-commit=$(git merge-base baz HEAD)
 
-               
-               
+
+
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
-                
-                
+
+
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
