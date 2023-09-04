@@ -3,10 +3,10 @@ it filters out the range. Therefore e.g. this rule:
 
 ```yaml
     patterns:
-      - pattern: private $T x
+      - pattern: private int $X;
       - metavariable-type:
-          metavariable: $X
+          metavariable: $Y
           type: int
 ```
 
-now will produce no matches because `$X` is not bound to anything.
+now will produce no matches because `$Y` is not bound to anything.
