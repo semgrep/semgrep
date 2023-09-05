@@ -112,11 +112,11 @@ let string_of_toks toks =
   String.concat ", " (Common.map (fun tok -> Tok.content_of_tok tok) toks)
 
 let rec print_taint_call_trace ~format ~spaces = function
-  | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
+  | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
       pr (spaces_string ^ "call to");
-      Matching_report.print_match ~format ~spaces call_toks;
+      Core_text_output.print_match ~format ~spaces call_toks;
       if intermediate_vars <> [] then
         pr
           (spf "%sthese intermediate values are tainted: %s" spaces_string
@@ -125,7 +125,7 @@ let rec print_taint_call_trace ~format ~spaces = function
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 
 let print_taint_trace ~format taint_trace =
-  if format =*= Matching_report.Normal then
+  if format =*= Core_text_output.Normal then
     taint_trace |> Lazy.force
     |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
            if idx =*= 0 then pr "  * Taint may come from this source:"
@@ -148,7 +148,7 @@ let print_match ?str config match_ ii_of_any =
   in
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
   (if mvars =*= [] then
-   Matching_report.print_match ?str ~format:match_format toks
+   Core_text_output.print_match ?str ~format:match_format toks
   else
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
@@ -164,7 +164,7 @@ let print_match ?str config match_ ii_of_any =
                  any |> ii_of_any
                  |> List.filter Tok.is_origintok
                  |> Common.map Tok.content_of_tok
-                 |> Matching_report.join_with_space_if_needed
+                 |> Core_text_output.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not bound" x))
     in
     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
@@ -904,8 +904,8 @@ let output_semgrep_results (exn, res, files) config =
   match config.output_format with
   | Json _ -> (
       let res =
-        JSON_report.core_output_of_matches_and_errors (Some Autofix.render_fix)
-          (List.length files) res
+        Core_json_output.core_output_of_matches_and_errors
+          (Some Autofix.render_fix) (List.length files) res
       in
       (* one-off experiment, delete it at some point (March 2023) *)
       let res =
@@ -1003,8 +1003,8 @@ let semgrep_with_one_pattern config =
         semgrep_with_rules config (([ rule ], []), rules_parse_time)
       in
       let json =
-        JSON_report.core_output_of_matches_and_errors (Some Autofix.render_fix)
-          (List.length files) res
+        Core_json_output.core_output_of_matches_and_errors
+          (Some Autofix.render_fix) (List.length files) res
       in
       let s = Out.string_of_core_output json in
       pr s

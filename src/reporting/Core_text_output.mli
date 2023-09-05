@@ -1,3 +1,5 @@
+(* This file is deprecated. You should use osemgrep text output *)
+
 type match_format =
   (* ex: tests/misc/foo4.php:3
    *  foo(

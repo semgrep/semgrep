@@ -20,58 +20,14 @@ module Out = Semgrep_output_v1_j
  *  - output.py
  *  - formatter/base.py
  *  - formatter/json.py
- *
- *  LATER? like for Output.ml it would be nice to move this file to
- *  osemgrep/reporting/.
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-(* environment to pass to the JSON cli_output generator *)
-type env = { hrules : Rule.hrules }
-
 (* LATER: use Metavariable.bindings directly ! *)
 type metavars = (string * Out.metavar_value) list
-
-(*****************************************************************************)
-(* File content accessors *)
-(*****************************************************************************)
-
-(* Return the list of lines for a start/end range. Note that
- * we take the whole line. Note also that each line does not contain
- * a trailing "\n" so you may need to String.concat "\n" if you join them.
- *
- * TODO: at some point we should take a Parse_info range, not Out.position
- *  (but in that case don't forget to use Parse_info.get_token_end_info end_)
- * TODO: could be moved to another helper module.
- *
- * Should we use a faster implementation, using a cache
- * to avoid rereading the same file again and again? probably fast
- * enough like this thanks to OS buffer cache.
- *
- * python: # 'lines' already contains '\n' at the end of each line
- *   lines="".join(rule_match.lines).rstrip(),
- *)
-let lines_of_file (range : Out.position * Out.position) (file : Fpath.t) :
-    string list =
-  let start, end_ = range in
-  File.lines_of_file (start.line, end_.line) file
-  [@@profiling]
-
-(* Returns the text between the positions; start inclusive, end exclusive.
- * TODO: same than above, ideally would take a Parse_info range
- * TOPORT: It is recommended to open the fd with `open(path, errors="replace")
- * to ignore non-utf8 bytes.
- * See https://stackoverflow.com/a/56441652.
- *)
-let contents_of_file (range : Out.position * Out.position) (file : filename) :
-    string =
-  let start, end_ = range in
-  let str = Common.read_file file in
-  String.sub str start.offset (end_.offset - start.offset)
-  [@@profiling]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -107,7 +63,9 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
           * because of the use of multiple fields with the same
           * name in semgrep_output_v1.atd *)
          let (v : Out.metavar_value) = mval in
-         let content = lazy (contents_of_file (v.start, v.end_) file) in
+         let content =
+           lazy (Output_utils.contents_of_file (v.start, v.end_) file)
+         in
          text
          (* first value($X), and then $X *)
          |> Str.global_substitute
@@ -122,11 +80,11 @@ let interpolate_metavars (text : string) (metavars : metavars) (file : filename)
        text
 
 (* TODO: expose this function so it can be used in language_server *)
-let render_fix (env : env) (x : Out.core_match) : string option =
+let render_fix (hrules : Rule.hrules) (x : Out.core_match) : string option =
   match x with
   | { check_id = rule_id; path; extra = { metavars; rendered_fix; _ }; _ } -> (
       let rule =
-        try Hashtbl.find env.hrules (Rule_ID.of_string rule_id) with
+        try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       (* TOPORT: debug logging which indicates the source of the fix *)
@@ -321,7 +279,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
+let cli_match_of_core_match (hrules : Rule.hrules) (m : Out.core_match) :
+    Out.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -342,7 +301,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
      };
   } ->
       let rule =
-        try Hashtbl.find env.hrules (Rule_ID.of_string rule_id) with
+        try Hashtbl.find hrules (Rule_ID.of_string rule_id) with
         | Not_found -> raise Impossible
       in
       let message =
@@ -351,7 +310,7 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
         | Some s -> interpolate_metavars s metavars path
         | None -> ""
       in
-      let fix = render_fix env m in
+      let fix = render_fix hrules m in
       let check_id = rule_id in
       let metavars = Some metavars in
       (* LATER: this should be a variant in semgrep_output_v1.atd
@@ -364,7 +323,8 @@ let cli_match_of_core_match (env : env) (m : Out.core_match) : Out.cli_match =
         | Some json -> JSON.to_yojson json
       in
       let lines =
-        lines_of_file (start, end_) (Fpath.v path) |> String.concat "\n"
+        Output_utils.lines_of_file (start, end_) (Fpath.v path)
+        |> String.concat "\n"
       in
       {
         check_id;
@@ -445,9 +405,13 @@ let cli_skipped_targets ~(skipped_targets : Out.skipped_target list option) :
 (* Entry point *)
 (*****************************************************************************)
 
-let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
-    Out.cli_output =
-  match res.core with
+(* The 3 parameters are mostly Core_runner.result but we don't want
+ * to depend on cli_scan/ from reporting/ here, hence the duplication.
+ * alt: we could move Core_runner.result type in core/
+ *)
+let cli_output_of_core_results ~logging_level (core : Out.core_output)
+    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
+  match core with
   | {
    results = matches;
    errors;
@@ -460,7 +424,6 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
    rules_by_engine = _;
    engine_requested = _;
   } ->
-      let env = { hrules = res.hrules } in
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches
@@ -471,7 +434,7 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
        * elements in OCaml compare order (=~ lexicographic for strings)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
-      let scanned = res.scanned |> Set_.elements |> File.Path.to_strings in
+      let scanned = scanned |> Set_.elements |> File.Path.to_strings in
       let (paths : Out.cli_paths) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
@@ -501,7 +464,9 @@ let cli_output_of_core_results ~logging_level (res : Core_runner.result) :
          * TODO: handle the rule_match.cli_unique_key to dedup matches
          *)
         results =
-          matches |> Common.map (cli_match_of_core_match env) |> dedup_and_sort;
+          matches
+          |> Common.map (cli_match_of_core_match hrules)
+          |> dedup_and_sort;
         errors = errors |> Common.map cli_error_of_core_error;
         paths;
         skipped_rules;

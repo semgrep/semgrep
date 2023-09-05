@@ -513,7 +513,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                  in
                  let matches = match_result.matches in
                  (* TODO: equivalent to an abstract_content, so not great *)
-                 let pstr = JSON_report.metavar_string_of_any pat in
+                 let pstr = Core_json_output.metavar_string_of_any pat in
                  (* TODO: could use first_info_of_any pat, but not sure the
                   * tok position in pat are related to the rule of the intermediate
                   * file used to parse the pattern in xpat.pat.
