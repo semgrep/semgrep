@@ -1,6 +1,8 @@
 from B import *
 
-# ERROR:
+# We don't match this, because we don't unpack wildcard
+# imports for patterns with metavariables.
+# OK:
 foo(x)
 
 # ERROR:

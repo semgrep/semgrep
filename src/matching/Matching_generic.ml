@@ -409,6 +409,8 @@ let environment_of_any lang config any =
   | G.Pr prog -> environment_of_program lang config prog
   | _ -> default_environment lang config
 
+let wipe_wildcard_imports f tin = f { tin with wildcard_imports = [] }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)

@@ -1,16 +1,17 @@
-# will match because wildcard imports in matching are acontextual, unfortunately
-# ERROR:
+# None of these will match, because patterns with metavariables
+# do not activate wildcard imports.
+# OK:
 bar(
-  # ERROR:
+  # OK:
   z
 )
 
 from A import *
 
-# ERROR:
+# OK:
 foo(
-  # ERROR:
+  # OK:
   x,
-  # ERROR:
+  # OK:
   y
 )

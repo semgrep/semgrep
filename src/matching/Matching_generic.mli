@@ -60,6 +60,11 @@ val environment_of_program :
   Lang.t -> Rule_options.t -> AST_generic.program -> tin
 
 val environment_of_any : Lang.t -> Rule_options.t -> AST_generic.any -> tin
+
+(* This is mostly helpful for Generic_vs_generic, because we want to disable
+   wildcard imports in certain cases (resolved name matching).
+*)
+val wipe_wildcard_imports : (tin -> tout) -> tin -> tout
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
 (* Update the matching list of statements by providing a new matching
