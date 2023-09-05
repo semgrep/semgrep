@@ -58,6 +58,13 @@ val taint_config_of_rule :
   unit) ->
   Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 
+val mk_params_env :
+  Language.t ->
+  Rule_options_t.t ->
+  Dataflow_tainting.config ->
+  AST_generic.function_definition ->
+  Taint_lval_env.t
+
 val check_fundef :
   Lang.t ->
   Rule_options.t ->
