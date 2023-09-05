@@ -99,19 +99,20 @@ let test_semgrep_workflow_added ~repo : bool =
   | Ok _ -> !res
   | _ -> false
 
-let sprint_workflow ~default_branch:branch =
+let chop_origin ~branch =
   let open Base in
-  let branch =
-    match branch with
-    | "main"
-    | "master"
-    | "develop" ->
-        "develop"
-        (* NOTE: we use develop as the default branch for the workflow file as it is the default branch for the semgrep repo *)
-    | _ when String.is_prefix ~prefix:"origin/" branch ->
-        String.chop_prefix_exn ~prefix:"origin/" branch
-    | _ -> branch
-  in
+  match branch with
+  | "main"
+  | "master"
+  | "develop" ->
+      "develop"
+      (* NOTE: we use develop as the default branch for the workflow file as it is the default branch for the semgrep repo *)
+  | _ when String.is_prefix ~prefix:"origin/" branch ->
+      String.chop_prefix_exn ~prefix:"origin/" branch
+  | _ -> branch
+
+let sprint_workflow ~default_branch:branch =
+  let branch = chop_origin ~branch in
   (* Actual branch name if not from main list *)
   Printf.sprintf
     {|
@@ -219,6 +220,35 @@ let git_commit () =
       Logs.warn (fun m -> m "Failed to commit changes to current branch!");
       Error.abort "Failed to commit changes. Please commit manually"
 
+let create_pr ~default_branch:branch =
+  let branch = chop_origin ~branch in
+  let cmd =
+    Bos.Cmd.(
+      v "gh" % "pr" % "create" % "--title" % "Add Semgrep workflow" % "--body"
+      % {|
+## Description
+This PR enables Semgrep scans with your repository.
+|}
+      % "--base" % branch % "--head" % get_new_branch ())
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok out -> Logs.app (fun m -> m "Created PR: %s" out)
+  | _ ->
+      Logs.warn (fun m -> m "Failed to create PR!");
+      Error.abort "Failed to create PR. Please create manually"
+
+let merge_pr () =
+  let cmd =
+    Bos.Cmd.(
+      v "gh" % "pr" % "merge" % "--merge" % "--subject" % "Add Semgrep workflow"
+      % "--body" % "Enabling scans with Semgrep" % get_new_branch ())
+  in
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+  | Ok out -> Logs.app (fun m -> m "Merged PR: %s" out)
+  | _ ->
+      Logs.warn (fun m -> m "Failed to merge PR!");
+      Error.abort "Failed to merge PR. Please merge manually"
+
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 (* NOTE: If the repo is not checked out locally,
@@ -309,13 +339,16 @@ let write_workflow_file ~git_dir:dir =
             output_string oc (sprint_workflow ~default_branch:commit);
             close_out oc;
             Logs.info (fun m -> m "Wrote semgrep workflow to %s" file);
-            add_all_to_git ();
-            git_commit ();
-            git_push ();
             let cwd =
               Bos.OS.Dir.current () |> Rresult.R.get_ok |> Fpath.to_string
             in
-            Logs.info (fun m -> m "Current dir: %s" cwd)))
+            Logs.info (fun m ->
+                m "Preparing to run git operations in dir: %s" cwd);
+            add_all_to_git ();
+            git_commit ();
+            git_push ();
+            create_pr ~default_branch:commit;
+            merge_pr ()))
       ()
   with
   | Ok _ -> ()
@@ -332,15 +365,19 @@ let add_semgrep_workflow ~repo ~token ~update =
   match (added, update) with
   | true, false ->
       Logs.info (fun m -> m "Semgrep workflow already present, skipping")
-  | _ -> (
+  | _ ->
       Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
       let dir = prep_repo ~repo in
       write_workflow_file ~git_dir:dir;
       let added = test_semgrep_gh_secret ~git_dir:dir in
-      match (added, update) with
-      | true, false ->
-          Logs.info (fun m -> m "Semgrep secret already present, skipping")
-      | _ -> add_semgrep_gh_secret ~git_dir:dir ~token)
+      let () =
+        match (added, update) with
+        | true, false ->
+            Logs.info (fun m -> m "Semgrep secret already present, skipping")
+        | _ -> add_semgrep_gh_secret ~git_dir:dir ~token
+      in
+      Logs.info (fun m -> m "Semgrep workflow added to %s" repo);
+      ()
 
 (*****************************************************************************)
 (* Main logic *)
@@ -372,7 +409,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
           add_semgrep_workflow
             ~repo:(Install_CLI.get_repo conf.repo)
             ~token ~update:conf.update;
-          m "%s Installed semgrep for this repository"
+          m "%s Installed semgrep workflow for this repository"
             (Logs_helpers.with_success_tag ()));
       Exit_code.ok
 
