@@ -99,8 +99,22 @@ let test_semgrep_workflow_added ~repo : bool =
   | Ok _ -> !res
   | _ -> false
 
-let sprint_workflow () =
-  {|
+let sprint_workflow ~default_branch:branch =
+  let open Base in
+  let branch =
+    match branch with
+    | "main"
+    | "master"
+    | "develop" ->
+        "develop"
+        (* NOTE: we use develop as the default branch for the workflow file as it is the default branch for the semgrep repo *)
+    | _ when String.is_prefix ~prefix:"origin/" branch ->
+        String.chop_prefix_exn ~prefix:"origin/" branch
+    | _ -> branch
+  in
+  (* Actual branch name if not from main list *)
+  Printf.sprintf
+    {|
 # This workflow runs Semgrep on pull requests and pushes to the main branch
 
 name: semgrep
@@ -110,7 +124,7 @@ on:
   push:
     branches:
     # This workflow will run against PRs on the following default branches
-      - develop
+      - %s
       - main
       - master
 
@@ -127,6 +141,7 @@ jobs:
             - uses: actions/checkout@v3
             - run: semgrep ci
 |}
+    branch
 
 (* NOTE: we use the gh repo clone subcommand over
    the regular git clone as the subcommand allows for
@@ -291,7 +306,7 @@ let write_workflow_file ~git_dir:dir =
             mkdir workflow_dir;
             let file = Filename.concat workflow_dir "semgrep.yml" in
             let oc = open_out_bin file in
-            output_string oc (sprint_workflow ());
+            output_string oc (sprint_workflow ~default_branch:commit);
             close_out oc;
             Logs.info (fun m -> m "Wrote semgrep workflow to %s" file);
             add_all_to_git ();
