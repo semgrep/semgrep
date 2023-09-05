@@ -104,3 +104,18 @@ let setup_logging ~force_color ~level =
          (* those are the one we are really interested in *)
          | "application" -> ()
          | s -> failwith ("Logs library not handled: " ^ s))
+
+let with_err_tag ?(tag = " ERROR ") () =
+  ANSITerminal.sprintf
+    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_red ]
+    "%s" tag
+
+let with_warn_tag ?(tag = " WARN ") () =
+  ANSITerminal.sprintf
+    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_yellow ]
+    "%s" tag
+
+let with_success_tag ?(tag = " SUCCESS ") () =
+  ANSITerminal.sprintf
+    [ ANSITerminal.white; ANSITerminal.Bold; ANSITerminal.on_green ]
+    "%s" tag

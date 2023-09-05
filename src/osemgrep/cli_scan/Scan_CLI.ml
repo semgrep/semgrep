@@ -3,6 +3,7 @@ module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
 module H = Cmdliner_helpers
+module Show = Show_CLI
 
 (*****************************************************************************)
 (* Prelude *)
@@ -48,6 +49,8 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* file or URL (None means output to stdout) *)
+  output : string option;
   (* maybe should define an Output_option.t, or add a record to
    * Output_format.Text *)
   dataflow_traces : bool;
@@ -62,7 +65,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
-  dump : Dump_subcommand.conf option;
+  show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
 }
@@ -128,6 +131,7 @@ let default : conf =
     time_flag = false;
     engine_type = OSS;
     output_format = Output_format.Text;
+    output = None;
     dataflow_traces = false;
     force_color = false;
     max_chars_per_line = 160;
@@ -140,7 +144,7 @@ let default : conf =
     (* ugly: should be separate subcommands *)
     version = false;
     show_supported_languages = false;
-    dump = None;
+    show = None;
     validate = None;
     test = None;
     nosem = true;
@@ -290,10 +294,11 @@ parallel. Defaults to the number of cores detected on the system.
 
 let o_max_memory_mb : int Term.t =
   let info =
-    Arg.info [ "max-memory-mb" ]
+    Arg.info [ "max-memory" ]
       ~doc:
-        {|Maximum system memory to use running a rule on a single file
-in MB. If set to 0 will not have memory limit. Defaults to 0.
+        {|Maximum system memory to use running a rule on a single file in MiB.
+If set to 0 will not have memory limit. Defaults to 0. For CI scans
+that use the Pro Engine, it defaults to 5000 MiB.
 |}
   in
   Arg.value (Arg.opt Arg.int default.core_runner_conf.max_memory_mb info)
@@ -407,9 +412,22 @@ let o_nosem : bool Term.t =
       {|Enables 'nosem'. Findings will not be reported on lines containing
           a 'nosem' comment at the end. Enabled by default.|}
 
+let o_output : string option Term.t =
+  let info =
+    Arg.info [ "o"; "output" ]
+      ~doc:
+        "Save search results to a file or post to URL. Default is to print to \
+         stdout."
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 (* ------------------------------------------------------------------ *)
 (* Output formats (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
+let o_text : bool Term.t =
+  let info = Arg.info [ "text" ] ~doc:{|Output results in text format.|} in
+  Arg.value (Arg.flag info)
+
 let o_json : bool Term.t =
   let info =
     Arg.info [ "json" ] ~doc:{|Output results in Semgrep's JSON format.|}
@@ -552,7 +570,7 @@ to the console. This lets you see the changes before you commit to them. Only
 works with the --autofix flag. Otherwise does nothing.
 |}
 
-let o_severity : Severity.rule_severity list Term.t =
+let o_severity : Severity.t list Term.t =
   let info =
     Arg.info [ "severity" ]
       ~doc:
@@ -684,10 +702,6 @@ let o_target_roots : string list Term.t =
 (* !!NEW arguments!! not in pysemgrep *)
 (* ------------------------------------------------------------------ *)
 
-let o_dump_config : string option Term.t =
-  let info = Arg.info [ "dump-config" ] ~doc:{|<undocumented>|} in
-  Arg.value (Arg.opt Arg.(some string) None info)
-
 let o_project_root : string option Term.t =
   let info =
     Arg.info [ "project-root" ]
@@ -722,15 +736,14 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine ast_caching autofix baseline_commit common config dataflow_traces
-      dryrun dump_ast dump_command_for_core dump_config dump_engine_path emacs
-      error exclude exclude_rule_ids force_color gitlab_sast gitlab_secrets
-      include_ json junit_xml lang max_chars_per_line max_lines_per_finding
-      max_memory_mb max_target_bytes metrics num_jobs nosem optimizations oss
-      pattern pro project_root pro_intrafile pro_lang registry_caching
-      replacement respect_git_ignore rewrite_rule_ids sarif
-      scan_unknown_extensions severity show_supported_languages strict
-      target_roots test test_ignore_todo time_flag timeout timeout_threshold
-      validate version version_check vim =
+      dryrun dump_ast dump_command_for_core dump_engine_path emacs error exclude
+      exclude_rule_ids force_color gitlab_sast gitlab_secrets include_ json
+      junit_xml lang max_chars_per_line max_lines_per_finding max_memory_mb
+      max_target_bytes metrics num_jobs nosem optimizations oss output pattern
+      pro project_root pro_intrafile pro_lang registry_caching replacement
+      respect_git_ignore rewrite_rule_ids sarif scan_unknown_extensions severity
+      show_supported_languages strict target_roots test test_ignore_todo text
+      time_flag timeout timeout_threshold validate version version_check vim =
     (* ugly: call setup_logging ASAP so the Logs.xxx below are displayed
      * correctly *)
     Logs_helpers.setup_logging ~force_color
@@ -750,6 +763,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         Error.abort
           "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
       match () with
+      | _ when text -> Output_format.Text
       | _ when json -> Output_format.Json
       | _ when emacs -> Output_format.Emacs
       | _ when vim -> Output_format.Vim
@@ -781,8 +795,8 @@ let cmdline_term ~allow_empty_config : conf Term.t =
        * this ugly special case returning an empty Configs.
        *)
       | [], (None, _, _)
-        when dump_ast || dump_config <> None || dump_engine_path || validate
-             || test || version || show_supported_languages ->
+        when dump_ast || dump_engine_path || validate || test || version
+             || show_supported_languages ->
           Rules_source.Configs []
       (* TOPORT: handle get_project_url() if empty Configs? *)
       | [], (None, _, _) ->
@@ -791,11 +805,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           (* TOPORT? use instead
              "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
           if allow_empty_config then Rules_source.Configs []
-          else
+          else (
+            Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
             Error.abort
               "No config given. Run with `--config auto` or see \
                https://semgrep.dev/docs/running-rules/ for instructions on \
-               running with a specific config"
+               running with a specific config")
       | [], (Some pat, Some str, fix) ->
           (* may raise a Failure (will be caught in CLI.safe_run) *)
           let xlang = Xlang.of_string str in
@@ -876,7 +891,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     (* ugly: dump should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
      *)
-    let dump =
+    let show =
       match () with
       | _ when dump_ast -> (
           let target_roots =
@@ -886,15 +901,13 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some str, Some lang_str, [] ->
               Some
                 {
-                  Dump_subcommand.target =
-                    Dump_subcommand.Pattern (str, Lang.of_string lang_str);
+                  Show.target = Show.Pattern (str, Lang.of_string lang_str);
                   json;
                 }
           | None, Some lang_str, [ file ] ->
               Some
                 {
-                  Dump_subcommand.target =
-                    Dump_subcommand.File (file, Lang.of_string lang_str);
+                  Show.target = Show.File (file, Lang.of_string lang_str);
                   json;
                 }
           | _, None, _ ->
@@ -908,13 +921,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           (* stricter: *)
           | Some _, _, _ :: _ ->
               Error.abort "Can't specify both -e and a target for --dump-ast")
-      | _ when dump_config <> None ->
-          let config = Common2.some dump_config in
-          Some { Dump_subcommand.target = Dump_subcommand.Config config; json }
       | _ when dump_engine_path ->
-          Some { Dump_subcommand.target = Dump_subcommand.EnginePath pro; json }
+          Some { Show.target = Show.EnginePath pro; json }
       | _ when dump_command_for_core ->
-          Some { Dump_subcommand.target = Dump_subcommand.CommandForCore; json }
+          Some { Show.target = Show.CommandForCore; json }
       | _else_ -> None
     in
     (* ugly: validate should be a separate subcommand.
@@ -1008,6 +1018,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       registry_caching;
       version_check;
       output_format;
+      output;
       engine_type;
       rewrite_rule_ids;
       strict;
@@ -1016,7 +1027,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       (* ugly: *)
       version;
       show_supported_languages;
-      dump;
+      show;
       validate;
       test;
       nosem;
@@ -1028,16 +1039,16 @@ let cmdline_term ~allow_empty_config : conf Term.t =
      * combine above! *)
     const combine $ o_ast_caching $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_dryrun $ o_dump_ast
-    $ o_dump_command_for_core $ o_dump_config $ o_dump_engine_path $ o_emacs
-    $ o_error $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
+    $ o_dump_command_for_core $ o_dump_engine_path $ o_emacs $ o_error
+    $ o_exclude $ o_exclude_rule_ids $ o_force_color $ o_gitlab_sast
     $ o_gitlab_secrets $ o_include $ o_json $ o_junit_xml $ o_lang
     $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_memory_mb
     $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_nosem $ o_optimizations
-    $ o_oss $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
+    $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_registry_caching $ o_replacement
     $ o_respect_git_ignore $ o_rewrite_rule_ids $ o_sarif
     $ o_scan_unknown_extensions $ o_severity $ o_show_supported_languages
-    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_time
+    $ o_strict $ o_target_roots $ o_test $ o_test_ignore_todo $ o_text $ o_time
     $ o_timeout $ o_timeout_threshold $ o_validate $ o_version $ o_version_check
     $ o_vim)
 

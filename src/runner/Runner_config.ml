@@ -46,7 +46,7 @@ type t = {
   lang : Xlang.t option;
   roots : Fpath.t list;
   output_format : output_format;
-  match_format : Matching_report.match_format;
+  match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
@@ -115,7 +115,7 @@ let default =
     lang = None;
     roots = [];
     output_format = Text;
-    match_format = Matching_report.Normal;
+    match_format = Core_text_output.Normal;
     mvars = [];
     (* Limits *)
     (* maximum time to spend running a rule on a single file *)

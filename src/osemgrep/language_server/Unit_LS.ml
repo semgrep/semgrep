@@ -29,44 +29,42 @@ let mock_run_results (files : string list) : Core_runner.result =
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned = Common.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let extra =
-      Out.
-        {
-          message = Some "test";
-          metavars = [];
-          dataflow_trace = None;
-          rendered_fix = None;
-          engine_kind = `OSS;
-          validation_state = Some `NO_VALIDATOR;
-          extra_extra = None;
-        }
-    in
-    Out.
+    let (extra : Out.core_match_extra) =
       {
-        rule_id = "print";
-        location =
-          {
-            start = { line = 1; col = 1; offset = 1 };
-            end_ = { line = 1; col = 1; offset = 1 };
-            path = file;
-          };
+        message = Some "test";
+        metavars = [];
+        dataflow_trace = None;
+        rendered_fix = None;
+        engine_kind = `OSS;
+        validation_state = Some `NO_VALIDATOR;
+        extra_extra = None;
+      }
+    in
+    let (m : Out.core_match) =
+      {
+        check_id = "print";
+        (* inherited location *)
+        start = { line = 1; col = 1; offset = 1 };
+        end_ = { line = 1; col = 1; offset = 1 };
+        path = file;
         extra;
       }
+    in
+    m
   in
   let matches = Common.map match_of_file files in
-  let core =
-    Out.
-      {
-        matches;
-        errors = [];
-        skipped_targets = None;
-        skipped_rules = None;
-        explanations = None;
-        time = None;
-        rules_by_engine = [];
-        engine_requested = `OSS;
-        stats = { okfiles = List.length files; errorfiles = 0 };
-      }
+  let (core : Out.core_output) =
+    {
+      results = matches;
+      errors = [];
+      skipped_targets = None;
+      skipped_rules = [];
+      explanations = None;
+      time = None;
+      rules_by_engine = [];
+      engine_requested = `OSS;
+      stats = { okfiles = List.length files; errorfiles = 0 };
+    }
   in
   Core_runner.{ core; hrules; scanned }
 
@@ -224,5 +222,25 @@ let processed_run () =
   in
   pack_tests "Processed Run" tests
 
+let session_rules () =
+  let with_ci_client =
+    let make_fn req body =
+      ignore body;
+      Testing_client.check_method req "GET";
+      Lwt.return Testing_client.(basic_response "./tests/ls/ci/response.json")
+    in
+    Testing_client.with_testing_client make_fn
+  in
+  let test_cache_rules () =
+    let session = mock_session () in
+    let session = { session with token = Some "123456789" } in
+    Lwt_main.run (Session.cache_rules session);
+    let rules = session.cached_rules.rules in
+    Alcotest.(check int) "rules" 1 (List.length rules)
+  in
+  let tests = [ ("Test session rules", with_ci_client test_cache_rules) ] in
+  pack_tests "Session Rules" tests
+
 let tests =
-  pack_suites "Language Server" [ session_targets (); processed_run () ]
+  pack_suites "Language Server"
+    [ session_targets (); processed_run (); session_rules () ]

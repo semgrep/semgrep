@@ -72,7 +72,7 @@ let error env t s =
   let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
-  let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in
+  let err = E.mk_error (Some rule_id) loc s Out.SemgrepMatchFound in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -207,7 +207,7 @@ let semgrep_check config metachecks rules =
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error ~rule_id:None loc s Out.SemgrepMatchFound
+    E.mk_error None loc s Out.SemgrepMatchFound
   in
   let config =
     {
@@ -259,10 +259,10 @@ let run_checks config fparser metachecks xs =
                with
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)
-               | R.Err (R.InvalidYaml _) -> []
+               | R.Error { kind = InvalidYaml _; _ } -> []
                | exn ->
                    let e = Exception.catch exn in
-                   [ E.exn_to_error !!file e ])
+                   [ E.exn_to_error None !!file e ])
       in
       semgrep_found_errs @ ocaml_found_errs
 
@@ -285,9 +285,9 @@ let check_files mk_config fparser input =
       (* for the stats.okfiles, but we don't care? *)
       let nfiles = 0 in
       let json =
-        JSON_report.match_results_of_matches_and_errors None nfiles res
+        Core_json_output.core_output_of_matches_and_errors None nfiles res
       in
-      pr (SJ.string_of_core_match_results json)
+      pr (SJ.string_of_core_output json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

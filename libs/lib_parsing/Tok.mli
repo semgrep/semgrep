@@ -29,7 +29,7 @@ type location = {
   str : string; (* the content of the token starting at pos (e.g., "if") *)
   pos : Pos.t;
 }
-[@@deriving show, eq, ord]
+[@@deriving show, eq, ord, sexp]
 
 type t =
   (* Token found in the original file *)
@@ -64,7 +64,7 @@ type t =
  * The goal is to be able to compare the position of tokens,
  * even for expanded tokens. See compare_pos().
  *)
-and virtual_location = location * int [@@deriving show, eq, ord]
+and virtual_location = location * int [@@deriving show, eq, ord, sexp]
 
 (* To customize show() dynamically. If you set this to true, AST
  * dumper will display the full token information instead of just a '()'

@@ -457,7 +457,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~registry_caching
                        m "language %s valid for the pattern" (Lang.show l));
                    Some r
                  with
-                 | R.Err _
+                 | R.Error _
                  | Failure _ ->
                      None))
   [@@profiling]

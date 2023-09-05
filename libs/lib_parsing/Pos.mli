@@ -13,7 +13,7 @@ type t = {
   column : int; (* 0-based *)
   file : Common.filename;
 }
-[@@deriving show, eq, ord]
+[@@deriving show, eq, ord, sexp]
 
 val make : ?line:int -> ?column:int -> ?file:string -> int -> t
 

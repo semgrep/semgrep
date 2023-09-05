@@ -439,7 +439,7 @@ and map_anon_choice_exp_b833738 (env : env) (x : CST.anon_choice_exp_b833738) =
 and map_anon_choice_exp_772c79a_stmt (env : env)
     (x : CST.anon_choice_exp_772c79a) : stmt =
   match x with
-  | `Exp x -> ExprStmt (map_expression env x, G.sc) |> G.s
+  | `Exp x -> H2.expr_to_stmt (map_expression env x)
   | `Assign x -> (
       (* TODO: Might be good to translate this to a `DefStmt` in the future.
          Python just lets it be an `Assign`, though, so we will too.
@@ -693,17 +693,20 @@ and map_import_subject (env : env) (x : CST.anon_choice_impo_a542259) =
       match map_importable env x with
       | Some [ id ] -> Some (id, None)
       | __else__ -> None)
-  | `Import_alias x -> map_import_alias env x
+  | `Import_alias x -> (
+      match map_import_alias env x with
+      | Some ([ id ], alias) -> Some (id, Some alias)
+      | _ -> None)
 
-and map_anon_choice_impo_a542259 ~import_tok (env : env)
-    (x : CST.anon_choice_impo_a542259) =
+and map_anon_choice_impo_a542259 (env : env) (x : CST.anon_choice_impo_a542259)
+    =
   match x with
   | `Impo x ->
       let* dotted = map_importable env x in
-      Some (ImportAs (import_tok, DottedName dotted, None))
+      Some (dotted, None)
   | `Import_alias x ->
-      let* id, alias_opt = map_import_alias env x in
-      Some (ImportAs (import_tok, DottedName [ id ], alias_opt))
+      let* dotted, alias = map_import_alias env x in
+      Some (dotted, Some alias)
 
 and map_anon_choice_str_content_838a78d (env : env)
     (x : CST.anon_choice_str_content_838a78d) =
@@ -1343,8 +1346,6 @@ and map_expression (env : env) (x : CST.expression) : expr =
           let stmt = map_statement env x in
           match stmt with
           | [ { s = ExprStmt (expr, _); _ } ] -> expr
-          | [ { s = Block (_, [ { s = ExprStmt (expr, _); _ } ], _); _ } ] ->
-              expr
           | [ x ] -> StmtExpr x |> G.e
           | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
       | `Num x -> map_number env x
@@ -1519,21 +1520,19 @@ and map_function_signature ~body ~func_tok (env : env)
   (ent, { fkind = (Function, func_tok); fparams; frettype; fbody = body })
 
 and map_import_alias (env : env) ((v1, v2, v3) : CST.import_alias) :
-    (ident * alias option) option =
+    (dotted_ident * alias) option =
   let* v1 = map_importable env v1 in
   let _v2 = (* "as" *) token env v2 in
   let v3 = map_identifier env v3 in
-  match v1 with
-  | [ id ] -> Some (id, Some (v3, empty_id_info ()))
-  | __else__ -> None
+  Some (v1, (v3, empty_id_info ()))
 
-and map_import_list ~import_tok (env : env) ((v1, v2) : CST.import_list) =
-  let v1 = map_anon_choice_impo_a542259 ~import_tok env v1 in
+and map_import_list (env : env) ((v1, v2) : CST.import_list) =
+  let v1 = map_anon_choice_impo_a542259 env v1 in
   let v2 =
     Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
-        let v2 = map_anon_choice_impo_a542259 ~import_tok env v2 in
+        let v2 = map_anon_choice_impo_a542259 env v2 in
         v2)
       v2
   in
@@ -2003,7 +2002,11 @@ and map_source_file (env : env) (opt : CST.source_file) =
 and map_source_file_stmt (env : env) (opt : CST.source_file) =
   match opt with
   | None -> Block (fb []) |> G.s
-  | Some x -> Block (map_block env x |> fb) |> G.s
+  | Some x -> (
+      (* No point in re-injecting into Block if it's a single statement. *)
+      match map_block env x with
+      | [ stmt ] -> stmt
+      | _ -> Block (map_block env x |> fb) |> G.s)
 
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
@@ -2150,23 +2153,49 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
               (v2 :: Common.map snd v3)
           in
           [ DirectiveStmt (OtherDirective (v1, v3) |> G.d) |> G.s ]
-      | `Import_stmt (v1, v2) -> (
-          let v1 =
+      | `Import_stmt (v1, v2) ->
+          let ((_, tk) as v1), is_using =
             match v1 with
-            | `Import tok -> (* "import" *) token env tok
-            | `Using tok -> (* "using" *) token env tok
+            | `Import tok -> (* "import" *) (str env tok, false)
+            | `Using tok -> (* "using" *) (str env tok, true)
           in
-          match v2 with
-          | `Import_list x ->
-              map_import_list ~import_tok:v1 env x
-              (* Filter map here, as unrelated imports need not interfere with each other. *)
-              |> List.filter_map Fun.id
-              |> Common.map (fun dk -> DirectiveStmt (dk |> G.d) |> G.s)
-          | `Sele_import x -> (
-              match map_selected_import ~import_tok:v1 env x with
-              | None -> []
-              | Some directive_kind ->
-                  [ DirectiveStmt (directive_kind |> G.d) |> G.s ]))
+          let attr = OtherAttribute (v1, []) in
+          let dirs =
+            match v2 with
+            | `Import_list x ->
+                map_import_list env x
+                (* Filter map here, as unrelated imports need not interfere with each other. *)
+                |> List.filter_map Fun.id
+                |> Common.map (fun (dotted, aliasopt) ->
+                       if is_using then
+                         let dk =
+                           ImportAll (tk, DottedName dotted, tk) |> G.d
+                         in
+                         match aliasopt with
+                         | None -> dk
+                         | Some (id, _idinfo) ->
+                             (* It doesn't really make sense to me how you would use an `as`
+                                 in conjunction with something which is like a wildcard import.
+                                 In fact, the Julia documentation says you're not supposed to do
+                                 that:
+                                 https://docs.julialang.org/en/v1/manual/modules/#Renaming-with-as
+                                 but it might have some benefit to match, so let's Other out.
+                             *)
+                             OtherDirective
+                               ( ("using_as", G.fake "using_as"),
+                                 [ G.Dir dk; G.I id ] )
+                             |> G.d
+                       else ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
+            | `Sele_import x -> (
+                match map_selected_import ~import_tok:tk env x with
+                | None -> []
+                | Some dk ->
+                    let dir = dk |> G.d in
+                    [ dir ])
+          in
+          Common.map
+            (fun dir -> DirectiveStmt { dir with d_attrs = [ attr ] } |> G.s)
+            dirs
       | `Const_stmt (v1, v2) -> (
           let v1 = (* "const" *) token env v1 in
           let attrs = [ KeywordAttr (Const, v1) ] in

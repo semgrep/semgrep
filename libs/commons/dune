@@ -19,6 +19,7 @@
    pcre
    parmap
    digestif.ocaml
+   sexplib
  )
  ; can't use profiling.ppx because of circular dependencies :(
  (preprocess
@@ -27,6 +28,7 @@
      ppx_deriving.eq
      ppx_deriving.ord
      ppx_hash
+     ppx_sexp_conv
    )
  )
 )

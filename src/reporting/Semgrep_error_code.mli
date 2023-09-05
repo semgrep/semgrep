@@ -23,7 +23,7 @@ val g_errors : error list ref
 (*****************************************************************************)
 
 val mk_error :
-  ?rule_id:Rule_ID.t option ->
+  Rule_ID.t option ->
   Tok.location ->
   string ->
   Semgrep_output_v1_t.core_error_kind ->
@@ -36,9 +36,14 @@ val error :
   Semgrep_output_v1_t.core_error_kind ->
   unit
 
+(* Convert an invalid rule into an error.
+   TODO: return None for rules that are being skipped due to version
+   mismatches.
+*)
+val error_of_invalid_rule_error : Rule.invalid_rule_error -> error
+
 (* Convert a caught exception and its stack trace to a Semgrep error. *)
-val exn_to_error :
-  ?rule_id:Rule_ID.t option -> Common.filename -> Exception.t -> error
+val exn_to_error : Rule_ID.t option -> Common.filename -> Exception.t -> error
 
 (*****************************************************************************)
 (* Try with error *)

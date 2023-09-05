@@ -19,7 +19,7 @@
     osemgrep_reporting
 
     ; ugly, should not depend at some point when --dump, --validate are deprecated
-    osemgrep_cli_dump
+    osemgrep_cli_show
     osemgrep_cli_test
   )
  (preprocess

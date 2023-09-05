@@ -28,6 +28,8 @@ type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* file or URL (None means output to stdout) *)
+  output : string option;
   dataflow_traces : bool;
   force_color : bool;
   (* text output config (TODO: make a separate type gathering all of them)
@@ -43,7 +45,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show_supported_languages : bool;
-  dump : Dump_subcommand.conf option;
+  show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_subcommand.conf option;
 }

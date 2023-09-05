@@ -14,6 +14,7 @@
  * license.txt for more details.
  *)
 open Common
+open Sexplib.Std
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,7 +64,7 @@ type location = {
    *)
   pos : Pos.t;
 }
-[@@deriving show { with_path = false }, eq, ord]
+[@@deriving show { with_path = false }, eq, ord, sexp]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
@@ -119,7 +120,7 @@ type t =
  * even for expanded tokens. See compare_pos().
  *)
 and virtual_location = location * int
-[@@deriving show { with_path = false }, eq, ord]
+[@@deriving show { with_path = false }, eq, ord, sexp]
 
 type t_always_equal = t [@@deriving show]
 

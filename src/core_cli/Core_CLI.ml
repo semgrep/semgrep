@@ -182,6 +182,21 @@ let dump_pattern (file : Fpath.t) =
       let s = dump_v_to_format v in
       pr s)
 
+let dump_patterns_of_rule (file : Fpath.t) =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
+  let rules = Parse_rule.parse file in
+  let xpats = List.concat_map Rule.xpatterns_of_rule rules in
+  List.iter
+    (fun { Xpattern.pat; _ } ->
+      match pat with
+      | Sem (lazypat, _) ->
+          let any = Lazy.force lazypat in
+          let v = Meta_AST.vof_any any in
+          let s = dump_v_to_format v in
+          pr s
+      | _ -> pr (Xpattern.show_xpattern_kind pat))
+    xpats
+
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_reraise !!file (fun () ->
@@ -276,6 +291,9 @@ let all_actions () =
     ( "-dump_pattern",
       " <file>",
       Arg_helpers.mk_action_1_conv Fpath.v dump_pattern );
+    ( "-dump_patterns_of_rule",
+      " <file>",
+      Arg_helpers.mk_action_1_conv Fpath.v dump_patterns_of_rule );
     ( "-dump_ast",
       " <file>",
       fun file ->
@@ -448,10 +466,10 @@ let options actions =
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
     ( "-emacs",
-      Arg.Unit (fun () -> match_format := Matching_report.Emacs),
+      Arg.Unit (fun () -> match_format := Core_text_output.Emacs),
       " print matches on the same line than the match position" );
     ( "-oneline",
-      Arg.Unit (fun () -> match_format := Matching_report.OneLine),
+      Arg.Unit (fun () -> match_format := Core_text_output.OneLine),
       " print matches on one line, in normalized form" );
     ( "-json",
       Arg.Unit (fun () -> output_format := Json true),

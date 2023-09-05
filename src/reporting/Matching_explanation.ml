@@ -14,7 +14,6 @@
  *)
 open Common
 module Out = Semgrep_output_v1_j
-module Out2 = Output_from_core_util
 
 (*****************************************************************************)
 (* Prelude *)
@@ -45,7 +44,7 @@ type t = {
 (* less: could also display short info on metavar values *)
 let match_to_charpos_range (pm : Pattern_match.t) : string =
   let min_loc, max_loc = pm.range_loc in
-  let startp, endp = Out2.position_range min_loc max_loc in
+  let startp, endp = Output_utils.position_range min_loc max_loc in
   spf "%d-%d" startp.Out.offset endp.Out.offset
 
 (* alt: use Format module *)

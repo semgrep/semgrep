@@ -122,8 +122,8 @@ let _ =
          let timed_rules = (rules_and_errors, 0.) in
          let res, files = Run_semgrep.semgrep_with_rules config timed_rules in
          let res =
-           JSON_report.match_results_of_matches_and_errors
+           Core_json_output.core_output_of_matches_and_errors
              (Some Autofix.render_fix) (List.length files) res
          in
-         Semgrep_output_v1_j.string_of_core_match_results res
+         Semgrep_output_v1_j.string_of_core_output res
     end)

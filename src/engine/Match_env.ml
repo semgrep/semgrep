@@ -76,7 +76,7 @@ let error env msg =
   let loc = Tok.first_loc_of_file !!(env.xtarget.Xtarget.file) in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
-    E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
+    E.mk_error (Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
   in
   env.errors := Report.ErrorSet.add err !(env.errors)
 

@@ -22,39 +22,44 @@ def create_taint_rule_match():
         message="message",
         severity=RuleSeverity.ERROR,
         match=core.CoreMatch(
-            rule_id=core.RuleId("rule.id"),
-            location=core.Location(
-                path=core.Fpath("foo.py"),
-                start=core.Position(3, 4, 6),
-                end=core.Position(3, 5, 7),
-            ),
+            check_id=core.RuleId("rule.id"),
+            path=core.Fpath("foo.py"),
+            start=core.Position(3, 4, 6),
+            end=core.Position(3, 5, 7),
             extra=core.CoreMatchExtra(
                 metavars=core.Metavars({}),
-                dataflow_trace=core.CoreMatchDataflowTrace(
-                    taint_source=core.CoreMatchCallTrace(
-                        core.CoreLoc(
-                            core.Location(
-                                path=core.Fpath("foo.py"),
-                                start=core.Position(8, 9, 11),
-                                end=core.Position(8, 10, 12),
+                dataflow_trace=core.CliMatchDataflowTrace(
+                    taint_source=core.CliMatchCallTrace(
+                        core.CliLoc(
+                            (
+                                core.Location(
+                                    path=core.Fpath("foo.py"),
+                                    start=core.Position(8, 9, 11),
+                                    end=core.Position(8, 10, 12),
+                                ),
+                                "??",
                             )
                         )
                     ),
                     intermediate_vars=[
-                        core.CoreMatchIntermediateVar(
+                        core.CliMatchIntermediateVar(
                             location=core.Location(
                                 path=core.Fpath("foo.py"),
                                 start=core.Position(13, 14, 16),
                                 end=core.Position(13, 15, 17),
-                            )
+                            ),
+                            content="??",
                         )
                     ],
-                    taint_sink=core.CoreMatchCallTrace(
-                        core.CoreLoc(
-                            core.Location(
-                                path=core.Fpath("foo.py"),
-                                start=core.Position(15, 16, 20),
-                                end=core.Position(15, 17, 21),
+                    taint_sink=core.CliMatchCallTrace(
+                        core.CliLoc(
+                            (
+                                core.Location(
+                                    path=core.Fpath("foo.py"),
+                                    start=core.Position(15, 16, 20),
+                                    end=core.Position(15, 17, 21),
+                                ),
+                                "??",
                             )
                         )
                     ),

@@ -60,6 +60,7 @@ BAD_CONFIG = dedent(
       severity: ERROR
 """
 ).lstrip()
+FROZEN_ISOTIMESTAMP = "1970-01-01T00:00:00"
 
 
 ##############################################################################
@@ -326,6 +327,11 @@ def automocks(mocker):
         ConfigLoader,
         "_download_config_from_url",
         side_effect=lambda url: ConfigFile(None, file_content, url),
+    )
+    mocker.patch.object(
+        GitMeta,
+        "commit_timestamp",
+        FROZEN_ISOTIMESTAMP,
     )
     mocker.patch.object(
         ScanHandler,
@@ -778,6 +784,8 @@ def test_full_run(
 
     assert meta_json["semgrep_version"] == __VERSION__
     meta_json["semgrep_version"] = "<sanitized version>"
+
+    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP
 
     if env.get("GITLAB_CI"):
         # If in a merge pipeline, base_sha is defined, otherwise is None
@@ -1639,6 +1647,15 @@ def test_query_dependency(
     # see https://linear.app/r2c/issue/PA-2461/restore-flaky-e2e-tests for more info
     complete_json["stats"]["lockfile_scan_info"] = {}
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+    complete_dependency_json = complete_json["dependencies"]
+    results_json = post_calls[1].kwargs["json"]
+    results_dependency_json = results_json["dependencies"]
+    snapshot.assert_match(
+        json.dumps(complete_dependency_json, indent=2), "dependencies.json"
+    )
+    snapshot.assert_match(
+        json.dumps(results_dependency_json, indent=2), "dependencies.json"
+    )
 
 
 def test_metrics_enabled(run_semgrep: RunSemgrep, mocker):

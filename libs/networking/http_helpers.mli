@@ -1,3 +1,8 @@
+val client_ref : (module Cohttp_lwt.S.Client) ref
+(** [client_ref] is a reference to the Cohttp client module used by the
+    functions in this module. By default, it is set to [Cohttp_lwt_unix.Client],
+    but can be changed to an instance of [TestingClient] if you want to test things. *)
+
 val get_async :
   ?headers:(string * string) list -> Uri.t -> (string, string) result Lwt.t
 (** [get_async ~headers uri] retrieves [uri] (via HTTP GET) with the provided

@@ -363,73 +363,17 @@ def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -
     return cte
 
 
-def cli_intermediate_vars_to_core_intermediate_vars(
-    i_vars: List[core.CliMatchIntermediateVar],
-) -> List[core.CoreMatchIntermediateVar]:
-    return [core.CoreMatchIntermediateVar(location=v.location) for v in i_vars]
-
-
-def cli_call_trace_to_core_call_trace(
-    trace: core.CliMatchCallTrace,
-) -> core.CoreMatchCallTrace:
-    value = trace.value
-    if isinstance(value, core.CliLoc):
-        return core.CoreMatchCallTrace(core.CoreLoc(value.value[0]))
-    elif isinstance(value, core.CliCall):
-        data, intermediate_vars, call_trace = value.value
-
-        return core.CoreMatchCallTrace(
-            core.CoreCall(
-                (
-                    data[0],
-                    cli_intermediate_vars_to_core_intermediate_vars(intermediate_vars),
-                    cli_call_trace_to_core_call_trace(call_trace),
-                )
-            )
-        )
-    else:
-        # unreachable, theoretically
-        logger.error("Reached unreachable code in cli call trace to core call trace")
-        return None
-
-
-def cli_trace_to_core_trace(
-    trace: core.CliMatchDataflowTrace,
-) -> core.CoreMatchDataflowTrace:
-    taint_source = trace.taint_source if trace.taint_source else None
-    taint_sink = trace.taint_sink if trace.taint_sink else None
-    intermediate_vars = (
-        cli_intermediate_vars_to_core_intermediate_vars(trace.intermediate_vars)
-        if trace.intermediate_vars
-        else None
-    )
-    return core.CoreMatchDataflowTrace(
-        taint_source=cli_call_trace_to_core_call_trace(taint_source)
-        if taint_source
-        else None,
-        intermediate_vars=intermediate_vars,
-        taint_sink=cli_call_trace_to_core_call_trace(taint_sink)
-        if taint_sink
-        else None,
-    )
-
-
 # For join mode, we get the final output of Semgrep and then need to construct
 # RuleMatches from that. Ideally something would be refactored so that we don't
 # need to move backwards in the pipeline like this.
 def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> RuleMatch:
     cli_match_extra = core.CliMatchExtra.from_json(match.get("extra", {}))
-    dataflow_trace = (
-        cli_trace_to_core_trace(cli_match_extra.dataflow_trace)
-        if cli_match_extra.dataflow_trace
-        else None
-    )
     extra = core.CoreMatchExtra(
         message=cli_match_extra.message,
         # cli_match_extra.metavars is optional, but core_match_extra.metavars is
         # not. This is unsafe, but before it was just implicitly unsafe.
         metavars=cli_match_extra.metavars,  # type: ignore[arg-type]
-        dataflow_trace=dataflow_trace,
+        dataflow_trace=cli_match_extra.dataflow_trace,
         engine_kind=cli_match_extra.engine_kind
         if cli_match_extra.engine_kind
         else core.EngineKind(core.OSS()),
@@ -443,12 +387,10 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
             join_rule.get("severity", match.get("severity", RuleSeverity.INFO.value))
         ),
         match=core.CoreMatch(
-            rule_id=core.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
-            location=core.Location(
-                path=core.Fpath(match.get("path", "[empty]")),
-                start=core.Position.from_json(match["start"]),
-                end=core.Position.from_json(match["end"]),
-            ),
+            check_id=core.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
+            path=core.Fpath(match.get("path", "[empty]")),
+            start=core.Position.from_json(match["start"]),
+            end=core.Position.from_json(match["end"]),
             extra=extra,
         ),
         # still needed?
