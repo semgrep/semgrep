@@ -27,6 +27,12 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: use this behavior also in AST_generic.exprstmt? breaking tests? *)
+let exprstmt (e : G.expr) : G.stmt =
+  match e.e with
+  | StmtExpr st -> st
+  | _else -> G.exprstmt e
+
 let fb = Tok.unsafe_fake_bracket
 let map_string _env x = x
 let map_int _env x = x
@@ -216,7 +222,7 @@ let map_wrap_operator_ident env v : G.ident =
 (* start of big mutually recursive functions *)
 
 let rec map_atom env (tcolon, v2) : G.expr =
-  let v2 = (map_or_quoted (map_wrap map_string)) env v2 in
+  let v2 = (map_or_quoted1 (map_wrap map_string)) env v2 in
   match v2 with
   | Left x -> G.L (G.Atom (tcolon, x)) |> G.e
   | Right quoted ->
@@ -224,14 +230,14 @@ let rec map_atom env (tcolon, v2) : G.expr =
       G.OtherExpr (("AtomExpr", tcolon), [ E e ]) |> G.e
 
 (* TODO: maybe need a 'a. for all type *)
-and map_or_quoted f env v =
+and map_or_quoted1 f env v =
   match v with
-  | X v ->
+  | X1 v ->
       let v = f env v in
       Left (f env v)
-  | Quoted v -> Right (map_quoted env v)
+  | Quoted1 v -> Right (map_quoted env v)
 
-and map_keyword env (v1, _tcolon) = map_or_quoted (map_wrap map_string) env v1
+and map_keyword env (v1, _tcolon) = map_or_quoted1 (map_wrap map_string) env v1
 
 and map_quoted env v : quoted_generic =
   map_bracket
@@ -267,8 +273,36 @@ and map_expr_or_kwds env v : (G.expr, keywords_generic) either =
       let v = map_keywords env v in
       Right v
 
+and map_stmt env (v : stmt) : G.stmt =
+  match v with
+  | If (tif, cond, tdo, then_, elseopt, tend) ->
+      let e = map_expr env cond in
+      let then_ = map_stmts env then_ in
+      let elseopt, tthenend =
+        match elseopt with
+        | None -> (None, tend)
+        | Some (telse, else_) ->
+            let else_ = map_stmts env else_ in
+            let st2 = G.Block (telse, else_, tend) |> G.s in
+            (* TODO? reusing telse is good here? better generate fake? *)
+            (Some st2, telse)
+      in
+      let st1 = G.Block (tdo, then_, tthenend) |> G.s in
+      G.If (tif, G.Cond e, st1, elseopt) |> G.s
+
+and map_stmts env (xs : stmts) : G.stmt list =
+  xs
+  |> Common.map (function
+       | S x -> map_stmt env x
+       | e ->
+           let e = map_expr env e in
+           exprstmt e)
+
 and map_expr env v : G.expr =
   match v with
+  | S x ->
+      let st = map_stmt env x in
+      G.stmt_to_expr st
   | I v -> map_ident_expr env v
   | L lit -> G.L lit |> G.e
   | A v -> map_atom env v
@@ -421,7 +455,7 @@ and map_sigil_kind env v : G.any list =
 
 and map_body env v : G.stmt list =
   let xs = (map_list map_expr) env v in
-  xs |> Common.map G.exprstmt
+  xs |> Common.map exprstmt
 
 and map_call env (v1, v2, v3) : G.expr =
   let e = map_expr env v1 in
@@ -434,16 +468,16 @@ and map_remote_dot env (v1, tdot, v3) : G.expr =
   let e = map_expr env v1 in
   let v3 =
     match v3 with
-    | X id_or_op ->
+    | X2 id_or_op ->
         let id =
           match id_or_op with
           | Left id -> map_ident env id
           | Right op -> map_wrap_operator_ident env op
         in
-        X id
-    | Quoted x -> Quoted x
+        X1 id
+    | Quoted2 x -> Quoted1 x
   in
-  let v3 = map_or_quoted (map_wrap map_string) env v3 in
+  let v3 = map_or_quoted1 (map_wrap map_string) env v3 in
   let fld =
     match v3 with
     | Left id -> G.FN (H.name_of_id id)
@@ -501,8 +535,10 @@ let map_any env v =
 
 let program x =
   let env = () in
+  let x = Elixir_to_elixir.map_program x in
   map_program env x
 
 let any x =
   let env = () in
+  let x = Elixir_to_elixir.map_any x in
   map_any env x
