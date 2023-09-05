@@ -44,6 +44,10 @@ package: build
 clean:
 	rm -rf dist
 
+.PHONY: distclean
+distclean:
+	rm -rf dist node_modules
+
 ifndef NO_WASM
 dist/semgrep-parser.js dist/semgrep-parser.wasm: $(TREESITTER_SRCDIR)/lib.c $(TREE_SITTER_SOURCES) $(EXTRA_TREE_SITTER_SOURCES)
 	mkdir -p dist

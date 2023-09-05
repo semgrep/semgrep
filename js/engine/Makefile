@@ -30,6 +30,10 @@ package: build
 clean:
 	rm -rf dist
 
+.PHONY: distclean
+distclean:
+	rm -rf dist node_modules
+
 ../libyaml/dist/libyaml.o:
 	cd ../libyaml; $(MAKE) dist/libyaml.o
 

@@ -17,6 +17,10 @@ test: build
 clean:
 	rm -rf dist
 
+.PHONY: distclean
+distclean:
+	rm -rf dist node_modules
+
 dist/libyaml.o: *.c
 	mkdir -p dist
 	emcc \
