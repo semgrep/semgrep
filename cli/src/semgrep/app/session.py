@@ -151,7 +151,7 @@ class AppSession(requests.Session):
                 total=3,
                 backoff_factor=4,
                 allowed_methods=["GET", "POST"],
-                status_forcelist=(413, 429, 500, 502, 503),
+                status_forcelist=(413, 429, 500, 502, 503, 504),
             ),
         )
 
