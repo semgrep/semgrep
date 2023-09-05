@@ -61,7 +61,7 @@ let expr_of_quoted (quoted : quoted_generic) : G.expr =
   let l, xs, r = quoted in
   G.interpolated (l, xs |> Common.map either_to_either3, r)
 
-let keyval_of_pair (kwd, e) =
+let keyval_of_pair (kwd, e) : G.expr =
   let key =
     match kwd with
     | Left id -> G.N (H.name_of_id id) |> G.e
@@ -289,6 +289,56 @@ and map_stmt env (v : stmt) : G.stmt =
       in
       let st1 = G.Block (tdo, then_, tthenend) |> G.s in
       G.If (tif, G.Cond e, st1, elseopt) |> G.s
+  | D def ->
+      let d = map_definition env def in
+      G.DefStmt d |> G.s
+
+and map_definition env (v : definition) : G.definition =
+  match v with
+  | FuncDef { f_def; f_name; f_params; f_body } ->
+      let id = map_ident env f_name in
+      let ent = G.basic_entity id in
+      let fparams = map_parameters env f_params in
+      let body = map_compound env f_body in
+      let def =
+        {
+          G.fkind = (G.Function, f_def);
+          fparams;
+          frettype = None;
+          fbody = G.FBStmt body;
+        }
+      in
+      (ent, G.FuncDef def)
+
+and map_compound env (v : stmts bracket) : G.stmt =
+  let l, xs, r = v in
+  let xs = map_stmts env xs in
+  G.Block (l, xs, r) |> G.s
+
+and map_parameters env (params : parameters) : G.parameters =
+  map_bracket (map_list map_parameter) env params
+
+and map_parameter env (p : parameter) : G.parameter =
+  match p with
+  | P { pname; pdefault } ->
+      let id = map_ident env pname in
+      let pdefault =
+        match pdefault with
+        | None -> None
+        | Some (_tk, e) ->
+            let e = map_expr env e in
+            Some e
+      in
+      let pclassic = G.param_of_id ~pdefault id in
+      G.Param pclassic
+  | OtherParamExpr e ->
+      let e = map_expr env e in
+      G.OtherParam (("OtherParamExpr", G.fake ""), [ G.E e ])
+  | OtherParamPair (kwd, e) ->
+      let kwd = map_keyword env kwd in
+      let e = map_expr env e in
+      let e = keyval_of_pair (kwd, e) in
+      G.OtherParam (("OtherParamPair", G.fake ""), [ G.E e ])
 
 and map_stmts env (xs : stmts) : G.stmt list =
   xs

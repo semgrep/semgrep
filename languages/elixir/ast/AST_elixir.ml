@@ -157,7 +157,7 @@ and quoted = (string wrap, expr bracket) Common.either list bracket
 (* ------------------------------------------------------------------------- *)
 (* Keywords and arguments *)
 (* ------------------------------------------------------------------------- *)
-(* inside calls *)
+(* inside calls and stab_clause *)
 and arguments = expr list * keywords
 
 (* inside containers (list, bits, maps, tuples), separated by commas *)
@@ -282,10 +282,36 @@ and stmt =
       * stmts
       * (Tok.t * stmts) option
       * Tok.t (* 'end' *)
+  | D of definition
 
 (* ------------------------------------------------------------------------- *)
 (* Definitions *)
 (* ------------------------------------------------------------------------- *)
+and definition = FuncDef of function_definition
+
+and function_definition = {
+  f_def : Tok.t;
+  (* alt: could introduce an external 'entity' like in AST_generic.ml
+   * but FuncDef and ModuleDef have different kind of constraints
+   * on the name so better to be precise when we can.
+   *)
+  f_name : ident;
+  f_params : parameters;
+  (* bracket is do/end *)
+  f_body : stmts bracket;
+}
+
+and parameters = parameter list bracket
+
+and parameter =
+  | P of parameter_classic
+  | OtherParamExpr of expr
+  | OtherParamPair of pair
+
+and parameter_classic = {
+  pname : ident;
+  pdefault : (Tok.t (* \\ *) * expr) option;
+}
 
 (*****************************************************************************)
 (* Program *)
