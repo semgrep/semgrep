@@ -125,8 +125,10 @@ class virtual ['self] map_parent =
         let right = self#visit_t env right in
         (left, x, right)
 
-    method visit_either _f1 _f2 _env x = (* TODO!! *)
-                                         x
+    method visit_either f1 f2 env x =
+      match x with
+      | Common.Left a -> Common.Left (f1 env a)
+      | Common.Right b -> Common.Right (f2 env b)
 
     (* Stubs *)
     method visit_t _env x = x
