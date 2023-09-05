@@ -511,6 +511,7 @@ class RuleMatch:
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
             dataflow_trace=self.dataflow_trace,
+            validation_state=self.extra.get("validation_state"),
         )
 
         if self.extra.get("fixed_lines"):
