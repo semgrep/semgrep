@@ -35,19 +35,24 @@ module G = AST_generic
        v#visit_any ids any;
        !ids
      [@@profiling]
+
+   This is more intensive, and will result in us tracking all wildcard imports, even
+   those occurring not at the top level of the program.
+
+   To make sure we don't affect perf, and so we don't have more false positives, let's
+   not consider those.
 *)
 
-let visit_toplevel prog : G.ident list list =
-  (* we only collect top-level wildcard imports *)
+let visit_toplevel prog : G.dotted_ident list =
+  (* we only collect top-level wildcard imports, for the reasons
+     discussed above
+  *)
   List.fold_right
     (fun x acc ->
       match x with
-      | {
-       G.s = DirectiveStmt { d = ImportAll (_t, DottedName name, _t'); _ };
-       _;
-      } ->
-          name :: acc
-      | { s = DirectiveStmt { d = ImportAll (_, FileName _, _); _ }; _ }
-      | _ ->
-          acc)
+      | { G.s = DirectiveStmt { d = ImportAll (_t, modname, _t'); _ }; _ } -> (
+          match modname with
+          | DottedName name -> name :: acc
+          | FileName _ -> acc)
+      | _ -> acc)
     prog []

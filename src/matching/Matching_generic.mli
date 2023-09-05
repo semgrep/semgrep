@@ -10,7 +10,13 @@ type tin = {
   deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
     * values. This is bound to prevent potential infinite loops. *)
-  wildcard_imports : AST_generic.ident list list;
+  wildcard_imports : AST_generic.dotted_ident list;
+      (** Stores the "wildcard imports" that import everything from a given
+          module, but only the ones that occur at the top level of the program
+          being matched. This might change the matching behavior of qualified
+          name patterns, for instance.
+          These look like "from A import *" in Python.
+        *)
 }
 
 (* list of possible outcoming matching environments *)

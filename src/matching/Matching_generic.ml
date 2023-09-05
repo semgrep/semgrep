@@ -114,7 +114,7 @@ type tin = {
   lang : Lang.t;
   config : Rule_options.t;
   deref_sym_vals : int;
-  wildcard_imports : AST_generic.ident list list;
+  wildcard_imports : AST_generic.dotted_ident list;
 }
 
 (* list of possible outcoming matching environments *)
@@ -406,9 +406,7 @@ let environment_of_program lang config prog =
 
 let environment_of_any lang config any =
   match any with
-  | G.Ss prog
-  | Pr prog ->
-      environment_of_program lang config prog
+  | G.Pr prog -> environment_of_program lang config prog
   | _ -> default_environment lang config
 
 (*****************************************************************************)
