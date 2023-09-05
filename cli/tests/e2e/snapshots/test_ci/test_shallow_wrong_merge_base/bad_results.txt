@@ -3,7 +3,7 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
@@ -75,12 +75,27 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 2 findings (0 blocking) from 4 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
-    https://semgrep.dev/orgs/org_name/findings
-    https://semgrep.dev/orgs/org_name/supply-chain
-  No blocking findings so exiting with code 0
-  semgrep.dev is suggesting a non-zero exit code <MASKED>
+'str' object has no attribute 'to_json'
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+    func(*args, **kwargs)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 544, in ci
+    app_block_override, reason = scan_handler.report_findings(
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/app/scans.py", line 321, in report_findings
+    findings_and_ignores = ci_scan_results.to_json()
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4104, in to_json
+    res['findings'] = _atd_write_list((lambda x: x.to_json()))(self.findings)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 193, in write_list
+    return [write_elt(elt) for elt in elts]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 193, in <listcomp>
+    return [write_elt(elt) for elt in elts]
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 4104, in <lambda>
+    res['findings'] = _atd_write_list((lambda x: x.to_json()))(self.findings)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 2699, in to_json
+    res['validation_state'] = (lambda x: x.to_json())(self.validation_state)
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/semgrep_interfaces/semgrep_output_v1.py", line 2699, in <lambda>
+    res['validation_state'] = (lambda x: x.to_json())(self.validation_state)
+AttributeError: 'str' object has no attribute 'to_json'
 
 === end of stdout - plain
 
