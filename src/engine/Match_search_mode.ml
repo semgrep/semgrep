@@ -572,9 +572,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                      (mvar, Tok.unsafe_fake_tok "")
                      t e env
                  in
-                 logger#info
-                   "range %d-%d filtered from metavar %s type mismatch."
-                   r.r.start r.r.end_ mvar;
+
                  (* the type can also contain metavariables, but we probably
                   * don't want to use that in other parts of the rules, so it's
                   * probably fine to just check whether the match is empty or
