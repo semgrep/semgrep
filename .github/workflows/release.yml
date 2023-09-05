@@ -109,7 +109,7 @@ jobs:
     with:
       docker-flavor: |
         latest=auto
-        suffix=-nonroot
+        suffix=-nonroot,onlatest=true
       docker-tags: |
         type=semver,pattern={{version}}
         type=semver,pattern={{major}}.{{minor}}
