@@ -204,6 +204,7 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
         sca_info = None;
         (* TODO *)
         dataflow_trace = None (* TODO *);
+        validation_state = None (* TODO *);
       }
   in
   r
