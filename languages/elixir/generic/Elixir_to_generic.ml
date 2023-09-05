@@ -189,7 +189,8 @@ let map_ident_expr env v : G.expr =
       let id = map_ident env v in
       G.N (H.name_of_id id) |> G.e
 
-let map_alias env v = (map_wrap map_string) env v
+(* TODO: this should really return a dotted_ident *)
+let map_alias env v : G.ident = (map_wrap map_string) env v
 
 let map_wrap_operator env (op, tk) =
   match op with
@@ -309,6 +310,15 @@ and map_definition env (v : definition) : G.definition =
         }
       in
       (ent, G.FuncDef def)
+  | ModuleDef { m_defmodule = _; m_name; m_body = _tdo, xs, _tend } ->
+      (* TODO: split alias in components, and then use name_of_ids *)
+      let v = map_alias env m_name in
+      let n = H.name_of_id v in
+      let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+      let items = map_stmts env xs in
+      (* alt: we could also generate a Package directive instead *)
+      let def = { G.mbody = G.ModuleStruct (None, items) } in
+      (ent, G.ModuleDef def)
 
 and map_compound env (v : stmts bracket) : G.stmt =
   let l, xs, r = v in

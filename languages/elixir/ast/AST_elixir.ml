@@ -152,7 +152,14 @@ type atom = Tok.t (* ':' *) * string__wrap__or_quoted
 (* TODO: need to extract the ':' for the ident case *)
 and keyword = string__wrap__or_quoted * Tok.t (* : *)
 
-(* and 'a or_quoted = X of 'a | Quoted of quoted *)
+(* ideally we would use this generic type:
+ *   and 'a or_quoted =
+ *     | X of 'a
+ *     | Quoted of quoted
+ * instead of X1 (and X2 further below), but the visitors ppx
+ * can't handle such type and return an error "or_quoted is irregular"
+ * so we monomorphize it instead.
+ *)
 and string__wrap__or_quoted = X1 of string wrap | Quoted1 of quoted
 and quoted = (string wrap, expr bracket) Common.either list bracket
 
@@ -289,7 +296,9 @@ and stmt =
 (* ------------------------------------------------------------------------- *)
 (* Definitions *)
 (* ------------------------------------------------------------------------- *)
-and definition = FuncDef of function_definition
+and definition =
+  | FuncDef of function_definition
+  | ModuleDef of module_definition
 
 and function_definition = {
   f_def : Tok.t;
@@ -313,6 +322,13 @@ and parameter =
 and parameter_classic = {
   pname : ident;
   pdefault : (Tok.t (* \\ *) * expr) option;
+}
+
+and module_definition = {
+  m_defmodule : Tok.t;
+  m_name : alias;
+  (* less: we could restrict it maybet to definition list *)
+  m_body : stmts bracket;
 }
 
 (*****************************************************************************)

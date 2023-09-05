@@ -85,6 +85,19 @@ class ['self] visitor =
             }
           in
           S (D (FuncDef def))
+      (* https://hexdocs.pm/elixir/Kernel.html#defmodule/2 *)
+      | ( I (Id ("defmodule", tdefmodule)),
+          (_, ([ Alias mname ], []), _),
+          Some (tdo, (Body body, []), tend) ) ->
+          let body = self#visit_body env body in
+          let def =
+            {
+              m_defmodule = tdefmodule;
+              m_name = mname;
+              m_body = (tdo, body, tend);
+            }
+          in
+          S (D (ModuleDef def))
       | _else_ ->
           let x = self#visit_call env x in
           Call x
