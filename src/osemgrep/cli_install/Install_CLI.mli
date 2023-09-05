@@ -17,6 +17,7 @@ type conf = {
   ci_env : ci_env_flavor;
   logging_level : Logs.level option;
   repo : repo_kind;
+  update : bool;
 }
 [@@deriving show]
 

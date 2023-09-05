@@ -2,6 +2,7 @@ open Common
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
+module H = Cmdliner_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -24,6 +25,7 @@ type conf = {
   ci_env : ci_env_flavor;
   logging_level : Logs.level option;
   repo : repo_kind;
+  update : bool;
 }
 [@@deriving show]
 
@@ -58,11 +60,15 @@ let o_repo_pos : string Term.t =
   let doc = "Specify a repository path (via positional argument)." in
   Arg.(value & pos 0 string "." & info [] ~docv:"REPO_PATH" ~doc)
 
+let o_update : bool Term.t =
+  let doc = "Update existing workflow and secrets." in
+  H.negatable_flag [ "update" ] ~neg_options:[ "no-update" ] ~default:false ~doc
+
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 let cmdline_term =
-  let combine logging_level repo_kw provider repo_pos =
+  let combine logging_level update repo_kw provider repo_pos =
     let repo_arg = if repo_kw = "." then repo_pos else repo_kw in
     let repo =
       match repo_arg with
@@ -82,10 +88,11 @@ let cmdline_term =
       | "github" -> Github
       | _ -> Error.abort (spf "ci env not supported: %s" provider)
     in
-    { logging_level; ci_env; repo }
+    { logging_level; ci_env; repo; update }
   in
   Term.(
-    const combine $ CLI_common.o_logging $ o_repo_kw $ o_ci_env $ o_repo_pos)
+    const combine $ CLI_common.o_logging $ o_update $ o_repo_kw $ o_ci_env
+    $ o_repo_pos)
 
 let parse_argv (argv : string array) : conf =
   let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in

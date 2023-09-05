@@ -71,24 +71,25 @@ let set_ssh_as_default () =
   | Ok _ -> ()
   | _ -> Error.abort "failed to set git_protocol as ssh"
 
+(* Checks whether the repo has a semgrep workflow file already.
+   NOTE: This only checks for the presence of the file, not the contents or version
+*)
 let test_semgrep_workflow_added ~repo : bool =
-  let repo_path =
-    match repo with
-    | _ when Common2.dir_exists repo -> Fpath.to_dir_path Fpath.(v repo)
-    | _ -> Bos.OS.Dir.current () |> Rresult.R.get_ok
-  in
-  Logs.info (fun m ->
-      m "Checking for semgrep workflow in %a" Fpath.pp repo_path);
-  let cmd =
+  let dir, cmd =
     match repo with
     | _ when Common2.dir_exists repo ->
-        Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml")
+        ( Fpath.to_dir_path Fpath.(v repo),
+          Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml") )
     | _ ->
-        Bos.Cmd.(v "gh" % "workflow" % "view" % "semgrep.yml" % "--repo" % repo)
+        ( Bos.OS.Dir.current () |> Rresult.R.get_ok,
+          Bos.Cmd.(
+            v "gh" % "workflow" % "view" % "semgrep.yml" % "--repo" % repo) )
   in
+  Logs.debug (fun m ->
+      m "Checking for semgrep workflow from %s" (Fpath.to_string dir));
   let res = ref false in
   match
-    Bos.OS.Dir.with_current repo_path
+    Bos.OS.Dir.with_current dir
       (fun () ->
         match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
         | Ok _ -> res := true
@@ -113,7 +114,7 @@ on:
       - main
       - master
 
-  jobs:
+jobs:
     semgrep:
         name: semgrep/ci
         runs-on: ubuntu-latest
@@ -205,7 +206,11 @@ let git_commit () =
 
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
-let write_workflow_file ~repo =
+(* NOTE: If the repo is not checked out locally,
+   we first clone the repo to a temporary directory,
+   and then return the path to the cloned repo.
+*)
+let prep_repo ~repo =
   let dir =
     match repo with
     | _ when Common2.dir_exists repo -> Fpath.v repo
@@ -228,7 +233,52 @@ let write_workflow_file ~repo =
         in
         Fpath.v (Filename.concat tmp_dir repo)
   in
+  dir
+
+let test_semgrep_gh_secret ~git_dir:dir =
+  let cmd = Bos.Cmd.(v "gh" % "secret" % "list" % "-a" % "actions") in
+  match
+    Bos.OS.Dir.with_current dir
+      (fun () ->
+        match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_lines with
+        | Ok lines ->
+            List.exists
+              (fun line -> String.starts_with ~prefix:"SEMGREP_APP_TOKEN" line)
+              lines
+        | _ ->
+            Logs.warn (fun m ->
+                m "Failed to list secrets for %s" (Fpath.to_string dir));
+            Error.abort
+              "Failed to check for SEMGREP_APP_TOKEN. Please add it manually")
+      ()
+  with
+  | Ok _ -> true
+  | _ -> false
+
+let add_semgrep_gh_secret ~git_dir:dir ~token =
+  let cmd =
+    Bos.Cmd.(
+      v "gh" % "secret" % "set" % "SEMGREP_APP_TOKEN" % "-a" % "actions"
+      % "--body" % token)
+  in
+  match
+    Bos.OS.Dir.with_current dir
+      (fun () ->
+        match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.to_string with
+        | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" token)
+        | _ ->
+            Logs.warn (fun m ->
+                m "Failed to set SEMGREP_APP_TOKEN for %s" (Fpath.to_string dir));
+            Error.abort
+              "Failed to set SEMGREP_APP_TOKEN. Please add it manually")
+      ()
+  with
+  | Ok _ -> ()
+  | _ -> ()
+
+let write_workflow_file ~git_dir:dir =
   let commit = get_default_branch_in ~dst:dir in
+  Logs.debug (fun m -> m "Using '%s' as default branch." commit);
   match
     Bos.OS.Dir.with_current dir
       (fun () ->
@@ -256,13 +306,26 @@ let write_workflow_file ~repo =
   | Ok _ -> ()
   | _ -> Logs.err (fun m -> m "Failed to write workflow file")
 
-let add_semgrep_workflow ~repo =
+(* Basic Outline:
+   0. Check if the workflow file is already present (local or remote)
+   1. Write the workflow file to the repo
+   2. Commit and push changes to the repo
+   3. Open a PR to the repo to merge the changes
+*)
+let add_semgrep_workflow ~repo ~token ~update =
   let added = test_semgrep_workflow_added ~repo in
-  match added with
-  | true -> Logs.info (fun m -> m "Semgrep workflow already present, skipping")
-  | false ->
-      Logs.info (fun m -> m "Preparing Semgrep workflow");
-      write_workflow_file ~repo
+  match (added, update) with
+  | true, false ->
+      Logs.info (fun m -> m "Semgrep workflow already present, skipping")
+  | _ -> (
+      Logs.info (fun m -> m "Preparing Semgrep workflow for %s" repo);
+      let dir = prep_repo ~repo in
+      write_workflow_file ~git_dir:dir;
+      let added = test_semgrep_gh_secret ~git_dir:dir in
+      match (added, update) with
+      | true, false ->
+          Logs.info (fun m -> m "Semgrep secret already present, skipping")
+      | _ -> add_semgrep_gh_secret ~git_dir:dir ~token)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -275,6 +338,7 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
         (Install_CLI.show_ci_env_flavor conf.ci_env));
   Logs.debug (fun m ->
       m "Running with repo %s" (Install_CLI.get_repo conf.repo));
+  Logs.debug (fun m -> m "--update: %b" conf.update);
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
@@ -285,12 +349,14 @@ let run (conf : Install_CLI.conf) : Exit_code.t =
              `semgrep install`"
             (Logs_helpers.with_err_tag ()));
       Exit_code.fatal
-  | Some _ ->
+  | Some token ->
       Logs.app (fun m ->
           install_gh_cli_if_needed ();
           prompt_gh_auth_if_needed ();
           set_ssh_as_default ();
-          add_semgrep_workflow ~repo:(Install_CLI.get_repo conf.repo);
+          add_semgrep_workflow
+            ~repo:(Install_CLI.get_repo conf.repo)
+            ~token ~update:conf.update;
           m "%s Installed semgrep for this repository"
             (Logs_helpers.with_success_tag ()));
       Exit_code.ok
