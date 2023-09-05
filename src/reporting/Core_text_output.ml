@@ -1,6 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2013 Facebook
+ * Copyright (C) 2020-2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,6 +18,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* This file is deprecated. You should use osemgrep text output *)
 
 (*****************************************************************************)
 (* Types *)

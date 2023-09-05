@@ -118,7 +118,7 @@ let dispatch_output_format (output_format : Output_format.t)
                     * contains a string, not a string list.
                     *)
                    match
-                     Cli_json_output.lines_of_file (start, end_) (Fpath.v path)
+                     Output_utils.lines_of_file (start, end_) (Fpath.v path)
                    with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)
@@ -166,7 +166,7 @@ let output_result (conf : Scan_CLI.conf) (profiler : Profiler.t)
    *)
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_core_results
-      ~logging_level:conf.common.logging_level res
+      ~logging_level:conf.common.logging_level res.core res.hrules res.scanned
   in
   let cli_output () =
     let keep_ignored =

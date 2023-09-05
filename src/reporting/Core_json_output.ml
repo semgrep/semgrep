@@ -23,7 +23,6 @@ module PM = Pattern_match
 open Pattern_match
 module SJ = Semgrep_output_v1_j (* JSON conversions *)
 module Out = Semgrep_output_v1_t (* atdgen definitions *)
-module OutH = Output_from_core_util
 
 (*****************************************************************************)
 (* Types *)
@@ -36,34 +35,6 @@ type render_fix = Pattern_match.t -> Textedit.t option
 
 (*****************************************************************************)
 (* Helpers *)
-(*****************************************************************************)
-
-(* TODO: should use Common? *)
-
-let rec last hd = function
-  | [] -> hd
-  | hd :: tl -> last hd tl
-
-let first_and_last = function
-  | [] -> None
-  | hd :: tl -> Some (hd, last hd tl)
-
-let convert_engine_kind ek =
-  match ek with
-  | OSS -> `OSS
-  | Pro -> `PRO
-
-let convert_validation_state = function
-  | Confirmed_valid -> `CONFIRMED_VALID
-  | Confirmed_invalid -> `CONFIRMED_INVALID
-  | Validation_error -> `VALIDATION_ERROR
-  | No_validator -> `NO_VALIDATOR
-
-let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
-  ((id :> string), convert_engine_kind ek)
-
-(*****************************************************************************)
-(* JSON *)
 (*****************************************************************************)
 
 let range_of_any_opt startp_of_match_range any =
@@ -115,8 +86,26 @@ let range_of_any_opt startp_of_match_range any =
   | Lbli _
   | Anys _ ->
       let* min_loc, max_loc = AST_generic_helpers.range_of_any_opt any in
-      let startp, endp = OutH.position_range min_loc max_loc in
+      let startp, endp = Output_utils.position_range min_loc max_loc in
       Some (startp, endp)
+
+(*****************************************************************************)
+(* Converters *)
+(*****************************************************************************)
+
+let convert_engine_kind ek =
+  match ek with
+  | OSS -> `OSS
+  | Pro -> `PRO
+
+let convert_validation_state = function
+  | Confirmed_valid -> `CONFIRMED_VALID
+  | Confirmed_invalid -> `CONFIRMED_INVALID
+  | Validation_error -> `VALIDATION_ERROR
+  | No_validator -> `NO_VALIDATOR
+
+let convert_rule ((id, ek) : Report.rule_id_and_engine_kind) =
+  ((id :> string), convert_engine_kind ek)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -129,7 +118,7 @@ let metavar_string_of_any any =
   |> List.filter Tok.is_origintok
   |> List.sort Tok.compare_pos
   |> Common.map Tok.content_of_tok
-  |> Matching_report.join_with_space_if_needed
+  |> Core_text_output.join_with_space_if_needed
 
 let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =
@@ -178,28 +167,6 @@ let metavars startp_of_match_range (s, mval) =
           propagated_value = get_propagated_value startp_of_match_range any;
         } )
 
-(* None if pi has no location information. Fake tokens should have been filtered
- * out earlier, but in case one slipped through we handle this case. *)
-let parse_info_to_location pi =
-  Tok.loc_of_tok pi |> Result.to_option
-  |> Option.map (fun token_location ->
-         OutH.location_of_token_location token_location)
-
-let tokens_to_locations toks = Common.map_filter parse_info_to_location toks
-
-let tokens_to_single_loc (toks : Tok.t list) : Out.location option =
-  (* toks should be nonempty and should contain only origintoks, but since we
-   * can't prove that by construction we have to filter and handle the empty
-   * case here. In theory this could lead to, e.g. a missing taint source for a
-   * taint rule finding but it shouldn't happen in practice. *)
-  let locations =
-    tokens_to_locations
-      (List.filter Tok.is_origintok toks |> List.sort Tok.compare_pos)
-  in
-  let* first_loc, last_loc = first_and_last locations in
-  Some
-    { Out.path = first_loc.path; start = first_loc.start; end_ = last_loc.end_ }
-
 (* TODO! semgrep-core used to have its own format for taint traces
  * (called core_match_call_trace), but with osemgrep we want to merge
  * things gradually, but the cli_match_dataflow_trace has those
@@ -210,7 +177,7 @@ let tokens_to_single_loc (toks : Tok.t list) : Out.location option =
 let todo_content_for_location = "??"
 
 let token_to_intermediate_var token : Out.cli_match_intermediate_var option =
-  let* location = tokens_to_single_loc [ token ] in
+  let* location = Output_utils.tokens_to_single_loc [ token ] in
   Some
     ({ Out.location; content = todo_content_for_location }
       : Out.cli_match_intermediate_var)
@@ -222,10 +189,10 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
     Out.cli_match_call_trace option =
   match trace with
   | Toks toks ->
-      let* loc = tokens_to_single_loc toks in
+      let* loc = Output_utils.tokens_to_single_loc toks in
       Some (Out.CliLoc (loc, todo_content_for_location))
   | Call { call_trace; intermediate_vars; call_toks } ->
-      let* location = tokens_to_single_loc call_toks in
+      let* location = Output_utils.tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
       Some
@@ -260,7 +227,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
 let unsafe_match_to_match render_fix_opt (x : Pattern_match.t) : Out.core_match
     =
   let min_loc, max_loc = x.range_loc in
-  let startp, endp = OutH.position_range min_loc max_loc in
+  let startp, endp = Output_utils.position_range min_loc max_loc in
   let dataflow_trace =
     Option.map
       (function
@@ -326,7 +293,7 @@ let match_to_match render_fix (x : Pattern_match.t) :
  *)
 let error_to_error err =
   let file = err.E.loc.pos.file in
-  let startp, endp = OutH.position_range err.E.loc err.E.loc in
+  let startp, endp = Output_utils.position_range err.E.loc err.E.loc in
   let rule_id = Option.map Rule_ID.to_string err.E.rule_id in
   let error_type = err.E.typ in
   let severity = E.severity_of_error err.E.typ in
@@ -349,7 +316,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     Out.op;
     children = children |> Common.map explanation_to_explanation;
     matches = matches |> Common.map (unsafe_match_to_match None);
-    loc = OutH.location_of_token_location tloc;
+    loc = Output_utils.location_of_token_location tloc;
   }
 
 let json_time_of_profiling_data profiling_data =
@@ -411,7 +378,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
              {
                Out.rule_id = (rule_id :> string);
                details = Rule.string_of_invalid_rule_error_kind kind;
-               position = OutH.position_of_token_location loc;
+               position = Output_utils.position_of_token_location loc;
              });
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
@@ -421,7 +388,7 @@ let core_output_of_matches_and_errors render_fix nfiles (res : RP.final_result)
     rules_by_engine = Common.map convert_rule res.rules_by_engine;
     engine_requested = `OSS;
   }
-  |> Output_from_core_util.sort_match_results
+  |> Output_utils.sort_match_results
   [@@profiling]
 
 (*****************************************************************************)
